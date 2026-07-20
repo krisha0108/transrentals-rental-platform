@@ -6,8 +6,54 @@ import {
   Loader2, Search, Store, Phone, Mail, MapPin, Layers,
   ChevronRight, RefreshCw, AlertCircle, CheckCircle, Clock,
   XCircle, FileText, Car, Star, TrendingUp, TrendingDown,
-  Calendar, X, Tag, Plus,
+  Calendar, X, Tag, Plus, CalendarDays,
 } from 'lucide-react';
+
+type DatePreset = 'all' | 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'custom';
+
+const DATE_PRESET_LABELS: Record<DatePreset, string> = {
+  all: 'All Time',
+  today: 'Today',
+  yesterday: 'Yesterday',
+  thisWeek: 'This Week',
+  thisMonth: 'This Month',
+  custom: 'Custom Range',
+};
+
+// Returns [from, to] as Date objects (local time, full-day bounds) for a preset.
+// 'thisWeek' uses a Monday-start calendar week.
+function getDateRange(preset: DatePreset, customFrom: string, customTo: string): [Date | null, Date | null] {
+  const now = new Date();
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+  const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+
+  switch (preset) {
+    case 'today':
+      return [startOfDay(now), endOfDay(now)];
+    case 'yesterday': {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      return [startOfDay(y), endOfDay(y)];
+    }
+    case 'thisWeek': {
+      const dayOfWeek = (now.getDay() + 6) % 7; // Monday = 0
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - dayOfWeek);
+      return [startOfDay(monday), endOfDay(now)];
+    }
+    case 'thisMonth': {
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      return [startOfDay(first), endOfDay(now)];
+    }
+    case 'custom':
+      return [
+        customFrom ? startOfDay(new Date(customFrom)) : null,
+        customTo ? endOfDay(new Date(customTo)) : null,
+      ];
+    default:
+      return [null, null];
+  }
+}
 
 // Manager-managed CRM tags — coexist with vendor.status. Keep enum order
 // stable; server validates against the same list.
@@ -88,6 +134,9 @@ export default function ManagerVendorsPage() {
   const [serviceFilter, setServiceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState<DatePreset>('all');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
   const [tagEditorOpenFor, setTagEditorOpenFor] = useState<string | null>(null);
   const [tagSaving, setTagSaving] = useState<string | null>(null);
@@ -170,6 +219,17 @@ export default function ManagerVendorsPage() {
       list = list.filter(v => Array.isArray(v.tags) && v.tags.includes(tagFilter));
     }
 
+    // Joined date filter — tracks vendor onboarding (registration) date
+    if (dateFilter !== 'all' && !(dateFilter === 'custom' && !customFrom && !customTo)) {
+      const [from, to] = getDateRange(dateFilter, customFrom, customTo);
+      list = list.filter(v => {
+        const created = new Date(v.createdAt).getTime();
+        if (from && created < from.getTime()) return false;
+        if (to && created > to.getTime()) return false;
+        return true;
+      });
+    }
+
     // Sort
     switch (sortBy) {
       case 'date_asc':   list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); break;
@@ -181,7 +241,7 @@ export default function ManagerVendorsPage() {
     }
 
     return list;
-  }, [allVendors, search, locationFilter, serviceFilter, statusFilter, tagFilter, sortBy]);
+  }, [allVendors, search, locationFilter, serviceFilter, statusFilter, tagFilter, dateFilter, customFrom, customTo, sortBy]);
 
   // Stats derived from the filtered list so they update with filters
   const filteredStats = useMemo(() => ({
@@ -192,7 +252,7 @@ export default function ManagerVendorsPage() {
   }), [vendors]);
 
   // Reset to page 1 when filters change
-  useEffect(() => { setCurrentPage(1); }, [search, locationFilter, serviceFilter, statusFilter, tagFilter, sortBy]);
+  useEffect(() => { setCurrentPage(1); }, [search, locationFilter, serviceFilter, statusFilter, tagFilter, dateFilter, customFrom, customTo, sortBy]);
 
   const totalPages = Math.ceil(vendors.length / ITEMS_PER_PAGE);
   const paginatedVendors = vendors.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -200,12 +260,14 @@ export default function ManagerVendorsPage() {
   const activeFilterCount = [
     search, locationFilter !== 'all' ? locationFilter : '', serviceFilter !== 'all' ? serviceFilter : '',
     statusFilter !== 'all' ? statusFilter : '', tagFilter !== 'all' ? tagFilter : '',
+    dateFilter !== 'all' ? dateFilter : '',
     sortBy !== 'date_desc' ? sortBy : '',
   ].filter(Boolean).length;
 
   const clearFilters = () => {
     setSearch(''); setLocationFilter('all'); setServiceFilter('all');
-    setStatusFilter('all'); setTagFilter('all'); setSortBy('date_desc');
+    setStatusFilter('all'); setTagFilter('all'); setDateFilter('all');
+    setCustomFrom(''); setCustomTo(''); setSortBy('date_desc');
   };
 
   // Optimistic tag toggle — adds/removes the tag locally, then syncs server.
@@ -307,7 +369,7 @@ export default function ManagerVendorsPage() {
         </div>
 
         {/* Row 2: Dropdowns */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
           {/* Location */}
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1 block">Location</label>
@@ -353,6 +415,17 @@ export default function ManagerVendorsPage() {
             </select>
           </div>
 
+          {/* Joined date */}
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1 block">Joined</label>
+            <select value={dateFilter} onChange={e => setDateFilter(e.target.value as DatePreset)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
+              {(Object.keys(DATE_PRESET_LABELS) as DatePreset[]).map(preset => (
+                <option key={preset} value={preset}>{DATE_PRESET_LABELS[preset]}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Sort */}
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1 block">Sort By</label>
@@ -362,6 +435,19 @@ export default function ManagerVendorsPage() {
             </select>
           </div>
         </div>
+
+        {/* Custom date range inputs */}
+        {dateFilter === 'custom' && (
+          <div className="flex items-center gap-2">
+            <input type="date" value={customFrom} max={customTo || undefined}
+              onChange={e => setCustomFrom(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500" />
+            <span className="text-gray-400 text-sm">to</span>
+            <input type="date" value={customTo} min={customFrom || undefined}
+              onChange={e => setCustomTo(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500" />
+          </div>
+        )}
 
         {/* Active filter chips + clear */}
         {activeFilterCount > 0 && (
@@ -394,6 +480,12 @@ export default function ManagerVendorsPage() {
               <span className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium border border-indigo-200">
                 <Tag className="w-3 h-3" /> {TAG_BY_KEY[tagFilter]?.label || tagFilter}
                 <button onClick={() => setTagFilter('all')}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            )}
+            {dateFilter !== 'all' && (
+              <span className="flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-700 rounded-full text-xs font-medium border border-teal-200">
+                <CalendarDays className="w-3 h-3" /> {DATE_PRESET_LABELS[dateFilter]}
+                <button onClick={() => { setDateFilter('all'); setCustomFrom(''); setCustomTo(''); }}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
             )}
             {sortBy !== 'date_desc' && (
