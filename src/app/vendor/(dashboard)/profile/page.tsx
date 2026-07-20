@@ -68,6 +68,11 @@ const indianStates = [
   'Delhi', 'Jammu and Kashmir', 'Ladakh',
 ];
 
+function clearVendorProfileCache(session: ReturnType<typeof useSession>['data']) {
+  const vendorId = (session?.user as any)?.id || (session?.user as any)?.email || 'unknown';
+  try { sessionStorage.removeItem(`vendor_profile_cache_${vendorId}`); } catch { /* ignore */ }
+}
+
 export default function VendorProfilePage() {
   const { data: session } = useSession();
   const [isFlipped, setIsFlipped] = useState(false);
@@ -212,6 +217,7 @@ export default function VendorProfilePage() {
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
         try { sessionStorage.removeItem('vendor_logo_cache'); } catch { /* ignore */ }
+        clearVendorProfileCache(session);
       } else {
         const errorData = await res.json();
         setError(errorData.error || 'Failed to update profile');

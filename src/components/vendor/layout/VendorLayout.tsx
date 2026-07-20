@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { VendorSidebar } from './VendorSidebar';
-import { Menu, Loader2, AlertTriangle, Lock, CheckCircle2, ArrowRight, X, FileText, MapPin, Wrench } from 'lucide-react';
+import { Menu, Loader2, AlertTriangle, Lock, CheckCircle2, ArrowRight, X, FileText, MapPin, Wrench, Home } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { ToastProvider } from '@/components/ui/toast';
@@ -61,13 +61,23 @@ function VerificationModal({
   docs,
   locations,
   services,
+  hasAddress,
 }: {
   onClose: () => void;
   docs: number;
   locations: number;
   services: number;
+  hasAddress: boolean;
 }) {
   const steps = [
+    {
+      icon: Home,
+      title: 'Add Business Address',
+      desc: 'Your shop/office address',
+      done: hasAddress,
+      href: '/vendor/profile',
+      label: hasAddress ? 'View Address' : 'Add Now',
+    },
     {
       icon: FileText,
       title: 'Upload Documents',
@@ -96,6 +106,7 @@ function VerificationModal({
 
   const nextStep = steps.find(s => !s.done);
   const completedCount = steps.filter(s => s.done).length;
+  const totalSteps = steps.length;
 
   return (
     <div
@@ -115,7 +126,7 @@ function VerificationModal({
               </div>
               <div>
                 <h3 className="text-base font-bold">Verification Required</h3>
-                <p className="text-blue-200 text-xs mt-0.5">Complete {3 - completedCount} more step{3 - completedCount !== 1 ? 's' : ''} to unlock this action</p>
+                <p className="text-blue-200 text-xs mt-0.5">Complete {totalSteps - completedCount} more step{totalSteps - completedCount !== 1 ? 's' : ''} to unlock this action</p>
               </div>
             </div>
             <button onClick={onClose} className="text-white/70 hover:text-white transition-colors">
@@ -126,13 +137,13 @@ function VerificationModal({
           {/* Progress */}
           <div className="mt-4">
             <div className="flex justify-between text-xs text-blue-200 mb-1.5">
-              <span>{completedCount} of 3 steps completed</span>
-              <span className="font-bold text-white">{Math.round((completedCount / 3) * 100)}%</span>
+              <span>{completedCount} of {totalSteps} steps completed</span>
+              <span className="font-bold text-white">{Math.round((completedCount / totalSteps) * 100)}%</span>
             </div>
             <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
               <div
                 className="h-full bg-white rounded-full transition-all duration-500"
-                style={{ width: `${(completedCount / 3) * 100}%` }}
+                style={{ width: `${(completedCount / totalSteps) * 100}%` }}
               />
             </div>
           </div>
@@ -209,6 +220,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
   const [approvedServiceIds, setApprovedServiceIds] = useState<string[]>([]);
   const [approvedServiceSlugs, setApprovedServiceSlugs] = useState<string[]>([]);
   const [onboardingCounts, setOnboardingCounts] = useState({ docs: 0, locations: 0, services: 0 });
+  const [hasAddress, setHasAddress] = useState(true);
   const [statusLoading, setStatusLoading] = useState(true);
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -237,6 +249,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
                 locations: data.locationRequestsCount || 0,
                 services:  data.serviceRequestsCount  || 0,
               });
+              setHasAddress(!!(data.address && String(data.address).trim()));
               setStatusLoading(false);
               return;
             }
@@ -258,6 +271,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
               locations: data.locationRequestsCount || 0,
               services:  data.serviceRequestsCount  || 0,
             });
+            setHasAddress(!!(data.address && String(data.address).trim()));
             // Save to cache
             try {
               sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
@@ -300,6 +314,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
   const contextValue = {
     isApproved,
     vendorStatus,
+    hasAddress,
     openVerificationModal: () => setShowVerificationModal(true),
   };
 
@@ -367,6 +382,27 @@ export function VendorLayout({ children }: VendorLayoutProps) {
               </button>
             </div>
 
+            {/* ── Missing Address Banner ── */}
+            {!statusLoading && !hasAddress && pathname !== '/vendor/profile' && (
+              <div className="bg-blue-50 border-b border-blue-200 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                    <Home className="w-3.5 h-3.5 text-blue-600" />
+                  </div>
+                  <p className="text-sm text-blue-800 truncate">
+                    <span className="font-bold">Business address missing</span>
+                    <span className="hidden sm:inline"> — add it to complete your profile and upload documents</span>
+                  </p>
+                </div>
+                <Link
+                  href="/vendor/profile"
+                  className="shrink-0 text-xs font-bold text-blue-700 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 border border-blue-300 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                >
+                  Add Address <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+            )}
+
             {/* ── Preview Mode Banner ── */}
             {isOnPreviewPage && (
               <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
@@ -400,6 +436,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
               docs={onboardingCounts.docs}
               locations={onboardingCounts.locations}
               services={onboardingCounts.services}
+              hasAddress={hasAddress}
             />
           )}
         </div>
