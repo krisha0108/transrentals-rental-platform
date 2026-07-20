@@ -113,7 +113,6 @@ export default function VendorRegisterPage() {
   };
 
   const validateStep2 = () => {
-    if (!formData.address.trim()) { setError('Business address is required'); return false; }
     if (!formData.city.trim()) { setError('City is required'); return false; }
     if (!formData.state) { setError('Please select your state'); return false; }
     if (!formData.pincode.trim()) { setError('Pincode is required'); return false; }
@@ -583,7 +582,7 @@ export default function VendorRegisterPage() {
                       {/* Address */}
                       <div className="sm:col-span-2">
                         <label className="block text-sm font-semibold text-gray-700 mb-1">
-                          Business Address <span className="text-red-500">*</span>
+                          Business Address
                         </label>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
@@ -594,7 +593,6 @@ export default function VendorRegisterPage() {
                             placeholder="Shop / Office no., Street name, Landmark"
                             rows={2}
                             className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
-                            required
                           />
                         </div>
                       </div>
