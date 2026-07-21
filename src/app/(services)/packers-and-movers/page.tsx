@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CheckCircle, Shield, Star, Clock, MapPin, Package } from 'lucide-react';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { PackersMoversServiceHero } from '@/components/services/PackersMoversServiceHero';
 import { HowToSchema } from '@/components/seo/schemas';
 
 const PACKERS_FAQS = [
@@ -253,19 +253,7 @@ export default function PackersAndMoversPage() {
         ]}
       />
       {/* Hero */}
-      <ServiceHeroWithChat
-        badge="Packers & Movers"
-        title="Verified Packers & Movers"
-        titleHighlight="Across 50+ Cities"
-        description="Home shifting, office relocation, intercity moves. IBA-approved, insured, and GST-verified moving teams. Compare quotes from multiple vendors and book online."
-        features={[
-          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Insured Moving', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Free Quotes', color: 'text-green-600' },
-        ]}
-        gradientFrom="blue-50"
-        gradientTo="indigo-50"
-      />
+      <PackersMoversServiceHero />
 
       {/* Service Types */}
       <section className="py-16 bg-white">
