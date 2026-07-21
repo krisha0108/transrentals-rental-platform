@@ -753,13 +753,16 @@ function slugToLabel(part: string): string {
 export default async function AirportTransferRoutePage({ params }: PageProps) {
   const parsed = parseRouteSlug(params.slug);
 
-  // Invalid route format - must contain "-to-"
+  // Invalid route format - must contain "-to-". Legacy URLs from a previous flat
+  // "/airport-transfer/{city}" scheme still get crawled by Google; 301 to the hub
+  // instead of 404 so the old URL is permanently retired rather than repeatedly
+  // re-checked.
   if (!parsed) {
     if (COMING_SOON_SLUGS.has(params.slug)) {
       const parts = params.slug.split('-to-');
       return <AirportRouteComingSoon fromLabel={slugToLabel(parts[0])} toLabel={slugToLabel(parts[1] ?? '')} slug={params.slug} />;
     }
-    notFound();
+    permanentRedirect('/airport-transfer');
   }
 
   const routeData = await getRouteData(parsed.from, parsed.to, parsed.isCityGeneric);

@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { OneWayRouteBookingHero } from '@/components/one-way-cab/OneWayRouteBookingHero';
@@ -614,12 +614,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function OneWayCabRoutePage({ params }: PageProps) {
   const parsed = parseRouteSlug(params.route);
 
-  // Invalid route format (not "city-to-city") — check coming soon before redirecting
+  // Invalid route format (not "city-to-city") — check coming soon before redirecting.
+  // Legacy URLs from a previous flat "/one-way-cab/{city}" scheme still get crawled
+  // by Google; 301 to the hub instead of 404 so the old URL is permanently retired
+  // rather than repeatedly re-checked.
   if (!parsed) {
     if (COMING_SOON_SLUGS.has(params.route)) {
       return <OneWayCabComingSoon label={routeSlugToLabel(params.route)} slug={params.route.toLowerCase()} />;
     }
-    notFound();
+    permanentRedirect('/one-way-cab');
   }
 
   const routeData = await getRouteData(parsed.from, parsed.to);
