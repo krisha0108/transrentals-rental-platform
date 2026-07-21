@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('ktm-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `KTM on Rent in ${locationName} | Duke & RC Rental @₹999/Day | TransRentals`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `KTM on Rent in ${locationName} | @₹999/Day`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent KTM bikes in ${locationName}. Duke 200, Duke 390, RC 200, RC 390 available. High performance sports bikes. Book your KTM rental now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `ktm on rent in ${locationName}`,

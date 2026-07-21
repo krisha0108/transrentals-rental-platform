@@ -6,7 +6,7 @@ import { formatPriceHighlight } from '@/lib/utils';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: formatPriceHighlight('Sports Car Rental | Supercar Hire @₹25000/Day | Ferrari Lamborghini India'),
+  title: 'Sports Car Rental | Supercar Hire from ₹25000 | Ferrari',
   description: formatPriceHighlight('Rent sports cars & supercars. Ferrari, Lamborghini, Porsche available. Luxury sports car hire @₹25000/day. Self-drive & chauffeur options.'),
   keywords: [
     'sports car rental',

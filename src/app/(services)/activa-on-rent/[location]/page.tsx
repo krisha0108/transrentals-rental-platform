@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('activa-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Activa on Rent in ${locationName} | Scooty Rental @₹299/Day | TransRentals`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Activa on Rent in ${locationName} | @₹299/Day`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Activa & scooters in ${locationName}. Honda Activa, TVS Jupiter, Suzuki Access available. Fuel efficient, easy to ride. Book your scooty rental now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `activa on rent in ${locationName}`,

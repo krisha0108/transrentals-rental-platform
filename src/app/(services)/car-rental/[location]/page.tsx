@@ -66,14 +66,10 @@ export const dynamicParams = true;
 // Generate metadata for SEO
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
-
-  if (!city) {
-    return {
-      title: 'Car Rental | TransRentals',
-    };
-  }
-
-  const locationName = city.name;
+  // Fall back to a humanized slug for cities not in the curated list — otherwise
+  // metadata is left without a description and inherits the generic site-wide
+  // one from the root layout, producing mass duplicate meta descriptions.
+  const locationName = city?.name ?? params.location.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   const [_seoDb, scContent] = await Promise.all([
     resolvePageMeta(`car-rental:${params.location.toLowerCase()}`),
@@ -95,7 +91,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `creta on rent ${locationName.toLowerCase()}`,
       `swift on rent ${locationName.toLowerCase()}`,
       `cab rental ${locationName.toLowerCase()}`,
-      ...(city.keywords || []).map(k => `car rental ${k}`),
+      ...(city?.keywords || []).map(k => `car rental ${k}`),
     ],
     openGraph: {
       title: `Car Rental in ${locationName} - With Driver | Starting ₹999/Day | TransRentals`,

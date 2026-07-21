@@ -7,7 +7,7 @@ import { formatPriceHighlight } from '@/lib/utils';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: formatPriceHighlight('Self Drive Sedan Rental India | Rent Sedan Without Driver @₹1299/Day | TransRentals'),
+  title: 'Self Drive Sedan Rental India | Starting from ₹1299/Day',
   description: formatPriceHighlight('Rent sedan without driver across India. Honda City, Hyundai Verna, Maruti Ciaz, Skoda Slavia available. Self-drive sedan rental for business & leisure.'),
   keywords: [
     'self drive sedan rental',

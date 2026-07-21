@@ -7,7 +7,7 @@ import { formatPriceHighlight } from '@/lib/utils';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: formatPriceHighlight('Scorpio on Rent Without Driver | Self Drive @₹2499/Day | TransRentals'),
+  title: 'Scorpio on Rent Without Driver | Self Drive @₹2499/Day',
   description: formatPriceHighlight('Rent Mahindra Scorpio-N without driver across India. Rugged SUV for adventure trips, outstation. 6 & 7 seater. Book now!'),
   keywords: ['scorpio on rent', 'mahindra scorpio on rent', 'scorpio n self drive', 'rent scorpio without driver'],
   openGraph: { title: formatPriceHighlight('Scorpio on Rent Without Driver @₹2499/Day'), url: 'https://transrentals.in/scorpio-on-rent' },

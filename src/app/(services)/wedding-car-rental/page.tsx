@@ -6,7 +6,7 @@ import { formatPriceHighlight } from '@/lib/utils';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: formatPriceHighlight('Wedding Car Rental | Shadi Car on Rent @₹2999/Day | Baraat Car Hire'),
+  title: 'Wedding Car Rental | Shadi Car on Rent from ₹2999',
   description: formatPriceHighlight('Book wedding cars for your special day. Luxury sedans, vintage cars, decorated cars. Baraat car rental, bride/groom car hire. Pan-India service.'),
   keywords: [
     'wedding car rental',

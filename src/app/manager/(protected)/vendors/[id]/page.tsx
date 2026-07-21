@@ -1315,8 +1315,32 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                     <label className="text-sm text-gray-500">Address</label>
                     <p className="font-medium text-gray-900 flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-gray-400" />
-                      {vendor.address}, {vendor.city}, {vendor.state} - {vendor.pincode}
+                      {vendor.address}
                     </p>
+                  </div>
+                )}
+                {vendor.city && (
+                  <div>
+                    <label className="text-sm text-gray-500">City</label>
+                    <p className="font-medium text-gray-900">{vendor.city}</p>
+                  </div>
+                )}
+                {vendor.state && (
+                  <div>
+                    <label className="text-sm text-gray-500">State</label>
+                    <p className="font-medium text-gray-900">{vendor.state}</p>
+                  </div>
+                )}
+                {vendor.pincode && (
+                  <div>
+                    <label className="text-sm text-gray-500">Pincode</label>
+                    <p className="font-medium text-gray-900">{vendor.pincode}</p>
+                  </div>
+                )}
+                {!vendor.address && !vendor.city && !vendor.state && !vendor.pincode && (
+                  <div className="col-span-2">
+                    <label className="text-sm text-gray-500">Address</label>
+                    <p className="text-sm text-gray-400 italic">Not provided</p>
                   </div>
                 )}
                 {vendor.gstNumber && (

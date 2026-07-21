@@ -214,20 +214,17 @@ export const dynamicParams = true;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
-  // Fallback: getAllCities().find(c => c.slug === params.location);
-
-  if (!city) {
-    return { title: 'Outstation Cab | TransRentals' };
-  }
-
-  const locationName = city.name;
+  // Fall back to a humanized slug for cities not in the curated list — otherwise
+  // metadata is left without a description and inherits the generic site-wide
+  // one from the root layout, producing mass duplicate meta descriptions.
+  const locationName = city?.name ?? params.location.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   const [_seoDb, scContent] = await Promise.all([
     resolvePageMeta(`outstation-cab:${params.location.toLowerCase()}`),
     getServiceCityContent('outstation-cab', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Outstation Cab ${locationName} | Intercity Taxi @₹12/Km | Round Trip`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Outstation Cab from ${locationName} | @₹12/Km Round Trip`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Book outstation cab from ${locationName}. Intercity taxi, round trip & one-way cabs. Sedan, SUV available. Station taxi @₹12/km.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `outstation cab ${locationName.toLowerCase()}`,
@@ -238,7 +235,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `outstation car rental ${locationName.toLowerCase()}`,
       `intercity travel ${locationName.toLowerCase()}`,
       `one way cab ${locationName.toLowerCase()}`,
-      ...(city.keywords || []).map(k => `outstation cab ${k}`),
+      ...(city?.keywords || []).map(k => `outstation cab ${k}`),
     ],
     openGraph: {
       title: `Outstation Cab from ${locationName} - Intercity Taxi @₹12/Km`,

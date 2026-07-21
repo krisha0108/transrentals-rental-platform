@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('jcb-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `JCB on Rent in ${locationName} | Starting from ₹2,999/Day | TransRentals`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `JCB on Rent in ${locationName} | @₹2,999/Day`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent JCB backhoe loaders in ${locationName} for construction, excavation & road work. Expert operators included. Book JCB rental now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `jcb on rent in ${locationName}`,
@@ -198,7 +198,7 @@ export default async function JCBLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <WhyRentHere locationName={locationName} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location.toLowerCase()}

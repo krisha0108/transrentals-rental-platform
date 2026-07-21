@@ -4,7 +4,7 @@ import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
 import { FAQSection } from '@/components/services/FAQSection';
 
 export const metadata: Metadata = {
-  title: 'Rajasthan Bike Tour 2025 | Guided Motorcycle Tour from ₹24,999 | TransRentals',
+  title: 'Rajasthan Bike Tour 2025 | Guided Tour from ₹24,999',
   description: 'Book Rajasthan guided bike tour. 7 days Delhi-Jaipur-Jodhpur-Jaisalmer-Udaipur with ride captain, Royal Enfield, accommodation & meals. Desert safari included.',
   keywords: [
     'rajasthan bike tour',

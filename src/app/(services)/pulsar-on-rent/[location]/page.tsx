@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('pulsar-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Pulsar on Rent in ${locationName} | Bajaj Pulsar Rental @₹499/Day | TransRentals`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Pulsar on Rent in ${locationName} | @₹499/Day`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Bajaj Pulsar bikes in ${locationName}. Pulsar 150, 180, NS200, RS200 available. Reliable sports bikes. Book your Pulsar rental now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `pulsar on rent in ${locationName}`,

@@ -148,28 +148,36 @@ export default function VendorOnboarding({
       {/* ──────────────── 1. ONBOARDING PROGRESS STRIP ──────────────── */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         {/* Blue header bar */}
-        <div className={`px-5 py-3 flex items-center justify-between ${allDone ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-blue-600 to-indigo-700'}`}>
-          <div className="flex items-center gap-2.5">
-            {allDone
-              ? <Clock className="w-4 h-4 text-white/90" />
-              : <AlertCircle className="w-4 h-4 text-blue-200" />
-            }
-            <span className="text-sm font-bold text-white">
-              {allDone ? 'All steps done — account is under review' : 'Complete verification to unlock full access'}
-            </span>
+        <div className={`px-5 py-3 ${allDone ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-blue-600 to-indigo-700'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              {allDone
+                ? <Clock className="w-4 h-4 text-white/90" />
+                : <AlertCircle className="w-4 h-4 text-blue-200" />
+              }
+              <span className="text-sm font-bold text-white">
+                {allDone ? 'All steps done — account is under review' : 'Complete verification to unlock full access'}
+              </span>
+            </div>
+            <span className="text-xs font-bold text-white/70 shrink-0">{completedCount}/3 done</span>
           </div>
-          <span className="text-xs font-bold text-white/70 shrink-0">{completedCount}/3 done</span>
+          {!allDone && (
+            <p className="text-xs text-blue-100/90 mt-1 pl-6">
+              Finish all 3 steps — Documents, Locations &amp; Services — to become an <span className="font-semibold text-white">official TransRentals vendor</span>.
+            </p>
+          )}
         </div>
 
         <div className="px-5 py-4">
           {/* Step pills */}
           <div className="flex items-center gap-1.5 mb-4">
             {steps.map((step, idx) => {
-              const isDone   = step.status === 'done';
-              const isActive = step.status === 'active';
+              const isDone    = step.status === 'done';
+              const isActive  = step.status === 'active';
+              const isLastStep = idx === steps.length - 1;
               return (
                 <div key={step.id} className="flex items-center gap-1.5 flex-1 min-w-0">
-                  <div className={`flex items-center gap-2 flex-1 px-3 py-2 rounded-xl border text-xs font-semibold min-w-0 ${
+                  <div className={`relative flex items-center gap-2 flex-1 px-3 py-2 rounded-xl border text-xs font-semibold min-w-0 ${
                     isDone   ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
                     isActive ? 'bg-blue-50 border-blue-300 text-blue-700 ring-1 ring-blue-200' :
                                'bg-gray-50 border-gray-200 text-gray-400'
@@ -179,6 +187,13 @@ export default function VendorOnboarding({
                       : <div className={`w-3.5 h-3.5 rounded-full border-2 shrink-0 ${isActive ? 'border-blue-500 bg-blue-100' : 'border-gray-300'}`} />
                     }
                     <span className="truncate">{step.shortTitle}</span>
+                    {isLastStep && !isDone && (
+                      <span className={`absolute -top-2 -right-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                        isActive ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
+                      }`}>
+                        Final Step
+                      </span>
+                    )}
                   </div>
                   {idx < steps.length - 1 && <ChevronRight className="w-3 h-3 text-gray-300 shrink-0" />}
                 </div>
@@ -202,10 +217,16 @@ export default function VendorOnboarding({
                 href={activeStep.action.href}
                 className="shrink-0 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors"
               >
-                Continue <ArrowRight className="w-3.5 h-3.5" />
+                {activeStep.id === 'services' ? 'Finish Final Step' : 'Continue'} <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             )}
           </div>
+
+          {!allDone && activeStep.id === 'services' && (
+            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mt-3 flex items-center gap-1.5">
+              🎉 This is your final step — complete it and become an <span className="font-semibold">official TransRentals vendor</span>!
+            </p>
+          )}
         </div>
       </div>
 

@@ -7,7 +7,7 @@ import { formatPriceHighlight } from '@/lib/utils';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: formatPriceHighlight('Seltos on Rent Without Driver | Self Drive Seltos @₹1899/Day | TransRentals'),
+  title: 'Seltos on Rent Without Driver | Self Drive @₹1899/Day',
   description: formatPriceHighlight('Rent Kia Seltos without driver across India. Self-drive Seltos rental for family trips & outstation. HTK, HTX, GTX variants. Book now!'),
   keywords: ['seltos on rent', 'kia seltos on rent', 'seltos self drive', 'rent seltos without driver'],
   openGraph: {

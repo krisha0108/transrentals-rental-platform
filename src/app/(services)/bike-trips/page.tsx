@@ -4,7 +4,7 @@ import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: 'Bike Trip Rentals India | Ladakh, Spiti, Rajasthan Motorcycle Tours | TransRentals',
+  title: 'Bike Trip Rentals India | Ladakh, Spiti, Rajasthan Tours',
   description: 'Rent bikes for road trips across India. Ladakh, Spiti Valley, Rajasthan, Goa bike tours. Royal Enfield, Himalayan available. One-way drops, gear included.',
   keywords: [
     'bike trip rental india',
