@@ -7,7 +7,7 @@ import { formatPriceHighlight } from '@/lib/utils';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: formatPriceHighlight('Swift on Rent Without Driver | Self Drive Swift @₹899/Day | TransRentals'),
+  title: 'Swift on Rent Without Driver | Self Drive @₹899/Day',
   description: formatPriceHighlight('Rent Maruti Swift without driver across India. Self-drive Swift rental for city commute & short trips. Most popular hatchback with great mileage. Book now!'),
   keywords: [
     'swift on rent',

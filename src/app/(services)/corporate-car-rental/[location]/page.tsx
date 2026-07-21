@@ -33,20 +33,17 @@ export const dynamicParams = true;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
-  // Fallback: getAllCities().find(c => c.slug === params.location);
-
-  if (!city) {
-    return { title: 'Corporate Car Rental | TransRentals' };
-  }
-
-  const locationName = city.name;
+  // Fall back to a humanized slug for cities not in the curated list — otherwise
+  // metadata is left without a description and inherits the generic site-wide
+  // one from the root layout, producing mass duplicate meta descriptions.
+  const locationName = city?.name ?? params.location.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   const [_seoDb, scContent] = await Promise.all([
     resolvePageMeta(`corporate-car-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('corporate-car-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Corporate Car Rental ${locationName} | Employee Transport @₹15k | Business Taxi`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Corporate Car Rental in ${locationName} | @₹15k/Month`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Corporate car rental in ${locationName}. Employee transport, business meetings, fleet management. Professional service @₹15000/month.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `corporate car rental ${locationName.toLowerCase()}`,
@@ -55,7 +52,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `business car rental ${locationName.toLowerCase()}`,
       `company car lease ${locationName.toLowerCase()}`,
       `office cab ${locationName.toLowerCase()}`,
-      ...(city.keywords || []).map(k => `corporate car ${k}`),
+      ...(city?.keywords || []).map(k => `corporate car ${k}`),
     ],
     openGraph: {
       title: `Corporate Car Rental in ${locationName} - Employee Transport @₹15k`,
@@ -263,7 +260,7 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
             </div>
           </div>
         </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content

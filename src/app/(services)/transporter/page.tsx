@@ -49,7 +49,7 @@ const TOP_CITIES = [
 ];
 
 export const metadata: Metadata = {
-  title: 'Transporter & Truck Rental | Starting from ₹3,999/Day | TransRentals',
+  title: 'Transporter & Truck Rental | Starting from ₹3,999/Day',
   description:
     'Book trucks and goods vehicles across India. Tata Ace (1-ton) to 40-ft trailers. GPS tracking, verified drivers, full-load and part-load options. Get instant quotes from verified transporters.',
   keywords: [

@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('generator-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Generator on Rent in ${locationName} | DG Set @₹1500/Day | TransRentals`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Generator on Rent in ${locationName} | DG Set @₹1500/Day`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire generator in ${locationName} for events, construction, industrial backup. 5KVA to 500KVA.`,
     alternates: { canonical: `https://transrentals.in/generator-on-rent/${params.location.toLowerCase()}` },
     twitter: {
@@ -137,7 +137,7 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
+      */}
       <BikeServiceSchema
         serviceName="Generator on Rent"
         serviceSlug="generator-on-rent"

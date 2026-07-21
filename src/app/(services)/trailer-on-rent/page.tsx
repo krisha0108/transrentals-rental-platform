@@ -7,7 +7,7 @@ import { TrailerFAQ } from '@/components/services/trailer/TrailerFAQ';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { HowToSchema } from '@/components/seo/schemas';
 export const metadata = {
-  title: 'Trailer on Rent - Heavy Duty Trailer Rental Services | TransRentals',
+  title: 'Trailer on Rent - Heavy Duty Trailer Rental Services',
   description: 'Rent trailers for heavy cargo transportation. 20ft, 28ft, 32ft, 40ft trailers available. Book now for best rates across India.',
 };
 

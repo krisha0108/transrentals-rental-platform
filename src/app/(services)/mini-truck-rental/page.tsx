@@ -52,7 +52,7 @@ const TOP_CITIES = [
 ];
 
 export const metadata: Metadata = {
-  title: 'Mini Truck Rental | Tata Ace on Rent | Starting ₹1,499/Day | TransRentals',
+  title: 'Mini Truck Rental | Tata Ace on Rent | ₹1,499/Day',
   description:
     'Rent Tata Ace, Bolero Pickup and mini trucks across India for house shifting, last-mile delivery, and goods transport. Driver included. Book by the hour or full day across 250+ cities.',
   keywords: [

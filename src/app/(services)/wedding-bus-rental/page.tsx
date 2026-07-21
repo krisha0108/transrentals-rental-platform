@@ -8,7 +8,7 @@ import { formatPriceHighlight } from '@/lib/utils';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: formatPriceHighlight('Wedding Bus Rental - Luxury Buses for Marriage Starting @₹3999 | TransRentals'),
+  title: 'Wedding Bus Rental - Luxury Buses for Marriage @₹3999',
   description:
     formatPriceHighlight('Rent luxury AC buses for weddings. Guest transportation, decorated buses, 20-50 seater options. Make your wedding memorable. Book now!'),
   keywords: [

@@ -5,7 +5,7 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: 'Guided Bike Tours India | Leh Ladakh, Spiti, Rajasthan Motorcycle Tours | TransRentals',
+  title: 'Guided Bike Tours India | Leh Ladakh, Spiti, Rajasthan Tours',
   description: 'Book guided motorcycle tours across India. Leh Ladakh, Spiti Valley, Rajasthan, Goa tours with ride captain, backup vehicle, accommodation & meals included. Starting ₹24,999.',
   keywords: [
     'guided bike tours india',

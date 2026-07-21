@@ -77,7 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('equipment-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Equipment Rental in ${locationName} | Starting from ₹1,499/Day | TransRentals`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Equipment Rental in ${locationName} | @₹1,499/Day`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent construction and event equipment in ${locationName}. Excavators, cranes, generators, DJ systems. Professional operators available. Book now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `equipment rental in ${locationName}`,

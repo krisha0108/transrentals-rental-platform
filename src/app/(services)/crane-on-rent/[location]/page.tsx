@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('crane-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Crane on Rent in ${locationName} | @₹8000/Day | TransRentals`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Crane on Rent in ${locationName} | @₹8000/Day`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire crane in ${locationName} for construction & industrial projects. Mobile, tower, hydra cranes available.`,
     alternates: { canonical: `https://transrentals.in/crane-on-rent/${params.location.toLowerCase()}` },
     twitter: {
@@ -141,7 +141,7 @@ export default async function CraneLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
+      */}
       <BikeServiceSchema
         serviceName="Crane on Rent"
         serviceSlug="crane-on-rent"

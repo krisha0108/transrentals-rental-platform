@@ -7,7 +7,7 @@ import { formatPriceHighlight } from '@/lib/utils';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: formatPriceHighlight('Self Drive Hatchback Rental India | Rent Hatchback @₹899/Day | TransRentals'),
+  title: 'Self Drive Hatchback Rental India | @₹899/Day',
   description: formatPriceHighlight('Rent hatchback without driver across India. Swift, i20, Baleno, Tiago available. Self-drive hatchback rental for city commute. Most affordable option.'),
   keywords: [
     'self drive hatchback rental',

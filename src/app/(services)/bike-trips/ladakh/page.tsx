@@ -5,7 +5,7 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: 'Ladakh Bike Trip Rental | Rent Himalayan, Classic 350 for Leh @₹799/Day | TransRentals',
+  title: 'Ladakh Bike Trip Rental | Himalayan, Classic 350 @₹799/Day',
   description: 'Rent Royal Enfield bikes for Ladakh trip. Himalayan, Classic 350, Bullet available in Delhi, Manali, Leh. Perfect for Khardung La, Pangong. One-way drops available. Book now!',
   keywords: [
     'ladakh bike trip',

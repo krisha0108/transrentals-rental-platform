@@ -33,13 +33,10 @@ export const dynamicParams = true;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
-  // Fallback: getAllCities().find(c => c.slug === params.location);
-
-  if (!city) {
-    return { title: 'Chauffeur Service | TransRentals' };
-  }
-
-  const locationName = city.name;
+  // Fall back to a humanized slug for cities not in the curated list — otherwise
+  // metadata is left without a description and inherits the generic site-wide
+  // one from the root layout, producing mass duplicate meta descriptions.
+  const locationName = city?.name ?? params.location.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   const [_seoDb, scContent] = await Promise.all([
     resolvePageMeta(`chauffeur-service:${params.location.toLowerCase()}`),
@@ -56,7 +53,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `personal driver ${locationName.toLowerCase()}`,
       `driver booking ${locationName.toLowerCase()}`,
       `chauffeur ${locationName.toLowerCase()}`,
-      ...(city.keywords || []).map(k => `chauffeur service ${k}`),
+      ...(city?.keywords || []).map(k => `chauffeur service ${k}`),
     ],
     openGraph: {
       title: `Chauffeur Service in ${locationName} - Driver on Hire @₹599`,
@@ -303,7 +300,7 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
             ))}
           </div>
         </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content
