@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Loader2, Search, Store, Phone, Mail, MapPin, Layers,
-  ChevronRight, RefreshCw, AlertCircle, CheckCircle, Clock,
+  ChevronRight, ChevronDown, RefreshCw, AlertCircle, CheckCircle, Clock,
   XCircle, FileText, Car, Star, TrendingUp, TrendingDown,
   Calendar, X, Tag, Plus, CalendarDays,
 } from 'lucide-react';
@@ -120,6 +120,96 @@ const SORT_OPTIONS = [
   { value: 'fleet_asc',    label: 'Small Fleet',     icon: Car },
 ];
 
+// Searchable dropdown for the Location/Service filters — plain <select> options
+// aren't searchable in most browsers once the list gets long (100+ locations).
+function FilterSearchSelect({
+  label, options, allLabel, value, onChange,
+}: {
+  label: string;
+  options: string[];
+  allLabel: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery('');
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filtered = query.trim()
+    ? options.filter(o => o.toLowerCase().includes(query.trim().toLowerCase()))
+    : options;
+
+  const selectOption = (v: string) => { onChange(v); setOpen(false); setQuery(''); };
+
+  return (
+    <div ref={ref} className="relative">
+      <label className="text-xs text-gray-500 font-medium mb-1 block">{label}</label>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between gap-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white text-left"
+      >
+        <span className={`truncate ${value === 'all' ? 'text-gray-500' : 'text-gray-900 font-medium'}`}>
+          {value === 'all' ? allLabel : value}
+        </span>
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-1 w-full min-w-[220px] bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input
+                autoFocus
+                type="text"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder={`Search ${label.toLowerCase()}...`}
+                className="w-full pl-8 pr-2 py-1.5 border border-gray-200 rounded-md text-xs focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+            </div>
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => selectOption('all')}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-green-50 transition-colors ${value === 'all' ? 'bg-green-50 text-green-700 font-semibold' : 'text-gray-700'}`}
+            >
+              {allLabel}
+            </button>
+            {filtered.length === 0 ? (
+              <p className="px-3 py-3 text-xs text-gray-400 text-center">No matches</p>
+            ) : (
+              filtered.map(opt => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => selectOption(opt)}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-green-50 truncate transition-colors ${value === opt ? 'bg-green-50 text-green-700 font-semibold' : 'text-gray-700'}`}
+                >
+                  {opt}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ManagerVendorsPage() {
   const router = useRouter();
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
@@ -141,7 +231,8 @@ export default function ManagerVendorsPage() {
   const [tagEditorOpenFor, setTagEditorOpenFor] = useState<string | null>(null);
   const [tagSaving, setTagSaving] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 25;
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
   const fetchVendors = async () => {
     try {
@@ -251,11 +342,11 @@ export default function ManagerVendorsPage() {
     suspended: vendors.filter(v => v.status === 'SUSPENDED').length,
   }), [vendors]);
 
-  // Reset to page 1 when filters change
-  useEffect(() => { setCurrentPage(1); }, [search, locationFilter, serviceFilter, statusFilter, tagFilter, dateFilter, customFrom, customTo, sortBy]);
+  // Reset to page 1 when filters or page size change
+  useEffect(() => { setCurrentPage(1); }, [search, locationFilter, serviceFilter, statusFilter, tagFilter, dateFilter, customFrom, customTo, sortBy, itemsPerPage]);
 
-  const totalPages = Math.ceil(vendors.length / ITEMS_PER_PAGE);
-  const paginatedVendors = vendors.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(vendors.length / itemsPerPage);
+  const paginatedVendors = vendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const activeFilterCount = [
     search, locationFilter !== 'all' ? locationFilter : '', serviceFilter !== 'all' ? serviceFilter : '',
@@ -371,24 +462,22 @@ export default function ManagerVendorsPage() {
         {/* Row 2: Dropdowns */}
         <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
           {/* Location */}
-          <div>
-            <label className="text-xs text-gray-500 font-medium mb-1 block">Location</label>
-            <select value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
-              <option value="all">All Locations</option>
-              {uniqueLocations.map(l => <option key={l} value={l}>{l}</option>)}
-            </select>
-          </div>
+          <FilterSearchSelect
+            label="Location"
+            allLabel="All Locations"
+            options={uniqueLocations}
+            value={locationFilter}
+            onChange={setLocationFilter}
+          />
 
           {/* Service */}
-          <div>
-            <label className="text-xs text-gray-500 font-medium mb-1 block">Service</label>
-            <select value={serviceFilter} onChange={e => setServiceFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
-              <option value="all">All Services</option>
-              {uniqueServices.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
+          <FilterSearchSelect
+            label="Service"
+            allLabel="All Services"
+            options={uniqueServices}
+            value={serviceFilter}
+            onChange={setServiceFilter}
+          />
 
           {/* Status */}
           <div>
@@ -687,11 +776,29 @@ export default function ManagerVendorsPage() {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between bg-white rounded-xl border shadow-sm px-4 py-3">
-          <p className="text-sm text-gray-500">
-            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, vendors.length)} of {vendors.length} vendors
-          </p>
+      {vendors.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white rounded-xl border shadow-sm px-4 py-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <p className="text-sm text-gray-500">
+              Showing <span className="font-medium text-gray-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, vendors.length)}</span> of <span className="font-medium text-gray-700">{vendors.length}</span> vendors
+            </p>
+            <span className="hidden sm:inline text-gray-300">·</span>
+            <div className="flex items-center gap-2">
+              <label htmlFor="itemsPerPage" className="text-sm text-gray-500">Show</label>
+              <select
+                id="itemsPerPage"
+                value={itemsPerPage}
+                onChange={e => setItemsPerPage(Number(e.target.value))}
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white cursor-pointer transition-colors"
+              >
+                {PAGE_SIZE_OPTIONS.map(size => (
+                  <option key={size} value={size}>{size}</option>
+                ))}
+              </select>
+              <span className="text-sm text-gray-500">per page</span>
+            </div>
+          </div>
+          {totalPages > 1 && (
           <div className="flex items-center gap-1">
             <button
               onClick={() => setCurrentPage(1)}
@@ -749,6 +856,7 @@ export default function ManagerVendorsPage() {
               »
             </button>
           </div>
+          )}
         </div>
       )}
     </div>
