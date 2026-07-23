@@ -56,7 +56,8 @@ model admin_users {
   vendor_location_requests        vendor_location_requests[]
   vendor_payout_batches           vendor_payout_batches[]
   vendor_service_requests         vendor_service_requests[]
-  vendors                         vendors[]
+  vendors                         vendors[]                  @relation("vendors_approvedBy")
+  vendors_created                 vendors[]                  @relation("vendors_createdBy")
   travel_agents                   travel_agents[]
   travel_agent_documents_uploaded travel_agent_documents[]   @relation("travel_agent_documents_uploadedBy")
   travel_agent_documents          travel_agent_documents[]   @relation("travel_agent_documents_verifiedBy")
@@ -3837,6 +3838,7 @@ model vendors {
   isPhoneVerified                                                 Boolean                          @default(false)
   approvedAt                                                      DateTime?
   approvedById                                                    String?
+  createdById                                                     String?
   rejectionReason                                                 String?                          @db.Text
   rating                                                          Float?                           @default(0)
   totalRatings                                                    Int                              @default(0)
@@ -3912,7 +3914,8 @@ model vendors {
   vendor_conversations_1                                          vendor_conversations[]           @relation("conv_vendor1")
   vendor_conversations_2                                          vendor_conversations[]           @relation("conv_vendor2")
   vendor_messages                                                 vendor_messages[]                @relation("msg_sender")
-  admin_users                                                     admin_users?                     @relation(fields: [approvedById], references: [id])
+  admin_users                                                     admin_users?                     @relation("vendors_approvedBy", fields: [approvedById], references: [id])
+  createdByAdmin                                                  admin_users?                     @relation("vendors_createdBy", fields: [createdById], references: [id])
   wander_bookings                                                 wander_bookings[]
   wander_listings                                                 wander_listings[]
   wander_quotes                                                   wander_quotes[]
@@ -3922,6 +3925,7 @@ model vendors {
   vendor_tag_assignments vendor_tag_assignments[]
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
+  @@index([createdById], map: "vendors_createdById_fkey")
   @@index([email])
   @@index([phone])
   @@index([status])
