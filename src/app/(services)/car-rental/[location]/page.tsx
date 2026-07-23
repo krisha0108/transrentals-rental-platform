@@ -187,6 +187,7 @@ async function getPackagesForLocation(locationSlug: string) {
       select: {
         id: true,
         vehicleCategoryId: true,
+        locationId: true,
         name: true,
         hours: true,
         kms: true,
@@ -199,11 +200,24 @@ async function getPackagesForLocation(locationSlug: string) {
       },
     });
 
-    // Group packages by category
-    const categoriesWithPackages = categories.map((category) => ({
-      ...category,
-      packages: packagesData.filter((p) => p.vehicleCategoryId === category.id),
-    })).filter((category) => category.packages.length > 0); // Only include categories with packages
+    // Group packages by category. A category can have both a location-specific
+    // and a global (locationId: null) package for the same hours/km combo — keep
+    // only the location-specific one when both exist, instead of showing duplicates.
+    const categoriesWithPackages = categories.map((category) => {
+      const categoryPackages = packagesData.filter((p) => p.vehicleCategoryId === category.id);
+      const byHoursKms = new Map<string, (typeof categoryPackages)[number]>();
+      for (const pkg of categoryPackages) {
+        const key = `${pkg.hours}-${pkg.kms}`;
+        const existing = byHoursKms.get(key);
+        if (!existing || (existing.locationId === null && pkg.locationId !== null)) {
+          byHoursKms.set(key, pkg);
+        }
+      }
+      return {
+        ...category,
+        packages: Array.from(byHoursKms.values()).map(({ locationId, ...pkg }) => pkg),
+      };
+    }).filter((category) => category.packages.length > 0); // Only include categories with packages
 
     return categoriesWithPackages;
   } catch (error) {
