@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Loader2, Search, Store, Phone, Mail, MapPin, Layers,
   ChevronRight, ChevronDown, RefreshCw, AlertCircle, CheckCircle, Clock,
@@ -417,11 +418,18 @@ export default function ManagerVendorsPage() {
             {totalPages > 1 && <span className="ml-1 text-gray-400">· Page {currentPage}/{totalPages}</span>}
           </p>
         </div>
-        <button onClick={handleRefresh} disabled={isRefreshing}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50">
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <Link href="/manager/vendors/create"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-green-600 text-green-700 rounded-lg hover:bg-green-50 transition font-medium">
+            <Plus className="w-4 h-4" />
+            Create Vendor
+          </Link>
+          <button onClick={handleRefresh} disabled={isRefreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50">
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

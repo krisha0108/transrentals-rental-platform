@@ -1703,8 +1703,8 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
           {pendingServiceRequests.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
               <div className="p-4 bg-yellow-50 border-b flex items-center justify-between">
-                <h3 className="font-semibold text-yellow-800 flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
+                <h3 className="text-sm font-semibold text-yellow-800 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
                   Pending Service Requests ({pendingServiceRequests.length})
                 </h3>
                 <div className="flex items-center gap-2">
@@ -1784,8 +1784,8 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
           {/* Add Service Panel */}
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
             <div className="p-4 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-blue-600" />
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-blue-600" />
                 Add Services Directly
               </h3>
               <Button size="sm" onClick={showAddSvc ? () => setShowAddSvc(false) : openAddSvcPanel} variant={showAddSvc ? 'outline' : 'default'}>
@@ -1810,24 +1810,52 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                     (s) => !alreadyApproved.has(s.id) &&
                       (!addSvcSearch || s.name.toLowerCase().includes(addSvcSearch.toLowerCase()))
                   );
+                  const filteredIds = filtered.map((s) => s.id);
+                  const allFilteredSelected = filteredIds.length > 0 && filteredIds.every((sid) => addSvcSelected.has(sid));
+                  const toggleAllFiltered = () => {
+                    setAddSvcSelected((prev) => {
+                      const s = new Set(prev);
+                      if (allFilteredSelected) {
+                        filteredIds.forEach((sid) => s.delete(sid));
+                      } else {
+                        filteredIds.forEach((sid) => s.add(sid));
+                      }
+                      return s;
+                    });
+                  };
                   return (
-                    <div className="max-h-56 overflow-y-auto border rounded-lg divide-y">
+                    <div className="border rounded-lg overflow-hidden">
                       {filtered.length === 0 ? (
                         <p className="p-4 text-center text-sm text-gray-400">
                           {allServices.length === 0 ? 'Loading...' : 'No services available to add'}
                         </p>
                       ) : (
-                        filtered.map((svc) => (
-                          <label key={svc.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
+                        <>
+                          <label className="flex items-center gap-3 px-4 py-2 bg-gray-50 border-b cursor-pointer">
                             <input
                               type="checkbox"
-                              checked={addSvcSelected.has(svc.id)}
-                              onChange={() => setAddSvcSelected((prev) => { const s = new Set(prev); s.has(svc.id) ? s.delete(svc.id) : s.add(svc.id); return s; })}
+                              checked={allFilteredSelected}
+                              onChange={toggleAllFiltered}
                               className="w-4 h-4 accent-blue-600"
                             />
-                            <span className="text-sm font-medium text-gray-900">{svc.name}</span>
+                            <span className="text-xs font-medium text-gray-500">
+                              {allFilteredSelected ? 'Deselect all' : `Select all ${filtered.length}`}
+                            </span>
                           </label>
-                        ))
+                          <div className="max-h-56 overflow-y-auto divide-y">
+                            {filtered.map((svc) => (
+                              <label key={svc.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={addSvcSelected.has(svc.id)}
+                                  onChange={() => setAddSvcSelected((prev) => { const s = new Set(prev); s.has(svc.id) ? s.delete(svc.id) : s.add(svc.id); return s; })}
+                                  className="w-4 h-4 accent-blue-600"
+                                />
+                                <span className="text-sm font-medium text-gray-900">{svc.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </>
                       )}
                     </div>
                   );
@@ -1861,8 +1889,8 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
               <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
                 <div className="p-4 bg-green-50 border-b">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-green-800 flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5" />
+                    <h3 className="text-sm font-semibold text-green-800 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4" />
                       Approved Services ({activeServices.length})
                     </h3>
                     {selectedSvcIds.size > 0 && (
@@ -1949,7 +1977,7 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
           {/* All Service Requests History */}
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
             <div className="p-4 border-b">
-              <h3 className="font-semibold text-gray-900">Request History</h3>
+              <h3 className="text-sm font-semibold text-gray-900">Request History</h3>
             </div>
             <div className="divide-y">
               {vendor.serviceRequests
@@ -1991,8 +2019,8 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
           {pendingLocationRequests.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
               <div className="p-4 bg-yellow-50 border-b flex items-center justify-between">
-                <h3 className="font-semibold text-yellow-800 flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
+                <h3 className="text-sm font-semibold text-yellow-800 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
                   Pending Location Requests ({pendingLocationRequests.length})
                 </h3>
                 <div className="flex items-center gap-2">
@@ -2191,8 +2219,8 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
           {/* Add Location Panel */}
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
             <div className="p-4 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-blue-600" />
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-blue-600" />
                 Add Locations Directly
               </h3>
               <Button size="sm" onClick={showAddLoc ? () => setShowAddLoc(false) : openAddLocPanel} variant={showAddLoc ? 'outline' : 'default'}>
@@ -2236,26 +2264,54 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                       (!addLocSearch || l.name.toLowerCase().includes(addLocSearch.toLowerCase()) || l.parentName.toLowerCase().includes(addLocSearch.toLowerCase())) &&
                       (!addLocStateFilter || l.parentName === addLocStateFilter)
                   );
+                  const filteredIds = filtered.map((l) => l.id);
+                  const allFilteredSelected = filteredIds.length > 0 && filteredIds.every((lid) => addLocSelected.has(lid));
+                  const toggleAllFiltered = () => {
+                    setAddLocSelected((prev) => {
+                      const s = new Set(prev);
+                      if (allFilteredSelected) {
+                        filteredIds.forEach((lid) => s.delete(lid));
+                      } else {
+                        filteredIds.forEach((lid) => s.add(lid));
+                      }
+                      return s;
+                    });
+                  };
                   return (
-                    <div className="max-h-56 overflow-y-auto border rounded-lg divide-y">
+                    <div className="border rounded-lg overflow-hidden">
                       {filtered.length === 0 ? (
                         <p className="p-4 text-center text-sm text-gray-400">
                           {allLocations.length === 0 ? 'Loading...' : 'No locations available to add'}
                         </p>
                       ) : (
-                        filtered.map((loc) => (
-                          <label key={loc.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
+                        <>
+                          <label className="flex items-center gap-3 px-4 py-2 bg-gray-50 border-b cursor-pointer">
                             <input
                               type="checkbox"
-                              checked={addLocSelected.has(loc.id)}
-                              onChange={() => setAddLocSelected((prev) => { const s = new Set(prev); s.has(loc.id) ? s.delete(loc.id) : s.add(loc.id); return s; })}
+                              checked={allFilteredSelected}
+                              onChange={toggleAllFiltered}
                               className="w-4 h-4 accent-blue-600"
                             />
-                            <MapPin className="w-4 h-4 text-blue-500" />
-                            <span className="text-sm font-medium text-gray-900">{loc.name}</span>
-                            {loc.parentName && <span className="text-xs text-gray-400">({loc.parentName})</span>}
+                            <span className="text-xs font-medium text-gray-500">
+                              {allFilteredSelected ? 'Deselect all' : `Select all ${filtered.length}`}
+                            </span>
                           </label>
-                        ))
+                          <div className="max-h-56 overflow-y-auto divide-y">
+                            {filtered.map((loc) => (
+                              <label key={loc.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={addLocSelected.has(loc.id)}
+                                  onChange={() => setAddLocSelected((prev) => { const s = new Set(prev); s.has(loc.id) ? s.delete(loc.id) : s.add(loc.id); return s; })}
+                                  className="w-4 h-4 accent-blue-600"
+                                />
+                                <MapPin className="w-4 h-4 text-blue-500" />
+                                <span className="text-sm font-medium text-gray-900">{loc.name}</span>
+                                {loc.parentName && <span className="text-xs text-gray-400">({loc.parentName})</span>}
+                              </label>
+                            ))}
+                          </div>
+                        </>
                       )}
                     </div>
                   );
@@ -2297,8 +2353,8 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
               <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
                 <div className="p-4 bg-green-50 border-b">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-green-800 flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5" />
+                    <h3 className="text-sm font-semibold text-green-800 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4" />
                       Approved Locations ({activeLocations.length})
                     </h3>
                     {selectedLocIds.size > 0 && (
@@ -2407,7 +2463,7 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
           {/* All Location Requests History */}
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
             <div className="p-4 border-b">
-              <h3 className="font-semibold text-gray-900">Request History</h3>
+              <h3 className="text-sm font-semibold text-gray-900">Request History</h3>
             </div>
             <div className="divide-y">
               {vendor.locationRequests

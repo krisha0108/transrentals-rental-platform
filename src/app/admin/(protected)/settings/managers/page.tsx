@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, User, MapPin, Briefcase, Eye, EyeOff, Check, X, Shield } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Edit, Trash2, User, MapPin, Briefcase, Eye, EyeOff, Check, X, Shield, Activity } from 'lucide-react';
 
 interface Location {
   id: string;
@@ -222,16 +223,25 @@ export default function ManagersPage() {
             Manage manager accounts and their location/service assignments
           </p>
         </div>
-        <button
-          onClick={() => {
-            resetForm();
-            setShowModal(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <Plus size={20} />
-          Add Manager
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/settings/managers/activity"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-blue-600 text-blue-700 rounded-lg hover:bg-blue-50"
+          >
+            <Activity size={18} />
+            Manager Activity
+          </Link>
+          <button
+            onClick={() => {
+              resetForm();
+              setShowModal(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus size={20} />
+            Add Manager
+          </button>
+        </div>
       </div>
 
       {/* Managers List */}
