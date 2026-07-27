@@ -99,13 +99,13 @@ export async function GET(request: NextRequest) {
         ? prisma.self_drive_quote_requests.findMany({ where: locationIdFilter, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, locationName: true, customers: customerSelect } }).catch(() => [])
         : Promise.resolve([]),
       isAssigned('equipment-rental', ['equipment'])
-        ? prisma.equipment_quote_requests.findMany({ where: deliveryCityFilter, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, locationName: true, customers: customerSelect } }).catch(() => [])
+        ? prisma.equipment_quote_requests.findMany({ where: deliveryCityFilter, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, deliveryCity: true, customers: customerSelect } }).catch(() => [])
         : Promise.resolve([]),
       isAssigned('luxury-car-rental', ['luxury'])
         ? prisma.luxury_quote_requests.findMany({ where: pickupCityFilter, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, pickupCity: true, customers: customerSelect } }).catch(() => [])
         : Promise.resolve([]),
       isAssigned('packers-and-movers', ['packers-movers'])
-        ? prisma.packers_quote_requests.findMany({ where: packersPickupFilter, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, locationName: true, customers: customerSelect } }).catch(() => [])
+        ? prisma.packers_quote_requests.findMany({ where: packersPickupFilter, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, pickupCity: true, customers: customerSelect } }).catch(() => [])
         : Promise.resolve([]),
       isAssigned('truck-transport', ['truck', 'transporter'])
         ? prisma.truck_quote_requests.findMany({ where: pickupCityFilter, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, pickupCity: true, customers: customerSelect } }).catch(() => [])
@@ -116,9 +116,9 @@ export async function GET(request: NextRequest) {
       ...bike.map((r: any) => ({ ...r, serviceName: 'Bike Rental', locationName: r.locationName })),
       ...bus.map((r: any) => ({ ...r, serviceName: 'Bus Rental', locationName: r.pickupCity })),
       ...selfDrive.map((r: any) => ({ ...r, serviceName: 'Self Drive', locationName: r.locationName })),
-      ...equipment.map((r: any) => ({ ...r, serviceName: 'Equipment Rental', locationName: r.locationName })),
+      ...equipment.map((r: any) => ({ ...r, serviceName: 'Equipment Rental', locationName: r.deliveryCity })),
       ...luxury.map((r: any) => ({ ...r, serviceName: 'Luxury Cars', locationName: r.pickupCity })),
-      ...packers.map((r: any) => ({ ...r, serviceName: 'Packers & Movers', locationName: r.locationName })),
+      ...packers.map((r: any) => ({ ...r, serviceName: 'Packers & Movers', locationName: r.pickupCity })),
       ...truck.map((r: any) => ({ ...r, serviceName: 'Truck Transport', locationName: r.pickupCity })),
     ];
 
