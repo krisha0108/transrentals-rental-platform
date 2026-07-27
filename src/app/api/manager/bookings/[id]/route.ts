@@ -10,6 +10,32 @@ import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
 
+// Fire-and-forget accountability log — records which manager took what action
+// on a booking. Never awaited/blocking; failures are logged but don't affect
+// the booking mutation response. Powers the admin-side Manager Performance view.
+function logManagerBookingAction(
+  managerId: string,
+  serviceSlug: string,
+  bookingId: string,
+  actionType: 'STATUS_CHANGED' | 'CANCELLED' | 'VENDOR_ASSIGNED',
+  previousStatus: string | null | undefined,
+  newStatus: string,
+  note?: string | null
+) {
+  prisma.manager_action_logs.create({
+    data: {
+      recordType: 'BOOKING',
+      serviceType: serviceSlug,
+      recordId: bookingId,
+      actionType,
+      previousStatus: previousStatus || null,
+      newStatus,
+      note: note || null,
+      managerId,
+    },
+  }).catch((e) => logger.error('Failed to log manager booking action', e));
+}
+
 // GET - Get single booking detail for manager (search across all services)
 export async function GET(
   request: NextRequest,
@@ -604,6 +630,7 @@ export async function PUT(
 
     // ==================== VERIFY PAYMENT ====================
     if (action === 'verify_payment') {
+      logManagerBookingAction(session.user.id, serviceSlug, bookingId, 'STATUS_CHANGED', booking.status, 'PAYMENT_VERIFIED', 'Payment verified');
       if (table === 'chauffeur') {
         const isSingleVendor = !!booking.assignedVendorId;
         const advanceAmount = booking.paidAmount > 0
@@ -614,6 +641,7 @@ export async function PUT(
           where: { id: bookingId },
           data: {
             paymentStatus: advanceAmount >= booking.grandTotal ? 'PAID' : 'PARTIAL',
+            advancePaymentVerified: true,
             paidAmount: advanceAmount,
             status: isSingleVendor ? 'PENDING_VENDOR' : 'BROADCASTED',
             broadcastedAt: new Date(),
@@ -1061,6 +1089,7 @@ export async function PUT(
 
     // ==================== FORCE VERIFY PAYMENT (Razorpay paid but webhook missed) ====================
     if (action === 'force_verify_payment') {
+      logManagerBookingAction(session.user.id, serviceSlug, bookingId, 'STATUS_CHANGED', booking.status, 'PAYMENT_VERIFIED', 'Payment force-verified');
       if (table !== 'chauffeur') {
         return NextResponse.json({ success: false, error: 'Action not supported for this service type' }, { status: 400 });
       }
@@ -1079,6 +1108,7 @@ export async function PUT(
         where: { id: bookingId },
         data: {
           paymentStatus: 'PAID',
+          advancePaymentVerified: true,
           paidAmount: booking.grandTotal || 0,
           status: isSingleVendorFV ? 'PENDING_VENDOR' : 'BROADCASTED',
           broadcastedAt: new Date(),
@@ -1144,6 +1174,7 @@ export async function PUT(
 
     // ==================== REJECT PAYMENT ====================
     if (action === 'reject_payment') {
+      logManagerBookingAction(session.user.id, serviceSlug, bookingId, 'STATUS_CHANGED', booking.status, 'PAYMENT_REJECTED', reason || notes);
       const rejectNotes = reason || notes || 'Payment rejected by manager';
       const rejectNotifBody = `Your booking payment was rejected. ${reason || 'Please contact support.'}`;
       const serviceTypeMap: Record<string, string> = {
@@ -1158,6 +1189,7 @@ export async function PUT(
           data: {
             status: 'PENDING_PAYMENT',
             paymentStatus: 'FAILED',
+            advancePaymentVerified: false,
             adminNotes: rejectNotes,
           },
         });
@@ -1263,6 +1295,7 @@ export async function PUT(
 
     // ==================== BROADCAST ====================
     if (action === 'broadcast') {
+      logManagerBookingAction(session.user.id, serviceSlug, bookingId, 'STATUS_CHANGED', booking.status, 'BROADCASTED');
       if (table === 'chauffeur') {
         await prisma.chauffeur_bookings.update({
           where: { id: bookingId },
@@ -1317,6 +1350,7 @@ export async function PUT(
 
     // ==================== COMPLETE TRIP ====================
     if (action === 'complete_trip') {
+      logManagerBookingAction(session.user.id, serviceSlug, bookingId, 'STATUS_CHANGED', booking.status, 'COMPLETED');
       if (table === 'chauffeur') {
         await prisma.chauffeur_bookings.update({ where: { id: bookingId }, data: { status: 'COMPLETED', completedAt: new Date() } });
       } else if (table === 'bike') {
@@ -1361,6 +1395,7 @@ export async function PUT(
     // ==================== CANCEL BOOKING ====================
     if (action === 'cancel') {
       const cancelReason = reason || 'Cancelled by manager';
+      logManagerBookingAction(session.user.id, serviceSlug, bookingId, 'CANCELLED', booking.status, 'CANCELLED', cancelReason);
 
       if (table === 'chauffeur') {
         await prisma.chauffeur_bookings.update({ where: { id: bookingId }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledBy: 'MANAGER', cancellationReason: cancelReason } });

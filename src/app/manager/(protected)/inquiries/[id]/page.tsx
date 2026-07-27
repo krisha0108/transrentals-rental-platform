@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Calendar, MapPin, User, Phone, Mail, FileText, Clock, Building } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, User, Phone, Mail, FileText, Clock, Building, PhoneCall, StickyNote, ThumbsUp, ThumbsDown, Bell, Loader2 as Spinner, History } from 'lucide-react';
 
 interface QuoteRequest {
   id: string;
@@ -34,6 +34,14 @@ interface QuoteRequest {
   tripType?: string;
   customerNotes?: string;
   createdAt: string;
+}
+
+interface ActionLog {
+  id: string;
+  actionType: string;
+  note: string | null;
+  createdAt: string;
+  manager: { id: string; name: string; email: string } | null;
 }
 
 interface VendorQuote {
@@ -70,6 +78,9 @@ export default function InquiryDetailPage() {
   const [quotes, setQuotes] = useState<VendorQuote[]>([]);
   const [quotesCount, setQuotesCount] = useState(0);
   const [callLogs, setCallLogs] = useState<any[]>([]);
+  const [actionLogs, setActionLogs] = useState<ActionLog[]>([]);
+  const [noteText, setNoteText] = useState('');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInquiryDetails();
@@ -92,6 +103,7 @@ export default function InquiryDetailPage() {
         setRequest(data.request);
         setQuotes(data.quotes || []);
         setQuotesCount(data.quotesCount || 0);
+        setActionLogs(data.actionLogs || []);
       } else {
         if (data.redirectUrl) { router.push(data.redirectUrl); return; }
         console.error('Failed to fetch inquiry:', data.error);
@@ -101,6 +113,33 @@ export default function InquiryDetailPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const logAction = async (actionType: string, note?: string) => {
+    setActionLoading(actionType);
+    try {
+      const res = await fetch(`/api/manager/inquiries/${inquiryId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionType, note }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to log action');
+        return;
+      }
+      if (actionType === 'NOTE_ADDED') setNoteText('');
+      await fetchInquiryDetails();
+    } catch {
+      alert('Network error. Please try again.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCallClick = () => {
+    // Best-effort: log the call action without blocking the tel: navigation.
+    logAction('CALLED');
   };
 
   const formatDate = (dateString: string) => {
@@ -219,7 +258,7 @@ export default function InquiryDetailPage() {
               <Phone className="w-4 h-4 text-gray-400 shrink-0" />
               <div>
                 <p className="text-xs text-gray-500">Phone</p>
-                <a href={`tel:${request.customerPhone}`} className="font-medium text-blue-600 text-sm hover:underline">
+                <a href={`tel:${request.customerPhone}`} onClick={handleCallClick} className="font-medium text-blue-600 text-sm hover:underline">
                   {request.customerPhone}
                 </a>
               </div>
@@ -332,6 +371,88 @@ export default function InquiryDetailPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Manager Actions ── */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Bell className="w-4 h-4 text-orange-500" />
+          Manager Actions
+          {actionLogs.length > 0 && (
+            <span className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+              Actioned · {actionLogs.length}
+            </span>
+          )}
+        </h2>
+
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={() => logAction('FOLLOW_UP')}
+            disabled={!!actionLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 transition"
+          >
+            {actionLoading === 'FOLLOW_UP' ? <Spinner className="w-3.5 h-3.5 animate-spin" /> : <PhoneCall className="w-3.5 h-3.5" />}
+            Follow-Up Required
+          </button>
+          <button
+            onClick={() => logAction('CONVERTED')}
+            disabled={!!actionLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-green-200 text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50 transition"
+          >
+            {actionLoading === 'CONVERTED' ? <Spinner className="w-3.5 h-3.5 animate-spin" /> : <ThumbsUp className="w-3.5 h-3.5" />}
+            Converted
+          </button>
+          <button
+            onClick={() => logAction('NOT_INTERESTED')}
+            disabled={!!actionLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 transition"
+          >
+            {actionLoading === 'NOT_INTERESTED' ? <Spinner className="w-3.5 h-3.5 animate-spin" /> : <ThumbsDown className="w-3.5 h-3.5" />}
+            Not Interested
+          </button>
+        </div>
+
+        <div className="flex items-start gap-2">
+          <textarea
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            placeholder="Add a note about this inquiry..."
+            rows={2}
+            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
+          />
+          <button
+            onClick={() => logAction('NOTE_ADDED', noteText)}
+            disabled={!noteText.trim() || !!actionLoading}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-40 transition shrink-0"
+          >
+            {actionLoading === 'NOTE_ADDED' ? <Spinner className="w-3.5 h-3.5 animate-spin" /> : <StickyNote className="w-3.5 h-3.5" />}
+            Add Note
+          </button>
+        </div>
+
+        {actionLogs.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1.5">
+              <History className="w-3.5 h-3.5" />
+              Action History
+            </p>
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {actionLogs.map((log) => (
+                <div key={log.id} className="flex items-start gap-2.5 text-sm bg-gray-50 rounded-lg px-3 py-2">
+                  <span className="shrink-0 mt-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-white border border-gray-200 text-gray-600">
+                    {log.actionType.replace('_', ' ')}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    {log.note && <p className="text-gray-700 break-words">{log.note}</p>}
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {log.manager?.name || 'Manager'} · {new Date(log.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Vendor Quotes — full width ── */}

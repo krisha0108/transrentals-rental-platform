@@ -990,6 +990,7 @@ export async function POST(request: NextRequest) {
         where: { id: bookingId },
         data: {
           paymentStatus: advanceAmount >= booking.grandTotal ? 'PAID' : 'PARTIAL',
+          advancePaymentVerified: true,
           paidAmount: advanceAmount,
           status: isSingleVendor ? 'PENDING_VENDOR' : 'BROADCASTED',
           broadcastedAt: new Date(),
@@ -1093,6 +1094,7 @@ export async function POST(request: NextRequest) {
         where: { id: bookingId },
         data: {
           paymentStatus: 'FAILED',
+          advancePaymentVerified: false,
           adminNotes: notes || 'Payment verification failed',
         },
       });

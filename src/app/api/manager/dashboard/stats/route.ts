@@ -140,7 +140,7 @@ export async function GET(request: Request) {
       truckBookings,
     ] = await Promise.all([
       // bike-rental
-      isServiceAssigned('bike-rental') || isServiceAssigned('bike')
+      isServiceAssigned('bike-rental') || isServiceAssigned('bike') || isServiceAssigned('bike-on-rent')
         ? prisma.bike_bookings.count({ where: locationIdFilter }).catch(() => 0)
         : Promise.resolve(0),
       // bus-rental
@@ -188,7 +188,7 @@ export async function GET(request: Request) {
       truckQuotes,
     ] = await Promise.all([
       // bike-rental
-      isServiceAssigned('bike-rental') || isServiceAssigned('bike')
+      isServiceAssigned('bike-rental') || isServiceAssigned('bike') || isServiceAssigned('bike-on-rent')
         ? prisma.bike_quote_requests.count({ where: locationIdFilter }).catch(() => 0)
         : Promise.resolve(0),
       // bus-rental
@@ -289,7 +289,7 @@ export async function GET(request: Request) {
     const quotesByService: { [key: string]: number } = {};
 
     // Add services only if they are assigned to the manager
-    if (isServiceAssigned('bike-rental') || isServiceAssigned('bike')) {
+    if (isServiceAssigned('bike-rental') || isServiceAssigned('bike') || isServiceAssigned('bike-on-rent')) {
       bookingsByService['Bike Rental'] = bikeBookings;
       quotesByService['Bike Rental'] = bikeQuotes;
     }

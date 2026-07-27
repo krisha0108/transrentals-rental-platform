@@ -39,6 +39,7 @@ interface Inquiry {
   dropDate?: string;
   quotesCount: number;
   callsCount: number;
+  actionsCount: number;
   source?: string;
   createdAt: string;
 }
@@ -550,6 +551,14 @@ export default function ManagerInquiriesPage() {
                         }`}>
                           <Phone className="w-3 h-3" />
                           {inquiry.callsCount} {inquiry.callsCount === 1 ? 'call' : 'calls'}
+                        </div>
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          inquiry.actionsCount > 0
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-red-50 text-red-500'
+                        }`}>
+                          {inquiry.actionsCount > 0 ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                          {inquiry.actionsCount > 0 ? 'Actioned' : 'Not Actioned'}
                         </div>
                       </div>
                       <ChevronRight className="w-5 h-5 text-gray-400" />

@@ -547,6 +547,7 @@ export async function GET(
             transactionId: booking.transactionId,
             partialPayment: booking.partialPayment,
             remainingPayment: booking.remainingPayment,
+            advancePaymentVerified: booking.advancePaymentVerified,
 
             // Status & Tracking
             status: booking.status,
@@ -2336,6 +2337,7 @@ export async function PUT(
         where: { id },
         data: {
           paymentStatus: 'PAID',
+          advancePaymentVerified: true,
           paidAmount: booking.grandTotal || 0,
           status: isSingleVendor ? 'PENDING_VENDOR' : 'BROADCASTED',
           broadcastedAt: new Date(),
