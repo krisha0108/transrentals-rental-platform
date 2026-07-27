@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   FileText, Briefcase, MapPin, TrendingUp, Clock, CheckCircle, AlertCircle,
   Users, Loader2, RefreshCw, MessageSquare, Plus, Calendar,
@@ -45,6 +46,18 @@ interface RecentBooking {
   createdAt: string;
 }
 
+interface RecentInquiry {
+  id: string;
+  requestNumber: string;
+  status: string;
+  customerName: string | null;
+  serviceName: string;
+  locationName: string | null;
+  quotesCount: number;
+  actionsCount: number;
+  createdAt: string;
+}
+
 type DatePreset = 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'all' | 'custom';
 
 const DATE_PRESET_LABELS: Record<DatePreset, string> = {
@@ -70,9 +83,11 @@ const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> 
 
 export default function ManagerDashboard() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [managerInfo, setManagerInfo] = useState<ManagerInfo | null>(null);
   const [attention, setAttention] = useState<AttentionStats | null>(null);
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
+  const [recentInquiries, setRecentInquiries] = useState<RecentInquiry[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -86,8 +101,11 @@ export default function ManagerDashboard() {
   // recent bookings, and "needs attention" counts. Fetched once (+ on refresh).
   const fetchDashboardInfo = useCallback(async () => {
     try {
-      const res = await fetch('/api/manager/dashboard');
-      const data = await res.json();
+      const [dashRes, inquiriesRes] = await Promise.all([
+        fetch('/api/manager/dashboard'),
+        fetch('/api/manager/inquiries'),
+      ]);
+      const data = await dashRes.json();
       if (data.success) {
         setManagerInfo(data.manager);
         setAttention({
@@ -99,6 +117,11 @@ export default function ManagerDashboard() {
         setRecentBookings((data.bookings || []).slice(0, 8));
       } else {
         setError(data.error || 'Failed to fetch dashboard data');
+      }
+
+      const inquiriesData = await inquiriesRes.json();
+      if (inquiriesData.success) {
+        setRecentInquiries((inquiriesData.inquiries || []).slice(0, 8));
       }
     } catch (err: any) {
       console.error('Failed to fetch manager info:', err);
@@ -332,6 +355,62 @@ export default function ManagerDashboard() {
             <p className="text-2xl font-bold text-green-800">{attention?.completedToday || 0}</p>
           </Link>
         </div>
+      </div>
+
+      {/* Recent Inquiries */}
+      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div className="p-4 border-b flex items-center justify-between">
+          <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-yellow-500" />
+            Recent Inquiries
+          </h2>
+          <Link href="/manager/inquiries" className="text-sm font-medium text-green-600 hover:text-green-700">
+            View All →
+          </Link>
+        </div>
+        {recentInquiries.length === 0 ? (
+          <div className="text-center py-10 text-gray-500">
+            <FileText className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+            <p className="text-sm">No recent inquiries yet</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500">Customer</th>
+                  <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500">Service</th>
+                  <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500">Location</th>
+                  <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500">Quotes</th>
+                  <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500">Status</th>
+                  <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {recentInquiries.map((inq) => (
+                  <tr
+                    key={inq.id}
+                    onClick={() => router.push(`/manager/inquiries/${inq.id}`)}
+                    className="hover:bg-gray-50 cursor-pointer"
+                  >
+                    <td className="px-4 py-2.5 text-sm text-gray-900">{inq.customerName || '—'}</td>
+                    <td className="px-4 py-2.5 text-sm text-gray-600">{inq.serviceName}</td>
+                    <td className="px-4 py-2.5 text-sm text-gray-600">{inq.locationName || '—'}</td>
+                    <td className="px-4 py-2.5 text-sm text-gray-900">{inq.quotesCount}</td>
+                    <td className="px-4 py-2.5">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        inq.actionsCount > 0 ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-500'
+                      }`}>
+                        {inq.actionsCount > 0 ? 'Actioned' : 'Not Actioned'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-sm text-gray-500">{formatDate(inq.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Recent Bookings */}

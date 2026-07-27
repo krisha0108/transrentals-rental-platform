@@ -499,6 +499,7 @@ const settingsItems: NavItem[] = [
     icon: UserCog,
     children: [
       { name: 'All Managers', href: '/admin/settings/managers', icon: UserCog },
+      { name: 'Manager Performance', href: '/admin/settings/managers/performance', icon: TrendingUp },
       { name: 'Manager Activity', href: '/admin/settings/managers/activity', icon: Activity },
     ],
   },

@@ -318,10 +318,26 @@ export async function GET(request: NextRequest) {
       inquiry.callsCount = callCountMap[inquiry.id] || 0;
     }
 
+    // Fetch manager action counts for all inquiry IDs — powers the "Actioned" badge
+    const actionCountRows = allIds.length > 0
+      ? await prisma.manager_action_logs.groupBy({
+          by: ['recordId'],
+          where: { recordType: 'INQUIRY', recordId: { in: allIds } },
+          _count: { recordId: true },
+        }).catch(() => [])
+      : [];
+    const actionCountMap: Record<string, number> = {};
+    for (const row of actionCountRows) {
+      actionCountMap[row.recordId] = row._count.recordId;
+    }
+    for (const inquiry of allInquiries) {
+      inquiry.actionsCount = actionCountMap[inquiry.id] || 0;
+    }
+
     // Create unique service list based on main service names
     // Each entry has alternateSlug variants so manager assignment matching works
     const mainServices: { slug: string; name: string; alts: string[] }[] = [
-      { slug: 'bike-rental', name: 'Bike Rental', alts: ['bike'] },
+      { slug: 'bike-rental', name: 'Bike Rental', alts: ['bike', 'bike-on-rent'] },
       { slug: 'bus-rental', name: 'Bus Rental', alts: ['bus'] },
       { slug: 'self-drive', name: 'Self Drive', alts: ['self-drive-car-rentals', 'self-drive-car-rental'] },
       { slug: 'equipment-rental', name: 'Equipment Rental', alts: ['equipment'] },

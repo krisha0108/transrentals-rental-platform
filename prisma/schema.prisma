@@ -63,6 +63,7 @@ model admin_users {
   travel_agent_documents          travel_agent_documents[]   @relation("travel_agent_documents_verifiedBy")
   vendor_tag_assignments          vendor_tag_assignments[]
   driver_tag_assignments          driver_tag_assignments[]
+  manager_action_logs             manager_action_logs[]
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -952,6 +953,7 @@ model chauffeur_bookings {
   transactionId                                        String?
   partialPayment                                       Float?
   remainingPayment                                     Float?
+  advancePaymentVerified                               Boolean                          @default(false)
   tripStartOtp                                         String?
   tripEndOtp                                           String?
   customerNotes                                        String?                          @db.Text
@@ -7090,6 +7092,41 @@ model vendor_call_logs {
   @@index([vendorId])
   @@index([bookingId])
   @@index([bookingType, bookingId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MANAGER ACTION LOGS — accountability trail: which manager acted on which
+// inquiry/booking, what action they took, and when. Powers the admin-side
+// "Manager Performance" tracking (daily inquiry/booking coverage per manager).
+// ─────────────────────────────────────────────────────────────────────────────
+
+model manager_action_logs {
+  id             String              @id @default(cuid())
+  recordType     String // 'INQUIRY' | 'BOOKING'
+  serviceType    String // serviceSlug, e.g. 'bike-rental', 'car-rental'
+  recordId       String // id row in the relevant quote_requests / bookings table
+  actionType     manager_action_type
+  note           String?             @db.Text
+  previousStatus String?
+  newStatus      String?
+  managerId      String
+  admin_users    admin_users         @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  createdAt      DateTime            @default(now())
+
+  @@index([managerId, createdAt])
+  @@index([recordType, recordId])
+  @@index([recordType, serviceType, createdAt])
+}
+
+enum manager_action_type {
+  CALLED
+  NOTE_ADDED
+  FOLLOW_UP
+  CONVERTED
+  NOT_INTERESTED
+  STATUS_CHANGED
+  VENDOR_ASSIGNED
+  CANCELLED
 }
 
 model service_city_content {
