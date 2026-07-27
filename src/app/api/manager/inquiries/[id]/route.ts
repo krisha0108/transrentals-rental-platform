@@ -7,11 +7,15 @@ import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
 // Action types a manager can log against an inquiry (quote request).
-const INQUIRY_ACTION_TYPES = ['CALLED', 'NOTE_ADDED', 'FOLLOW_UP', 'CONVERTED', 'NOT_INTERESTED'];
+const INQUIRY_ACTION_TYPES = [
+  'CALLED', 'NOTE_ADDED', 'FOLLOW_UP', 'CONVERTED', 'NOT_INTERESTED',
+  'CONNECTED', 'RESPONDED', 'NO_RESPONSE', 'WRONG_NUMBER', 'PRICE_TOO_HIGH',
+  'HOT_LEAD', 'COLD_LEAD', 'DUPLICATE_INQUIRY',
+];
 
 // Resolve which quote_requests table a given id belongs to, and its serviceSlug.
 // Mirrors the lookup in GET below, but only fetches the id (cheap existence check).
-async function resolveInquiryService(requestId: string): Promise<string | null> {
+export async function resolveInquiryService(requestId: string): Promise<string | null> {
   const [bike, bus, selfDrive, equipment, luxury, packers, truck] = await Promise.all([
     prisma.bike_quote_requests.findUnique({ where: { id: requestId }, select: { id: true } }).catch(() => null),
     prisma.bus_quote_requests.findUnique({ where: { id: requestId }, select: { id: true } }).catch(() => null),
@@ -413,11 +417,17 @@ export async function GET(
       updatedAt: quote.updatedAt,
     }));
 
-    const actionLogs = await prisma.manager_action_logs.findMany({
-      where: { recordType: 'INQUIRY', recordId: requestId },
-      include: { admin_users: { select: { id: true, name: true, email: true } } },
-      orderBy: { createdAt: 'desc' },
-    }).catch(() => []);
+    const [actionLogs, tagRows] = await Promise.all([
+      prisma.manager_action_logs.findMany({
+        where: { recordType: 'INQUIRY', recordId: requestId },
+        include: { admin_users: { select: { id: true, name: true, email: true } } },
+        orderBy: { createdAt: 'desc' },
+      }).catch(() => []),
+      prisma.inquiry_tag_assignments.findMany({
+        where: { recordId: requestId },
+        select: { tag: true },
+      }).catch(() => []),
+    ]);
 
     return NextResponse.json({
       success: true,
@@ -431,6 +441,7 @@ export async function GET(
         createdAt: l.createdAt,
         manager: l.admin_users,
       })),
+      tags: tagRows.map((t) => t.tag),
     });
   } catch (error: any) {
     logger.error('Manager inquiry detail error', error);

@@ -13,6 +13,17 @@ export async function GET(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
+    // Vendors should only see the broadcast pool for locations they're
+    // actively approved for — vendor_approved_locations.isActive is a real
+    // soft-delete flag (set false when an admin/manager removes an approved
+    // location), not just decorative, so it must be filtered here.
+    const approvedLocationRows = await prisma.vendor_approved_locations.findMany({
+      where: { vendorId, isActive: true },
+      select: { locationId: true },
+    });
+    const approvedLocationIds = approvedLocationRows.map((l) => l.locationId);
+
     const { searchParams } = new URL(request.url);
     const status    = searchParams.get('status');
     const search    = searchParams.get('search');
@@ -33,6 +44,7 @@ export async function GET(request: NextRequest) {
       ...dateFilter,
       status: { in: ['PENDING_VENDOR', 'BROADCASTED'] },
       acceptedVendorId: null,
+      locationId: { in: approvedLocationIds },
     };
 
     const ownCondition: any = {
@@ -46,9 +58,9 @@ export async function GET(request: NextRequest) {
       if (status === 'my_bookings') {
         whereConditions = [{ ...dateFilter, acceptedVendorId: vendorId, status: { not: 'PENDING_PAYMENT' } }];
       } else if (status === 'available') {
-        whereConditions = [{ ...dateFilter, status: { in: ['PENDING_VENDOR', 'BROADCASTED'] }, acceptedVendorId: null }];
+        whereConditions = [{ ...dateFilter, status: { in: ['PENDING_VENDOR', 'BROADCASTED'] }, acceptedVendorId: null, locationId: { in: approvedLocationIds } }];
       } else if (['PENDING_VENDOR', 'BROADCASTED'].includes(status)) {
-        whereConditions = [{ ...dateFilter, status, acceptedVendorId: null }];
+        whereConditions = [{ ...dateFilter, status, acceptedVendorId: null, locationId: { in: approvedLocationIds } }];
       } else {
         whereConditions = [{ ...dateFilter, status, acceptedVendorId: vendorId }];
       }
@@ -63,7 +75,7 @@ export async function GET(request: NextRequest) {
       OR: [
         { assignedVendorId: vendorId },
         { acceptedVendorId: vendorId },
-        { status: { in: ['PENDING_VENDOR', 'BROADCASTED'] } },
+        { status: { in: ['PENDING_VENDOR', 'BROADCASTED'] }, locationId: { in: approvedLocationIds } },
       ],
     };
 
@@ -141,7 +153,7 @@ export async function GET(request: NextRequest) {
 
     const [availableCount, ownBookings] = await Promise.all([
       prisma.chauffeur_bookings.count({
-        where: { ...(startDate || endDate ? dateFilter : {}), status: { in: ['PENDING_VENDOR', 'BROADCASTED'] }, acceptedVendorId: null },
+        where: { ...(startDate || endDate ? dateFilter : {}), status: { in: ['PENDING_VENDOR', 'BROADCASTED'] }, acceptedVendorId: null, locationId: { in: approvedLocationIds } },
       }),
       prisma.chauffeur_bookings.findMany({
         where: { ...(startDate || endDate ? dateFilter : {}), acceptedVendorId: vendorId, status: { not: 'PENDING_PAYMENT' } },

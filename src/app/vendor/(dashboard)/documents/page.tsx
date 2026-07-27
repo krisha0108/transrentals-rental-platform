@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   FileText, Upload, CheckCircle, CheckCircle2, Clock, AlertCircle,
   X, Loader2, Eye, Trash2, ShieldCheck, AlertTriangle, CloudUpload,
   FileCheck, FileClock, FileX, ChevronRight, Download, Info,
+  IdCard, Home, Landmark, Receipt, ArrowLeft,
 } from 'lucide-react';
 import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 
@@ -71,6 +73,17 @@ const DOC_TYPES = [
   },
 ];
 
+// Outline icon per document type for the row list (purely presentational —
+// DOC_TYPES itself, including the `icon` emoji used by the upload modal, is untouched).
+const ROW_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  GST_CERTIFICATE: FileText,
+  PAN_CARD: IdCard,
+  ADDRESS_PROOF: Home,
+  BUSINESS_REGISTRATION: Landmark,
+  CANCELLED_CHEQUE: Receipt,
+  OWNER_AADHAAR: IdCard,
+};
+
 const STATUS_CONFIG = {
   APPROVED: {
     label: 'Approved',
@@ -102,6 +115,7 @@ const STATUS_CONFIG = {
 };
 
 export default function VendorDocumentsPage() {
+  const router = useRouter();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -195,186 +209,178 @@ export default function VendorDocumentsPage() {
   return (
     <div className="space-y-6 pb-10">
 
+      {/* ── Back ── */}
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" /> Back
+      </button>
+
       {/* ── Page Header ── */}
       <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 text-white">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, #3b82f6 0%, transparent 60%), radial-gradient(circle at 80% 20%, #8b5cf6 0%, transparent 50%)' }} />
-        <div className="relative px-6 sm:px-8 py-7 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="relative px-6 sm:px-8 py-6 flex flex-col sm:flex-row sm:items-start justify-between gap-6">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <ShieldCheck className="w-5 h-5 text-blue-400" />
-              <span className="text-slate-400 text-xs font-semibold tracking-widest uppercase">Verification</span>
+              <ShieldCheck className="w-4 h-4 text-blue-400" />
+              <span className="text-slate-400 text-[11px] font-semibold tracking-widest uppercase">Verification</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold mb-1">Business Documents</h1>
-            <p className="text-slate-400 text-sm">Upload and manage your documents for account verification</p>
-          </div>
-
-          {/* Stats pills */}
-          <div className="flex gap-3 shrink-0 flex-wrap">
-            {[
-              { label: 'Uploaded',  value: totalUploaded, color: 'bg-blue-500/20 border-blue-400/30 text-blue-300' },
-              { label: 'Approved',  value: totalApproved, color: 'bg-emerald-500/20 border-emerald-400/30 text-emerald-300' },
-              { label: 'Pending',   value: totalPending,  color: 'bg-amber-500/20 border-amber-400/30 text-amber-300' },
-              { label: 'Rejected',  value: totalRejected, color: 'bg-red-500/20 border-red-400/30 text-red-300' },
-            ].map(s => (
-              <div key={s.label} className={`flex flex-col items-center px-5 py-3 rounded-xl border ${s.color}`}>
-                <span className="text-2xl font-black">{s.value}</span>
-                <span className="text-[10px] font-semibold tracking-wide uppercase mt-0.5">{s.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Required docs progress bar */}
-        <div className="relative px-6 sm:px-8 pb-5">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-slate-400">
+            <div className="flex items-center gap-2.5 mb-1.5">
+              <h1 className="text-2xl sm:text-3xl font-extrabold">Business Documents</h1>
+              <span className="text-[10px] font-bold uppercase tracking-wide bg-white/10 border border-white/15 text-slate-300 px-2 py-1 rounded-md">Vendor</span>
+            </div>
+            <p className="text-slate-400 text-sm mb-3">Upload and manage your documents for account verification</p>
+            <p className="text-slate-500 text-xs">
               Required documents — {DOC_TYPES.filter(dt => dt.required && getDoc(dt.type)).length} of {DOC_TYPES.filter(dt => dt.required).length} uploaded
-            </span>
+            </p>
+          </div>
+
+          {/* Stats blocks */}
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <div className="flex gap-2.5 flex-wrap justify-end">
+              {[
+                { label: 'Uploaded',  value: totalUploaded, color: 'bg-blue-900/60 border-blue-400/20 text-blue-300' },
+                { label: 'Approved',  value: totalApproved, color: 'bg-emerald-900/50 border-emerald-400/20 text-emerald-300' },
+                { label: 'Pending',   value: totalPending,  color: 'bg-amber-900/40 border-amber-400/20 text-amber-300' },
+                { label: 'Rejected',  value: totalRejected, color: 'bg-rose-900/40 border-rose-400/20 text-rose-300' },
+              ].map(s => (
+                <div key={s.label} className={`flex flex-col items-center min-w-[68px] px-4 py-2.5 rounded-xl border ${s.color}`}>
+                  <span className="text-xl font-black">{s.value}</span>
+                  <span className="text-[9px] font-semibold tracking-wide uppercase mt-0.5">{s.label}</span>
+                </div>
+              ))}
+            </div>
             {requiredDone
               ? <span className="text-[10px] font-black text-emerald-400 tracking-wide">ALL REQUIRED DONE</span>
               : <span className="text-[10px] font-black text-amber-400 tracking-wide">INCOMPLETE</span>
             }
           </div>
-          <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-400 to-emerald-400 rounded-full transition-all duration-700"
-              style={{ width: `${(DOC_TYPES.filter(dt => dt.required && getDoc(dt.type)).length / DOC_TYPES.filter(dt => dt.required).length) * 100}%` }}
-            />
-          </div>
         </div>
       </div>
 
-      {/* ── Document Grid ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {DOC_TYPES.map(docType => {
+      {/* ── Document List ── */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden divide-y divide-gray-100">
+        {DOC_TYPES.map((docType, idx) => {
           const doc = getDoc(docType.type);
           const cfg = doc ? STATUS_CONFIG[doc.status] : null;
           const StatusIcon = cfg?.icon;
+          const RowIcon = ROW_ICONS[docType.type] || FileText;
 
           return (
-            <div
-              key={docType.type}
-              className={`bg-white rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col transition-all ${
-                !doc
-                  ? 'border-gray-200 hover:border-blue-200 hover:shadow-md'
-                  : doc.status === 'APPROVED'  ? 'border-emerald-200'
-                  : doc.status === 'REJECTED'  ? 'border-red-200'
-                  :                              'border-amber-200'
-              }`}
-            >
-              {/* Card top accent */}
-              <div className={`h-1 w-full ${
-                !doc ? 'bg-gray-200' :
-                doc.status === 'APPROVED' ? 'bg-gradient-to-r from-emerald-400 to-teal-400' :
-                doc.status === 'REJECTED' ? 'bg-gradient-to-r from-red-400 to-rose-400' :
-                'bg-gradient-to-r from-amber-400 to-orange-400'
-              }`} />
-
-              <div className="p-5 flex-1 flex flex-col">
-                {/* Header row */}
-                <div className="flex items-start justify-between gap-3 mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 ${
-                      !doc ? 'bg-gray-100' :
-                      doc.status === 'APPROVED' ? 'bg-emerald-50' :
-                      doc.status === 'REJECTED' ? 'bg-red-50' : 'bg-amber-50'
-                    }`}>
-                      {docType.icon}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <h3 className="text-sm font-bold text-gray-900">{docType.name}</h3>
-                        {docType.required && (
-                          <span className="text-[9px] font-black text-red-500 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full tracking-wide">REQ</span>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-gray-400 mt-0.5">{docType.description}</p>
-                    </div>
-                  </div>
-
-                  {/* Status badge */}
-                  {doc && cfg && StatusIcon && (
-                    <div className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${cfg.badge}`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                      {cfg.label}
-                    </div>
-                  )}
+            <div key={docType.type} className="flex flex-col lg:grid lg:grid-cols-[1.25fr_0.75fr_1.15fr] lg:items-center gap-4 px-5 sm:px-6 py-5">
+              {/* Number + icon + title */}
+              <div className="flex items-start gap-3 min-w-0">
+                <span className="shrink-0 w-7 h-7 rounded-lg bg-blue-600 text-white text-xs font-bold flex items-center justify-center mt-0.5">
+                  {idx + 1}
+                </span>
+                <div className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center ${
+                  !doc ? 'bg-gray-100' :
+                  doc.status === 'APPROVED' ? 'bg-emerald-50' :
+                  doc.status === 'REJECTED' ? 'bg-red-50' : 'bg-amber-50'
+                }`}>
+                  <RowIcon className={`w-5 h-5 ${
+                    !doc ? 'text-gray-500' :
+                    doc.status === 'APPROVED' ? 'text-emerald-600' :
+                    doc.status === 'REJECTED' ? 'text-red-500' : 'text-amber-600'
+                  }`} />
                 </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="text-sm font-bold text-gray-900">{docType.name}</h3>
+                    {docType.required ? (
+                      <span className="text-[9px] font-black text-red-500 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full tracking-wide">REQ</span>
+                    ) : (
+                      <span className="text-[9px] font-black text-gray-500 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded-full tracking-wide">OPT</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">{docType.description}</p>
+                </div>
+              </div>
 
-                {/* Uploaded info */}
-                {doc && (
-                  <div className={`mb-3 px-3 py-2.5 rounded-xl ${cfg?.bg ?? 'bg-gray-50'} border ${cfg?.border ?? 'border-gray-200'}`}>
-                    <div className="flex items-center gap-2">
-                      <FileText className={`w-4 h-4 shrink-0 ${cfg?.iconColor ?? 'text-gray-400'}`} />
-                      <span className="text-xs font-semibold text-gray-700 truncate">{doc.documentName}</span>
+              {/* Info box: hint, or uploaded file info, or rejection reason */}
+              <div className="min-w-0">
+                {doc ? (
+                  <div className={`px-3 py-2 rounded-xl ${cfg?.bg ?? 'bg-gray-50'} border ${cfg?.border ?? 'border-gray-200'}`}>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {StatusIcon && <StatusIcon className={`w-3 h-3 shrink-0 ${cfg?.iconColor ?? 'text-gray-400'}`} />}
+                      <span className="text-[11px] font-semibold text-gray-700 truncate">{doc.documentName}</span>
+                      {cfg && (
+                        <span className={`shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${cfg.badge}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                          {cfg.label}
+                        </span>
+                      )}
+                      {doc.uploadedBy && (
+                        <span className="inline-block text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded-full">
+                          Manager
+                        </span>
+                      )}
                     </div>
                     {doc.documentNumber && (
-                      <p className="text-[10px] text-gray-400 mt-1 ml-6">No. {doc.documentNumber}</p>
+                      <p className="text-[9px] text-gray-400 mt-1">No. {doc.documentNumber}</p>
                     )}
-                    {doc.uploadedBy && (
-                      <span className="mt-1 ml-6 inline-block text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded-full">
-                        Uploaded by Manager
-                      </span>
+                    {doc.status === 'REJECTED' && doc.rejectionReason && (
+                      <p className="text-[9px] text-red-700 mt-1 leading-relaxed">
+                        <strong>Reason: </strong>{doc.rejectionReason}
+                      </p>
                     )}
                   </div>
-                )}
-
-                {/* Rejection reason */}
-                {doc?.status === 'REJECTED' && doc.rejectionReason && (
-                  <div className="mb-3 flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl">
-                    <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-red-700 leading-relaxed">
-                      <strong>Reason: </strong>{doc.rejectionReason}
-                    </p>
+                ) : (
+                  <div className="flex items-start gap-1.5 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl">
+                    <Info className="w-3 h-3 text-blue-500 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-blue-700 leading-snug">{docType.hint}</p>
                   </div>
                 )}
+              </div>
 
-                {/* Not uploaded hint */}
-                {!doc && (
-                  <div className="mb-3 flex items-start gap-2 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl">
-                    <Info className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-blue-600 leading-relaxed">{docType.hint}</p>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="mt-auto flex gap-2">
-                  {!doc ? (
+              {/* Actions */}
+              <div className="shrink-0 flex flex-col items-stretch gap-2">
+                {!doc ? (
+                  <>
                     <button
                       onClick={() => openUpload(docType.type)}
-                      className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-xl transition-colors"
+                      className={`w-full flex items-center justify-center gap-2.5 text-sm font-bold py-4 px-6 rounded-xl transition-colors ${
+                        docType.required
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+                          : 'border-2 border-dashed border-blue-300 text-blue-600 hover:bg-blue-50'
+                      }`}
                     >
-                      <Upload className="w-3.5 h-3.5" /> Upload Document
+                      <Upload className="w-4 h-4" /> Upload Document{!docType.required && ' (Optional)'}
                     </button>
-                  ) : (
-                    <>
+                    <p className="text-[10px] text-gray-400 text-center">Accepted: JPG, PNG, WebP, PDF · Max size: 5 MB</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-full flex gap-2">
                       <button
                         onClick={() => setPreviewDoc(doc)}
-                        className="flex-1 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold py-2.5 rounded-xl transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold py-3 rounded-xl transition-colors"
                       >
-                        <Eye className="w-3.5 h-3.5" /> Preview
+                        <Eye className="w-4 h-4" /> Preview
                       </button>
                       {doc.status !== 'APPROVED' && (
                         <>
                           <button
                             onClick={() => openUpload(docType.type)}
-                            className="flex-1 flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold py-2.5 rounded-xl transition-colors"
+                            className="flex-1 flex items-center justify-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-sm font-semibold py-3 rounded-xl transition-colors"
                           >
-                            <Upload className="w-3.5 h-3.5" />
+                            <Upload className="w-4 h-4" />
                             {doc.status === 'REJECTED' ? 'Re-upload' : 'Replace'}
                           </button>
                           <button
                             onClick={() => handleDelete(doc.id)}
-                            className="w-10 flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 rounded-xl transition-colors"
+                            className="w-11 flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 rounded-xl transition-colors shrink-0"
                             title="Delete"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </>
                       )}
-                    </>
-                  )}
-                </div>
+                    </div>
+                    <p className="text-[10px] text-gray-400 text-center">Accepted: JPG, PNG, WebP, PDF · Max size: 5 MB</p>
+                  </>
+                )}
               </div>
             </div>
           );
@@ -385,8 +391,9 @@ export default function VendorDocumentsPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-blue-50 border border-blue-100 rounded-2xl px-5 py-4">
         <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
         <p className="text-xs text-blue-700 leading-relaxed">
-          <strong>Accepted formats:</strong> JPG, PNG, WebP, PDF · <strong>Max size:</strong> 5 MB per file ·
           Documents marked <span className="text-red-500 font-bold">REQ</span> are mandatory for account approval.
+          <span className="text-gray-500 font-bold"> OPT</span> documents are optional but recommended. ·
+          <strong> Accepted formats:</strong> JPG, PNG, WebP, PDF · <strong>Max size:</strong> 5 MB per file ·
           After uploading, our team reviews documents within 1–2 business days.
         </p>
       </div>

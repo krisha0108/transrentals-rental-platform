@@ -51,11 +51,36 @@ interface RecentInquiry {
   requestNumber: string;
   status: string;
   customerName: string | null;
+  customerPhone: string | null;
   serviceName: string;
   locationName: string | null;
+  pickupDate: string | null;
   quotesCount: number;
   actionsCount: number;
   createdAt: string;
+  groupCount?: number;
+}
+
+// Same customer + same service + same trip date submitted multiple times
+// (accidental double-submits, form resubmits) — collapse into one row on the
+// dashboard's "Recent Inquiries" glance widget so it doesn't look cluttered.
+// Scoped to the dashboard only — the full /manager/inquiries list is untouched.
+function groupDuplicateInquiries(inquiries: RecentInquiry[]): RecentInquiry[] {
+  const seen = new Map<string, RecentInquiry>();
+  for (const inq of inquiries) {
+    const dateKey = inq.pickupDate ? new Date(inq.pickupDate).toDateString() : 'no-date';
+    const key = `${inq.customerPhone || inq.customerName || 'unknown'}|${inq.serviceName}|${dateKey}`;
+    const existing = seen.get(key);
+    if (!existing) {
+      seen.set(key, { ...inq, groupCount: 1 });
+    } else if (new Date(inq.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
+      // Keep the most recent submission as the representative row.
+      seen.set(key, { ...inq, groupCount: (existing.groupCount || 1) + 1 });
+    } else {
+      existing.groupCount = (existing.groupCount || 1) + 1;
+    }
+  }
+  return Array.from(seen.values());
 }
 
 type DatePreset = 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'all' | 'custom';
@@ -121,7 +146,7 @@ export default function ManagerDashboard() {
 
       const inquiriesData = await inquiriesRes.json();
       if (inquiriesData.success) {
-        setRecentInquiries((inquiriesData.inquiries || []).slice(0, 8));
+        setRecentInquiries(groupDuplicateInquiries(inquiriesData.inquiries || []).slice(0, 8));
       }
     } catch (err: any) {
       console.error('Failed to fetch manager info:', err);
@@ -393,7 +418,17 @@ export default function ManagerDashboard() {
                     onClick={() => router.push(`/manager/inquiries/${inq.id}`)}
                     className="hover:bg-gray-50 cursor-pointer"
                   >
-                    <td className="px-4 py-2.5 text-sm text-gray-900">{inq.customerName || '—'}</td>
+                    <td className="px-4 py-2.5 text-sm text-gray-900">
+                      {inq.customerName || '—'}
+                      {(inq.groupCount || 1) > 1 && (
+                        <span
+                          className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-700"
+                          title={`${inq.groupCount} inquiries from this customer for the same service and date`}
+                        >
+                          ×{inq.groupCount}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-2.5 text-sm text-gray-600">{inq.serviceName}</td>
                     <td className="px-4 py-2.5 text-sm text-gray-600">{inq.locationName || '—'}</td>
                     <td className="px-4 py-2.5 text-sm text-gray-900">{inq.quotesCount}</td>

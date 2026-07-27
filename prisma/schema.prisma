@@ -64,6 +64,7 @@ model admin_users {
   vendor_tag_assignments          vendor_tag_assignments[]
   driver_tag_assignments          driver_tag_assignments[]
   manager_action_logs             manager_action_logs[]
+  inquiry_tag_assignments         inquiry_tag_assignments[]
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -3947,6 +3948,24 @@ model vendor_tag_assignments {
   @@index([assignedById], map: "vendor_tag_assignments_assignedById_fkey")
 }
 
+// CRM tags on customer inquiries (quote requests) — mirrors vendor_tag_assignments.
+// Polymorphic across the 7 quote_requests tables (no hard FK, same as
+// manager_action_logs), since inquiry ids span multiple tables.
+model inquiry_tag_assignments {
+  id           String       @id @default(cuid())
+  serviceType  String
+  recordId     String
+  tag          inquiry_tag
+  assignedById String?
+  admin_users  admin_users? @relation(fields: [assignedById], references: [id])
+  createdAt    DateTime     @default(now())
+
+  @@unique([recordId, tag])
+  @@index([recordId])
+  @@index([tag])
+  @@index([assignedById], map: "inquiry_tag_assignments_assignedById_fkey")
+}
+
 enum vendor_tag {
   FOLLOW_UP_REQUIRED
   CONNECTED
@@ -3959,6 +3978,22 @@ enum vendor_tag {
   VEHICLE_DETAILS_PENDING
   ACTIVE_VENDOR
   SUSPENDED
+}
+
+// Inquiry (quote request) CRM tags — manager follow-up layer, independent of
+// the manager_action_logs history and the inquiry's own pipeline status.
+enum inquiry_tag {
+  FOLLOW_UP_REQUIRED
+  CONNECTED
+  RESPONDED
+  NOT_INTERESTED
+  NO_RESPONSE
+  WRONG_NUMBER
+  PRICE_TOO_HIGH
+  HOT_LEAD
+  COLD_LEAD
+  CONVERTED
+  DUPLICATE_INQUIRY
 }
 
 // Driver CRM tags — manager follow-up layer, independent of driver status.
@@ -7127,6 +7162,14 @@ enum manager_action_type {
   STATUS_CHANGED
   VENDOR_ASSIGNED
   CANCELLED
+  CONNECTED
+  RESPONDED
+  NO_RESPONSE
+  WRONG_NUMBER
+  PRICE_TOO_HIGH
+  HOT_LEAD
+  COLD_LEAD
+  DUPLICATE_INQUIRY
 }
 
 model service_city_content {
