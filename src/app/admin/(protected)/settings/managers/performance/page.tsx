@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, Loader2, RefreshCw, Calendar, AlertTriangle, X, Phone,
-  PhoneCall, StickyNote, ThumbsUp, ThumbsDown, Users,
+  ArrowLeft, Loader2, RefreshCw, Calendar, Users, UserPlus, ChevronRight,
 } from 'lucide-react';
 
 type DatePreset = 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'all' | 'custom';
@@ -19,30 +19,16 @@ const DATE_PRESET_LABELS: Record<DatePreset, string> = {
   custom: 'Custom Range',
 };
 
-const ACTION_ICONS: Record<string, any> = {
-  CALLED: PhoneCall,
-  NOTE_ADDED: StickyNote,
-  FOLLOW_UP: PhoneCall,
-  CONVERTED: ThumbsUp,
-  NOT_INTERESTED: ThumbsDown,
-};
+interface CoverageStat { total: number; actioned: number; coveragePct: number | null }
 
 interface ManagerPerf {
   id: string;
   name: string;
   email: string;
-  inquiries: { total: number; actioned: number; coveragePct: number | null };
+  vendors: { created: number; approved: number };
+  inquiries: CoverageStat;
+  bookings: CoverageStat;
   actionBreakdown: Record<string, number>;
-}
-
-interface UntouchedItem {
-  id: string;
-  requestNumber: string;
-  customerName: string;
-  customerPhone: string;
-  serviceName: string;
-  locationName: string;
-  createdAt: string;
 }
 
 function coverageColor(pct: number | null) {
@@ -60,16 +46,13 @@ function coverageBarColor(pct: number | null) {
 }
 
 export default function ManagerPerformancePage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [managers, setManagers] = useState<ManagerPerf[]>([]);
   const [filter, setFilter] = useState<DatePreset>('today');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
-
-  const [drillManager, setDrillManager] = useState<{ id: string; name: string } | null>(null);
-  const [untouched, setUntouched] = useState<UntouchedItem[]>([]);
-  const [drillLoading, setDrillLoading] = useState(false);
 
   const fetchPerformance = useCallback(async (preset: DatePreset, from?: string, to?: string) => {
     try {
@@ -110,21 +93,8 @@ export default function ManagerPerformancePage() {
     fetchPerformance(filter, customFrom, customTo).finally(() => setRefreshing(false));
   };
 
-  const openUntouched = async (manager: { id: string; name: string }) => {
-    setDrillManager(manager);
-    setDrillLoading(true);
-    setUntouched([]);
-    try {
-      let url = `/api/admin/managers/performance/untouched?managerId=${manager.id}&filter=${filter}`;
-      if (filter === 'custom' && customFrom && customTo) url += `&dateFrom=${customFrom}&dateTo=${customTo}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (!data.error) setUntouched(data.untouched || []);
-    } catch (e) {
-      console.error('Failed to fetch untouched inquiries:', e);
-    } finally {
-      setDrillLoading(false);
-    }
+  const openManager = (managerId: string) => {
+    router.push(`/admin/settings/managers/performance/${managerId}?filter=${filter}`);
   };
 
   const totalInquiries = managers.reduce((s, m) => s + m.inquiries.total, 0);
@@ -147,7 +117,7 @@ export default function ManagerPerformancePage() {
         </Link>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">Manager Performance</h1>
-          <p className="text-gray-500 mt-1">Who's covering today's inquiries — and who isn't</p>
+          <p className="text-gray-500 mt-1">Today's inquiries vs. how many each manager actually handled</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {filter === 'custom' && (
@@ -208,7 +178,7 @@ export default function ManagerPerformancePage() {
         <div className="px-5 py-3 border-b bg-gray-50 flex items-center gap-2">
           <Users className="w-4 h-4 text-gray-500" />
           <h2 className="text-sm font-semibold text-gray-700">Coverage by Manager</h2>
-          <span className="text-xs text-gray-400">(lowest coverage first)</span>
+          <span className="text-xs text-gray-400">(lowest coverage first · click a row for full details)</span>
         </div>
 
         {managers.length === 0 ? (
@@ -223,114 +193,55 @@ export default function ManagerPerformancePage() {
                 <tr>
                   <th className="text-left px-5 py-2.5 font-semibold">Manager</th>
                   <th className="text-left px-5 py-2.5 font-semibold">Inquiries</th>
-                  <th className="text-left px-5 py-2.5 font-semibold">Actioned</th>
+                  <th className="text-left px-5 py-2.5 font-semibold">Bookings</th>
+                  <th className="text-left px-5 py-2.5 font-semibold">Vendors</th>
                   <th className="text-left px-5 py-2.5 font-semibold">Coverage</th>
-                  <th className="text-left px-5 py-2.5 font-semibold">Action Types</th>
                   <th className="text-left px-5 py-2.5 font-semibold"></th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {managers.map((m) => {
-                  const untouchedCount = m.inquiries.total - m.inquiries.actioned;
-                  return (
-                    <tr key={m.id} className="hover:bg-gray-50">
-                      <td className="px-5 py-3">
-                        <p className="font-medium text-gray-900">{m.name}</p>
-                        <p className="text-xs text-gray-500">{m.email}</p>
-                      </td>
-                      <td className="px-5 py-3 text-sm text-gray-700">{m.inquiries.total}</td>
-                      <td className="px-5 py-3 text-sm text-gray-700">{m.inquiries.actioned}</td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2 min-w-[120px]">
-                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${coverageBarColor(m.inquiries.coveragePct)}`}
-                              style={{ width: `${m.inquiries.coveragePct ?? 0}%` }}
-                            />
-                          </div>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${coverageColor(m.inquiries.coveragePct)}`}>
-                            {m.inquiries.coveragePct === null ? '—' : `${m.inquiries.coveragePct}%`}
-                          </span>
+                {managers.map((m) => (
+                  <tr key={m.id} onClick={() => openManager(m.id)} className="hover:bg-gray-50 cursor-pointer">
+                    <td className="px-5 py-3">
+                      <p className="font-medium text-gray-900">{m.name}</p>
+                      <p className="text-xs text-gray-500">{m.email}</p>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-gray-700">
+                      <span className="font-medium text-gray-900">{m.inquiries.actioned}</span>
+                      <span className="text-gray-400"> / {m.inquiries.total}</span>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-gray-700">
+                      <span className="font-medium text-gray-900">{m.bookings.actioned}</span>
+                      <span className="text-gray-400"> / {m.bookings.total}</span>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-gray-700">
+                      <span className="inline-flex items-center gap-1 text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
+                        <UserPlus className="w-3 h-3" /> {m.vendors.created + m.vendors.approved}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2 min-w-[120px]">
+                        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${coverageBarColor(m.inquiries.coveragePct)}`}
+                            style={{ width: `${Math.min(m.inquiries.coveragePct ?? 0, 100)}%` }}
+                          />
                         </div>
-                      </td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2">
-                          {Object.entries(m.actionBreakdown).map(([type, count]) => {
-                            const Icon = ACTION_ICONS[type] || StickyNote;
-                            return (
-                              <span key={type} title={type.replace('_', ' ')} className="flex items-center gap-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">
-                                <Icon className="w-3 h-3" />
-                                {count}
-                              </span>
-                            );
-                          })}
-                          {Object.keys(m.actionBreakdown).length === 0 && <span className="text-xs text-gray-300">—</span>}
-                        </div>
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        {untouchedCount > 0 && (
-                          <button
-                            onClick={() => openUntouched({ id: m.id, name: m.name })}
-                            className="flex items-center gap-1.5 text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition"
-                          >
-                            <AlertTriangle className="w-3.5 h-3.5" />
-                            {untouchedCount} Untouched
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${coverageColor(m.inquiries.coveragePct)}`}>
+                          {m.inquiries.coveragePct === null ? '—' : `${m.inquiries.coveragePct}%`}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <ChevronRight className="w-4 h-4 text-gray-300 inline-block" />
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
       </div>
-
-      {/* Untouched drill-down modal */}
-      {drillManager && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setDrillManager(null)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="p-4 border-b flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-gray-900">Untouched Inquiries</h3>
-                <p className="text-xs text-gray-500">{drillManager.name} · {DATE_PRESET_LABELS[filter]}</p>
-              </div>
-              <button onClick={() => setDrillManager(null)} className="p-1.5 hover:bg-gray-100 rounded-lg">
-                <X className="w-4 h-4 text-gray-500" />
-              </button>
-            </div>
-            <div className="overflow-y-auto flex-1">
-              {drillLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-                </div>
-              ) : untouched.length === 0 ? (
-                <div className="text-center py-16 text-gray-500 text-sm">Nothing untouched — fully covered.</div>
-              ) : (
-                <div className="divide-y">
-                  {untouched.map((u) => (
-                    <div key={u.id} className="p-4 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-medium text-gray-900 text-sm truncate">{u.customerName}</p>
-                        <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
-                          <Phone className="w-3 h-3" /> {u.customerPhone}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-0.5">{u.serviceName} · {u.locationName} · {u.requestNumber}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-xs text-gray-400">
-                          {new Date(u.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
