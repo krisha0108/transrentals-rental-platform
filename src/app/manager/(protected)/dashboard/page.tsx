@@ -10,7 +10,7 @@ import {
   Phone, Check, PhoneCall, ThumbsUp, ThumbsDown, AlertTriangle,
   IndianRupee, Copy, X, Ban, PhoneOff, UserX, XOctagon, CalendarX, MapPinOff,
   ExternalLink, FileX, Hourglass, CreditCard, Flag, XCircle, HelpCircle,
-  ChevronDown,
+  ChevronDown, Search,
 } from 'lucide-react';
 
 // Same 22 quick actions as the inquiry detail page's "Manager Actions" panel —
@@ -159,6 +159,7 @@ export default function ManagerDashboard() {
   const [selectedInquiryIds, setSelectedInquiryIds] = useState<Set<string>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState<string | null>(null);
   const [bulkActionMenuOpen, setBulkActionMenuOpen] = useState(false);
+  const [bulkActionSearch, setBulkActionSearch] = useState('');
   const bulkActionMenuRef = useRef<HTMLDivElement>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -234,6 +235,7 @@ export default function ManagerDashboard() {
     const handleClickOutside = (e: MouseEvent) => {
       if (bulkActionMenuRef.current && !bulkActionMenuRef.current.contains(e.target as Node)) {
         setBulkActionMenuOpen(false);
+        setBulkActionSearch('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -281,6 +283,7 @@ export default function ManagerDashboard() {
   const applyBulkAction = async (actionType: string) => {
     if (selectedInquiryIds.size === 0) return;
     setBulkActionMenuOpen(false);
+    setBulkActionSearch('');
     setBulkActionLoading(actionType);
     try {
       const results = await Promise.all(
@@ -499,7 +502,10 @@ export default function ManagerDashboard() {
             </span>
             <div className="relative" ref={bulkActionMenuRef}>
               <button
-                onClick={() => setBulkActionMenuOpen((o) => !o)}
+                onClick={() => {
+                  setBulkActionMenuOpen((o) => !o);
+                  setBulkActionSearch('');
+                }}
                 disabled={!!bulkActionLoading}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-orange-300 bg-white text-orange-800 hover:bg-orange-100 disabled:opacity-50 transition"
               >
@@ -508,21 +514,43 @@ export default function ManagerDashboard() {
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${bulkActionMenuOpen ? 'rotate-180' : ''}`} />
               </button>
               {bulkActionMenuOpen && (
-                <div className="absolute z-20 top-full mt-1 left-0 w-72 max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg py-1">
-                  {QUICK_ACTIONS.map((a) => {
-                    const Icon = a.icon;
-                    return (
-                      <button
-                        key={a.key}
-                        onClick={() => applyBulkAction(a.key)}
-                        disabled={!!bulkActionLoading}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition text-left"
-                      >
-                        <Icon className="w-3.5 h-3.5 shrink-0" />
-                        {a.label}
-                      </button>
-                    );
-                  })}
+                <div className="absolute z-20 top-full mt-1 left-0 w-72 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                  <div className="p-2 border-b border-gray-100">
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        autoFocus
+                        value={bulkActionSearch}
+                        onChange={(e) => setBulkActionSearch(e.target.value)}
+                        placeholder="Search actions..."
+                        className="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-300"
+                      />
+                    </div>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto py-1">
+                    {QUICK_ACTIONS.filter((a) =>
+                      a.label.toLowerCase().includes(bulkActionSearch.trim().toLowerCase())
+                    ).map((a) => {
+                      const Icon = a.icon;
+                      return (
+                        <button
+                          key={a.key}
+                          onClick={() => applyBulkAction(a.key)}
+                          disabled={!!bulkActionLoading}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition text-left"
+                        >
+                          <Icon className="w-3.5 h-3.5 shrink-0" />
+                          {a.label}
+                        </button>
+                      );
+                    })}
+                    {QUICK_ACTIONS.filter((a) =>
+                      a.label.toLowerCase().includes(bulkActionSearch.trim().toLowerCase())
+                    ).length === 0 && (
+                      <p className="px-3 py-3 text-sm text-gray-400 text-center">No matching actions</p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
