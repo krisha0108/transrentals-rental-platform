@@ -7,7 +7,26 @@ import { useRouter } from 'next/navigation';
 import {
   FileText, Briefcase, MapPin, TrendingUp, Clock, CheckCircle, AlertCircle,
   Users, Loader2, RefreshCw, MessageSquare, Plus, Calendar,
+  Phone, Check, PhoneCall, ThumbsUp, ThumbsDown, XCircle, AlertTriangle,
+  IndianRupee, Flame, Snowflake, Copy, X,
 } from 'lucide-react';
+
+// Same 12 quick actions as the inquiry detail page's "Manager Actions" panel —
+// available here as a bulk operation across selected Recent Inquiries rows.
+const QUICK_ACTIONS = [
+  { key: 'CALLED',            label: 'Mark as Called',     icon: Phone,       classes: 'border-sky-200 text-sky-700 bg-sky-50 hover:bg-sky-100' },
+  { key: 'CONNECTED',         label: 'Connected',          icon: Check,       classes: 'border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100' },
+  { key: 'RESPONDED',         label: 'Responded',          icon: Check,       classes: 'border-cyan-200 text-cyan-700 bg-cyan-50 hover:bg-cyan-100' },
+  { key: 'FOLLOW_UP',         label: 'Follow-Up Required', icon: PhoneCall,   classes: 'border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100' },
+  { key: 'CONVERTED',         label: 'Converted',          icon: ThumbsUp,    classes: 'border-green-200 text-green-700 bg-green-50 hover:bg-green-100' },
+  { key: 'NOT_INTERESTED',    label: 'Not Interested',     icon: ThumbsDown,  classes: 'border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100' },
+  { key: 'NO_RESPONSE',       label: 'No Response',        icon: XCircle,     classes: 'border-stone-200 text-stone-700 bg-stone-50 hover:bg-stone-100' },
+  { key: 'WRONG_NUMBER',      label: 'Wrong Number',       icon: AlertTriangle, classes: 'border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100' },
+  { key: 'PRICE_TOO_HIGH',    label: 'Price Too High',     icon: IndianRupee, classes: 'border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100' },
+  { key: 'HOT_LEAD',          label: 'Hot Lead',           icon: Flame,       classes: 'border-red-200 text-red-700 bg-red-50 hover:bg-red-100' },
+  { key: 'COLD_LEAD',         label: 'Cold Lead',          icon: Snowflake,   classes: 'border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100' },
+  { key: 'DUPLICATE_INQUIRY', label: 'Duplicate Inquiry',  icon: Copy,        classes: 'border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100' },
+] as const;
 
 interface ManagerInfo {
   id: string;
@@ -51,37 +70,33 @@ interface RecentInquiry {
   requestNumber: string;
   status: string;
   customerName: string | null;
-  customerPhone: string | null;
   serviceName: string;
   locationName: string | null;
-  pickupDate: string | null;
   quotesCount: number;
   actionsCount: number;
+  lastActionType: string | null;
   createdAt: string;
-  groupCount?: number;
 }
 
-// Same customer + same service + same trip date submitted multiple times
-// (accidental double-submits, form resubmits) — collapse into one row on the
-// dashboard's "Recent Inquiries" glance widget so it doesn't look cluttered.
-// Scoped to the dashboard only — the full /manager/inquiries list is untouched.
-function groupDuplicateInquiries(inquiries: RecentInquiry[]): RecentInquiry[] {
-  const seen = new Map<string, RecentInquiry>();
-  for (const inq of inquiries) {
-    const dateKey = inq.pickupDate ? new Date(inq.pickupDate).toDateString() : 'no-date';
-    const key = `${inq.customerPhone || inq.customerName || 'unknown'}|${inq.serviceName}|${dateKey}`;
-    const existing = seen.get(key);
-    if (!existing) {
-      seen.set(key, { ...inq, groupCount: 1 });
-    } else if (new Date(inq.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
-      // Keep the most recent submission as the representative row.
-      seen.set(key, { ...inq, groupCount: (existing.groupCount || 1) + 1 });
-    } else {
-      existing.groupCount = (existing.groupCount || 1) + 1;
-    }
-  }
-  return Array.from(seen.values());
-}
+// Same badge styling as the 12 Manager Actions buttons — used to color the
+// "last action" pill in Recent Inquiries instead of a plain Actioned/Not badge.
+const ACTION_BADGE_STYLES: Record<string, string> = {
+  CALLED: 'bg-sky-100 text-sky-700',
+  CONNECTED: 'bg-blue-100 text-blue-700',
+  RESPONDED: 'bg-cyan-100 text-cyan-700',
+  FOLLOW_UP: 'bg-amber-100 text-amber-700',
+  CONVERTED: 'bg-green-100 text-green-700',
+  NOT_INTERESTED: 'bg-gray-100 text-gray-600',
+  NO_RESPONSE: 'bg-stone-100 text-stone-700',
+  WRONG_NUMBER: 'bg-rose-100 text-rose-700',
+  PRICE_TOO_HIGH: 'bg-orange-100 text-orange-700',
+  HOT_LEAD: 'bg-red-100 text-red-700',
+  COLD_LEAD: 'bg-indigo-100 text-indigo-700',
+  DUPLICATE_INQUIRY: 'bg-purple-100 text-purple-700',
+};
+
+const actionTypeLabel = (type: string) =>
+  QUICK_ACTIONS.find((a) => a.key === type)?.label || type.replace(/_/g, ' ');
 
 type DatePreset = 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'all' | 'custom';
 
@@ -113,6 +128,8 @@ export default function ManagerDashboard() {
   const [attention, setAttention] = useState<AttentionStats | null>(null);
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
   const [recentInquiries, setRecentInquiries] = useState<RecentInquiry[]>([]);
+  const [selectedInquiryIds, setSelectedInquiryIds] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState<string | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -146,7 +163,7 @@ export default function ManagerDashboard() {
 
       const inquiriesData = await inquiriesRes.json();
       if (inquiriesData.success) {
-        setRecentInquiries(groupDuplicateInquiries(inquiriesData.inquiries || []).slice(0, 8));
+        setRecentInquiries((inquiriesData.inquiries || []).slice(0, 8));
       }
     } catch (err: any) {
       console.error('Failed to fetch manager info:', err);
@@ -205,6 +222,44 @@ export default function ManagerDashboard() {
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+  const toggleInquirySelection = (id: string) => {
+    setSelectedInquiryIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllInquiries = () => {
+    setSelectedInquiryIds((prev) =>
+      prev.size === recentInquiries.length ? new Set() : new Set(recentInquiries.map((i) => i.id))
+    );
+  };
+
+  const applyBulkAction = async (actionType: string) => {
+    if (selectedInquiryIds.size === 0) return;
+    setBulkActionLoading(actionType);
+    try {
+      const results = await Promise.all(
+        Array.from(selectedInquiryIds).map((id) =>
+          fetch(`/api/manager/inquiries/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ actionType }),
+          }).then((res) => res.ok)
+        )
+      );
+      const failed = results.filter((ok) => !ok).length;
+      if (failed > 0) alert(`${failed} of ${results.length} inquiries failed to update.`);
+      setSelectedInquiryIds(new Set());
+      await fetchDashboardInfo();
+    } catch {
+      alert('Network error. Please try again.');
+    } finally {
+      setBulkActionLoading(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -393,6 +448,39 @@ export default function ManagerDashboard() {
             View All →
           </Link>
         </div>
+
+        {/* Bulk action bar — appears once 1+ inquiries are selected */}
+        {selectedInquiryIds.size > 0 && (
+          <div className="px-4 py-3 bg-orange-50 border-b border-orange-100 flex items-center gap-3 flex-wrap">
+            <span className="text-xs font-semibold text-orange-800 shrink-0">
+              {selectedInquiryIds.size} selected
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_ACTIONS.map((a) => {
+                const Icon = a.icon;
+                return (
+                  <button
+                    key={a.key}
+                    onClick={() => applyBulkAction(a.key)}
+                    disabled={!!bulkActionLoading}
+                    className={`flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border disabled:opacity-50 transition ${a.classes}`}
+                  >
+                    {bulkActionLoading === a.key ? <Loader2 className="w-3 h-3 animate-spin" /> : <Icon className="w-3 h-3" />}
+                    {a.label}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setSelectedInquiryIds(new Set())}
+              disabled={!!bulkActionLoading}
+              className="ml-auto flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700 shrink-0"
+            >
+              <X className="w-3 h-3" /> Clear
+            </button>
+          </div>
+        )}
+
         {recentInquiries.length === 0 ? (
           <div className="text-center py-10 text-gray-500">
             <FileText className="w-10 h-10 mx-auto mb-2 text-gray-300" />
@@ -403,6 +491,14 @@ export default function ManagerDashboard() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
+                  <th className="w-10 px-4 py-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedInquiryIds.size === recentInquiries.length}
+                      onChange={toggleSelectAllInquiries}
+                      className="w-4 h-4 rounded cursor-pointer accent-orange-600"
+                    />
+                  </th>
                   <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500">Customer</th>
                   <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500">Service</th>
                   <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500">Location</th>
@@ -416,28 +512,31 @@ export default function ManagerDashboard() {
                   <tr
                     key={inq.id}
                     onClick={() => router.push(`/manager/inquiries/${inq.id}`)}
-                    className="hover:bg-gray-50 cursor-pointer"
+                    className={`hover:bg-gray-50 cursor-pointer ${selectedInquiryIds.has(inq.id) ? 'bg-orange-50/60' : ''}`}
                   >
-                    <td className="px-4 py-2.5 text-sm text-gray-900">
-                      {inq.customerName || '—'}
-                      {(inq.groupCount || 1) > 1 && (
-                        <span
-                          className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-700"
-                          title={`${inq.groupCount} inquiries from this customer for the same service and date`}
-                        >
-                          ×{inq.groupCount}
-                        </span>
-                      )}
+                    <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedInquiryIds.has(inq.id)}
+                        onChange={() => toggleInquirySelection(inq.id)}
+                        className="w-4 h-4 rounded cursor-pointer accent-orange-600"
+                      />
                     </td>
+                    <td className="px-4 py-2.5 text-sm text-gray-900">{inq.customerName || '—'}</td>
                     <td className="px-4 py-2.5 text-sm text-gray-600">{inq.serviceName}</td>
                     <td className="px-4 py-2.5 text-sm text-gray-600">{inq.locationName || '—'}</td>
                     <td className="px-4 py-2.5 text-sm text-gray-900">{inq.quotesCount}</td>
                     <td className="px-4 py-2.5">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        inq.actionsCount > 0 ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-500'
-                      }`}>
-                        {inq.actionsCount > 0 ? 'Actioned' : 'Not Actioned'}
-                      </span>
+                      {inq.lastActionType ? (
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ACTION_BADGE_STYLES[inq.lastActionType] || 'bg-green-100 text-green-700'}`}>
+                          {actionTypeLabel(inq.lastActionType)}
+                          {inq.actionsCount > 1 && <span className="opacity-70"> +{inq.actionsCount - 1}</span>}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-500">
+                          Not Actioned
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-sm text-gray-500">{formatDate(inq.createdAt)}</td>
                   </tr>
