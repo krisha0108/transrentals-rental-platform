@@ -1,31 +1,43 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   FileText, Briefcase, MapPin, TrendingUp, Clock, CheckCircle, AlertCircle,
   Users, Loader2, RefreshCw, MessageSquare, Plus, Calendar,
-  Phone, Check, PhoneCall, ThumbsUp, ThumbsDown, XCircle, AlertTriangle,
-  IndianRupee, Flame, Snowflake, Copy, X,
+  Phone, Check, PhoneCall, ThumbsUp, ThumbsDown, AlertTriangle,
+  IndianRupee, Copy, X, Ban, PhoneOff, UserX, XOctagon, CalendarX, MapPinOff,
+  ExternalLink, FileX, Hourglass, CreditCard, Flag, XCircle, HelpCircle,
+  ChevronDown,
 } from 'lucide-react';
 
-// Same 12 quick actions as the inquiry detail page's "Manager Actions" panel —
+// Same 22 quick actions as the inquiry detail page's "Manager Actions" panel —
 // available here as a bulk operation across selected Recent Inquiries rows.
 const QUICK_ACTIONS = [
-  { key: 'CALLED',            label: 'Mark as Called',     icon: Phone,       classes: 'border-sky-200 text-sky-700 bg-sky-50 hover:bg-sky-100' },
-  { key: 'CONNECTED',         label: 'Connected',          icon: Check,       classes: 'border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100' },
-  { key: 'RESPONDED',         label: 'Responded',          icon: Check,       classes: 'border-cyan-200 text-cyan-700 bg-cyan-50 hover:bg-cyan-100' },
-  { key: 'FOLLOW_UP',         label: 'Follow-Up Required', icon: PhoneCall,   classes: 'border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100' },
-  { key: 'CONVERTED',         label: 'Converted',          icon: ThumbsUp,    classes: 'border-green-200 text-green-700 bg-green-50 hover:bg-green-100' },
-  { key: 'NOT_INTERESTED',    label: 'Not Interested',     icon: ThumbsDown,  classes: 'border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100' },
-  { key: 'NO_RESPONSE',       label: 'No Response',        icon: XCircle,     classes: 'border-stone-200 text-stone-700 bg-stone-50 hover:bg-stone-100' },
-  { key: 'WRONG_NUMBER',      label: 'Wrong Number',       icon: AlertTriangle, classes: 'border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100' },
-  { key: 'PRICE_TOO_HIGH',    label: 'Price Too High',     icon: IndianRupee, classes: 'border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100' },
-  { key: 'HOT_LEAD',          label: 'Hot Lead',           icon: Flame,       classes: 'border-red-200 text-red-700 bg-red-50 hover:bg-red-100' },
-  { key: 'COLD_LEAD',         label: 'Cold Lead',          icon: Snowflake,   classes: 'border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100' },
-  { key: 'DUPLICATE_INQUIRY', label: 'Duplicate Inquiry',  icon: Copy,        classes: 'border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100' },
+  { key: 'CALLED',                       label: 'Mark as Called',              icon: Phone,        classes: 'border-sky-200 text-sky-700 bg-sky-50 hover:bg-sky-100' },
+  { key: 'CUSTOMER_CONNECTED',           label: 'Customer Connected',          icon: Check,        classes: 'border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100' },
+  { key: 'NO_VENDOR_AVAILABLE',          label: 'No Vendor Available',         icon: Ban,          classes: 'border-cyan-200 text-cyan-700 bg-cyan-50 hover:bg-cyan-100' },
+  { key: 'VENDOR_DECLINED',              label: 'Vendor Declined',             icon: XOctagon,     classes: 'border-pink-200 text-pink-700 bg-pink-50 hover:bg-pink-100' },
+  { key: 'VENDOR_CANT_FULFILL',          label: "Vendor Available – Can't Fulfill", icon: CalendarX, classes: 'border-teal-200 text-teal-700 bg-teal-50 hover:bg-teal-100' },
+  { key: 'FOLLOW_UP',                    label: 'Follow-Up Required',          icon: PhoneCall,    classes: 'border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100' },
+  { key: 'CONVERTED',                    label: 'Converted',                   icon: ThumbsUp,     classes: 'border-green-200 text-green-700 bg-green-50 hover:bg-green-100' },
+  { key: 'NOT_INTERESTED',               label: 'Not Interested',              icon: ThumbsDown,   classes: 'border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100' },
+  { key: 'VENDOR_NOT_RESPONDING',        label: 'Vendor Not Responding',       icon: PhoneOff,     classes: 'border-stone-200 text-stone-700 bg-stone-50 hover:bg-stone-100' },
+  { key: 'WRONG_NUMBER',                 label: 'Wrong Number',                icon: AlertTriangle, classes: 'border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100' },
+  { key: 'PRICE_TOO_HIGH',               label: 'Price Too High',              icon: IndianRupee,  classes: 'border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100' },
+  { key: 'NOT_SERVICEABLE',              label: 'Not Serviceable',             icon: MapPinOff,    classes: 'border-violet-200 text-violet-700 bg-violet-50 hover:bg-violet-100' },
+  { key: 'AWAITING_VENDOR_QUOTE',        label: 'Awaiting Vendor Quote',       icon: Clock,        classes: 'border-red-200 text-red-700 bg-red-50 hover:bg-red-100' },
+  { key: 'QUOTE_NOT_SUBMITTED',          label: 'Quote Not Submitted',         icon: FileX,        classes: 'border-yellow-200 text-yellow-700 bg-yellow-50 hover:bg-yellow-100' },
+  { key: 'CUSTOMER_NOT_RESPONDING',      label: 'Customer Not Responding',     icon: UserX,        classes: 'border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100' },
+  { key: 'CUSTOMER_BOOKED_ELSEWHERE',    label: 'Customer Booked Elsewhere',   icon: ExternalLink, classes: 'border-fuchsia-200 text-fuchsia-700 bg-fuchsia-50 hover:bg-fuchsia-100' },
+  { key: 'WAITING_CUSTOMER_CONFIRMATION', label: 'Waiting for Customer Confirmation', icon: Hourglass, classes: 'border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100' },
+  { key: 'ADVANCE_PAYMENT_PENDING',      label: 'Advance Payment Pending',     icon: CreditCard,   classes: 'border-lime-200 text-lime-700 bg-lime-50 hover:bg-lime-100' },
+  { key: 'INVALID_LEAD',                 label: 'Invalid/Fake Lead',           icon: Flag,         classes: 'border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100' },
+  { key: 'CANCELLED',                    label: 'Cancelled',                   icon: XCircle,      classes: 'border-zinc-200 text-zinc-700 bg-zinc-50 hover:bg-zinc-100' },
+  { key: 'DUPLICATE_INQUIRY',            label: 'Duplicate Inquiry',           icon: Copy,         classes: 'border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100' },
+  { key: 'OTHER_REASON',                 label: 'Other Reason',                icon: HelpCircle,   classes: 'border-neutral-200 text-neutral-700 bg-neutral-50 hover:bg-neutral-100' },
 ] as const;
 
 interface ManagerInfo {
@@ -82,17 +94,33 @@ interface RecentInquiry {
 // "last action" pill in Recent Inquiries instead of a plain Actioned/Not badge.
 const ACTION_BADGE_STYLES: Record<string, string> = {
   CALLED: 'bg-sky-100 text-sky-700',
-  CONNECTED: 'bg-blue-100 text-blue-700',
-  RESPONDED: 'bg-cyan-100 text-cyan-700',
+  CUSTOMER_CONNECTED: 'bg-blue-100 text-blue-700',
+  NO_VENDOR_AVAILABLE: 'bg-cyan-100 text-cyan-700',
+  VENDOR_DECLINED: 'bg-pink-100 text-pink-700',
+  VENDOR_CANT_FULFILL: 'bg-teal-100 text-teal-700',
   FOLLOW_UP: 'bg-amber-100 text-amber-700',
   CONVERTED: 'bg-green-100 text-green-700',
   NOT_INTERESTED: 'bg-gray-100 text-gray-600',
-  NO_RESPONSE: 'bg-stone-100 text-stone-700',
+  VENDOR_NOT_RESPONDING: 'bg-stone-100 text-stone-700',
   WRONG_NUMBER: 'bg-rose-100 text-rose-700',
   PRICE_TOO_HIGH: 'bg-orange-100 text-orange-700',
+  NOT_SERVICEABLE: 'bg-violet-100 text-violet-700',
+  AWAITING_VENDOR_QUOTE: 'bg-red-100 text-red-700',
+  QUOTE_NOT_SUBMITTED: 'bg-yellow-100 text-yellow-700',
+  CUSTOMER_NOT_RESPONDING: 'bg-indigo-100 text-indigo-700',
+  CUSTOMER_BOOKED_ELSEWHERE: 'bg-fuchsia-100 text-fuchsia-700',
+  WAITING_CUSTOMER_CONFIRMATION: 'bg-emerald-100 text-emerald-700',
+  ADVANCE_PAYMENT_PENDING: 'bg-lime-100 text-lime-700',
+  INVALID_LEAD: 'bg-slate-100 text-slate-700',
+  CANCELLED: 'bg-zinc-100 text-zinc-700',
+  DUPLICATE_INQUIRY: 'bg-purple-100 text-purple-700',
+  OTHER_REASON: 'bg-neutral-100 text-neutral-700',
+  // Deprecated values (kept so historical rows still render with a color)
+  CONNECTED: 'bg-blue-100 text-blue-700',
+  RESPONDED: 'bg-cyan-100 text-cyan-700',
+  NO_RESPONSE: 'bg-stone-100 text-stone-700',
   HOT_LEAD: 'bg-red-100 text-red-700',
   COLD_LEAD: 'bg-indigo-100 text-indigo-700',
-  DUPLICATE_INQUIRY: 'bg-purple-100 text-purple-700',
 };
 
 const actionTypeLabel = (type: string) =>
@@ -130,6 +158,8 @@ export default function ManagerDashboard() {
   const [recentInquiries, setRecentInquiries] = useState<RecentInquiry[]>([]);
   const [selectedInquiryIds, setSelectedInquiryIds] = useState<Set<string>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState<string | null>(null);
+  const [bulkActionMenuOpen, setBulkActionMenuOpen] = useState(false);
+  const bulkActionMenuRef = useRef<HTMLDivElement>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -199,6 +229,17 @@ export default function ManagerDashboard() {
     })();
   }, [fetchDashboardInfo, fetchStats]);
 
+  useEffect(() => {
+    if (!bulkActionMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (bulkActionMenuRef.current && !bulkActionMenuRef.current.contains(e.target as Node)) {
+        setBulkActionMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [bulkActionMenuOpen]);
+
   const handleFilterChange = (newFilter: DatePreset) => {
     setFilter(newFilter);
     if (newFilter !== 'custom') {
@@ -239,6 +280,7 @@ export default function ManagerDashboard() {
 
   const applyBulkAction = async (actionType: string) => {
     if (selectedInquiryIds.size === 0) return;
+    setBulkActionMenuOpen(false);
     setBulkActionLoading(actionType);
     try {
       const results = await Promise.all(
@@ -451,25 +493,38 @@ export default function ManagerDashboard() {
 
         {/* Bulk action bar — appears once 1+ inquiries are selected */}
         {selectedInquiryIds.size > 0 && (
-          <div className="px-4 py-3 bg-orange-50 border-b border-orange-100 flex items-center gap-3 flex-wrap">
+          <div className="px-4 py-3 bg-orange-50 border-b border-orange-100 flex items-center gap-3">
             <span className="text-xs font-semibold text-orange-800 shrink-0">
               {selectedInquiryIds.size} selected
             </span>
-            <div className="flex flex-wrap gap-1.5">
-              {QUICK_ACTIONS.map((a) => {
-                const Icon = a.icon;
-                return (
-                  <button
-                    key={a.key}
-                    onClick={() => applyBulkAction(a.key)}
-                    disabled={!!bulkActionLoading}
-                    className={`flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border disabled:opacity-50 transition ${a.classes}`}
-                  >
-                    {bulkActionLoading === a.key ? <Loader2 className="w-3 h-3 animate-spin" /> : <Icon className="w-3 h-3" />}
-                    {a.label}
-                  </button>
-                );
-              })}
+            <div className="relative" ref={bulkActionMenuRef}>
+              <button
+                onClick={() => setBulkActionMenuOpen((o) => !o)}
+                disabled={!!bulkActionLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-orange-300 bg-white text-orange-800 hover:bg-orange-100 disabled:opacity-50 transition"
+              >
+                {bulkActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                Apply Action
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${bulkActionMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {bulkActionMenuOpen && (
+                <div className="absolute z-20 top-full mt-1 left-0 w-72 max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg py-1">
+                  {QUICK_ACTIONS.map((a) => {
+                    const Icon = a.icon;
+                    return (
+                      <button
+                        key={a.key}
+                        onClick={() => applyBulkAction(a.key)}
+                        disabled={!!bulkActionLoading}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition text-left"
+                      >
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        {a.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <button
               onClick={() => setSelectedInquiryIds(new Set())}

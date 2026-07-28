@@ -7,6 +7,8 @@ import {
   ArrowLeft, Loader2, RefreshCw, Calendar, AlertTriangle, Phone, Mail,
   PhoneCall, StickyNote, ThumbsUp, ThumbsDown, Briefcase, MapPin,
   UserPlus, CheckCircle2, XCircle, Check, IndianRupee, Flame, Snowflake, Copy,
+  Ban, PhoneOff, UserX, Clock, XOctagon, CalendarX, MapPinOff, ExternalLink,
+  FileX, Hourglass, CreditCard, Flag, HelpCircle,
 } from 'lucide-react';
 
 type DatePreset = 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'all' | 'custom';
@@ -27,14 +29,30 @@ const ACTION_ICONS: Record<string, any> = {
   FOLLOW_UP: PhoneCall,
   CONVERTED: ThumbsUp,
   NOT_INTERESTED: ThumbsDown,
+  CUSTOMER_CONNECTED: Check,
+  NO_VENDOR_AVAILABLE: Ban,
+  VENDOR_DECLINED: XOctagon,
+  VENDOR_CANT_FULFILL: CalendarX,
+  VENDOR_NOT_RESPONDING: PhoneOff,
+  WRONG_NUMBER: AlertTriangle,
+  PRICE_TOO_HIGH: IndianRupee,
+  NOT_SERVICEABLE: MapPinOff,
+  AWAITING_VENDOR_QUOTE: Clock,
+  QUOTE_NOT_SUBMITTED: FileX,
+  CUSTOMER_NOT_RESPONDING: UserX,
+  CUSTOMER_BOOKED_ELSEWHERE: ExternalLink,
+  WAITING_CUSTOMER_CONFIRMATION: Hourglass,
+  ADVANCE_PAYMENT_PENDING: CreditCard,
+  INVALID_LEAD: Flag,
+  CANCELLED: XCircle,
+  DUPLICATE_INQUIRY: Copy,
+  OTHER_REASON: HelpCircle,
+  // Deprecated values (kept so historical rows still render an icon)
   CONNECTED: Check,
   RESPONDED: Check,
   NO_RESPONSE: XCircle,
-  WRONG_NUMBER: AlertTriangle,
-  PRICE_TOO_HIGH: IndianRupee,
   HOT_LEAD: Flame,
   COLD_LEAD: Snowflake,
-  DUPLICATE_INQUIRY: Copy,
 };
 
 interface CoverageStat { total: number; actioned: number; coveragePct: number | null }
