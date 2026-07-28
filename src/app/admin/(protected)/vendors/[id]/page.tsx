@@ -903,6 +903,13 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const statusInfo = statusConfig[vendor.status] || statusConfig.PENDING;
   const pendingServiceRequests = vendor.serviceRequests.filter((r) => r.status === 'PENDING');
   const pendingLocationRequests = vendor.locationRequests.filter((r) => r.status === 'PENDING');
+  // "Under Review" is set purely by the document-upload step (Address Proof) —
+  // it doesn't mean the vendor has requested any location/service yet. Make
+  // that distinction visible instead of leaving it looking like a full review.
+  const hasNoLocationOrServiceActivity =
+    vendor.status === 'UNDER_REVIEW' &&
+    vendor.locationRequests.length === 0 && vendor.approvedLocations.length === 0 &&
+    vendor.serviceRequests.length === 0 && vendor.approvedServices.length === 0;
 
   return (
     <div className="space-y-6">
@@ -915,9 +922,12 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">{vendor.businessName}</h1>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusInfo.bgColor} ${statusInfo.color}`}>
-              {statusInfo.label}
+              {hasNoLocationOrServiceActivity ? 'Documents Reviewed' : statusInfo.label}
             </span>
           </div>
+          {hasNoLocationOrServiceActivity && (
+            <p className="text-xs text-amber-600 mt-0.5">Locations/Services not requested yet</p>
+          )}
           <p className="text-gray-600">Vendor ID: {vendor.id}</p>
         </div>
 

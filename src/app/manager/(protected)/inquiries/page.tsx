@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Loader2,
   Search,
@@ -22,7 +22,33 @@ import {
   ChevronLeft,
   Globe,
   Smartphone,
+  PhoneCall,
+  Check,
+  ThumbsUp,
+  ThumbsDown,
+  AlertTriangle,
+  Flame,
+  Snowflake,
+  Copy,
+  X,
 } from 'lucide-react';
+
+// Same 12 quick actions as the inquiry detail page's "Manager Actions" panel —
+// available here as a bulk operation across selected rows.
+const QUICK_ACTIONS = [
+  { key: 'CALLED',            label: 'Mark as Called',     icon: Phone,       classes: 'border-sky-200 text-sky-700 bg-sky-50 hover:bg-sky-100' },
+  { key: 'CONNECTED',         label: 'Connected',          icon: Check,       classes: 'border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100' },
+  { key: 'RESPONDED',         label: 'Responded',          icon: Check,       classes: 'border-cyan-200 text-cyan-700 bg-cyan-50 hover:bg-cyan-100' },
+  { key: 'FOLLOW_UP',         label: 'Follow-Up Required', icon: PhoneCall,   classes: 'border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100' },
+  { key: 'CONVERTED',         label: 'Converted',          icon: ThumbsUp,    classes: 'border-green-200 text-green-700 bg-green-50 hover:bg-green-100' },
+  { key: 'NOT_INTERESTED',    label: 'Not Interested',     icon: ThumbsDown,  classes: 'border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100' },
+  { key: 'NO_RESPONSE',       label: 'No Response',        icon: XCircle,     classes: 'border-stone-200 text-stone-700 bg-stone-50 hover:bg-stone-100' },
+  { key: 'WRONG_NUMBER',      label: 'Wrong Number',       icon: AlertTriangle, classes: 'border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100' },
+  { key: 'PRICE_TOO_HIGH',    label: 'Price Too High',     icon: IndianRupee, classes: 'border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100' },
+  { key: 'HOT_LEAD',          label: 'Hot Lead',           icon: Flame,       classes: 'border-red-200 text-red-700 bg-red-50 hover:bg-red-100' },
+  { key: 'COLD_LEAD',         label: 'Cold Lead',          icon: Snowflake,   classes: 'border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100' },
+  { key: 'DUPLICATE_INQUIRY', label: 'Duplicate Inquiry',  icon: Copy,        classes: 'border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100' },
+] as const;
 
 interface Inquiry {
   id: string;
@@ -40,6 +66,7 @@ interface Inquiry {
   quotesCount: number;
   callsCount: number;
   actionsCount: number;
+  lastActionType: string | null;
   source?: string;
   createdAt: string;
 }
@@ -49,6 +76,37 @@ interface Service {
   name: string;
   slug: string;
 }
+
+// Same labels/colors as the Manager Actions panel on the inquiry detail page —
+// shows WHAT the last action was instead of a plain Actioned/Not Actioned badge.
+const ACTION_LABELS: Record<string, string> = {
+  CALLED: 'Mark as Called',
+  CONNECTED: 'Connected',
+  RESPONDED: 'Responded',
+  FOLLOW_UP: 'Follow-Up Required',
+  CONVERTED: 'Converted',
+  NOT_INTERESTED: 'Not Interested',
+  NO_RESPONSE: 'No Response',
+  WRONG_NUMBER: 'Wrong Number',
+  PRICE_TOO_HIGH: 'Price Too High',
+  HOT_LEAD: 'Hot Lead',
+  COLD_LEAD: 'Cold Lead',
+  DUPLICATE_INQUIRY: 'Duplicate Inquiry',
+};
+const ACTION_BADGE_STYLES: Record<string, string> = {
+  CALLED: 'bg-sky-100 text-sky-700',
+  CONNECTED: 'bg-blue-100 text-blue-700',
+  RESPONDED: 'bg-cyan-100 text-cyan-700',
+  FOLLOW_UP: 'bg-amber-100 text-amber-700',
+  CONVERTED: 'bg-green-100 text-green-700',
+  NOT_INTERESTED: 'bg-gray-100 text-gray-600',
+  NO_RESPONSE: 'bg-stone-100 text-stone-700',
+  WRONG_NUMBER: 'bg-rose-100 text-rose-700',
+  PRICE_TOO_HIGH: 'bg-orange-100 text-orange-700',
+  HOT_LEAD: 'bg-red-100 text-red-700',
+  COLD_LEAD: 'bg-indigo-100 text-indigo-700',
+  DUPLICATE_INQUIRY: 'bg-purple-100 text-purple-700',
+};
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; description: string }> = {
   PENDING: {
@@ -94,7 +152,10 @@ const DATE_FILTERS: { value: DateFilter; label: string }[] = [
 ];
 
 export default function ManagerInquiriesPage() {
+  const router = useRouter();
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState<string | null>(null);
   const [filteredInquiries, setFilteredInquiries] = useState<Inquiry[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -131,6 +192,52 @@ export default function ManagerInquiriesPage() {
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+    }
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllOnPage = () => {
+    setSelectedIds((prev) => {
+      const allSelected = currentInquiries.length > 0 && currentInquiries.every((i) => prev.has(i.id));
+      if (allSelected) {
+        const next = new Set(prev);
+        currentInquiries.forEach((i) => next.delete(i.id));
+        return next;
+      }
+      const next = new Set(prev);
+      currentInquiries.forEach((i) => next.add(i.id));
+      return next;
+    });
+  };
+
+  const applyBulkAction = async (actionType: string) => {
+    if (selectedIds.size === 0) return;
+    setBulkActionLoading(actionType);
+    try {
+      const results = await Promise.all(
+        Array.from(selectedIds).map((id) =>
+          fetch(`/api/manager/inquiries/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ actionType }),
+          }).then((res) => res.ok)
+        )
+      );
+      const failed = results.filter((ok) => !ok).length;
+      if (failed > 0) alert(`${failed} of ${results.length} inquiries failed to update.`);
+      setSelectedIds(new Set());
+      await fetchInquiries();
+    } catch {
+      alert('Network error. Please try again.');
+    } finally {
+      setBulkActionLoading(null);
     }
   };
 
@@ -212,6 +319,12 @@ export default function ManagerInquiriesPage() {
       rejected: filtered.filter((i) => i.status === 'REJECTED').length,
     });
   }, [searchTerm, statusFilter, sourceFilter, locationFilter, dateFilter, inquiries]);
+
+  // Clear selection whenever the page or filtered results change, so bulk
+  // actions never silently apply to rows that are no longer visible.
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [currentPage, filteredInquiries]);
 
   const uniqueLocations = useMemo(() => {
     const set = new Set<string>();
@@ -432,6 +545,47 @@ export default function ManagerInquiriesPage() {
 
       {/* Inquiries List */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {currentInquiries.length > 0 && (
+          <div className="px-4 sm:px-5 py-2.5 border-b border-gray-100 flex items-center gap-3 flex-wrap bg-gray-50">
+            <label className="flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={currentInquiries.length > 0 && currentInquiries.every((i) => selectedIds.has(i.id))}
+                onChange={toggleSelectAllOnPage}
+                className="w-4 h-4 rounded cursor-pointer accent-orange-600"
+              />
+              Select all on this page
+            </label>
+            {selectedIds.size > 0 && (
+              <>
+                <span className="text-xs font-semibold text-orange-800 shrink-0">{selectedIds.size} selected</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {QUICK_ACTIONS.map((a) => {
+                    const Icon = a.icon;
+                    return (
+                      <button
+                        key={a.key}
+                        onClick={() => applyBulkAction(a.key)}
+                        disabled={!!bulkActionLoading}
+                        className={`flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border disabled:opacity-50 transition ${a.classes}`}
+                      >
+                        {bulkActionLoading === a.key ? <Loader2 className="w-3 h-3 animate-spin" /> : <Icon className="w-3 h-3" />}
+                        {a.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  disabled={!!bulkActionLoading}
+                  className="ml-auto flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700 shrink-0"
+                >
+                  <X className="w-3 h-3" /> Clear
+                </button>
+              </>
+            )}
+          </div>
+        )}
         {currentInquiries.length === 0 ? (
           <div className="p-12 text-center">
             <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -449,14 +603,23 @@ export default function ManagerInquiriesPage() {
               const needsAttention = inquiry.status === 'PENDING';
 
               return (
-                <Link
+                <div
                   key={inquiry.id}
-                  href={`/manager/inquiries/${inquiry.id}`}
-                  className={`block p-4 sm:p-5 hover:bg-gray-50 transition ${
+                  onClick={() => router.push(`/manager/inquiries/${inquiry.id}`)}
+                  className={`p-4 sm:p-5 hover:bg-gray-50 transition cursor-pointer ${
                     needsAttention ? 'bg-yellow-50/50' : ''
-                  }`}
+                  } ${selectedIds.has(inquiry.id) ? 'bg-orange-50/60' : ''}`}
                 >
                   <div className="flex items-start gap-4">
+                    {/* Checkbox */}
+                    <div className="pt-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(inquiry.id)}
+                        onChange={() => toggleSelection(inquiry.id)}
+                        className="w-4 h-4 rounded cursor-pointer accent-orange-600"
+                      />
+                    </div>
                     {/* Icon */}
                     <div
                       className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
@@ -553,18 +716,20 @@ export default function ManagerInquiriesPage() {
                           {inquiry.callsCount} {inquiry.callsCount === 1 ? 'call' : 'calls'}
                         </div>
                         <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
-                          inquiry.actionsCount > 0
-                            ? 'bg-green-100 text-green-700'
+                          inquiry.lastActionType
+                            ? ACTION_BADGE_STYLES[inquiry.lastActionType] || 'bg-green-100 text-green-700'
                             : 'bg-red-50 text-red-500'
                         }`}>
-                          {inquiry.actionsCount > 0 ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-                          {inquiry.actionsCount > 0 ? 'Actioned' : 'Not Actioned'}
+                          {inquiry.lastActionType ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                          {inquiry.lastActionType
+                            ? `${ACTION_LABELS[inquiry.lastActionType] || inquiry.lastActionType}${inquiry.actionsCount > 1 ? ` +${inquiry.actionsCount - 1}` : ''}`
+                            : 'Not Actioned'}
                         </div>
                       </div>
                       <ChevronRight className="w-5 h-5 text-gray-400" />
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

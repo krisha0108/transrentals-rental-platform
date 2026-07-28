@@ -703,7 +703,8 @@ export default function VendorProfilePage() {
           </div>
 
           {/* ── BACKR Rewards ── */}
-          <BackrCard type="vendor" />
+          {/* Temporarily hidden from the vendor profile page (frontend-only — backend untouched) */}
+          {false && <BackrCard type="vendor" />}
 
         </form>
       </div>

@@ -6,7 +6,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, Loader2, RefreshCw, Calendar, AlertTriangle, Phone, Mail,
   PhoneCall, StickyNote, ThumbsUp, ThumbsDown, Briefcase, MapPin,
-  UserPlus, CheckCircle2, XCircle,
+  UserPlus, CheckCircle2, XCircle, Check, IndianRupee, Flame, Snowflake, Copy,
 } from 'lucide-react';
 
 type DatePreset = 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'all' | 'custom';
@@ -27,6 +27,14 @@ const ACTION_ICONS: Record<string, any> = {
   FOLLOW_UP: PhoneCall,
   CONVERTED: ThumbsUp,
   NOT_INTERESTED: ThumbsDown,
+  CONNECTED: Check,
+  RESPONDED: Check,
+  NO_RESPONSE: XCircle,
+  WRONG_NUMBER: AlertTriangle,
+  PRICE_TOO_HIGH: IndianRupee,
+  HOT_LEAD: Flame,
+  COLD_LEAD: Snowflake,
+  DUPLICATE_INQUIRY: Copy,
 };
 
 interface CoverageStat { total: number; actioned: number; coveragePct: number | null }
@@ -268,7 +276,7 @@ export default function ManagerPerformanceDetailPage() {
               return (
                 <span key={type} className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-full px-2.5 py-1">
                   <Icon className="w-3.5 h-3.5" />
-                  {type.replace('_', ' ')} · {count}
+                  {type.replace(/_/g, ' ')} · {count}
                 </span>
               );
             })
@@ -318,7 +326,7 @@ export default function ManagerPerformanceDetailPage() {
                         return (
                           <span key={i} className="flex items-center gap-1 text-xs text-green-700 bg-green-50 border border-green-100 rounded-full px-2 py-0.5">
                             <Icon className="w-3 h-3" />
-                            {a.actionType.replace('_', ' ')}
+                            {a.actionType.replace(/_/g, ' ')}
                           </span>
                         );
                       })}
@@ -329,7 +337,7 @@ export default function ManagerPerformanceDetailPage() {
                     <div className="mt-2 space-y-1">
                       {item.actions.filter((a) => a.note).map((a, i) => (
                         <p key={i} className="text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5">
-                          <span className="font-medium text-gray-500">{a.actionType.replace('_', ' ')}:</span> "{a.note}"
+                          <span className="font-medium text-gray-500">{a.actionType.replace(/_/g, ' ')}:</span> "{a.note}"
                         </p>
                       ))}
                     </div>

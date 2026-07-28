@@ -752,9 +752,12 @@ export default function VendorDashboard() {
       </div>
 
       {/* ── BACKR Rewards ── */}
-      <AnimateIn delay={100}>
-        <BackrCard type="vendor" />
-      </AnimateIn>
+      {/* Temporarily hidden from the vendor dashboard (frontend-only — backend untouched) */}
+      {false && (
+        <AnimateIn delay={100}>
+          <BackrCard type="vendor" />
+        </AnimateIn>
+      )}
 
       {/* ── Empty State ── */}
       {stats && stats.totalBookings === 0 && approvedServices.length === 0 && (

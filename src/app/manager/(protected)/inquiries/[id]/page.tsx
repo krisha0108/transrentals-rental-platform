@@ -2,7 +2,43 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Calendar, MapPin, User, Phone, Mail, FileText, Clock, Building, PhoneCall, StickyNote, ThumbsUp, ThumbsDown, Bell, Loader2 as Spinner, History } from 'lucide-react';
+import {
+  ArrowLeft, Calendar, MapPin, User, Phone, Mail, FileText, Clock, Building,
+  PhoneCall, StickyNote, ThumbsUp, ThumbsDown, Bell, Loader2 as Spinner, History,
+  Tag, Plus, X, Check, XCircle, AlertTriangle, IndianRupee, Flame, Snowflake, Copy,
+} from 'lucide-react';
+
+const QUICK_ACTIONS = [
+  { key: 'CALLED',            label: 'Mark as Called',    icon: Phone,       classes: 'border-sky-200 text-sky-700 bg-sky-50 hover:bg-sky-100' },
+  { key: 'CONNECTED',         label: 'Connected',         icon: Check,       classes: 'border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100' },
+  { key: 'RESPONDED',         label: 'Responded',         icon: Check,       classes: 'border-cyan-200 text-cyan-700 bg-cyan-50 hover:bg-cyan-100' },
+  { key: 'FOLLOW_UP',         label: 'Follow-Up Required', icon: PhoneCall,  classes: 'border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100' },
+  { key: 'CONVERTED',         label: 'Converted',         icon: ThumbsUp,    classes: 'border-green-200 text-green-700 bg-green-50 hover:bg-green-100' },
+  { key: 'NOT_INTERESTED',    label: 'Not Interested',    icon: ThumbsDown,  classes: 'border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100' },
+  { key: 'NO_RESPONSE',       label: 'No Response',       icon: XCircle,     classes: 'border-stone-200 text-stone-700 bg-stone-50 hover:bg-stone-100' },
+  { key: 'WRONG_NUMBER',      label: 'Wrong Number',      icon: AlertTriangle, classes: 'border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100' },
+  { key: 'PRICE_TOO_HIGH',    label: 'Price Too High',    icon: IndianRupee, classes: 'border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100' },
+  { key: 'HOT_LEAD',          label: 'Hot Lead',          icon: Flame,       classes: 'border-red-200 text-red-700 bg-red-50 hover:bg-red-100' },
+  { key: 'COLD_LEAD',         label: 'Cold Lead',         icon: Snowflake,   classes: 'border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100' },
+  { key: 'DUPLICATE_INQUIRY', label: 'Duplicate Inquiry', icon: Copy,        classes: 'border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100' },
+] as const;
+
+const INQUIRY_TAGS = [
+  { key: 'FOLLOW_UP_REQUIRED', label: 'Follow-Up Required', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  { key: 'CONNECTED',          label: 'Connected',          color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { key: 'RESPONDED',          label: 'Responded',          color: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
+  { key: 'NOT_INTERESTED',     label: 'Not Interested',     color: 'bg-gray-200 text-gray-700 border-gray-300' },
+  { key: 'NO_RESPONSE',        label: 'No Response',        color: 'bg-stone-100 text-stone-700 border-stone-200' },
+  { key: 'WRONG_NUMBER',       label: 'Wrong Number',       color: 'bg-rose-100 text-rose-700 border-rose-200' },
+  { key: 'PRICE_TOO_HIGH',     label: 'Price Too High',     color: 'bg-orange-100 text-orange-700 border-orange-200' },
+  { key: 'HOT_LEAD',           label: 'Hot Lead',           color: 'bg-red-100 text-red-700 border-red-200' },
+  { key: 'COLD_LEAD',          label: 'Cold Lead',          color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+  { key: 'CONVERTED',          label: 'Converted',          color: 'bg-green-100 text-green-700 border-green-200' },
+  { key: 'DUPLICATE_INQUIRY',  label: 'Duplicate Inquiry',  color: 'bg-purple-100 text-purple-700 border-purple-200' },
+] as const;
+const TAG_BY_KEY: Record<string, { label: string; color: string }> = Object.fromEntries(
+  INQUIRY_TAGS.map((t) => [t.key, { label: t.label, color: t.color }])
+);
 
 interface QuoteRequest {
   id: string;
@@ -81,6 +117,9 @@ export default function InquiryDetailPage() {
   const [actionLogs, setActionLogs] = useState<ActionLog[]>([]);
   const [noteText, setNoteText] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagEditorOpen, setTagEditorOpen] = useState(false);
+  const [tagSaving, setTagSaving] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInquiryDetails();
@@ -104,6 +143,7 @@ export default function InquiryDetailPage() {
         setQuotes(data.quotes || []);
         setQuotesCount(data.quotesCount || 0);
         setActionLogs(data.actionLogs || []);
+        setTags(data.tags || []);
       } else {
         if (data.redirectUrl) { router.push(data.redirectUrl); return; }
         console.error('Failed to fetch inquiry:', data.error);
@@ -140,6 +180,29 @@ export default function InquiryDetailPage() {
   const handleCallClick = () => {
     // Best-effort: log the call action without blocking the tel: navigation.
     logAction('CALLED');
+  };
+
+  const handleToggleTag = async (tag: string, present: boolean) => {
+    setTagSaving(tag);
+    const prev = tags;
+    setTags(present ? prev.filter((t) => t !== tag) : [...prev, tag]);
+    try {
+      const res = present
+        ? await fetch(`/api/manager/inquiries/${inquiryId}/tags?tag=${tag}`, { method: 'DELETE' })
+        : await fetch(`/api/manager/inquiries/${inquiryId}/tags`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tag }),
+          });
+      if (!res.ok) throw new Error('Server rejected tag change');
+      const data = await res.json();
+      if (Array.isArray(data?.tags)) setTags(data.tags);
+    } catch {
+      setTags(prev);
+      alert('Could not update tag. Please try again.');
+    } finally {
+      setTagSaving(null);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -210,6 +273,75 @@ export default function InquiryDetailPage() {
         <span className={`px-4 py-1.5 rounded-full text-sm font-semibold border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}>
           {statusCfg.label}
         </span>
+      </div>
+
+      {/* ── CRM Tags ── */}
+      <div>
+        <div className="flex flex-wrap gap-1.5 items-center">
+          {tags.map((t) => {
+            const meta = TAG_BY_KEY[t];
+            if (!meta) return null;
+            const saving = tagSaving === t;
+            return (
+              <span
+                key={t}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${meta.color} ${saving ? 'opacity-50' : ''}`}
+              >
+                <Tag className="w-3 h-3" />
+                {meta.label}
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => handleToggleTag(t, true)}
+                  className="ml-0.5 hover:opacity-70"
+                  title="Remove tag"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setTagEditorOpen((o) => !o)}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-dashed border-gray-300 text-gray-500 hover:bg-gray-50 hover:border-gray-400"
+          >
+            <Plus className="w-3 h-3" />
+            {tags.length === 0 ? 'Add tag' : 'Edit tags'}
+          </button>
+        </div>
+
+        {tagEditorOpen && (
+          <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg max-w-2xl">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-gray-700">Toggle tags</span>
+              <button type="button" onClick={() => setTagEditorOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {INQUIRY_TAGS.map((t) => {
+                const present = tags.includes(t.key);
+                const saving = tagSaving === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    disabled={saving}
+                    onClick={() => handleToggleTag(t.key, present)}
+                    className={`px-2 py-1 rounded-full text-xs font-medium border transition ${
+                      present
+                        ? `${t.color} ring-1 ring-offset-1 ring-current`
+                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-100'
+                    } ${saving ? 'opacity-50' : ''}`}
+                  >
+                    {present ? '✓ ' : '+ '}{t.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Quick Stats ── */}
@@ -386,30 +518,20 @@ export default function InquiryDetailPage() {
         </h2>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          <button
-            onClick={() => logAction('FOLLOW_UP')}
-            disabled={!!actionLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 transition"
-          >
-            {actionLoading === 'FOLLOW_UP' ? <Spinner className="w-3.5 h-3.5 animate-spin" /> : <PhoneCall className="w-3.5 h-3.5" />}
-            Follow-Up Required
-          </button>
-          <button
-            onClick={() => logAction('CONVERTED')}
-            disabled={!!actionLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-green-200 text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50 transition"
-          >
-            {actionLoading === 'CONVERTED' ? <Spinner className="w-3.5 h-3.5 animate-spin" /> : <ThumbsUp className="w-3.5 h-3.5" />}
-            Converted
-          </button>
-          <button
-            onClick={() => logAction('NOT_INTERESTED')}
-            disabled={!!actionLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 transition"
-          >
-            {actionLoading === 'NOT_INTERESTED' ? <Spinner className="w-3.5 h-3.5 animate-spin" /> : <ThumbsDown className="w-3.5 h-3.5" />}
-            Not Interested
-          </button>
+          {QUICK_ACTIONS.map((a) => {
+            const Icon = a.icon;
+            return (
+              <button
+                key={a.key}
+                onClick={() => logAction(a.key)}
+                disabled={!!actionLoading}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border disabled:opacity-50 transition ${a.classes}`}
+              >
+                {actionLoading === a.key ? <Spinner className="w-3.5 h-3.5 animate-spin" /> : <Icon className="w-3.5 h-3.5" />}
+                {a.label}
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex items-start gap-2">
@@ -440,7 +562,7 @@ export default function InquiryDetailPage() {
               {actionLogs.map((log) => (
                 <div key={log.id} className="flex items-start gap-2.5 text-sm bg-gray-50 rounded-lg px-3 py-2">
                   <span className="shrink-0 mt-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-white border border-gray-200 text-gray-600">
-                    {log.actionType.replace('_', ' ')}
+                    {log.actionType.replace(/_/g, ' ')}
                   </span>
                   <div className="min-w-0 flex-1">
                     {log.note && <p className="text-gray-700 break-words">{log.note}</p>}

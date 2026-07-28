@@ -330,8 +330,24 @@ export async function GET(request: NextRequest) {
     for (const row of actionCountRows) {
       actionCountMap[row.recordId] = row._count.recordId;
     }
+
+    // Most recent action per inquiry — shown instead of a plain "Actioned"
+    // badge so managers see WHAT was done, not just that something was.
+    const actionLogRows = allIds.length > 0
+      ? await prisma.manager_action_logs.findMany({
+          where: { recordType: 'INQUIRY', recordId: { in: allIds } },
+          select: { recordId: true, actionType: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        }).catch(() => [])
+      : [];
+    const lastActionMap: Record<string, string> = {};
+    for (const row of actionLogRows) {
+      if (!lastActionMap[row.recordId]) lastActionMap[row.recordId] = row.actionType;
+    }
+
     for (const inquiry of allInquiries) {
       inquiry.actionsCount = actionCountMap[inquiry.id] || 0;
+      inquiry.lastActionType = lastActionMap[inquiry.id] || null;
     }
 
     // Create unique service list based on main service names
