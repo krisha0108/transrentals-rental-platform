@@ -64,6 +64,7 @@ interface ManagerDetail {
   vendors: { created: number; approved: number };
   inquiries: CoverageStat;
   bookings: CoverageStat;
+  contactInquiries: { actioned: number };
   actionBreakdown: Record<string, number>;
 }
 
@@ -115,9 +116,10 @@ export default function ManagerPerformanceDetailPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<ManagerDetail | null>(null);
 
-  const [inquiryTab, setInquiryTab] = useState<'actioned' | 'untouched'>('actioned');
+  const [inquiryTab, setInquiryTab] = useState<'actioned' | 'untouched' | 'contact'>('actioned');
   const [actioned, setActioned] = useState<ActionedItem[]>([]);
   const [untouched, setUntouched] = useState<UntouchedItem[]>([]);
+  const [contactInquiries, setContactInquiries] = useState<ActionedItem[]>([]);
   const [listLoading, setListLoading] = useState(false);
 
   const fetchDetail = useCallback(async (preset: DatePreset, from?: string, to?: string) => {
@@ -137,7 +139,10 @@ export default function ManagerPerformanceDetailPage() {
         fetch(`/api/admin/managers/performance/untouched?managerId=${managerId}&filter=${preset}${suffix}`),
       ]);
       const [actionedJson, untouchedJson] = await Promise.all([actionedRes.json(), untouchedRes.json()]);
-      if (!actionedJson.error) setActioned(actionedJson.actioned || []);
+      if (!actionedJson.error) {
+        setActioned(actionedJson.actioned || []);
+        setContactInquiries(actionedJson.contactInquiries || []);
+      }
       if (!untouchedJson.error) setUntouched(untouchedJson.untouched || []);
     } finally {
       setListLoading(false);
@@ -231,7 +236,7 @@ export default function ManagerPerformanceDetailPage() {
       </div>
 
       {/* Top stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-white rounded-xl border shadow-sm p-4">
           <p className="text-xs text-gray-500 mb-1 flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> Assigned Locations</p>
           <p className="text-2xl font-bold text-gray-900">{data.locations.length}</p>
@@ -247,6 +252,10 @@ export default function ManagerPerformanceDetailPage() {
         <div className="bg-white rounded-xl border shadow-sm p-4">
           <p className="text-xs text-gray-500 mb-1 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Vendors Approved</p>
           <p className="text-2xl font-bold text-green-700">{data.vendors.approved}</p>
+        </div>
+        <div className="bg-white rounded-xl border shadow-sm p-4">
+          <p className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Mail className="w-3.5 h-3.5" /> Contact Inquiries Handled</p>
+          <p className="text-2xl font-bold text-orange-700">{data.contactInquiries.actioned}</p>
         </div>
       </div>
 
@@ -317,6 +326,12 @@ export default function ManagerPerformanceDetailPage() {
           >
             Untouched Inquiries ({untouched.length})
           </button>
+          <button
+            onClick={() => setInquiryTab('contact')}
+            className={`py-3 text-sm font-medium border-b-2 transition ${inquiryTab === 'contact' ? 'border-orange-600 text-orange-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            Contact Inquiries ({contactInquiries.length})
+          </button>
         </div>
 
         {listLoading ? (
@@ -366,23 +381,66 @@ export default function ManagerPerformanceDetailPage() {
               ))}
             </div>
           )
-        ) : untouched.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 text-sm">Nothing untouched — fully covered.</div>
+        ) : inquiryTab === 'untouched' ? (
+          untouched.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 text-sm">Nothing untouched — fully covered.</div>
+          ) : (
+            <div className="divide-y max-h-[420px] overflow-y-auto">
+              {untouched.map((u) => (
+                <div key={u.id} className="p-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 text-sm truncate">{u.customerName}</p>
+                    <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
+                      <Phone className="w-3 h-3" /> {u.customerPhone}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">{u.serviceName} · {u.locationName} · {u.requestNumber}</p>
+                  </div>
+                  <p className="text-xs text-gray-400 shrink-0 flex items-center gap-1">
+                    <XCircle className="w-3.5 h-3.5 text-red-400" />
+                    {formatDateTime(u.createdAt)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )
+        ) : contactInquiries.length === 0 ? (
+          <div className="text-center py-12 text-gray-500 text-sm">No contact-form inquiries handled in this period.</div>
         ) : (
           <div className="divide-y max-h-[420px] overflow-y-auto">
-            {untouched.map((u) => (
-              <div key={u.id} className="p-4 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-medium text-gray-900 text-sm truncate">{u.customerName}</p>
-                  <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
-                    <Phone className="w-3 h-3" /> {u.customerPhone}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">{u.serviceName} · {u.locationName} · {u.requestNumber}</p>
+            {contactInquiries.map((item) => (
+              <div key={item.id} className="p-4">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 text-sm">{item.customerName}</p>
+                    <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
+                      <Phone className="w-3 h-3" /> {item.customerPhone}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">Contact Inquiry · {item.locationName} · {item.requestNumber}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 justify-end">
+                    {item.actions.map((a, i) => {
+                      const Icon = ACTION_ICONS[a.actionType] || StickyNote;
+                      return (
+                        <span key={i} className="flex items-center gap-1 text-xs text-orange-700 bg-orange-50 border border-orange-100 rounded-full px-2 py-0.5">
+                          <Icon className="w-3 h-3" />
+                          {a.actionType.replace(/_/g, ' ')}
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
-                <p className="text-xs text-gray-400 shrink-0 flex items-center gap-1">
-                  <XCircle className="w-3.5 h-3.5 text-red-400" />
-                  {formatDateTime(u.createdAt)}
-                </p>
+
+                {item.actions.some((a) => a.note) && (
+                  <div className="mt-2 space-y-1">
+                    {item.actions.filter((a) => a.note).map((a, i) => (
+                      <p key={i} className="text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5">
+                        <span className="font-medium text-gray-500">Reply:</span> "{a.note}"
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                <p className="text-xs text-gray-400 mt-2">Last action: {formatDateTime(item.actions[0].createdAt)}</p>
               </div>
             ))}
           </div>

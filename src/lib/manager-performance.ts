@@ -16,6 +16,11 @@ export interface ManagerStats {
   vendors: { created: number; approved: number };
   inquiries: { total: number; actioned: number; coveragePct: number | null };
   bookings: { total: number; actioned: number; coveragePct: number | null };
+  // contact_inquiries has no location/service scoping (the public /contact
+  // form is fully anonymous — see QuotePaymentSafetyNotice work) — every
+  // manager can act on the same shared, unscoped queue, so there's no
+  // "assigned total" to build a coverage ratio against. Just a count.
+  contactInquiries: { actioned: number };
   actionBreakdown: Record<string, number>;
 }
 
@@ -32,6 +37,7 @@ export async function computeManagerStats(
     vendors: { created: 0, approved: 0 },
     inquiries: { total: 0, actioned: 0, coveragePct: null },
     bookings: { total: 0, actioned: 0, coveragePct: null },
+    contactInquiries: { actioned: 0 },
     actionBreakdown: {},
   };
 
@@ -39,17 +45,26 @@ export async function computeManagerStats(
   // timestamp (createdAt / approvedAt), independent of location/service scope,
   // since createdById/approvedById already identifies the manager directly.
   const createdAtRange = 'createdAt' in dateFilterObj ? dateFilterObj.createdAt : undefined;
-  const [vendorsCreated, vendorsApproved] = await Promise.all([
+  const [vendorsCreated, vendorsApproved, contactInquiriesActioned] = await Promise.all([
     prisma.vendors.count({
       where: { createdById: manager.id, ...(createdAtRange ? { createdAt: createdAtRange } : {}) },
     }).catch(() => 0),
     prisma.vendors.count({
       where: { approvedById: manager.id, ...(createdAtRange ? { approvedAt: createdAtRange } : {}) },
     }).catch(() => 0),
+    // Same reasoning as vendors above — contact_inquiries has no
+    // location/service scope, so this is computed independent of assignment.
+    prisma.manager_action_logs.count({
+      where: { recordType: 'CONTACT_INQUIRY', managerId: manager.id, ...dateFilterObj },
+    }).catch(() => 0),
   ]);
 
   if (assignedLocationIds.length === 0 || assignedServiceSlugs.length === 0) {
-    return { ...empty, vendors: { created: vendorsCreated, approved: vendorsApproved } };
+    return {
+      ...empty,
+      vendors: { created: vendorsCreated, approved: vendorsApproved },
+      contactInquiries: { actioned: contactInquiriesActioned },
+    };
   }
 
   const isAssigned = (slug: string, alts: string[]) =>
@@ -152,6 +167,7 @@ export async function computeManagerStats(
       actioned: bookingsActioned,
       coveragePct: bookingsTotal > 0 ? Math.round((bookingsActioned / bookingsTotal) * 100) : null,
     },
+    contactInquiries: { actioned: contactInquiriesActioned },
     actionBreakdown: Object.fromEntries(breakdownGroups.map((g) => [g.actionType, g._count.actionType])),
   };
 }

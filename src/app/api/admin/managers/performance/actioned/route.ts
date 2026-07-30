@@ -15,7 +15,25 @@ const SERVICE_NAMES: Record<string, string> = {
   'luxury-car-rental': 'Luxury Cars',
   'packers-and-movers': 'Packers & Movers',
   'truck-transport': 'Truck Transport',
+  'contact-inquiry': 'Contact Inquiry',
 };
+
+// contact_inquiries has no location field — the subject line fills the
+// "locationName" slot in the shared UI ("Contact Inquiry · <subject> · INQ-xxxxxx").
+async function fetchContactInquirySummary(id: string) {
+  const r = await prisma.contact_inquiries.findUnique({
+    where: { id },
+    select: { name: true, phone: true, subject: true, createdAt: true },
+  });
+  if (!r) return null;
+  return {
+    requestNumber: `INQ-${id.slice(-6).toUpperCase()}`,
+    customerName: r.name,
+    customerPhone: r.phone,
+    locationName: r.subject,
+    createdAt: r.createdAt,
+  };
+}
 
 // Look up a single quote-request's customer/location details by its known serviceType
 // (stored on the action log itself, so no need to search all 7 tables blindly).
@@ -82,23 +100,26 @@ export async function GET(request: NextRequest) {
     const dateFilterObj = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
 
     const logs = await prisma.manager_action_logs.findMany({
-      where: { recordType: 'INQUIRY', managerId, ...dateFilterObj },
+      where: { recordType: { in: ['INQUIRY', 'CONTACT_INQUIRY'] }, managerId, ...dateFilterObj },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Group log entries by inquiry, keep each inquiry's own action history.
-    const byRecord = new Map<string, { serviceType: string; actions: { actionType: string; note: string | null; createdAt: Date }[] }>();
+    // Group log entries by record, keep each record's own action history.
+    const byRecord = new Map<string, { recordType: string; serviceType: string; actions: { actionType: string; note: string | null; createdAt: Date }[] }>();
     for (const log of logs) {
-      if (!byRecord.has(log.recordId)) byRecord.set(log.recordId, { serviceType: log.serviceType, actions: [] });
+      if (!byRecord.has(log.recordId)) byRecord.set(log.recordId, { recordType: log.recordType, serviceType: log.serviceType, actions: [] });
       byRecord.get(log.recordId)!.actions.push({ actionType: log.actionType, note: log.note, createdAt: log.createdAt });
     }
 
     const entries = await Promise.all(
-      Array.from(byRecord.entries()).map(async ([id, { serviceType, actions }]) => {
-        const summary = await fetchInquirySummary(id, serviceType).catch(() => null);
+      Array.from(byRecord.entries()).map(async ([id, { recordType, serviceType, actions }]) => {
+        const summary = recordType === 'CONTACT_INQUIRY'
+          ? await fetchContactInquirySummary(id).catch(() => null)
+          : await fetchInquirySummary(id, serviceType).catch(() => null);
         if (!summary) return null;
         return {
           id,
+          recordType,
           requestNumber: summary.requestNumber,
           customerName: summary.customerName,
           customerPhone: summary.customerPhone,
@@ -110,11 +131,16 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    const actioned = entries
-      .filter(Boolean)
-      .sort((a: any, b: any) => new Date(b.actions[0].createdAt).getTime() - new Date(a.actions[0].createdAt).getTime());
+    const sortByLastAction = (a: any, b: any) => new Date(b.actions[0].createdAt).getTime() - new Date(a.actions[0].createdAt).getTime();
 
-    return NextResponse.json({ actioned });
+    // Contact inquiries are a separate, unscoped queue (see manager-performance.ts) —
+    // kept out of `actioned` so its count stays in sync with the `inquiries.actioned`
+    // stat above (which only counts recordType 'INQUIRY'), and get their own list
+    // instead of being invisibly mixed in.
+    const actioned = entries.filter(Boolean).filter((e: any) => e.recordType !== 'CONTACT_INQUIRY').sort(sortByLastAction);
+    const contactInquiries = entries.filter(Boolean).filter((e: any) => e.recordType === 'CONTACT_INQUIRY').sort(sortByLastAction);
+
+    return NextResponse.json({ actioned, contactInquiries });
   } catch (error: any) {
     logger.error('Manager actioned-inquiries fetch error', error);
     return NextResponse.json(
