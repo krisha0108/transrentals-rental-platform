@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Script from 'next/script';
@@ -25,7 +25,7 @@ declare global {
   }
 }
 
-export default function CustomerLoginPage() {
+function CustomerLoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<AuthMode>(
@@ -661,5 +661,22 @@ export default function CustomerLoginPage() {
         </div>
       </div>
     </>
+  );
+}
+
+function LoginPageFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4"
+      style={{ background: 'linear-gradient(140deg, #033D26 0%, #056040 30%, #078F53 65%, #09B368 100%)' }}>
+      <Loader2 className="h-8 w-8 text-white animate-spin" />
+    </div>
+  );
+}
+
+export default function CustomerLoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <CustomerLoginPageContent />
+    </Suspense>
   );
 }
