@@ -1,8 +1,9 @@
 'use client';
 
 import { FormEvent, useState, useRef, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { trackFormSubmission } from '@/components/analytics/VisitorTracker';
+import { useCustomerAuth } from '@/hooks/useCustomer';
 import ContactSuccessModal from './ContactSuccessModal';
 
 type ContactFormField = {
@@ -76,6 +77,8 @@ export function ContactForm() {
     isExistingCustomer: boolean;
   } | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
+  const { isAuthenticated } = useCustomerAuth();
   const formStartTimeRef = useRef<number>(Date.now());
 
   // Reset form start time when component mounts
@@ -125,17 +128,27 @@ export function ContactForm() {
       });
 
       setFormStatus('success');
-      setFormMessage('Thanks for reaching out! We will reply within one business day.');
-      if (successPayload?.referenceNumber) {
-        setSuccessInfo({
-          referenceNumber: successPayload.referenceNumber,
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          isExistingCustomer: !!successPayload.isExistingCustomer,
-        });
-      }
       setFormData(initialContactFormValues);
+
+      if (isAuthenticated) {
+        // Already logged in — no point asking them to log in again. Show a
+        // quick confirmation, then send them straight to their dashboard.
+        setFormMessage(
+          `Thanks for reaching out! Reference ${successPayload?.referenceNumber || ''} — redirecting you to your dashboard...`
+        );
+        setTimeout(() => router.push('/customer/dashboard'), 1200);
+      } else {
+        setFormMessage('Thanks for reaching out! We will reply within one business day.');
+        if (successPayload?.referenceNumber) {
+          setSuccessInfo({
+            referenceNumber: successPayload.referenceNumber,
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            isExistingCustomer: !!successPayload.isExistingCustomer,
+          });
+        }
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Something went wrong.';
 

@@ -30,7 +30,7 @@ const SIDEBAR_LINKS = [
 
 interface ManagerNotification {
   id: string;
-  type: 'NEW_LOCATION_REQUEST' | 'NEW_SERVICE_REQUEST';
+  type: 'NEW_LOCATION_REQUEST' | 'NEW_SERVICE_REQUEST' | 'NEW_CONTACT_INQUIRY';
   title: string;
   body: string;
   link: string | null;
@@ -148,6 +148,7 @@ function ManagerSidebar({
 const NOTIFICATION_ICON: Record<string, any> = {
   NEW_LOCATION_REQUEST: MapPinPlus,
   NEW_SERVICE_REQUEST: Layers,
+  NEW_CONTACT_INQUIRY: Mail,
 };
 
 function ManagerNotificationBell({
