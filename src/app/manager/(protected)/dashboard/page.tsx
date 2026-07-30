@@ -10,7 +10,7 @@ import {
   Phone, Check, PhoneCall, ThumbsUp, ThumbsDown, AlertTriangle,
   IndianRupee, Copy, X, Ban, PhoneOff, UserX, XOctagon, CalendarX, MapPinOff,
   ExternalLink, FileX, Hourglass, CreditCard, Flag, XCircle, HelpCircle,
-  ChevronDown, Search,
+  ChevronDown, Search, Store, MapPinPlus, Layers,
 } from 'lucide-react';
 
 // Same 22 quick actions as the inquiry detail page's "Manager Actions" panel —
@@ -90,6 +90,16 @@ interface RecentInquiry {
   createdAt: string;
 }
 
+interface VendorRequestNotification {
+  id: string;
+  type: 'NEW_LOCATION_REQUEST' | 'NEW_SERVICE_REQUEST';
+  title: string;
+  body: string;
+  link: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
 // Same badge styling as the 12 Manager Actions buttons — used to color the
 // "last action" pill in Recent Inquiries instead of a plain Actioned/Not badge.
 const ACTION_BADGE_STYLES: Record<string, string> = {
@@ -156,6 +166,7 @@ export default function ManagerDashboard() {
   const [attention, setAttention] = useState<AttentionStats | null>(null);
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
   const [recentInquiries, setRecentInquiries] = useState<RecentInquiry[]>([]);
+  const [vendorRequests, setVendorRequests] = useState<VendorRequestNotification[]>([]);
   const [selectedInquiryIds, setSelectedInquiryIds] = useState<Set<string>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState<string | null>(null);
   const [bulkActionMenuOpen, setBulkActionMenuOpen] = useState(false);
@@ -174,9 +185,10 @@ export default function ManagerDashboard() {
   // recent bookings, and "needs attention" counts. Fetched once (+ on refresh).
   const fetchDashboardInfo = useCallback(async () => {
     try {
-      const [dashRes, inquiriesRes] = await Promise.all([
+      const [dashRes, inquiriesRes, notificationsRes] = await Promise.all([
         fetch('/api/manager/dashboard'),
         fetch('/api/manager/inquiries'),
+        fetch('/api/manager/notifications?filter=unread&limit=5'),
       ]);
       const data = await dashRes.json();
       if (data.success) {
@@ -195,6 +207,11 @@ export default function ManagerDashboard() {
       const inquiriesData = await inquiriesRes.json();
       if (inquiriesData.success) {
         setRecentInquiries((inquiriesData.inquiries || []).slice(0, 8));
+      }
+
+      if (notificationsRes.ok) {
+        const notificationsData = await notificationsRes.json();
+        setVendorRequests(notificationsData.items || []);
       }
     } catch (err: any) {
       console.error('Failed to fetch manager info:', err);
@@ -304,6 +321,22 @@ export default function ManagerDashboard() {
     } finally {
       setBulkActionLoading(null);
     }
+  };
+
+  const openVendorRequest = async (n: VendorRequestNotification) => {
+    setVendorRequests((prev) => prev.filter((r) => r.id !== n.id));
+    try {
+      await fetch('/api/manager/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'markRead', ids: [n.id] }),
+      });
+    } catch {
+      // best-effort
+    } finally {
+      window.dispatchEvent(new Event('manager-notifications-updated'));
+    }
+    if (n.link) router.push(n.link);
   };
 
   if (loading) {
@@ -481,6 +514,42 @@ export default function ManagerDashboard() {
           </Link>
         </div>
       </div>
+
+      {/* New Vendor Requests */}
+      {vendorRequests.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <div className="p-4 border-b flex items-center justify-between">
+            <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <Store className="w-4 h-4 text-orange-500" />
+              New Vendor Requests
+            </h2>
+            <Link href="/manager/vendors" className="text-sm font-medium text-green-600 hover:text-green-700">
+              View Vendors →
+            </Link>
+          </div>
+          <div className="divide-y">
+            {vendorRequests.map((n) => {
+              const Icon = n.type === 'NEW_LOCATION_REQUEST' ? MapPinPlus : Layers;
+              return (
+                <button
+                  key={n.id}
+                  onClick={() => openVendorRequest(n)}
+                  className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-orange-50/60 transition"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4 text-orange-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900">{n.title}</p>
+                    <p className="text-sm text-gray-500 truncate">{n.body}</p>
+                  </div>
+                  <span className="w-2 h-2 rounded-full bg-orange-500 mt-2 shrink-0" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Recent Inquiries */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">

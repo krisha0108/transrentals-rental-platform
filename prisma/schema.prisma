@@ -65,6 +65,7 @@ model admin_users {
   driver_tag_assignments          driver_tag_assignments[]
   manager_action_logs             manager_action_logs[]
   inquiry_tag_assignments         inquiry_tag_assignments[]
+  manager_notifications           manager_notifications[]
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -7205,6 +7206,34 @@ enum manager_action_type {
   NO_RESPONSE
   HOT_LEAD
   COLD_LEAD
+}
+
+// Manager notification inbox — alerts a manager when a vendor within their
+// assigned location/service scope submits a new location or service request
+// (covers both an existing vendor expanding and a brand-new vendor's first
+// pick, since both go through the same vendor_location_requests /
+// vendor_service_requests tables). Mirrors travel_agent_notifications.
+model manager_notifications {
+  id          String                    @id @default(cuid())
+  managerId   String
+  type        manager_notification_type
+  title       String
+  body        String                    @db.Text
+  link        String? // optional in-app deep link
+  metadata    String?                   @db.Text // optional JSON payload (parsed in app)
+  isRead      Boolean                   @default(false)
+  readAt      DateTime?
+  createdAt   DateTime                  @default(now())
+
+  admin_users admin_users @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@index([managerId, createdAt])
+  @@index([managerId, isRead])
+}
+
+enum manager_notification_type {
+  NEW_LOCATION_REQUEST
+  NEW_SERVICE_REQUEST
 }
 
 model service_city_content {
