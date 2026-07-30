@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, BellRing, Loader2, MapPinPlus, Layers, CheckCheck, RefreshCw, Inbox } from 'lucide-react';
+import { Bell, BellRing, Loader2, MapPinPlus, Layers, Mail, CheckCheck, RefreshCw, Inbox } from 'lucide-react';
 
 interface ManagerNotification {
   id: string;
-  type: 'NEW_LOCATION_REQUEST' | 'NEW_SERVICE_REQUEST';
+  type: 'NEW_LOCATION_REQUEST' | 'NEW_SERVICE_REQUEST' | 'NEW_CONTACT_INQUIRY';
   title: string;
   body: string;
   link: string | null;
@@ -17,6 +17,7 @@ interface ManagerNotification {
 const NOTIFICATION_ICON: Record<string, any> = {
   NEW_LOCATION_REQUEST: MapPinPlus,
   NEW_SERVICE_REQUEST: Layers,
+  NEW_CONTACT_INQUIRY: Mail,
 };
 
 function formatDateTime(iso: string): string {
@@ -119,7 +120,7 @@ export default function ManagerNotificationsPage() {
           <p className="text-gray-500 mt-1">
             {unreadCount > 0 ? (
               <>
-                <span className="text-orange-600 font-medium">{unreadCount} unread</span> vendor request{unreadCount === 1 ? '' : 's'}
+                <span className="text-orange-600 font-medium">{unreadCount} unread</span> notification{unreadCount === 1 ? '' : 's'}
               </>
             ) : (
               "You're all caught up"

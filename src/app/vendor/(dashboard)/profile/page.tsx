@@ -519,10 +519,6 @@ export default function VendorProfilePage() {
                 <label className={labelClass}>Owner Name *</label>
                 <input type="text" name="ownerName" value={formData.ownerName} onChange={handleChange} required className={inputClass} />
               </div>
-              <div>
-                <label className={labelClass}>Website</label>
-                <input type="url" name="website" value={formData.website} onChange={handleChange} placeholder="https://example.com" className={inputClass} />
-              </div>
               <div className="md:col-span-2">
                 <label className={labelClass}>Business Description</label>
                 <textarea name="description" value={formData.description} onChange={handleChange} rows={3} placeholder="Describe your business..." className={inputClass} />

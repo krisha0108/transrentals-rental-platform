@@ -3,7 +3,6 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { sanitizeInput } from '@/lib/utils/sanitize';
-import { smartRateLimit, getClientIdentifier } from '@/lib/utils/smart-rate-limit';
 import logger from '@/lib/security/logger';
 import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 import { generateVid } from '@/lib/utils/generate-vid';
@@ -168,20 +167,6 @@ export async function PUT(request: NextRequest) {
     // Block rejected/suspended/blocked vendors from write operations
     const guard = await vendorStatusGuard(vendorId);
     if (guard.blocked) return guard.response;
-
-    // ===== RATE LIMITING =====
-    const clientId = getClientIdentifier(request);
-    const rateLimitCheck = await smartRateLimit(clientId, true, {});
-    if (!rateLimitCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: rateLimitCheck.error,
-          requiresCaptcha: rateLimitCheck.requiresCaptcha,
-          type: 'rate_limit',
-        },
-        { status: 429 }
-      );
-    }
 
     const body = await request.json();
     let {

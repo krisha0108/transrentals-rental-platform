@@ -8,7 +8,7 @@
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
 
-export type ManagerNotificationType = 'NEW_LOCATION_REQUEST' | 'NEW_SERVICE_REQUEST';
+export type ManagerNotificationType = 'NEW_LOCATION_REQUEST' | 'NEW_SERVICE_REQUEST' | 'NEW_CONTACT_INQUIRY';
 
 export interface NotifyManagersInput {
   type: ManagerNotificationType;
@@ -34,6 +34,17 @@ export async function getManagersForService(serviceId: string): Promise<string[]
     select: { managerId: true },
   });
   return rows.map((r) => r.managerId);
+}
+
+// contact_inquiries has no location/service scope (the public /contact form
+// is fully anonymous) — every active manager shares the same queue, so
+// unlike the two helpers above there's no "assigned" filter to apply here.
+export async function getAllActiveManagers(): Promise<string[]> {
+  const rows = await prisma.admin_users.findMany({
+    where: { role: 'MANAGER', isActive: true },
+    select: { id: true },
+  });
+  return rows.map((r) => r.id);
 }
 
 export async function notifyManagers(managerIds: string[], input: NotifyManagersInput): Promise<void> {

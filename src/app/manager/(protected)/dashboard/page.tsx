@@ -211,7 +211,12 @@ export default function ManagerDashboard() {
 
       if (notificationsRes.ok) {
         const notificationsData = await notificationsRes.json();
-        setVendorRequests(notificationsData.items || []);
+        // This panel is titled "New Vendor Requests" — contact-inquiry
+        // notifications share the same inbox/badge but get their own
+        // surfacing on /manager/contact-inquiries, so keep them out of here.
+        setVendorRequests(
+          (notificationsData.items || []).filter((n: { type: string }) => n.type !== 'NEW_CONTACT_INQUIRY')
+        );
       }
     } catch (err: any) {
       console.error('Failed to fetch manager info:', err);

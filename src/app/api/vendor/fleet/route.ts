@@ -4,7 +4,6 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { sanitizeInput, sanitizePhone } from '@/lib/utils/sanitize';
-import { smartRateLimit, getClientIdentifier } from '@/lib/utils/smart-rate-limit';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
@@ -342,23 +341,6 @@ export async function POST(request: NextRequest) {
     // Block rejected/suspended/blocked vendors from write operations
     const guard = await vendorStatusGuard(vendorId);
     if (guard.blocked) return guard.response;
-
-    // ===== RATE LIMITING =====
-    const clientId = getClientIdentifier(request);
-    const isAuthenticated = true; // Vendor is authenticated
-
-    const rateLimitCheck = await smartRateLimit(clientId, isAuthenticated, {});
-    if (!rateLimitCheck.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: rateLimitCheck.error,
-          requiresCaptcha: rateLimitCheck.requiresCaptcha,
-          type: 'rate_limit',
-        },
-        { status: 429 }
-      );
-    }
 
     // 2. Parse request body
     let body: any;

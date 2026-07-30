@@ -12,6 +12,7 @@ import {
   stripHtml,
 } from '@/lib/security';
 import { sendInquiryReceived } from '@/lib/whatsapp/client';
+import { getAllActiveManagers, notifyManagers } from '@/lib/notifications/manager-notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,6 +93,21 @@ export async function POST(request: NextRequest) {
       customerName: sanitizedData.name,
       subject: sanitizedData.subject,
     });
+
+    // Alert every active manager — contact inquiries are an unscoped shared
+    // queue (no location/service to filter by), unlike vendor requests.
+    // Never block the response on this.
+    getAllActiveManagers()
+      .then((managerIds) =>
+        notifyManagers(managerIds, {
+          type: 'NEW_CONTACT_INQUIRY',
+          title: 'New contact form inquiry',
+          body: `${sanitizedData.name} sent a message: "${sanitizedData.subject}"`,
+          link: `/manager/contact-inquiries/${inquiryId}`,
+          metadata: { inquiryId },
+        })
+      )
+      .catch((notifyError) => logger.error('Failed to notify managers of new contact inquiry', notifyError));
   } catch (error) {
     logger.error('Failed to save contact inquiry', error);
     return NextResponse.json(

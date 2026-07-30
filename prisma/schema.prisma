@@ -7234,6 +7234,7 @@ model manager_notifications {
 enum manager_notification_type {
   NEW_LOCATION_REQUEST
   NEW_SERVICE_REQUEST
+  NEW_CONTACT_INQUIRY
 }
 
 model service_city_content {
