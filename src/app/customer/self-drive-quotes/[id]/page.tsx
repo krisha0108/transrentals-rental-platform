@@ -28,6 +28,7 @@ import { useCustomerAuth } from '@/hooks/useCustomer';
 import { formatBookingDuration } from '@/lib/utils/duration';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import QuotePaymentSafetyNotice from '@/components/customer/QuotePaymentSafetyNotice';
 
 interface QuoteRequest {
   id: string;
@@ -301,7 +302,7 @@ export default function CustomerSelfDriveQuoteDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h3 className="font-medium text-gray-900 mb-2">Error Loading Request</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Request</h3>
           <p className="text-sm text-gray-500 mb-4">{error}</p>
           <Link href="/customer/self-drive-quotes" className="text-blue-600 hover:underline">
             Back to Requests
@@ -316,7 +317,7 @@ export default function CustomerSelfDriveQuoteDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="font-medium text-gray-900 mb-2">Request Not Found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Request Not Found</h3>
           <Link href="/customer/self-drive-quotes" className="text-blue-600 hover:underline">
             Back to Requests
           </Link>
@@ -353,7 +354,7 @@ export default function CustomerSelfDriveQuoteDetailPage() {
 
         {/* Request Summary */}
         <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <h2 className="font-semibold text-gray-900 mb-3">Your Request</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-3">Your Request</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="flex items-center gap-2 text-sm">
               <Car className="w-4 h-4 text-blue-500" />
@@ -442,18 +443,24 @@ export default function CustomerSelfDriveQuoteDetailPage() {
           )}
         </div>
 
+        {/* Payment safety notice — stays visible whether quotes are still
+            pending or have already arrived */}
+        <div className="mb-4">
+          <QuotePaymentSafetyNotice />
+        </div>
+
         {/* Quotes */}
         {quotes.length === 0 ? (
           <div className="bg-white rounded-xl p-8 text-center">
             <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-            <h3 className="font-medium text-gray-900 mb-1">Awaiting Quotes</h3>
+            <h3 className="text-base font-medium text-gray-900 mb-1">Awaiting Quotes</h3>
             <p className="text-sm text-gray-500">
               Vendors are reviewing your request. You'll receive quotes within 24-48 hours.
             </p>
           </div>
         ) : (
           <>
-            <h2 className="font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Compare Quotes ({quotes.length})
             </h2>
 
@@ -497,7 +504,7 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                             <Car className="w-6 h-6 text-blue-600" />
                           </div>
                           <div>
-                            <h3 className="font-bold text-gray-900">
+                            <h3 className="text-base font-bold text-gray-900">
                               {quote.vendors?.businessName || 'Vendor'}
                             </h3>
                             <div className="flex items-center gap-2 text-sm">
@@ -605,7 +612,7 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                         <div className="border-t pt-4 mt-4 space-y-4">
                           {/* Price Breakdown */}
                           <div className="bg-gray-50 p-3 rounded-lg">
-                            <h4 className="font-medium text-gray-900 mb-2">Price Breakdown</h4>
+                            <h4 className="text-sm font-semibold text-gray-900 mb-2">Price Breakdown</h4>
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between">
                                 <span>Rental ({request.totalDays} days)</span>
@@ -653,7 +660,7 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                           {/* All Inclusions */}
                           {inclusions.length > 0 && (
                             <div>
-                              <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                              <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
                                 <CheckCircle className="w-4 h-4 text-green-500" />
                                 Inclusions
                               </h4>
@@ -674,7 +681,7 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                           {/* Exclusions */}
                           {exclusions.length > 0 && (
                             <div>
-                              <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                              <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
                                 <XCircle className="w-4 h-4 text-red-500" />
                                 Exclusions
                               </h4>
@@ -695,7 +702,7 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                           {/* Terms */}
                           {terms.length > 0 && (
                             <div>
-                              <h4 className="font-medium text-gray-900 mb-2">Terms & Conditions</h4>
+                              <h4 className="text-sm font-semibold text-gray-900 mb-2">Terms & Conditions</h4>
                               <ul className="space-y-1">
                                 {terms.map((item, i) => (
                                   <li key={i} className="text-sm text-gray-600">
@@ -709,7 +716,7 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                           {/* Vendor Notes */}
                           {quote.vendorMessage && (
                             <div className="bg-blue-50 p-3 rounded-lg">
-                              <h4 className="font-medium text-blue-800 mb-1 flex items-center gap-2">
+                              <h4 className="text-sm font-semibold text-blue-800 mb-1 flex items-center gap-2">
                                 <MessageSquare className="w-4 h-4" />
                                 Message from Vendor
                               </h4>
@@ -773,7 +780,7 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                   <AlertCircle className="w-5 h-5 text-amber-600" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900">All quotes have expired</h4>
+                  <h4 className="text-base font-semibold text-gray-900">All quotes have expired</h4>
                   <p className="text-sm text-gray-600 mt-1">
                     Your booking date is still upcoming. You can re-open this request so vendors can send fresh quotes.
                   </p>
@@ -826,7 +833,7 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                   <CheckCircle className="w-5 h-5 text-green-600" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-green-800">Request sent successfully!</h4>
+                  <h4 className="text-base font-semibold text-green-800">Request sent successfully!</h4>
                   <p className="text-sm text-green-700 mt-1">{reRequestSuccess}</p>
                 </div>
               </div>
@@ -843,7 +850,7 @@ export default function CustomerSelfDriveQuoteDetailPage() {
 
         {/* Help */}
         <div className="bg-blue-50 rounded-xl p-4 mt-6 border border-blue-100">
-          <h4 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
             <Shield className="w-5 h-5" />
             Booking Protection
           </h4>
@@ -864,7 +871,7 @@ export default function CustomerSelfDriveQuoteDetailPage() {
               <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <XCircle className="w-5 h-5 text-red-600" />
               </div>
-              <h3 className="font-semibold text-gray-900">Cancel Quote Request?</h3>
+              <h3 className="text-base font-semibold text-gray-900">Cancel Quote Request?</h3>
             </div>
             <p className="text-sm text-gray-600 mb-5">
               Are you sure you want to cancel this quote request? This action cannot be undone and all received quotes will be discarded.

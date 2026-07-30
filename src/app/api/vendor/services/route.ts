@@ -6,6 +6,7 @@ import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
+import { getManagersForService, notifyManagers } from '@/lib/notifications/manager-notify';
 export const dynamic = 'force-dynamic';
 
 function generateId(): string {
@@ -153,7 +154,7 @@ export async function POST(request: NextRequest) {
     // Block rejected vendors from submitting new requests
     const vendor = await prisma.vendors.findUnique({
       where: { id: vendorId },
-      select: { status: true },
+      select: { status: true, businessName: true },
     });
     if (!vendor || vendor.status === 'REJECTED') {
       return NextResponse.json({ error: 'Your account has been rejected. You cannot submit new requests.' }, { status: 403 });
@@ -225,6 +226,24 @@ export async function POST(request: NextRequest) {
         status: 'PENDING',
       },
     });
+
+    // Notify managers scoped to this service — never block the response on this.
+    try {
+      const managerIds = await getManagersForService(serviceId);
+      const approvedServiceCount = await prisma.vendor_approved_services.count({
+        where: { vendorId },
+      });
+      const isNewVendor = approvedServiceCount === 0;
+      await notifyManagers(managerIds, {
+        type: 'NEW_SERVICE_REQUEST',
+        title: isNewVendor ? 'New vendor wants to offer this service' : 'Vendor requests an additional service',
+        body: `${vendor.businessName} has requested ${service.name}${isNewVendor ? ' as their first service' : ''}.`,
+        link: `/manager/vendors/${vendorId}?tab=services`,
+        metadata: { vendorId, serviceId, requestId: serviceRequest.id, isNewVendor },
+      });
+    } catch (notifyError) {
+      logger.error('Failed to notify managers of new service request', notifyError);
+    }
 
     return NextResponse.json(serviceRequest, { status: 201 });
   } catch (error: any) {

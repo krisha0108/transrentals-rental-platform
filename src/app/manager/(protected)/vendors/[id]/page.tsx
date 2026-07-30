@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Store,
@@ -198,14 +198,29 @@ const documentTypeLabels: Record<string, string> = {
   OTHER: 'Other Document',
 };
 
+const VALID_TABS = ['overview', 'documents', 'services', 'locations', 'fleet'] as const;
+
 export default function VendorDetailPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [contactReqLoading, setContactReqLoading] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'services' | 'locations' | 'fleet'>('overview');
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'services' | 'locations' | 'fleet'>(
+    (VALID_TABS as readonly string[]).includes(tabParam || '') ? (tabParam as typeof VALID_TABS[number]) : 'overview'
+  );
+
+  // Re-sync when navigating between two notification links for the same
+  // vendor (only the query string changes, so the component doesn't remount
+  // and the useState initializer above won't re-run on its own).
+  useEffect(() => {
+    if (tabParam && (VALID_TABS as readonly string[]).includes(tabParam)) {
+      setActiveTab(tabParam as typeof VALID_TABS[number]);
+    }
+  }, [tabParam]);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<{ type: string; id?: string } | null>(null);

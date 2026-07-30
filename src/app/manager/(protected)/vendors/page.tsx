@@ -7,7 +7,7 @@ import {
   Loader2, Search, Store, Phone, Mail, MapPin, Layers,
   ChevronRight, ChevronDown, RefreshCw, AlertCircle, CheckCircle, Clock,
   XCircle, FileText, Car, Star, TrendingUp, TrendingDown,
-  Calendar, X, Tag, Plus, CalendarDays,
+  Calendar, X, Tag, Plus, CalendarDays, MapPinPlus, Bell,
 } from 'lucide-react';
 
 type DatePreset = 'all' | 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'custom';
@@ -90,6 +90,10 @@ interface Vendor {
   locationNames: string[];
   services: string[];
   serviceNames: string[];
+  hasPendingLocationRequest: boolean;
+  hasPendingServiceRequest: boolean;
+  pendingLocationNames: string[];
+  pendingServiceNames: string[];
   documentCount: number;
   fleetCount: number;
   tags: string[];
@@ -111,6 +115,14 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; i
   SUSPENDED:         { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Suspended',    icon: AlertCircle },
   BLOCKED:           { bg: 'bg-gray-100',   text: 'text-gray-700',   label: 'Blocked',      icon: XCircle },
 };
+
+// A vendor needs manager attention (and gets pinned to the top + highlighted)
+// when they have a pending location/service request, or just uploaded docs
+// and are awaiting review (UNDER_REVIEW is set purely by document upload —
+// see the vendor status lifecycle notes elsewhere in this codebase).
+function needsAttention(v: Vendor): boolean {
+  return v.hasPendingLocationRequest || v.hasPendingServiceRequest || v.status === 'UNDER_REVIEW';
+}
 
 const SORT_OPTIONS = [
   { value: 'date_desc',    label: 'Newest First',    icon: Calendar },
@@ -225,6 +237,7 @@ export default function ManagerVendorsPage() {
   const [serviceFilter, setServiceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('all');
+  const [requestFilter, setRequestFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState<DatePreset>('all');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
@@ -311,6 +324,13 @@ export default function ManagerVendorsPage() {
       list = list.filter(v => Array.isArray(v.tags) && v.tags.includes(tagFilter));
     }
 
+    // Pending-request filter — new location/service asks awaiting review
+    if (requestFilter !== 'all') {
+      if (requestFilter === 'location') list = list.filter(v => v.hasPendingLocationRequest);
+      else if (requestFilter === 'service') list = list.filter(v => v.hasPendingServiceRequest);
+      else if (requestFilter === 'any') list = list.filter(v => v.hasPendingLocationRequest || v.hasPendingServiceRequest);
+    }
+
     // Joined date filter — tracks vendor onboarding (registration) date
     if (dateFilter !== 'all' && !(dateFilter === 'custom' && !customFrom && !customTo)) {
       const [from, to] = getDateRange(dateFilter, customFrom, customTo);
@@ -332,8 +352,14 @@ export default function ManagerVendorsPage() {
       case 'fleet_asc':   list.sort((a, b) => a.fleetCount - b.fleetCount); break;
     }
 
+    // Pin anything needing manager attention to the top — a pending
+    // location/service request or a freshly-uploaded-docs vendor awaiting
+    // review is easy to miss buried in the list otherwise. Stable sort keeps
+    // the chosen sortBy order intact within each group.
+    list.sort((a, b) => (needsAttention(b) ? 1 : 0) - (needsAttention(a) ? 1 : 0));
+
     return list;
-  }, [allVendors, search, locationFilter, serviceFilter, statusFilter, tagFilter, dateFilter, customFrom, customTo, sortBy]);
+  }, [allVendors, search, locationFilter, serviceFilter, statusFilter, tagFilter, requestFilter, dateFilter, customFrom, customTo, sortBy]);
 
   // Stats derived from the filtered list so they update with filters
   const filteredStats = useMemo(() => ({
@@ -344,7 +370,7 @@ export default function ManagerVendorsPage() {
   }), [vendors]);
 
   // Reset to page 1 when filters or page size change
-  useEffect(() => { setCurrentPage(1); }, [search, locationFilter, serviceFilter, statusFilter, tagFilter, dateFilter, customFrom, customTo, sortBy, itemsPerPage]);
+  useEffect(() => { setCurrentPage(1); }, [search, locationFilter, serviceFilter, statusFilter, tagFilter, requestFilter, dateFilter, customFrom, customTo, sortBy, itemsPerPage]);
 
   const totalPages = Math.ceil(vendors.length / itemsPerPage);
   const paginatedVendors = vendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -352,13 +378,14 @@ export default function ManagerVendorsPage() {
   const activeFilterCount = [
     search, locationFilter !== 'all' ? locationFilter : '', serviceFilter !== 'all' ? serviceFilter : '',
     statusFilter !== 'all' ? statusFilter : '', tagFilter !== 'all' ? tagFilter : '',
+    requestFilter !== 'all' ? requestFilter : '',
     dateFilter !== 'all' ? dateFilter : '',
     sortBy !== 'date_desc' ? sortBy : '',
   ].filter(Boolean).length;
 
   const clearFilters = () => {
     setSearch(''); setLocationFilter('all'); setServiceFilter('all');
-    setStatusFilter('all'); setTagFilter('all'); setDateFilter('all');
+    setStatusFilter('all'); setTagFilter('all'); setRequestFilter('all'); setDateFilter('all');
     setCustomFrom(''); setCustomTo(''); setSortBy('date_desc');
   };
 
@@ -468,7 +495,7 @@ export default function ManagerVendorsPage() {
         </div>
 
         {/* Row 2: Dropdowns */}
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
           {/* Location */}
           <FilterSearchSelect
             label="Location"
@@ -509,6 +536,18 @@ export default function ManagerVendorsPage() {
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
               <option value="all">All Tags</option>
               {VENDOR_TAGS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </select>
+          </div>
+
+          {/* New request */}
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1 block">New Request</label>
+            <select value={requestFilter} onChange={e => setRequestFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
+              <option value="all">All Vendors</option>
+              <option value="any">Any Pending Request</option>
+              <option value="location">New Location Requested</option>
+              <option value="service">New Service Requested</option>
             </select>
           </div>
 
@@ -579,6 +618,12 @@ export default function ManagerVendorsPage() {
                 <button onClick={() => setTagFilter('all')}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
             )}
+            {requestFilter !== 'all' && (
+              <span className="flex items-center gap-1 px-2.5 py-1 bg-orange-50 text-orange-700 rounded-full text-xs font-medium border border-orange-200">
+                <Bell className="w-3 h-3" /> {requestFilter === 'location' ? 'New Location Requested' : requestFilter === 'service' ? 'New Service Requested' : 'Any Pending Request'}
+                <button onClick={() => setRequestFilter('all')}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            )}
             {dateFilter !== 'all' && (
               <span className="flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-700 rounded-full text-xs font-medium border border-teal-200">
                 <CalendarDays className="w-3 h-3" /> {DATE_PRESET_LABELS[dateFilter]}
@@ -628,10 +673,11 @@ export default function ManagerVendorsPage() {
               const StatusIcon = statusConfig.icon;
               const isTagEditorOpen = tagEditorOpenFor === vendor.id;
               const stopRow = (e: React.MouseEvent) => { e.stopPropagation(); };
+              const flagged = needsAttention(vendor);
               return (
                 <div key={vendor.id}
                   onClick={() => router.push(`/manager/vendors/${vendor.id}`)}
-                  className="block p-4 sm:p-5 hover:bg-gray-50 transition cursor-pointer relative">
+                  className={`block p-4 sm:p-5 hover:bg-gray-50 transition cursor-pointer relative ${flagged ? 'border-l-4 border-orange-400 bg-orange-50/40' : ''}`}>
                   <div className="flex items-start gap-4">
                     {/* Avatar */}
                     <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -656,6 +702,24 @@ export default function ManagerVendorsPage() {
                             <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                             {vendor.rating.toFixed(1)}
                             <span className="text-amber-500/70">({vendor.totalRatings})</span>
+                          </span>
+                        )}
+                        {vendor.hasPendingLocationRequest && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-semibold">
+                            <MapPinPlus className="w-3 h-3" />
+                            New Location Request
+                          </span>
+                        )}
+                        {vendor.hasPendingServiceRequest && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-semibold">
+                            <Layers className="w-3 h-3" />
+                            New Service Request
+                          </span>
+                        )}
+                        {vendor.status === 'UNDER_REVIEW' && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-semibold">
+                            <FileText className="w-3 h-3" />
+                            Needs Review
                           </span>
                         )}
                       </div>

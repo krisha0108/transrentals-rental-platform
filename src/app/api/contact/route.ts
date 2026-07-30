@@ -69,6 +69,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const inquiryId = crypto.randomUUID();
+
   try {
     // SECURITY: Sanitize all inputs before storing
     const sanitizedData = {
@@ -80,7 +82,7 @@ export async function POST(request: NextRequest) {
     };
 
     await prisma.contact_inquiries.create({
-      data: { id: crypto.randomUUID(), ...sanitizedData },
+      data: { id: inquiryId, ...sanitizedData },
     });
 
     logger.info('Contact form submission', { email: sanitizedData.email });
@@ -98,7 +100,32 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const response = NextResponse.json({ success: true, message: 'Thank you for your message' });
+  // Same cosmetic format the manager/admin UI already uses for this inquiry.
+  const referenceNumber = `INQ-${inquiryId.slice(-6).toUpperCase()}`;
+
+  // Does this email/phone already belong to a customer account? Drives the
+  // post-submit popup: existing customers get sent straight to login
+  // (email pre-filled, just asks for their password), new visitors get sent
+  // to registration instead (asked to create a password / free account).
+  let isExistingCustomer = false;
+  try {
+    const email = (payload.email as string).toLowerCase().trim();
+    const phone = sanitizePhone(payload.phone as string);
+    const existing = await prisma.customers.findFirst({
+      where: { OR: [{ email }, { phone }] },
+      select: { id: true },
+    });
+    isExistingCustomer = !!existing;
+  } catch (error) {
+    logger.error('Failed to check existing customer for contact form', error);
+  }
+
+  const response = NextResponse.json({
+    success: true,
+    message: 'Thank you for your message',
+    referenceNumber,
+    isExistingCustomer,
+  });
   response.headers.set('X-RateLimit-Remaining', String(remaining));
   response.headers.set('X-RateLimit-Reset', String(resetIn));
 

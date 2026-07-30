@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
 import logger from '@/lib/security/logger';
+import { getManagersForService, notifyManagers } from '@/lib/notifications/manager-notify';
 
 // Helper to generate a cuid-like unique ID
 function generateId(): string {
@@ -106,6 +107,38 @@ export async function POST(request: NextRequest) {
         })
       )
     );
+
+    // Notify managers scoped to each newly-requested service — never block
+    // the response on this.
+    try {
+      const vendor = await prisma.vendors.findUnique({
+        where: { id: auth.vendorId },
+        select: { businessName: true },
+      });
+      const approvedServiceCount = await prisma.vendor_approved_services.count({
+        where: { vendorId: auth.vendorId },
+      });
+      const isNewVendor = approvedServiceCount === 0;
+      const serviceNameById = new Map(services.map((s: any) => [s.id, s.name]));
+
+      await Promise.all(
+        results.map((serviceRequest: any) => {
+          const serviceId = serviceRequest.serviceId;
+          const serviceName = serviceNameById.get(serviceId) || 'a service';
+          return getManagersForService(serviceId).then((managerIds) =>
+            notifyManagers(managerIds, {
+              type: 'NEW_SERVICE_REQUEST',
+              title: isNewVendor ? 'New vendor wants to offer this service' : 'Vendor requests an additional service',
+              body: `${vendor?.businessName || 'A vendor'} has requested ${serviceName}${isNewVendor ? ' as their first service' : ''}.`,
+              link: `/manager/vendors/${auth.vendorId}?tab=services`,
+              metadata: { vendorId: auth.vendorId, serviceId, requestId: serviceRequest.id, isNewVendor },
+            })
+          );
+        })
+      );
+    } catch (notifyError) {
+      logger.error('Failed to notify managers of bulk service request', notifyError);
+    }
 
     return NextResponse.json(
       {
