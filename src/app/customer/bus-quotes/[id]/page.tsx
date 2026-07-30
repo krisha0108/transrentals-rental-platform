@@ -13,6 +13,7 @@ import { useCustomerAuth } from '@/hooks/useCustomer';
 import { BUS_CATEGORIES, BUS_TRIP_TYPES } from '@/lib/bus-categories';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import QuotePaymentSafetyNotice from '@/components/customer/QuotePaymentSafetyNotice';
 
 interface QuoteRequest {
   id: string;
@@ -224,7 +225,7 @@ export default function CustomerBusQuoteDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h3 className="font-semibold text-gray-900 mb-1">Error Loading Request</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">Error Loading Request</h3>
           <p className="text-sm text-gray-500 mb-4">{error}</p>
           <Link href="/customer/bus-quotes" className="text-sm font-medium text-orange-600 hover:underline">← Back to Requests</Link>
         </div>
@@ -236,7 +237,7 @@ export default function CustomerBusQuoteDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="font-semibold text-gray-900 mb-1">Request Not Found</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">Request Not Found</h3>
           <Link href="/customer/bus-quotes" className="text-sm font-medium text-orange-600 hover:underline">← Back to Requests</Link>
         </div>
       </div>
@@ -366,13 +367,19 @@ export default function CustomerBusQuoteDetailPage() {
           </div>
         </div>
 
+        {/* Payment safety notice — stays visible whether quotes are still
+            pending or have already arrived */}
+        <div className="mb-4">
+          <QuotePaymentSafetyNotice />
+        </div>
+
         {/* ── QUOTES ── */}
         {quotes.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
             <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <Clock className="w-7 h-7 text-amber-500" />
             </div>
-            <h3 className="font-bold text-gray-900 mb-1">Waiting for Quotes</h3>
+            <h3 className="text-base font-bold text-gray-900 mb-1">Waiting for Quotes</h3>
             <p className="text-sm text-gray-500 max-w-xs mx-auto">
               Vendors are reviewing your request. You'll receive quotes within 24–48 hours.
             </p>
@@ -719,7 +726,7 @@ export default function CustomerBusQuoteDetailPage() {
               <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center shrink-0">
                 <XCircle className="w-5 h-5 text-red-500" />
               </div>
-              <h3 className="font-bold text-gray-900">Cancel Quote Request?</h3>
+              <h3 className="text-base font-bold text-gray-900">Cancel Quote Request?</h3>
             </div>
             <p className="text-sm text-gray-500 mb-5">
               This cannot be undone. All received quotes will be discarded.

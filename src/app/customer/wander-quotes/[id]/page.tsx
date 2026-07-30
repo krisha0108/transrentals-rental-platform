@@ -18,6 +18,7 @@ import WanderChat from '@/components/wander/WanderChat';
 import TravelAgentChat from '@/components/travel-agent/chat/TravelAgentChat';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { sanitizeRichText } from '@/lib/utils/sanitize';
+import QuotePaymentSafetyNotice from '@/components/customer/QuotePaymentSafetyNotice';
 
 function fmt(date: string) {
   if (!date) return '—';
@@ -641,6 +642,12 @@ export default function CustomerWanderQuoteDetailPage() {
               <h2 className="font-bold text-gray-900 text-base">
                 {quoteCount === 0 ? 'Vendor Quotes' : `${quoteCount} Quote${quoteCount !== 1 ? 's' : ''} Received`}
               </h2>
+            </div>
+
+            {/* Payment safety notice — stays visible whether quotes are
+                still pending or have already arrived */}
+            <div className="mb-5">
+              <QuotePaymentSafetyNotice />
             </div>
 
             {quoteCount === 0 ? (
