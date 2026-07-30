@@ -15,6 +15,13 @@ try {
 }
 const LOGO_CID = 'transrentals-logo';
 
+// The address emails appear to come "From". Distinct from SMTP_USER because
+// some providers (e.g. Brevo) issue a separate SMTP auth login that differs
+// from the actual verified sender address — sending "From" the auth login
+// itself gets rejected. Falls back to SMTP_USER for providers where they're
+// the same (Gmail, Mailtrap).
+const SMTP_FROM_EMAIL = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+
 // SMTP Configuration
 const smtpPort = parseInt(process.env.SMTP_PORT || '465');
 const transporter = nodemailer.createTransport({
@@ -216,7 +223,7 @@ export async function sendOTPEmail(
       // "TransRentals Support" matches the in-email pill — keeps the brand
       // voice consistent and reassures the recipient the message is from
       // the official support team rather than an automated security bot.
-      from: `"TransRentals Support" <${process.env.SMTP_USER}>`,
+      from: `"TransRentals Support" <${SMTP_FROM_EMAIL}>`,
       to,
       subject,
       html,
@@ -389,7 +396,7 @@ export async function sendContactInquiryReplyEmail(params: {
     const { subject, html, text } = getContactInquiryReplyTemplate(templateParams);
 
     await transporter.sendMail({
-      from: `"TransRentals Support" <${process.env.SMTP_USER}>`,
+      from: `"TransRentals Support" <${SMTP_FROM_EMAIL}>`,
       to,
       subject,
       html,
@@ -483,7 +490,7 @@ export async function sendWanderBookingEmail(params: {
 
   try {
     await transporter.sendMail({
-      from: `"TransRentals Wander" <${process.env.SMTP_USER}>`,
+      from: `"TransRentals Wander" <${SMTP_FROM_EMAIL}>`,
       to,
       subject: `Tour Booking ${statusLabel} — ${bookingNumber}`,
       html,
