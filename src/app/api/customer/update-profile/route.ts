@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { sanitizeInput, isValidEmail, isValidPhone, sanitizePhone } from '@/lib/utils/sanitize';
-import { smartRateLimit, getClientIdentifier } from '@/lib/utils/smart-rate-limit';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import logger from '@/lib/security/logger';
@@ -15,21 +14,6 @@ export const revalidate = 0;
  */
 export async function POST(request: NextRequest) {
   try {
-    // ===== RATE LIMITING =====
-    const clientId = getClientIdentifier(request);
-    const rateLimitCheck = await smartRateLimit(clientId, true, {});
-    if (!rateLimitCheck.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: rateLimitCheck.error,
-          requiresCaptcha: rateLimitCheck.requiresCaptcha,
-          type: 'rate_limit',
-        },
-        { status: 429 }
-      );
-    }
-
     const formData = await request.formData();
 
     const customerId = formData.get('customer_id') as string;
