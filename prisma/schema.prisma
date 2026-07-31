@@ -7152,6 +7152,35 @@ model vendor_call_logs {
 // "Manager Performance" tracking (daily inquiry/booking coverage per manager).
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Real-time "is this manager online right now" — one row per manager,
+// upserted on every heartbeat ping from the manager panel.
+model manager_presence {
+  managerId String   @id
+  lastPingAt DateTime
+  isIdle    Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
+// Per-day active/idle time totals for a manager, built by extending the
+// latest session on each heartbeat (see /api/manager/heartbeat). A gap
+// longer than the idle-continuity threshold closes the session (manager's
+// tab was closed / they went fully offline) and the next ping starts a new
+// one — so "idle" here means tab open but no mouse/keyboard activity,
+// distinct from fully offline time which isn't counted either way.
+model manager_activity_sessions {
+  id            String   @id @default(cuid())
+  managerId     String
+  date          DateTime @db.Date
+  startAt       DateTime
+  endAt         DateTime
+  activeSeconds Int      @default(0)
+  idleSeconds   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([managerId, date])
+}
+
 model manager_action_logs {
   id             String              @id @default(cuid())
   recordType     String // 'INQUIRY' | 'BOOKING'
