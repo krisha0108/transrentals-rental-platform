@@ -4,6 +4,31 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, Edit, Trash2, User, MapPin, Briefcase, Eye, EyeOff, Check, X, Shield, Activity, TrendingUp, Mail, Phone as PhoneIcon } from 'lucide-react';
 
+type PresenceStatus = 'active' | 'idle' | 'offline';
+
+interface PresenceInfo {
+  status: PresenceStatus;
+  lastSeenAt: string | null;
+}
+
+const PRESENCE_META: Record<PresenceStatus, { label: string; dot: string; text: string }> = {
+  active: { label: 'Active now', dot: 'bg-emerald-500 animate-pulse', text: 'text-emerald-700' },
+  idle: { label: 'Idle', dot: 'bg-amber-500', text: 'text-amber-700' },
+  offline: { label: 'Offline', dot: 'bg-gray-300', text: 'text-gray-500' },
+};
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return 'never';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
 interface Location {
   id: string;
   name: string;
@@ -38,6 +63,7 @@ export default function ManagersPage() {
   const [saving, setSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [viewingManager, setViewingManager] = useState<Manager | null>(null);
+  const [presence, setPresence] = useState<Record<string, PresenceInfo>>({});
 
   const [formData, setFormData] = useState({
     name: '',
@@ -53,7 +79,22 @@ export default function ManagersPage() {
     fetchManagers();
     fetchLocations();
     fetchServices();
+    fetchPresence();
+    const interval = setInterval(fetchPresence, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  const fetchPresence = async () => {
+    try {
+      const res = await fetch('/api/admin/managers/presence');
+      const data = await res.json();
+      if (data.presence) {
+        setPresence(data.presence);
+      }
+    } catch (error) {
+      console.error('Failed to fetch manager presence:', error);
+    }
+  };
 
   const fetchManagers = async () => {
     try {
@@ -71,10 +112,13 @@ export default function ManagersPage() {
 
   const fetchLocations = async () => {
     try {
-      const res = await fetch('/api/admin/locations');
+      // flat=true — a plain array, not wrapped in {success, locations}.
+      // Without it, this endpoint returns a parentId-nested tree, which
+      // doesn't work for a flat assignable-locations checkbox list.
+      const res = await fetch('/api/admin/locations?flat=true');
       const data = await res.json();
-      if (data.success) {
-        setLocations(data.locations);
+      if (Array.isArray(data)) {
+        setLocations(data);
       }
     } catch (error) {
       console.error('Failed to fetch locations:', error);
@@ -270,6 +314,7 @@ export default function ManagersPage() {
                   <th className="text-left px-5 py-2.5 font-semibold">Manager</th>
                   <th className="text-left px-5 py-2.5 font-semibold">Phone</th>
                   <th className="text-left px-5 py-2.5 font-semibold">Status</th>
+                  <th className="text-left px-5 py-2.5 font-semibold">Activity</th>
                   <th className="text-left px-5 py-2.5 font-semibold">Locations</th>
                   <th className="text-left px-5 py-2.5 font-semibold">Services</th>
                   <th className="text-right px-5 py-2.5 font-semibold">Actions</th>
@@ -300,6 +345,25 @@ export default function ManagersPage() {
                       }`}>
                         {item.isActive ? 'Active' : 'Inactive'}
                       </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      {(() => {
+                        const p = presence[item.id];
+                        const meta = PRESENCE_META[p?.status || 'offline'];
+                        return (
+                          <div>
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${meta.text}`}>
+                              <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+                              {meta.label}
+                            </span>
+                            {p?.status !== 'active' && (
+                              <p className="text-[11px] text-gray-400 mt-0.5">
+                                {p ? `Last seen ${timeAgo(p.lastSeenAt)}` : 'Never logged in'}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-5 py-3">
                       <span className="inline-flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
