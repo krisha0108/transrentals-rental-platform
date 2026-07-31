@@ -7,6 +7,7 @@ import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Sto
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { ToastProvider } from '@/components/ui/toast';
+import { useManagerActivityHeartbeat } from '@/hooks/useManagerActivityHeartbeat';
 
 const SIDEBAR_LINKS = [
   { href: '/manager/dashboard', label: 'Dashboard', icon: Home },
@@ -246,6 +247,8 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<ManagerNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [contactInquiryCount, setContactInquiryCount] = useState(0);
+
+  useManagerActivityHeartbeat(status === 'authenticated' && session?.user?.role === 'MANAGER');
 
   const fetchNotifications = useCallback(async () => {
     try {

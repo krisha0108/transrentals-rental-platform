@@ -210,3 +210,19 @@ export function getDateRange(filter: string, customFrom?: string | null, customT
       return {};
   }
 }
+
+// A manager's heartbeat (see /api/manager/heartbeat) pings every ~60s while
+// their tab is open. A gap past this means the tab was closed / they went
+// fully offline — matches the session-continuity threshold on the write side.
+const PRESENCE_ONLINE_THRESHOLD_MS = 150 * 1000;
+
+export type PresenceStatus = 'active' | 'idle' | 'offline';
+
+export function getPresenceStatus(
+  lastPingAt: Date | null | undefined,
+  isIdle: boolean | null | undefined
+): PresenceStatus {
+  if (!lastPingAt) return 'offline';
+  if (Date.now() - lastPingAt.getTime() > PRESENCE_ONLINE_THRESHOLD_MS) return 'offline';
+  return isIdle ? 'idle' : 'active';
+}
