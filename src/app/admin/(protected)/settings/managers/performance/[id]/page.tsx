@@ -229,6 +229,7 @@ export default function ManagerPerformanceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<ManagerDetail | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [inquiryTab, setInquiryTab] = useState<'actioned' | 'untouched' | 'contact'>('actioned');
   const [actioned, setActioned] = useState<ActionedItem[]>([]);
@@ -244,9 +245,18 @@ export default function ManagerPerformanceDetailPage() {
   const fetchDetail = useCallback(async (preset: DatePreset, from?: string, to?: string) => {
     let url = `/api/admin/managers/performance/detail?managerId=${managerId}&filter=${preset}`;
     if (preset === 'custom' && from && to) url += `&dateFrom=${from}&dateTo=${to}`;
-    const res = await fetch(url);
-    const json = await res.json();
-    if (!json.error) setData(json);
+    try {
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json.error) {
+        setLoadError(json.error);
+      } else {
+        setLoadError(null);
+        setData(json);
+      }
+    } catch {
+      setLoadError('Failed to reach the server. Check your connection and try again.');
+    }
   }, [managerId]);
 
   const fetchLists = useCallback(async (preset: DatePreset, from?: string, to?: string) => {
@@ -337,12 +347,38 @@ export default function ManagerPerformanceDetailPage() {
     [data]
   );
 
-  if (loading || !data) {
+  if (loading) {
     return (
       <div className="min-h-full bg-gradient-to-b from-slate-50 to-white flex items-center justify-center h-96">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mx-auto mb-3" />
           <p className="text-sm text-slate-400">Loading manager performance...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError || !data) {
+    return (
+      <div className="min-h-full bg-gradient-to-b from-slate-50 to-white flex items-center justify-center h-96">
+        <div className="text-center max-w-sm px-4">
+          <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-3" />
+          <p className="text-sm font-semibold text-slate-700 mb-1">Couldn&apos;t load this page</p>
+          <p className="text-sm text-slate-400 mb-4">
+            {loadError || 'Something went wrong loading manager performance.'}
+            {loadError === 'Access denied' && ' — your session may belong to a different account. Try signing in again.'}
+          </p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              setLoadError(null);
+              Promise.all([fetchDetail(filter, customFrom, customTo), fetchLists(filter, customFrom, customTo), fetchActivity(filter, customFrom, customTo)]).finally(() => setLoading(false));
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition shadow-sm"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -448,65 +484,106 @@ export default function ManagerPerformanceDetailPage() {
           <StatCard icon={Mail} label="Contact Inquiries Handled" value={data.contactInquiries.actioned} accent="text-orange-600 bg-orange-600" />
         </div>
 
-        {/* Activity — active vs idle time, tracked silently in the background */}
-        {activity && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-cyan-50 flex items-center justify-center">
-                  <Timer className="w-3.5 h-3.5 text-cyan-600" />
+        {/* Activity + Inquiries + Bookings — one compact row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Activity — active vs idle time, tracked silently in the background */}
+          {activity && (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-cyan-50 flex items-center justify-center">
+                    <Timer className="w-3.5 h-3.5 text-cyan-600" />
+                  </div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Activity ({DATE_PRESET_LABELS[filter]})</p>
                 </div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Activity ({DATE_PRESET_LABELS[filter]})</p>
+                {(() => {
+                  const meta = PRESENCE_META[activity.presence.status];
+                  return (
+                    <span className={`flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold rounded-full ring-1 ${meta.ring} ${meta.text}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+                      {meta.label}
+                      {activity.presence.status !== 'active' && ` · ${timeAgo(activity.presence.lastSeenAt)}`}
+                    </span>
+                  );
+                })()}
               </div>
-              {(() => {
-                const meta = PRESENCE_META[activity.presence.status];
-                return (
-                  <span className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ring-1 ${meta.ring} ${meta.text}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-                    {meta.label}
-                    {activity.presence.status !== 'active' && ` · last seen ${timeAgo(activity.presence.lastSeenAt)}`}
-                  </span>
-                );
-              })()}
+
+              {activity.activeSeconds === 0 && activity.idleSeconds === 0 ? (
+                <p className="text-xs text-slate-400 py-2">No activity tracked in this period yet.</p>
+              ) : (
+                (() => {
+                  const total = activity.activeSeconds + activity.idleSeconds;
+                  const activePct = total > 0 ? (activity.activeSeconds / total) * 100 : 0;
+                  const R = 34;
+                  const C = 2 * Math.PI * R;
+                  const activeArc = (activePct / 100) * C;
+                  return (
+                    <div className="flex items-center gap-4">
+                      <div className="relative shrink-0" style={{ width: 84, height: 84 }}>
+                        <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                          {/* Clock-face hour ticks */}
+                          {Array.from({ length: 12 }).map((_, i) => {
+                            const angle = (i * 30 * Math.PI) / 180;
+                            const isMajor = i % 3 === 0;
+                            return (
+                              <line
+                                key={i}
+                                x1={50 + 45 * Math.cos(angle)}
+                                y1={50 + 45 * Math.sin(angle)}
+                                x2={50 + (isMajor ? 40 : 41.5) * Math.cos(angle)}
+                                y2={50 + (isMajor ? 40 : 41.5) * Math.sin(angle)}
+                                stroke="#cbd5e1"
+                                strokeWidth={isMajor ? 2 : 1}
+                                strokeLinecap="round"
+                              />
+                            );
+                          })}
+                          {/* Idle track (full ring) */}
+                          <circle cx="50" cy="50" r={R} fill="none" stroke="#fde68a" strokeWidth="9" />
+                          {/* Active arc, drawn clockwise from 12 o'clock */}
+                          <circle
+                            cx="50" cy="50" r={R} fill="none"
+                            stroke="url(#activityActiveGrad)"
+                            strokeWidth="9"
+                            strokeLinecap="round"
+                            strokeDasharray={`${activeArc} ${C - activeArc}`}
+                          />
+                          <defs>
+                            <linearGradient id="activityActiveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="#34d399" />
+                              <stop offset="100%" stopColor="#059669" />
+                            </linearGradient>
+                          </defs>
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-base font-bold text-slate-900 leading-none">{Math.round(activePct)}%</span>
+                          <span className="text-[9px] text-slate-400 font-medium mt-0.5">active</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1.5">
+                          <MousePointerClick className="w-3.5 h-3.5 text-emerald-500" />
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 leading-tight">{formatDuration(activity.activeSeconds)}</p>
+                            <p className="text-[10px] text-slate-400">Active</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Timer className="w-3.5 h-3.5 text-amber-500" />
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 leading-tight">{formatDuration(activity.idleSeconds)}</p>
+                            <p className="text-[10px] text-slate-400">Idle</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
             </div>
+          )}
 
-            {activity.activeSeconds === 0 && activity.idleSeconds === 0 ? (
-              <p className="text-xs text-slate-400 py-2">No activity tracked in this period yet.</p>
-            ) : (
-              <>
-                <div className="flex items-center gap-6 mb-3">
-                  <div className="flex items-center gap-2">
-                    <MousePointerClick className="w-4 h-4 text-emerald-500" />
-                    <div>
-                      <p className="text-lg font-bold text-slate-900 leading-tight">{formatDuration(activity.activeSeconds)}</p>
-                      <p className="text-[11px] text-slate-400">Active</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Timer className="w-4 h-4 text-amber-500" />
-                    <div>
-                      <p className="text-lg font-bold text-slate-900 leading-tight">{formatDuration(activity.idleSeconds)}</p>
-                      <p className="text-[11px] text-slate-400">Idle</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
-                  <div
-                    className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500"
-                    style={{ width: `${(activity.activeSeconds / (activity.activeSeconds + activity.idleSeconds)) * 100}%` }}
-                  />
-                  <div
-                    className="h-full bg-gradient-to-r from-amber-300 to-amber-400"
-                    style={{ width: `${(activity.idleSeconds / (activity.activeSeconds + activity.idleSeconds)) * 100}%` }}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Inquiries + Bookings coverage */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Inquiries coverage */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center">
@@ -526,6 +603,8 @@ export default function ManagerPerformanceDetailPage() {
               <div className={`h-full rounded-full ${coverageBarColor(data.inquiries.coveragePct)} transition-all`} style={{ width: `${Math.min(data.inquiries.coveragePct ?? 0, 100)}%` }} />
             </div>
           </div>
+
+          {/* Bookings coverage */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center">
