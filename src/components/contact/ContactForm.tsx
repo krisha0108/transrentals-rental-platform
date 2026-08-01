@@ -80,6 +80,11 @@ export function ContactForm() {
   const router = useRouter();
   const { isAuthenticated } = useCustomerAuth();
   const formStartTimeRef = useRef<number>(Date.now());
+  // A ref (not formStatus state) guards re-entrance: state updates are
+  // async, so two synchronous clicks before the first re-render both read
+  // formStatus === 'idle' and both submit — which was firing duplicate
+  // manager notifications for one contact-form message.
+  const isSubmittingRef = useRef(false);
 
   // Reset form start time when component mounts
   useEffect(() => {
@@ -93,7 +98,8 @@ export function ContactForm() {
   const handleContactFormSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (formStatus === 'submitting') return;
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
 
     setFormStatus('submitting');
     setFormMessage('');
@@ -127,6 +133,7 @@ export function ContactForm() {
         timeToFill,
       });
 
+      isSubmittingRef.current = false;
       setFormStatus('success');
       setFormData(initialContactFormValues);
 
@@ -163,6 +170,7 @@ export function ContactForm() {
         timeToFill,
       });
 
+      isSubmittingRef.current = false;
       setFormStatus('error');
       setFormMessage(message);
     }

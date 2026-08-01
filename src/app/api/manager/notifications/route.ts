@@ -75,10 +75,22 @@ export async function GET(request: NextRequest) {
       where: { managerId, isRead: false },
     });
 
+    // Type-scoped counts — the sidebar's "Vendors" badge should only count
+    // NEW_LOCATION_REQUEST/NEW_SERVICE_REQUEST, not the site-wide unreadCount
+    // above (which also includes NEW_CONTACT_INQUIRY and was being reused
+    // for that badge, showing the total instead of a vendor-specific count).
+    const unreadByTypeRows = await prisma.manager_notifications.groupBy({
+      by: ['type'],
+      where: { managerId, isRead: false },
+      _count: { _all: true },
+    });
+    const unreadByType = Object.fromEntries(unreadByTypeRows.map((r) => [r.type, r._count._all]));
+
     return NextResponse.json({
       items: page.map(projectItem),
       nextCursor: hasMore ? page[page.length - 1].id : null,
       unreadCount,
+      unreadByType,
     });
   } catch (error: any) {
     logger.error('GET /api/manager/notifications', error);

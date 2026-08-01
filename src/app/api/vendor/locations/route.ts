@@ -342,6 +342,7 @@ export async function POST(request: NextRequest) {
         body: `${vendor.businessName} has requested ${location.name}${isNewVendor ? ' as their first location' : ''}.`,
         link: `/manager/vendors/${vendorId}?tab=locations`,
         metadata: { vendorId, locationId, requestId: locationRequest.id, isNewVendor },
+        dedupeKey: locationRequest.id,
       });
     } catch (notifyError) {
       logger.error('Failed to notify managers of new location request', notifyError);
