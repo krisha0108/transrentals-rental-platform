@@ -211,11 +211,15 @@ export default function ManagerDashboard() {
 
       if (notificationsRes.ok) {
         const notificationsData = await notificationsRes.json();
-        // This panel is titled "New Vendor Requests" — contact-inquiry
-        // notifications share the same inbox/badge but get their own
-        // surfacing on /manager/contact-inquiries, so keep them out of here.
+        // This panel is titled "New Vendor Requests" — other notification
+        // types (contact inquiries, travel agent registrations, ...) share
+        // the same inbox/badge but get their own surfacing elsewhere, so
+        // allowlist just the two vendor-request types instead of trying to
+        // keep excluding every new type as it's added.
         setVendorRequests(
-          (notificationsData.items || []).filter((n: { type: string }) => n.type !== 'NEW_CONTACT_INQUIRY')
+          (notificationsData.items || []).filter((n: { type: string }) =>
+            n.type === 'NEW_LOCATION_REQUEST' || n.type === 'NEW_SERVICE_REQUEST'
+          )
         );
       }
     } catch (err: any) {

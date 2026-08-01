@@ -240,6 +240,7 @@ export async function POST(request: NextRequest) {
         body: `${vendor.businessName} has requested ${service.name}${isNewVendor ? ' as their first service' : ''}.`,
         link: `/manager/vendors/${vendorId}?tab=services`,
         metadata: { vendorId, serviceId, requestId: serviceRequest.id, isNewVendor },
+        dedupeKey: serviceRequest.id,
       });
     } catch (notifyError) {
       logger.error('Failed to notify managers of new service request', notifyError);

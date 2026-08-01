@@ -31,7 +31,7 @@ const SIDEBAR_LINKS = [
 
 interface ManagerNotification {
   id: string;
-  type: 'NEW_LOCATION_REQUEST' | 'NEW_SERVICE_REQUEST' | 'NEW_CONTACT_INQUIRY';
+  type: 'NEW_LOCATION_REQUEST' | 'NEW_SERVICE_REQUEST' | 'NEW_CONTACT_INQUIRY' | 'NEW_TRAVEL_AGENT_REGISTRATION';
   title: string;
   body: string;
   link: string | null;
@@ -55,16 +55,18 @@ function ManagerSidebar({
   onClose,
   vendorBadgeCount,
   contactInquiryBadgeCount,
+  notificationsBadgeCount,
 }: {
   isOpen: boolean;
   onClose: () => void;
   vendorBadgeCount: number;
   contactInquiryBadgeCount: number;
+  notificationsBadgeCount: number;
 }) {
   const { data: session } = useSession();
   const badgeCountByHref: Record<string, number> = {
     '/manager/vendors': vendorBadgeCount,
-    '/manager/notifications': vendorBadgeCount,
+    '/manager/notifications': notificationsBadgeCount,
     '/manager/contact-inquiries': contactInquiryBadgeCount,
   };
 
@@ -150,6 +152,7 @@ const NOTIFICATION_ICON: Record<string, any> = {
   NEW_LOCATION_REQUEST: MapPinPlus,
   NEW_SERVICE_REQUEST: Layers,
   NEW_CONTACT_INQUIRY: Mail,
+  NEW_TRAVEL_AGENT_REGISTRATION: Plane,
 };
 
 function ManagerNotificationBell({
@@ -246,6 +249,7 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [notifications, setNotifications] = useState<ManagerNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [vendorUnreadCount, setVendorUnreadCount] = useState(0);
   const [contactInquiryCount, setContactInquiryCount] = useState(0);
 
   useManagerActivityHeartbeat(status === 'authenticated' && session?.user?.role === 'MANAGER');
@@ -257,6 +261,8 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
       const data = await res.json();
       setNotifications(data.items || []);
       setUnreadCount(data.unreadCount || 0);
+      const byType = data.unreadByType || {};
+      setVendorUnreadCount((byType.NEW_LOCATION_REQUEST || 0) + (byType.NEW_SERVICE_REQUEST || 0));
     } catch {
       // silent — notifications are non-critical, don't disrupt the page
     }
@@ -366,8 +372,9 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
       <ManagerSidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        vendorBadgeCount={unreadCount}
+        vendorBadgeCount={vendorUnreadCount}
         contactInquiryBadgeCount={contactInquiryCount}
+        notificationsBadgeCount={unreadCount}
       />
 
       <div className="lg:pl-64">

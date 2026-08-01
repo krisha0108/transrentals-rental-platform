@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
               body: `${vendor?.businessName || 'A vendor'} has requested ${locationName}${isNewVendor ? ' as their first location' : ''}.`,
               link: `/manager/vendors/${auth.vendorId}?tab=locations`,
               metadata: { vendorId: auth.vendorId, locationId, requestId: locationRequest.id, isNewVendor },
+              dedupeKey: locationRequest.id,
             })
           );
         })
