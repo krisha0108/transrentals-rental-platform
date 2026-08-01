@@ -41,6 +41,7 @@ import {
   Flag,
   XCircle,
   HelpCircle,
+  ChevronDown,
 } from 'lucide-react';
 
 // Same 22 quick actions as the inquiry detail page's "Manager Actions" panel —
@@ -218,6 +219,7 @@ export default function ManagerInquiriesPage() {
   const [serviceFilter, setServiceFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [actionedFilter, setActionedFilter] = useState<'all' | 'actioned' | 'notActioned'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -361,6 +363,13 @@ export default function ManagerInquiriesPage() {
       filtered = filtered.filter((i) => i.locationName === locationFilter);
     }
 
+    // Apply actioned filter
+    if (actionedFilter !== 'all') {
+      filtered = filtered.filter((i) =>
+        actionedFilter === 'actioned' ? !!i.lastActionType : !i.lastActionType
+      );
+    }
+
     setFilteredInquiries(filtered);
     setCurrentPage(1);
     setStats({
@@ -370,7 +379,7 @@ export default function ManagerInquiriesPage() {
       accepted: filtered.filter((i) => i.status === 'ACCEPTED').length,
       rejected: filtered.filter((i) => i.status === 'REJECTED').length,
     });
-  }, [searchTerm, statusFilter, sourceFilter, locationFilter, dateFilter, inquiries]);
+  }, [searchTerm, statusFilter, sourceFilter, locationFilter, dateFilter, actionedFilter, inquiries]);
 
   // Clear selection whenever the page or filtered results change, so bulk
   // actions never silently apply to rows that are no longer visible.
@@ -484,101 +493,114 @@ export default function ManagerInquiriesPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <div className="flex flex-col gap-4">
-          {/* Date Filter Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium text-gray-700 mr-2">📅 Period:</span>
-            {DATE_FILTERS.map((filter) => (
-              <button
-                key={filter.value}
-                onClick={() => setDateFilter(filter.value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  dateFilter === filter.value
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {filter.label}
-              </button>
-            ))}
+      {/* Filters — single compact toolbar */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search inquiries..."
+              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by request #, customer, phone, email, location, service..."
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-            </div>
+          {/* Period */}
+          <div className="relative">
+            <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+              className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
+            >
+              {DATE_FILTERS.map((filter) => (
+                <option key={filter.value} value={filter.value}>{filter.label}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+          </div>
 
-            {/* Service Filter */}
-            <div className="relative">
-              <Bike className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <select
-                value={serviceFilter}
-                onChange={(e) => setServiceFilter(e.target.value)}
-                className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[180px]"
-              >
-                <option value="all">All Services</option>
-                {services.map((service) => (
-                  <option key={service.id} value={service.slug}>
-                    {service.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {/* Action Status */}
+          <div className="relative">
+            <CheckCircle2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            <select
+              value={actionedFilter}
+              onChange={(e) => setActionedFilter(e.target.value as 'all' | 'actioned' | 'notActioned')}
+              className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
+            >
+              <option value="all">Any Action Status</option>
+              <option value="actioned">Actioned</option>
+              <option value="notActioned">Not Actioned</option>
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+          </div>
 
-            {/* Status Filter */}
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[180px]"
-              >
-                <option value="all">All Requests ({stats.total})</option>
-                <option value="PENDING">Pending ({stats.pending})</option>
-                <option value="QUOTED">Quoted ({stats.quoted})</option>
-                <option value="ACCEPTED">Accepted ({stats.accepted})</option>
-                <option value="REJECTED">Rejected ({stats.rejected})</option>
-              </select>
-            </div>
+          {/* Service Filter */}
+          <div className="relative">
+            <Bike className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            <select
+              value={serviceFilter}
+              onChange={(e) => setServiceFilter(e.target.value)}
+              className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
+            >
+              <option value="all">All Services</option>
+              {services.map((service) => (
+                <option key={service.id} value={service.slug}>
+                  {service.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+          </div>
 
-            {/* Location Filter */}
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <select
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-                className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[160px]"
-              >
-                <option value="all">All Locations</option>
-                {uniqueLocations.map((loc) => (
-                  <option key={loc} value={loc}>{loc}</option>
-                ))}
-              </select>
-            </div>
+          {/* Status Filter */}
+          <div className="relative">
+            <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
+            >
+              <option value="all">All Requests ({stats.total})</option>
+              <option value="PENDING">Pending ({stats.pending})</option>
+              <option value="QUOTED">Quoted ({stats.quoted})</option>
+              <option value="ACCEPTED">Accepted ({stats.accepted})</option>
+              <option value="REJECTED">Rejected ({stats.rejected})</option>
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+          </div>
 
-            {/* Source Filter */}
-            <div className="relative">
-              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <select
-                value={sourceFilter}
-                onChange={(e) => setSourceFilter(e.target.value)}
-                className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[140px]"
-              >
-                <option value="all">All Sources</option>
-                <option value="web">Web</option>
-                <option value="app">App</option>
-              </select>
-            </div>
+          {/* Location Filter */}
+          <div className="relative">
+            <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
+            >
+              <option value="all">All Locations</option>
+              {uniqueLocations.map((loc) => (
+                <option key={loc} value={loc}>{loc}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+          </div>
+
+          {/* Source Filter */}
+          <div className="relative">
+            <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
+            >
+              <option value="all">All Sources</option>
+              <option value="web">Web</option>
+              <option value="app">App</option>
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
           </div>
         </div>
       </div>
@@ -643,7 +665,7 @@ export default function ManagerInquiriesPage() {
             <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No inquiries found</h3>
             <p className="text-gray-500">
-              {searchTerm || statusFilter !== 'all' || dateFilter !== 'all'
+              {searchTerm || statusFilter !== 'all' || dateFilter !== 'all' || actionedFilter !== 'all'
                 ? 'Try adjusting your search or filters'
                 : 'All caught up! No pending inquiries at the moment.'}
             </p>
