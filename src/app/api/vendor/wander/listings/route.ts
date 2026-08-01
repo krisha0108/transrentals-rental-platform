@@ -20,7 +20,13 @@ export async function GET(request: NextRequest) {
     const where: any = { vendorId: auth.vendorId };
     if (status && status !== 'all') where.status = status.toUpperCase();
 
-    const [listings, total] = await Promise.all([
+    // statusCounts and totalQuoteRequests are computed across ALL of the
+    // vendor's listings (unscoped by the current status tab/page) — the
+    // frontend was previously deriving "Total Listings" and the per-tab
+    // badge counts from `listings.length` on the single fetched (and
+    // status-filtered, max-20) page, which was wrong the moment there was
+    // more than one page or more than one status represented.
+    const [listings, total, statusCounts, totalQuoteRequests] = await Promise.all([
       (prisma as any).wander_listings.findMany({
         where,
         include: {
@@ -33,9 +39,29 @@ export async function GET(request: NextRequest) {
         take: limit,
       }),
       (prisma as any).wander_listings.count({ where }),
+      (prisma as any).wander_listings.groupBy({
+        by: ['status'],
+        where: { vendorId: auth.vendorId },
+        _count: { _all: true },
+      }),
+      (prisma as any).wander_quote_requests.count({ where: { listing: { vendorId: auth.vendorId } } }),
     ]);
 
-    return NextResponse.json({ listings, total, page, totalPages: Math.ceil(total / limit) });
+    const counts = { all: 0, ACTIVE: 0, DRAFT: 0, PAUSED: 0, INACTIVE: 0 };
+    for (const row of statusCounts) {
+      counts[row.status as keyof typeof counts] = row._count._all;
+      counts.all += row._count._all;
+    }
+
+    return NextResponse.json({
+      listings,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      counts,
+      totalQuoteRequests,
+    });
   } catch (error) {
     console.error('[Vendor Wander Listings GET]', error);
     return NextResponse.json({ error: 'Failed to fetch listings' }, { status: 500 });

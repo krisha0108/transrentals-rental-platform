@@ -10,6 +10,9 @@ import {
   Search, PackageCheck, PauseCircle, FileEdit, TrendingUp, Sparkles, Eye,
   Zap, FileText, ArrowRight, X,
 } from 'lucide-react';
+import Pagination from '@/components/vendor/Pagination';
+
+const PAGE_SIZE = 20;
 
 const STATUS_CONFIG = {
   DRAFT:    { label: 'Draft',    cls: 'bg-slate-100 text-slate-600 border-slate-200',     dot: 'bg-slate-400' },
@@ -46,14 +49,35 @@ export default function VendorWanderListingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [search, setSearch]     = useState('');
 
-  useEffect(() => { fetchListings(); }, [tab]);
+  // True counts from the backend — NOT derived from `listings.length`, which
+  // is at most one page (20) of whichever single status tab is loaded and
+  // was previously (wrongly) used for "Total Listings" and the tab badges.
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages]   = useState(1);
+  const [totalItems, setTotalItems]   = useState(0);
+  const [statusCounts, setStatusCounts] = useState({ all: 0, ACTIVE: 0, DRAFT: 0, PAUSED: 0, INACTIVE: 0 });
+  const [totalQuoteRequests, setTotalQuoteRequests] = useState(0);
+
+  useEffect(() => { setCurrentPage(1); }, [tab]);
+  useEffect(() => { fetchListings(); }, [tab, currentPage]);
 
   async function fetchListings() {
     setLoading(true);
     try {
-      const res  = await fetch(`/api/vendor/wander/listings?status=${tab}`);
+      const res  = await fetch(`/api/vendor/wander/listings?status=${tab}&page=${currentPage}&limit=${PAGE_SIZE}`);
       const data = await res.json();
       setListings(data.listings || []);
+      const newTotalPages = data.totalPages || 1;
+      setTotalPages(newTotalPages);
+      setTotalItems(data.total || 0);
+      if (data.counts) setStatusCounts(data.counts);
+      if (typeof data.totalQuoteRequests === 'number') setTotalQuoteRequests(data.totalQuoteRequests);
+      // If the current page emptied out (e.g. deleting the last item on the
+      // last page), fall back to the new last page instead of showing blank.
+      if (currentPage > newTotalPages) {
+        setCurrentPage(newTotalPages);
+        return;
+      }
     } catch {
       setError('Failed to load listings');
     } finally {
@@ -93,13 +117,11 @@ export default function VendorWanderListingsPage() {
   );
 
   const counts = {
-    all:    listings.length,
-    active: listings.filter(l => l.status === 'ACTIVE').length,
-    draft:  listings.filter(l => l.status === 'DRAFT').length,
-    paused: listings.filter(l => l.status === 'PAUSED').length,
+    all:    statusCounts.all,
+    active: statusCounts.ACTIVE,
+    draft:  statusCounts.DRAFT,
+    paused: statusCounts.PAUSED,
   };
-
-  const totalRequests = listings.reduce((s, l) => s + (l._count?.quoteRequests || 0), 0);
 
   return (
     <div className="-mx-6 -mt-6 bg-slate-50 min-h-screen">
@@ -134,10 +156,10 @@ export default function VendorWanderListingsPage() {
         {/* Metric Cards */}
         <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Total Listings',  value: listings.length,  icon: Compass,      iconBg: 'bg-white/10',         iconColor: 'text-emerald-200',   valColor: 'text-white' },
-            { label: 'Active',          value: counts.active,    icon: PackageCheck, iconBg: 'bg-white/15',     iconColor: 'text-emerald-200',   valColor: 'text-emerald-200' },
-            { label: 'Drafts',          value: counts.draft,     icon: FileEdit,     iconBg: 'bg-emerald-500/20',     iconColor: 'text-emerald-400',   valColor: 'text-emerald-300' },
-            { label: 'Quote Requests',  value: totalRequests,    icon: TrendingUp,   iconBg: 'bg-teal-500/20',      iconColor: 'text-teal-400',    valColor: 'text-teal-300' },
+            { label: 'Total Listings',  value: counts.all,           icon: Compass,      iconBg: 'bg-white/10',         iconColor: 'text-emerald-200',   valColor: 'text-white' },
+            { label: 'Active',          value: counts.active,        icon: PackageCheck, iconBg: 'bg-white/15',     iconColor: 'text-emerald-200',   valColor: 'text-emerald-200' },
+            { label: 'Drafts',          value: counts.draft,         icon: FileEdit,     iconBg: 'bg-emerald-500/20',     iconColor: 'text-emerald-400',   valColor: 'text-emerald-300' },
+            { label: 'Quote Requests',  value: totalQuoteRequests,   icon: TrendingUp,   iconBg: 'bg-teal-500/20',      iconColor: 'text-teal-400',    valColor: 'text-teal-300' },
           ].map(m => (
             <div key={m.label} className="bg-white/15 hover:bg-white/20 border border-white/20 rounded-2xl px-4 py-4 transition-colors">
               <div className="flex items-center justify-between mb-3">
@@ -345,6 +367,18 @@ export default function VendorWanderListingsPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {!loading && totalItems > 0 && (
+          <div className="mt-2 bg-white border border-gray-100 rounded-2xl overflow-hidden">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={PAGE_SIZE}
+              onPageChange={setCurrentPage}
+            />
           </div>
         )}
       </div>
