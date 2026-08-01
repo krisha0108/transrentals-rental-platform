@@ -9,8 +9,11 @@ import {
   UserPlus, CheckCircle2, XCircle, Check, IndianRupee, Flame, Snowflake, Copy,
   Ban, PhoneOff, UserX, Clock, XOctagon, CalendarX, MapPinOff, ExternalLink,
   FileX, Hourglass, CreditCard, Flag, HelpCircle, Search, X, Target, Inbox,
-  ClipboardList, Zap, ChevronRight, Store, Timer, MousePointerClick,
+  ClipboardList, Zap, ChevronRight, Store, Timer, MousePointerClick, BarChart3,
 } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LabelList,
+} from 'recharts';
 
 type DatePreset = 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'all' | 'custom';
 
@@ -347,6 +350,21 @@ export default function ManagerPerformanceDetailPage() {
     [data]
   );
 
+  // Single overview chart tying every coverage number together — total vs
+  // handled for Inquiries/Bookings, plus the vendor/contact counts that
+  // don't have a comparable "total pool" (total left null so only one bar
+  // draws for those categories).
+  const overviewChartData = useMemo(() => {
+    if (!data) return [];
+    return [
+      { name: 'Inquiries', Total: data.inquiries.total, Handled: data.inquiries.actioned },
+      { name: 'Bookings', Total: data.bookings.total, Handled: data.bookings.actioned },
+      { name: 'Vendors Created', Total: null, Handled: data.vendors.created },
+      { name: 'Vendors Approved', Total: null, Handled: data.vendors.approved },
+      { name: 'Contact Handled', Total: null, Handled: data.contactInquiries.actioned },
+    ];
+  }, [data]);
+
   if (loading) {
     return (
       <div className="min-h-full bg-gradient-to-b from-slate-50 to-white flex items-center justify-center h-96">
@@ -623,6 +641,42 @@ export default function ManagerPerformanceDetailPage() {
             <div className="h-2 bg-slate-100 rounded-full overflow-hidden mt-3">
               <div className={`h-full rounded-full ${coverageBarColor(data.bookings.coveragePct)} transition-all`} style={{ width: `${Math.min(data.bookings.coveragePct ?? 0, 100)}%` }} />
             </div>
+          </div>
+        </div>
+
+        {/* Overview chart — total vs handled across everything this manager touches */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center">
+              <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
+            </div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Overview ({DATE_PRESET_LABELS[filter]})</p>
+          </div>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={overviewChartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
+                <RechartsTooltip
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{
+                    backgroundColor: '#0f172a',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '12px',
+                  }}
+                  labelStyle={{ color: '#e2e8f0', fontWeight: 600, marginBottom: 4 }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Bar dataKey="Total" fill="#cbd5e1" radius={[6, 6, 0, 0]} maxBarSize={44}>
+                  <LabelList dataKey="Total" position="top" fontSize={11} fill="#64748b" />
+                </Bar>
+                <Bar dataKey="Handled" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={44}>
+                  <LabelList dataKey="Handled" position="top" fontSize={11} fill="#059669" fontWeight={600} />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
