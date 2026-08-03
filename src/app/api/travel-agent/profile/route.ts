@@ -38,6 +38,7 @@ async function fetchAgentFromDB(travelAgentId: string) {
     where: { id: travelAgentId },
     select: {
       id: true,
+      tid: true,
       email: true,
       phone: true,
       agencyName: true,
