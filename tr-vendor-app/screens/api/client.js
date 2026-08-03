@@ -11,7 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const DEFAULT_PROD = "https://transrentals.in";
 // For Android emulator: 10.0.2.2 is the host machine
 // For physical Android device: use computer's actual network IP
-const DEFAULT_DEV_ANDROID = "http://192.168.29.68:3000"; // Physical Android device - correct network IP
+const DEFAULT_DEV_ANDROID = "http://localhost:3000"; // Physical Android device via `adb reverse tcp:3000 tcp:3000` (USB tunnel, no WiFi dependency)
 const DEFAULT_DEV_IOS = "http://localhost:3000";
 
 function inferLocalBase() {
@@ -46,6 +46,11 @@ export async function getBaseURL() {
   // 3) default - production (use this for release builds)
   cachedBaseURL = DEFAULT_PROD;
   return cachedBaseURL;
+
+
+
+
+  
 }
 
 export async function setBaseURL(newUrl) {

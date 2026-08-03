@@ -1,16 +1,20 @@
 // screens/travel-agent/fleet/AddEditFleetScreen.js
-// REDESIGNED — emerald-themed Add/Edit Vehicle form. Cover image + 4 document
-// uploads (RC, Insurance, Fitness, Permit) with optional validity dates.
-// Maps to POST /api/travel-agent/fleet or PATCH .../[id].
-import React, { useMemo, useState } from "react";
+// REDESIGNED (v2) — premium emerald Add/Edit Vehicle form. Progress-ring header,
+// self-contained rounded section cards with animated expand, unified pill inputs.
+// Cover image + 4 document uploads (RC, Insurance, Fitness, Permit) with optional
+// validity dates. Maps to POST /api/travel-agent/fleet or PATCH .../[id].
+// NOTE: This is a UI-only redesign — all form state, handlers, payload shape and
+// API calls are unchanged from the previous version.
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Alert, StatusBar,
+  Alert, StatusBar, LayoutAnimation, UIManager, Animated, Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
+import Svg, { Circle } from "react-native-svg";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import {
   createTravelAgentFleetVehicle,
@@ -21,49 +25,87 @@ import {
   FLEET_TRANSMISSION,
 } from "../../api/travelAgentClient";
 import ImagePickerField from "../_shared/ImagePickerField";
+import { DISPLAY } from "../_shared/typography";
+import { SC as C, C as T, G } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  green: "#10B981",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  purple: "#8B5CF6",
-  purpleLight: "#EDE9FE",
-};
+// Enable smooth expand/collapse on Android (presentational only).
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+function animate() {
+  LayoutAnimation.configureNext(
+    LayoutAnimation.create(200, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity)
+  );
+}
+
+// Circular completion ring for the header (SVG). Purely presentational.
+function ProgressRing({ pct }) {
+  // size drives the inner clearance: usable space is `size - 2*stroke`, and the
+  // % label is centred in it. At 48 the label sat ~4px off the stroke; 56 opens
+  // that to ~8px so it never looks stuck to the ring, even at "100%".
+  const size = 56, stroke = 4.5;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(100, pct || 0));
+  const offset = circ * (1 - clamped / 100);
+  // Outer wrapper adds breathing room around the circle so it isn't tight
+  // against the header text on one side and the 16px screen margin on the
+  // other. The wrapper (60px) is still shorter than the header's 66px text
+  // column, so this costs no extra header height.
+  return (
+    <View style={styles.ringWrap}>
+      <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+        <Svg width={size} height={size} style={{ position: "absolute" }}>
+          <Circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.22)" strokeWidth={stroke} fill="none" />
+          <Circle
+            cx={size / 2} cy={size / 2} r={r}
+            stroke={GOLD} strokeWidth={stroke} fill="none"
+            strokeDasharray={`${circ} ${circ}`} strokeDashoffset={offset}
+            strokeLinecap="round" rotation="-90" origin={`${size / 2}, ${size / 2}`}
+          />
+        </Svg>
+        <Text style={styles.ringPct}>{clamped}%</Text>
+      </View>
+    </View>
+  );
+}
+
+// ── Premium "Deep Emerald + Champagne" palette ──────────────────────────────
+// Chrome (header, primary, surfaces) uses a richer, deeper emerald with warm
+// neutrals; a champagne-gold accent is reserved for the progress ring & subtle
+// highlights. Per-type icon colours (blue/purple/amber…) stay semantic so the
+// form still reads the same language as FleetListScreen.
+// Local key names are kept so no JSX changes are needed — only the VALUES now
+// come from the shared Elevate theme. NOTE: blue / emerald600 / purple / red are
+// used with hex-alpha suffixes (e.g. `${C.blue}18`), so they must stay 6-digit
+// hex — every theme value mapped onto them is.
+// Champagne-gold — hero accent for the completion ring & fine highlights.
+const GOLD = "#E4C066";
+// Warm cream fill inside inputs / tiles — matched to the Add Property screen.
+const FILL = "#FBF8F1";
+// Deep header gradient (near-black → deep emerald).
+const HEADER_GRAD = G.hero;
 
 // Per-type icon + color (mirrors FleetListScreen so the user sees the same
 // language across list and form).
 const VEHICLE_TYPE_META = {
   SEDAN:           { icon: "car-sport",    color: C.blue,        label: "Sedan" },
-  SUV:             { icon: "car",          color: "#F97316",     label: "SUV" },
+  SUV:             { icon: "car",          color: "#C4703A",     label: "SUV" },
   MUV:             { icon: "car",          color: C.purple,      label: "MUV" },
-  HATCHBACK:       { icon: "car-sport",    color: "#06B6D4",     label: "Hatch" },
+  HATCHBACK:       { icon: "car-sport",    color: "#3FA79A",     label: "Hatch" },
   TEMPO_TRAVELLER: { icon: "bus",          color: C.amber,       label: "Tempo" },
   MINI_BUS:        { icon: "bus",          color: C.emerald600,  label: "Mini bus" },
-  BUS:             { icon: "bus",          color: "#EC4899",     label: "Bus" },
-  LUXURY_CAR:      { icon: "diamond",      color: "#A855F7",     label: "Luxury" },
+  BUS:             { icon: "bus",          color: "#C65772",     label: "Bus" },
+  LUXURY_CAR:      { icon: "diamond",      color: "#8A6DD4",     label: "Luxury" },
   BIKE:            { icon: "bicycle",      color: C.red,         label: "Bike" },
-  SCOOTER:         { icon: "bicycle",      color: "#0EA5E9",     label: "Scooter" },
+  SCOOTER:         { icon: "bicycle",      color: "#4A9DBE",     label: "Scooter" },
   CAMPER_VAN:      { icon: "trail-sign",   color: C.emerald600,  label: "Camper" },
   OTHER:           { icon: "ellipsis-horizontal", color: C.subText, label: "Other" },
 };
 
 const FUEL_META = {
-  PETROL: { icon: "flame", color: "#F97316" },
-  DIESEL: { icon: "flame", color: "#64748B" },
+  PETROL: { icon: "flame", color: "#C4703A" },
+  DIESEL: { icon: "flame", color: C.subText },
   CNG:    { icon: "leaf",  color: C.emerald600 },
   LPG:    { icon: "leaf",  color: C.emerald500 },
   EV:     { icon: "flash", color: C.amber },
@@ -142,6 +184,24 @@ export default function AddEditFleetScreen({ navigation, route }) {
     images: true, vehicle: true, specs: false, chauffeur: false, pricing: false, extras: false, documents: false,
   });
 
+  // Gentle looping float for the header's decorative bubbles (presentational).
+  const blobA = useRef(new Animated.Value(0)).current;
+  const blobB = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = (val, dur) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(val, { toValue: 1, duration: dur, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(val, { toValue: 0, duration: dur, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        ])
+      );
+    const a = loop(blobA, 4200);
+    const b = loop(blobB, 5600);
+    a.start();
+    b.start();
+    return () => { a.stop(); b.stop(); };
+  }, [blobA, blobB]);
+
   const update = (k, v) => setForm((p) => ({ ...p, [k]: v }));
   const toggleAmenity = (a) =>
     setForm((p) => ({
@@ -168,6 +228,19 @@ export default function AddEditFleetScreen({ navigation, route }) {
   }, [form]);
 
   const docCount = [form.rcImage, form.insuranceImage, form.fitnessImage, form.permitImage].filter(Boolean).length;
+  const pct = Math.round((completedSections / 5) * 100);
+
+  // Per-section "has meaningful data" flags — drive the green check badges on
+  // each section header. Presentational only (no effect on the payload).
+  const done = {
+    images: !!form.coverImage,
+    vehicle: !!(form.vehicleName.trim() && form.brand.trim()),
+    specs: !!form.seatingCapacity,
+    chauffeur: !form.chauffeurIncluded || !!form.chauffeurName.trim(),
+    pricing: !!(form.ratePerDay || form.ratePerKm),
+    extras: !!(form.amenities.length || form.galleryImages.length),
+    documents: docCount > 0,
+  };
 
   const save = async () => {
     if (!form.vehicleName.trim()) return Alert.alert("Required", "Vehicle name is required.");
@@ -231,50 +304,69 @@ export default function AddEditFleetScreen({ navigation, route }) {
     ]);
   };
 
+  // Toggle a section open/closed with a smooth layout animation.
+  const toggleSection = (key) => {
+    animate();
+    setExpanded((s) => ({ ...s, [key]: !s[key] }));
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor={T.forestDark} />
 
-      {/* ===== Gradient header ===== */}
+      {/* ===== Gradient header with circular progress ring ===== */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={HEADER_GRAD}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 16 }}>
+        {/* faint animated decorative bubbles for depth */}
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.headerBlobA, {
+            transform: [
+              { translateY: blobA.interpolate({ inputRange: [0, 1], outputRange: [0, 16] }) },
+              { translateX: blobA.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
+              { scale: blobA.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] }) },
+            ],
+          }]}
+        />
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.headerBlobB, {
+            transform: [
+              { translateY: blobB.interpolate({ inputRange: [0, 1], outputRange: [0, -14] }) },
+              { translateX: blobB.interpolate({ inputRange: [0, 1], outputRange: [0, 12] }) },
+              { scale: blobB.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) },
+            ],
+          }]}
+        />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+          {/* Single row: close · text column · ring — the compact original shape.
+              The text column is a plain flex child, so the eyebrow, title and
+              badge row stack one under the other sharing its left edge with no
+              magic margins. Everything sits on one band, so the header stays
+              short: its height is just the text column's. */}
           <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-              <Ionicons name="close" size={24} color="#fff" />
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerCircleBtn} activeOpacity={0.8}>
+              <Ionicons name="close" size={20} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>{isEdit ? "Edit Vehicle" : "Add Vehicle"}</Text>
-              <Text style={styles.headerSub}>
-                {completedSections}/5 sections · {typeMeta.label}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[styles.headerSaveBtn, !canSave && { opacity: 0.5 }]}
-              onPress={save}
-              disabled={!canSave}
-            >
-              {saving ? (
-                <ActivityIndicator size="small" color={C.emerald700} />
-              ) : (
-                <Text style={styles.headerSaveText}>Save</Text>
-              )}
-            </TouchableOpacity>
-          </View>
 
-          {/* Mini progress dots */}
-          <View style={styles.progressRow}>
-            {["Image", "Vehicle", "Specs", "Pricing", "Docs"].map((label, i) => (
-              <View key={label} style={styles.progressItem}>
-                <View style={[styles.progressDot, i < completedSections && styles.progressDotDone]}>
-                  {i < completedSections && <Ionicons name="checkmark" size={9} color={C.emerald700} />}
+            <View style={styles.headerTitleBlock}>
+              <Text style={styles.headerEyebrow}>{isEdit ? "EDITING VEHICLE" : "NEW VEHICLE"}</Text>
+              <Text style={styles.headerTitle} numberOfLines={1}>
+                {isEdit ? "Edit Vehicle" : "Add Vehicle"}
+              </Text>
+              <View style={styles.headerBadgeRow}>
+                <View style={styles.typePill}>
+                  <Ionicons name={typeMeta.icon} size={11} color="#fff" />
+                  <Text style={styles.typePillText}>{typeMeta.label}</Text>
                 </View>
-                <Text style={styles.progressLabel} numberOfLines={1}>{label}</Text>
+                <Text style={styles.headerSub}>{completedSections} of 5 sections</Text>
               </View>
-            ))}
+            </View>
+
+            <ProgressRing pct={pct} />
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -283,27 +375,25 @@ export default function AddEditFleetScreen({ navigation, route }) {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
           {/* ===== Cover image ===== */}
-          <SectionToggle
+          <Section
             icon="image" color={C.purple}
             label="Cover image"
             sub={form.coverImage ? "Image uploaded ✓" : "No image yet"}
+            step={1} done={done.images}
             open={expanded.images}
-            onToggle={() => setExpanded((s) => ({ ...s, images: !s.images }))}
-          />
-          {expanded.images && (
-            <Card>
-              <ImagePickerField
-                label="Vehicle photo"
-                value={form.coverImage}
-                onChange={(v) => update("coverImage", v)}
-                folder="fleet"
-                helperText="Customers see this on vehicle cards."
-              />
-            </Card>
-          )}
+            onToggle={() => toggleSection("images")}
+          >
+            <ImagePickerField
+              label="Vehicle photo"
+              value={form.coverImage}
+              onChange={(v) => update("coverImage", v)}
+              folder="fleet"
+              helperText="Customers see this on vehicle cards."
+            />
+          </Section>
 
           {/* ===== Vehicle details (with visual type picker) ===== */}
-          <SectionToggle
+          <Section
             icon="car" color={C.emerald600}
             label="Vehicle details"
             sub={
@@ -311,116 +401,114 @@ export default function AddEditFleetScreen({ navigation, route }) {
                 ? `${form.vehicleName.slice(0, 30)}${form.vehicleName.length > 30 ? "…" : ""}`
                 : "Name, brand, registration"
             }
+            step={2} done={done.vehicle}
             open={expanded.vehicle}
-            onToggle={() => setExpanded((s) => ({ ...s, vehicle: !s.vehicle }))}
-          />
-          {expanded.vehicle && (
-            <Card>
-              <Field label="Vehicle name *">
+            onToggle={() => toggleSection("vehicle")}
+          >
+            <Field label="Vehicle name *">
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Innova Crysta - Black"
+                placeholderTextColor="#A3B3C2"
+                value={form.vehicleName}
+                onChangeText={(v) => update("vehicleName", v)}
+              />
+            </Field>
+
+            {/* Visual type picker — 3 cols */}
+            <Field label="Vehicle type">
+              <View style={styles.typeGrid}>
+                {FLEET_VEHICLE_TYPE.map((t) => {
+                  const meta = VEHICLE_TYPE_META[t] || VEHICLE_TYPE_META.OTHER;
+                  const active = form.vehicleType === t;
+                  return (
+                    <TouchableOpacity
+                      key={t}
+                      style={[
+                        styles.typeTile,
+                        active && { backgroundColor: `${meta.color}12`, borderColor: meta.color },
+                      ]}
+                      onPress={() => update("vehicleType", t)}
+                      activeOpacity={0.85}
+                    >
+                      <View
+                        style={[
+                          styles.typeIconWrap,
+                          { backgroundColor: active ? meta.color : `${meta.color}18` },
+                        ]}
+                      >
+                        <Ionicons name={meta.icon} size={16} color={active ? "#fff" : meta.color} />
+                      </View>
+                      <Text style={[styles.typeLabel, active && { color: meta.color, fontWeight: "bold" }]}>
+                        {meta.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </Field>
+
+            <View style={styles.row2}>
+              <Field label="Brand" style={{ flex: 1 }}>
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. Innova Crysta - Black"
+                  placeholder="Toyota"
                   placeholderTextColor="#A3B3C2"
-                  value={form.vehicleName}
-                  onChangeText={(v) => update("vehicleName", v)}
+                  value={form.brand}
+                  onChangeText={(v) => update("brand", v)}
                 />
               </Field>
+              <Field label="Model" style={{ flex: 1 }}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Innova"
+                  placeholderTextColor="#A3B3C2"
+                  value={form.model}
+                  onChangeText={(v) => update("model", v)}
+                />
+              </Field>
+            </View>
 
-              {/* Visual type picker — 3 cols */}
-              <Field label="Vehicle type">
-                <View style={styles.typeGrid}>
-                  {FLEET_VEHICLE_TYPE.map((t) => {
-                    const meta = VEHICLE_TYPE_META[t] || VEHICLE_TYPE_META.OTHER;
-                    const active = form.vehicleType === t;
-                    return (
-                      <TouchableOpacity
-                        key={t}
-                        style={[
-                          styles.typeTile,
-                          active && { backgroundColor: `${meta.color}1A`, borderColor: meta.color },
-                        ]}
-                        onPress={() => update("vehicleType", t)}
-                        activeOpacity={0.85}
-                      >
-                        <View
-                          style={[
-                            styles.typeIconWrap,
-                            { backgroundColor: active ? meta.color : `${meta.color}22` },
-                          ]}
-                        >
-                          <Ionicons name={meta.icon} size={15} color={active ? "#fff" : meta.color} />
-                        </View>
-                        <Text style={[styles.typeLabel, active && { color: meta.color, fontWeight: "800" }]}>
-                          {meta.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+            <View style={styles.row2}>
+              <Field label="Registration" style={{ flex: 1 }}>
+                <View style={styles.iconInputWrap}>
+                  <View style={[styles.iconInputIcon, { backgroundColor: `${C.blue}18` }]}>
+                    <Ionicons name="card" size={15} color={C.blue} />
+                  </View>
+                  <TextInput
+                    style={[styles.input, styles.iconInputField, { textTransform: "uppercase", letterSpacing: 0.6 }]}
+                    placeholder="MH12AB1234"
+                    placeholderTextColor="#A3B3C2"
+                    autoCapitalize="characters"
+                    value={form.registrationNumber}
+                    onChangeText={(v) => update("registrationNumber", v.toUpperCase())}
+                  />
                 </View>
               </Field>
-
-              <View style={styles.row2}>
-                <Field label="Brand" style={{ flex: 1 }}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Toyota"
-                    placeholderTextColor="#A3B3C2"
-                    value={form.brand}
-                    onChangeText={(v) => update("brand", v)}
-                  />
-                </Field>
-                <Field label="Model" style={{ flex: 1 }}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Innova"
-                    placeholderTextColor="#A3B3C2"
-                    value={form.model}
-                    onChangeText={(v) => update("model", v)}
-                  />
-                </Field>
-              </View>
-
-              <View style={styles.row2}>
-                <Field label="Registration" style={{ flex: 1 }}>
-                  <View style={styles.iconInputWrap}>
-                    <View style={[styles.iconInputIcon, { backgroundColor: `${C.blue}22` }]}>
-                      <Ionicons name="card" size={14} color={C.blue} />
-                    </View>
-                    <TextInput
-                      style={[styles.input, styles.iconInputField, { textTransform: "uppercase", letterSpacing: 0.6 }]}
-                      placeholder="MH12AB1234"
-                      placeholderTextColor="#A3B3C2"
-                      autoCapitalize="characters"
-                      value={form.registrationNumber}
-                      onChangeText={(v) => update("registrationNumber", v.toUpperCase())}
-                    />
-                  </View>
-                </Field>
-                <Field label="Year" style={{ flex: 1 }}>
-                  <NumberInput
-                    value={form.yearOfManufacture}
-                    placeholder="2022"
-                    onChange={(v) => update("yearOfManufacture", v)}
-                    icon="calendar" color={C.amber}
-                    maxLength={4}
-                  />
-                </Field>
-              </View>
-
-              <Field label="Color">
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. Pearl White"
-                  placeholderTextColor="#A3B3C2"
-                  value={form.color}
-                  onChangeText={(v) => update("color", v)}
+              <Field label="Year" style={{ flex: 1 }}>
+                <NumberInput
+                  value={form.yearOfManufacture}
+                  placeholder="2022"
+                  onChange={(v) => update("yearOfManufacture", v)}
+                  icon="calendar" color={C.amber}
+                  maxLength={4}
                 />
               </Field>
-            </Card>
-          )}
+            </View>
+
+            <Field label="Color" style={{ marginBottom: 2 }}>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Pearl White"
+                placeholderTextColor="#A3B3C2"
+                value={form.color}
+                onChangeText={(v) => update("color", v)}
+              />
+            </Field>
+          </Section>
 
           {/* ===== Specs (fuel / transmission / capacity) ===== */}
-          <SectionToggle
+          <Section
             icon="cog" color={C.amber}
             label="Specs"
             sub={
@@ -428,87 +516,85 @@ export default function AddEditFleetScreen({ navigation, route }) {
                 ? `${form.seatingCapacity} seats · ${form.fuelType} · ${form.transmission}`
                 : "Fuel, transmission, capacity"
             }
+            step={3} done={done.specs}
             open={expanded.specs}
-            onToggle={() => setExpanded((s) => ({ ...s, specs: !s.specs }))}
-          />
-          {expanded.specs && (
-            <Card>
-              <Field label="Fuel type">
-                <View style={styles.specRow}>
-                  {FLEET_FUEL_TYPE.map((f) => {
-                    const meta = FUEL_META[f] || FUEL_META.OTHER;
-                    const active = form.fuelType === f;
-                    return (
-                      <TouchableOpacity
-                        key={f}
-                        style={[
-                          styles.specChip,
-                          active && { backgroundColor: `${meta.color}1A`, borderColor: meta.color },
-                        ]}
-                        onPress={() => update("fuelType", f)}
-                        activeOpacity={0.85}
-                      >
-                        <Ionicons name={meta.icon} size={13} color={active ? meta.color : C.subText} />
-                        <Text style={[styles.specChipText, active && { color: meta.color, fontWeight: "800" }]}>
-                          {f}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </Field>
-
-              <Field label="Transmission">
-                <View style={styles.transRow}>
-                  {FLEET_TRANSMISSION.map((t) => {
-                    const active = form.transmission === t;
-                    const color = t === "MANUAL" ? C.blue : C.purple;
-                    const icon = t === "MANUAL" ? "options" : "sync";
-                    return (
-                      <TouchableOpacity
-                        key={t}
-                        style={[
-                          styles.transBtn,
-                          active && { backgroundColor: `${color}1A`, borderColor: color },
-                        ]}
-                        onPress={() => update("transmission", t)}
-                        activeOpacity={0.85}
-                      >
-                        <Ionicons name={icon} size={16} color={active ? color : C.subText} />
-                        <Text style={[styles.transText, active && { color, fontWeight: "800" }]}>
-                          {t.charAt(0) + t.slice(1).toLowerCase()}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </Field>
-
-              <View style={styles.row2}>
-                <Field label="Seating" style={{ flex: 1 }}>
-                  <NumberInput
-                    value={form.seatingCapacity}
-                    placeholder="7"
-                    onChange={(v) => update("seatingCapacity", v)}
-                    icon="people" color={C.emerald600}
-                    suffix="seats"
-                  />
-                </Field>
-                <Field label="Luggage" style={{ flex: 1 }}>
-                  <NumberInput
-                    value={form.luggageCapacity}
-                    placeholder="4"
-                    onChange={(v) => update("luggageCapacity", v)}
-                    icon="briefcase" color={C.purple}
-                    suffix="bags"
-                  />
-                </Field>
+            onToggle={() => toggleSection("specs")}
+          >
+            <Field label="Fuel type">
+              <View style={styles.specRow}>
+                {FLEET_FUEL_TYPE.map((f) => {
+                  const meta = FUEL_META[f] || FUEL_META.OTHER;
+                  const active = form.fuelType === f;
+                  return (
+                    <TouchableOpacity
+                      key={f}
+                      style={[
+                        styles.specChip,
+                        active && { backgroundColor: `${meta.color}14`, borderColor: meta.color },
+                      ]}
+                      onPress={() => update("fuelType", f)}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name={meta.icon} size={13} color={active ? meta.color : C.subText} />
+                      <Text style={[styles.specChipText, active && { color: meta.color, fontWeight: "bold" }]}>
+                        {f}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-            </Card>
-          )}
+            </Field>
+
+            <Field label="Transmission">
+              <View style={styles.transRow}>
+                {FLEET_TRANSMISSION.map((t) => {
+                  const active = form.transmission === t;
+                  const color = t === "MANUAL" ? C.blue : C.purple;
+                  const icon = t === "MANUAL" ? "options" : "sync";
+                  return (
+                    <TouchableOpacity
+                      key={t}
+                      style={[
+                        styles.transBtn,
+                        active && { backgroundColor: `${color}14`, borderColor: color },
+                      ]}
+                      onPress={() => update("transmission", t)}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name={icon} size={16} color={active ? color : C.subText} />
+                      <Text style={[styles.transText, active && { color, fontWeight: "bold" }]}>
+                        {t.charAt(0) + t.slice(1).toLowerCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </Field>
+
+            <View style={[styles.row2, { marginBottom: 2 }]}>
+              <Field label="Seating" style={{ flex: 1, marginBottom: 0 }}>
+                <NumberInput
+                  value={form.seatingCapacity}
+                  placeholder="7"
+                  onChange={(v) => update("seatingCapacity", v)}
+                  icon="people" color={C.emerald600}
+                  suffix="seats"
+                />
+              </Field>
+              <Field label="Luggage" style={{ flex: 1, marginBottom: 0 }}>
+                <NumberInput
+                  value={form.luggageCapacity}
+                  placeholder="4"
+                  onChange={(v) => update("luggageCapacity", v)}
+                  icon="briefcase" color={C.purple}
+                  suffix="bags"
+                />
+              </Field>
+            </View>
+          </Section>
 
           {/* ===== Chauffeur ===== */}
-          <SectionToggle
+          <Section
             icon="person" color={C.blue}
             label="Chauffeur"
             sub={
@@ -518,97 +604,95 @@ export default function AddEditFleetScreen({ navigation, route }) {
                   : "Included · add driver details"
                 : "Self-drive only"
             }
+            step={4} done={done.chauffeur}
             open={expanded.chauffeur}
-            onToggle={() => setExpanded((s) => ({ ...s, chauffeur: !s.chauffeur }))}
-          />
-          {expanded.chauffeur && (
-            <Card>
-              {/* Chauffeur included toggle */}
-              <TouchableOpacity
+            onToggle={() => toggleSection("chauffeur")}
+          >
+            {/* Chauffeur included toggle */}
+            <TouchableOpacity
+              style={[
+                styles.toggleCard,
+                form.chauffeurIncluded && { borderColor: C.emerald600, backgroundColor: C.emerald50 },
+              ]}
+              onPress={() => update("chauffeurIncluded", !form.chauffeurIncluded)}
+              activeOpacity={0.85}
+            >
+              <View
                 style={[
-                  styles.toggleCard,
-                  form.chauffeurIncluded && { borderColor: C.emerald600, backgroundColor: C.emerald50 },
+                  styles.toggleIcon,
+                  form.chauffeurIncluded ? { backgroundColor: C.emerald600 } : { backgroundColor: "#E2E8F0" },
                 ]}
-                onPress={() => update("chauffeurIncluded", !form.chauffeurIncluded)}
-                activeOpacity={0.85}
               >
-                <View
-                  style={[
-                    styles.toggleIcon,
-                    form.chauffeurIncluded ? { backgroundColor: C.emerald600 } : { backgroundColor: "#E2E8F0" },
-                  ]}
-                >
-                  <Ionicons
-                    name={form.chauffeurIncluded ? "checkmark" : "close"}
-                    size={16}
-                    color="#fff"
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.toggleTitle, form.chauffeurIncluded && { color: C.emerald700 }]}>
-                    Chauffeur included
-                  </Text>
-                  <Text style={styles.toggleSub}>
-                    {form.chauffeurIncluded
-                      ? "Driver provided with this vehicle"
-                      : "Customer drives themselves"}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                <Ionicons
+                  name={form.chauffeurIncluded ? "checkmark" : "close"}
+                  size={16}
+                  color="#fff"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.toggleTitle, form.chauffeurIncluded && { color: C.emerald700 }]}>
+                  Chauffeur included
+                </Text>
+                <Text style={styles.toggleSub}>
+                  {form.chauffeurIncluded
+                    ? "Driver provided with this vehicle"
+                    : "Customer drives themselves"}
+                </Text>
+              </View>
+            </TouchableOpacity>
 
-              {form.chauffeurIncluded && (
-                <>
-                  <Field label="Chauffeur name" style={{ marginTop: 14 }}>
-                    <View style={styles.iconInputWrap}>
-                      <View style={[styles.iconInputIcon, { backgroundColor: `${C.blue}22` }]}>
-                        <Ionicons name="person" size={14} color={C.blue} />
-                      </View>
-                      <TextInput
-                        style={[styles.input, styles.iconInputField]}
-                        placeholder="Driver's full name"
-                        placeholderTextColor="#A3B3C2"
-                        value={form.chauffeurName}
-                        onChangeText={(v) => update("chauffeurName", v)}
-                      />
+            {form.chauffeurIncluded && (
+              <>
+                <Field label="Chauffeur name" style={{ marginTop: 14 }}>
+                  <View style={styles.iconInputWrap}>
+                    <View style={[styles.iconInputIcon, { backgroundColor: `${C.blue}18` }]}>
+                      <Ionicons name="person" size={15} color={C.blue} />
                     </View>
-                  </Field>
-                  <Field label="Chauffeur phone">
-                    <View style={styles.iconInputWrap}>
-                      <View style={[styles.iconInputIcon, { backgroundColor: `${C.emerald600}22` }]}>
-                        <Ionicons name="call" size={14} color={C.emerald600} />
-                      </View>
-                      <TextInput
-                        style={[styles.input, styles.iconInputField]}
-                        placeholder="10-digit phone"
-                        placeholderTextColor="#A3B3C2"
-                        keyboardType="phone-pad"
-                        maxLength={10}
-                        value={form.chauffeurPhone}
-                        onChangeText={(v) => update("chauffeurPhone", v.replace(/\D/g, ""))}
-                      />
+                    <TextInput
+                      style={[styles.input, styles.iconInputField]}
+                      placeholder="Driver's full name"
+                      placeholderTextColor="#A3B3C2"
+                      value={form.chauffeurName}
+                      onChangeText={(v) => update("chauffeurName", v)}
+                    />
+                  </View>
+                </Field>
+                <Field label="Chauffeur phone">
+                  <View style={styles.iconInputWrap}>
+                    <View style={[styles.iconInputIcon, { backgroundColor: `${C.emerald600}18` }]}>
+                      <Ionicons name="call" size={15} color={C.emerald600} />
                     </View>
-                  </Field>
-                  <Field label="Languages spoken">
-                    <View style={styles.iconInputWrap}>
-                      <View style={[styles.iconInputIcon, { backgroundColor: `${C.purple}22` }]}>
-                        <Ionicons name="chatbubbles" size={14} color={C.purple} />
-                      </View>
-                      <TextInput
-                        style={[styles.input, styles.iconInputField]}
-                        placeholder="e.g. Hindi, English, Marathi"
-                        placeholderTextColor="#A3B3C2"
-                        value={form.chauffeurLanguages}
-                        onChangeText={(v) => update("chauffeurLanguages", v)}
-                      />
+                    <TextInput
+                      style={[styles.input, styles.iconInputField]}
+                      placeholder="10-digit phone"
+                      placeholderTextColor="#A3B3C2"
+                      keyboardType="phone-pad"
+                      maxLength={10}
+                      value={form.chauffeurPhone}
+                      onChangeText={(v) => update("chauffeurPhone", v.replace(/\D/g, ""))}
+                    />
+                  </View>
+                </Field>
+                <Field label="Languages spoken" style={{ marginBottom: 2 }}>
+                  <View style={styles.iconInputWrap}>
+                    <View style={[styles.iconInputIcon, { backgroundColor: `${C.purple}18` }]}>
+                      <Ionicons name="chatbubbles" size={15} color={C.purple} />
                     </View>
-                  </Field>
-                </>
-              )}
-            </Card>
-          )}
+                    <TextInput
+                      style={[styles.input, styles.iconInputField]}
+                      placeholder="e.g. Hindi, English, Marathi"
+                      placeholderTextColor="#A3B3C2"
+                      value={form.chauffeurLanguages}
+                      onChangeText={(v) => update("chauffeurLanguages", v)}
+                    />
+                  </View>
+                </Field>
+              </>
+            )}
+          </Section>
 
           {/* ===== Pricing & location ===== */}
-          <SectionToggle
+          <Section
             icon="cash" color={C.emerald600}
             label="Pricing & location"
             sub={
@@ -616,230 +700,225 @@ export default function AddEditFleetScreen({ navigation, route }) {
                 ? `${form.ratePerDay ? `₹${form.ratePerDay}/day` : ""}${form.ratePerDay && form.ratePerKm ? " · " : ""}${form.ratePerKm ? `₹${form.ratePerKm}/km` : ""}`
                 : "Daily & per-km rates"
             }
+            step={5} done={done.pricing}
             open={expanded.pricing}
-            onToggle={() => setExpanded((s) => ({ ...s, pricing: !s.pricing }))}
-          />
-          {expanded.pricing && (
-            <Card>
-              <Field label="Base location">
-                <View style={styles.iconInputWrap}>
-                  <View style={[styles.iconInputIcon, { backgroundColor: `${C.red}22` }]}>
-                    <Ionicons name="location" size={14} color={C.red} />
-                  </View>
+            onToggle={() => toggleSection("pricing")}
+          >
+            <Field label="Base location">
+              <View style={styles.iconInputWrap}>
+                <View style={[styles.iconInputIcon, { backgroundColor: `${C.red}18` }]}>
+                  <Ionicons name="location" size={15} color={C.red} />
+                </View>
+                <TextInput
+                  style={[styles.input, styles.iconInputField]}
+                  placeholder="City where this vehicle operates"
+                  placeholderTextColor="#A3B3C2"
+                  value={form.baseLocation}
+                  onChangeText={(v) => update("baseLocation", v)}
+                />
+              </View>
+            </Field>
+
+            <View style={styles.row2}>
+              <Field label="Per day" style={{ flex: 1 }}>
+                <View style={styles.prefixInputWrap}>
+                  <View style={styles.prefixBox}><Text style={styles.prefixText}>₹</Text></View>
                   <TextInput
-                    style={[styles.input, styles.iconInputField]}
-                    placeholder="City where this vehicle operates"
+                    style={[styles.input, styles.prefixInput]}
+                    placeholder="2500"
                     placeholderTextColor="#A3B3C2"
-                    value={form.baseLocation}
-                    onChangeText={(v) => update("baseLocation", v)}
+                    keyboardType="number-pad"
+                    value={form.ratePerDay}
+                    onChangeText={(v) => update("ratePerDay", v.replace(/[^\d.]/g, ""))}
                   />
                 </View>
               </Field>
-
-              <View style={styles.row2}>
-                <Field label="Per day" style={{ flex: 1 }}>
-                  <View style={styles.prefixInputWrap}>
-                    <View style={styles.prefixBox}><Text style={styles.prefixText}>₹</Text></View>
-                    <TextInput
-                      style={[styles.input, styles.prefixInput]}
-                      placeholder="2500"
-                      placeholderTextColor="#A3B3C2"
-                      keyboardType="number-pad"
-                      value={form.ratePerDay}
-                      onChangeText={(v) => update("ratePerDay", v.replace(/[^\d.]/g, ""))}
-                    />
-                  </View>
-                </Field>
-                <Field label="Per km" style={{ flex: 1 }}>
-                  <View style={styles.prefixInputWrap}>
-                    <View style={styles.prefixBox}><Text style={styles.prefixText}>₹</Text></View>
-                    <TextInput
-                      style={[styles.input, styles.prefixInput]}
-                      placeholder="12"
-                      placeholderTextColor="#A3B3C2"
-                      keyboardType="number-pad"
-                      value={form.ratePerKm}
-                      onChangeText={(v) => update("ratePerKm", v.replace(/[^\d.]/g, ""))}
-                    />
-                  </View>
-                </Field>
-              </View>
-
-              <Field label="Minimum booking">
-                <NumberInput
-                  value={form.minimumBookingHours}
-                  placeholder="e.g. 4"
-                  onChange={(v) => update("minimumBookingHours", v)}
-                  icon="time" color={C.blue}
-                  suffix="hours"
-                  maxLength={3}
-                />
+              <Field label="Per km" style={{ flex: 1 }}>
+                <View style={styles.prefixInputWrap}>
+                  <View style={styles.prefixBox}><Text style={styles.prefixText}>₹</Text></View>
+                  <TextInput
+                    style={[styles.input, styles.prefixInput]}
+                    placeholder="12"
+                    placeholderTextColor="#A3B3C2"
+                    keyboardType="number-pad"
+                    value={form.ratePerKm}
+                    onChangeText={(v) => update("ratePerKm", v.replace(/[^\d.]/g, ""))}
+                  />
+                </View>
               </Field>
+            </View>
 
-              <Field label="Description">
-                <TextInput
-                  style={[styles.input, styles.inputMultiline]}
-                  placeholder="What customers should know — package details, restrictions…"
-                  placeholderTextColor="#A3B3C2"
-                  value={form.description}
-                  onChangeText={(v) => update("description", v)}
-                  multiline numberOfLines={3} textAlignVertical="top"
-                />
-              </Field>
-            </Card>
-          )}
+            <Field label="Minimum booking">
+              <NumberInput
+                value={form.minimumBookingHours}
+                placeholder="e.g. 4"
+                onChange={(v) => update("minimumBookingHours", v)}
+                icon="time" color={C.blue}
+                suffix="hours"
+                maxLength={3}
+              />
+            </Field>
+
+            <Field label="Description" style={{ marginBottom: 2 }}>
+              <TextInput
+                style={[styles.input, styles.inputMultiline]}
+                placeholder="What customers should know — package details, restrictions…"
+                placeholderTextColor="#A3B3C2"
+                value={form.description}
+                onChangeText={(v) => update("description", v)}
+                multiline numberOfLines={3} textAlignVertical="top"
+              />
+            </Field>
+          </Section>
 
           {/* ===== Amenities & gallery ===== */}
-          <SectionToggle
+          <Section
             icon="sparkles" color={C.amber}
             label="Amenities & photos"
             sub={`${form.amenities.length} amenities · ${form.galleryImages.length} photos`}
+            step={6} done={done.extras}
             open={expanded.extras}
-            onToggle={() => setExpanded((s) => ({ ...s, extras: !s.extras }))}
-          />
-          {expanded.extras && (
-            <Card>
-              <Field label="Amenities">
-                <View style={styles.amenityWrap}>
-                  {AMENITY_PRESETS.map((a) => {
-                    const active = form.amenities.includes(a);
-                    return (
-                      <TouchableOpacity
-                        key={a}
-                        style={[styles.amenityChip, active && styles.amenityChipActive]}
-                        onPress={() => toggleAmenity(a)}
-                        activeOpacity={0.85}
-                      >
-                        <Ionicons name={active ? "checkmark-circle" : "add-circle-outline"} size={13} color={active ? C.emerald600 : C.subText} />
-                        <Text style={[styles.amenityChipText, active && { color: C.emerald700, fontWeight: "800" }]}>{a}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                {/* custom amenities not in the preset list */}
-                {form.amenities.filter((a) => !AMENITY_PRESETS.includes(a)).map((a) => (
-                  <View key={a} style={[styles.amenityChip, styles.amenityChipActive, { alignSelf: "flex-start", marginTop: 6 }]}>
-                    <Text style={[styles.amenityChipText, { color: C.emerald700, fontWeight: "800" }]}>{a}</Text>
-                    <TouchableOpacity onPress={() => toggleAmenity(a)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                      <Ionicons name="close" size={13} color={C.emerald700} />
+            onToggle={() => toggleSection("extras")}
+          >
+            <Field label="Amenities">
+              <View style={styles.amenityWrap}>
+                {AMENITY_PRESETS.map((a) => {
+                  const active = form.amenities.includes(a);
+                  return (
+                    <TouchableOpacity
+                      key={a}
+                      style={[styles.amenityChip, active && styles.amenityChipActive]}
+                      onPress={() => toggleAmenity(a)}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name={active ? "checkmark-circle" : "add-circle-outline"} size={13} color={active ? C.emerald600 : C.subText} />
+                      <Text style={[styles.amenityChipText, active && { color: C.emerald700, fontWeight: "bold" }]}>{a}</Text>
                     </TouchableOpacity>
-                  </View>
-                ))}
-                <View style={styles.amenityAddRow}>
-                  <TextInput
-                    style={[styles.input, { flex: 1 }]}
-                    placeholder="Add custom amenity"
-                    placeholderTextColor="#A3B3C2"
-                    value={customAmenity}
-                    onChangeText={setCustomAmenity}
-                    onSubmitEditing={addCustomAmenity}
-                    returnKeyType="done"
-                  />
-                  <TouchableOpacity style={styles.amenityAddBtn} onPress={addCustomAmenity} activeOpacity={0.85}>
-                    <Ionicons name="add" size={20} color="#fff" />
+                  );
+                })}
+              </View>
+              {/* custom amenities not in the preset list */}
+              {form.amenities.filter((a) => !AMENITY_PRESETS.includes(a)).map((a) => (
+                <View key={a} style={[styles.amenityChip, styles.amenityChipActive, { alignSelf: "flex-start", marginTop: 6 }]}>
+                  <Text style={[styles.amenityChipText, { color: C.emerald700, fontWeight: "bold" }]}>{a}</Text>
+                  <TouchableOpacity onPress={() => toggleAmenity(a)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                    <Ionicons name="close" size={13} color={C.emerald700} />
                   </TouchableOpacity>
                 </View>
-              </Field>
-
-              <Field label="Gallery photos" helper="Up to 8 photos shown on the vehicle page.">
-                <ImagePickerField
-                  multi
-                  value={form.galleryImages}
-                  onChange={(v) => update("galleryImages", v)}
-                  folder="fleet"
-                  max={8}
+              ))}
+              <View style={styles.amenityAddRow}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Add custom amenity"
+                  placeholderTextColor="#A3B3C2"
+                  value={customAmenity}
+                  onChangeText={setCustomAmenity}
+                  onSubmitEditing={addCustomAmenity}
+                  returnKeyType="done"
                 />
-              </Field>
-            </Card>
-          )}
+                <TouchableOpacity style={styles.amenityAddBtn} onPress={addCustomAmenity} activeOpacity={0.85}>
+                  <Ionicons name="add" size={20} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </Field>
+
+            <Field label="Gallery photos" helper="Up to 8 photos shown on the vehicle page." style={{ marginBottom: 2 }}>
+              <ImagePickerField
+                multi
+                value={form.galleryImages}
+                onChange={(v) => update("galleryImages", v)}
+                folder="fleet"
+                max={8}
+              />
+            </Field>
+          </Section>
 
           {/* ===== Documents ===== */}
-          <SectionToggle
+          <Section
             icon="document-attach" color={C.purple}
             label="Documents"
             sub={`${docCount}/4 uploaded`}
+            step={7} done={done.documents}
             open={expanded.documents}
-            onToggle={() => setExpanded((s) => ({ ...s, documents: !s.documents }))}
-          />
-          {expanded.documents && (
-            <Card>
-              <DocCard
-                icon="card" color={C.blue}
-                title="RC (Registration Certificate)"
-                hint="Front of RC book / smart card"
-                value={form.rcImage}
-                onChange={(v) => update("rcImage", v)}
-              />
-              <DocCard
-                icon="shield-checkmark" color={C.emerald600}
-                title="Insurance"
-                hint={
-                  form.insuranceValidity
-                    ? `Valid till ${formatDate(form.insuranceValidity)} · ${insExpiryLabel(form.insuranceValidity)}`
-                    : "Insurance policy document"
-                }
-                value={form.insuranceImage}
-                onChange={(v) => update("insuranceImage", v)}
-                expiryStatus={insExpiryStatus(form.insuranceValidity)}
-              >
-                <View style={styles.row2}>
-                  <Field label="Provider" style={{ flex: 1, marginBottom: 0 }}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="e.g. ICICI Lombard"
-                      placeholderTextColor="#A3B3C2"
-                      value={form.insuranceProvider}
-                      onChangeText={(v) => update("insuranceProvider", v)}
-                    />
-                  </Field>
-                  <Field label="Valid till" style={{ flex: 1, marginBottom: 0 }}>
-                    <DateBtn
-                      value={formatDate(form.insuranceValidity)}
-                      onPress={() => setPickerType("insuranceValidity")}
-                      onClear={form.insuranceValidity ? () => update("insuranceValidity", null) : null}
-                    />
-                  </Field>
-                </View>
-              </DocCard>
-              <DocCard
-                icon="checkmark-done-circle" color={C.amber}
-                title="Fitness certificate"
-                hint={
-                  form.fitnessValidity
-                    ? `Valid till ${formatDate(form.fitnessValidity)} · ${insExpiryLabel(form.fitnessValidity)}`
-                    : "Vehicle fitness document"
-                }
-                value={form.fitnessImage}
-                onChange={(v) => update("fitnessImage", v)}
-                expiryStatus={insExpiryStatus(form.fitnessValidity)}
-              >
-                <Field label="Valid till" style={{ marginBottom: 0 }}>
-                  <DateBtn
-                    value={formatDate(form.fitnessValidity)}
-                    onPress={() => setPickerType("fitnessValidity")}
-                    onClear={form.fitnessValidity ? () => update("fitnessValidity", null) : null}
-                  />
-                </Field>
-              </DocCard>
-              <DocCard
-                icon="ribbon" color={C.red}
-                title="Commercial permit"
-                hint="Required for tourist/commercial use"
-                value={form.permitImage}
-                onChange={(v) => update("permitImage", v)}
-              >
-                <Field label="Permit type" style={{ marginBottom: 0 }}>
+            onToggle={() => toggleSection("documents")}
+          >
+            <DocCard
+              icon="card" color={C.blue}
+              title="RC (Registration Certificate)"
+              hint="Front of RC book / smart card"
+              value={form.rcImage}
+              onChange={(v) => update("rcImage", v)}
+            />
+            <DocCard
+              icon="shield-checkmark" color={C.emerald600}
+              title="Insurance"
+              hint={
+                form.insuranceValidity
+                  ? `Valid till ${formatDate(form.insuranceValidity)} · ${insExpiryLabel(form.insuranceValidity)}`
+                  : "Insurance policy document"
+              }
+              value={form.insuranceImage}
+              onChange={(v) => update("insuranceImage", v)}
+              expiryStatus={insExpiryStatus(form.insuranceValidity)}
+            >
+              <View style={styles.row2}>
+                <Field label="Provider" style={{ flex: 1, marginBottom: 0 }}>
                   <TextInput
                     style={styles.input}
-                    placeholder="e.g. All India Tourist Permit"
+                    placeholder="e.g. ICICI Lombard"
                     placeholderTextColor="#A3B3C2"
-                    value={form.permitType}
-                    onChangeText={(v) => update("permitType", v)}
+                    value={form.insuranceProvider}
+                    onChangeText={(v) => update("insuranceProvider", v)}
                   />
                 </Field>
-              </DocCard>
-            </Card>
-          )}
+                <Field label="Valid till" style={{ flex: 1, marginBottom: 0 }}>
+                  <DateBtn
+                    value={formatDate(form.insuranceValidity)}
+                    onPress={() => setPickerType("insuranceValidity")}
+                    onClear={form.insuranceValidity ? () => update("insuranceValidity", null) : null}
+                  />
+                </Field>
+              </View>
+            </DocCard>
+            <DocCard
+              icon="checkmark-done-circle" color={C.amber}
+              title="Fitness certificate"
+              hint={
+                form.fitnessValidity
+                  ? `Valid till ${formatDate(form.fitnessValidity)} · ${insExpiryLabel(form.fitnessValidity)}`
+                  : "Vehicle fitness document"
+              }
+              value={form.fitnessImage}
+              onChange={(v) => update("fitnessImage", v)}
+              expiryStatus={insExpiryStatus(form.fitnessValidity)}
+            >
+              <Field label="Valid till" style={{ marginBottom: 0 }}>
+                <DateBtn
+                  value={formatDate(form.fitnessValidity)}
+                  onPress={() => setPickerType("fitnessValidity")}
+                  onClear={form.fitnessValidity ? () => update("fitnessValidity", null) : null}
+                />
+              </Field>
+            </DocCard>
+            <DocCard
+              icon="ribbon" color={C.red}
+              title="Commercial permit"
+              hint="Required for tourist/commercial use"
+              value={form.permitImage}
+              onChange={(v) => update("permitImage", v)}
+              last
+            >
+              <Field label="Permit type" style={{ marginBottom: 0 }}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. All India Tourist Permit"
+                  placeholderTextColor="#A3B3C2"
+                  value={form.permitType}
+                  onChangeText={(v) => update("permitType", v)}
+                />
+              </Field>
+            </DocCard>
+          </Section>
 
           {/* ===== Active toggle ===== */}
           <TouchableOpacity
@@ -873,16 +952,16 @@ export default function AddEditFleetScreen({ navigation, route }) {
 
           {/* ===== Danger zone (edit only) ===== */}
           {isEdit && (
-            <SectionToggle
-              icon="alert-circle" color={C.red}
-              label="Danger zone"
-              sub="Delete this vehicle permanently"
-              open={false}
-              onToggle={onDelete}
-              showChevron={false}
-              actionIcon="trash"
-              actionColor={C.red}
-            />
+            <TouchableOpacity style={styles.dangerCard} onPress={onDelete} activeOpacity={0.85}>
+              <View style={styles.dangerIcon}>
+                <Ionicons name="trash" size={16} color={C.red} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.dangerTitle}>Delete vehicle</Text>
+                <Text style={styles.dangerSub}>Permanently remove — this cannot be undone</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={C.red} />
+            </TouchableOpacity>
           )}
 
           <View style={{ height: 100 }} />
@@ -898,13 +977,13 @@ export default function AddEditFleetScreen({ navigation, route }) {
           activeOpacity={0.9}
         >
           <LinearGradient
-            colors={[C.emerald600, C.emerald700]}
+            colors={[C.emerald500, C.emerald700]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={styles.publishBtnInner}
           >
             {saving ? <ActivityIndicator size="small" color="#fff" /> : (
               <>
-                <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                <Ionicons name="checkmark-circle" size={19} color="#fff" />
                 <Text style={styles.publishBtnText}>
                   {isEdit ? "Save Changes" : "Add vehicle"}
                 </Text>
@@ -944,7 +1023,34 @@ function insExpiryStatus(iso) {
 
 /* ───────── Sub-components ───────── */
 
-function Card({ children }) { return <View style={styles.card}>{children}</View>; }
+// A self-contained rounded section card: tappable header + (when open) an
+// animated body separated by a hairline divider.
+function Section({ icon, color, label, sub, open, onToggle, step, done, children }) {
+  return (
+    <View style={[styles.section, open && [styles.sectionOpen, { borderColor: `${color}40` }]]}>
+      <TouchableOpacity style={styles.sectionHead} onPress={onToggle} activeOpacity={0.7}>
+        <View style={styles.sectionIconWrap}>
+          <View style={[styles.sectionIcon, { backgroundColor: `${color}16` }, open && { backgroundColor: color }]}>
+            <Ionicons name={icon} size={18} color={open ? "#fff" : color} />
+          </View>
+          {done && (
+            <View style={styles.doneBadge}>
+              <Ionicons name="checkmark" size={9} color="#fff" />
+            </View>
+          )}
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.sectionLabel}>{label}</Text>
+          {!!sub && <Text style={styles.sectionSub} numberOfLines={1}>{sub}</Text>}
+        </View>
+        <View style={[styles.chevWrap, open && { backgroundColor: `${color}14` }]}>
+          <Ionicons name={open ? "chevron-up" : "chevron-down"} size={16} color={open ? color : C.subText} />
+        </View>
+      </TouchableOpacity>
+      {open && <View style={styles.sectionBody}>{children}</View>}
+    </View>
+  );
+}
 
 function Field({ label, helper, children, style }) {
   return (
@@ -956,37 +1062,14 @@ function Field({ label, helper, children, style }) {
   );
 }
 
-function SectionToggle({ icon, color, label, sub, open, onToggle, showChevron = true, actionIcon, actionColor }) {
-  return (
-    <TouchableOpacity style={styles.sectionToggle} onPress={onToggle} activeOpacity={0.85}>
-      <View style={[styles.sectionToggleIcon, { backgroundColor: `${color}22` }]}>
-        <Ionicons name={icon} size={16} color={color} />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={[styles.sectionToggleText, { color }]}>{label}</Text>
-        {!!sub && <Text style={styles.sectionToggleSub} numberOfLines={1}>{sub}</Text>}
-      </View>
-      {showChevron ? (
-        <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={color} />
-      ) : (
-        <Ionicons name={actionIcon || "chevron-forward"} size={18} color={actionColor || color} />
-      )}
-    </TouchableOpacity>
-  );
-}
-
 function NumberInput({ value, placeholder, onChange, icon, color, suffix, maxLength }) {
   return (
     <View style={styles.iconInputWrap}>
-      <View style={[styles.iconInputIcon, { backgroundColor: `${color || C.emerald600}22` }]}>
-        <Ionicons name={icon || "ellipse"} size={14} color={color || C.emerald600} />
+      <View style={[styles.iconInputIcon, { backgroundColor: `${color || C.emerald600}18` }]}>
+        <Ionicons name={icon || "ellipse"} size={15} color={color || C.emerald600} />
       </View>
       <TextInput
-        style={[
-          styles.input,
-          styles.iconInputField,
-          suffix && { borderRightWidth: 0, borderTopRightRadius: 0, borderBottomRightRadius: 0 },
-        ]}
+        style={[styles.input, styles.iconInputField]}
         placeholder={placeholder}
         placeholderTextColor="#A3B3C2"
         keyboardType="number-pad"
@@ -1025,16 +1108,16 @@ function DateBtn({ value, onPress, onClear }) {
 
 // Each document gets its own bordered card with status pill (uploaded /
 // expiring / expired) and optional inner fields (e.g. insurance provider).
-function DocCard({ icon, color, title, hint, value, onChange, expiryStatus, children }) {
+function DocCard({ icon, color, title, hint, value, onChange, expiryStatus, children, last }) {
   const statusColor =
     expiryStatus === "expired" ? C.red :
     expiryStatus === "expiring" ? C.amber :
     expiryStatus === "ok" ? C.emerald600 : null;
 
   return (
-    <View style={[styles.docCard, value && { borderColor: color }]}>
+    <View style={[styles.docCard, last && { marginBottom: 0 }, value && { borderColor: color, backgroundColor: `${color}0A` }]}>
       <View style={styles.docHead}>
-        <View style={[styles.docIconWrap, { backgroundColor: `${color}1A` }]}>
+        <View style={[styles.docIconWrap, { backgroundColor: `${color}18` }]}>
           <Ionicons name={icon} size={16} color={color} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -1061,10 +1144,10 @@ function DocCard({ icon, color, title, hint, value, onChange, expiryStatus, chil
           )
         ) : null}
       </View>
-      <View style={{ marginTop: 10 }}>
+      <View style={{ marginTop: 12 }}>
         <ImagePickerField value={value} onChange={onChange} folder="fleet-docs" />
       </View>
-      {!!children && <View style={{ marginTop: 10 }}>{children}</View>}
+      {!!children && <View style={{ marginTop: 12 }}>{children}</View>}
     </View>
   );
 }
@@ -1072,153 +1155,232 @@ function DocCard({ icon, color, title, hint, value, onChange, expiryStatus, chil
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
   // Header
-  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 19, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "700", marginTop: 2 },
-  headerSaveBtn: { backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, minWidth: 60, alignItems: "center" },
-  headerSaveText: { color: C.emerald700, fontWeight: "800", fontSize: 13 },
-
-  // Progress dots
-  progressRow: { flexDirection: "row", marginTop: 12, paddingHorizontal: 4 },
-  progressItem: { flex: 1, alignItems: "center", gap: 4 },
-  progressDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.4)" },
-  progressDotDone: { backgroundColor: "#fff", borderColor: "#fff" },
-  progressLabel: { fontSize: 9.5, color: "rgba(255,255,255,0.85)", fontWeight: "700", letterSpacing: 0.3 },
-
-  scroll: { paddingTop: 4, paddingBottom: 24 },
-
-  // Section toggle
-  sectionToggle: {
-    flexDirection: "row", alignItems: "center", gap: 10,
-    marginHorizontal: 16, marginTop: 12, paddingHorizontal: 14, paddingVertical: 12,
-    backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border,
+  headerGrad: { borderBottomLeftRadius: 30, borderBottomRightRadius: 30, overflow: "hidden" },
+  headerBlobA: {
+    position: "absolute", top: -50, right: -40, width: 180, height: 180, borderRadius: 90,
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
-  sectionToggleIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  sectionToggleText: { fontSize: 13.5, fontWeight: "800", letterSpacing: 0.3 },
-  sectionToggleSub: { fontSize: 11, color: C.subText, marginTop: 2, fontWeight: "600" },
-
-  // Card
-  card: {
-    marginHorizontal: 16, backgroundColor: C.card, borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: C.border, marginTop: -1,
-    borderTopLeftRadius: 0, borderTopRightRadius: 0,
+  headerBlobB: {
+    position: "absolute", top: 30, left: -60, width: 150, height: 150, borderRadius: 75,
+    backgroundColor: "rgba(228,192,102,0.06)",
   },
+  // One band. Height = the text column's height, since the 34px button and the
+  // 48px ring are both shorter than it and just centre against it.
+  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 16, gap: 10 },
+  // No marginLeft / marginTop hacks — flex does the alignment, so the three
+  // texts share one left edge and stack cleanly.
+  headerTitleBlock: { flex: 1, minWidth: 0, alignItems: "flex-start" },
+  headerCircleBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.2)",
+    alignItems: "center", justifyContent: "center",
+  },
+  // Explicit lineHeights + includeFontPadding:false give the three stacked texts
+  // a predictable rhythm; without the latter Android adds its own leading and
+  // the gaps drift apart from what the margins say.
+  headerEyebrow: {
+    fontFamily: DISPLAY, color: GOLD, fontSize: 9.5, fontWeight: "bold",
+    letterSpacing: 1.4, textTransform: "uppercase",
+    lineHeight: 12, includeFontPadding: false,
+  },
+  headerTitle: {
+    fontFamily: DISPLAY, fontSize: 20, fontWeight: "bold", color: "#fff",
+    letterSpacing: 0.2, lineHeight: 23, marginTop: 3, includeFontPadding: false,
+  },
+  headerBadgeRow: {
+    flexDirection: "row", alignItems: "center", flexWrap: "wrap",
+    gap: 7, marginTop: 9,
+  },
+  typePill: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.18)",
+  },
+  typePillText: {
+    fontFamily: DISPLAY, color: "#fff", fontSize: 10, fontWeight: "bold",
+    letterSpacing: 0.3, includeFontPadding: false,
+  },
+  // Sized to match the pill's text so the two sit as siblings on one line
+  // (it was 11.5 against the pill's 10.5, which read as a mismatch).
+  headerSub: {
+    fontFamily: DISPLAY, color: "rgba(255,255,255,0.72)", fontSize: 10,
+    fontWeight: "bold", includeFontPadding: false,
+  },
+  // 5 (not 6) so the 56px ring + padding lands at exactly 66px — the same as the
+  // header's text column, keeping the header at 98px instead of growing it.
+  ringWrap: { padding: 5, alignItems: "center", justifyContent: "center" },
+  // 13.5 rather than 15 so "100%" clears the 4.5px stroke on both sides
+  // (inner diameter is only 39px).
+  ringPct: {
+    fontFamily: DISPLAY, color: "#fff", fontSize: 13.5, fontWeight: "bold",
+    letterSpacing: 0.2, includeFontPadding: false,
+  },
+
+  scroll: { paddingTop: 10, paddingBottom: 24 },
+
+  // Section card
+  section: {
+    marginHorizontal: 16, marginTop: 14,
+    backgroundColor: C.card, borderRadius: 20,
+    borderWidth: 1, borderColor: C.border, overflow: "hidden",
+    ...Platform.select({
+      ios: { shadowColor: "#0A2A21", shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
+      android: { elevation: 2 },
+    }),
+  },
+  sectionOpen: {
+    ...Platform.select({
+      ios: { shadowOpacity: 0.1, shadowRadius: 22, shadowOffset: { width: 0, height: 12 } },
+      android: { elevation: 5 },
+    }),
+  },
+  sectionHead: { flexDirection: "row", alignItems: "center", gap: 13, padding: 15 },
+  sectionIconWrap: { width: 42, height: 42 },
+  sectionIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  doneBadge: {
+    position: "absolute", top: -4, right: -4,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: C.emerald500, alignItems: "center", justifyContent: "center",
+    borderWidth: 2, borderColor: C.card,
+  },
+  sectionEyebrow: {
+    fontFamily: DISPLAY, fontSize: 9.5, color: C.subText, fontWeight: "bold",
+    letterSpacing: 1.6, textTransform: "uppercase", marginBottom: 3, opacity: 0.9,
+  },
+  sectionLabel: { fontFamily: DISPLAY, fontSize: 15.5, fontWeight: "bold", color: C.ink, letterSpacing: 0.2 },
+  sectionSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, marginTop: 3, fontWeight: "600" },
+  chevWrap: { width: 30, height: 30, borderRadius: 15, backgroundColor: C.bg, alignItems: "center", justifyContent: "center" },
+  sectionBody: { borderTopWidth: 1, borderTopColor: C.border, padding: 16, paddingTop: 15 },
 
   // Field
-  field: { marginBottom: 14 },
-  fieldLabel: { fontSize: 12, fontWeight: "700", color: C.text, marginBottom: 6 },
-  helper: { fontSize: 11, color: C.subText, marginTop: 4, fontWeight: "600" },
+  field: { marginBottom: 16 },
+  fieldLabel: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.text, marginBottom: 7, letterSpacing: 0.2 },
+  helper: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, marginTop: 5, fontWeight: "600" },
   input: {
-    backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: C.ink, minHeight: 46,
+    fontFamily: DISPLAY,
+    backgroundColor: FILL, borderWidth: 1.5, borderColor: C.border, borderRadius: 14,
+    paddingHorizontal: 15, paddingVertical: 13, fontSize: 14.5, color: C.ink, minHeight: 52,
   },
-  inputMultiline: { minHeight: 80, paddingTop: 10 },
-  row2: { flexDirection: "row", gap: 10 },
+  inputMultiline: { minHeight: 96, paddingTop: 13 },
+  row2: { flexDirection: "row", gap: 12 },
 
   // Visual type grid
   typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   typeTile: {
-    width: "31%",
+    width: "31.5%",
     paddingVertical: 12, paddingHorizontal: 6,
-    borderRadius: 12, backgroundColor: "#FAFBFC",
+    borderRadius: 14, backgroundColor: FILL,
     borderWidth: 1.5, borderColor: C.border,
-    alignItems: "center", gap: 6,
+    alignItems: "center", gap: 7,
   },
-  typeIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  typeLabel: { fontSize: 11, color: C.text, fontWeight: "700", textAlign: "center" },
+  typeIconWrap: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  typeLabel: { fontFamily: DISPLAY, fontSize: 11, color: C.text, fontWeight: "bold", textAlign: "center" },
 
-  // Spec chip row (fuel)
-  specRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  specChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, backgroundColor: "#FAFBFC", borderWidth: 1.5, borderColor: C.border },
-  specChipText: { fontSize: 11.5, color: C.subText, fontWeight: "700" },
+  // Spec chip row (fuel) — compact, uniform pills that pack neatly
+  specRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  specChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 13, paddingVertical: 9, borderRadius: 12, backgroundColor: FILL, borderWidth: 1.5, borderColor: C.border },
+  specChipText: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "bold", letterSpacing: 0.2 },
 
   // Transmission row
-  transRow: { flexDirection: "row", gap: 8 },
-  transBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 11, borderRadius: 10, backgroundColor: "#FAFBFC", borderWidth: 1.5, borderColor: C.border },
-  transText: { fontSize: 12.5, color: C.subText, fontWeight: "700" },
+  transRow: { flexDirection: "row", gap: 10 },
+  transBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, paddingVertical: 13, borderRadius: 12, backgroundColor: FILL, borderWidth: 1.5, borderColor: C.border },
+  transText: { fontFamily: DISPLAY, fontSize: 12.5, color: C.subText, fontWeight: "bold" },
 
-  // ₹ prefix input
-  prefixInputWrap: { flexDirection: "row", alignItems: "stretch" },
-  prefixBox: {
-    paddingHorizontal: 14, justifyContent: "center", backgroundColor: C.emerald50,
-    borderTopLeftRadius: 10, borderBottomLeftRadius: 10,
-    borderWidth: 1, borderRightWidth: 0, borderColor: C.border,
+  // ₹ prefix input (unified pill)
+  prefixInputWrap: {
+    flexDirection: "row", alignItems: "stretch",
+    backgroundColor: FILL, borderWidth: 1.5, borderColor: C.border,
+    borderRadius: 14, overflow: "hidden",
   },
-  prefixText: { color: C.emerald700, fontWeight: "800", fontSize: 16 },
-  prefixInput: { flex: 1, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeftWidth: 0 },
+  prefixBox: { paddingHorizontal: 16, justifyContent: "center", backgroundColor: C.emerald50 },
+  prefixText: { fontFamily: DISPLAY, color: C.emerald700, fontWeight: "bold", fontSize: 16 },
+  prefixInput: { flex: 1, borderWidth: 0, backgroundColor: "transparent", borderRadius: 0 },
 
-  // Icon-prefix input
-  iconInputWrap: { flexDirection: "row", alignItems: "stretch" },
-  iconInputIcon: {
-    width: 44, justifyContent: "center", alignItems: "center",
-    borderTopLeftRadius: 10, borderBottomLeftRadius: 10,
-    borderWidth: 1, borderRightWidth: 0, borderColor: C.border,
+  // Icon-prefix input (unified pill: leading tinted icon chip + borderless field)
+  iconInputWrap: {
+    flexDirection: "row", alignItems: "stretch",
+    backgroundColor: FILL, borderWidth: 1.5, borderColor: C.border,
+    borderRadius: 14, overflow: "hidden",
   },
-  iconInputField: {
-    flex: 1, borderLeftWidth: 0,
-    borderTopLeftRadius: 0, borderBottomLeftRadius: 0,
-  },
+  iconInputIcon: { width: 48, justifyContent: "center", alignItems: "center" },
+  iconInputField: { flex: 1, borderWidth: 0, backgroundColor: "transparent", borderRadius: 0 },
   suffixBox: {
-    paddingHorizontal: 12, justifyContent: "center", backgroundColor: "#FAFBFC",
-    borderTopRightRadius: 10, borderBottomRightRadius: 10,
-    borderWidth: 1, borderLeftWidth: 0, borderColor: C.border,
+    paddingHorizontal: 14, justifyContent: "center",
+    backgroundColor: "transparent", borderLeftWidth: 1, borderLeftColor: C.border,
   },
-  suffixText: { fontSize: 12, color: C.subText, fontWeight: "700" },
+  suffixText: { fontFamily: DISPLAY, fontSize: 12.5, color: C.subText, fontWeight: "bold" },
 
   // Toggle card (chauffeur included / active)
+  // Unselected state is plain white; the emerald fill is applied inline only
+  // when the toggle is on. (Was FILL / #FBF8F1, which read as a cream tint.)
   toggleCard: {
     flexDirection: "row", alignItems: "center", gap: 12,
     padding: 14, borderRadius: 14,
     borderWidth: 1.5, borderColor: C.border, backgroundColor: C.card,
   },
-  toggleIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  toggleTitle: { fontSize: 14, color: C.text, fontWeight: "800" },
-  toggleSub: { fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 2 },
+  toggleIcon: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  toggleTitle: { fontFamily: DISPLAY, fontSize: 14, color: C.text, fontWeight: "bold" },
+  toggleSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 2 },
 
   // Date button
   dateBtnWrap: { flex: 1 },
   dateBtn: {
     flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border,
-    borderRadius: 10, paddingHorizontal: 12, height: 46,
+    backgroundColor: FILL, borderWidth: 1.5, borderColor: C.border,
+    borderRadius: 14, paddingHorizontal: 12, height: 52,
   },
-  dateBtnText: { flex: 1, fontSize: 13.5, color: C.ink, fontWeight: "700" },
+  dateBtnText: { fontFamily: DISPLAY, flex: 1, fontSize: 13.5, color: C.ink, fontWeight: "bold" },
 
   // Document card
   docCard: {
-    padding: 12, borderRadius: 12,
-    backgroundColor: "#FAFBFC", borderWidth: 1.5, borderColor: C.border,
-    marginBottom: 10,
+    padding: 14, borderRadius: 16,
+    backgroundColor: "#F8FAFB", borderWidth: 1.5, borderColor: C.border,
+    marginBottom: 12,
   },
   docHead: { flexDirection: "row", alignItems: "center", gap: 10 },
-  docIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  docTitle: { fontSize: 13, fontWeight: "800", letterSpacing: 0.2 },
-  docHint: { fontSize: 11, color: C.subText, fontWeight: "600", marginTop: 2 },
+  docIconWrap: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  docTitle: { fontFamily: DISPLAY, fontSize: 13, fontWeight: "bold", letterSpacing: 0.2 },
+  docHint: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "600", marginTop: 2 },
   docStatusPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
-  docStatusText: { fontSize: 9.5, fontWeight: "800", letterSpacing: 0.4 },
+  docStatusText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.4 },
 
-  // Amenities
-  amenityWrap: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  amenityChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, backgroundColor: "#FAFBFC", borderWidth: 1.5, borderColor: C.border },
+  // Amenities — compact, uniform tags that pack neatly across rows
+  amenityWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  amenityChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 13, paddingVertical: 9, borderRadius: 12, backgroundColor: FILL, borderWidth: 1.5, borderColor: C.border },
   amenityChipActive: { backgroundColor: C.emerald50, borderColor: C.emerald600 },
-  amenityChipText: { fontSize: 11.5, color: C.subText, fontWeight: "700" },
-  amenityAddRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
-  amenityAddBtn: { width: 46, height: 46, borderRadius: 10, backgroundColor: C.emerald600, alignItems: "center", justifyContent: "center" },
+  amenityChipText: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "bold", letterSpacing: 0.2 },
+  amenityAddRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 },
+  amenityAddBtn: { width: 50, height: 50, borderRadius: 12, backgroundColor: C.emerald600, alignItems: "center", justifyContent: "center" },
+
+  // Danger zone
+  dangerCard: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    marginHorizontal: 16, marginTop: 12,
+    padding: 14, borderRadius: 16,
+    borderWidth: 1.5, borderColor: C.redLight, backgroundColor: "#FEF4F4",
+  },
+  dangerIcon: { width: 36, height: 36, borderRadius: 11, backgroundColor: C.redLight, alignItems: "center", justifyContent: "center" },
+  dangerTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.red },
+  dangerSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 2 },
 
   // Bottom save bar
   bottomBar: {
     flexDirection: "row", gap: 10,
-    paddingHorizontal: 16, paddingTop: 10,
-    paddingBottom: Platform.OS === "ios" ? 24 : 12,
+    paddingHorizontal: 16, paddingTop: 14,
+    paddingBottom: Platform.OS === "ios" ? 28 : 14,
     backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
+    ...Platform.select({
+      ios: { shadowColor: "#0A2A21", shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: -6 } },
+      android: { elevation: 16 },
+    }),
   },
   publishBtnWrap: {
-    flex: 1, borderRadius: 12, overflow: "hidden",
-    shadowColor: C.emerald600, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    flex: 1, borderRadius: 16, overflow: "hidden",
+    shadowColor: C.emerald600, shadowOpacity: 0.45, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
   },
-  publishBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 15 },
-  publishBtnText: { color: "#fff", fontWeight: "800", fontSize: 14.5 },
+  publishBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12 },
+  publishBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 15.5, letterSpacing: 0.3 },
 });

@@ -18,10 +18,13 @@ import {
   ScrollView,
   Alert,
   StatusBar,
+  Animated,
+  Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
+import { DISPLAY } from "../_shared/typography";
 import {
   getTravelAgentNotifications,
   getTravelAgentUnreadCount,
@@ -29,29 +32,8 @@ import {
   deleteTravelAgentNotification,
   deleteAllTravelAgentNotifications,
 } from "../../api/travelAgentClient";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  green: "#10B981",
-  greenLight: "#D1FAE5",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-  purpleLight: "#EDE9FE",
-};
 
 // Per-type meta: icon + accent colors
 const TYPE_META = {
@@ -59,7 +41,7 @@ const TYPE_META = {
   PAYMENT: { icon: "cash",    color: C.green,  bg: C.greenLight,  label: "Payment" },
   BOOKING: { icon: "receipt", color: C.purple, bg: C.purpleLight, label: "Booking" },
   CHAT:    { icon: "chatbubble-ellipses", color: C.amber, bg: C.amberLight, label: "Chat" },
-  SYSTEM:  { icon: "information-circle",  color: C.subText, bg: "#F1F5F9", label: "System" },
+  SYSTEM:  { icon: "information-circle",  color: C.subText, bg: C.tintSand, label: "System" },
 };
 
 const FILTERS = [
@@ -105,6 +87,27 @@ const BUCKET_LABELS = {
   earlier: "Earlier",
 };
 const BUCKET_ORDER = ["today", "yesterday", "thisweek", "earlier"];
+
+// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return (
+    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
+  );
+}
 
 export default function NotificationsScreen({ navigation }) {
   const [items, setItems] = useState([]);
@@ -256,15 +259,17 @@ export default function NotificationsScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
 
       {/* Gradient header */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
         <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12 }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
@@ -382,7 +387,7 @@ function NotifCard({ item, onPress, onDelete }) {
     <TouchableOpacity
       style={[
         styles.card,
-        unread && { borderLeftWidth: 4, borderLeftColor: meta.color, backgroundColor: "#FBFDFF" },
+        unread && { borderLeftWidth: 4, borderLeftColor: meta.color, backgroundColor: "#FCFAF4" },
       ]}
       onPress={onPress}
       activeOpacity={0.85}
@@ -399,7 +404,7 @@ function NotifCard({ item, onPress, onDelete }) {
           </View>
           <Text style={styles.cardTime}>{fmtRelative(item.createdAt)}</Text>
         </View>
-        <Text style={[styles.cardTitle, unread && { fontWeight: "800" }]} numberOfLines={1}>
+        <Text style={[styles.cardTitle, unread && { fontWeight: "bold" }]} numberOfLines={1}>
           {item.title}
         </Text>
         {!!item.body && (
@@ -442,11 +447,24 @@ function EmptyState({ filter }) {
 
 const styles = StyleSheet.create({
   // Header
-  headerGrad: { paddingBottom: 12 },
+  headerGrad: {
+    paddingBottom: 16,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    overflow: "hidden",
+  },
+  orbA: {
+    position: "absolute", top: -50, right: -40, width: 190, height: 190,
+    borderRadius: 95, backgroundColor: "rgba(201,154,63,0.10)",
+  },
+  orbB: {
+    position: "absolute", top: 30, left: -60, width: 150, height: 150,
+    borderRadius: 75, backgroundColor: "rgba(46,158,119,0.14)",
+  },
   headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4, paddingHorizontal: 4 },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 19, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "700", marginTop: 2 },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 19, fontWeight: "bold", color: "#fff" },
+  headerSub: { fontFamily: DISPLAY, fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "bold", marginTop: 2 },
 
   // Filter pills
   filtersRow: { paddingHorizontal: 8, paddingTop: 12, gap: 6, flexDirection: "row" },
@@ -457,14 +475,14 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "rgba(255,255,255,0.25)",
   },
   filterChipActive: { backgroundColor: "#fff", borderColor: "#fff" },
-  filterText: { fontSize: 12, color: "#fff", fontWeight: "700" },
-  filterTextActive: { color: C.emerald700, fontWeight: "800" },
+  filterText: { fontFamily: DISPLAY, fontSize: 12, color: "#fff", fontWeight: "bold" },
+  filterTextActive: { color: C.emerald700, fontWeight: "bold" },
   filterBadge: {
     minWidth: 18, height: 16, paddingHorizontal: 5, borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.3)",
     alignItems: "center", justifyContent: "center",
   },
-  filterBadgeText: { color: "#fff", fontSize: 10, fontWeight: "800" },
+  filterBadgeText: { fontFamily: DISPLAY, color: "#fff", fontSize: 10, fontWeight: "bold" },
 
   // Error
   errorBox: {
@@ -472,8 +490,8 @@ const styles = StyleSheet.create({
     margin: 14, padding: 10, backgroundColor: C.redLight, borderRadius: 10,
     borderWidth: 1, borderColor: "#FECACA",
   },
-  errorText: { color: C.red, fontSize: 12.5, flex: 1 },
-  errorRetry: { color: C.red, fontWeight: "800", fontSize: 12.5 },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 12.5, flex: 1 },
+  errorRetry: { fontFamily: DISPLAY, color: C.red, fontWeight: "bold", fontSize: 12.5 },
 
   // List
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
@@ -484,34 +502,36 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: 8,
     paddingHorizontal: 4, paddingTop: 12, paddingBottom: 8,
   },
-  sectionTitle: { fontSize: 11.5, fontWeight: "800", color: C.subText, letterSpacing: 0.7, textTransform: "uppercase" },
-  sectionCount: { fontSize: 11, color: C.subText, fontWeight: "700" },
+  sectionTitle: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold", color: C.subText, letterSpacing: 0.7, textTransform: "uppercase" },
+  sectionCount: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "bold" },
 
   // Notification card
   card: {
     flexDirection: "row", alignItems: "flex-start", gap: 12,
-    backgroundColor: C.card, borderRadius: 14, padding: 12,
+    backgroundColor: C.card, borderRadius: 16, padding: 12,
     borderWidth: 1, borderColor: C.border,
-    marginBottom: 8,
+    marginBottom: 10,
     paddingLeft: 12,
+    shadowColor: C.shadow, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05, shadowRadius: 10, elevation: 1,
   },
-  typeIcon: { position: "relative", width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  unreadDot: { position: "absolute", top: -2, right: -2, width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: "#FBFDFF" },
+  typeIcon: { position: "relative", width: 38, height: 38, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  unreadDot: { position: "absolute", top: -2, right: -2, width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: "#FCFAF4" },
   cardTopLine: { flexDirection: "row", alignItems: "center", gap: 8 },
   typeBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  typeBadgeText: { fontSize: 9.5, fontWeight: "800", letterSpacing: 0.4, textTransform: "uppercase" },
-  cardTime: { fontSize: 10.5, color: C.subText, fontWeight: "700", marginLeft: "auto" },
-  cardTitle: { fontSize: 13.5, color: C.ink, fontWeight: "700", marginTop: 4 },
-  cardBody: { fontSize: 12, color: C.subText, marginTop: 3, lineHeight: 17 },
+  typeBadgeText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.4, textTransform: "uppercase" },
+  cardTime: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "bold", marginLeft: "auto" },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 13.5, color: C.ink, fontWeight: "bold", marginTop: 4 },
+  cardBody: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, marginTop: 3, lineHeight: 17 },
   deleteBtn: {
     width: 28, height: 28, borderRadius: 14,
     alignItems: "center", justifyContent: "center",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#F1ECE0",
   },
 
   // Empty
   empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40 },
-  emptyIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 16 },
-  emptyTitle: { fontSize: 17, fontWeight: "800", color: C.ink, textAlign: "center" },
-  emptyBody: { fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", lineHeight: 19, maxWidth: 280 },
+  emptyIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 16, borderWidth: 1, borderColor: "rgba(28,107,82,0.12)" },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, textAlign: "center" },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", lineHeight: 19, maxWidth: 280 },
 });

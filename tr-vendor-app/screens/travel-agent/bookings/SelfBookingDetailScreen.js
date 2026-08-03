@@ -21,33 +21,16 @@ import {
   Linking,
   Platform,
   StatusBar,
+  Animated,
+  Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import { getSelfBookingB2bDetail } from "../../api/travelAgentClient";
+import { DISPLAY } from "../_shared/typography";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  indigo600: "#4F46E5",
-  indigo700: "#4338CA",
-  indigo50: "#EEF2FF",
-  purple: "#7C3AED",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  green: "#10B981",
-  greenLight: "#D1FAE5",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  whatsapp: "#25D366",
-};
 
 // b2b_booking_status is an open-ended enum across deployments; map the known
 // ones and fall back to a neutral style for anything new.
@@ -87,6 +70,77 @@ function fmtDate(d) {
   }
 }
 
+const initialsOf = (name) =>
+  String(name || "?")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase() || "?";
+
+// icon per trip service (falls back to a generic briefcase)
+const SERVICE_ICON = {
+  car: "car-sport-outline",
+  bike: "bicycle-outline",
+  bus: "bus-outline",
+  truck: "cube-outline",
+  luxury: "diamond-outline",
+  chauffeur: "person-outline",
+  self_drive: "key-outline",
+};
+const serviceIcon = (s) => SERVICE_ICON[String(s || "").toLowerCase()] || "briefcase-outline";
+
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />;
+}
+
+// TEMP DEMO — sample company self-booking so the screen can be viewed without
+// real data. Remove this block after the warm redesign is approved.
+const DEMO_SELF_ID = "__DEMO_SELF__";
+const DEMO_BOOKING = {
+  bookingNumber: "TA-DEMO-0001",
+  bookingMode: "COMPANY",
+  serviceType: "car",
+  status: "CONFIRMED",
+  finalAmount: 24500,
+  customerName: "Rahul Sharma",
+  customerPhone: "9876500000",
+  customerEmail: "rahul@example.com",
+  companyName: "Sharma Travels",
+  tripType: "Round trip",
+  pickupLocation: "Delhi Airport (T3)",
+  dropLocation: "Jaipur",
+  vehiclesRequired: 2,
+  vehicleCategory: "SUV",
+  passengerCount: 6,
+  scheduledDate: "2026-07-25T00:00:00.000Z",
+  scheduledTime: "09:30 AM",
+  returnDate: "2026-07-28T00:00:00.000Z",
+  returnTime: "06:00 PM",
+  specialNotes: "Airport pickup, English-speaking driver.",
+  vendorCostTotal: 18000,
+  companyMargin: 4500,
+  gstAmount: 2000,
+  vendorQuotes: [{ status: "ACCEPTED" }, { status: "PENDING" }],
+  superQuotes: [{}],
+  trips: [{ id: "t1", status: "CONFIRMED", vendor: { businessName: "Rajasthan Cabs" } }],
+};
+
 export default function SelfBookingDetailScreen({ route, navigation }) {
   const { id, bookingNumber: passedNumber } = route.params || {};
   const [loading, setLoading] = useState(true);
@@ -98,6 +152,14 @@ export default function SelfBookingDetailScreen({ route, navigation }) {
   const load = useCallback(async () => {
     if (!id) {
       setError("Missing booking id");
+      setLoading(false);
+      return;
+    }
+    // TEMP DEMO — show sample booking for the demo id (remove after redesign)
+    if (id === DEMO_SELF_ID) {
+      setBooking(DEMO_BOOKING);
+      setTripStats(null);
+      setError(null);
       setLoading(false);
       return;
     }
@@ -142,23 +204,20 @@ export default function SelfBookingDetailScreen({ route, navigation }) {
     <View style={styles.headerBar}>
       <TouchableOpacity
         onPress={() => navigation.goBack()}
-        style={styles.iconBtn}
+        style={styles.backBtn}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Ionicons name="arrow-back" size={22} color="#fff" />
+        <Ionicons name="arrow-back" size={20} color="#fff" />
       </TouchableOpacity>
-      <Text style={styles.headerTitle} numberOfLines={1}>
-        {booking?.bookingNumber || passedNumber || "Booking"}
-      </Text>
-      <View style={styles.iconBtn} />
+      <Text style={styles.headerTitle} numberOfLines={1}>Self-Booking</Text>
     </View>
   );
 
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
-        <StatusBar barStyle="light-content" backgroundColor={C.indigo700} />
-        <LinearGradient colors={[C.indigo700, C.indigo600]} style={styles.heroFlat}>
+        <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
+        <LinearGradient colors={["#0F2A22", "#16382E", "#1C6B52"]} style={styles.heroFlat}>
           <Header />
         </LinearGradient>
         <View style={styles.center}>
@@ -172,8 +231,8 @@ export default function SelfBookingDetailScreen({ route, navigation }) {
   if (error || !booking) {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
-        <StatusBar barStyle="light-content" backgroundColor={C.indigo700} />
-        <LinearGradient colors={[C.indigo700, C.indigo600]} style={styles.heroFlat}>
+        <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
+        <LinearGradient colors={["#0F2A22", "#16382E", "#1C6B52"]} style={styles.heroFlat}>
           <Header />
         </LinearGradient>
         <View style={styles.center}>
@@ -201,97 +260,124 @@ export default function SelfBookingDetailScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      <StatusBar barStyle="light-content" backgroundColor={C.indigo700} />
-      <LinearGradient colors={[C.indigo700, C.indigo600]} style={styles.hero}>
+      <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
+      <LinearGradient colors={["#0F2A22", "#16382E", "#1C6B52"]} style={styles.hero}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
         <Header />
         <View style={styles.heroBody}>
-          <View style={styles.modePill}>
-            <Ionicons name="business" size={12} color="#fff" />
-            <Text style={styles.modePillTxt}>
-              {booking.bookingMode || "COMPANY"} ·{" "}
-              {String(booking.serviceType || "").toUpperCase() || "BOOKING"}
-            </Text>
+          <View style={styles.heroIcon}>
+            <Ionicons name={serviceIcon(booking.serviceType)} size={22} color="#fff" />
           </View>
-          <Text style={styles.heroNumber}>{booking.bookingNumber}</Text>
-          <View style={[styles.statusChip, { backgroundColor: "rgba(255,255,255,0.18)" }]}>
-            <Ionicons name={sm.icon} size={13} color="#fff" />
-            <Text style={styles.statusChipTxt}>{sm.label}</Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.heroNumber} numberOfLines={1}>{booking.bookingNumber}</Text>
+            <View style={styles.modePill}>
+              <Ionicons name="business" size={11} color="rgba(255,255,255,0.92)" />
+              <Text style={styles.modePillTxt}>
+                {booking.bookingMode || "COMPANY"} · {String(booking.serviceType || "BOOKING").toUpperCase()}
+              </Text>
+            </View>
           </View>
-          <Text style={styles.heroAmount}>{money(booking.finalAmount)}</Text>
-          <Text style={styles.heroAmountLabel}>Final amount</Text>
         </View>
       </LinearGradient>
 
       <ScrollView
-        contentContainerStyle={{ padding: 14, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.indigo600]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.indigo600]} tintColor={C.indigo600} />
         }
       >
-        {/* Customer */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Customer</Text>
-          <Text style={styles.bigName}>{custName}</Text>
-          {!!company && (
-            <View style={styles.inlineRow}>
-              <Ionicons name="business-outline" size={14} color={C.subText} />
-              <Text style={styles.inlineTxt}>{company}</Text>
-            </View>
-          )}
-          {!!custPhone && (
-            <View style={styles.inlineRow}>
-              <Ionicons name="call-outline" size={14} color={C.subText} />
-              <Text style={styles.inlineTxt}>{custPhone}</Text>
-            </View>
-          )}
-          {!!custEmail && (
-            <View style={styles.inlineRow}>
-              <Ionicons name="mail-outline" size={14} color={C.subText} />
-              <Text style={styles.inlineTxt}>{custEmail}</Text>
-            </View>
-          )}
-          <View style={styles.contactRow}>
-            {!!custPhone && (
-              <TouchableOpacity style={[styles.contactBtn, { backgroundColor: C.blueLight }]} onPress={() => call(custPhone)}>
-                <Ionicons name="call" size={16} color={C.blue} />
-                <Text style={[styles.contactTxt, { color: C.blue }]}>Call</Text>
-              </TouchableOpacity>
-            )}
-            {!!custPhone && (
-              <TouchableOpacity style={[styles.contactBtn, { backgroundColor: "#E7F9EF" }]} onPress={() => whatsapp(custPhone)}>
-                <Ionicons name="logo-whatsapp" size={16} color={C.whatsapp} />
-                <Text style={[styles.contactTxt, { color: C.whatsapp }]}>WhatsApp</Text>
-              </TouchableOpacity>
-            )}
-            {!!custEmail && (
-              <TouchableOpacity style={[styles.contactBtn, { backgroundColor: C.indigo50 }]} onPress={() => email(custEmail)}>
-                <Ionicons name="mail" size={16} color={C.indigo600} />
-                <Text style={[styles.contactTxt, { color: C.indigo600 }]}>Email</Text>
-              </TouchableOpacity>
-            )}
+        {/* Floating amount card — overlaps the hero */}
+        <View style={styles.amountCard}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.amountLabel}>FINAL AMOUNT</Text>
+            <Text style={styles.amountValue} numberOfLines={1}>{money(booking.finalAmount)}</Text>
+          </View>
+          <View style={styles.amountChip}>
+            <Ionicons name={sm.icon} size={13} color={sm.color} />
+            <Text style={[styles.amountChipTxt, { color: sm.color }]}>{sm.label}</Text>
           </View>
         </View>
 
-        {/* Trip */}
+        {/* Customer */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Trip details</Text>
-          <Row label="Service" value={String(booking.serviceType || "—").toUpperCase()} />
-          <Row label="Trip type" value={booking.tripType || "—"} />
-          <Row label="Pickup" value={booking.pickupLocation || "—"} />
-          {!!booking.dropLocation && <Row label="Drop" value={booking.dropLocation} />}
-          <Row label="Vehicles" value={booking.vehiclesRequired != null ? String(booking.vehiclesRequired) : "—"} />
-          {booking.vehicleCategory ? <Row label="Category" value={booking.vehicleCategory} /> : null}
-          {booking.passengerCount != null ? <Row label="Passengers" value={String(booking.passengerCount)} /> : null}
-          <Row label="Scheduled" value={`${fmtDate(booking.scheduledDate)}${booking.scheduledTime ? " · " + booking.scheduledTime : ""}`} />
+          <SectionTitle icon="person-circle-outline" label="Customer" />
+          <View style={styles.custHead}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarTxt}>{initialsOf(custName)}</Text>
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.bigName} numberOfLines={1}>{custName}</Text>
+              {!!company && (
+                <View style={styles.inlineRow}>
+                  <Ionicons name="business-outline" size={13} color={C.subText} />
+                  <Text style={styles.custSub} numberOfLines={1}>{company}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {(!!custPhone || !!custEmail) && (
+            <View style={styles.contactRow}>
+              {!!custPhone && (
+                <TouchableOpacity style={[styles.contactBtn, { backgroundColor: C.blueLight }]} onPress={() => call(custPhone)} activeOpacity={0.85}>
+                  <Ionicons name="call" size={14} color={C.blue} />
+                  <Text style={[styles.contactTxt, { color: C.blue }]} numberOfLines={1}>Call</Text>
+                </TouchableOpacity>
+              )}
+              {!!custPhone && (
+                <TouchableOpacity style={[styles.contactBtn, { backgroundColor: "#E4F5EA" }]} onPress={() => whatsapp(custPhone)} activeOpacity={0.85}>
+                  <Ionicons name="logo-whatsapp" size={14} color={C.whatsapp} />
+                  <Text style={[styles.contactTxt, { color: "#128C4A" }]} numberOfLines={1}>WhatsApp</Text>
+                </TouchableOpacity>
+              )}
+              {!!custEmail && (
+                <TouchableOpacity style={[styles.contactBtn, { backgroundColor: C.indigo50 }]} onPress={() => email(custEmail)} activeOpacity={0.85}>
+                  <Ionicons name="mail" size={14} color={C.indigo600} />
+                  <Text style={[styles.contactTxt, { color: C.indigo600 }]} numberOfLines={1}>Email</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          {(!!custPhone || !!custEmail) && (
+            <View style={styles.custContactList}>
+              {!!custPhone && (
+                <View style={styles.miniRow}>
+                  <Ionicons name="call-outline" size={13} color={C.subText} />
+                  <Text style={styles.miniTxt}>{custPhone}</Text>
+                </View>
+              )}
+              {!!custEmail && (
+                <View style={styles.miniRow}>
+                  <Ionicons name="mail-outline" size={13} color={C.subText} />
+                  <Text style={styles.miniTxt} numberOfLines={1}>{custEmail}</Text>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* Trip details */}
+        <View style={styles.card}>
+          <SectionTitle icon="map-outline" label="Trip details" />
+          <InfoItem icon="construct-outline" label="Service" value={String(booking.serviceType || "—").toUpperCase()} />
+          <InfoItem icon="swap-horizontal-outline" label="Trip type" value={booking.tripType || "—"} />
+          <InfoItem icon="location-outline" label="Pickup" value={booking.pickupLocation || "—"} />
+          {!!booking.dropLocation && <InfoItem icon="flag-outline" label="Drop" value={booking.dropLocation} />}
+          <InfoItem icon="car-outline" label="Vehicles" value={booking.vehiclesRequired != null ? String(booking.vehiclesRequired) : "—"} />
+          {booking.vehicleCategory ? <InfoItem icon="pricetag-outline" label="Category" value={booking.vehicleCategory} /> : null}
+          {booking.passengerCount != null ? <InfoItem icon="people-outline" label="Passengers" value={String(booking.passengerCount)} /> : null}
+          <InfoItem icon="calendar-outline" label="Scheduled" value={`${fmtDate(booking.scheduledDate)}${booking.scheduledTime ? " · " + booking.scheduledTime : ""}`} />
           {booking.returnDate ? (
-            <Row label="Return" value={`${fmtDate(booking.returnDate)}${booking.returnTime ? " · " + booking.returnTime : ""}`} />
+            <InfoItem icon="return-down-back-outline" label="Return" value={`${fmtDate(booking.returnDate)}${booking.returnTime ? " · " + booking.returnTime : ""}`} />
           ) : null}
-          {!!booking.specialNotes && <Row label="Notes" value={booking.specialNotes} />}
+          {!!booking.specialNotes && <InfoItem icon="reader-outline" label="Notes" value={booking.specialNotes} last />}
         </View>
 
         {/* Pricing */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Pricing</Text>
+          <SectionTitle icon="cash-outline" label="Pricing" />
           <Row label="Vendor cost" value={money(booking.vendorCostTotal)} />
           <Row label="Company margin" value={money(booking.companyMargin)} />
           <Row label="GST" value={money(booking.gstAmount)} />
@@ -303,14 +389,14 @@ export default function SelfBookingDetailScreen({ route, navigation }) {
 
         {/* Quotes summary */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Vendor quotes</Text>
+          <SectionTitle icon="documents-outline" label="Vendor quotes" />
           {quotes.length === 0 ? (
             <Text style={styles.muted}>No vendor quotes yet.</Text>
           ) : (
             <View style={styles.statsRow}>
-              <Stat n={quotes.length} label="Received" color={C.indigo600} />
-              <Stat n={acceptedQuotes} label="Accepted" color={C.green} />
-              <Stat n={(booking.superQuotes || []).length} label="Super quotes" color={C.purple} />
+              <Stat n={quotes.length} label="Received" color={C.indigo600} tint={C.indigo50} />
+              <Stat n={acceptedQuotes} label="Accepted" color={C.green} tint={C.greenLight} />
+              <Stat n={(booking.superQuotes || []).length} label="Super quotes" color={C.purple} tint="#EFE9F5" />
             </View>
           )}
         </View>
@@ -318,18 +404,21 @@ export default function SelfBookingDetailScreen({ route, navigation }) {
         {/* Trips */}
         {trips.length > 0 && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Trips ({trips.length})</Text>
+            <SectionTitle icon="git-branch-outline" label={`Trips (${trips.length})`} />
             {trips.map((t, i) => {
               const ts = statusMeta(t.status);
               return (
-                <View key={t.id || i} style={styles.tripRow}>
-                  <View style={[styles.tripDot, { backgroundColor: ts.color }]} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.tripVendor}>
+                <View key={t.id || i} style={[styles.tripRow, i === trips.length - 1 && { borderBottomWidth: 0, paddingBottom: 0 }]}>
+                  <View style={[styles.tripDotRing, { borderColor: ts.color }]}>
+                    <View style={[styles.tripDot, { backgroundColor: ts.color }]} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.tripVendor} numberOfLines={1}>
                       {t.vendor?.businessName || "Trip " + (i + 1)}
                     </Text>
-                    <Text style={styles.tripStatus}>{ts.label}</Text>
+                    <Text style={[styles.tripStatus, { color: ts.color }]}>{ts.label}</Text>
                   </View>
+                  <Ionicons name={ts.icon} size={16} color={ts.color} />
                 </View>
               );
             })}
@@ -338,7 +427,9 @@ export default function SelfBookingDetailScreen({ route, navigation }) {
 
         {/* Cross-app hint */}
         <View style={styles.hintCard}>
-          <Ionicons name="information-circle-outline" size={18} color={C.indigo600} />
+          <View style={styles.hintIcon}>
+            <Ionicons name="information-circle" size={17} color={C.indigo600} />
+          </View>
           <Text style={styles.hintTxt}>
             This is a company booking you placed as a travel agent. For payment &
             full quote management, open the TR customer app → Profile → Company
@@ -352,6 +443,29 @@ export default function SelfBookingDetailScreen({ route, navigation }) {
   );
 }
 
+function SectionTitle({ icon, label }) {
+  return (
+    <View style={styles.sectionTitleRow}>
+      <View style={styles.sectionTitleIcon}>
+        <Ionicons name={icon} size={14} color={C.indigo600} />
+      </View>
+      <Text style={styles.cardTitle}>{label}</Text>
+    </View>
+  );
+}
+
+function InfoItem({ icon, label, value, last }) {
+  return (
+    <View style={[styles.infoItem, last && { borderBottomWidth: 0 }]}>
+      <View style={styles.infoIcon}>
+        <Ionicons name={icon} size={15} color={C.indigo600} />
+      </View>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  );
+}
+
 function Row({ label, value }) {
   return (
     <View style={styles.row}>
@@ -361,9 +475,9 @@ function Row({ label, value }) {
   );
 }
 
-function Stat({ n, label, color }) {
+function Stat({ n, label, color, tint }) {
   return (
-    <View style={styles.stat}>
+    <View style={[styles.stat, { backgroundColor: tint }]}>
       <Text style={[styles.statN, { color }]}>{n}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -373,99 +487,206 @@ function Stat({ n, label, color }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  muted: { color: C.subText, fontSize: 13, marginTop: 10 },
-  errorText: { color: C.text, fontSize: 14, textAlign: "center", marginTop: 12 },
-  retryBtn: { marginTop: 16, backgroundColor: C.indigo600, paddingHorizontal: 22, paddingVertical: 10, borderRadius: 10 },
-  retryTxt: { color: "#fff", fontWeight: "700" },
+  muted: { fontFamily: DISPLAY, color: C.subText, fontSize: 13 },
+  errorText: { fontFamily: DISPLAY, color: C.text, fontSize: 14, textAlign: "center", marginTop: 12 },
+  retryBtn: { marginTop: 16, backgroundColor: C.indigo600, paddingHorizontal: 22, paddingVertical: 10, borderRadius: 12 },
+  retryTxt: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold" },
 
-  hero: { paddingBottom: 18, borderBottomLeftRadius: 22, borderBottomRightRadius: 22 },
+  // ---- hero (compact) ----
+  hero: {
+    paddingBottom: 20,
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    overflow: "hidden",
+    position: "relative",
+  },
   heroFlat: { paddingBottom: 6 },
+  orbA: {
+    position: "absolute", top: -40, right: -26,
+    width: 140, height: 140, borderRadius: 70,
+    backgroundColor: "rgba(201,154,63,0.13)",
+  },
+  orbB: {
+    position: "absolute", bottom: -34, left: -30,
+    width: 120, height: 120, borderRadius: 60,
+    backgroundColor: "rgba(46,158,119,0.16)",
+  },
   headerBar: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 12,
     paddingHorizontal: 12,
-    paddingTop: Platform.OS === "android" ? 8 : 4,
-    height: 52,
+    paddingTop: Platform.OS === "android" ? 6 : 2,
+    height: 46,
   },
-  iconBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
-  headerTitle: { color: "#fff", fontSize: 16, fontWeight: "700", flex: 1, textAlign: "center" },
-  heroBody: { alignItems: "center", paddingHorizontal: 16, paddingTop: 4 },
+  backBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.14)",
+  },
+  headerTitle: { fontFamily: DISPLAY, color: "#fff", fontSize: 15, fontWeight: "bold", letterSpacing: 0.3 },
+
+  heroBody: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingTop: 6 },
+  heroIcon: {
+    width: 46, height: 46, borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    alignItems: "center", justifyContent: "center",
+  },
+  heroNumber: { fontFamily: DISPLAY, color: "#fff", fontSize: 19, fontWeight: "bold", letterSpacing: 0.2 },
   modePill: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-start",
     gap: 5,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 999,
+    marginTop: 6,
   },
-  modePillTxt: { color: "#fff", fontSize: 11, fontWeight: "700", letterSpacing: 0.3 },
-  heroNumber: { color: "#fff", fontSize: 20, fontWeight: "800", marginTop: 10 },
+  modePillTxt: { fontFamily: DISPLAY, color: "rgba(255,255,255,0.95)", fontSize: 10.5, fontWeight: "bold", letterSpacing: 0.3 },
   statusChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    marginTop: 8,
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.18)",
   },
-  statusChipTxt: { color: "#fff", fontSize: 12, fontWeight: "700" },
-  heroAmount: { color: "#fff", fontSize: 26, fontWeight: "800", marginTop: 14 },
-  heroAmountLabel: { color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 2 },
+  statusChipTxt: { fontFamily: DISPLAY, color: "#fff", fontSize: 11, fontWeight: "bold" },
 
-  card: {
+  // ---- floating amount card ----
+  amountCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     backgroundColor: C.card,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    marginTop: 16,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: C.shadow,
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
-  cardTitle: { fontSize: 13, fontWeight: "800", color: C.ink, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.4 },
-  bigName: { fontSize: 17, fontWeight: "700", color: C.ink, marginBottom: 6 },
-  inlineRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 3 },
-  inlineTxt: { color: C.text, fontSize: 13.5, flex: 1 },
-  contactRow: { flexDirection: "row", gap: 8, marginTop: 14 },
-  contactBtn: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
-  contactTxt: { fontSize: 13, fontWeight: "700" },
+  amountLabel: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold", color: C.subText, letterSpacing: 0.8 },
+  amountValue: { fontFamily: DISPLAY, fontSize: 27, fontWeight: "bold", color: C.ink, marginTop: 3 },
+  amountChip: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    backgroundColor: C.bg,
+    paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999,
+    borderWidth: 1, borderColor: C.border,
+  },
+  amountChipTxt: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold" },
 
+  // ---- cards ----
+  card: {
+    backgroundColor: C.card,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: C.border,
+    shadowColor: C.shadow,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 },
+  sectionTitleIcon: {
+    width: 26, height: 26, borderRadius: 8,
+    backgroundColor: C.indigo50,
+    alignItems: "center", justifyContent: "center",
+  },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", color: C.ink, textTransform: "uppercase", letterSpacing: 0.5 },
+
+  // customer
+  custHead: { flexDirection: "row", alignItems: "center", gap: 12 },
+  avatar: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: C.indigo50,
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: C.border,
+  },
+  avatarTxt: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.indigo600 },
+  bigName: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink },
+  inlineRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 },
+  custSub: { fontFamily: DISPLAY, color: C.subText, fontSize: 13, flex: 1 },
+  contactRow: { flexDirection: "row", gap: 8, marginTop: 14 },
+  contactBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingHorizontal: 4, paddingVertical: 10, borderRadius: 12 },
+  contactTxt: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold", flexShrink: 1 },
+  custContactList: { marginTop: 12, gap: 7 },
+  miniRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  miniTxt: { fontFamily: DISPLAY, color: C.text, fontSize: 13, flex: 1 },
+
+  // info items (trip details)
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  infoIcon: {
+    width: 30, height: 30, borderRadius: 9,
+    backgroundColor: C.bg,
+    alignItems: "center", justifyContent: "center",
+  },
+  infoLabel: { fontFamily: DISPLAY, color: C.subText, fontSize: 13 },
+  infoValue: { fontFamily: DISPLAY, color: C.ink, fontSize: 13.5, fontWeight: "600", flex: 1, textAlign: "right" },
+
+  // pricing rows
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingVertical: 6, gap: 16 },
-  rowLabel: { color: C.subText, fontSize: 13 },
-  rowValue: { color: C.ink, fontSize: 13.5, fontWeight: "600", flex: 1, textAlign: "right" },
+  rowLabel: { fontFamily: DISPLAY, color: C.subText, fontSize: 13 },
+  rowValue: { fontFamily: DISPLAY, color: C.ink, fontSize: 13.5, fontWeight: "600", flex: 1, textAlign: "right" },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 10,
-    paddingTop: 10,
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: C.border,
   },
-  totalLabel: { fontSize: 14, fontWeight: "800", color: C.ink },
-  totalValue: { fontSize: 18, fontWeight: "800", color: C.indigo700 },
+  totalLabel: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.ink },
+  totalValue: { fontFamily: DISPLAY, fontSize: 19, fontWeight: "bold", color: C.indigo600 },
 
-  statsRow: { flexDirection: "row", justifyContent: "space-around" },
-  stat: { alignItems: "center" },
-  statN: { fontSize: 22, fontWeight: "800" },
-  statLabel: { fontSize: 11.5, color: C.subText, marginTop: 2 },
+  // quote stats
+  statsRow: { flexDirection: "row", gap: 10 },
+  stat: { flex: 1, alignItems: "center", paddingVertical: 14, borderRadius: 14 },
+  statN: { fontFamily: DISPLAY, fontSize: 23, fontWeight: "bold" },
+  statLabel: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, marginTop: 3, fontWeight: "600" },
 
-  tripRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: C.border },
-  tripDot: { width: 10, height: 10, borderRadius: 5 },
-  tripVendor: { fontSize: 14, fontWeight: "600", color: C.ink },
-  tripStatus: { fontSize: 12, color: C.subText, marginTop: 1 },
+  // trips
+  tripRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: C.border },
+  tripDotRing: {
+    width: 22, height: 22, borderRadius: 11,
+    borderWidth: 2, alignItems: "center", justifyContent: "center",
+  },
+  tripDot: { width: 9, height: 9, borderRadius: 5 },
+  tripVendor: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.ink },
+  tripStatus: { fontFamily: DISPLAY, fontSize: 12, marginTop: 2, fontWeight: "600" },
 
+  // hint
   hintCard: {
     flexDirection: "row",
-    gap: 10,
+    gap: 11,
     backgroundColor: C.indigo50,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#C7D2FE",
+    borderColor: "#D8CDBB",
   },
-  hintTxt: { flex: 1, color: C.indigo700, fontSize: 12.5, lineHeight: 18 },
+  hintIcon: { paddingTop: 1 },
+  hintTxt: { fontFamily: DISPLAY, flex: 1, color: C.indigo700, fontSize: 12.5, lineHeight: 19 },
 
-  metaTxt: { textAlign: "center", color: C.subText, fontSize: 12, marginTop: 16 },
+  metaTxt: { fontFamily: DISPLAY, textAlign: "center", color: C.subText, fontSize: 12, marginTop: 8 },
 });

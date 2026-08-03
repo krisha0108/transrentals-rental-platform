@@ -1,4 +1,16 @@
 // screens/travel-agent/support/TASupportScreen.js
+//
+// REDESIGNED (v2) — "Elevate" visual language (ivory ground, forest→emerald
+// gradient hero with floating orbs, serif DISPLAY type, glass cards), matching
+// TravelAgentDashboardScreen / DocumentsScreen / GetStartedScreen.
+//
+// ⚠️ UI ONLY — no logic changes. Preserved exactly:
+//   • tab state (faq / ticket / mytickets) + the FAQ accordion
+//   • the contact-settings fetch and its hardcoded fallbacks
+//   • loadMyTickets + the tab-driven effect
+//   • handleSubmitTicket — same validations, same order, same Alert copy,
+//     same 6s `submitted` banner timeout, same submitSupportTicket payload
+//   • FAQS / TICKET_CATEGORIES data and all three Linking targets
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
@@ -6,51 +18,47 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import LinearGradient from "react-native-linear-gradient";
 import { submitSupportTicket, getMySupportTickets } from "../../api/travelAgentClient";
+import { DISPLAY } from "../_shared/typography";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import { C, G, TONES, rs, rf, GUT, alpha, cardShadow, rowShadow } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50:  "#ECFDF5",
-  ink:        "#0F172A",
-  text:       "#334155",
-  subText:    "#64748B",
-  bg:         "#F6F8FB",
-  card:       "#FFFFFF",
-  border:     "#E6EDF5",
-  blue:       "#3B82F6",
-  blueLight:  "#EFF6FF",
-  red:        "#EF4444",
-  redLight:   "#FEE2E2",
-  purple:     "#8B5CF6",
-  purpleLight:"#EDE9FE",
-  green:      "#22C55E",
-  greenLight: "#DCFCE7",
-};
+// Hero ↔ contact-card spacing. Visible gap = HERO_TAIL + hero paddingBottom(8)
+// − CARDS_OVERLAP. Both live inside the same scroll content, so the negative
+// margin is NOT clipped (it was, back when the hero sat outside the ScrollView).
+const HERO_TAIL = rs(26);
+const CARDS_OVERLAP = rs(22);
 
+// `icon` / `tone` are presentational only — the q/a copy is unchanged.
 const FAQS = [
   {
+    icon: "shield-checkmark", tone: "emerald",
     q: "How do I get my account approved?",
     a: "Upload your GST Certificate, PAN Card, and Address Proof in the Documents section. Your application is reviewed within 1-2 business days and you'll be notified once approved.",
   },
   {
+    icon: "map", tone: "ocean",
     q: "How do I add tours to my portfolio?",
     a: "Go to Tours from the menu, then tap 'Add Tour'. Fill in the tour details, pricing, and photos. Your tour goes live immediately after submission.",
   },
   {
+    icon: "people", tone: "plum",
     q: "How do I manage my leads?",
     a: "All incoming leads appear in Lead Management. Add notes, set follow-up reminders, and move leads through your pipeline with the kanban view.",
   },
   {
+    icon: "wallet", tone: "amber",
     q: "When will I receive my earnings?",
     a: "Payouts are processed every Monday. Make sure your bank details are correctly added and a cancelled cheque is uploaded. Minimum payout is ₹500.",
   },
   {
+    icon: "megaphone", tone: "rose",
     q: "How do SOS posts work?",
     a: "SOS posts appear as urgent story bubbles for 24 hours. Use them for genuine urgent requests — like needing a bus or vehicle immediately — so the community can respond quickly.",
   },
   {
+    icon: "document-text", tone: "emerald",
     q: "What documents do I need to upload?",
     a: "Required: GST Certificate, PAN Card, Address Proof. Recommended: Business Registration, Cancelled Cheque (for payouts). All documents must be clear and valid.",
   },
@@ -67,12 +75,36 @@ const TICKET_CATEGORIES = [
   { value: "other",     label: "Other" },
 ];
 
+// Neutral tone for CLOSED — TONES has no grey entry, so `toneFor` falls back
+// to this for any key it doesn't know.
+const NEUTRAL_TONE = { grad: [C.muted, C.sub], tint: C.tintSand, ink: C.sub };
+const toneFor = (key) => TONES[key] || NEUTRAL_TONE;
+
+// All FIVE helpdesk statuses. PENDING was previously missing from this map, so
+// a pending ticket fell through to the OPEN styling and was mislabelled "Open"
+// (prisma enum: OPEN | PENDING | IN_PROGRESS | RESOLVED | CLOSED).
 const STATUS_STYLE = {
-  OPEN:        { label: "Open",        bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE" },
-  IN_PROGRESS: { label: "In Progress", bg: "#FFFBEB", text: "#B45309", border: "#FDE68A" },
-  RESOLVED:    { label: "Resolved",    bg: "#F0FDF4", text: "#166534", border: "#BBF7D0" },
-  CLOSED:      { label: "Closed",      bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" },
+  OPEN:        { label: "Open",        tone: "ocean",   icon: "mail-open" },
+  PENDING:     { label: "Pending",     tone: "amber",   icon: "hourglass" },
+  IN_PROGRESS: { label: "In Progress", tone: "plum",    icon: "sync" },
+  RESOLVED:    { label: "Resolved",    tone: "emerald", icon: "checkmark-done" },
+  CLOSED:      { label: "Closed",      tone: "neutral", icon: "lock-closed" },
 };
+
+// `priority` is a free-text column (default "NORMAL"). Only non-default values
+// get a chip — a "NORMAL" badge on every ticket would just be noise.
+const PRIORITY_STYLE = {
+  URGENT: { label: "Urgent", tone: "rose",  icon: "flame" },
+  HIGH:   { label: "High",   tone: "amber", icon: "arrow-up-circle" },
+  LOW:    { label: "Low",    tone: "ocean", icon: "arrow-down-circle" },
+};
+
+const TABS = [
+  { key: "faq",       label: "FAQs",         icon: "help-circle-outline" },
+  { key: "ticket",    label: "Raise Ticket", icon: "create-outline" },
+  { key: "mytickets", label: "My Tickets",   icon: "ticket-outline" },
+];
+
 function fmtDate(iso) {
   const d = new Date(iso);
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -150,168 +182,201 @@ export default function TASupportScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor={C.forestDark} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <SafeAreaView edges={["top"]}>
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="arrow-back" size={22} color="#fff" />
-            </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>Help & Support</Text>
-              <Text style={styles.headerSub}>We're here to help</Text>
-            </View>
-            <View style={styles.headerIcon}>
-              <Ionicons name="help-circle" size={22} color={C.emerald500} />
-            </View>
-          </View>
-        </SafeAreaView>
-      </View>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: rs(40) }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Hero ──
+            Lives INSIDE the scroll content for two reasons: the contact cards'
+            negative margin would otherwise be clipped by the ScrollView's own
+            bounds, and letting the hero scroll away frees the whole screen for
+            the FAQ / form / ticket content. Title sits on the button row to
+            keep the header short. */}
+        <LinearGradient
+          colors={G.hero}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={styles.hero}
+        >
+          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-
-        {/* Contact Cards */}
-        <View style={styles.contactRow}>
-          <TouchableOpacity style={styles.contactCard} onPress={() => Linking.openURL(`tel:${contactPhone.replace(/\s/g, "")}`)}>
-            <View style={[styles.contactIcon, { backgroundColor: C.blueLight }]}>
-              <Ionicons name="call" size={20} color={C.blue} />
-            </View>
-            <Text style={styles.contactLabel}>Call Us</Text>
-            <Text style={styles.contactValue} numberOfLines={1}>{contactPhone}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.contactCard} onPress={() => Linking.openURL("https://wa.me/919737965551")}>
-            <View style={[styles.contactIcon, { backgroundColor: C.greenLight }]}>
-              <Ionicons name="logo-whatsapp" size={20} color={C.green} />
-            </View>
-            <Text style={styles.contactLabel}>WhatsApp</Text>
-            <Text style={[styles.contactValue, { color: C.green }]}>Chat Now</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.contactCard} onPress={() => Linking.openURL(`mailto:${contactEmail}`)}>
-            <View style={[styles.contactIcon, { backgroundColor: C.purpleLight }]}>
-              <Ionicons name="mail" size={20} color={C.purple} />
-            </View>
-            <Text style={styles.contactLabel}>Email</Text>
-            <Text style={[styles.contactValue, { color: C.purple }]} numberOfLines={1}>Email Us</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Tab switcher */}
-        <View style={styles.tabBar}>
-          <TouchableOpacity
-            style={[styles.tabBtn, tab === "faq" && styles.tabBtnActive]}
-            onPress={() => setTab("faq")}
-          >
-            <Ionicons name="help-circle-outline" size={15} color={tab === "faq" ? C.emerald600 : C.subText} />
-            <Text style={[styles.tabBtnText, tab === "faq" && styles.tabBtnTextActive]}>FAQs</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabBtn, tab === "ticket" && styles.tabBtnActive]}
-            onPress={() => setTab("ticket")}
-          >
-            <Ionicons name="create-outline" size={15} color={tab === "ticket" ? C.emerald600 : C.subText} />
-            <Text style={[styles.tabBtnText, tab === "ticket" && styles.tabBtnTextActive]}>Raise Ticket</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabBtn, tab === "mytickets" && styles.tabBtnActive]}
-            onPress={() => setTab("mytickets")}
-          >
-            <Ionicons name="ticket-outline" size={15} color={tab === "mytickets" ? C.emerald600 : C.subText} />
-            <Text style={[styles.tabBtnText, tab === "mytickets" && styles.tabBtnTextActive]}>My Tickets</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* FAQs */}
-        {tab === "faq" && (
-          <View style={{ paddingHorizontal: 14, paddingTop: 6 }}>
-            <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-            {FAQS.map((faq, i) => (
+          <SafeAreaView edges={["top"]} style={{ paddingHorizontal: GUT }}>
+            <View style={styles.heroTop}>
               <TouchableOpacity
-                key={i}
-                style={styles.faqItem}
-                onPress={() => setExpanded(expanded === i ? null : i)}
+                onPress={() => navigation.goBack()}
+                style={styles.circleBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="arrow-back" size={rs(19)} color="#fff" />
+              </TouchableOpacity>
+
+              <View style={{ flex: 1 }} />
+
+              <View style={styles.circleBtn}>
+                <Ionicons name="help-buoy-outline" size={rs(19)} color="#fff" />
+              </View>
+            </View>
+
+            {/* Title on its own line, below the button row — sits in the middle
+                of the hero rather than pinned to the top edge. */}
+            <Text style={styles.heroTitle} numberOfLines={1}>Help &amp; Support</Text>
+            <Text style={styles.heroSub} numberOfLines={1}>
+              We're here — usually within 24 hours
+            </Text>
+
+            <View style={{ height: HERO_TAIL }} />
+          </SafeAreaView>
+        </LinearGradient>
+
+        {/* ── Contact cards, tucked into the hero curve ── */}
+        <View style={styles.contactRow}>
+          <ContactCard
+            tone="ocean"
+            icon="call"
+            label="Call Us"
+            value={contactPhone}
+            onPress={() => Linking.openURL(`tel:${contactPhone.replace(/\s/g, "")}`)}
+          />
+          <ContactCard
+            tone="emerald"
+            icon="logo-whatsapp"
+            label="WhatsApp"
+            value="Chat Now"
+            onPress={() => Linking.openURL("https://wa.me/919737965551")}
+          />
+          <ContactCard
+            tone="plum"
+            icon="mail"
+            label="Email"
+            value="Email Us"
+            onPress={() => Linking.openURL(`mailto:${contactEmail}`)}
+          />
+        </View>
+
+        {/* ── Segmented tabs ── */}
+        <View style={styles.segRow}>
+          {TABS.map((t) => {
+            const on = tab === t.key;
+            return (
+              <TouchableOpacity
+                key={t.key}
+                style={[styles.seg, on && styles.segOn]}
+                onPress={() => setTab(t.key)}
                 activeOpacity={0.8}
               >
-                <View style={styles.faqHeader}>
-                  <Text style={styles.faqQ} numberOfLines={expanded === i ? undefined : 2}>{faq.q}</Text>
-                  <Ionicons
-                    name={expanded === i ? "chevron-up" : "chevron-down"}
-                    size={18}
-                    color={C.subText}
-                    style={{ marginLeft: 8, flexShrink: 0 }}
-                  />
-                </View>
-                {expanded === i && (
-                  <Text style={styles.faqA}>{faq.a}</Text>
-                )}
+                <Ionicons
+                  name={t.icon}
+                  size={rs(14)}
+                  color={on ? "#fff" : C.sub}
+                />
+                <Text style={[styles.segTxt, on && styles.segTxtOn]} numberOfLines={1}>
+                  {t.label}
+                </Text>
               </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* ── FAQs ── */}
+        {tab === "faq" && (
+          <View style={styles.body}>
+            <SectionLabel icon="help-circle" tone="emerald" label="Frequently asked" />
+            {FAQS.map((faq, i) => (
+              <FaqCard
+                key={i}
+                faq={faq}
+                open={expanded === i}
+                onPress={() => setExpanded(expanded === i ? null : i)}
+              />
             ))}
           </View>
         )}
 
-        {/* Raise Ticket */}
+        {/* ── Raise Ticket ── */}
         {tab === "ticket" && (
-          <View style={{ paddingHorizontal: 14, paddingTop: 6 }}>
-            <Text style={styles.sectionTitle}>Submit a Support Ticket</Text>
+          <View style={styles.body}>
+            <SectionLabel icon="create" tone="ocean" label="Submit a ticket" />
 
             {submitted && (
               <View style={styles.successBanner}>
-                <Ionicons name="checkmark-circle" size={18} color={C.green} />
-                <Text style={styles.successText}>Ticket submitted! We'll reply within 24 hours.</Text>
+                <Ionicons name="checkmark-circle" size={rs(18)} color={C.emeraldDeep} />
+                <Text style={styles.successText}>
+                  Ticket submitted! We'll reply within 24 hours.
+                </Text>
               </View>
             )}
 
-            <View style={styles.formCard}>
+            <View style={[styles.formCard, cardShadow]}>
               {/* Category */}
-              <Text style={styles.fieldLabel}>Category <Text style={{ color: C.red }}>*</Text></Text>
+              <Text style={styles.fieldLabel}>
+                Category <Text style={styles.req}>*</Text>
+              </Text>
               <TouchableOpacity
-                style={[styles.pickerBtn, showCatPicker && { borderColor: C.emerald600 }]}
+                style={[styles.pickerBtn, showCatPicker && styles.pickerBtnOpen]}
                 onPress={() => setShowCatPicker(v => !v)}
+                activeOpacity={0.8}
               >
-                <Text style={[styles.pickerBtnText, !selectedCatLabel && { color: C.subText }]}>
-                  {selectedCatLabel || "Select category..."}
+                <Text style={[styles.pickerBtnText, !selectedCatLabel && { color: C.muted }]}>
+                  {selectedCatLabel || "Select category…"}
                 </Text>
-                <Ionicons name={showCatPicker ? "chevron-up" : "chevron-down"} size={16} color={C.subText} />
+                <Ionicons
+                  name={showCatPicker ? "chevron-up" : "chevron-down"}
+                  size={rs(16)}
+                  color={C.muted}
+                />
               </TouchableOpacity>
+
               {showCatPicker && (
                 <View style={styles.catDropdown}>
-                  {TICKET_CATEGORIES.map(c => (
-                    <TouchableOpacity
-                      key={c.value}
-                      style={[styles.catOption, category === c.value && styles.catOptionActive]}
-                      onPress={() => { setCategory(c.value); setShowCatPicker(false); }}
-                    >
-                      <Text style={[styles.catOptionText, category === c.value && { color: C.emerald600, fontWeight: "600" }]}>
-                        {c.label}
-                      </Text>
-                      {category === c.value && <Ionicons name="checkmark" size={16} color={C.emerald600} />}
-                    </TouchableOpacity>
-                  ))}
+                  {TICKET_CATEGORIES.map((c, idx) => {
+                    const on = category === c.value;
+                    return (
+                      <TouchableOpacity
+                        key={c.value}
+                        style={[
+                          styles.catOption,
+                          idx === TICKET_CATEGORIES.length - 1 && { borderBottomWidth: 0 },
+                          on && styles.catOptionActive,
+                        ]}
+                        onPress={() => { setCategory(c.value); setShowCatPicker(false); }}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={[styles.catOptionText, on && styles.catOptionTextActive]}>
+                          {c.label}
+                        </Text>
+                        {on && <Ionicons name="checkmark-circle" size={rs(17)} color={C.emeraldDeep} />}
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               )}
 
               {/* Subject */}
-              <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Subject <Text style={{ color: C.red }}>*</Text></Text>
+              <Text style={[styles.fieldLabel, { marginTop: rs(15) }]}>
+                Subject <Text style={styles.req}>*</Text>
+              </Text>
               <TextInput
                 style={styles.textInput}
                 value={subject}
                 onChangeText={setSubject}
                 placeholder="Brief description of your issue"
-                placeholderTextColor={C.subText}
+                placeholderTextColor={C.muted}
                 maxLength={120}
               />
 
               {/* Message */}
-              <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Message <Text style={{ color: C.red }}>*</Text></Text>
+              <Text style={[styles.fieldLabel, { marginTop: rs(15) }]}>
+                Message <Text style={styles.req}>*</Text>
+              </Text>
               <TextInput
                 style={[styles.textInput, styles.textArea]}
                 value={message}
                 onChangeText={setMessage}
-                placeholder="Describe your issue in detail..."
-                placeholderTextColor={C.subText}
+                placeholder="Describe your issue in detail…"
+                placeholderTextColor={C.muted}
                 multiline
                 numberOfLines={5}
                 textAlignVertical="top"
@@ -324,71 +389,75 @@ export default function TASupportScreen({ navigation }) {
                 style={[styles.submitBtn, submitting && { opacity: 0.7 }]}
                 onPress={handleSubmitTicket}
                 disabled={submitting}
-                activeOpacity={0.85}
+                activeOpacity={0.9}
               >
-                {submitting ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <>
-                    <Ionicons name="send" size={16} color="#fff" />
-                    <Text style={styles.submitBtnText}>Submit Ticket</Text>
-                  </>
-                )}
+                <LinearGradient
+                  colors={G.emerald}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={styles.submitInner}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <>
+                      <Ionicons name="send" size={rs(16)} color="#fff" />
+                      <Text style={styles.submitBtnText}>Submit Ticket</Text>
+                    </>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
 
               <View style={styles.responseNote}>
-                <Ionicons name="time-outline" size={14} color={C.subText} />
-                <Text style={styles.responseNoteText}>Expected response: Within 24 hours</Text>
+                <Ionicons name="time-outline" size={rs(13)} color={C.muted} />
+                <Text style={styles.responseNoteText}>Expected response: within 24 hours</Text>
               </View>
             </View>
           </View>
         )}
 
-        {/* My Tickets */}
+        {/* ── My Tickets ── */}
         {tab === "mytickets" && (
-          <View style={{ paddingHorizontal: 14, paddingTop: 6 }}>
+          <View style={styles.body}>
             <View style={styles.ticketsHeader}>
-              <Text style={styles.sectionTitle}>My Support Tickets</Text>
-              <TouchableOpacity onPress={loadMyTickets} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                <Ionicons name="refresh" size={18} color={C.emerald600} style={loadingTickets ? { opacity: 0.5 } : {}} />
+              <SectionLabel icon="ticket" tone="plum" label="My tickets" flush />
+              <TouchableOpacity
+                onPress={loadMyTickets}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={styles.refreshBtn}
+              >
+                <Ionicons
+                  name="refresh"
+                  size={rs(16)}
+                  color={C.emeraldDeep}
+                  style={loadingTickets ? { opacity: 0.5 } : null}
+                />
               </TouchableOpacity>
             </View>
 
             {loadingTickets ? (
               <View style={styles.ticketsEmpty}>
-                <ActivityIndicator color={C.emerald600} />
+                <ActivityIndicator color={C.emeraldDeep} />
               </View>
             ) : myTickets.length === 0 ? (
-              <View style={styles.ticketsEmpty}>
-                <Ionicons name="ticket-outline" size={36} color={C.border} />
-                <Text style={styles.ticketsEmptyTitle}>No tickets yet</Text>
-                <Text style={styles.ticketsEmptySubt}>Submit a ticket if you need help with anything.</Text>
-                <TouchableOpacity onPress={() => setTab("ticket")} style={styles.raiseBtn}>
+              <View style={[styles.emptyCard, cardShadow]}>
+                <View style={styles.emptyIcon}>
+                  <Ionicons name="ticket-outline" size={rs(28)} color={C.emeraldDeep} />
+                </View>
+                <Text style={styles.emptyTitle}>No tickets yet</Text>
+                <Text style={styles.emptySub}>
+                  Submit a ticket if you need help with anything.
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setTab("ticket")}
+                  style={styles.raiseBtn}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="add-circle-outline" size={rs(14)} color={C.emeraldDeep} />
                   <Text style={styles.raiseBtnText}>Raise a Ticket</Text>
                 </TouchableOpacity>
               </View>
             ) : (
-              myTickets.map((t) => {
-                const st = STATUS_STYLE[t.status] || STATUS_STYLE.OPEN;
-                return (
-                  <View key={t.id} style={styles.ticketCard}>
-                    <View style={styles.ticketRow}>
-                      <Text style={styles.ticketNo}>{t.ticketNo}</Text>
-                      <View style={[styles.statusPill, { backgroundColor: st.bg, borderColor: st.border }]}>
-                        <Text style={[styles.statusPillText, { color: st.text }]}>{st.label}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.ticketHeading} numberOfLines={2}>{t.heading}</Text>
-                    <Text style={styles.ticketDate}>Raised on {fmtDate(t.createdAt)}</Text>
-                    {!!t.resolution && (
-                      <View style={styles.resolutionBox}>
-                        <Text style={styles.resolutionLabel}>Admin Response:</Text>
-                        <Text style={styles.resolutionText}>{t.resolution}</Text>
-                      </View>
-                    )}
-                  </View>
-                );
-              })
+              myTickets.map((t) => <TicketCard key={t.id} t={t} />)
             )}
           </View>
         )}
@@ -397,269 +466,490 @@ export default function TASupportScreen({ navigation }) {
   );
 }
 
+/* ───────── Sub-components ───────── */
+
+function ContactCard({ tone, icon, label, value, onPress }) {
+  const t = TONES[tone] || TONES.emerald;
+  return (
+    <TouchableOpacity
+      style={[styles.contactCard, cardShadow]}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      <LinearGradient
+        colors={t.grad}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.contactIcon}
+      >
+        <Ionicons name={icon} size={rs(18)} color="#fff" />
+      </LinearGradient>
+      <Text style={styles.contactLabel} numberOfLines={1}>{label}</Text>
+      <Text style={[styles.contactValue, { color: t.ink }]} numberOfLines={1}>{value}</Text>
+    </TouchableOpacity>
+  );
+}
+
+// Ticket row. Status drives the left rail, the icon tile (gradient once the
+// ticket is resolved/closed) and the status chip. `priority` and `resolvedAt`
+// come back from the API and were previously never rendered.
+function TicketCard({ t }) {
+  const st = STATUS_STYLE[t.status] || STATUS_STYLE.OPEN;
+  const sTone = toneFor(st.tone);
+  const pr = PRIORITY_STYLE[String(t.priority || "").toUpperCase()];
+  const pTone = pr ? toneFor(pr.tone) : null;
+  const settled = t.status === "RESOLVED" || t.status === "CLOSED";
+
+  return (
+    <View style={[styles.ticketCard, rowShadow]}>
+      <View style={[styles.ticketRail, { backgroundColor: sTone.ink }]} />
+
+      <View style={styles.ticketBody}>
+        <View style={styles.ticketTop}>
+          {settled ? (
+            <LinearGradient
+              colors={sTone.grad}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.ticketIcon}
+            >
+              <Ionicons name={st.icon} size={rs(17)} color="#fff" />
+            </LinearGradient>
+          ) : (
+            <View style={[styles.ticketIcon, { backgroundColor: sTone.tint }]}>
+              <Ionicons name={st.icon} size={rs(17)} color={sTone.ink} />
+            </View>
+          )}
+
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.ticketHeading} numberOfLines={2}>{t.heading}</Text>
+
+            <View style={styles.chipRow}>
+              <View style={[styles.chip, { backgroundColor: sTone.tint }]}>
+                <View style={[styles.statusDot, { backgroundColor: sTone.ink }]} />
+                <Text style={[styles.chipText, { color: sTone.ink }]}>{st.label}</Text>
+              </View>
+
+              {pr && (
+                <View style={[styles.chip, { backgroundColor: pTone.tint }]}>
+                  <Ionicons name={pr.icon} size={rs(10)} color={pTone.ink} />
+                  <Text style={[styles.chipText, { color: pTone.ink }]}>{pr.label}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* Footer meta — ticket number + raised date, split by a hairline */}
+        <View style={styles.ticketFooter}>
+          <View style={styles.metaLine}>
+            <Ionicons name="pricetag-outline" size={rs(11)} color={C.muted} />
+            <Text style={styles.ticketNo} numberOfLines={1}>{t.ticketNo}</Text>
+          </View>
+          <View style={styles.metaLine}>
+            <Ionicons name="calendar-outline" size={rs(11)} color={C.muted} />
+            <Text style={styles.ticketDate}>Raised {fmtDate(t.createdAt)}</Text>
+          </View>
+        </View>
+
+        {!!t.resolution && (
+          <View style={styles.resolutionBox}>
+            <View style={styles.resolutionHead}>
+              <Ionicons name="chatbubble-ellipses" size={rs(12)} color={C.emeraldDeep} />
+              <Text style={styles.resolutionLabel}>Admin response</Text>
+              {!!t.resolvedAt && (
+                <Text style={styles.resolutionDate}>{fmtDate(t.resolvedAt)}</Text>
+              )}
+            </View>
+            <Text style={styles.resolutionText}>{t.resolution}</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+// Accordion row. Collapsed: tinted topic icon + question + chevron chip.
+// Open: icon tile fills with its gradient, the question takes the tone colour,
+// and the answer drops into a tinted panel with a matching left rail.
+function FaqCard({ faq, open, onPress }) {
+  const t = TONES[faq.tone] || TONES.emerald;
+  return (
+    <TouchableOpacity
+      style={[styles.faqItem, rowShadow, open && { borderColor: alpha(t.ink, 0.25) }]}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      <View style={styles.faqHeader}>
+        {open ? (
+          <LinearGradient
+            colors={t.grad}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.faqIcon}
+          >
+            <Ionicons name={faq.icon} size={rs(17)} color="#fff" />
+          </LinearGradient>
+        ) : (
+          <View style={[styles.faqIcon, { backgroundColor: t.tint }]}>
+            <Ionicons name={faq.icon} size={rs(17)} color={t.ink} />
+          </View>
+        )}
+
+        <Text
+          style={[styles.faqQ, open && { color: t.ink }]}
+          numberOfLines={open ? undefined : 2}
+        >
+          {faq.q}
+        </Text>
+
+        <View style={[styles.faqChev, open && { backgroundColor: t.tint }]}>
+          <Ionicons
+            name={open ? "chevron-up" : "chevron-down"}
+            size={rs(14)}
+            color={open ? t.ink : C.muted}
+          />
+        </View>
+      </View>
+
+      {open && (
+        <View
+          style={[
+            styles.faqAnswerWrap,
+            { backgroundColor: alpha(t.ink, 0.045), borderLeftColor: t.ink },
+          ]}
+        >
+          <Text style={styles.faqA}>{faq.a}</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+function SectionLabel({ icon, tone, label, flush }) {
+  const t = TONES[tone] || TONES.emerald;
+  return (
+    <View style={[styles.sectionLabelRow, flush && { marginBottom: 0 }]}>
+      <View style={[styles.sectionLabelIcon, { backgroundColor: t.tint }]}>
+        <Ionicons name={icon} size={rs(13)} color={t.ink} />
+      </View>
+      <Text style={[styles.sectionLabelText, { color: t.ink }]}>{label}</Text>
+    </View>
+  );
+}
+
+/* ───────── Styles ───────── */
 const styles = StyleSheet.create({
-  header: {
-    backgroundColor: C.emerald700,
-    paddingHorizontal: 14,
-    paddingBottom: 14,
+  // ── Hero ──
+  hero: {
+    paddingBottom: rs(8),
+    borderBottomLeftRadius: rs(28),
+    borderBottomRightRadius: rs(28),
+    overflow: "hidden",
   },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingTop: 6,
+  orbA: {
+    position: "absolute", top: -rs(60), right: -rs(40),
+    width: rs(190), height: rs(190), borderRadius: rs(95),
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
+  orbB: {
+    position: "absolute", bottom: -rs(70), left: -rs(50),
+    width: rs(170), height: rs(170), borderRadius: rs(85),
+    backgroundColor: "rgba(46,158,120,0.16)",
   },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: "#fff" },
-  headerSub:   { fontSize: 12, color: "rgba(255,255,255,0.7)", marginTop: 1 },
-  headerIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
+  heroTop: {
+    flexDirection: "row", alignItems: "center",
+    gap: rs(11), paddingTop: rs(10),
+  },
+  circleBtn: {
+    width: rs(38), height: rs(38), borderRadius: rs(19),
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.16)",
+    alignItems: "center", justifyContent: "center",
+  },
+  heroTitle: {
+    fontFamily: DISPLAY, fontSize: rf(21), lineHeight: rf(27),
+    color: "#fff", letterSpacing: 0.2, marginTop: rs(14),
+  },
+  heroSub: {
+    fontFamily: DISPLAY, fontSize: rf(11.5), lineHeight: rf(15),
+    color: "rgba(255,255,255,0.65)", fontWeight: "bold", marginTop: rs(2),
   },
 
+  // ── Contact cards ──
+  // Slightly inset from the content gutter and with a wider inter-card gap,
+  // so the three cards read as compact chips rather than full-width blocks.
   contactRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginHorizontal: 14,
-    marginTop: 16,
-    marginBottom: 4,
+    flexDirection: "row", gap: rs(12),
+    marginHorizontal: GUT + rs(6), marginTop: -CARDS_OVERLAP,
   },
   contactCard: {
-    flex: 1,
-    backgroundColor: C.card,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: C.border,
-    padding: 12,
+    flex: 1, minWidth: 0,
+    backgroundColor: C.card, borderRadius: rs(14),
+    borderWidth: 1, borderColor: C.glassBorder,
+    paddingVertical: rs(10), paddingHorizontal: rs(6),
     alignItems: "center",
   },
   contactIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
+    width: rs(32), height: rs(32), borderRadius: rs(11),
+    alignItems: "center", justifyContent: "center", marginBottom: rs(6),
   },
-  contactLabel: { fontSize: 11, color: C.subText, fontWeight: "500", marginBottom: 3 },
-  contactValue: { fontSize: 11, color: C.blue, fontWeight: "600", textAlign: "center" },
-
-  tabBar: {
-    flexDirection: "row",
-    marginHorizontal: 14,
-    marginTop: 14,
-    marginBottom: 6,
-    backgroundColor: C.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.border,
-    overflow: "hidden",
+  contactLabel: {
+    fontFamily: DISPLAY, fontSize: rf(9.5), lineHeight: rf(12), color: C.muted,
+    fontWeight: "bold", letterSpacing: 0.4, textTransform: "uppercase",
   },
-  tabBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 11,
-  },
-  tabBtnActive: {
-    backgroundColor: C.emerald50,
-    borderBottomWidth: 2,
-    borderBottomColor: C.emerald600,
-  },
-  tabBtnText: { fontSize: 13, fontWeight: "600", color: C.subText },
-  tabBtnTextActive: { color: C.emerald600 },
-
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: C.ink,
-    marginBottom: 12,
+  contactValue: {
+    fontFamily: DISPLAY, fontSize: rf(10), lineHeight: rf(13),
+    fontWeight: "bold", textAlign: "center", marginTop: rs(1),
   },
 
+  // ── Segmented tabs ──
+  segRow: {
+    flexDirection: "row", gap: rs(7),
+    marginHorizontal: GUT, marginTop: rs(18),
+  },
+  seg: {
+    flex: 1, minWidth: 0,
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: rs(5), height: rs(38), paddingHorizontal: rs(6), borderRadius: 999,
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
+  },
+  segOn: { backgroundColor: C.emeraldDeep, borderColor: C.emeraldDeep },
+  segTxt: {
+    fontFamily: DISPLAY, fontSize: rf(11.5), lineHeight: rf(15),
+    fontWeight: "bold", color: C.sub, flexShrink: 1,
+  },
+  segTxtOn: { color: "#fff" },
+
+  body: { paddingHorizontal: GUT, paddingTop: rs(18) },
+
+  // ── Section label ──
+  sectionLabelRow: {
+    flexDirection: "row", alignItems: "center",
+    gap: rs(7), marginBottom: rs(12),
+  },
+  sectionLabelIcon: {
+    width: rs(26), height: rs(26), borderRadius: rs(9),
+    alignItems: "center", justifyContent: "center",
+  },
+  sectionLabelText: {
+    fontFamily: DISPLAY, fontSize: rf(11.5), lineHeight: rf(15),
+    fontWeight: "bold", letterSpacing: 0.6, textTransform: "uppercase",
+  },
+
+  // ── FAQ ──
   faqItem: {
-    backgroundColor: C.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.border,
-    marginBottom: 8,
-    overflow: "hidden",
+    backgroundColor: C.card, borderRadius: rs(16),
+    borderWidth: 1, borderColor: C.border,
+    marginBottom: rs(9), overflow: "hidden",
   },
   faqHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 14,
+    flexDirection: "row", alignItems: "center",
+    paddingVertical: rs(12), paddingHorizontal: rs(12), gap: rs(11),
   },
-  faqQ: { flex: 1, fontSize: 13, fontWeight: "600", color: C.ink, lineHeight: 18 },
+  faqIcon: {
+    width: rs(36), height: rs(36), borderRadius: rs(12),
+    alignItems: "center", justifyContent: "center",
+  },
+  faqQ: {
+    fontFamily: DISPLAY, flex: 1, fontSize: rf(13), lineHeight: rf(18),
+    fontWeight: "bold", color: C.ink,
+  },
+  faqChev: {
+    width: rs(26), height: rs(26), borderRadius: rs(13),
+    backgroundColor: C.ivory,
+    alignItems: "center", justifyContent: "center", flexShrink: 0,
+  },
+  faqAnswerWrap: {
+    marginHorizontal: rs(12), marginBottom: rs(12),
+    marginLeft: rs(59),
+    borderRadius: rs(12), borderLeftWidth: rs(3),
+    paddingHorizontal: rs(12), paddingVertical: rs(11),
+  },
   faqA: {
-    fontSize: 13,
-    color: C.text,
-    lineHeight: 20,
-    paddingHorizontal: 14,
-    paddingBottom: 14,
+    fontFamily: DISPLAY, fontSize: rf(12.5), lineHeight: rf(19),
+    color: C.sub, fontWeight: "600",
   },
 
+  // ── Ticket form ──
   formCard: {
-    backgroundColor: C.card,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: C.border,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: C.card, borderRadius: rs(18),
+    borderWidth: 1, borderColor: C.glassBorder,
+    padding: rs(16), marginBottom: rs(16),
   },
-  fieldLabel: { fontSize: 13, fontWeight: "600", color: C.text, marginBottom: 6 },
+  fieldLabel: {
+    fontFamily: DISPLAY, fontSize: rf(11.5), lineHeight: rf(15),
+    fontWeight: "bold", color: C.sub,
+    marginBottom: rs(7), letterSpacing: 0.3, textTransform: "uppercase",
+  },
+  req: { color: C.gold, fontWeight: "bold" },
   pickerBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 1.5,
-    borderColor: C.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    backgroundColor: "#FAFBFC",
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    borderWidth: 1, borderColor: C.border, borderRadius: rs(12),
+    paddingHorizontal: rs(13), height: rs(48),
+    backgroundColor: C.ivory,
   },
-  pickerBtnText: { fontSize: 13, color: C.ink, fontWeight: "500" },
+  pickerBtnOpen: { borderColor: C.emerald, backgroundColor: C.card },
+  pickerBtnText: {
+    fontFamily: DISPLAY, fontSize: rf(13.5), color: C.ink, fontWeight: "600",
+  },
   catDropdown: {
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 10,
-    marginTop: 4,
-    backgroundColor: C.card,
-    overflow: "hidden",
+    borderWidth: 1, borderColor: C.border, borderRadius: rs(12),
+    marginTop: rs(6), backgroundColor: C.card, overflow: "hidden",
   },
   catOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: rs(13), paddingVertical: rs(12),
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  catOptionActive: { backgroundColor: C.emerald50 },
-  catOptionText: { fontSize: 13, color: C.text },
+  catOptionActive: { backgroundColor: C.tintEmerald },
+  catOptionText: {
+    fontFamily: DISPLAY, fontSize: rf(13), lineHeight: rf(17),
+    color: C.sub, fontWeight: "600",
+  },
+  catOptionTextActive: { color: C.emeraldDeep, fontWeight: "bold" },
   textInput: {
-    borderWidth: 1.5,
-    borderColor: C.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 13,
-    color: C.ink,
-    backgroundColor: "#FAFBFC",
+    fontFamily: DISPLAY,
+    borderWidth: 1, borderColor: C.border, borderRadius: rs(12),
+    paddingHorizontal: rs(13), paddingVertical: rs(11),
+    fontSize: rf(13.5), color: C.ink, backgroundColor: C.ivory,
+    minHeight: rs(48),
   },
-  textArea: {
-    height: 110,
-    paddingTop: 10,
-  },
+  textArea: { height: rs(112), paddingTop: rs(11) },
   charCount: {
-    fontSize: 11,
-    color: C.subText,
-    textAlign: "right",
-    marginTop: 4,
-    marginBottom: 2,
+    fontFamily: DISPLAY, fontSize: rf(10.5), color: C.muted,
+    textAlign: "right", marginTop: rs(5), fontWeight: "600",
   },
   submitBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: C.emerald600,
-    borderRadius: 12,
-    paddingVertical: 13,
-    marginTop: 14,
+    height: rs(50), borderRadius: rs(14),
+    overflow: "hidden", marginTop: rs(14),
   },
-  submitBtnText: { fontSize: 14, fontWeight: "700", color: "#fff" },
+  submitInner: {
+    flex: 1, flexDirection: "row",
+    alignItems: "center", justifyContent: "center", gap: rs(8),
+  },
+  submitBtnText: {
+    fontFamily: DISPLAY, fontSize: rf(14), fontWeight: "bold", color: "#fff",
+  },
   responseNote: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginTop: 10,
-    justifyContent: "center",
+    flexDirection: "row", alignItems: "center",
+    gap: rs(5), marginTop: rs(11), justifyContent: "center",
   },
-  responseNoteText: { fontSize: 12, color: C.subText },
+  responseNoteText: {
+    fontFamily: DISPLAY, fontSize: rf(11), color: C.muted, fontWeight: "600",
+  },
   successBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: C.greenLight,
-    borderWidth: 1,
-    borderColor: "#BBF7D0",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 14,
+    flexDirection: "row", alignItems: "center", gap: rs(9),
+    backgroundColor: C.tintEmerald,
+    borderWidth: 1, borderColor: "rgba(28,107,82,0.2)",
+    borderRadius: rs(14), padding: rs(13), marginBottom: rs(14),
   },
-  successText: { fontSize: 13, color: "#166534", fontWeight: "500", flex: 1 },
+  successText: {
+    fontFamily: DISPLAY, fontSize: rf(12.5), lineHeight: rf(17),
+    color: C.emeraldDeep, fontWeight: "600", flex: 1,
+  },
 
+  // ── My tickets ──
   ticketsHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
+    flexDirection: "row", alignItems: "center",
+    justifyContent: "space-between", marginBottom: rs(13),
   },
-  ticketsEmpty: {
-    alignItems: "center",
-    paddingVertical: 40,
-    gap: 8,
+  refreshBtn: {
+    width: rs(34), height: rs(34), borderRadius: rs(12),
+    backgroundColor: C.tintEmerald,
+    alignItems: "center", justifyContent: "center",
   },
-  ticketsEmptyTitle:  { fontSize: 15, fontWeight: "700", color: C.ink, marginTop: 4 },
-  ticketsEmptySubt:   { fontSize: 13, color: C.subText, textAlign: "center" },
+  ticketsEmpty: { alignItems: "center", paddingVertical: rs(40) },
+
+  emptyCard: {
+    alignItems: "center", paddingVertical: rs(30), paddingHorizontal: rs(20),
+    backgroundColor: C.card, borderRadius: rs(18),
+    borderWidth: 1, borderColor: C.glassBorder,
+  },
+  emptyIcon: {
+    width: rs(56), height: rs(56), borderRadius: rs(18),
+    backgroundColor: C.tintEmerald,
+    alignItems: "center", justifyContent: "center", marginBottom: rs(12),
+  },
+  emptyTitle: {
+    fontFamily: DISPLAY, fontSize: rf(15), lineHeight: rf(20),
+    fontWeight: "bold", color: C.ink,
+  },
+  emptySub: {
+    fontFamily: DISPLAY, fontSize: rf(12.5), lineHeight: rf(18),
+    color: C.sub, textAlign: "center", fontWeight: "600", marginTop: rs(4),
+  },
   raiseBtn: {
-    marginTop: 6,
-    backgroundColor: C.emerald50,
-    borderWidth: 1,
-    borderColor: C.emerald500,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    flexDirection: "row", alignItems: "center", gap: rs(6),
+    marginTop: rs(14),
+    backgroundColor: C.tintEmerald,
+    borderWidth: 1, borderColor: "rgba(28,107,82,0.2)",
+    borderRadius: rs(12), paddingHorizontal: rs(15), paddingVertical: rs(10),
   },
-  raiseBtnText: { fontSize: 13, fontWeight: "600", color: C.emerald600 },
+  raiseBtnText: {
+    fontFamily: DISPLAY, fontSize: rf(12.5), fontWeight: "bold", color: C.emeraldDeep,
+  },
+
   ticketCard: {
-    backgroundColor: C.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.border,
-    padding: 14,
-    marginBottom: 10,
-  },
-  ticketRow: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 6,
+    backgroundColor: C.card, borderRadius: rs(16),
+    borderWidth: 1, borderColor: C.border,
+    marginBottom: rs(10), overflow: "hidden",
   },
-  ticketNo: { fontSize: 11, fontFamily: "monospace", color: C.subText },
-  statusPill: {
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+  ticketRail: { width: rs(4) },
+  ticketBody: { flex: 1, padding: rs(13) },
+
+  ticketTop: { flexDirection: "row", alignItems: "flex-start", gap: rs(11) },
+  ticketIcon: {
+    width: rs(36), height: rs(36), borderRadius: rs(12),
+    alignItems: "center", justifyContent: "center",
   },
-  statusPillText: { fontSize: 10, fontWeight: "700" },
-  ticketHeading: { fontSize: 13, fontWeight: "600", color: C.ink, lineHeight: 18 },
-  ticketDate: { fontSize: 11, color: C.subText, marginTop: 3 },
+  ticketHeading: {
+    fontFamily: DISPLAY, fontSize: rf(13.5), lineHeight: rf(18),
+    fontWeight: "bold", color: C.ink,
+  },
+
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: rs(6), marginTop: rs(7) },
+  chip: {
+    flexDirection: "row", alignItems: "center", gap: rs(5),
+    borderRadius: 999, paddingHorizontal: rs(9), paddingVertical: rs(4),
+  },
+  statusDot: { width: rs(5), height: rs(5), borderRadius: rs(3) },
+  chipText: {
+    fontFamily: DISPLAY, fontSize: rf(9.5), lineHeight: rf(13),
+    fontWeight: "bold", letterSpacing: 0.4,
+  },
+
+  // Footer meta sits below a hairline so the card has a clear head/foot split.
+  ticketFooter: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    gap: rs(10), marginTop: rs(12), paddingTop: rs(10),
+    borderTopWidth: 1, borderTopColor: C.border,
+  },
+  metaLine: { flexDirection: "row", alignItems: "center", gap: rs(5), minWidth: 0 },
+  ticketNo: {
+    fontFamily: "monospace", fontSize: rf(10.5),
+    color: C.muted, letterSpacing: 0.3, flexShrink: 1,
+  },
+  ticketDate: {
+    fontFamily: DISPLAY, fontSize: rf(11), lineHeight: rf(15),
+    color: C.muted, fontWeight: "600",
+  },
+
   resolutionBox: {
-    marginTop: 10,
-    backgroundColor: "#F0FDF4",
-    borderWidth: 1,
-    borderColor: "#BBF7D0",
-    borderRadius: 8,
-    padding: 10,
+    marginTop: rs(11), backgroundColor: C.tintEmerald,
+    borderWidth: 1, borderColor: "rgba(28,107,82,0.18)",
+    borderRadius: rs(12), padding: rs(11),
   },
-  resolutionLabel: { fontSize: 11, fontWeight: "700", color: "#166534", marginBottom: 3 },
-  resolutionText:  { fontSize: 12, color: "#166534", lineHeight: 17 },
+  resolutionHead: { flexDirection: "row", alignItems: "center", gap: rs(5), marginBottom: rs(6) },
+  resolutionLabel: {
+    fontFamily: DISPLAY, flex: 1, fontSize: rf(10.5), lineHeight: rf(14),
+    fontWeight: "bold", color: C.emeraldDeep,
+    letterSpacing: 0.5, textTransform: "uppercase",
+  },
+  resolutionDate: {
+    fontFamily: DISPLAY, fontSize: rf(10), lineHeight: rf(13),
+    color: C.emeraldDeep, fontWeight: "bold", opacity: 0.7,
+  },
+  resolutionText: {
+    fontFamily: DISPLAY, fontSize: rf(12), lineHeight: rf(17),
+    color: C.sub, fontWeight: "600",
+  },
 });

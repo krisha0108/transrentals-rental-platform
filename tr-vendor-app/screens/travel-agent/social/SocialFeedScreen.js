@@ -12,6 +12,7 @@ import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   RefreshControl, ActivityIndicator, ScrollView, Modal, Alert,
   StatusBar, Platform, TextInput, KeyboardAvoidingView, Linking,
+  Animated, Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -33,28 +34,17 @@ import {
   deleteSocialPostComment,
 } from "../../api/travelAgentClient";
 import RemoteImage from "../_shared/RemoteImage";
+import { DISPLAY } from "../_shared/typography";
+import { SC as C, C as T, G, TONES } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-  purpleLight: "#EDE9FE",
-  pink: "#EC4899",
-};
+// Warm "Elevate" palette — same keys as before, repainted to match the rest of
+// the Travel Agent module (dashboard / fleet / tours). The old set was cool
+// slate (#F6F8FB ground, #64748B greys), which is what made this screen read as
+// a different, older product.
+// Local key names are kept so no JSX changes are needed — only the VALUES now
+const GOLD = "#E4C066";
+const FILL = "#FBF8F1";
+const HEADER_GRAD = G.hero;
 
 const TYPE_META = {
   vendor: { icon: "storefront", color: C.purple, label: "Vendor" },
@@ -347,40 +337,77 @@ export default function SocialFeedScreen({ navigation, route }) {
 
       {/* ===== Gradient header ===== */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={HEADER_GRAD}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 14 }}>
+        <View pointerEvents="none" style={styles.orbA} />
+        <View pointerEvents="none" style={styles.orbB} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
           <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-              <Ionicons name="arrow-back" size={22} color="#fff" />
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn} activeOpacity={0.8}>
+              <Ionicons name="arrow-back" size={21} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>Social</Text>
-              <Text style={styles.headerSub}>Vendor + Agent network</Text>
+            <View style={styles.headerTitleBlock}>
+              <Text style={styles.headerEyebrow}>PARTNER NETWORK</Text>
+              <Text style={styles.headerTitle} numberOfLines={1}>Social</Text>
             </View>
+            {/* Compact icon actions — the old labelled SOS + Messages buttons
+                ate so much width that "Vendor + Agent network" wrapped to two
+                lines on a 6" phone. */}
             <TouchableOpacity
               onPress={() => navigation.navigate("TACreatePost", { isSOS: true })}
               style={styles.sosBtn}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Post an SOS request"
             >
-              <Ionicons name="alert-circle" size={14} color="#fff" />
-              <Text style={styles.sosBtnText}>SOS</Text>
+              <Ionicons name="alert-circle" size={16} color="#fff" />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigation.navigate("TASocialMessages")}
               style={styles.msgBtn}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Open messages"
             >
-              <Ionicons name="paper-plane" size={15} color={C.emerald700} />
-              <Text style={styles.msgBtnText}>Messages</Text>
+              <Ionicons name="paper-plane" size={16} color={C.emerald700} />
             </TouchableOpacity>
+          </View>
+
+          {/* Search lives inside the header now — that removes one of the three
+              full-width bands that used to stack under it. */}
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={16} color="rgba(255,255,255,0.75)" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search posts, people, category…"
+              placeholderTextColor="rgba(255,255,255,0.62)"
+              value={feedSearch}
+              onChangeText={setFeedSearch}
+              returnKeyType="search"
+              selectionColor="#fff"
+            />
+            {!!feedSearch && (
+              <TouchableOpacity
+                onPress={() => setFeedSearch("")}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+                style={styles.searchClear}
+              >
+                <Ionicons name="close" size={13} color={T.forestDark} />
+              </TouchableOpacity>
+            )}
           </View>
         </SafeAreaView>
       </LinearGradient>
 
-      {/* ===== Main tabs — full-width underline style ===== */}
+      {/* ===== Main tabs — segmented pill control =====
+          Labels only. The old version put an icon beside each label and centred
+          the pair, so with "All" / "SOS" / "Mine" / "Saved" all being different
+          widths the four icons sat at four different offsets and nothing lined
+          up. Equal-width segments with a single centred label align exactly. */}
       <View style={styles.tabsBar}>
         {FEED_TABS.map((t) => {
           const active = tab === t.key;
@@ -388,37 +415,25 @@ export default function SocialFeedScreen({ navigation, route }) {
           return (
             <TouchableOpacity
               key={t.key}
-              style={styles.tab}
+              style={[
+                styles.tab,
+                active && { backgroundColor: `${t.color}16`, borderColor: t.color },
+              ]}
               onPress={() => setTab(t.key)}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
             >
-              <View style={styles.tabInner}>
-                <Ionicons name={t.icon} size={15} color={active ? t.color : C.subText} />
-                <Text style={[styles.tabText, active && { color: t.color }]}>{t.label}</Text>
-                {hasSOS && <View style={styles.tabDot} />}
-              </View>
-              {active && <View style={[styles.tabUnderline, { backgroundColor: t.color }]} />}
+              <Text
+                style={[styles.tabText, active && { color: t.color }]}
+                numberOfLines={1}
+              >
+                {t.label}
+              </Text>
+              {hasSOS && <View style={styles.tabDot} />}
             </TouchableOpacity>
           );
         })}
-      </View>
-
-      {/* ===== Search bar ===== */}
-      <View style={styles.searchBar}>
-        <Ionicons name="search" size={15} color={C.subText} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search posts, people, category…"
-          placeholderTextColor="#9CA8B4"
-          value={feedSearch}
-          onChangeText={setFeedSearch}
-          returnKeyType="search"
-        />
-        {!!feedSearch && (
-          <TouchableOpacity onPress={() => setFeedSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close-circle" size={15} color={C.subText} />
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* ===== Category + view filter chips (feed tab only) ===== */}
@@ -430,19 +445,24 @@ export default function SocialFeedScreen({ navigation, route }) {
               style={[styles.filterChip, feedView === "all" && styles.filterChipActive]}
               onPress={() => { setFeedView("all"); setCategoryFilter(null); }}
             >
-              <Ionicons name="apps" size={11} color={feedView === "all" && !categoryFilter ? C.emerald700 : C.subText} />
+              <Ionicons name="apps" size={12} color={feedView === "all" && !categoryFilter ? C.emerald700 : C.subText} />
               <Text style={[styles.filterChipText, feedView === "all" && !categoryFilter && styles.filterChipTextActive]}>All</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterChip, feedView === "general" && styles.filterChipActive]}
               onPress={() => { setFeedView("general"); setCategoryFilter(null); }}
             >
-              <Ionicons name="newspaper" size={11} color={feedView === "general" ? C.emerald700 : C.subText} />
-              <Text style={[styles.filterChipText, feedView === "general" && styles.filterChipTextActive]}>General</Text>
+              {/* Label only — the `feedView` value stays "general". It was also
+                  labelled "General", which collided with a backend category
+                  literally named "general" sitting a few chips to the right. */}
+              <Ionicons name="newspaper" size={12} color={feedView === "general" ? C.emerald700 : C.subText} />
+              <Text style={[styles.filterChipText, feedView === "general" && styles.filterChipTextActive]}>Non-SOS</Text>
             </TouchableOpacity>
-            {/* Separator */}
-            <View style={styles.filterSep} />
-            {/* Category chips */}
+            {/* Category chips — no separator here any more. It added its own
+                4px margins on both sides, so the gap around it came to 23px
+                against the 7px between every other chip, which read as uneven
+                spacing. The chips' own icons already distinguish view filters
+                (apps / newspaper) from categories (pricetag / alert). */}
             {categories.map((c) => {
               const active = categoryFilter === c.id;
               const chipColor = c.isSOS ? C.red : C.emerald700;
@@ -452,15 +472,15 @@ export default function SocialFeedScreen({ navigation, route }) {
                   style={[styles.filterChip, active && { backgroundColor: `${chipColor}15`, borderColor: chipColor }]}
                   onPress={() => { setCategoryFilter(active ? null : c.id); setFeedView("all"); }}
                 >
-                  <Ionicons name={c.isSOS ? "alert-circle" : "pricetag"} size={11} color={active ? chipColor : C.subText} />
-                  <Text style={[styles.filterChipText, active && { color: chipColor, fontWeight: "800" }]} numberOfLines={1}>{c.name}</Text>
+                  <Ionicons name={c.isSOS ? "alert-circle" : "pricetag"} size={12} color={active ? chipColor : C.subText} />
+                  <Text style={[styles.filterChipText, active && { color: chipColor, fontWeight: "bold" }]} numberOfLines={1}>{c.name}</Text>
                 </TouchableOpacity>
               );
             })}
             {/* Old SOS toggle */}
             {hiddenOldSosCount > 0 && (
               <TouchableOpacity style={styles.filterChip} onPress={() => setShowOldSos(v => !v)}>
-                <Ionicons name="time" size={11} color={C.subText} />
+                <Ionicons name="time" size={12} color={C.subText} />
                 <Text style={styles.filterChipText}>{showOldSos ? "Hide old" : `+${hiddenOldSosCount} old`}</Text>
               </TouchableOpacity>
             )}
@@ -601,22 +621,11 @@ export default function SocialFeedScreen({ navigation, route }) {
         />
       )}
 
-      {/* ===== Floating FABs (SOS + General) ===== */}
+      {/* ===== Floating create FAB =====
+          The SOS FAB that used to sit above this one is gone — posting an SOS
+          is still one tap away from the red button in the header, and two
+          stacked FABs were covering the feed. */}
       <View style={styles.fabGroup}>
-        <TouchableOpacity
-          style={styles.fabSOS}
-          onPress={() => navigation.navigate("TACreatePost", { isSOS: true })}
-          activeOpacity={0.85}
-        >
-          <LinearGradient
-            colors={["#DC2626", "#991B1B"]}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={styles.fabInner}
-          >
-            <Ionicons name="alert-circle" size={18} color="#fff" />
-            <Text style={styles.fabSOSLabel}>SOS</Text>
-          </LinearGradient>
-        </TouchableOpacity>
         <TouchableOpacity
           style={styles.fab}
           onPress={() => navigation.navigate("TACreatePost")}
@@ -678,7 +687,7 @@ export default function SocialFeedScreen({ navigation, route }) {
           <View style={styles.captureHost} pointerEvents="none">
             <View ref={shareCardRef} collapsable={false} style={styles.shareCard}>
               <LinearGradient
-                colors={sos ? ["#7F1D1D", "#B91C1C"] : ["#022C22", "#047857"]}
+                colors={sos ? ["#5C1F1A", "#8A2F27"] : [T.forestDark, T.emeraldDeep]}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                 style={styles.shareCardHeader}
               >
@@ -806,7 +815,7 @@ function StoryViewer({ stories, startIndex, onClose, onOpenProfile, onShareImage
                 {stories.length > 1 && <Text style={sv.metaText}>· {idx + 1}/{stories.length}</Text>}
               </View>
             </View>
-            <View style={sv.sosTag}><Ionicons name="alert-circle" size={11} color="#FCA5A5" /><Text style={sv.sosTagText}>SOS</Text></View>
+            <View style={sv.sosTag}><Ionicons name="alert-circle" size={11} color="#E7B5AF" /><Text style={sv.sosTagText}>SOS</Text></View>
             <TouchableOpacity onPress={onClose} style={sv.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={20} color="#fff" />
             </TouchableOpacity>
@@ -853,21 +862,21 @@ const sv = StyleSheet.create({
   progressTrack: { flex: 1, height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.25)", overflow: "hidden" },
   progressFill: { height: "100%", backgroundColor: "#fff", borderRadius: 2 },
   header: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 8, zIndex: 5 },
-  ring: { padding: 2, borderRadius: 22, backgroundColor: "#EF4444" },
+  ring: { padding: 2, borderRadius: 22, backgroundColor: "#C0453B" },
   avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: "#0f0c29" },
   avatarFallback: { alignItems: "center", justifyContent: "center" },
-  avatarInitials: { color: "#fff", fontWeight: "800", fontSize: 14 },
-  name: { color: "#fff", fontWeight: "800", fontSize: 14 },
-  metaText: { color: "rgba(255,255,255,0.55)", fontSize: 11, fontWeight: "600" },
+  avatarInitials: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 14 },
+  name: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 14 },
+  metaText: { fontFamily: DISPLAY, color: "rgba(255,255,255,0.55)", fontSize: 11, fontWeight: "600" },
   sosTag: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: "rgba(239,68,68,0.2)", borderWidth: 1, borderColor: "rgba(239,68,68,0.3)" },
-  sosTagText: { color: "#FCA5A5", fontSize: 10, fontWeight: "900" },
+  sosTagText: { fontFamily: DISPLAY, color: "#E7B5AF", fontSize: 10, fontWeight: "bold" },
   closeBtn: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.12)" },
   body: { flex: 1, justifyContent: "center", paddingHorizontal: 20, zIndex: 5 },
-  content: { color: "rgba(255,255,255,0.95)", fontSize: 17, lineHeight: 26, fontWeight: "600" },
+  content: { fontFamily: DISPLAY, color: "rgba(255,255,255,0.95)", fontSize: 17, lineHeight: 26, fontWeight: "600" },
   actions: { flexDirection: "row", gap: 10, padding: 14, zIndex: 5 },
   actBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 13, borderRadius: 12 },
   actBtnGhost: { backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
-  actBtnText: { color: "#fff", fontWeight: "800", fontSize: 13.5 },
+  actBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13.5 },
   // Tap zones sit BELOW header/actions (lower zIndex) so buttons still work.
   tapZone: { position: "absolute", top: 70, bottom: 80, width: "38%", zIndex: 1 },
 });
@@ -891,16 +900,29 @@ function PostCard({ post, currentAgentId, onAuthorPress, onLike, onSave, onShare
   const images = Array.isArray(post.images) ? post.images : (post.image ? [post.image] : []);
 
   return (
-    <View style={styles.card}>
-      {/* SOS top stripe (only for SOS posts) */}
+    // SOS posts get a red-bordered card so the urgency reads before you even
+    // reach the banner — same `isSOS` flag, styling only.
+    <View style={[styles.card, isSOS && styles.cardSOS]}>
+      {/* SOS banner (only for SOS posts) */}
       {isSOS && (
         <LinearGradient
-          colors={[C.red, "#DC2626"]}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          colors={[C.red, "#8E332B"]}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.sosStripe}
         >
-          <Ionicons name="alert" size={11} color="#fff" />
+          <View style={styles.sosStripeIcon}>
+            <Ionicons name="alert" size={11} color={C.red} />
+          </View>
+          {/* No chevron — the banner isn't pressable, so an arrow here promised
+              an action that doesn't exist. */}
           <Text style={styles.sosStripeText}>SOS · URGENT</Text>
+          <View style={{ flex: 1 }} />
+          {/* Age matters on an SOS — surface it in the banner instead of making
+              the reader hunt for it in the meta line below. */}
+          <View style={styles.sosTimePill}>
+            <SosPulse />
+            <Text style={styles.sosTimeText}>{fmtRelative(post.createdAt)}</Text>
+          </View>
         </LinearGradient>
       )}
 
@@ -927,16 +949,39 @@ function PostCard({ post, currentAgentId, onAuthorPress, onLike, onSave, onShare
                 <Text style={[styles.typePillText, { color: typeMeta.color }]}>{typeMeta.label}</Text>
               </View>
             </View>
+            {/* City · time · category all on one meta line. The category used
+                to sit on a row of its own below the author block, spending a
+                full line on one small chip. */}
             <View style={styles.authorMetaRow}>
               {!!author.city && (
                 <>
-                  <Ionicons name="location" size={11} color={C.subText} />
+                  <Ionicons name="location" size={10} color={C.subText} />
                   <Text style={styles.authorMeta} numberOfLines={1}>{author.city}</Text>
-                  <Text style={styles.authorMetaDot}>·</Text>
+                  <View style={styles.metaDot} />
                 </>
               )}
-              <Ionicons name="time" size={11} color={C.subText} />
               <Text style={styles.authorMeta}>{fmtRelative(post.createdAt)}</Text>
+              {!!post.category?.name && (
+                <>
+                  <View style={styles.metaDot} />
+                  <View style={[
+                    styles.categoryPill,
+                    isSOS ? { backgroundColor: C.redLight } : {},
+                  ]}>
+                    <Ionicons
+                      name={isSOS ? "alert-circle" : "pricetag"}
+                      size={9}
+                      color={isSOS ? C.red : C.emerald600}
+                    />
+                    <Text
+                      style={[styles.categoryText, isSOS ? { color: C.red } : {}]}
+                      numberOfLines={1}
+                    >
+                      {post.category.name}
+                    </Text>
+                  </View>
+                </>
+              )}
             </View>
           </View>
           <TouchableOpacity
@@ -950,32 +995,14 @@ function PostCard({ post, currentAgentId, onAuthorPress, onLike, onSave, onShare
           </TouchableOpacity>
         </TouchableOpacity>
 
-        {/* Category pill (above content) */}
-        {!!post.category?.name && (
-          <View style={[
-            styles.categoryPill,
-            isSOS ? { backgroundColor: C.redLight, borderColor: "#FCA5A5" } : {},
-          ]}>
-            <Ionicons
-              name={isSOS ? "alert-circle" : "pricetag"}
-              size={11}
-              color={isSOS ? C.red : C.emerald600}
-            />
-            <Text style={[
-              styles.categoryText,
-              isSOS ? { color: C.red } : {},
-            ]}>
-              {post.category.name}
-            </Text>
-          </View>
-        )}
-
         {/* Content */}
         {!!post.content && <Text style={styles.content}>{post.content}</Text>}
 
-        {/* Images */}
+        {/* Images — full-bleed. Negative margins cancel the body padding so the
+            photo runs edge to edge like a real feed; the card's overflow:hidden
+            keeps the corners clean. */}
         {images.length > 0 && (
-          <View style={styles.imageWrap}>
+          <View style={[styles.imageWrap, isSOS && styles.imageWrapSOS]}>
             <RemoteImage source={{ uri: images[0] }} style={styles.contentImage} resizeMode="cover" />
             {images.length > 1 && (
               <View style={styles.imageCountBadge}>
@@ -986,72 +1013,81 @@ function PostCard({ post, currentAgentId, onAuthorPress, onLike, onSave, onShare
           </View>
         )}
 
-        {/* Engagement counts row (subtle, above actions) */}
-        {(post.likesCount > 0 || post.commentsCount > 0) && (
-          <View style={styles.engageRow}>
-            {post.likesCount > 0 && (
-              <View style={styles.engageItem}>
-                <View style={styles.likeBubble}>
-                  <Ionicons name="heart" size={9} color="#fff" />
-                </View>
-                <Text style={styles.engageText}>
-                  {post.likesCount} {post.likesCount > 1 ? "likes" : "like"}
-                </Text>
-              </View>
-            )}
-            <View style={{ flex: 1 }} />
-            {post.commentsCount > 0 && (
-              <Text style={styles.engageText}>
-                {post.commentsCount} {post.commentsCount > 1 ? "comments" : "comment"}
-              </Text>
-            )}
-          </View>
-        )}
-
-        {/* Actions row */}
+        {/* Actions — counts now sit next to their own icon, which removes the
+            separate "N likes / N comments" strip and its divider. Same two
+            fields rendered, one row instead of two. */}
         <View style={styles.actionsRow}>
           <ActionBtn
             icon={liked ? "heart" : "heart-outline"}
-            label={liked ? "Liked" : "Like"}
+            count={post.likesCount}
             color={liked ? C.red : C.subText}
-            bg={liked ? C.redLight : "transparent"}
             onPress={onLike}
+            a11y={liked ? "Unlike post" : "Like post"}
           />
           <ActionBtn
             icon="chatbubble-outline"
-            label="Comment"
+            count={post.commentsCount}
             color={C.subText}
             onPress={onComments}
+            a11y="View comments"
           />
           <ActionBtn
             icon={saved ? "bookmark" : "bookmark-outline"}
-            label={saved ? "Saved" : "Save"}
             color={saved ? C.amber : C.subText}
-            bg={saved ? C.amberLight : "transparent"}
             onPress={onSave}
+            a11y={saved ? "Remove from saved" : "Save post"}
           />
+          <View style={{ flex: 1 }} />
           <ActionBtn
             icon="share-social-outline"
-            label="Share"
             color={C.emerald600}
             onPress={onShare}
+            a11y="Share post"
           />
         </View>
       </View>
+
+      {/* Red rail down the left edge — keeps the card reading as urgent even
+          once the banner has scrolled off the top of the screen. Rendered last
+          so it paints OVER the full-bleed image; putting it before the body let
+          the photo cut the rail in half. */}
+      {isSOS && <View style={styles.sosRail} pointerEvents="none" />}
     </View>
   );
 }
 
-function ActionBtn({ icon, label, color, bg, onPress }) {
+// Slowly pulsing dot on the SOS banner — a live "still open" cue. Native-driven
+// (opacity + scale only), so it costs nothing even with several SOS cards on
+// screen at once.
+function SosPulse() {
+  const a = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 900, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 900, easing: Easing.in(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a]);
+  const opacity = a.interpolate({ inputRange: [0, 1], outputRange: [1, 0.3] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.45] });
+  return <Animated.View style={[styles.sosPulseDot, { opacity, transform: [{ scale }] }]} />;
+}
+
+function ActionBtn({ icon, count, color, onPress, a11y }) {
   return (
     <TouchableOpacity
-      style={[styles.actionBtn, bg && { backgroundColor: bg }]}
+      style={styles.actionBtn}
       onPress={onPress}
-      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+      hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
       activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={a11y}
     >
-      <Ionicons name={icon} size={16} color={color} />
-      <Text style={[styles.actionText, { color }]}>{label}</Text>
+      <Ionicons name={icon} size={19} color={color} />
+      {count > 0 && <Text style={[styles.actionCount, { color }]}>{count}</Text>}
     </TouchableOpacity>
   );
 }
@@ -1492,7 +1528,7 @@ function ShareInChatModal({ post, onClose }) {
         <View style={styles.modalSheet}>
           {/* Gradient header */}
           <LinearGradient
-            colors={["#022C22", "#064E3B", "#047857"]}
+            colors={HEADER_GRAD}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={styles.modalHeaderGrad}
           >
@@ -1640,76 +1676,128 @@ function shade(hex, pct) {
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
   // Header
-  headerGrad: { paddingBottom: 12 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 2 },
-
-  sosBtn: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999,
-    backgroundColor: C.red, marginRight: 6,
+  headerGrad: {
+    paddingBottom: 12, overflow: "hidden",
+    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
   },
-  sosBtnText: { color: "#fff", fontWeight: "900", fontSize: 11 },
+  orbA: {
+    position: "absolute", top: -44, right: -30, width: 170, height: 170,
+    borderRadius: 85, backgroundColor: "rgba(228,192,102,0.10)",
+  },
+  orbB: {
+    position: "absolute", bottom: -40, left: -36, width: 140, height: 140,
+    borderRadius: 70, backgroundColor: "rgba(23,166,124,0.14)",
+  },
+  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 10, gap: 8 },
+  iconBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.2)",
+    alignItems: "center", justifyContent: "center",
+  },
+  headerTitleBlock: { flex: 1, minWidth: 0 },
+  headerEyebrow: {
+    fontFamily: DISPLAY, fontSize: 9, color: GOLD, fontWeight: "bold",
+    letterSpacing: 1.4, includeFontPadding: false,
+  },
+  headerTitle: {
+    fontFamily: DISPLAY, fontSize: 21, fontWeight: "bold", color: "#fff",
+    lineHeight: 25, marginTop: 2, includeFontPadding: false,
+  },
+
+  // Icon-only actions — labels removed so the title never wraps.
+  sosBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: C.red,
+  },
   msgBtn: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: "center", justifyContent: "center",
     backgroundColor: "#fff",
   },
-  msgBtnText: { color: C.emerald700, fontWeight: "800", fontSize: 12 },
 
-  // ── Main tabs — underline style (Instagram-like) ──────────────────────────
+  // ── Main tabs — underline style ───────────────────────────────────────────
   tabsBar: {
-    flexDirection: "row",
+    flexDirection: "row", gap: 6,
+    paddingHorizontal: 12, paddingVertical: 9,
     backgroundColor: C.card,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
-  tab: { flex: 1, alignItems: "center", paddingTop: 10, paddingBottom: 0 },
-  tabInner: { flexDirection: "row", alignItems: "center", gap: 5, paddingBottom: 10 },
-  tabText: { fontSize: 12, fontWeight: "700", color: C.subText },
-  tabUnderline: { height: 2.5, borderRadius: 2, width: "80%", marginTop: 0 },
+  // Transparent border always present so selecting a tab never reflows the row.
+  tab: {
+    flex: 1, alignItems: "center", justifyContent: "center",
+    paddingVertical: 7, borderRadius: 10,
+    backgroundColor: FILL,
+    borderWidth: 1, borderColor: "transparent",
+  },
+  tabText: {
+    fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold",
+    color: C.subText, letterSpacing: 0.2, includeFontPadding: false,
+  },
+  // Sits inside the pill's top-right corner instead of floating outside it,
+  // where it used to get clipped.
   tabDot: {
     width: 6, height: 6, borderRadius: 3,
     backgroundColor: C.red,
-    position: "absolute", top: -1, right: -8,
+    position: "absolute", top: 5, right: 6,
   },
 
-  // ── Search bar ──────────────────────────────────────────────────────────
+  // ── Search — now sits inside the gradient header ─────────────────────────
+  // Pill shape and a touch more fill/border than before — at 0.16/0.20 the
+  // field almost dissolved into the gradient. 44px is also a proper touch target.
   searchBar: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    marginHorizontal: 12, marginVertical: 8,
-    paddingHorizontal: 12, height: 38,
-    borderRadius: 10, backgroundColor: C.card,
-    borderWidth: 1, borderColor: C.border,
+    flexDirection: "row", alignItems: "center", gap: 9,
+    marginTop: 13, paddingLeft: 14, paddingRight: 6, height: 44,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.19)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.26)",
   },
-  searchInput: { flex: 1, fontSize: 13, color: C.ink, padding: 0 },
+  // padding:0 + a fixed-height parent leaves Android text sitting high; the
+  // two vertical-centring props put it back on the middle line.
+  searchInput: {
+    fontFamily: DISPLAY, flex: 1, fontSize: 13.5, color: "#fff",
+    padding: 0, fontWeight: "600",
+    includeFontPadding: false, textAlignVertical: "center",
+  },
+  // Solid knob rather than a faint outline glyph — it was the same translucent
+  // white as the placeholder, so it read as decoration instead of a button.
+  searchClear: {
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: "rgba(255,255,255,0.85)",
+    alignItems: "center", justifyContent: "center",
+  },
 
-  // ── Combined filter row (feed tab only) ────────────────────────────────
+  // ── Category filter chips ────────────────────────────────────────────────
+  // Sits on the page ground, not on white. The tab bar above is already a white
+  // band; making this one white too produced two stacked white strips with a
+  // rule between them. Ivory here separates "which tab" from "filter within it".
   filterRow: {
-    backgroundColor: C.card,
-    borderBottomWidth: 1, borderBottomColor: C.border,
-    paddingVertical: 6,
+    backgroundColor: C.bg,
+    paddingTop: 10, paddingBottom: 8,
   },
-  filterRowContent: { paddingHorizontal: 12, gap: 6, flexDirection: "row", alignItems: "center" },
+  filterRowContent: { paddingHorizontal: 12, gap: 7, flexDirection: "row", alignItems: "center" },
+  // Fully rounded, so they read as chips against the square-cornered tab pills.
   filterChip: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: 10, paddingVertical: 5,
-    borderRadius: 999, backgroundColor: C.bg,
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 999, backgroundColor: C.card,
     borderWidth: 1, borderColor: C.border,
   },
   filterChipActive: { backgroundColor: C.emerald50, borderColor: C.emerald600 },
-  filterChipText: { fontSize: 11.5, color: C.subText, fontWeight: "700", maxWidth: 120 },
-  filterChipTextActive: { color: C.emerald700, fontWeight: "800" },
-  filterSep: { width: 1, height: 18, backgroundColor: C.border, marginHorizontal: 2 },
+  filterChipText: {
+    fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "bold",
+    maxWidth: 130, includeFontPadding: false,
+  },
+  filterChipTextActive: { color: C.emerald700, fontWeight: "bold" },
 
   errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 6, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: C.red, fontSize: 12.5, flex: 1 },
-  errorRetry: { color: C.red, fontWeight: "800", fontSize: 12.5 },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 12.5, flex: 1 },
+  errorRetry: { fontFamily: DISPLAY, color: C.red, fontWeight: "bold", fontSize: 12.5 },
 
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 13, color: C.subText, fontWeight: "600" },
+  loadingText: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, fontWeight: "600" },
 
   listContent: { padding: 14, paddingBottom: 100 },
   emptyWrap: { flexGrow: 1, justifyContent: "center", padding: 16 },
@@ -1717,100 +1805,172 @@ const styles = StyleSheet.create({
   // SOS story strip (E6)
   storyStrip: { marginBottom: 12, paddingVertical: 12, backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingHorizontal: 12 },
   storyStripHeader: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 10 },
-  storyStripTitle: { fontSize: 11, fontWeight: "900", color: C.red, letterSpacing: 0.5 },
+  storyStripTitle: { fontFamily: DISPLAY, fontSize: 11, fontWeight: "bold", color: C.red, letterSpacing: 0.5 },
   storyItem: { alignItems: "center", width: 64 },
-  storyRing: { padding: 2.5, borderRadius: 33, backgroundColor: "#EF4444" },
+  storyRing: { padding: 2.5, borderRadius: 33, backgroundColor: C.red },
   storyRingInner: { padding: 2, borderRadius: 30, backgroundColor: C.card },
-  storyAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#EEF2F6" },
-  storyAvatarFallback: { alignItems: "center", justifyContent: "center", backgroundColor: "#FEE2E2" },
-  storyInitials: { color: C.red, fontWeight: "800", fontSize: 16 },
-  storyName: { fontSize: 10.5, color: C.text, fontWeight: "700", marginTop: 5, maxWidth: 62, textAlign: "center" },
+  storyAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: FILL },
+  storyAvatarFallback: { alignItems: "center", justifyContent: "center", backgroundColor: C.redLight },
+  storyInitials: { fontFamily: DISPLAY, color: C.red, fontWeight: "bold", fontSize: 16 },
+  storyName: { fontFamily: DISPLAY, fontSize: 10.5, color: C.text, fontWeight: "bold", marginTop: 5, maxWidth: 62, textAlign: "center" },
 
   // WhatsApp image-card capture (E6) — host sits off-screen but laid out.
   captureHost: { position: "absolute", left: -9999, top: 0, width: 340 },
   shareCard: { width: 340, backgroundColor: "#FFFFFF", borderRadius: 18, overflow: "hidden" },
   shareCardHeader: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16 },
   shareCardAvatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.5)" },
-  shareCardInitials: { color: "#fff", fontWeight: "900", fontSize: 18 },
-  shareCardName: { color: "#fff", fontWeight: "800", fontSize: 16 },
-  shareCardCat: { color: "rgba(255,255,255,0.9)", fontWeight: "700", fontSize: 12, marginTop: 2 },
+  shareCardInitials: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 18 },
+  shareCardName: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 16 },
+  shareCardCat: { fontFamily: DISPLAY, color: "rgba(255,255,255,0.9)", fontWeight: "bold", fontSize: 12, marginTop: 2 },
   shareCardBody: { paddingHorizontal: 18, paddingVertical: 20 },
-  shareCardContent: { color: "#0F172A", fontSize: 16, lineHeight: 24, fontWeight: "600" },
-  shareCardFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingVertical: 12, borderTopWidth: 1, borderTopColor: "#EEF2F6" },
-  shareCardBrand: { color: C.emerald700, fontSize: 12, fontWeight: "800" },
-  shareCardUrl: { color: C.subText, fontSize: 11, fontWeight: "700" },
+  shareCardContent: { fontFamily: DISPLAY, color: "#0F172A", fontSize: 16, lineHeight: 24, fontWeight: "600" },
+  shareCardFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingVertical: 12, borderTopWidth: 1, borderTopColor: C.border },
+  shareCardBrand: { fontFamily: DISPLAY, color: C.emerald700, fontSize: 12, fontWeight: "bold" },
+  shareCardUrl: { fontFamily: DISPLAY, color: C.subText, fontSize: 11, fontWeight: "bold" },
   captureOverlay: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center", gap: 10 },
-  captureText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  captureText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
   empty: { alignItems: "center", padding: 24 },
   emptyIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  emptyTitle: { fontSize: 17, fontWeight: "800", color: C.ink, marginTop: 6 },
-  emptyBody: { fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 19 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, marginTop: 6 },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 19 },
   emptyCta: { marginTop: 18, borderRadius: 12, overflow: "hidden" },
   emptyCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11 },
-  emptyCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  emptyCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
 
   footerLoad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 18 },
-  footerLoadText: { fontSize: 12, color: C.subText, fontWeight: "600" },
+  footerLoadText: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, fontWeight: "600" },
 
   // Post card
   card: {
-    backgroundColor: C.card, borderRadius: 14, marginBottom: 12, overflow: "hidden",
+    backgroundColor: C.card, borderRadius: 16, marginBottom: 12, overflow: "hidden",
     borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2,
+    shadowColor: C.shadow, shadowOpacity: 0.07, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 3,
   },
+  // A faint warm-red wash across the whole card, not just the banner strip.
+  // Against the ivory page ground this reads as urgent even once the banner has
+  // scrolled past the top of the screen.
+  cardSOS: {
+    backgroundColor: "#FEF9F8",
+    borderColor: "#E4B0A8",
+    shadowColor: C.red, shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 5 },
+  },
+  // Left-aligned band with a white icon chip — reads as a proper banner rather
+  // than a thin centred rule.
   sosStripe: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5,
-    paddingVertical: 5,
+    flexDirection: "row", alignItems: "center", gap: 7,
+    paddingVertical: 7, paddingHorizontal: 11,
   },
-  sosStripeText: { color: "#fff", fontSize: 10, fontWeight: "900", letterSpacing: 0.8 },
-  cardBody: { padding: 12 },
+  sosStripeIcon: {
+    width: 18, height: 18, borderRadius: 9, backgroundColor: "#fff",
+    alignItems: "center", justifyContent: "center",
+  },
+  sosStripeText: {
+    fontFamily: DISPLAY, color: "#fff", fontSize: 10, fontWeight: "bold",
+    letterSpacing: 1.1, includeFontPadding: false,
+  },
+  // Age pill on the right of the banner + its pulsing "still live" dot.
+  sosTimePill: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 8, height: 20, borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.3)",
+  },
+  sosPulseDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: "#fff" },
+  sosTimeText: {
+    fontFamily: DISPLAY, color: "#fff", fontSize: 9.5, fontWeight: "bold",
+    letterSpacing: 0.3, includeFontPadding: false,
+  },
+  // Full-height red rail on the card's left edge. Body padding stays 11 all
+  // round so the full-bleed image maths (marginHorizontal: -11) still line up;
+  // the rail simply overlays that 3.5px strip.
+  sosRail: {
+    position: "absolute", left: 0, top: 0, bottom: 0, width: 3.5,
+    backgroundColor: C.red,
+  },
+  cardBody: { padding: 11 },
 
-  authorRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
-  avatar: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  avatarText: { color: "#fff", fontWeight: "900", fontSize: 13, letterSpacing: 0.5 },
+  authorRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 7 },
+  avatar: { width: 42, height: 42, borderRadius: 15, alignItems: "center", justifyContent: "center" },
+  avatarText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 14, letterSpacing: 0.5 },
+  // flexShrink (not flex:1) so a long name yields space to the type pill rather
+  // than squeezing it to nothing.
   authorTopLine: { flexDirection: "row", alignItems: "center", gap: 6 },
-  authorName: { flex: 1, fontSize: 14, fontWeight: "800", color: C.ink },
+  authorName: {
+    fontFamily: DISPLAY, flexShrink: 1, fontSize: 14.5, fontWeight: "bold",
+    color: C.ink, lineHeight: 18, includeFontPadding: false,
+  },
   typePill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999 },
-  typePillText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.3 },
-  authorMetaRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3 },
-  authorMeta: { fontSize: 11, color: C.subText, fontWeight: "600", flexShrink: 1 },
-  authorMetaDot: { fontSize: 11, color: C.subText, fontWeight: "800" },
+  typePillText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.3, includeFontPadding: false },
+  authorMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+  authorMeta: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "600", flexShrink: 1, includeFontPadding: false },
+  // Geometric dot instead of a serif "·" glyph — the typographic middot sits
+  // above the optical centre of the line, so the separators looked misaligned
+  // against the icons and pills either side of them.
+  metaDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: "#C4CFC9" },
 
+  // Now an inline chip inside the meta line — small, flat, no border.
   categoryPill: {
-    alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
-    backgroundColor: C.emerald50, borderWidth: 1, borderColor: "#A7F3D0",
-    marginBottom: 8,
+    flexDirection: "row", alignItems: "center", gap: 3, flexShrink: 1,
+    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6,
+    backgroundColor: C.emerald50,
   },
-  categoryText: { fontSize: 11, color: C.emerald700, fontWeight: "800", letterSpacing: 0.3 },
+  categoryText: {
+    fontFamily: DISPLAY, fontSize: 9.5, color: C.emerald700, fontWeight: "bold",
+    letterSpacing: 0.2, includeFontPadding: false, flexShrink: 1,
+  },
 
-  content: { fontSize: 14, color: C.text, lineHeight: 20, marginBottom: 10 },
+  // The post body is the card's primary content, so it takes ink rather than
+  // the softer body grey the meta line uses.
+  content: {
+    fontFamily: DISPLAY, fontSize: 14.5, color: C.ink,
+    lineHeight: 21, marginBottom: 9, includeFontPadding: false,
+  },
 
-  imageWrap: { position: "relative", marginBottom: 10, borderRadius: 12, overflow: "hidden" },
-  contentImage: { width: "100%", height: 240, backgroundColor: "#F1F5F9" },
-  imageCountBadge: { position: "absolute", top: 10, right: 10, flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: "rgba(0,0,0,0.7)" },
-  imageCountText: { color: "#fff", fontSize: 10.5, fontWeight: "800" },
+  // Negative margins cancel cardBody's 12px padding so the photo is full-bleed.
+  // Square corners because the card already clips them.
+  // Hairlines top and bottom so the full-bleed photo reads as a deliberate band.
+  // Without them it ran straight into the card's side border — barely noticeable
+  // on a normal card's grey hairline, but obvious against an SOS card's red one.
+  imageWrap: {
+    position: "relative", marginHorizontal: -11, marginBottom: 9,
+    overflow: "hidden",
+    borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.border,
+  },
+  // On an SOS card the grey hairlines read as a foreign element against the
+  // warm-red card; tint them to match the card's own border.
+  imageWrapSOS: { borderColor: "#E4B0A8" },
+  // The image is by far the largest block in a post card, so it's the only lever
+  // that moves the total meaningfully. 150 ≈ 2.4:1 against the ~360px full-bleed
+  // width. (Was 260 ≈ 4:3, then 200 ≈ 16:9, then 180 ≈ 2:1.)
+  contentImage: { width: "100%", height: 150, backgroundColor: FILL },
+  imageCountBadge: { position: "absolute", top: 10, right: 10, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 4.5, borderRadius: 999, backgroundColor: "rgba(4,20,15,0.62)", borderWidth: 1, borderColor: "rgba(255,255,255,0.22)" },
+  imageCountText: { fontFamily: DISPLAY, color: "#fff", fontSize: 10.5, fontWeight: "bold", includeFontPadding: false, fontVariant: ["tabular-nums"] },
 
-  // Engagement counts row
-  engageRow: { flexDirection: "row", alignItems: "center", gap: 4, paddingBottom: 8, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: C.border },
-  engageItem: { flexDirection: "row", alignItems: "center", gap: 5 },
-  likeBubble: { width: 16, height: 16, borderRadius: 8, backgroundColor: C.red, alignItems: "center", justifyContent: "center" },
-  engageText: { fontSize: 11, color: C.subText, fontWeight: "700" },
-
-  // Actions
-  actionsRow: { flexDirection: "row", gap: 6 },
+  // Actions — icon-forward with inline counts. Like/comment/save group at the
+  // left, share pushed right by a spacer. Hairline rule separates them from the
+  // content now that the engagement strip (which used to do that) is gone.
+  actionsRow: {
+    flexDirection: "row", alignItems: "center", gap: 2,
+    borderTopWidth: 1, borderTopColor: C.border, paddingTop: 6, marginTop: 1,
+  },
   actionBtn: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 5, paddingVertical: 9, borderRadius: 10,
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingVertical: 6, paddingHorizontal: 8, borderRadius: 10,
   },
-  actionText: { fontSize: 11.5, fontWeight: "800" },
+  actionCount: {
+    fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold",
+    includeFontPadding: false, fontVariant: ["tabular-nums"],
+  },
 
   // 3-dot menu button on each post (with mine marker)
   menuDotBtn: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center", position: "relative" },
+  // Marks your own posts (the 3-dot menu then offers Delete). Ringed in card
+  // white so it stays visible against the button on either background.
   menuDotMineMark: {
-    position: "absolute", top: 6, right: 6,
-    width: 6, height: 6, borderRadius: 3,
+    position: "absolute", top: 5, right: 5,
+    width: 7, height: 7, borderRadius: 3.5,
     backgroundColor: C.emerald600,
+    borderWidth: 1.5, borderColor: C.card,
   },
 
   // Post-menu bottom sheet
@@ -1832,9 +1992,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
   menuHeaderIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center" },
-  menuHeaderName: { fontSize: 14, fontWeight: "800", color: C.ink },
-  menuHeaderSub: { fontSize: 11, color: C.subText, fontWeight: "600", marginTop: 2 },
-  menuCloseBtn: { width: 34, height: 34, borderRadius: 11, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" },
+  menuHeaderName: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.ink },
+  menuHeaderSub: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "600", marginTop: 2 },
+  menuCloseBtn: { width: 34, height: 34, borderRadius: 11, backgroundColor: FILL, alignItems: "center", justifyContent: "center" },
 
   menuRow: {
     flexDirection: "row", alignItems: "center", gap: 12,
@@ -1843,8 +2003,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: C.border, backgroundColor: "#FAFBFC",
   },
   menuRowIcon: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  menuRowLabel: { fontSize: 14, fontWeight: "800", color: C.ink },
-  menuRowHint: { fontSize: 11, color: C.subText, fontWeight: "600", marginTop: 2 },
+  menuRowLabel: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.ink },
+  menuRowHint: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "600", marginTop: 2 },
 
   // Comments bottom sheet
   commentsBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
@@ -1860,31 +2020,31 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
   commentsHeaderIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center" },
-  commentsTitle: { fontSize: 16, fontWeight: "800", color: C.ink },
-  commentsSub: { fontSize: 11.5, color: C.subText, fontWeight: "700", marginTop: 2 },
+  commentsTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink },
+  commentsSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "bold", marginTop: 2 },
   commentsErrorBox: { flexDirection: "row", alignItems: "center", gap: 8, margin: 12, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
 
   commentsEmpty: { alignItems: "center", padding: 16 },
   commentsEmptyIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 10 },
-  commentsEmptyTitle: { fontSize: 15, fontWeight: "800", color: C.ink, marginTop: 4 },
-  commentsEmptySub: { fontSize: 12, color: C.subText, marginTop: 6, textAlign: "center" },
+  commentsEmptyTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: "bold", color: C.ink, marginTop: 4 },
+  commentsEmptySub: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, marginTop: 6, textAlign: "center" },
 
   // Comment row
   commentRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
   commentAvatar: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  commentAvatarText: { color: "#fff", fontWeight: "900", fontSize: 12, letterSpacing: 0.3 },
+  commentAvatarText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 12, letterSpacing: 0.3 },
   commentBubble: {
     backgroundColor: "#FAFBFC", borderRadius: 12,
     padding: 10, borderWidth: 1, borderColor: C.border,
   },
   commentTopRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
-  commentName: { flex: 1, fontSize: 12.5, fontWeight: "800", color: C.ink },
+  commentName: { fontFamily: DISPLAY, flex: 1, fontSize: 12.5, fontWeight: "bold", color: C.ink },
   commentTypePill: { flexDirection: "row", alignItems: "center", gap: 2, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 999 },
-  commentTypeText: { fontSize: 8.5, fontWeight: "800", letterSpacing: 0.3 },
-  commentContent: { fontSize: 13, color: C.text, lineHeight: 18 },
+  commentTypeText: { fontFamily: DISPLAY, fontSize: 8.5, fontWeight: "bold", letterSpacing: 0.3 },
+  commentContent: { fontFamily: DISPLAY, fontSize: 13, color: C.text, lineHeight: 18 },
   commentFooter: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4, paddingHorizontal: 4 },
-  commentTime: { fontSize: 10.5, color: C.subText, fontWeight: "700" },
-  commentDeleteBtn: { fontSize: 11, color: C.red, fontWeight: "800" },
+  commentTime: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "bold" },
+  commentDeleteBtn: { fontFamily: DISPLAY, fontSize: 11, color: C.red, fontWeight: "bold" },
 
   // Input bar
   commentsInputBar: {
@@ -1893,6 +2053,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
   },
   commentsInput: {
+    fontFamily: DISPLAY,
     flex: 1, fontSize: 14, color: C.ink,
     backgroundColor: "#FAFBFC", borderRadius: 20,
     paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10,
@@ -1911,11 +2072,6 @@ const styles = StyleSheet.create({
     width: 58, height: 58, borderRadius: 29, overflow: "hidden",
     shadowColor: C.emerald600, shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8,
   },
-  fabSOS: {
-    width: 52, height: 52, borderRadius: 26, overflow: "hidden",
-    shadowColor: C.red, shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6,
-  },
-  fabSOSLabel: { color: "#fff", fontWeight: "900", fontSize: 10, marginTop: 1 },
   fabInner: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   // Share-in-Chat modal
@@ -1930,8 +2086,8 @@ const styles = StyleSheet.create({
   modalHeaderGrad: { paddingHorizontal: 16, paddingVertical: 16 },
   modalHeaderRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   modalHeaderIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
-  modalTitle: { fontSize: 17, fontWeight: "800", color: "#fff" },
-  modalSub: { fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 1 },
+  modalTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: "#fff" },
+  modalSub: { fontFamily: DISPLAY, fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 1 },
   modalCloseBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.15)" },
 
   modalPreview: {
@@ -1941,15 +2097,15 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "#A7F3D0",
   },
   modalPreviewIcon: { width: 28, height: 28, borderRadius: 9, backgroundColor: "rgba(5,150,105,0.15)", alignItems: "center", justifyContent: "center" },
-  modalPreviewName: { fontSize: 12, color: C.emerald700, fontWeight: "800" },
-  modalPreviewContent: { fontSize: 12.5, color: C.text, marginTop: 4, lineHeight: 17 },
+  modalPreviewName: { fontFamily: DISPLAY, fontSize: 12, color: C.emerald700, fontWeight: "bold" },
+  modalPreviewContent: { fontFamily: DISPLAY, fontSize: 12.5, color: C.text, marginTop: 4, lineHeight: 17 },
 
-  modalListLabel: { fontSize: 10, color: C.subText, fontWeight: "800", letterSpacing: 0.6, marginBottom: 8, marginTop: 8 },
+  modalListLabel: { fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "bold", letterSpacing: 0.6, marginBottom: 8, marginTop: 8 },
 
   modalEmpty: { padding: 32, alignItems: "center" },
   modalEmptyIconWrap: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 10 },
-  modalEmptyTitle: { fontSize: 15, fontWeight: "800", color: C.ink, marginTop: 6 },
-  modalEmptySub: { fontSize: 12, color: C.subText, marginTop: 4, textAlign: "center", lineHeight: 17 },
+  modalEmptyTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: "bold", color: C.ink, marginTop: 6 },
+  modalEmptySub: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, marginTop: 4, textAlign: "center", lineHeight: 17 },
 
   convRow: {
     flexDirection: "row", alignItems: "center", gap: 12,
@@ -1958,13 +2114,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   convAvatar: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  convAvatarText: { color: "#fff", fontWeight: "900", fontSize: 13 },
+  convAvatarText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
   convNameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  convName: { flex: 1, fontSize: 14, fontWeight: "800", color: C.ink },
+  convName: { fontFamily: DISPLAY, flex: 1, fontSize: 14, fontWeight: "bold", color: C.ink },
   convTypePill: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
-  convTypePillText: { fontSize: 9.5, fontWeight: "800", letterSpacing: 0.3 },
-  convSub: { fontSize: 11, color: C.subText, marginTop: 2, fontWeight: "600" },
+  convTypePillText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.3 },
+  convSub: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, marginTop: 2, fontWeight: "600" },
   sendIconBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center" },
   sentBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999, backgroundColor: C.emerald600 },
-  sentBadgeText: { color: "#fff", fontSize: 10, fontWeight: "900", letterSpacing: 0.5 },
+  sentBadgeText: { fontFamily: DISPLAY, color: "#fff", fontSize: 10, fontWeight: "bold", letterSpacing: 0.5 },
 });

@@ -2,16 +2,18 @@
 // REDESIGNED — emerald-themed fleet calendar/timeline. Shows ongoing +
 // upcoming bookings grouped by lifecycle, with a polished "Block dates"
 // bottom-sheet for marking a vehicle unavailable.
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl, Alert, Modal, TextInput,
-  StatusBar, Platform,
+  StatusBar, Platform, Animated, Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { DISPLAY } from "../_shared/typography";
+import { SC as C, C as T, G } from "../_shared/theme";
 import {
   listFleetBookings,
   listTravelAgentFleet,
@@ -22,32 +24,38 @@ import {
 
 // Booking-type chips for the create/edit form. Customer + Reserved capture a
 // guest; Maintenance + Block just hold the dates.
+// Warm Elevate tones (was #3B82F6 / #8B5CF6 / #EF4444 / #F59E0B).
 const TYPE_OPTIONS = [
-  { key: "CUSTOMER", label: "Customer", icon: "person", color: "#3B82F6" },
-  { key: "RESERVED", label: "Reserved", icon: "bookmark", color: "#8B5CF6" },
-  { key: "MAINTENANCE", label: "Maintenance", icon: "construct", color: "#EF4444" },
-  { key: "MANUAL_BLOCK", label: "Block", icon: "lock-closed", color: "#F59E0B" },
+  { key: "CUSTOMER", label: "Customer", icon: "person", color: T.ocean },
+  { key: "RESERVED", label: "Reserved", icon: "bookmark", color: T.plum },
+  { key: "MAINTENANCE", label: "Maintenance", icon: "construct", color: T.red },
+  { key: "MANUAL_BLOCK", label: "Block", icon: "lock-closed", color: T.gold },
 ];
 const CAPTURES_CUSTOMER = (t) => t === "CUSTOMER" || t === "RESERVED";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-};
+// ── Premium warm palette (matches the Fleet list & Add Vehicle form) ──
+// Local key names are kept so no JSX changes are needed — only the VALUES now
+const GOLD = "#E4C066";
+const FILL = "#FBF8F1";
+const HEADER_GRAD = G.hero;
+
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />;
+}
 
 // Per booking-type colour + icon so each row's left stripe / pill is instantly recognisable.
 const TYPE_META = {
@@ -59,7 +67,7 @@ const TYPE_META = {
 const STATUS_COLORS = {
   CONFIRMED: { bg: "#DCFCE7", fg: "#15803D" },
   TENTATIVE: { bg: C.amberLight, fg: "#A16207" },
-  COMPLETED: { bg: "#F1F5F9", fg: "#475569" },
+  COMPLETED: { bg: FILL, fg: "#475569" },
   CANCELLED: { bg: C.redLight, fg: "#B91C1C" },
 };
 
@@ -146,32 +154,41 @@ export default function FleetCalendarScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor={T.forestDark} />
 
       {/* ===== Gradient header ===== */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={HEADER_GRAD}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 28 }}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 16, paddingBottom: 42 }}>
           <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerCircleBtn} activeOpacity={0.8}>
               <Ionicons name="arrow-back" size={22} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>Fleet Calendar</Text>
-              <Text style={styles.headerSub}>
-                {bookings.length} bookings · {vehicles.length} vehicles
-              </Text>
+            <View style={styles.headerTitleBlock}>
+              <Text style={styles.headerEyebrow}>FLEET SCHEDULE</Text>
+              <Text style={styles.headerTitle} numberOfLines={1}>Fleet Calendar</Text>
+              <View style={styles.headerBadgeRow}>
+                <View style={styles.headerBadge}>
+                  <Ionicons name="calendar-outline" size={10} color="#fff" />
+                  <Text style={styles.headerBadgeText}>{bookings.length} bookings</Text>
+                </View>
+                <View style={styles.headerBadge}>
+                  <Ionicons name="car-sport" size={10} color="#fff" />
+                  <Text style={styles.headerBadgeText}>{vehicles.length} vehicles</Text>
+                </View>
+              </View>
             </View>
             <TouchableOpacity
-              style={styles.blockBtn}
+              style={styles.headerAddBtn}
               onPress={openCreate}
               activeOpacity={0.85}
             >
-              <Ionicons name="add" size={15} color={C.emerald700} />
-              <Text style={styles.blockBtnText}>Add Booking / Block</Text>
+              <Ionicons name="add" size={22} color={C.emerald700} />
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -300,16 +317,21 @@ export default function FleetCalendarScreen({ navigation }) {
 
 /* ───────── Sub-components ───────── */
 
+// Stacked cell (icon → value → label), each element centred on the cell's
+// own axis. The previous row layout (icon beside text) centred the whole
+// icon+text group per cell, so cells with wider labels ("Upcoming") pushed
+// their icon further left than narrower ones ("Blocked") and nothing lined
+// up across the three columns. Stacking guarantees the icons share one
+// horizontal line, the values share another and the labels a third,
+// regardless of how long a label is or how many digits a value has.
 function StatCell({ value, label, icon, color }) {
   return (
     <View style={styles.statCell}>
       <View style={[styles.statIcon, { backgroundColor: `${color}18` }]}>
-        <Ionicons name={icon} size={15} color={color} />
+        <Ionicons name={icon} size={13} color={color} />
       </View>
-      <View>
-        <Text style={[styles.statValue, { color }]}>{value}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
-      </View>
+      <Text style={[styles.statValue, { color }]} numberOfLines={1}>{value}</Text>
+      <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -569,10 +591,11 @@ function BookingFormModal({ editor, vehicles, onClose, onSaved }) {
         <View style={[styles.modalSheet, { maxHeight: "90%" }]}>
           {/* Modal gradient header */}
           <LinearGradient
-            colors={["#022C22", "#064E3B", "#047857"]}
+            colors={HEADER_GRAD}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={styles.modalHeaderGrad}
           >
+            <View style={styles.grabHandle} />
             <View style={styles.modalHeaderRow}>
               <View style={styles.modalHeaderIcon}>
                 <Ionicons name={isEdit ? "create" : "calendar"} size={20} color="#fff" />
@@ -720,7 +743,7 @@ function BookingFormModal({ editor, vehicles, onClose, onSaved }) {
                 <TextInput
                   style={styles.input}
                   placeholder="e.g. Rohan Sharma"
-                  placeholderTextColor="#A3B3C2"
+                  placeholderTextColor="#A99F8D"
                   value={customerName}
                   onChangeText={setCustomerName}
                 />
@@ -728,7 +751,7 @@ function BookingFormModal({ editor, vehicles, onClose, onSaved }) {
                 <TextInput
                   style={styles.input}
                   placeholder="10-digit mobile"
-                  placeholderTextColor="#A3B3C2"
+                  placeholderTextColor="#A99F8D"
                   keyboardType="phone-pad"
                   value={customerPhone}
                   onChangeText={setCustomerPhone}
@@ -739,7 +762,7 @@ function BookingFormModal({ editor, vehicles, onClose, onSaved }) {
                     <TextInput
                       style={styles.input}
                       placeholder="From"
-                      placeholderTextColor="#A3B3C2"
+                      placeholderTextColor="#A99F8D"
                       value={pickupLocation}
                       onChangeText={setPickupLocation}
                     />
@@ -749,7 +772,7 @@ function BookingFormModal({ editor, vehicles, onClose, onSaved }) {
                     <TextInput
                       style={styles.input}
                       placeholder="To"
-                      placeholderTextColor="#A3B3C2"
+                      placeholderTextColor="#A99F8D"
                       value={dropLocation}
                       onChangeText={setDropLocation}
                     />
@@ -761,7 +784,7 @@ function BookingFormModal({ editor, vehicles, onClose, onSaved }) {
                     <TextInput
                       style={styles.input}
                       placeholder="0"
-                      placeholderTextColor="#A3B3C2"
+                      placeholderTextColor="#A99F8D"
                       keyboardType="numeric"
                       value={amount}
                       onChangeText={setAmount}
@@ -772,7 +795,7 @@ function BookingFormModal({ editor, vehicles, onClose, onSaved }) {
                     <TextInput
                       style={styles.input}
                       placeholder="Booking ref"
-                      placeholderTextColor="#A3B3C2"
+                      placeholderTextColor="#A99F8D"
                       value={bookingRefId}
                       onChangeText={setBookingRefId}
                     />
@@ -786,9 +809,9 @@ function BookingFormModal({ editor, vehicles, onClose, onSaved }) {
               <View style={styles.previewCard}>
                 <Ionicons name="information-circle" size={16} color={C.emerald700} />
                 <Text style={styles.previewText}>
-                  <Text style={{ fontWeight: "800" }}>{selectedVehicle.vehicleName}</Text>
+                  <Text style={{ fontWeight: "bold" }}>{selectedVehicle.vehicleName}</Text>
                   {capturesCustomer ? " booked for " : " blocked for "}
-                  <Text style={{ fontWeight: "800" }}>{totalDays}d</Text> ·{" "}
+                  <Text style={{ fontWeight: "bold" }}>{totalDays}d</Text> ·{" "}
                   {fmtShort(startDate)} → {fmtShort(endDate)}
                 </Text>
               </View>
@@ -798,7 +821,7 @@ function BookingFormModal({ editor, vehicles, onClose, onSaved }) {
             <TextInput
               style={styles.input}
               placeholder={capturesCustomer ? "Anything else about this trip" : "e.g. Service visit, owner trip, repair"}
-              placeholderTextColor="#A3B3C2"
+              placeholderTextColor="#A99F8D"
               value={notes}
               onChangeText={setNotes}
             />
@@ -846,100 +869,150 @@ function BookingFormModal({ editor, vehicles, onClose, onSaved }) {
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
   // Header
-  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 2 },
-
-  blockBtn: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: "#fff",
+  headerGrad: { borderBottomLeftRadius: 26, borderBottomRightRadius: 26, overflow: "hidden", position: "relative" },
+  orbA: {
+    position: "absolute", top: -44, right: -28,
+    width: 170, height: 170, borderRadius: 85,
+    backgroundColor: "rgba(228,192,102,0.10)",
   },
-  blockBtnText: { color: C.emerald700, fontWeight: "800", fontSize: 12 },
+  orbB: {
+    position: "absolute", bottom: -30, left: -34,
+    width: 140, height: 140, borderRadius: 70,
+    backgroundColor: "rgba(23,166,124,0.14)",
+  },
+  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 14 },
+  headerCircleBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    alignItems: "center", justifyContent: "center",
+  },
+  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  headerTitleBlock: { flex: 1, marginLeft: 12, marginRight: 10 },
+  headerEyebrow: { fontFamily: DISPLAY, color: GOLD, fontSize: 10, fontWeight: "bold", letterSpacing: 1.8, textTransform: "uppercase", marginBottom: 3 },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 21, fontWeight: "bold", color: "#fff", letterSpacing: 0.2 },
+  headerBadgeRow: { flexDirection: "row", gap: 6, marginTop: 7 },
+  headerBadge: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.14)",
+  },
+  headerBadgeText: { fontFamily: DISPLAY, color: "#fff", fontSize: 10, fontWeight: "bold", letterSpacing: 0.2 },
+  headerAddBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: "#fff",
+    alignItems: "center", justifyContent: "center",
+    shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4,
+  },
 
   // Floating stats card
+  // `alignItems: stretch` lets every cell claim the card's full height, so the
+  // dividers span the same distance and the three columns are exact thirds
+  // (flex:1 each) instead of being spread by `space-around`.
   statsCard: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-around",
-    backgroundColor: C.card, marginHorizontal: 16, marginTop: -22,
-    borderRadius: 16, paddingVertical: 12, paddingHorizontal: 8,
+    flexDirection: "row", alignItems: "stretch",
+    backgroundColor: C.card, marginHorizontal: 26, marginTop: -24, zIndex: 2,
+    borderRadius: 16, paddingVertical: 10, paddingHorizontal: 4,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3,
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOpacity: 0.1, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } },
+      android: { elevation: 4 },
+    }),
   },
-  statCell: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, justifyContent: "center" },
-  statIcon: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  statValue: { fontSize: 16, fontWeight: "900" },
-  statLabel: { fontSize: 10.5, color: C.subText, fontWeight: "700", marginTop: 1, letterSpacing: 0.3 },
-  statDivider: { width: 1, height: 28, backgroundColor: C.border },
+  statCell: { flex: 1, alignItems: "center", justifyContent: "flex-start", paddingHorizontal: 2 },
+  statIcon: {
+    width: 24, height: 24, borderRadius: 8,
+    alignItems: "center", justifyContent: "center", marginBottom: 4,
+  },
+  // includeFontPadding:false strips the extra leading Android adds around
+  // text — the main reason the value/label pair used to sit optically high
+  // inside the card. Explicit lineHeight + tabular figures keep the row from
+  // shifting when a count goes 9 → 10.
+  statValue: {
+    fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold",
+    lineHeight: 19, textAlign: "center",
+    includeFontPadding: false, fontVariant: ["tabular-nums"],
+  },
+  // Uppercase removes the descenders ("Ongoing"/"Upcoming" have g/p, "Blocked"
+  // has none), so all three labels present the same visual height and sit on
+  // one clean line.
+  statLabel: {
+    fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "bold",
+    lineHeight: 12, marginTop: 1, letterSpacing: 0.4,
+    textAlign: "center", textTransform: "uppercase", includeFontPadding: false,
+  },
+  statDivider: { width: 1, height: 34, alignSelf: "center", backgroundColor: C.border },
 
-  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: C.red, fontSize: 12.5, flex: 1 },
+  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, padding: 10, backgroundColor: C.redLight, borderRadius: 10, borderWidth: 1, borderColor: "#F0CFC9" },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 12.5, flex: 1 },
 
   // Loading / empty
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
-  loadingText: { fontSize: 13, color: C.subText, fontWeight: "600" },
+  loadingText: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, fontWeight: "600" },
   scroll: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 },
   emptyState: { alignItems: "center", padding: 24, paddingTop: 32 },
   emptyIconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  emptyTitle: { fontSize: 17, fontWeight: "800", color: C.ink, marginTop: 6 },
-  emptyBody: { fontSize: 13, color: C.subText, marginTop: 6, textAlign: "center", paddingHorizontal: 16, lineHeight: 18 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, marginTop: 6 },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 6, textAlign: "center", paddingHorizontal: 16, lineHeight: 18 },
   emptyCta: { marginTop: 16, borderRadius: 12, overflow: "hidden" },
   emptyCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11 },
-  emptyCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  emptyCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
 
   // Group section
   groupBlock: { marginBottom: 18 },
   groupHeader: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4, marginBottom: 10 },
   groupHeaderIcon: { width: 28, height: 28, borderRadius: 9, alignItems: "center", justifyContent: "center" },
-  groupTitle: { fontSize: 13.5, fontWeight: "800", flex: 1, letterSpacing: 0.3 },
+  groupTitle: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: "bold", flex: 1, letterSpacing: 0.3 },
   groupCount: { minWidth: 22, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, alignItems: "center" },
-  groupCountText: { color: "#fff", fontSize: 11, fontWeight: "800" },
+  groupCountText: { fontFamily: DISPLAY, color: "#fff", fontSize: 11, fontWeight: "bold" },
 
   // Booking row
   row: {
     flexDirection: "row",
-    backgroundColor: C.card, borderRadius: 14, marginBottom: 10,
+    backgroundColor: C.card, borderRadius: 16, marginBottom: 12,
     borderWidth: 1, borderColor: C.border, overflow: "hidden",
-    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1,
+    ...Platform.select({
+      ios: { shadowColor: "#2A2216", shadowOpacity: 0.07, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } },
+      android: { elevation: 2 },
+    }),
   },
-  rowStripe: { width: 4 },
-  rowMain: { flex: 1, padding: 12 },
+  rowStripe: { width: 5 },
+  rowMain: { flex: 1, padding: 14 },
 
-  rowTopRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
-  typeBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
-  typeBadgeText: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.3 },
-  statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-  statusText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.3 },
+  rowTopRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 11 },
+  typeBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999 },
+  typeBadgeText: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold", letterSpacing: 0.3 },
+  statusPill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999 },
+  statusText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.4 },
 
-  rowVehicleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
-  rowVehicle: { fontSize: 14, fontWeight: "800", color: C.ink, flex: 1 },
-  regPill: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: "#F1F5F9" },
-  regPillText: { fontSize: 10, fontWeight: "800", color: C.text, letterSpacing: 0.5 },
+  rowVehicleRow: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 11 },
+  rowVehicle: { fontFamily: DISPLAY, fontSize: 15.5, fontWeight: "bold", color: C.ink, flex: 1, letterSpacing: 0.2 },
+  regPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7, backgroundColor: FILL, borderWidth: 1, borderColor: C.border },
+  regPillText: { fontFamily: DISPLAY, fontSize: 10, fontWeight: "bold", color: C.text, letterSpacing: 0.6 },
 
-  // Date bar (start → end visual)
+  // Date bar (start → end visual) — premium
   dateBar: {
     flexDirection: "row", alignItems: "center",
-    backgroundColor: "#FAFBFC", borderRadius: 10, paddingVertical: 8, paddingHorizontal: 6,
-    marginBottom: 8, borderWidth: 1, borderColor: C.border,
+    backgroundColor: FILL, borderRadius: 13, paddingVertical: 11, paddingHorizontal: 8,
+    marginBottom: 11, borderWidth: 1, borderColor: C.border,
   },
-  dateBox: { alignItems: "center", paddingHorizontal: 6, minWidth: 60 },
-  dateBoxLabel: { fontSize: 9, color: C.subText, fontWeight: "800", letterSpacing: 0.5 },
-  dateBoxValue: { fontSize: 13, color: C.ink, fontWeight: "800", marginTop: 1 },
+  dateBox: { alignItems: "center", paddingHorizontal: 6, minWidth: 62 },
+  dateBoxLabel: { fontFamily: DISPLAY, fontSize: 8.5, color: C.subText, fontWeight: "bold", letterSpacing: 0.6 },
+  dateBoxValue: { fontFamily: DISPLAY, fontSize: 14.5, color: C.ink, fontWeight: "bold", marginTop: 2 },
   dateArrow: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4 },
   dateLine: { flex: 1, height: 2, borderRadius: 1 },
-  dateDaysBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, borderWidth: 1 },
-  dateDaysText: { fontSize: 10, fontWeight: "800" },
+  dateDaysBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, borderWidth: 1.5 },
+  dateDaysText: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold" },
 
-  rowMeta: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 },
-  rowMetaText: { fontSize: 11.5, color: C.subText, fontWeight: "600", flexShrink: 1 },
-  rowMetaDot: { fontSize: 11, color: C.subText, fontWeight: "800" },
+  rowMeta: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
+  rowMetaText: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "600", flexShrink: 1 },
+  rowMetaDot: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "bold" },
 
   notesBox: {
-    flexDirection: "row", alignItems: "flex-start", gap: 5,
-    marginTop: 8, padding: 8, backgroundColor: "#F8FAFC", borderRadius: 8,
+    flexDirection: "row", alignItems: "flex-start", gap: 6,
+    marginTop: 10, padding: 10, backgroundColor: FILL, borderRadius: 10, borderWidth: 1, borderColor: C.border,
   },
-  notesText: { fontSize: 11.5, color: C.text, fontStyle: "italic", flex: 1, lineHeight: 16 },
+  notesText: { fontFamily: DISPLAY, fontSize: 11.5, color: C.text, fontStyle: "italic", flex: 1, lineHeight: 16 },
 
   // FAB
   fab: {
@@ -950,60 +1023,63 @@ const styles = StyleSheet.create({
   fabInner: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   // Modal
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.86)", justifyContent: "flex-end" },
   modalSheet: {
     backgroundColor: C.card,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderTopLeftRadius: 26, borderTopRightRadius: 26,
     paddingBottom: Platform.OS === "ios" ? 24 : 12,
     overflow: "hidden",
+    shadowColor: "#000", shadowOpacity: 0.45, shadowRadius: 24, shadowOffset: { width: 0, height: -10 }, elevation: 24,
   },
-  modalHeaderGrad: { paddingHorizontal: 16, paddingVertical: 16 },
+  modalHeaderGrad: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 16 },
+  grabHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.38)", alignSelf: "center", marginBottom: 12 },
   modalHeaderRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   modalHeaderIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
-  modalTitle: { fontSize: 18, fontWeight: "800", color: "#fff" },
-  modalSub: { fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 1 },
+  modalTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: "bold", color: "#fff" },
+  modalSub: { fontFamily: DISPLAY, fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 1 },
   modalCloseBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.15)" },
 
-  modalLabel: { fontSize: 12, fontWeight: "700", color: C.text, marginBottom: 8, marginTop: 14 },
+  modalLabel: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.text, marginBottom: 8, marginTop: 14 },
   // Booking-type / status chips
   typeChips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   typeChip: {
     flexDirection: "row", alignItems: "center", gap: 5,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-    borderWidth: 1.5, borderColor: C.border, backgroundColor: "#FAFBFC",
+    borderWidth: 1.5, borderColor: C.border, backgroundColor: FILL,
   },
-  typeChipText: { fontSize: 12, fontWeight: "800", letterSpacing: 0.2 },
+  typeChipText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", letterSpacing: 0.2 },
   modalEmptyHint: { flexDirection: "row", alignItems: "center", gap: 6, padding: 12, backgroundColor: C.amberLight, borderRadius: 10 },
-  modalEmptyHintText: { fontSize: 12, color: "#A16207", fontWeight: "600", flex: 1 },
+  modalEmptyHintText: { fontFamily: DISPLAY, fontSize: 12, color: "#A16207", fontWeight: "600", flex: 1 },
 
   vehicleRow: {
     flexDirection: "row", alignItems: "center", gap: 10,
     padding: 10, borderRadius: 10,
-    borderWidth: 1.5, borderColor: C.border, backgroundColor: "#FAFBFC",
+    borderWidth: 1.5, borderColor: C.border, backgroundColor: FILL,
     marginBottom: 6,
   },
   vehicleRadio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: C.border, alignItems: "center", justifyContent: "center" },
-  vehName: { fontSize: 13.5, fontWeight: "800", color: C.ink },
-  vehSub: { fontSize: 11, color: C.subText, marginTop: 2, fontWeight: "600" },
+  vehName: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: "bold", color: C.ink },
+  vehSub: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, marginTop: 2, fontWeight: "600" },
 
   row2: { flexDirection: "row", gap: 10 },
   dateField: {
     flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: "#FAFBFC", borderWidth: 1.5, borderColor: C.border,
+    backgroundColor: FILL, borderWidth: 1.5, borderColor: C.border,
     borderRadius: 10, paddingHorizontal: 12, height: 46,
   },
-  dateFieldText: { flex: 1, fontSize: 13.5, color: C.ink, fontWeight: "700" },
-  dateFieldPlaceholder: { color: "#A3B3C2", fontWeight: "600" },
+  dateFieldText: { fontFamily: DISPLAY, flex: 1, fontSize: 13.5, color: C.ink, fontWeight: "bold" },
+  dateFieldPlaceholder: { color: "#A99F8D", fontWeight: "600" },
 
   previewCard: {
     flexDirection: "row", alignItems: "flex-start", gap: 8,
     marginTop: 14, padding: 12, borderRadius: 12,
     backgroundColor: C.emerald50, borderWidth: 1, borderColor: C.emerald600,
   },
-  previewText: { flex: 1, fontSize: 12.5, color: C.emerald700, fontWeight: "600", lineHeight: 17 },
+  previewText: { fontFamily: DISPLAY, flex: 1, fontSize: 12.5, color: C.emerald700, fontWeight: "600", lineHeight: 17 },
 
   input: {
-    backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border, borderRadius: 10,
+    fontFamily: DISPLAY,
+    backgroundColor: FILL, borderWidth: 1, borderColor: C.border, borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: C.ink, minHeight: 46,
   },
 
@@ -1012,5 +1088,5 @@ const styles = StyleSheet.create({
     shadowColor: C.emerald600, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4,
   },
   publishBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14 },
-  publishBtnText: { color: "#fff", fontWeight: "800", fontSize: 14.5 },
+  publishBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 14.5 },
 });

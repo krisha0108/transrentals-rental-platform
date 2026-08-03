@@ -1,46 +1,39 @@
 // screens/travel-agent/properties/PropertiesListScreen.js
-// REDESIGNED — emerald-themed properties list with gradient header,
-// embedded search, type filter chips, floating stats card, and image-hero
-// property cards (matching Tours list pattern).
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+// REDESIGNED (v2) — premium "Deep Emerald + Champagne" properties list.
+// Deep gradient header with animated orbs + gold eyebrow + embedded search,
+// floating stats card, type filter chips, and image-hero property cards on a
+// warm-cream canvas (matches the Add/Edit Property form).
+// NOTE: UI-only redesign — all state, data loading, toggle/delete handlers and
+// API calls are unchanged from the previous version.
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
   RefreshControl, ActivityIndicator, ScrollView, Alert, StatusBar,
+  Animated, Easing, Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import { listTravelAgentProperties, updateTravelAgentProperty, deleteTravelAgentProperty, PROPERTY_TYPE } from "../../api/travelAgentClient";
 import RemoteImage from "../_shared/RemoteImage";
+import { DISPLAY } from "../_shared/typography";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  purple: "#8B5CF6",
-};
+const GOLD = C.gold;
+const FILL = "#FBF8F1";
+// Canonical Elevate hero gradient (was #0B211A — one shade off the dashboard).
+const HEADER_GRAD = ["#0F2A22", "#16382E", "#1C6B52"];
 
-// Per-type colour + icon so cards have visual variety.
+// Per-type colour + icon (matches the form so list & detail read the same).
 const TYPE_META = {
-  RESORT:      { icon: "umbrella",      color: "#F97316", label: "Resort" },
+  RESORT:      { icon: "umbrella",      color: "#C4703A", label: "Resort" },
   HOTEL:       { icon: "business",      color: C.blue,    label: "Hotel" },
   HOMESTAY:    { icon: "home",          color: C.emerald600, label: "Homestay" },
   APARTMENT:   { icon: "grid",          color: C.purple,  label: "Apartment" },
-  VILLA:       { icon: "diamond",       color: "#EC4899", label: "Villa" },
+  VILLA:       { icon: "diamond",       color: "#B0567A", label: "Villa" },
   GUEST_HOUSE: { icon: "people",        color: C.amber,   label: "Guest house" },
-  HOSTEL:      { icon: "bed",           color: "#06B6D4", label: "Hostel" },
-  ROOMS:       { icon: "bed-outline",   color: "#64748B", label: "Rooms" },
+  HOSTEL:      { icon: "bed",           color: "#2C6E8C", label: "Hostel" },
+  ROOMS:       { icon: "bed-outline",   color: C.subText, label: "Rooms" },
   OTHER:       { icon: "ellipsis-horizontal", color: C.subText, label: "Other" },
 };
 
@@ -63,6 +56,24 @@ function parseAmenityIds(raw) {
 function completenessScore(p) {
   const checks = [!!p.name, !!p.description, !!p.city, !!p.coverImage, !!p.startingPrice, !!p.amenities, !!p.inclusions];
   return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+}
+
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />;
 }
 
 export default function PropertiesListScreen({ navigation }) {
@@ -155,30 +166,31 @@ export default function PropertiesListScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor={HEADER_GRAD[0]} />
 
-      {/* ===== Gradient header with embedded search ===== */}
+      {/* ===== Gradient header with animated orbs + embedded search ===== */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={HEADER_GRAD}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 18 }}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 16, paddingBottom: 40 }}>
           <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerCircleBtn} activeOpacity={0.8}>
               <Ionicons name="arrow-back" size={22} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.headerEyebrow}>YOUR PORTFOLIO</Text>
               <Text style={styles.headerTitle}>Properties</Text>
-              <Text style={styles.headerSub}>
-                Resorts · Hotels · Villas · Homestays
-              </Text>
             </View>
             <TouchableOpacity
-              style={styles.iconBtn}
+              style={styles.headerCircleBtn}
               onPress={() => navigation.navigate("TAAddEditProperty")}
+              activeOpacity={0.8}
             >
-              <Ionicons name="add-circle" size={26} color="#fff" />
+              <Ionicons name="add" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
 
@@ -187,7 +199,7 @@ export default function PropertiesListScreen({ navigation }) {
             <TextInput
               style={styles.searchInput}
               placeholder="Search by name, city…"
-              placeholderTextColor="#A3B3C2"
+              placeholderTextColor="#A99F8D"
               value={search}
               onChangeText={setSearch}
             />
@@ -203,13 +215,10 @@ export default function PropertiesListScreen({ navigation }) {
       {/* ===== Stats card ===== */}
       {stats && (
         <View style={styles.statsCard}>
-          <StatCell value={stats.total ?? 0} label="Total" icon="bed" color={C.emerald600} />
-          <View style={styles.statDivider} />
-          <StatCell value={stats.active ?? 0} label="Active" icon="checkmark-circle" color={C.blue} />
-          <View style={styles.statDivider} />
-          <StatCell value={stats.published ?? 0} label="Public" icon="globe" color={C.purple} />
-          <View style={styles.statDivider} />
-          <StatCell value={stats.avgRating ?? "—"} label="Avg Rating" icon="star" color={C.amber} />
+          <StatCell value={stats.total ?? 0} label="Total" icon="bed" color={C.emerald600} tint={C.emerald50} />
+          <StatCell value={stats.active ?? 0} label="Active" icon="checkmark-circle" color={C.blue} tint={C.blueLight} />
+          <StatCell value={stats.published ?? 0} label="Public" icon="globe" color={C.purple} tint={C.purpleLight} />
+          <StatCell value={stats.avgRating ?? "—"} label="Rating" icon="star" color={GOLD} tint={C.amberLight} />
         </View>
       )}
 
@@ -304,7 +313,7 @@ export default function PropertiesListScreen({ navigation }) {
                   activeOpacity={0.9}
                 >
                   <LinearGradient
-                    colors={[C.emerald600, C.emerald700]}
+                    colors={[C.emerald500, C.emerald700]}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                     style={styles.emptyCtaInner}
                   >
@@ -338,16 +347,16 @@ export default function PropertiesListScreen({ navigation }) {
 
 /* ───────── Sub-components ───────── */
 
-function StatCell({ value, label, icon, color }) {
+// Segmented stat cell — each metric gets its own soft-tinted tile so the strip
+// reads as four distinct facts without needing divider hairlines between them.
+function StatCell({ value, label, icon, color, tint }) {
   return (
-    <View style={styles.statCell}>
-      <View style={[styles.statIcon, { backgroundColor: `${color}18` }]}>
-        <Ionicons name={icon} size={15} color={color} />
+    <View style={[styles.statCell, { backgroundColor: tint }]}>
+      <View style={styles.statTop}>
+        <Ionicons name={icon} size={13} color={color} />
+        <Text style={[styles.statValue, { color }]} numberOfLines={1}>{value}</Text>
       </View>
-      <View>
-        <Text style={[styles.statValue, { color }]}>{value}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
-      </View>
+      <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -359,22 +368,24 @@ function TypeChip({ label, icon, count, active, onPress, color }) {
       activeOpacity={0.78}
       style={styles.typeChipWrap}
     >
-      <View style={[
-        styles.typeChipIcon,
-        active
-          ? { backgroundColor: color }
-          : { backgroundColor: C.card, borderColor: C.border, borderWidth: 1 },
-      ]}>
-        <Ionicons name={icon} size={20} color={active ? "#fff" : C.subText} />
+      <View style={styles.typeChipIconWrap}>
+        <View style={[
+          styles.typeChipIcon,
+          active
+            ? { backgroundColor: color, borderColor: color, borderWidth: 1 }
+            : { backgroundColor: C.card, borderColor: C.border, borderWidth: 1 },
+        ]}>
+          <Ionicons name={icon} size={20} color={active ? "#fff" : C.subText} />
+        </View>
         {count > 0 && (
-          <View style={[styles.typeChipBadge, { backgroundColor: active ? "rgba(255,255,255,0.3)" : C.emerald50 }]}>
-            <Text style={[styles.typeChipBadgeText, { color: active ? "#fff" : C.emerald700 }]}>{count}</Text>
+          <View style={[styles.typeChipBadge, { backgroundColor: active ? color : C.emerald600 }]}>
+            <Text style={[styles.typeChipBadgeText, { color: "#fff" }]}>{count}</Text>
           </View>
         )}
       </View>
       <Text style={[
         styles.typeChipLabel,
-        active && { color, fontWeight: "800" },
+        active && { color, fontWeight: "bold" },
       ]}>
         {label}
       </Text>
@@ -390,9 +401,28 @@ function PropertyCard({ property, onPress, onToggleActive, onTogglePublish, onDe
   const meta = TYPE_META[property.propertyType] || TYPE_META.OTHER;
   const cityLine = [property.city, property.state].filter(Boolean).join(", ");
   const amenityIds = parseAmenityIds(property.amenities);
-  const topAmenities = amenityIds.slice(0, 4).map((id) => AMENITY_LABEL_MAP[id]).filter(Boolean);
+  // The bookings pill now shares the chip row, so show one fewer amenity when
+  // it's present — the "+N" chip still accounts for every hidden amenity.
+  const amenityShown = property.totalBookings > 0 ? 3 : 4;
+  const topAmenities = amenityIds.slice(0, amenityShown).map((id) => AMENITY_LABEL_MAP[id]).filter(Boolean);
   const pct = completenessScore(property);
   const hasRating = (property.totalRatings || 0) > 0;
+
+  // Capacity figures for the spec strip — same `> 0` guards the old inline
+  // meta line used, just collected in one place so the strip can lay them out
+  // with dividers and skip the ones this property doesn't have.
+  const specs = [
+    property.totalRooms > 0 && { icon: "bed", value: property.totalRooms, label: "rooms" },
+    property.bedroomsCount > 0 && {
+      icon: "bed-outline", value: property.bedroomsCount,
+      label: property.bedroomsCount !== 1 ? "beds" : "bed",
+    },
+    property.bathroomsCount > 0 && {
+      icon: "water-outline", value: property.bathroomsCount,
+      label: property.bathroomsCount !== 1 ? "baths" : "bath",
+    },
+    property.maxGuests > 0 && { icon: "people", value: property.maxGuests, label: "guests" },
+  ].filter(Boolean);
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.92}>
@@ -403,18 +433,32 @@ function PropertyCard({ property, onPress, onToggleActive, onTogglePublish, onDe
         ) : (
           <LinearGradient colors={[`${meta.color}22`, `${meta.color}08`]} style={[styles.cover, styles.coverPlaceholder]}>
             <Ionicons name={meta.icon} size={44} color={meta.color} />
-            <Text style={{ color: meta.color, fontSize: 11, fontWeight: "700", marginTop: 4 }}>No photo</Text>
+            <Text style={{ fontFamily: DISPLAY, color: meta.color, fontSize: 11, fontWeight: "bold", marginTop: 4 }}>No photo</Text>
           </LinearGradient>
         )}
-        <LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.55)"]} style={styles.coverOverlay} />
+        {/* Scrim — only what the top badges need, plus a whisper at the bottom
+            so the photo doesn't hard-cut into the white body. The name lives
+            below the image now, so no heavy bottom gradient. */}
+        <LinearGradient
+          colors={["rgba(0,0,0,0.30)", "rgba(0,0,0,0)", "rgba(0,0,0,0.10)"]}
+          locations={[0, 0.42, 1]}
+          style={styles.coverOverlay}
+          pointerEvents="none"
+        />
 
-        <View style={[styles.typePill, { backgroundColor: meta.color }]}>
-          <Ionicons name={meta.icon} size={11} color="#fff" />
-          <Text style={styles.typePillText}>{meta.label}</Text>
+        {/* Type tag — a solid coloured icon cap joined to a frosted label.
+            The old version was one fully-opaque colour block, which sat on the
+            photo like a sticker. */}
+        <View style={styles.typePill}>
+          <View style={[styles.typePillCap, { backgroundColor: meta.color }]}>
+            <Ionicons name={meta.icon} size={12} color="#fff" />
+          </View>
+          <Text style={styles.typePillText} numberOfLines={1}>{meta.label}</Text>
         </View>
 
         {isPublic ? (
           <View style={styles.publicBadge}>
+            <View style={styles.publicDot} />
             <Ionicons name="globe" size={10} color="#fff" />
             <Text style={styles.publicBadgeText}>PUBLISHED</Text>
           </View>
@@ -424,96 +468,105 @@ function PropertyCard({ property, onPress, onToggleActive, onTogglePublish, onDe
           </View>
         )}
 
-        {priceLabel && (
-          <View style={styles.priceBadge}>
-            <Text style={styles.priceBadgeText}>{priceLabel}<Text style={{ fontSize: 9, fontWeight: "600" }}>/night</Text></Text>
-          </View>
-        )}
-
-        <View style={styles.coverFooter}>
-          <Text style={styles.coverTitle} numberOfLines={1}>{property.name}</Text>
-          {!!cityLine && (
-            <View style={styles.cityRow}>
-              <Ionicons name="location" size={11} color="rgba(255,255,255,0.9)" />
-              <Text style={styles.coverCity} numberOfLines={1}>{cityLine}</Text>
-            </View>
-          )}
-        </View>
       </View>
 
       {/* Body */}
       <View style={styles.cardBody}>
-        {/* Rating + bookings */}
-        <View style={styles.ratingRow}>
-          {hasRating ? (
-            <View style={styles.starsWrap}>
-              <Ionicons name="star" size={12} color="#F59E0B" />
-              <Text style={styles.ratingText}>{(property.rating || 0).toFixed(1)}</Text>
-              <Text style={styles.ratingCount}>({property.totalRatings})</Text>
+        {/* Head — name/city on the left, price plate on the right. One row, so
+            a long name can never collide with the price. */}
+        <View style={styles.headRow}>
+          <View style={styles.headMain}>
+            <Text style={styles.title} numberOfLines={1}>{property.name}</Text>
+            {/* Meta line — city and rating share one line instead of the rating
+                owning a whole pill row of its own. */}
+            <View style={styles.metaLine}>
+              {!!cityLine && (
+                <>
+                  <Ionicons name="location" size={11} color={GOLD} />
+                  <Text style={styles.cityText} numberOfLines={1}>{cityLine}</Text>
+                  <View style={styles.metaDot} />
+                </>
+              )}
+              {hasRating ? (
+                <>
+                  <Ionicons name="star" size={10.5} color={GOLD} />
+                  <Text style={styles.ratingInline}>{(property.rating || 0).toFixed(1)}</Text>
+                  <Text style={styles.ratingInlineCount}>({property.totalRatings})</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="sparkles" size={10.5} color={GOLD} />
+                  <Text style={styles.ratingInline}>New</Text>
+                </>
+              )}
             </View>
-          ) : (
-            <Text style={styles.noRating}>No reviews yet</Text>
-          )}
-          {property.totalBookings > 0 && (
-            <Text style={styles.bookingCount}>· {property.totalBookings} booking{property.totalBookings !== 1 ? "s" : ""}</Text>
-          )}
-        </View>
+          </View>
 
-        {/* Capacity row */}
-        <View style={styles.metaPills}>
-          {property.totalRooms > 0 && (
-            <View style={styles.metaPill}>
-              <Ionicons name="bed" size={11} color={C.text} />
-              <Text style={styles.metaPillText}>{property.totalRooms} rooms</Text>
-            </View>
-          )}
-          {property.bedroomsCount > 0 && (
-            <View style={styles.metaPill}>
-              <Ionicons name="bed-outline" size={11} color={C.text} />
-              <Text style={styles.metaPillText}>{property.bedroomsCount} bed{property.bedroomsCount !== 1 ? "s" : ""}</Text>
-            </View>
-          )}
-          {property.bathroomsCount > 0 && (
-            <View style={styles.metaPill}>
-              <Ionicons name="water-outline" size={11} color={C.text} />
-              <Text style={styles.metaPillText}>{property.bathroomsCount} bath{property.bathroomsCount !== 1 ? "s" : ""}</Text>
-            </View>
-          )}
-          {property.maxGuests > 0 && (
-            <View style={styles.metaPill}>
-              <Ionicons name="people" size={11} color={C.text} />
-              <Text style={styles.metaPillText}>{property.maxGuests} guests</Text>
+          {!!priceLabel && (
+            <View style={styles.priceBadge}>
+              <Text style={styles.priceBadgeText} numberOfLines={1}>{priceLabel}</Text>
+              <Text style={styles.priceBadgeSuffix}>/night</Text>
             </View>
           )}
         </View>
 
-        {/* Amenity chips */}
-        {topAmenities.length > 0 && (
-          <View style={styles.amenityChipsRow}>
+        {/* Spec strip — capacity figures in one enclosed row with hairline
+            dividers and a single muted icon colour. The old version was a
+            free-wrapping line where every item had its own bright icon colour
+            (emerald / blue / teal / purple / gold / grey), which read as noise. */}
+        {specs.length > 0 && (
+          <View style={styles.specStrip}>
+            {specs.map((s, i) => (
+              <React.Fragment key={s.label}>
+                {i > 0 && <View style={styles.specDivider} />}
+                <View style={styles.specCell}>
+                  <Ionicons name={s.icon} size={13} color={C.emerald600} />
+                  <Text style={styles.specValue}>{s.value}</Text>
+                  <Text style={styles.specLabel} numberOfLines={1}>{s.label}</Text>
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+        )}
+
+        {/* Chip row — bookings count and amenities share one wrapping row.
+            They were two separate rows before, which cost a full row of height
+            for what is visually the same kind of pill. */}
+        {(property.totalBookings > 0 || topAmenities.length > 0) && (
+          <View style={styles.cardChipsRow}>
+            {property.totalBookings > 0 && (
+              <View style={styles.bookingsPill}>
+                <Ionicons name="calendar" size={11} color={C.subText} />
+                <Text style={styles.bookingsPillText}>
+                  {property.totalBookings} booking{property.totalBookings !== 1 ? "s" : ""}
+                </Text>
+              </View>
+            )}
             {topAmenities.map((label) => (
               <View key={label} style={styles.amenityChipSmall}>
                 <Text style={styles.amenityChipSmallText}>{label}</Text>
               </View>
             ))}
-            {amenityIds.length > 4 && (
-              <View style={[styles.amenityChipSmall, { backgroundColor: C.emerald50 }]}>
-                <Text style={[styles.amenityChipSmallText, { color: C.emerald700 }]}>+{amenityIds.length - 4}</Text>
+            {amenityIds.length > amenityShown && (
+              <View style={styles.amenityChipMore}>
+                <Text style={styles.amenityChipMoreText}>+{amenityIds.length - amenityShown}</Text>
               </View>
             )}
           </View>
         )}
 
-        {/* Completeness bar */}
+        {/* Completeness — a single slim line rather than a labelled block */}
         {pct < 100 && (
           <View style={styles.completenessWrap}>
-            <View style={styles.completenessHeader}>
-              <Text style={styles.completenessLabel}>Profile {pct}% complete</Text>
-            </View>
+            <View style={[styles.completenessDot, { backgroundColor: pct >= 70 ? GOLD : C.red }]} />
+            <Text style={styles.completenessLabel}>Profile {pct}% complete</Text>
             <View style={styles.completenessTrack}>
-              <View style={[styles.completenessBar, {
-                width: `${pct}%`,
-                backgroundColor: pct >= 70 ? C.amber : C.red,
-              }]} />
+              <View
+                style={[
+                  styles.completenessBar,
+                  { width: `${pct}%`, backgroundColor: pct >= 70 ? GOLD : C.red },
+                ]}
+              />
             </View>
           </View>
         )}
@@ -521,14 +574,24 @@ function PropertyCard({ property, onPress, onToggleActive, onTogglePublish, onDe
         {/* Actions */}
         <View style={styles.propActions}>
           <TouchableOpacity
-            style={[styles.propActBtn, { backgroundColor: isActive ? C.emerald50 : C.amberLight }]}
+            style={[
+              styles.propActBtn,
+              isActive
+                ? { backgroundColor: C.emerald50, borderColor: `${C.emerald600}3D` }
+                : { backgroundColor: C.amberLight, borderColor: `${C.amber}3D` },
+            ]}
             onPress={onToggleActive} activeOpacity={0.85}
           >
             <Ionicons name={isActive ? "checkmark-circle" : "pause-circle"} size={14} color={isActive ? C.emerald600 : C.amber} />
             <Text style={[styles.propActText, { color: isActive ? C.emerald600 : C.amber }]}>{isActive ? "Active" : "Inactive"}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.propActBtn, { backgroundColor: isPublic ? "#EDE9FE" : "#F1F5F9" }]}
+            style={[
+              styles.propActBtn,
+              isPublic
+                ? { backgroundColor: C.purpleLight, borderColor: `${C.purple}3D` }
+                : { backgroundColor: FILL, borderColor: C.border },
+            ]}
             onPress={onTogglePublish} activeOpacity={0.85}
           >
             <Ionicons name={isPublic ? "globe" : "globe-outline"} size={14} color={isPublic ? C.purple : C.subText} />
@@ -546,149 +609,268 @@ function PropertyCard({ property, onPress, onToggleActive, onTogglePublish, onDe
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
   // Header
-  headerGrad: { paddingBottom: 12 },
+  headerGrad: { borderBottomLeftRadius: 26, borderBottomRightRadius: 26, overflow: "hidden", position: "relative" },
+  orbA: {
+    position: "absolute", top: -44, right: -28,
+    width: 170, height: 170, borderRadius: 85,
+    backgroundColor: "rgba(201,154,63,0.10)",
+  },
+  orbB: {
+    position: "absolute", bottom: -30, left: -34,
+    width: 140, height: 140, borderRadius: 70,
+    backgroundColor: "rgba(46,158,119,0.14)",
+  },
   headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 2 },
+  headerCircleBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    alignItems: "center", justifyContent: "center",
+  },
+  headerEyebrow: { fontFamily: DISPLAY, color: GOLD, fontSize: 10, fontWeight: "bold", letterSpacing: 1.8, textTransform: "uppercase", marginBottom: 3 },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 22, fontWeight: "bold", color: "#fff", letterSpacing: 0.2 },
 
   // Search inside header
   searchWrap: {
     flexDirection: "row", alignItems: "center", gap: 8,
-    marginTop: 12, marginHorizontal: 4, paddingHorizontal: 14, height: 44,
+    marginTop: 12, paddingHorizontal: 14, height: 42,
     backgroundColor: "#fff", borderRadius: 14,
-    shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  searchInput: { flex: 1, fontSize: 14, color: C.ink, paddingVertical: 0 },
-
-  // Floating stats
-  statsCard: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-around",
-    backgroundColor: C.card, marginHorizontal: 16, marginTop: 10,
-    borderRadius: 16, paddingVertical: 12, paddingHorizontal: 8,
-    borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
+    shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
     elevation: 3,
   },
-  statCell: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, justifyContent: "center" },
-  statIcon: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  statValue: { fontSize: 16, fontWeight: "900" },
-  statLabel: { fontSize: 10.5, color: C.subText, fontWeight: "700", marginTop: 1, letterSpacing: 0.3 },
-  statDivider: { width: 1, height: 28, backgroundColor: C.border },
+  searchInput: { fontFamily: DISPLAY, flex: 1, fontSize: 14, color: C.ink, paddingVertical: 0 },
+
+  // Floating stat strip — overlaps the header bottom (like the Payments screen).
+  // Four tinted segments instead of divider hairlines: the colour carries the
+  // grouping, so the strip reads faster and looks less like a table row.
+  statsCard: {
+    flexDirection: "row", alignItems: "stretch", gap: 6,
+    backgroundColor: C.card, marginHorizontal: 16, marginTop: -22,
+    borderRadius: 16, padding: 7,
+    borderWidth: 1, borderColor: C.border,
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOpacity: 0.1, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } },
+      android: { elevation: 4 },
+    }),
+  },
+  statCell: {
+    flex: 1, minWidth: 0, alignItems: "center", gap: 2,
+    borderRadius: 11, paddingVertical: 8, paddingHorizontal: 4,
+  },
+  statTop: { flexDirection: "row", alignItems: "center", gap: 4 },
+  statValue: {
+    fontFamily: DISPLAY, fontSize: 15, fontWeight: "bold",
+    flexShrink: 1, includeFontPadding: false,
+  },
+  statLabel: {
+    fontFamily: DISPLAY, fontSize: 8.5, color: C.subText, fontWeight: "bold",
+    letterSpacing: 0.6, textTransform: "uppercase", includeFontPadding: false,
+  },
 
   // Type filter
   filterWrap: {
-    backgroundColor: C.card,
-    borderBottomWidth: 1, borderBottomColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    marginTop: 0,
   },
-  chipsRow: { paddingHorizontal: 12, paddingVertical: 10, gap: 4 },
-  typeChipWrap: { alignItems: "center", paddingHorizontal: 10, paddingVertical: 6 },
+  chipsRow: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 0, gap: 4 },
+  // paddingTop on the wrap gives the floating top badge room so it never clips.
+  typeChipWrap: { alignItems: "center", paddingHorizontal: 10, paddingTop: 10, paddingBottom: 4 },
+  // No-background wrapper so the floating badge is never clipped by the icon
+  // tile's rounded background (an Android overflow quirk).
+  typeChipIconWrap: { width: 54, height: 54, position: "relative", alignItems: "center", justifyContent: "center" },
   typeChipIcon: {
-    width: 52, height: 52, borderRadius: 16,
+    width: 54, height: 54, borderRadius: 18,
     alignItems: "center", justifyContent: "center",
-    position: "relative",
   },
   typeChipBadge: {
-    position: "absolute", top: -4, right: -4,
-    minWidth: 16, height: 16, borderRadius: 8,
+    position: "absolute", top: -6, right: -6,
+    minWidth: 19, height: 19, borderRadius: 9.5,
     alignItems: "center", justifyContent: "center",
-    paddingHorizontal: 3,
+    paddingHorizontal: 4, borderWidth: 2, borderColor: C.bg,
   },
-  typeChipBadgeText: { fontSize: 9, fontWeight: "800" },
-  typeChipLabel: { fontSize: 10.5, color: C.subText, fontWeight: "600", marginTop: 5, textAlign: "center" },
+  typeChipBadgeText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold" },
+  typeChipLabel: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "600", marginTop: 6, textAlign: "center" },
   typeChipDot: { width: 4, height: 4, borderRadius: 2, marginTop: 3 },
 
-  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginVertical: 6, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: C.red, fontSize: 12.5, flex: 1 },
+  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginVertical: 6, padding: 11, backgroundColor: C.redLight, borderRadius: 12, borderWidth: 1, borderColor: "#F0CFC9" },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 12.5, flex: 1 },
 
   // Loading / empty
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 13, color: C.subText, fontWeight: "600" },
-  listContent: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 100 },
+  loadingText: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, fontWeight: "600" },
+  listContent: { paddingHorizontal: 16, paddingTop: 0, paddingBottom: 100 },
   emptyWrap: { flexGrow: 1, justifyContent: "center", padding: 16 },
   empty: { alignItems: "center", padding: 24 },
-  emptyIconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  emptyTitle: { fontSize: 17, fontWeight: "800", color: C.ink, marginTop: 6 },
-  emptyBody: { fontSize: 13, color: C.subText, marginTop: 6, textAlign: "center", paddingHorizontal: 16 },
-  emptyCta: { marginTop: 16, borderRadius: 12, overflow: "hidden" },
-  emptyCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11 },
-  emptyCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  emptyIconWrap: { width: 84, height: 84, borderRadius: 42, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, marginTop: 6 },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 6, textAlign: "center", paddingHorizontal: 16 },
+  emptyCta: { marginTop: 16, borderRadius: 14, overflow: "hidden" },
+  emptyCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 20, paddingVertical: 13 },
+  emptyCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13.5 },
 
   // Card
   card: {
-    backgroundColor: C.card, borderRadius: 16, marginBottom: 14, overflow: "hidden",
+    backgroundColor: C.card, borderRadius: 18, marginBottom: 11, overflow: "hidden",
     borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+    ...Platform.select({
+      ios: { shadowColor: "#2A2216", shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } },
+      android: { elevation: 3 },
+    }),
   },
-  coverWrap: { width: "100%", height: 180, backgroundColor: "#F1F5F9", position: "relative" },
+  // Letterboxed on purpose — the photo sets the mood, the body carries the
+  // facts, and a short cover keeps the list scannable.
+  coverWrap: { width: "100%", height: 112, backgroundColor: FILL, position: "relative" },
   cover: { width: "100%", height: "100%" },
   coverPlaceholder: { alignItems: "center", justifyContent: "center" },
-  coverOverlay: { position: "absolute", left: 0, right: 0, bottom: 0, height: 100 },
-  coverFooter: { position: "absolute", left: 14, right: 14, bottom: 12 },
-  coverTitle: { color: "#fff", fontSize: 17, fontWeight: "800", textShadowColor: "rgba(0,0,0,0.4)", textShadowRadius: 4, textShadowOffset: { width: 0, height: 1 } },
-  cityRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
-  coverCity: { color: "rgba(255,255,255,0.95)", fontSize: 12, fontWeight: "600", flex: 1 },
+  coverOverlay: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 },
 
   // Top-overlay badges
+  // Frosted shell; the coloured cap is the only saturated part.
   typePill: {
     position: "absolute", top: 12, left: 12,
-    flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
+    flexDirection: "row", alignItems: "center",
+    height: 28, paddingRight: 12, borderRadius: 999, overflow: "hidden",
+    backgroundColor: "rgba(13,28,23,0.58)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.3)",
+    maxWidth: "62%",
+    shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3,
   },
-  typePillText: { color: "#fff", fontSize: 10.5, fontWeight: "800", letterSpacing: 0.4 },
+  typePillCap: {
+    width: 28, height: 28, borderRadius: 14,
+    alignItems: "center", justifyContent: "center", marginRight: 7,
+  },
+  typePillText: {
+    fontFamily: DISPLAY, color: "#fff", fontSize: 10.5,
+    fontWeight: "bold", letterSpacing: 0.7, textTransform: "uppercase",
+    flexShrink: 1,
+  },
+  // Same frosted language as the type tag, with an emerald status dot.
   publicBadge: {
     position: "absolute", top: 12, right: 12,
-    flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
-    backgroundColor: "rgba(16,185,129,0.95)",
+    flexDirection: "row", alignItems: "center", gap: 5,
+    height: 28, paddingHorizontal: 11, borderRadius: 999,
+    backgroundColor: "rgba(13,28,23,0.58)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.3)",
+    shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3,
   },
-  publicBadgeText: { color: "#fff", fontSize: 10, fontWeight: "800", letterSpacing: 0.4 },
+  publicDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.emerald500 },
+  publicBadgeText: { fontFamily: DISPLAY, color: "#fff", fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.7 },
   globeOnlyBadge: {
-    position: "absolute", top: 10, right: 10,
+    position: "absolute", top: 12, right: 12,
     width: 28, height: 28, borderRadius: 14,
     alignItems: "center", justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.25)",
+    backgroundColor: "rgba(13,28,23,0.58)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.28)",
   },
 
   // Body
-  cardBody: { padding: 14 },
-  metaPills: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10 },
-  metaPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: "#F1F5F9" },
-  metaPillText: { fontSize: 11, color: C.text, fontWeight: "700" },
+  cardBody: { paddingHorizontal: 12, paddingTop: 11, paddingBottom: 11 },
 
-  // Price badge on image
-  priceBadge: { position: "absolute", bottom: 44, right: 12, backgroundColor: "rgba(255,255,255,0.95)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
-  priceBadgeText: { color: C.emerald700, fontSize: 12, fontWeight: "800" },
+  // Head — name/city+rating left, price plate right. The name sits on the white
+  // body (not over the photo) so it stays crisp regardless of the cover image.
+  headRow: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 9 },
+  headMain: { flex: 1, minWidth: 0 },
+  title: {
+    fontFamily: DISPLAY, fontSize: 15, fontWeight: "bold", color: C.ink,
+    letterSpacing: 0.2, lineHeight: 19, includeFontPadding: false,
+  },
+  metaLine: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  cityText: {
+    fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "bold",
+    flexShrink: 1, includeFontPadding: false,
+  },
+  metaDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: C.border, marginHorizontal: 1 },
+  ratingInline: {
+    fontFamily: DISPLAY, fontSize: 11, fontWeight: "bold", color: "#8A5A10",
+    includeFontPadding: false,
+  },
+  ratingInlineCount: {
+    fontFamily: DISPLAY, fontSize: 10, fontWeight: "600", color: "#A88A52",
+    includeFontPadding: false,
+  },
+  // Spec strip — enclosed row, hairline dividers, one icon colour
+  specStrip: {
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: FILL, borderRadius: 12,
+    borderWidth: 1, borderColor: C.border,
+    paddingVertical: 7, marginBottom: 8,
+  },
+  specCell: { flex: 1, minWidth: 0, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 4 },
+  specDivider: { width: 1, height: 16, backgroundColor: C.border },
+  specValue: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", color: C.ink, includeFontPadding: false },
+  specLabel: {
+    fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "600",
+    flexShrink: 1, includeFontPadding: false,
+  },
 
-  // Rating row
-  ratingRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
-  starsWrap: { flexDirection: "row", alignItems: "center", gap: 3 },
-  ratingText: { fontSize: 12.5, fontWeight: "800", color: C.amber },
-  ratingCount: { fontSize: 11, color: C.subText, fontWeight: "600" },
-  noRating: { fontSize: 11.5, color: C.subText, fontStyle: "italic" },
-  bookingCount: { fontSize: 11, color: C.subText },
+  // Bookings pill — shares the chip row with the amenities.
+  bookingsPill: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 8, height: 21, borderRadius: 999,
+    backgroundColor: FILL, borderWidth: 1, borderColor: C.border,
+  },
+  bookingsPillText: {
+    fontFamily: DISPLAY, fontSize: 10, fontWeight: "bold", color: C.subText,
+    includeFontPadding: false,
+  },
 
-  // Amenity chips (small, on list card)
-  amenityChipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 5, marginBottom: 8 },
-  amenityChipSmall: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, backgroundColor: "#F1F5F9" },
-  amenityChipSmallText: { fontSize: 10.5, fontWeight: "700", color: C.text },
+  // Price plate — emerald-tinted so the nightly rate reads as the card's hard
+  // fact against the white body.
+  priceBadge: {
+    flexDirection: "row", alignItems: "baseline",
+    maxWidth: 132, paddingHorizontal: 9, paddingVertical: 5,
+    borderRadius: 11, backgroundColor: C.emerald50,
+    borderWidth: 1, borderColor: `${C.emerald600}33`,
+  },
+  priceBadgeText: {
+    fontFamily: DISPLAY, color: C.emerald600, fontSize: 14.5, fontWeight: "bold",
+    flexShrink: 1, includeFontPadding: false,
+  },
+  priceBadgeSuffix: {
+    fontFamily: DISPLAY, color: C.subText, fontSize: 9.5, fontWeight: "bold",
+    marginLeft: 2, includeFontPadding: false,
+  },
 
-  // Completeness bar
-  completenessWrap: { marginBottom: 10 },
-  completenessHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
-  completenessLabel: { fontSize: 10.5, color: C.subText, fontWeight: "600" },
-  completenessTrack: { height: 4, backgroundColor: "#E2E8F0", borderRadius: 2, overflow: "hidden" },
+  // Card chip row — bookings pill + amenity tags, one wrapping row.
+  // (Named apart from `chipsRow`, which is the header's type-filter strip.)
+  cardChipsRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 5, marginBottom: 8 },
+  amenityChipSmall: {
+    paddingHorizontal: 8, height: 21, justifyContent: "center", borderRadius: 999,
+    backgroundColor: "#F1ECDF", borderWidth: 1, borderColor: "#E3DAC6",
+  },
+  amenityChipSmallText: {
+    fontFamily: DISPLAY, fontSize: 10, fontWeight: "bold", color: "#6B6250",
+    includeFontPadding: false,
+  },
+  amenityChipMore: {
+    paddingHorizontal: 8, height: 21, justifyContent: "center", borderRadius: 999,
+    backgroundColor: C.emerald50, borderWidth: 1, borderColor: `${C.emerald600}2E`,
+  },
+  amenityChipMoreText: {
+    fontFamily: DISPLAY, fontSize: 10, fontWeight: "bold", color: C.emerald700,
+    includeFontPadding: false,
+  },
+
+  // Completeness — one slim line: dot + label + inline track
+  completenessWrap: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 8 },
+  completenessDot: { width: 6, height: 6, borderRadius: 3 },
+  completenessLabel: {
+    fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "bold",
+    letterSpacing: 0.2, includeFontPadding: false,
+  },
+  completenessTrack: { flex: 1, height: 4, backgroundColor: "#EAE2D3", borderRadius: 2, overflow: "hidden" },
   completenessBar: { height: "100%", borderRadius: 2 },
 
   // E4 actions
-  propActions: { flexDirection: "row", gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border },
-  propActBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 8, borderRadius: 8 },
-  propActDel: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, backgroundColor: "#FEF2F2" },
-  propActText: { fontSize: 12, fontWeight: "800" },
+  propActions: { flexDirection: "row", gap: 6, paddingTop: 9, borderTopWidth: 1, borderTopColor: C.border },
+  propActBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 5, height: 33, borderRadius: 10, borderWidth: 1,
+  },
+  propActDel: {
+    alignItems: "center", justifyContent: "center",
+    height: 33, paddingHorizontal: 14, borderRadius: 10,
+    backgroundColor: C.redLight, borderWidth: 1, borderColor: `${C.red}30`,
+  },
+  propActText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold", includeFontPadding: false },
 
   // FAB
   fab: {
