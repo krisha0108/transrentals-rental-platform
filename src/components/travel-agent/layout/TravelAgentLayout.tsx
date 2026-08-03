@@ -12,14 +12,13 @@ import {
   FileText,
   Building2,
   DollarSign,
-  AlertTriangle,
-  CreditCard,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { ToastProvider } from '@/components/ui/toast';
 import Link from 'next/link';
 import { TravelAgentVerificationContext } from '@/contexts/TravelAgentVerificationContext';
+import { HelpBotWidget } from '../HelpBotWidget';
 
 interface TravelAgentLayoutProps {
   children: React.ReactNode;
@@ -223,7 +222,13 @@ export function TravelAgentLayout({ children }: TravelAgentLayoutProps) {
             setVerificationCounts({
               docs: data.documentsCount || 0,
               bankAccounts: data.bankAccountsCount || 0,
-              profileComplete: !!(data.gstNumber && data.address && data.city),
+              // GST is intentionally excluded — it's an optional field on the
+              // profile page (no asterisk) and already null for most agents,
+              // while agencyName/ownerName/address/city are all required and
+              // collected at registration, so requiring GST here permanently
+              // stuck the "Profile" step at incomplete for agents who'd
+              // already filled in everything the form actually asks for.
+              profileComplete: !!(data.agencyName && data.ownerName && data.address && data.city),
             });
           } else {
             setAgentStatus((session?.user as any)?.status || null);
@@ -282,68 +287,54 @@ export function TravelAgentLayout({ children }: TravelAgentLayoutProps) {
               </button>
             </div>
 
-            {!isApproved && (
-              <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-6 h-6 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
-                    <Lock className="w-3.5 h-3.5 text-amber-600" />
+            {/* Single combined verification banner — replaces what used to be
+                three separately-stacked full-width strips (Soft Access Mode +
+                Bank details + Documents) saying overlapping things. Hidden on
+                the profile page itself, same as the vendor layout hides its
+                own address banner on /vendor/profile — you're already there
+                to fix it, the banner is just noise on that page. */}
+            {!isApproved && !statusLoading && pathname !== '/travel-agent/profile' && (
+              <div className="border-b border-amber-200 bg-gradient-to-r from-amber-50 via-amber-50 to-orange-50 px-4 sm:px-6 py-3">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
+                      <Lock className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-amber-900">
+                        Complete verification to unlock full access
+                      </p>
+                      <p className="text-xs text-amber-700 mt-0.5 hidden sm:block">
+                        Public lead-capture & customer-facing booking links unlock once approved.
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-sm text-amber-800 truncate">
-                    <span className="font-bold">Soft Access Mode</span>
-                    <span className="hidden sm:inline">
-                      {' '}
-                      — manage your own data freely. Public lead-capture & customer-facing booking
-                      links unlock after verification.
-                    </span>
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowVerificationModal(true)}
-                  className="shrink-0 text-xs font-bold text-amber-700 hover:text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-                >
-                  Get Verified <ArrowRight className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-
-            {/* Incomplete step alerts — shown until resolved */}
-            {!statusLoading && verificationCounts.bankAccounts === 0 && (
-              <div className="bg-red-50 border-b border-red-200 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-6 h-6 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
-                    <CreditCard className="w-3.5 h-3.5 text-red-600" />
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="hidden md:flex items-center gap-1.5">
+                      {!verificationCounts.profileComplete && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-white/70 border border-amber-200 px-2 py-1 rounded-full">
+                          <Building2 className="w-3 h-3" /> Profile
+                        </span>
+                      )}
+                      {verificationCounts.docs === 0 && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-white/70 border border-amber-200 px-2 py-1 rounded-full">
+                          <FileText className="w-3 h-3" /> Documents
+                        </span>
+                      )}
+                      {verificationCounts.bankAccounts === 0 && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-white/70 border border-amber-200 px-2 py-1 rounded-full">
+                          <DollarSign className="w-3 h-3" /> Bank Details
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setShowVerificationModal(true)}
+                      className="text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5"
+                    >
+                      Get Verified <ArrowRight className="w-3 h-3" />
+                    </button>
                   </div>
-                  <p className="text-sm text-red-800">
-                    <span className="font-bold">Bank details missing</span>
-                    <span className="hidden sm:inline"> — add your bank account to receive payouts from bookings.</span>
-                  </p>
                 </div>
-                <Link
-                  href="/travel-agent/bank-details"
-                  className="shrink-0 text-xs font-bold text-red-700 hover:text-red-900 bg-red-100 hover:bg-red-200 border border-red-300 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-                >
-                  Add Now <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-            )}
-
-            {!statusLoading && verificationCounts.docs === 0 && (
-              <div className="bg-orange-50 border-b border-orange-200 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-6 h-6 bg-orange-100 rounded-lg flex items-center justify-center shrink-0">
-                    <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />
-                  </div>
-                  <p className="text-sm text-orange-800">
-                    <span className="font-bold">Address proof not uploaded</span>
-                    <span className="hidden sm:inline"> — upload your identity & address documents to complete verification.</span>
-                  </p>
-                </div>
-                <Link
-                  href="/travel-agent/documents"
-                  className="shrink-0 text-xs font-bold text-orange-700 hover:text-orange-900 bg-orange-100 hover:bg-orange-200 border border-orange-300 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-                >
-                  Upload Now <ArrowRight className="w-3 h-3" />
-                </Link>
               </div>
             )}
 
@@ -358,6 +349,8 @@ export function TravelAgentLayout({ children }: TravelAgentLayoutProps) {
               profileComplete={verificationCounts.profileComplete}
             />
           )}
+
+          <HelpBotWidget />
         </div>
       </ToastProvider>
     </TravelAgentVerificationContext.Provider>

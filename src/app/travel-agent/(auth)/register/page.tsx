@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import {
   Building2,
   User,
@@ -160,8 +161,20 @@ export default function TravelAgentRegisterPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setSuccess(true);
-        setTimeout(() => router.push('/travel-agent/login'), 4000);
+        const result = await signIn('travel-agent-credentials', {
+          email: formData.email,
+          password: formData.password,
+          redirect: false,
+        });
+        if (result?.ok) {
+          router.push('/travel-agent/dashboard');
+          router.refresh();
+        } else {
+          // Account was created but auto-login didn't go through — fall
+          // back to the success screen + manual login redirect.
+          setSuccess(true);
+          setTimeout(() => router.push('/travel-agent/login'), 4000);
+        }
       } else {
         setError(data.error || 'Registration failed. Please try again.');
       }
