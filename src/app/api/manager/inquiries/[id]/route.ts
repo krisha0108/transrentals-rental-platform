@@ -6,6 +6,93 @@ import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
 
+// Action types a manager can log against an inquiry (quote request).
+const INQUIRY_ACTION_TYPES = [
+  'CALLED', 'NOTE_ADDED', 'FOLLOW_UP', 'CONVERTED', 'NOT_INTERESTED',
+  'CUSTOMER_CONNECTED', 'NO_VENDOR_AVAILABLE', 'VENDOR_NOT_RESPONDING', 'WRONG_NUMBER', 'PRICE_TOO_HIGH',
+  'AWAITING_VENDOR_QUOTE', 'CUSTOMER_NOT_RESPONDING', 'DUPLICATE_INQUIRY',
+  'VENDOR_DECLINED', 'VENDOR_CANT_FULFILL', 'NOT_SERVICEABLE', 'CUSTOMER_BOOKED_ELSEWHERE',
+  'QUOTE_NOT_SUBMITTED', 'WAITING_CUSTOMER_CONFIRMATION', 'ADVANCE_PAYMENT_PENDING',
+  'INVALID_LEAD', 'CANCELLED', 'OTHER_REASON',
+];
+
+// Resolve which quote_requests table a given id belongs to, and its serviceSlug.
+// Mirrors the lookup in GET below, but only fetches the id (cheap existence check).
+export async function resolveInquiryService(requestId: string): Promise<string | null> {
+  const [bike, bus, selfDrive, equipment, luxury, packers, truck] = await Promise.all([
+    prisma.bike_quote_requests.findUnique({ where: { id: requestId }, select: { id: true } }).catch(() => null),
+    prisma.bus_quote_requests.findUnique({ where: { id: requestId }, select: { id: true } }).catch(() => null),
+    prisma.self_drive_quote_requests.findUnique({ where: { id: requestId }, select: { id: true } }).catch(() => null),
+    prisma.equipment_quote_requests.findUnique({ where: { id: requestId }, select: { id: true } }).catch(() => null),
+    prisma.luxury_quote_requests.findUnique({ where: { id: requestId }, select: { id: true } }).catch(() => null),
+    prisma.packers_quote_requests.findUnique({ where: { id: requestId }, select: { id: true } }).catch(() => null),
+    prisma.truck_quote_requests.findUnique({ where: { id: requestId }, select: { id: true } }).catch(() => null),
+  ]);
+  if (bike) return 'bike-rental';
+  if (bus) return 'bus-rental';
+  if (selfDrive) return 'self-drive';
+  if (equipment) return 'equipment-rental';
+  if (luxury) return 'luxury-car-rental';
+  if (packers) return 'packers-and-movers';
+  if (truck) return 'truck-transport';
+  return null;
+}
+
+// POST - Log a manager action taken on an inquiry (call, note, follow-up, converted, not interested)
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> | { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const resolvedParams = 'then' in params ? await params : params;
+    const { id: requestId } = resolvedParams;
+
+    const manager = await prisma.admin_users.findUnique({ where: { id: session.user.id } });
+    if (!manager || manager.role !== 'MANAGER') {
+      return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { actionType, note } = body;
+
+    if (!actionType || !INQUIRY_ACTION_TYPES.includes(actionType)) {
+      return NextResponse.json({ error: `Invalid actionType. Must be one of: ${INQUIRY_ACTION_TYPES.join(', ')}` }, { status: 400 });
+    }
+    if (actionType === 'NOTE_ADDED' && !note?.trim()) {
+      return NextResponse.json({ error: 'Note text is required for NOTE_ADDED action' }, { status: 400 });
+    }
+
+    const serviceSlug = await resolveInquiryService(requestId);
+    if (!serviceSlug) {
+      return NextResponse.json({ error: 'Inquiry not found' }, { status: 404 });
+    }
+
+    const log = await prisma.manager_action_logs.create({
+      data: {
+        recordType: 'INQUIRY',
+        serviceType: serviceSlug,
+        recordId: requestId,
+        actionType,
+        note: note?.trim() || null,
+        managerId: session.user.id,
+      },
+    });
+
+    return NextResponse.json({ success: true, log });
+  } catch (error: any) {
+    logger.error('Manager inquiry action log error', error);
+    return NextResponse.json(
+      { error: 'Failed to log action', details: error?.message },
+      { status: 500 }
+    );
+  }
+}
+
 // GET - Get single inquiry (quote request) detail with all vendor quotes
 export async function GET(
   request: NextRequest,
@@ -333,11 +420,31 @@ export async function GET(
       updatedAt: quote.updatedAt,
     }));
 
+    const [actionLogs, tagRows] = await Promise.all([
+      prisma.manager_action_logs.findMany({
+        where: { recordType: 'INQUIRY', recordId: requestId },
+        include: { admin_users: { select: { id: true, name: true, email: true } } },
+        orderBy: { createdAt: 'desc' },
+      }).catch(() => []),
+      prisma.inquiry_tag_assignments.findMany({
+        where: { recordId: requestId },
+        select: { tag: true },
+      }).catch(() => []),
+    ]);
+
     return NextResponse.json({
       success: true,
       request: formattedRequest,
       quotes: formattedQuotes,
       quotesCount: formattedQuotes.length,
+      actionLogs: actionLogs.map((l) => ({
+        id: l.id,
+        actionType: l.actionType,
+        note: l.note,
+        createdAt: l.createdAt,
+        manager: l.admin_users,
+      })),
+      tags: tagRows.map((t) => t.tag),
     });
   } catch (error: any) {
     logger.error('Manager inquiry detail error', error);

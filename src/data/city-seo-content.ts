@@ -14,6 +14,13 @@ export type CityFAQ = {
   a: string;
 };
 
+export type CityAttraction = {
+  name: string;
+  category: string; // e.g. Heritage, Nature, Food & Shopping, Family
+  description: string;
+  distance?: string; // approx distance/time from city center
+};
+
 export type CitySEO = {
   intro: string;
   routes: CityRoute[];
@@ -21,6 +28,7 @@ export type CitySEO = {
   stats: { population: string; knownFor: string; airport: string };
   serviceIntros?: Partial<Record<string, string>>;
   serviceFAQs?: Partial<Record<string, CityFAQ[]>>;
+  thingsToDo?: CityAttraction[];
 };
 
 export type StateSEO = {
@@ -817,6 +825,44 @@ export const CITY_SEO: Record<string, CitySEO> = {
         { q: 'What types of goods can a mini truck carry in Ahmedabad?', a: 'Tata Ace handles 750 kg — furniture, electronics, groceries, construction material, shop inventory. Manek Chowk market deliveries, APMC Ahmedabad wholesale dispatches, and textile deliveries between Saraspur and Saijpur weaving units are the most common mini truck use cases in Ahmedabad.' },
       ],
     },
+    thingsToDo: [
+      {
+        name: 'Sabarmati Ashram',
+        category: 'Heritage',
+        description: "Mahatma Gandhi's riverside residence from 1917–1930, and the starting point of the historic Dandi March. The museum, prayer ground, and Gandhi's living quarters draw history buffs and pilgrims year-round.",
+        distance: '6 km from city center',
+      },
+      {
+        name: 'Adalaj Stepwell',
+        category: 'Heritage',
+        description: 'A stunning 5-storey stepwell from 1499 with intricate Indo-Islamic carvings. One of Gujarat\'s finest examples of stepwell architecture, and a popular half-day heritage trail stop with Sabarmati Ashram.',
+        distance: '19 km, en route to Gandhinagar',
+      },
+      {
+        name: 'Sidi Saiyyed Mosque',
+        category: 'Heritage',
+        description: "Famous worldwide for its ten intricately carved stone jali (lattice) windows, especially the iconic 'Tree of Life'. A quick but unmissable stop in the old walled city.",
+        distance: 'In the old city, near Lal Darwaja',
+      },
+      {
+        name: 'Kankaria Lake',
+        category: 'Family & Leisure',
+        description: 'A lively lakefront with a zoo, toy train, balloon safari, water rides, and an evening food street. Best visited at sunset — the walking promenade around the lake is a favorite with families and joggers.',
+        distance: '7 km from city center',
+      },
+      {
+        name: 'Law Garden & Manek Chowk',
+        category: 'Food & Shopping',
+        description: 'Law Garden\'s night market is famous for Gujarati handicrafts, mirror-work and bandhani textiles, while Manek Chowk transforms into a legendary street-food hub after 9 PM — try the loaded pav bhaji and cheese sandwiches.',
+        distance: 'Navrangpura / Old city',
+      },
+      {
+        name: 'Sarkhej Roza',
+        category: 'Heritage',
+        description: 'A serene 15th-century mosque, tomb, and palace complex around a stepped lake, often called the "Ahmedabad Acropolis" for its blend of Hindu and Islamic architecture. Far quieter than the city\'s other monuments.',
+        distance: '8 km from city center',
+      },
+    ],
   },
 
   kolkata: {

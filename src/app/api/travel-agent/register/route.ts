@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { checkRateLimit, RATE_LIMITS, logger } from '@/lib/security';
 import { generateTaid } from '@/lib/utils/generate-taid';
+import { getAllActiveManagers, notifyManagers } from '@/lib/notifications/manager-notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -120,6 +121,21 @@ export async function POST(request: NextRequest) {
     });
 
     logger.info('Travel agent registered successfully', { travelAgentId: agent.id });
+
+    // Travel agents aren't location/service-scoped (like contact inquiries),
+    // so every active manager gets notified — never block the response on this.
+    getAllActiveManagers()
+      .then((managerIds) =>
+        notifyManagers(managerIds, {
+          type: 'NEW_TRAVEL_AGENT_REGISTRATION',
+          title: 'New travel agent registered',
+          body: `${agent.agencyName} (${agent.ownerName}) just signed up and needs review.`,
+          link: `/manager/travel-agents/${agent.id}`,
+          metadata: { travelAgentId: agent.id },
+          dedupeKey: agent.id,
+        })
+      )
+      .catch((notifyError) => logger.error('Failed to notify managers of new travel agent registration', notifyError));
 
     return NextResponse.json(
       {

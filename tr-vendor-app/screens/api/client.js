@@ -19,9 +19,16 @@ function inferLocalBase() {
 }
 
 let cachedBaseURL = null;
+const FORCE_PROD = true; // TEMP: testing against live API — flip back to false for local dev
 
 export async function getBaseURL() {
   if (cachedBaseURL) return cachedBaseURL;
+
+  if (FORCE_PROD) {
+    cachedBaseURL = DEFAULT_PROD;
+    console.log('[API] FORCE_PROD - using live server:', cachedBaseURL);
+    return cachedBaseURL;
+  }
 
   // In dev mode, always use local server (ignore any cached production URL)
   if (__DEV__) {

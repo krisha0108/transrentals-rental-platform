@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('monthly-bike-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Monthly Bike Rental in ${locationName} | Scooty on Rent Monthly @₹2999 | TransRentals`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Monthly Bike Rental in ${locationName} | @₹2999/Month`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent bike or scooty on monthly basis in ${locationName}. Activa, Splendor, Pulsar, Royal Enfield available from ₹2999/month. Zero maintenance, doorstep delivery. Book now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `monthly bike rental ${locationName}`,

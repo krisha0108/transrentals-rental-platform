@@ -1,13 +1,60 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Loader2, Search, Store, Phone, Mail, MapPin, Layers,
-  ChevronRight, RefreshCw, AlertCircle, CheckCircle, Clock,
+  ChevronRight, ChevronDown, RefreshCw, AlertCircle, CheckCircle, Clock,
   XCircle, FileText, Car, Star, TrendingUp, TrendingDown,
-  Calendar, X, Tag, Plus,
+  Calendar, X, Tag, Plus, CalendarDays, MapPinPlus, Bell,
 } from 'lucide-react';
+
+type DatePreset = 'all' | 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'custom';
+
+const DATE_PRESET_LABELS: Record<DatePreset, string> = {
+  all: 'All Time',
+  today: 'Today',
+  yesterday: 'Yesterday',
+  thisWeek: 'This Week',
+  thisMonth: 'This Month',
+  custom: 'Custom Range',
+};
+
+// Returns [from, to] as Date objects (local time, full-day bounds) for a preset.
+// 'thisWeek' uses a Monday-start calendar week.
+function getDateRange(preset: DatePreset, customFrom: string, customTo: string): [Date | null, Date | null] {
+  const now = new Date();
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+  const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+
+  switch (preset) {
+    case 'today':
+      return [startOfDay(now), endOfDay(now)];
+    case 'yesterday': {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      return [startOfDay(y), endOfDay(y)];
+    }
+    case 'thisWeek': {
+      const dayOfWeek = (now.getDay() + 6) % 7; // Monday = 0
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - dayOfWeek);
+      return [startOfDay(monday), endOfDay(now)];
+    }
+    case 'thisMonth': {
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      return [startOfDay(first), endOfDay(now)];
+    }
+    case 'custom':
+      return [
+        customFrom ? startOfDay(new Date(customFrom)) : null,
+        customTo ? endOfDay(new Date(customTo)) : null,
+      ];
+    default:
+      return [null, null];
+  }
+}
 
 // Manager-managed CRM tags — coexist with vendor.status. Keep enum order
 // stable; server validates against the same list.
@@ -43,6 +90,10 @@ interface Vendor {
   locationNames: string[];
   services: string[];
   serviceNames: string[];
+  hasPendingLocationRequest: boolean;
+  hasPendingServiceRequest: boolean;
+  pendingLocationNames: string[];
+  pendingServiceNames: string[];
   documentCount: number;
   fleetCount: number;
   tags: string[];
@@ -65,6 +116,14 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; i
   BLOCKED:           { bg: 'bg-gray-100',   text: 'text-gray-700',   label: 'Blocked',      icon: XCircle },
 };
 
+// A vendor needs manager attention (and gets pinned to the top + highlighted)
+// when they have a pending location/service request, or just uploaded docs
+// and are awaiting review (UNDER_REVIEW is set purely by document upload —
+// see the vendor status lifecycle notes elsewhere in this codebase).
+function needsAttention(v: Vendor): boolean {
+  return v.hasPendingLocationRequest || v.hasPendingServiceRequest || v.status === 'UNDER_REVIEW';
+}
+
 const SORT_OPTIONS = [
   { value: 'date_desc',    label: 'Newest First',    icon: Calendar },
   { value: 'date_asc',     label: 'Oldest First',    icon: Calendar },
@@ -73,6 +132,96 @@ const SORT_OPTIONS = [
   { value: 'fleet_desc',   label: 'Big Fleet First', icon: Car },
   { value: 'fleet_asc',    label: 'Small Fleet',     icon: Car },
 ];
+
+// Searchable dropdown for the Location/Service filters — plain <select> options
+// aren't searchable in most browsers once the list gets long (100+ locations).
+function FilterSearchSelect({
+  label, options, allLabel, value, onChange,
+}: {
+  label: string;
+  options: string[];
+  allLabel: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery('');
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filtered = query.trim()
+    ? options.filter(o => o.toLowerCase().includes(query.trim().toLowerCase()))
+    : options;
+
+  const selectOption = (v: string) => { onChange(v); setOpen(false); setQuery(''); };
+
+  return (
+    <div ref={ref} className="relative">
+      <label className="text-xs text-gray-500 font-medium mb-1 block">{label}</label>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between gap-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white text-left"
+      >
+        <span className={`truncate ${value === 'all' ? 'text-gray-500' : 'text-gray-900 font-medium'}`}>
+          {value === 'all' ? allLabel : value}
+        </span>
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-1 w-full min-w-[220px] bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input
+                autoFocus
+                type="text"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder={`Search ${label.toLowerCase()}...`}
+                className="w-full pl-8 pr-2 py-1.5 border border-gray-200 rounded-md text-xs focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+            </div>
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => selectOption('all')}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-green-50 transition-colors ${value === 'all' ? 'bg-green-50 text-green-700 font-semibold' : 'text-gray-700'}`}
+            >
+              {allLabel}
+            </button>
+            {filtered.length === 0 ? (
+              <p className="px-3 py-3 text-xs text-gray-400 text-center">No matches</p>
+            ) : (
+              filtered.map(opt => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => selectOption(opt)}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-green-50 truncate transition-colors ${value === opt ? 'bg-green-50 text-green-700 font-semibold' : 'text-gray-700'}`}
+                >
+                  {opt}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ManagerVendorsPage() {
   const router = useRouter();
@@ -88,11 +237,16 @@ export default function ManagerVendorsPage() {
   const [serviceFilter, setServiceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('all');
+  const [requestFilter, setRequestFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState<DatePreset>('all');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
   const [tagEditorOpenFor, setTagEditorOpenFor] = useState<string | null>(null);
   const [tagSaving, setTagSaving] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 25;
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
   const fetchVendors = async () => {
     try {
@@ -170,6 +324,24 @@ export default function ManagerVendorsPage() {
       list = list.filter(v => Array.isArray(v.tags) && v.tags.includes(tagFilter));
     }
 
+    // Pending-request filter — new location/service asks awaiting review
+    if (requestFilter !== 'all') {
+      if (requestFilter === 'location') list = list.filter(v => v.hasPendingLocationRequest);
+      else if (requestFilter === 'service') list = list.filter(v => v.hasPendingServiceRequest);
+      else if (requestFilter === 'any') list = list.filter(v => v.hasPendingLocationRequest || v.hasPendingServiceRequest);
+    }
+
+    // Joined date filter — tracks vendor onboarding (registration) date
+    if (dateFilter !== 'all' && !(dateFilter === 'custom' && !customFrom && !customTo)) {
+      const [from, to] = getDateRange(dateFilter, customFrom, customTo);
+      list = list.filter(v => {
+        const created = new Date(v.createdAt).getTime();
+        if (from && created < from.getTime()) return false;
+        if (to && created > to.getTime()) return false;
+        return true;
+      });
+    }
+
     // Sort
     switch (sortBy) {
       case 'date_asc':   list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); break;
@@ -180,8 +352,14 @@ export default function ManagerVendorsPage() {
       case 'fleet_asc':   list.sort((a, b) => a.fleetCount - b.fleetCount); break;
     }
 
+    // Pin anything needing manager attention to the top — a pending
+    // location/service request or a freshly-uploaded-docs vendor awaiting
+    // review is easy to miss buried in the list otherwise. Stable sort keeps
+    // the chosen sortBy order intact within each group.
+    list.sort((a, b) => (needsAttention(b) ? 1 : 0) - (needsAttention(a) ? 1 : 0));
+
     return list;
-  }, [allVendors, search, locationFilter, serviceFilter, statusFilter, tagFilter, sortBy]);
+  }, [allVendors, search, locationFilter, serviceFilter, statusFilter, tagFilter, requestFilter, dateFilter, customFrom, customTo, sortBy]);
 
   // Stats derived from the filtered list so they update with filters
   const filteredStats = useMemo(() => ({
@@ -191,21 +369,24 @@ export default function ManagerVendorsPage() {
     suspended: vendors.filter(v => v.status === 'SUSPENDED').length,
   }), [vendors]);
 
-  // Reset to page 1 when filters change
-  useEffect(() => { setCurrentPage(1); }, [search, locationFilter, serviceFilter, statusFilter, tagFilter, sortBy]);
+  // Reset to page 1 when filters or page size change
+  useEffect(() => { setCurrentPage(1); }, [search, locationFilter, serviceFilter, statusFilter, tagFilter, requestFilter, dateFilter, customFrom, customTo, sortBy, itemsPerPage]);
 
-  const totalPages = Math.ceil(vendors.length / ITEMS_PER_PAGE);
-  const paginatedVendors = vendors.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(vendors.length / itemsPerPage);
+  const paginatedVendors = vendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const activeFilterCount = [
     search, locationFilter !== 'all' ? locationFilter : '', serviceFilter !== 'all' ? serviceFilter : '',
     statusFilter !== 'all' ? statusFilter : '', tagFilter !== 'all' ? tagFilter : '',
+    requestFilter !== 'all' ? requestFilter : '',
+    dateFilter !== 'all' ? dateFilter : '',
     sortBy !== 'date_desc' ? sortBy : '',
   ].filter(Boolean).length;
 
   const clearFilters = () => {
     setSearch(''); setLocationFilter('all'); setServiceFilter('all');
-    setStatusFilter('all'); setTagFilter('all'); setSortBy('date_desc');
+    setStatusFilter('all'); setTagFilter('all'); setRequestFilter('all'); setDateFilter('all');
+    setCustomFrom(''); setCustomTo(''); setSortBy('date_desc');
   };
 
   // Optimistic tag toggle — adds/removes the tag locally, then syncs server.
@@ -264,11 +445,18 @@ export default function ManagerVendorsPage() {
             {totalPages > 1 && <span className="ml-1 text-gray-400">· Page {currentPage}/{totalPages}</span>}
           </p>
         </div>
-        <button onClick={handleRefresh} disabled={isRefreshing}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50">
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <Link href="/manager/vendors/create"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-green-600 text-green-700 rounded-lg hover:bg-green-50 transition font-medium">
+            <Plus className="w-4 h-4" />
+            Create Vendor
+          </Link>
+          <button onClick={handleRefresh} disabled={isRefreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50">
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -307,26 +495,24 @@ export default function ManagerVendorsPage() {
         </div>
 
         {/* Row 2: Dropdowns */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
           {/* Location */}
-          <div>
-            <label className="text-xs text-gray-500 font-medium mb-1 block">Location</label>
-            <select value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
-              <option value="all">All Locations</option>
-              {uniqueLocations.map(l => <option key={l} value={l}>{l}</option>)}
-            </select>
-          </div>
+          <FilterSearchSelect
+            label="Location"
+            allLabel="All Locations"
+            options={uniqueLocations}
+            value={locationFilter}
+            onChange={setLocationFilter}
+          />
 
           {/* Service */}
-          <div>
-            <label className="text-xs text-gray-500 font-medium mb-1 block">Service</label>
-            <select value={serviceFilter} onChange={e => setServiceFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
-              <option value="all">All Services</option>
-              {uniqueServices.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
+          <FilterSearchSelect
+            label="Service"
+            allLabel="All Services"
+            options={uniqueServices}
+            value={serviceFilter}
+            onChange={setServiceFilter}
+          />
 
           {/* Status */}
           <div>
@@ -353,6 +539,29 @@ export default function ManagerVendorsPage() {
             </select>
           </div>
 
+          {/* New request */}
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1 block">New Request</label>
+            <select value={requestFilter} onChange={e => setRequestFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
+              <option value="all">All Vendors</option>
+              <option value="any">Any Pending Request</option>
+              <option value="location">New Location Requested</option>
+              <option value="service">New Service Requested</option>
+            </select>
+          </div>
+
+          {/* Joined date */}
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1 block">Joined</label>
+            <select value={dateFilter} onChange={e => setDateFilter(e.target.value as DatePreset)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
+              {(Object.keys(DATE_PRESET_LABELS) as DatePreset[]).map(preset => (
+                <option key={preset} value={preset}>{DATE_PRESET_LABELS[preset]}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Sort */}
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1 block">Sort By</label>
@@ -362,6 +571,19 @@ export default function ManagerVendorsPage() {
             </select>
           </div>
         </div>
+
+        {/* Custom date range inputs */}
+        {dateFilter === 'custom' && (
+          <div className="flex items-center gap-2">
+            <input type="date" value={customFrom} max={customTo || undefined}
+              onChange={e => setCustomFrom(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500" />
+            <span className="text-gray-400 text-sm">to</span>
+            <input type="date" value={customTo} min={customFrom || undefined}
+              onChange={e => setCustomTo(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500" />
+          </div>
+        )}
 
         {/* Active filter chips + clear */}
         {activeFilterCount > 0 && (
@@ -394,6 +616,18 @@ export default function ManagerVendorsPage() {
               <span className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium border border-indigo-200">
                 <Tag className="w-3 h-3" /> {TAG_BY_KEY[tagFilter]?.label || tagFilter}
                 <button onClick={() => setTagFilter('all')}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            )}
+            {requestFilter !== 'all' && (
+              <span className="flex items-center gap-1 px-2.5 py-1 bg-orange-50 text-orange-700 rounded-full text-xs font-medium border border-orange-200">
+                <Bell className="w-3 h-3" /> {requestFilter === 'location' ? 'New Location Requested' : requestFilter === 'service' ? 'New Service Requested' : 'Any Pending Request'}
+                <button onClick={() => setRequestFilter('all')}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            )}
+            {dateFilter !== 'all' && (
+              <span className="flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-700 rounded-full text-xs font-medium border border-teal-200">
+                <CalendarDays className="w-3 h-3" /> {DATE_PRESET_LABELS[dateFilter]}
+                <button onClick={() => { setDateFilter('all'); setCustomFrom(''); setCustomTo(''); }}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
             )}
             {sortBy !== 'date_desc' && (
@@ -439,10 +673,11 @@ export default function ManagerVendorsPage() {
               const StatusIcon = statusConfig.icon;
               const isTagEditorOpen = tagEditorOpenFor === vendor.id;
               const stopRow = (e: React.MouseEvent) => { e.stopPropagation(); };
+              const flagged = needsAttention(vendor);
               return (
                 <div key={vendor.id}
                   onClick={() => router.push(`/manager/vendors/${vendor.id}`)}
-                  className="block p-4 sm:p-5 hover:bg-gray-50 transition cursor-pointer relative">
+                  className={`block p-4 sm:p-5 hover:bg-gray-50 transition cursor-pointer relative ${flagged ? 'border-l-4 border-orange-400 bg-orange-50/40' : ''}`}>
                   <div className="flex items-start gap-4">
                     {/* Avatar */}
                     <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -467,6 +702,24 @@ export default function ManagerVendorsPage() {
                             <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                             {vendor.rating.toFixed(1)}
                             <span className="text-amber-500/70">({vendor.totalRatings})</span>
+                          </span>
+                        )}
+                        {vendor.hasPendingLocationRequest && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-semibold">
+                            <MapPinPlus className="w-3 h-3" />
+                            New Location Request
+                          </span>
+                        )}
+                        {vendor.hasPendingServiceRequest && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-semibold">
+                            <Layers className="w-3 h-3" />
+                            New Service Request
+                          </span>
+                        )}
+                        {vendor.status === 'UNDER_REVIEW' && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-semibold">
+                            <FileText className="w-3 h-3" />
+                            Needs Review
                           </span>
                         )}
                       </div>
@@ -595,11 +848,29 @@ export default function ManagerVendorsPage() {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between bg-white rounded-xl border shadow-sm px-4 py-3">
-          <p className="text-sm text-gray-500">
-            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, vendors.length)} of {vendors.length} vendors
-          </p>
+      {vendors.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white rounded-xl border shadow-sm px-4 py-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <p className="text-sm text-gray-500">
+              Showing <span className="font-medium text-gray-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, vendors.length)}</span> of <span className="font-medium text-gray-700">{vendors.length}</span> vendors
+            </p>
+            <span className="hidden sm:inline text-gray-300">·</span>
+            <div className="flex items-center gap-2">
+              <label htmlFor="itemsPerPage" className="text-sm text-gray-500">Show</label>
+              <select
+                id="itemsPerPage"
+                value={itemsPerPage}
+                onChange={e => setItemsPerPage(Number(e.target.value))}
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white cursor-pointer transition-colors"
+              >
+                {PAGE_SIZE_OPTIONS.map(size => (
+                  <option key={size} value={size}>{size}</option>
+                ))}
+              </select>
+              <span className="text-sm text-gray-500">per page</span>
+            </div>
+          </div>
+          {totalPages > 1 && (
           <div className="flex items-center gap-1">
             <button
               onClick={() => setCurrentPage(1)}
@@ -657,6 +928,7 @@ export default function ManagerVendorsPage() {
               »
             </button>
           </div>
+          )}
         </div>
       )}
     </div>

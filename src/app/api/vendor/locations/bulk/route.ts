@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
 import logger from '@/lib/security/logger';
+import { getManagersForLocation, notifyManagers } from '@/lib/notifications/manager-notify';
 
 // Helper to generate a cuid-like unique ID
 function generateId(): string {
@@ -106,6 +107,39 @@ export async function POST(request: NextRequest) {
         })
       )
     );
+
+    // Notify managers scoped to each newly-requested location — never block
+    // the response on this.
+    try {
+      const vendor = await prisma.vendors.findUnique({
+        where: { id: auth.vendorId },
+        select: { businessName: true },
+      });
+      const approvedLocationCount = await prisma.vendor_approved_locations.count({
+        where: { vendorId: auth.vendorId, isActive: true },
+      });
+      const isNewVendor = approvedLocationCount === 0;
+      const locationNameById = new Map(locations.map((l: any) => [l.id, l.name]));
+
+      await Promise.all(
+        results.map((locationRequest: any) => {
+          const locationId = locationRequest.locationId;
+          const locationName = locationNameById.get(locationId) || 'a location';
+          return getManagersForLocation(locationId).then((managerIds) =>
+            notifyManagers(managerIds, {
+              type: 'NEW_LOCATION_REQUEST',
+              title: isNewVendor ? 'New vendor wants to operate here' : 'Vendor requests an additional location',
+              body: `${vendor?.businessName || 'A vendor'} has requested ${locationName}${isNewVendor ? ' as their first location' : ''}.`,
+              link: `/manager/vendors/${auth.vendorId}?tab=locations`,
+              metadata: { vendorId: auth.vendorId, locationId, requestId: locationRequest.id, isNewVendor },
+              dedupeKey: locationRequest.id,
+            })
+          );
+        })
+      );
+    } catch (notifyError) {
+      logger.error('Failed to notify managers of bulk location request', notifyError);
+    }
 
     return NextResponse.json(
       {

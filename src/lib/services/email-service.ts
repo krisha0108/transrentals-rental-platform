@@ -15,6 +15,13 @@ try {
 }
 const LOGO_CID = 'transrentals-logo';
 
+// The address emails appear to come "From". Distinct from SMTP_USER because
+// some providers (e.g. Brevo) issue a separate SMTP auth login that differs
+// from the actual verified sender address — sending "From" the auth login
+// itself gets rejected. Falls back to SMTP_USER for providers where they're
+// the same (Gmail, Mailtrap).
+const SMTP_FROM_EMAIL = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+
 // SMTP Configuration
 const smtpPort = parseInt(process.env.SMTP_PORT || '465');
 const transporter = nodemailer.createTransport({
@@ -216,7 +223,7 @@ export async function sendOTPEmail(
       // "TransRentals Support" matches the in-email pill — keeps the brand
       // voice consistent and reassures the recipient the message is from
       // the official support team rather than an automated security bot.
-      from: `"TransRentals Support" <${process.env.SMTP_USER}>`,
+      from: `"TransRentals Support" <${SMTP_FROM_EMAIL}>`,
       to,
       subject,
       html,
@@ -245,6 +252,175 @@ export async function sendOTPEmail(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send email'
+    };
+  }
+}
+
+// Contact-form reply email — sent when a manager/admin writes a resolution
+// note against a `contact_inquiries` row. This is the only outbound signal
+// that closes the loop for an anonymous (not-logged-in) form submitter.
+const getContactInquiryReplyTemplate = (params: {
+  name: string;
+  subject: string;
+  resolution: string;
+  referenceNumber: string;
+}) => {
+  const { name, subject, resolution, referenceNumber } = params;
+  const emailSubject = `Re: ${subject} · TransRentals Support`;
+  const preheader = resolution.length > 120 ? `${resolution.slice(0, 117)}...` : resolution;
+
+  const text = `TransRentals Support — Reply to your message
+
+Hi ${name},
+
+You reached out to us about "${subject}" (Reference: ${referenceNumber}). Here's our reply:
+
+${resolution}
+
+Need to follow up? Reply to this email or write to support@transrentals.in.
+
+— Team TransRentals
+${new Date().getFullYear()} TransRentals · India's Vehicle Rental Marketplace
+`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>${emailSubject}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;color:#0f172a;">
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${preheader}</div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f4;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(2,43,26,0.08);">
+
+          <!-- Brand header with gradient -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#022B1A 0%,#045030 50%,#09B368 100%);padding:32px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="vertical-align:middle;">
+                    ${LOGO_BUFFER ? `
+                    <div style="display:inline-block;background:#ffffff;padding:12px 22px;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,0.18);vertical-align:middle;line-height:0;">
+                      <img src="cid:${LOGO_CID}" alt="TransRentals" width="210" height="40" style="display:block;width:210px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;">
+                    </div>
+                    <div style="margin-top:14px;color:rgba(255,255,255,0.85);font-size:12px;font-weight:500;letter-spacing:0.6px;text-transform:uppercase;">India's Vehicle Rental Marketplace</div>
+                    ` : `
+                    <span style="display:inline-block;vertical-align:middle;">
+                      <span style="display:block;color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.3px;line-height:1.2;">TransRentals</span>
+                      <span style="display:block;color:rgba(255,255,255,0.78);font-size:12px;font-weight:500;letter-spacing:0.4px;text-transform:uppercase;margin-top:4px;">Vehicle Rental Marketplace</span>
+                    </span>
+                    `}
+                  </td>
+                  <td align="right" style="vertical-align:top;">
+                    <span style="display:inline-block;background:rgba(255,255,255,0.18);color:#ffffff;font-size:11px;font-weight:600;padding:6px 12px;border-radius:999px;letter-spacing:0.3px;text-transform:uppercase;border:1px solid rgba(255,255,255,0.22);white-space:nowrap;">TransRentals Support</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px 40px 16px;">
+              <h1 style="margin:0 0 12px;color:#022B1A;font-size:22px;font-weight:700;letter-spacing:-0.3px;">We've replied to your message</h1>
+              <p style="margin:0 0 24px;color:#475569;font-size:15px;line-height:1.65;">
+                Hi ${name},<br>You reached out to us about <strong style="color:#022B1A;">${subject}</strong>. Here's our reply:
+              </p>
+
+              <!-- Reply box -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:14px;padding:22px 24px;">
+                    <div style="color:#047857;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">Our Reply</div>
+                    <div style="color:#022B1A;font-size:15px;line-height:1.65;white-space:pre-wrap;">${resolution}</div>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:20px 0 0;color:#94a3b8;font-size:12px;line-height:1.6;">
+                Reference: <span style="color:#334155;font-weight:600;">${referenceNumber}</span>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Help -->
+          <tr>
+            <td style="padding:8px 40px 32px;">
+              <div style="border-top:1px solid #e2e8f0;padding-top:24px;color:#64748b;font-size:13px;line-height:1.6;">
+                Need to follow up? Reply to this email, or write to us at <a href="mailto:support@transrentals.in" style="color:#045030;font-weight:600;text-decoration:none;">support@transrentals.in</a>.
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f8fafc;padding:22px 40px;border-top:1px solid #e2e8f0;">
+              <p style="margin:0 0 6px;color:#0f172a;font-size:12px;font-weight:600;">TransRentals</p>
+              <p style="margin:0;color:#94a3b8;font-size:11px;line-height:1.6;">
+                India's Vehicle Rental Marketplace · Bike, Car, Bus, Truck & more<br>
+                &copy; ${new Date().getFullYear()} TransRentals. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return { subject: emailSubject, html, text };
+};
+
+export async function sendContactInquiryReplyEmail(params: {
+  to: string;
+  name: string;
+  subject: string;
+  resolution: string;
+  referenceNumber: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+      console.error('SMTP credentials not configured');
+      return { success: false, error: 'Email service not configured' };
+    }
+
+    const { to, ...templateParams } = params;
+    const { subject, html, text } = getContactInquiryReplyTemplate(templateParams);
+
+    await transporter.sendMail({
+      from: `"TransRentals Support" <${SMTP_FROM_EMAIL}>`,
+      to,
+      subject,
+      html,
+      text,
+      headers: {
+        'X-Entity-Ref-ID': `contact-reply-${params.referenceNumber}-${Date.now()}`,
+      },
+      ...(LOGO_BUFFER ? {
+        attachments: [{
+          filename: 'transrentals-logo.png',
+          content: LOGO_BUFFER,
+          cid: LOGO_CID,
+          contentDisposition: 'inline',
+        }],
+      } : {}),
+    });
+
+    console.log(`Contact inquiry reply email sent to ${to}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send contact inquiry reply email:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send email',
     };
   }
 }
@@ -314,7 +490,7 @@ export async function sendWanderBookingEmail(params: {
 
   try {
     await transporter.sendMail({
-      from: `"TransRentals Wander" <${process.env.SMTP_USER}>`,
+      from: `"TransRentals Wander" <${SMTP_FROM_EMAIL}>`,
       to,
       subject: `Tour Booking ${statusLabel} — ${bookingNumber}`,
       html,

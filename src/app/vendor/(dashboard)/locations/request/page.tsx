@@ -16,6 +16,7 @@ import {
   Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 
 interface Location {
   id: string;
@@ -46,6 +47,7 @@ export default function RequestLocationPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [message, setMessage] = useState('');
   const [localAddress, setLocalAddress] = useState('');
+  const { hasAddress, openVerificationModal } = useVendorVerification();
 
   const fetchLocations = async () => {
     try {
@@ -826,7 +828,7 @@ export default function RequestLocationPage() {
                     Cancel
                   </Button>
                   <Button
-                    onClick={handleBulkRequest}
+                    onClick={hasAddress ? handleBulkRequest : openVerificationModal}
                     disabled={submitting}
                     className="bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-200/50 active:scale-[0.98] transition-all duration-200 rounded-xl"
                   >

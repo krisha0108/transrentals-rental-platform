@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('royal-enfield-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Royal Enfield on Rent in ${locationName} | Bullet Rental @₹899/Day | TransRentals`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Royal Enfield on Rent in ${locationName} | @₹899/Day`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Royal Enfield bikes in ${locationName}. Classic 350, Himalayan, Meteor, Hunter available. Perfect for road trips & touring. Book now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `royal enfield on rent in ${locationName}`,

@@ -1,33 +1,74 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail } from 'lucide-react';
+import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail, UserCog, Bell, MapPinPlus, Layers } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { ToastProvider } from '@/components/ui/toast';
+import { useManagerActivityHeartbeat } from '@/hooks/useManagerActivityHeartbeat';
 
 const SIDEBAR_LINKS = [
   { href: '/manager/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/manager/tracking', label: 'Live Tracking', icon: Navigation },
-  { href: '/manager/b2b', label: 'B2B Bookings', icon: Briefcase },
-  { href: '/manager/b2b-companies', label: 'B2B Companies', icon: Building2 },
+  { href: '/manager/notifications', label: 'Notifications', icon: Bell },
+  { href: '/manager/vendor-performance', label: 'Performance', icon: TrendingUp },
   { href: '/manager/inquiries', label: 'My Inquiries', icon: FileText },
-  { href: '/manager/contact-inquiries', label: 'Contact Inquiries', icon: Mail },
   { href: '/manager/bookings', label: 'My Bookings', icon: Briefcase },
   { href: '/manager/vendors', label: 'Vendors', icon: Store },
   { href: '/manager/drivers', label: 'Drivers', icon: Users },
   { href: '/manager/travel-agents', label: 'Travel Agents', icon: Plane },
-  { href: '/manager/vendor-performance', label: 'Performance', icon: TrendingUp },
+  { href: '/manager/b2b', label: 'B2B Bookings', icon: Briefcase },
+  { href: '/manager/b2b-companies', label: 'B2B Companies', icon: Building2 },
+  { href: '/manager/tracking', label: 'Live Tracking', icon: Navigation },
+  { href: '/manager/contact-inquiries', label: 'Contact Inquiries', icon: Mail },
+  { href: '/manager/contact-requests', label: 'Contact Requests', icon: UserCog },
   { href: '/manager/chats', label: 'Chats', icon: MessageSquare },
   { href: '/manager/locations', label: 'My Locations', icon: MapPin },
   { href: '/manager/city-pricing', label: 'City Pricing', icon: IndianRupee },
   { href: '/manager/helpdesk', label: 'Helpdesk', icon: Headphones },
 ];
 
-function ManagerSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+interface ManagerNotification {
+  id: string;
+  type: 'NEW_LOCATION_REQUEST' | 'NEW_SERVICE_REQUEST' | 'NEW_CONTACT_INQUIRY' | 'NEW_TRAVEL_AGENT_REGISTRATION';
+  title: string;
+  body: string;
+  link: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function ManagerSidebar({
+  isOpen,
+  onClose,
+  vendorBadgeCount,
+  contactInquiryBadgeCount,
+  notificationsBadgeCount,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  vendorBadgeCount: number;
+  contactInquiryBadgeCount: number;
+  notificationsBadgeCount: number;
+}) {
   const { data: session } = useSession();
+  const badgeCountByHref: Record<string, number> = {
+    '/manager/vendors': vendorBadgeCount,
+    '/manager/notifications': notificationsBadgeCount,
+    '/manager/contact-inquiries': contactInquiryBadgeCount,
+  };
 
   return (
     <>
@@ -67,6 +108,7 @@ function ManagerSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
             {SIDEBAR_LINKS.map((link) => {
               const Icon = link.icon;
+              const badgeCount = badgeCountByHref[link.href] || 0;
               return (
                 <Link
                   key={link.href}
@@ -75,7 +117,12 @@ function ManagerSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                   className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition"
                 >
                   <Icon className="w-5 h-5" />
-                  <span>{link.label}</span>
+                  <span className="flex-1">{link.label}</span>
+                  {badgeCount > 0 && (
+                    <span className="min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center rounded-full bg-orange-400 text-teal-900 text-[11px] font-bold">
+                      {badgeCount > 99 ? '99+' : badgeCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -101,10 +148,136 @@ function ManagerSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
   );
 }
 
+const NOTIFICATION_ICON: Record<string, any> = {
+  NEW_LOCATION_REQUEST: MapPinPlus,
+  NEW_SERVICE_REQUEST: Layers,
+  NEW_CONTACT_INQUIRY: Mail,
+  NEW_TRAVEL_AGENT_REGISTRATION: Plane,
+};
+
+function ManagerNotificationBell({
+  notifications,
+  unreadCount,
+  onMarkRead,
+  onMarkAllRead,
+}: {
+  notifications: ManagerNotification[];
+  unreadCount: number;
+  onMarkRead: (id: string) => void;
+  onMarkAllRead: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  const handleItemClick = (n: ManagerNotification) => {
+    if (!n.isRead) onMarkRead(n.id);
+    setOpen(false);
+    if (n.link) router.push(n.link);
+  };
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="relative p-2 hover:bg-gray-100 rounded-lg transition"
+      >
+        <Bell className="w-5 h-5 text-gray-700" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 min-w-[1.1rem] h-[1.1rem] px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+      {open && (
+        <div className="absolute z-30 top-full right-0 mt-2 w-80 max-w-[90vw] bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
+            <span className="text-sm font-semibold text-gray-800">Notifications</span>
+            {unreadCount > 0 && (
+              <button
+                onClick={onMarkAllRead}
+                className="text-xs font-medium text-green-600 hover:text-green-700"
+              >
+                Mark all read
+              </button>
+            )}
+          </div>
+          <div className="max-h-96 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <p className="px-3 py-6 text-sm text-gray-400 text-center">No notifications yet</p>
+            ) : (
+              notifications.map((n) => {
+                const Icon = NOTIFICATION_ICON[n.type] || Bell;
+                return (
+                  <button
+                    key={n.id}
+                    onClick={() => handleItemClick(n)}
+                    className={`w-full flex items-start gap-2.5 px-3 py-3 text-left border-b border-gray-50 hover:bg-gray-50 transition ${!n.isRead ? 'bg-green-50/50' : ''}`}
+                  >
+                    <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${!n.isRead ? 'text-green-600' : 'text-gray-400'}`} />
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm ${!n.isRead ? 'font-semibold text-gray-900' : 'text-gray-600'}`}>{n.title}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.body}</p>
+                      <p className="text-[11px] text-gray-400 mt-1">{timeAgo(n.createdAt)}</p>
+                    </div>
+                    {!n.isRead && <span className="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0" />}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [notifications, setNotifications] = useState<ManagerNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [vendorUnreadCount, setVendorUnreadCount] = useState(0);
+  const [contactInquiryCount, setContactInquiryCount] = useState(0);
+
+  useManagerActivityHeartbeat(status === 'authenticated' && session?.user?.role === 'MANAGER');
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch('/api/manager/notifications?limit=15');
+      if (!res.ok) return;
+      const data = await res.json();
+      setNotifications(data.items || []);
+      setUnreadCount(data.unreadCount || 0);
+      const byType = data.unreadByType || {};
+      setVendorUnreadCount((byType.NEW_LOCATION_REQUEST || 0) + (byType.NEW_SERVICE_REQUEST || 0));
+    } catch {
+      // silent — notifications are non-critical, don't disrupt the page
+    }
+  }, []);
+
+  const fetchContactInquiryCount = useCallback(async () => {
+    try {
+      const res = await fetch('/api/manager/contact-inquiries/count');
+      if (!res.ok) return;
+      const data = await res.json();
+      setContactInquiryCount(data.count || 0);
+    } catch {
+      // silent — badge count is non-critical, don't disrupt the page
+    }
+  }, []);
 
   // Must be before any early returns — hooks cannot be called conditionally
   useEffect(() => {
@@ -112,6 +285,56 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
       router.push('/manager/login');
     }
   }, [status, router]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    fetchNotifications();
+    fetchContactInquiryCount();
+    const interval = setInterval(() => {
+      fetchNotifications();
+      fetchContactInquiryCount();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [status, fetchNotifications, fetchContactInquiryCount]);
+
+  // Other pages (dashboard widget, the standalone notifications page) mark
+  // notifications read via their own PATCH calls, not through this layout's
+  // handlers — they broadcast this event afterward so the sidebar/bell badge
+  // (owned here) stays in sync instantly instead of waiting for the next poll.
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    const handler = () => fetchNotifications();
+    window.addEventListener('manager-notifications-updated', handler);
+    return () => window.removeEventListener('manager-notifications-updated', handler);
+  }, [status, fetchNotifications]);
+
+  const handleMarkRead = useCallback(async (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    setUnreadCount((c) => Math.max(0, c - 1));
+    try {
+      await fetch('/api/manager/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'markRead', ids: [id] }),
+      });
+    } catch {
+      // best-effort; next poll will resync
+    }
+  }, []);
+
+  const handleMarkAllRead = useCallback(async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setUnreadCount(0);
+    try {
+      await fetch('/api/manager/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'markAllRead' }),
+      });
+    } catch {
+      // best-effort; next poll will resync
+    }
+  }, []);
 
   if (status === 'loading') {
     return (
@@ -146,16 +369,29 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <ManagerSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <ManagerSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        vendorBadgeCount={vendorUnreadCount}
+        contactInquiryBadgeCount={contactInquiryCount}
+        notificationsBadgeCount={unreadCount}
+      />
 
       <div className="lg:pl-64">
-        <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3">
+        <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition"
           >
             <Menu className="w-6 h-6 text-gray-700" />
           </button>
+          <div className="flex-1" />
+          <ManagerNotificationBell
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkRead={handleMarkRead}
+            onMarkAllRead={handleMarkAllRead}
+          />
         </div>
 
         <main className="p-6">{children}</main>

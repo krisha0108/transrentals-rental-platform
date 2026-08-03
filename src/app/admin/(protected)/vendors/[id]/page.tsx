@@ -47,6 +47,8 @@ import {
   KeyRound,
   Copy,
   RefreshCw,
+  Plus,
+  Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -233,6 +235,13 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const [selectedDocument, setSelectedDocument] = useState<VendorDocument | null>(null);
   const [documentPreviewError, setDocumentPreviewError] = useState(false);
   const [documentLoading, setDocumentLoading] = useState(true);
+
+  // Upload form state
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadDocType, setUploadDocType] = useState('');
+  const [uploadDocNumber, setUploadDocNumber] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   // Payout state
   const [payoutData, setPayoutData] = useState<{ pendingBookings: PayoutBooking[]; summary: PayoutSummary; payoutHistory: PayoutBatch[] } | null>(null);
@@ -602,6 +611,40 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
     }
   };
 
+  const handleDocumentUpload = async () => {
+    if (!uploadFile || !uploadDocType) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('documentType', uploadDocType);
+      if (uploadDocNumber.trim()) {
+        formData.append('documentNumber', uploadDocNumber.trim());
+      }
+
+      const res = await fetch(`/api/admin/vendors/${id}/documents`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        setShowUploadForm(false);
+        setUploadFile(null);
+        setUploadDocType('');
+        setUploadDocNumber('');
+        await fetchVendor();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleBulkServiceAction = async (action: string, reason?: string) => {
     const pendingServices = vendor?.serviceRequests.filter((s) => s.status === 'PENDING') || [];
     if (pendingServices.length === 0) return;
@@ -860,6 +903,13 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const statusInfo = statusConfig[vendor.status] || statusConfig.PENDING;
   const pendingServiceRequests = vendor.serviceRequests.filter((r) => r.status === 'PENDING');
   const pendingLocationRequests = vendor.locationRequests.filter((r) => r.status === 'PENDING');
+  // "Under Review" is set purely by the document-upload step (Address Proof) —
+  // it doesn't mean the vendor has requested any location/service yet. Make
+  // that distinction visible instead of leaving it looking like a full review.
+  const hasNoLocationOrServiceActivity =
+    vendor.status === 'UNDER_REVIEW' &&
+    vendor.locationRequests.length === 0 && vendor.approvedLocations.length === 0 &&
+    vendor.serviceRequests.length === 0 && vendor.approvedServices.length === 0;
 
   return (
     <div className="space-y-6">
@@ -872,9 +922,12 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">{vendor.businessName}</h1>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusInfo.bgColor} ${statusInfo.color}`}>
-              {statusInfo.label}
+              {hasNoLocationOrServiceActivity ? 'Documents Reviewed' : statusInfo.label}
             </span>
           </div>
+          {hasNoLocationOrServiceActivity && (
+            <p className="text-xs text-amber-600 mt-0.5">Locations/Services not requested yet</p>
+          )}
           <p className="text-gray-600">Vendor ID: {vendor.id}</p>
         </div>
 
@@ -1131,8 +1184,32 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                     <label className="text-sm text-gray-500">Address</label>
                     <p className="font-medium text-gray-900 flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-gray-400" />
-                      {vendor.address}, {vendor.city}, {vendor.state} - {vendor.pincode}
+                      {vendor.address}
                     </p>
+                  </div>
+                )}
+                {vendor.city && (
+                  <div>
+                    <label className="text-sm text-gray-500">City</label>
+                    <p className="font-medium text-gray-900">{vendor.city}</p>
+                  </div>
+                )}
+                {vendor.state && (
+                  <div>
+                    <label className="text-sm text-gray-500">State</label>
+                    <p className="font-medium text-gray-900">{vendor.state}</p>
+                  </div>
+                )}
+                {vendor.pincode && (
+                  <div>
+                    <label className="text-sm text-gray-500">Pincode</label>
+                    <p className="font-medium text-gray-900">{vendor.pincode}</p>
+                  </div>
+                )}
+                {!vendor.address && !vendor.city && !vendor.state && !vendor.pincode && (
+                  <div className="col-span-2">
+                    <label className="text-sm text-gray-500">Address</label>
+                    <p className="text-sm text-gray-400 italic">Not provided</p>
                   </div>
                 )}
                 {vendor.vid && (
@@ -1260,6 +1337,101 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
       )}
 
       {activeTab === 'documents' && (
+        <div className="space-y-4">
+          {/* Upload Form */}
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="p-4 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Vendor Documents
+              </h3>
+              <Button
+                size="sm"
+                onClick={() => setShowUploadForm(!showUploadForm)}
+                variant={showUploadForm ? 'outline' : 'default'}
+              >
+                {showUploadForm ? (
+                  <>
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Document
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {showUploadForm && (
+              <div className="px-4 pb-4 border-t pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Document Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={uploadDocType}
+                      onChange={(e) => setUploadDocType(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select type...</option>
+                      <option value="GST_CERTIFICATE">GST Certificate</option>
+                      <option value="PAN_CARD">PAN Card</option>
+                      <option value="BUSINESS_REGISTRATION">Business Registration</option>
+                      <option value="ADDRESS_PROOF">Address Proof</option>
+                      <option value="BANK_DETAILS">Bank Details</option>
+                      <option value="CANCELLED_CHEQUE">Cancelled Cheque</option>
+                      <option value="OWNER_AADHAAR">Owner Aadhaar</option>
+                      <option value="OWNER_PAN">Owner PAN</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Document Number <span className="text-gray-400">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadDocNumber}
+                      onChange={(e) => setUploadDocNumber(e.target.value)}
+                      placeholder="e.g. GSTIN, PAN number"
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    File <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp,.pdf"
+                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                    className="w-full px-3 py-2 border rounded-lg text-sm file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Accepted: JPG, PNG, WebP, PDF (max 25MB)
+                  </p>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    onClick={handleDocumentUpload}
+                    disabled={!uploadFile || !uploadDocType || uploading}
+                  >
+                    {uploading ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
+                    {uploading ? 'Uploading...' : 'Upload Document'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
           {/* Bulk Action Buttons */}
           {vendor.documents.filter((d) => d.status === 'PENDING').length > 0 && (
@@ -1387,6 +1559,7 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
               ))}
             </div>
           )}
+        </div>
         </div>
       )}
 

@@ -5,6 +5,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import logger from '@/lib/security/logger';
 import crypto from 'crypto';
 import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
+import { getManagersForLocation, notifyManagers } from '@/lib/notifications/manager-notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -255,7 +256,7 @@ export async function POST(request: NextRequest) {
     // Block rejected vendors from submitting new requests
     const vendor = await prisma.vendors.findUnique({
       where: { id: vendorId },
-      select: { status: true },
+      select: { status: true, businessName: true },
     });
     if (!vendor || vendor.status === 'REJECTED') {
       return NextResponse.json({ error: 'Your account has been rejected. You cannot submit new requests.' }, { status: 403 });
@@ -327,6 +328,25 @@ export async function POST(request: NextRequest) {
         status: 'PENDING',
       },
     });
+
+    // Notify managers scoped to this location — never block the response on this.
+    try {
+      const managerIds = await getManagersForLocation(locationId);
+      const approvedLocationCount = await prisma.vendor_approved_locations.count({
+        where: { vendorId, isActive: true },
+      });
+      const isNewVendor = approvedLocationCount === 0;
+      await notifyManagers(managerIds, {
+        type: 'NEW_LOCATION_REQUEST',
+        title: isNewVendor ? 'New vendor wants to operate here' : 'Vendor requests an additional location',
+        body: `${vendor.businessName} has requested ${location.name}${isNewVendor ? ' as their first location' : ''}.`,
+        link: `/manager/vendors/${vendorId}?tab=locations`,
+        metadata: { vendorId, locationId, requestId: locationRequest.id, isNewVendor },
+        dedupeKey: locationRequest.id,
+      });
+    } catch (notifyError) {
+      logger.error('Failed to notify managers of new location request', notifyError);
+    }
 
     return NextResponse.json(locationRequest, { status: 201 });
   } catch (error: any) {

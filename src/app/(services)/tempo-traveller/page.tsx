@@ -48,7 +48,7 @@ const TOP_CITIES = [
 ];
 
 export const metadata: Metadata = {
-  title: 'Tempo Traveller on Rent | 12-20 Seater | Starting ₹18/km | TransRentals',
+  title: 'Tempo Traveller on Rent | 12-20 Seater | ₹18/km',
   description: 'Rent Tempo Traveller for group travel across India. 9, 12, 14, 17 seater AC/Non-AC available. Pilgrimages, family trips, corporate events. Verified drivers across 50+ cities.',
   keywords: [
     'tempo traveller on rent',

@@ -222,6 +222,7 @@ function ComboLocationInput({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [highlightedIdx, setHighlightedIdx] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -268,6 +269,7 @@ function ComboLocationInput({
     const newValue = e.target.value;
     onTextChange(newValue);
     setIsOpen(true);
+    setHighlightedIdx(-1);
     // Clear selected location when typing custom value
     if (value) {
       onChange(null, newValue);
@@ -278,6 +280,25 @@ function ComboLocationInput({
     onChange(loc);
     onTextChange(loc.name);
     setIsOpen(false);
+    setHighlightedIdx(-1);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isOpen || filteredLocations.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIdx((prev) => (prev + 1) % filteredLocations.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIdx((prev) => (prev <= 0 ? filteredLocations.length - 1 : prev - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const loc = filteredLocations[highlightedIdx] ?? (filteredLocations.length === 1 ? filteredLocations[0] : undefined);
+      if (loc) handleSelectLocation(loc);
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+      setHighlightedIdx(-1);
+    }
   };
 
   return (
@@ -290,6 +311,7 @@ function ComboLocationInput({
           type="text"
           value={textValue}
           onChange={handleInputChange}
+          onKeyDown={handleInputKeyDown}
           onFocus={() => {
             setIsFocused(true);
             setIsOpen(true);
@@ -341,8 +363,9 @@ function ComboLocationInput({
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => handleSelectLocation(loc)}
+                    onMouseEnter={() => setHighlightedIdx(idx)}
                     className={`w-full px-4 py-2.5 text-left text-sm hover:bg-blue-50 flex items-center gap-2 transition ${
-                      value === loc.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                      value === loc.id || highlightedIdx === idx ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
                     } ${idx === nearbyCount - 1 && nearbyCount < filteredLocations.length ? 'border-b border-gray-100' : ''}`}
                   >
                     <MapPin className={`w-4 h-4 flex-shrink-0 ${idx < nearbyCount ? 'text-blue-400' : 'text-gray-400'}`} />
@@ -789,11 +812,22 @@ export function CarRentalBookingHero({
   // Minimum advance booking: pickup must be at least 12 hours from now
   const MIN_ADVANCE_HOURS = 12;
 
+  // Format a Date as YYYY-MM-DD using its *local* calendar date. Using
+  // toISOString() here is wrong — it converts to UTC first, which silently
+  // shifts the date back by a day for timezones ahead of UTC (e.g. IST)
+  // whenever the local time falls in the early-morning hours.
+  const toLocalDateString = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Get minimum allowed booking date (for date picker `min` attribute)
   const getMinBookingDate = () => {
     const now = new Date();
     const minDateTime = new Date(now.getTime() + MIN_ADVANCE_HOURS * 60 * 60 * 1000);
-    return minDateTime.toISOString().split('T')[0];
+    return toLocalDateString(minDateTime);
   };
 
   // Validate pickup date + time is at least 12 hours from now
@@ -817,11 +851,11 @@ export function CarRentalBookingHero({
       // 10 AM on this date is already past, move to next day
       defaultPickup.setDate(defaultPickup.getDate() + 1);
     }
-    setPickupDate(defaultPickup.toISOString().split('T')[0]);
+    setPickupDate(toLocalDateString(defaultPickup));
 
     const defaultReturn = new Date(defaultPickup);
     defaultReturn.setDate(defaultReturn.getDate() + 1);
-    setReturnDate(defaultReturn.toISOString().split('T')[0]);
+    setReturnDate(toLocalDateString(defaultReturn));
   }, []);
 
   // Re-fetch local packages when city changes in the form
@@ -1091,9 +1125,15 @@ export function CarRentalBookingHero({
       return;
     }
     setDateError('');
-    // For outstation, require destination (To field)
-    if (tripType === 'outstation' && !dropLocationId && !dropCityText.trim()) {
-      alert('Please enter or select destination city');
+    // For outstation, require a resolved destination location (not just typed text —
+    // pricing needs a real location ID; typing a city and pressing Enter without
+    // clicking a suggestion leaves dropLocationId empty and silently breaks pricing).
+    if (tripType === 'outstation' && !dropLocationId) {
+      alert(
+        dropCityText.trim()
+          ? 'Please select your destination from the suggestions list'
+          : 'Please enter or select destination city'
+      );
       return;
     }
     // For airport, require airport selection
@@ -1854,13 +1894,18 @@ export function CarRentalBookingHero({
                           {tripType === 'outstation' && (
                             multiStops.filter((s) => s.cityText).length > 0
                               ? `${pickupCity} → ${multiStops.filter((s) => s.cityText).map((s) => s.cityText).join(' → ')} → ${dropCity || dropCityText}`
-                              : `${pickupCity} → ${dropCity || dropCityText} (${outstationMode})`
+                              : `${pickupCity} → ${dropCity || dropCityText}`
                           )}
                           {tripType === 'airport' &&
                             (airportMode === 'pickup'
                               ? `${selectedAirport?.code || 'Airport'} → ${pickupCity}`
                               : `${pickupCity} → ${selectedAirport?.code || 'Airport'}`)}
                         </span>
+                        {tripType === 'outstation' && (
+                          <span className="ml-auto shrink-0 text-xs font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white">
+                            {outstationMode === 'round-trip' ? 'Round Trip' : 'One Way'}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-4 mt-1 text-blue-700">
                         <span className="flex items-center gap-1">
@@ -1896,9 +1941,13 @@ export function CarRentalBookingHero({
                           .filter((vehicle) => {
                             const priceData = carPrices[vehicle.id];
                             const hasPrice = priceData?.success && priceData.pricing?.grandTotal > 0;
-                            // Only hide unavailable if we have pricing data loaded for at least some vehicles
-                            const hasSomeData = Object.keys(carPrices).length > 0;
-                            return hasPrice || !hasSomeData;
+                            // Only hide unavailable vehicles if at least one vehicle IS available —
+                            // otherwise (e.g. no pricing route exists for this trip at all) show every
+                            // vehicle with its "Not available" state instead of an empty list.
+                            const hasAnyAvailable = Object.values(carPrices).some(
+                              (p) => p?.success && p.pricing?.grandTotal > 0
+                            );
+                            return hasPrice || !hasAnyAvailable;
                           })
                           .map((vehicle) => {
                           const priceData = carPrices[vehicle.id];

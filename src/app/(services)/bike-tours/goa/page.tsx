@@ -4,7 +4,7 @@ import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
 import { FAQSection } from '@/components/services/FAQSection';
 
 export const metadata: Metadata = {
-  title: 'Goa Bike Tour 2025 | Guided Coastal Motorcycle Tour from ₹14,999 | TransRentals',
+  title: 'Goa Bike Tour 2025 | Guided Coastal Tour from ₹14,999',
   description: 'Book Goa guided bike tour. 4 days coastal ride with beaches, Dudhsagar Falls, Old Goa churches. Ride captain, accommodation & meals included.',
   keywords: [
     'goa bike tour',

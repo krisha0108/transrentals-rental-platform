@@ -27,6 +27,7 @@ import {
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import QuotePaymentSafetyNotice from '@/components/customer/QuotePaymentSafetyNotice';
 
 const LUXURY_CATEGORIES: Record<string, string> = {
   luxury_sedan: 'Luxury Sedan',
@@ -281,7 +282,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h3 className="font-medium text-gray-900 mb-2">Error Loading Request</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Request</h3>
           <p className="text-sm text-gray-500 mb-4">{error}</p>
           <Link href="/customer/dashboard" className="text-amber-600 hover:underline">
             Back to Dashboard
@@ -296,7 +297,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Crown className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="font-medium text-gray-900 mb-2">Request Not Found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Request Not Found</h3>
           <Link href="/customer/dashboard" className="text-amber-600 hover:underline">
             Back to Dashboard
           </Link>
@@ -340,7 +341,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
 
         {/* Request Summary */}
         <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-amber-100">
-          <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Crown className="w-4 h-4 text-amber-500" />
             Your Request
           </h2>
@@ -401,18 +402,24 @@ export default function CustomerLuxuryQuoteDetailPage() {
           )}
         </div>
 
+        {/* Payment safety notice — stays visible whether quotes are still
+            pending or have already arrived */}
+        <div className="mb-4">
+          <QuotePaymentSafetyNotice />
+        </div>
+
         {/* Quotes */}
         {quotes.length === 0 ? (
           <div className="bg-white rounded-xl p-8 text-center border border-amber-100">
             <Clock className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-            <h3 className="font-medium text-gray-900 mb-1">Awaiting Quotes</h3>
+            <h3 className="text-base font-medium text-gray-900 mb-1">Awaiting Quotes</h3>
             <p className="text-sm text-gray-500">
               Premium vendors are reviewing your request. You'll receive quotes shortly.
             </p>
           </div>
         ) : (
           <>
-            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Star className="w-5 h-5 text-amber-500" />
               Compare Quotes ({quotes.length})
             </h2>
@@ -453,7 +460,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
                             <Crown className="w-6 h-6 text-amber-600" />
                           </div>
                           <div>
-                            <h3 className="font-bold text-gray-900">{quote.vendors.businessName}</h3>
+                            <h3 className="text-base font-bold text-gray-900">{quote.vendors.businessName}</h3>
                             <div className="flex items-center gap-2 text-sm">
                               {quote.vendors.rating ? (
                                 <div className="flex items-center gap-1">
@@ -533,7 +540,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
                         <div className="border-t pt-4 mt-4 space-y-4">
                           {/* Price Breakdown */}
                           <div className="bg-gray-50 p-3 rounded-lg">
-                            <h4 className="font-medium text-gray-900 mb-2">Price Breakdown</h4>
+                            <h4 className="text-sm font-semibold text-gray-900 mb-2">Price Breakdown</h4>
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between">
                                 <span>Base</span>
@@ -581,7 +588,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
                           {/* All Inclusions */}
                           {quote.inclusions && quote.inclusions.length > 0 && (
                             <div>
-                              <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                              <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
                                 <CheckCircle className="w-4 h-4 text-green-500" />
                                 Inclusions
                               </h4>
@@ -599,7 +606,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
                           {/* Exclusions */}
                           {quote.exclusions && quote.exclusions.length > 0 && (
                             <div>
-                              <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                              <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
                                 <XCircle className="w-4 h-4 text-red-500" />
                                 Exclusions
                               </h4>
@@ -617,7 +624,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
                           {/* Extra Rates */}
                           {(quote.extraKmRate || quote.extraHourRate) && (
                             <div className="bg-amber-50 p-3 rounded-lg">
-                              <h4 className="font-medium text-amber-800 mb-2">Extra Charges</h4>
+                              <h4 className="text-sm font-semibold text-amber-800 mb-2">Extra Charges</h4>
                               <div className="flex gap-4 text-sm text-amber-700">
                                 {quote.extraKmRate > 0 && (
                                   <span>Extra Km: ₹{quote.extraKmRate}/km</span>
@@ -632,7 +639,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
                           {/* Terms */}
                           {quote.termsConditions && quote.termsConditions.length > 0 && (
                             <div>
-                              <h4 className="font-medium text-gray-900 mb-2">Terms & Conditions</h4>
+                              <h4 className="text-sm font-semibold text-gray-900 mb-2">Terms & Conditions</h4>
                               <ul className="space-y-1">
                                 {quote.termsConditions.map((item, i) => (
                                   <li key={i} className="text-sm text-gray-600">• {item}</li>
@@ -644,7 +651,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
                           {/* Vendor Message */}
                           {quote.vendorMessage && (
                             <div className="bg-amber-50 p-3 rounded-lg border border-amber-100">
-                              <h4 className="font-medium text-amber-800 mb-1 flex items-center gap-2">
+                              <h4 className="text-sm font-semibold text-amber-800 mb-1 flex items-center gap-2">
                                 <MessageSquare className="w-4 h-4" />
                                 Message from Vendor
                               </h4>
@@ -716,7 +723,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
                   <XCircle className="w-5 h-5 text-red-500" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-gray-800">Quotes Expired — Booking Date Passed</h4>
+                  <h4 className="text-base font-semibold text-gray-800">Quotes Expired — Booking Date Passed</h4>
                   <p className="text-sm text-gray-500 mt-1">
                     All vendor quotes have expired and your pickup date{' '}
                     {request?.pickupDate && (
@@ -748,7 +755,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
                   <AlertCircle className="w-5 h-5 text-amber-600" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900">All quotes have expired</h4>
+                  <h4 className="text-base font-semibold text-gray-900">All quotes have expired</h4>
                   <p className="text-sm text-gray-600 mt-1">
                     Your pickup date is still upcoming. Re-open this request and vendors will send fresh quotes.
                   </p>
@@ -801,7 +808,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
                   <CheckCircle className="w-5 h-5 text-green-600" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-green-800">Request sent successfully!</h4>
+                  <h4 className="text-base font-semibold text-green-800">Request sent successfully!</h4>
                   <p className="text-sm text-green-700 mt-1">{reRequestSuccess}</p>
                 </div>
               </div>
@@ -818,7 +825,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
 
         {/* Help */}
         <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl p-4 mt-6 border border-amber-200">
-          <h4 className="font-medium text-amber-800 mb-2 flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
             <Shield className="w-5 h-5" />
             Premium Booking Protection
           </h4>

@@ -12,6 +12,7 @@ import {
   stripHtml,
 } from '@/lib/security';
 import { sendInquiryReceived } from '@/lib/whatsapp/client';
+import { getAllActiveManagers, notifyManagers } from '@/lib/notifications/manager-notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,6 +70,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const inquiryId = crypto.randomUUID();
+
   try {
     // SECURITY: Sanitize all inputs before storing
     const sanitizedData = {
@@ -80,7 +83,7 @@ export async function POST(request: NextRequest) {
     };
 
     await prisma.contact_inquiries.create({
-      data: { id: crypto.randomUUID(), ...sanitizedData },
+      data: { id: inquiryId, ...sanitizedData },
     });
 
     logger.info('Contact form submission', { email: sanitizedData.email });
@@ -90,6 +93,21 @@ export async function POST(request: NextRequest) {
       customerName: sanitizedData.name,
       subject: sanitizedData.subject,
     });
+
+    // Alert every active manager — contact inquiries are an unscoped shared
+    // queue (no location/service to filter by), unlike vendor requests.
+    // Never block the response on this.
+    getAllActiveManagers()
+      .then((managerIds) =>
+        notifyManagers(managerIds, {
+          type: 'NEW_CONTACT_INQUIRY',
+          title: 'New contact form inquiry',
+          body: `${sanitizedData.name} sent a message: "${sanitizedData.subject}"`,
+          link: `/manager/contact-inquiries/${inquiryId}`,
+          metadata: { inquiryId },
+        })
+      )
+      .catch((notifyError) => logger.error('Failed to notify managers of new contact inquiry', notifyError));
   } catch (error) {
     logger.error('Failed to save contact inquiry', error);
     return NextResponse.json(
@@ -98,7 +116,32 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const response = NextResponse.json({ success: true, message: 'Thank you for your message' });
+  // Same cosmetic format the manager/admin UI already uses for this inquiry.
+  const referenceNumber = `INQ-${inquiryId.slice(-6).toUpperCase()}`;
+
+  // Does this email/phone already belong to a customer account? Drives the
+  // post-submit popup: existing customers get sent straight to login
+  // (email pre-filled, just asks for their password), new visitors get sent
+  // to registration instead (asked to create a password / free account).
+  let isExistingCustomer = false;
+  try {
+    const email = (payload.email as string).toLowerCase().trim();
+    const phone = sanitizePhone(payload.phone as string);
+    const existing = await prisma.customers.findFirst({
+      where: { OR: [{ email }, { phone }] },
+      select: { id: true },
+    });
+    isExistingCustomer = !!existing;
+  } catch (error) {
+    logger.error('Failed to check existing customer for contact form', error);
+  }
+
+  const response = NextResponse.json({
+    success: true,
+    message: 'Thank you for your message',
+    referenceNumber,
+    isExistingCustomer,
+  });
   response.headers.set('X-RateLimit-Remaining', String(remaining));
   response.headers.set('X-RateLimit-Reset', String(resetIn));
 

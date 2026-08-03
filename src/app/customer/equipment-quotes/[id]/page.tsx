@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
+import QuotePaymentSafetyNotice from '@/components/customer/QuotePaymentSafetyNotice';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 
 interface QuoteRequest {
@@ -250,7 +251,7 @@ export default function CustomerEquipmentQuoteDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h3 className="font-medium text-gray-900 mb-2">Error Loading Request</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Request</h3>
           <p className="text-sm text-gray-500 mb-4">{error}</p>
           <Link href="/customer/equipment-quotes" className="text-amber-600 hover:underline">
             Back to Requests
@@ -265,7 +266,7 @@ export default function CustomerEquipmentQuoteDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="font-medium text-gray-900 mb-2">Request Not Found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Request Not Found</h3>
           <Link href="/customer/equipment-quotes" className="text-amber-600 hover:underline">
             Back to Requests
           </Link>
@@ -302,7 +303,7 @@ export default function CustomerEquipmentQuoteDetailPage() {
 
         {/* Request Summary */}
         <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <h2 className="font-semibold text-gray-900 mb-3">Your Request</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-3">Your Request</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="flex items-center gap-2 text-sm">
               <HardHat className="w-4 h-4 text-amber-500" />
@@ -346,18 +347,24 @@ export default function CustomerEquipmentQuoteDetailPage() {
           )}
         </div>
 
+        {/* Payment safety notice — stays visible whether quotes are still
+            pending or have already arrived */}
+        <div className="mb-4">
+          <QuotePaymentSafetyNotice />
+        </div>
+
         {/* Quotes */}
         {quotes.length === 0 ? (
           <div className="bg-white rounded-xl p-8 text-center">
             <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-            <h3 className="font-medium text-gray-900 mb-1">Awaiting Quotes</h3>
+            <h3 className="text-base font-medium text-gray-900 mb-1">Awaiting Quotes</h3>
             <p className="text-sm text-gray-500">
               Vendors are reviewing your request. You'll receive quotes within 24-48 hours.
             </p>
           </div>
         ) : (
           <>
-            <h2 className="font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Compare Quotes ({quotes.length})
             </h2>
 
@@ -397,7 +404,7 @@ export default function CustomerEquipmentQuoteDetailPage() {
                             <Wrench className="w-6 h-6 text-amber-600" />
                           </div>
                           <div>
-                            <h3 className="font-bold text-gray-900">{quote.vendorName}</h3>
+                            <h3 className="text-base font-bold text-gray-900">{quote.vendorName}</h3>
                             <div className="flex items-center gap-2 text-sm">
                               <div className="flex items-center gap-1">
                                 <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
@@ -472,7 +479,7 @@ export default function CustomerEquipmentQuoteDetailPage() {
                         <div className="border-t pt-4 mt-4 space-y-4">
                           {/* Price Breakdown */}
                           <div className="bg-gray-50 p-3 rounded-lg">
-                            <h4 className="font-medium text-gray-900 mb-2">Price Breakdown</h4>
+                            <h4 className="text-sm font-semibold text-gray-900 mb-2">Price Breakdown</h4>
                             <div className="space-y-1 text-sm">
                               {quote.dailyRate > 0 && (
                                 <div className="flex justify-between">
@@ -534,7 +541,7 @@ export default function CustomerEquipmentQuoteDetailPage() {
                           {/* All Inclusions */}
                           {quote.inclusions && quote.inclusions.length > 0 && (
                             <div>
-                              <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                              <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
                                 <CheckCircle className="w-4 h-4 text-green-500" />
                                 Inclusions
                               </h4>
@@ -552,7 +559,7 @@ export default function CustomerEquipmentQuoteDetailPage() {
                           {/* Exclusions */}
                           {quote.exclusions && quote.exclusions.length > 0 && (
                             <div>
-                              <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                              <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
                                 <XCircle className="w-4 h-4 text-red-500" />
                                 Exclusions
                               </h4>
@@ -570,7 +577,7 @@ export default function CustomerEquipmentQuoteDetailPage() {
                           {/* Terms */}
                           {quote.termsConditions && quote.termsConditions.length > 0 && (
                             <div>
-                              <h4 className="font-medium text-gray-900 mb-2">Terms & Conditions</h4>
+                              <h4 className="text-sm font-semibold text-gray-900 mb-2">Terms & Conditions</h4>
                               <ul className="space-y-1">
                                 {quote.termsConditions.map((item, i) => (
                                   <li key={i} className="text-sm text-gray-600">• {item}</li>
@@ -582,7 +589,7 @@ export default function CustomerEquipmentQuoteDetailPage() {
                           {/* Vendor Notes */}
                           {quote.notes && (
                             <div className="bg-amber-50 p-3 rounded-lg">
-                              <h4 className="font-medium text-amber-800 mb-1 flex items-center gap-2">
+                              <h4 className="text-sm font-semibold text-amber-800 mb-1 flex items-center gap-2">
                                 <MessageSquare className="w-4 h-4" />
                                 Message from Vendor
                               </h4>
@@ -645,7 +652,7 @@ export default function CustomerEquipmentQuoteDetailPage() {
                   <AlertCircle className="w-5 h-5 text-amber-600" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900">All quotes have expired</h4>
+                  <h4 className="text-base font-semibold text-gray-900">All quotes have expired</h4>
                   <p className="text-sm text-gray-600 mt-1">
                     Your booking date is still upcoming. You can re-open this request so vendors can send fresh quotes.
                   </p>
@@ -698,7 +705,7 @@ export default function CustomerEquipmentQuoteDetailPage() {
                   <CheckCircle className="w-5 h-5 text-green-600" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-green-800">Request sent successfully!</h4>
+                  <h4 className="text-base font-semibold text-green-800">Request sent successfully!</h4>
                   <p className="text-sm text-green-700 mt-1">{reRequestSuccess}</p>
                 </div>
               </div>
@@ -715,7 +722,7 @@ export default function CustomerEquipmentQuoteDetailPage() {
 
         {/* Help */}
         <div className="bg-amber-50 rounded-xl p-4 mt-6 border border-amber-100">
-          <h4 className="font-medium text-amber-800 mb-2 flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
             <Shield className="w-5 h-5" />
             Booking Protection
           </h4>

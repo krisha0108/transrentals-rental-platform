@@ -7,7 +7,7 @@ import { formatPriceHighlight } from '@/lib/utils';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: formatPriceHighlight('Self Drive SUV Rental India | Rent SUV Without Driver @₹1999/Day | TransRentals'),
+  title: 'Self Drive SUV Rental India | Starting from ₹1999/Day',
   description: formatPriceHighlight('Rent SUV without driver across India. Creta, Seltos, Scorpio, XUV700, Fortuner available. Self-drive SUV rental for road trips, family travel. Book online!'),
   keywords: [
     'self drive suv rental',

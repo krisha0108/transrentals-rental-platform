@@ -56,12 +56,16 @@ model admin_users {
   vendor_location_requests        vendor_location_requests[]
   vendor_payout_batches           vendor_payout_batches[]
   vendor_service_requests         vendor_service_requests[]
-  vendors                         vendors[]
+  vendors                         vendors[]                  @relation("vendors_approvedBy")
+  vendors_created                 vendors[]                  @relation("vendors_createdBy")
   travel_agents                   travel_agents[]
   travel_agent_documents_uploaded travel_agent_documents[]   @relation("travel_agent_documents_uploadedBy")
   travel_agent_documents          travel_agent_documents[]   @relation("travel_agent_documents_verifiedBy")
   vendor_tag_assignments          vendor_tag_assignments[]
   driver_tag_assignments          driver_tag_assignments[]
+  manager_action_logs             manager_action_logs[]
+  inquiry_tag_assignments         inquiry_tag_assignments[]
+  manager_notifications           manager_notifications[]
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -951,6 +955,7 @@ model chauffeur_bookings {
   transactionId                                        String?
   partialPayment                                       Float?
   remainingPayment                                     Float?
+  advancePaymentVerified                               Boolean                          @default(false)
   tripStartOtp                                         String?
   tripEndOtp                                           String?
   customerNotes                                        String?                          @db.Text
@@ -3837,6 +3842,7 @@ model vendors {
   isPhoneVerified                                                 Boolean                          @default(false)
   approvedAt                                                      DateTime?
   approvedById                                                    String?
+  createdById                                                     String?
   rejectionReason                                                 String?                          @db.Text
   rating                                                          Float?                           @default(0)
   totalRatings                                                    Int                              @default(0)
@@ -3912,7 +3918,8 @@ model vendors {
   vendor_conversations_1                                          vendor_conversations[]           @relation("conv_vendor1")
   vendor_conversations_2                                          vendor_conversations[]           @relation("conv_vendor2")
   vendor_messages                                                 vendor_messages[]                @relation("msg_sender")
-  admin_users                                                     admin_users?                     @relation(fields: [approvedById], references: [id])
+  admin_users                                                     admin_users?                     @relation("vendors_approvedBy", fields: [approvedById], references: [id])
+  createdByAdmin                                                  admin_users?                     @relation("vendors_createdBy", fields: [createdById], references: [id])
   wander_bookings                                                 wander_bookings[]
   wander_listings                                                 wander_listings[]
   wander_quotes                                                   wander_quotes[]
@@ -3922,6 +3929,7 @@ model vendors {
   vendor_tag_assignments vendor_tag_assignments[]
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
+  @@index([createdById], map: "vendors_createdById_fkey")
   @@index([email])
   @@index([phone])
   @@index([status])
@@ -3941,6 +3949,24 @@ model vendor_tag_assignments {
   @@index([assignedById], map: "vendor_tag_assignments_assignedById_fkey")
 }
 
+// CRM tags on customer inquiries (quote requests) — mirrors vendor_tag_assignments.
+// Polymorphic across the 7 quote_requests tables (no hard FK, same as
+// manager_action_logs), since inquiry ids span multiple tables.
+model inquiry_tag_assignments {
+  id           String       @id @default(cuid())
+  serviceType  String
+  recordId     String
+  tag          inquiry_tag
+  assignedById String?
+  admin_users  admin_users? @relation(fields: [assignedById], references: [id])
+  createdAt    DateTime     @default(now())
+
+  @@unique([recordId, tag])
+  @@index([recordId])
+  @@index([tag])
+  @@index([assignedById], map: "inquiry_tag_assignments_assignedById_fkey")
+}
+
 enum vendor_tag {
   FOLLOW_UP_REQUIRED
   CONNECTED
@@ -3953,6 +3979,38 @@ enum vendor_tag {
   VEHICLE_DETAILS_PENDING
   ACTIVE_VENDOR
   SUSPENDED
+}
+
+// Inquiry (quote request) CRM tags — manager follow-up layer, independent of
+// the manager_action_logs history and the inquiry's own pipeline status.
+enum inquiry_tag {
+  FOLLOW_UP_REQUIRED
+  NOT_INTERESTED
+  WRONG_NUMBER
+  PRICE_TOO_HIGH
+  CONVERTED
+  DUPLICATE_INQUIRY
+  CUSTOMER_CONNECTED
+  NO_VENDOR_AVAILABLE
+  VENDOR_NOT_RESPONDING
+  AWAITING_VENDOR_QUOTE
+  CUSTOMER_NOT_RESPONDING
+  CANCELLED
+  INVALID_LEAD
+  VENDOR_DECLINED
+  VENDOR_CANT_FULFILL
+  NOT_SERVICEABLE
+  CUSTOMER_BOOKED_ELSEWHERE
+  QUOTE_NOT_SUBMITTED
+  WAITING_CUSTOMER_CONFIRMATION
+  ADVANCE_PAYMENT_PENDING
+  OTHER_REASON
+  // Deprecated — see manager_action_type for why these were replaced.
+  CONNECTED
+  RESPONDED
+  NO_RESPONSE
+  HOT_LEAD
+  COLD_LEAD
 }
 
 // Driver CRM tags — manager follow-up layer, independent of driver status.
@@ -7087,6 +7145,127 @@ model vendor_call_logs {
   @@index([vendorId])
   @@index([bookingId])
   @@index([bookingType, bookingId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MANAGER ACTION LOGS — accountability trail: which manager acted on which
+// inquiry/booking, what action they took, and when. Powers the admin-side
+// "Manager Performance" tracking (daily inquiry/booking coverage per manager).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Real-time "is this manager online right now" — one row per manager,
+// upserted on every heartbeat ping from the manager panel.
+model manager_presence {
+  managerId String   @id
+  lastPingAt DateTime
+  isIdle    Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
+// Per-day active/idle time totals for a manager, built by extending the
+// latest session on each heartbeat (see /api/manager/heartbeat). A gap
+// longer than the idle-continuity threshold closes the session (manager's
+// tab was closed / they went fully offline) and the next ping starts a new
+// one — so "idle" here means tab open but no mouse/keyboard activity,
+// distinct from fully offline time which isn't counted either way.
+model manager_activity_sessions {
+  id            String   @id @default(cuid())
+  managerId     String
+  date          DateTime @db.Date
+  startAt       DateTime
+  endAt         DateTime
+  activeSeconds Int      @default(0)
+  idleSeconds   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([managerId, date])
+}
+
+model manager_action_logs {
+  id             String              @id @default(cuid())
+  recordType     String // 'INQUIRY' | 'BOOKING'
+  serviceType    String // serviceSlug, e.g. 'bike-rental', 'car-rental'
+  recordId       String // id row in the relevant quote_requests / bookings table
+  actionType     manager_action_type
+  note           String?             @db.Text
+  previousStatus String?
+  newStatus      String?
+  managerId      String
+  admin_users    admin_users         @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  createdAt      DateTime            @default(now())
+
+  @@index([managerId, createdAt])
+  @@index([recordType, recordId])
+  @@index([recordType, serviceType, createdAt])
+}
+
+enum manager_action_type {
+  CALLED
+  NOTE_ADDED
+  FOLLOW_UP
+  CONVERTED
+  NOT_INTERESTED
+  STATUS_CHANGED
+  VENDOR_ASSIGNED
+  CANCELLED
+  WRONG_NUMBER
+  PRICE_TOO_HIGH
+  DUPLICATE_INQUIRY
+  CUSTOMER_CONNECTED
+  NO_VENDOR_AVAILABLE
+  VENDOR_NOT_RESPONDING
+  AWAITING_VENDOR_QUOTE
+  CUSTOMER_NOT_RESPONDING
+  INVALID_LEAD
+  VENDOR_DECLINED
+  VENDOR_CANT_FULFILL
+  NOT_SERVICEABLE
+  CUSTOMER_BOOKED_ELSEWHERE
+  QUOTE_NOT_SUBMITTED
+  WAITING_CUSTOMER_CONFIRMATION
+  ADVANCE_PAYMENT_PENDING
+  OTHER_REASON
+  // Deprecated — kept only so historical rows stay valid. No longer offered
+  // in the UI (they were borrowed from the vendor-sales-CRM tag vocabulary
+  // and didn't fit inquiry-fulfillment tracking; see CUSTOMER_CONNECTED /
+  // NO_VENDOR_AVAILABLE / VENDOR_NOT_RESPONDING / AWAITING_VENDOR_QUOTE /
+  // CUSTOMER_NOT_RESPONDING above for their replacements).
+  CONNECTED
+  RESPONDED
+  NO_RESPONSE
+  HOT_LEAD
+  COLD_LEAD
+}
+
+// Manager notification inbox — alerts a manager when a vendor within their
+// assigned location/service scope submits a new location or service request
+// (covers both an existing vendor expanding and a brand-new vendor's first
+// pick, since both go through the same vendor_location_requests /
+// vendor_service_requests tables). Mirrors travel_agent_notifications.
+model manager_notifications {
+  id          String                    @id @default(cuid())
+  managerId   String
+  type        manager_notification_type
+  title       String
+  body        String                    @db.Text
+  link        String? // optional in-app deep link
+  metadata    String?                   @db.Text // optional JSON payload (parsed in app)
+  isRead      Boolean                   @default(false)
+  readAt      DateTime?
+  createdAt   DateTime                  @default(now())
+
+  admin_users admin_users @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@index([managerId, createdAt])
+  @@index([managerId, isRead])
+}
+
+enum manager_notification_type {
+  NEW_LOCATION_REQUEST
+  NEW_SERVICE_REQUEST
+  NEW_CONTACT_INQUIRY
+  NEW_TRAVEL_AGENT_REGISTRATION
 }
 
 model service_city_content {

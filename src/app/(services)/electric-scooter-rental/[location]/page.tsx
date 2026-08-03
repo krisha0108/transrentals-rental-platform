@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('electric-scooter-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Electric Scooter Rental in ${locationName} | EV Bike on Rent @₹399/Day | TransRentals`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Electric Scooter Rental in ${locationName} | @₹399/Day`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent electric scooters in ${locationName}. Ola S1, Ather 450X, TVS iQube available. Zero fuel cost, eco-friendly. Daily & monthly EV rental from ₹399/day.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `electric scooter rental ${locationName}`,

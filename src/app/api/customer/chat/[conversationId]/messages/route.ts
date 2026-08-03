@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { sanitizeInput } from '@/lib/utils/sanitize';
-import { smartRateLimit, getClientIdentifier } from '@/lib/utils/smart-rate-limit';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -133,21 +132,6 @@ export async function POST(
   { params }: { params: Promise<{ conversationId: string }> }
 ) {
   try {
-    // ===== RATE LIMITING =====
-    const clientId = getClientIdentifier(request);
-    const rateLimitCheck = await smartRateLimit(clientId, true, {});
-    if (!rateLimitCheck.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: rateLimitCheck.error,
-          requiresCaptcha: rateLimitCheck.requiresCaptcha,
-          type: 'rate_limit',
-        },
-        { status: 429 }
-      );
-    }
-
     const { conversationId } = await params;
     const body = await request.json();
     let { message, sender_type = 'customer', sender_id, sender_name } = body;

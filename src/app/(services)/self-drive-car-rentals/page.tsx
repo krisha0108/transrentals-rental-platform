@@ -5,7 +5,7 @@ import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: 'Self Drive Car Rental - Rent Cars Without Driver @₹899/Day | TransRentals',
+  title: 'Self Drive Car Rental - Rent Cars @₹899/Day',
   description: 'Self-drive car rentals across India. No driver needed. Drive yourself. Hatchbacks, sedans, SUVs available. Book online instantly. 24/7 support.',
   keywords: ['self drive car rental', 'self drive cars', 'car rental without driver', 'self drive car hire', 'drive yourself car rental', 'car rental no driver'],
   openGraph: {

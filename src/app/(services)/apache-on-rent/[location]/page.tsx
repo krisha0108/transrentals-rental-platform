@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('apache-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Apache on Rent in ${locationName} | TVS Apache Rental @₹499/Day | TransRentals`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Apache on Rent in ${locationName} | @₹499/Day`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent TVS Apache bikes in ${locationName}. Apache RTR 160, RTR 180, RTR 200 4V, RR 310 available. Racing DNA bikes. Book now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `apache on rent in ${locationName}`,

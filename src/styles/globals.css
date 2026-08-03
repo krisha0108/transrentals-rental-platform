@@ -597,3 +597,23 @@ body.modal-open {
 .fleet-locations-scroll::-webkit-scrollbar-thumb:hover {
   background: #34d399;
 }
+
+/* Quote payment-safety notice — diagonal light sweep across the card, and a
+   gentle breathing scale on the icon badge. Layered on top of animate-pulse/
+   animate-ping (used elsewhere on the same component) for extra attention
+   without touching text opacity/position, so copy stays readable. */
+@keyframes tr-safety-sweep {
+  0%   { transform: translateX(-150%) skewX(-20deg); }
+  100% { transform: translateX(250%) skewX(-20deg); }
+}
+.tr-safety-sweep {
+  animation: tr-safety-sweep 2.8s ease-in-out infinite;
+}
+
+@keyframes tr-safety-icon-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+.tr-safety-icon-breathe {
+  animation: tr-safety-icon-breathe 1.6s ease-in-out infinite;
+}

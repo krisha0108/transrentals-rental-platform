@@ -1,0 +1,67 @@
+-- Consolidated result of manager feedback (32 candidate labels reviewed,
+-- merged down to 9 genuinely new categories + reusing the existing CANCELLED
+-- value). Widening an enum is always safe to re-run.
+
+ALTER TABLE `manager_action_logs`
+  MODIFY COLUMN `actionType` ENUM(
+    'CALLED',
+    'NOTE_ADDED',
+    'FOLLOW_UP',
+    'CONVERTED',
+    'NOT_INTERESTED',
+    'STATUS_CHANGED',
+    'VENDOR_ASSIGNED',
+    'CANCELLED',
+    'WRONG_NUMBER',
+    'PRICE_TOO_HIGH',
+    'DUPLICATE_INQUIRY',
+    'CUSTOMER_CONNECTED',
+    'NO_VENDOR_AVAILABLE',
+    'VENDOR_NOT_RESPONDING',
+    'AWAITING_VENDOR_QUOTE',
+    'CUSTOMER_NOT_RESPONDING',
+    'INVALID_LEAD',
+    'VENDOR_DECLINED',
+    'VENDOR_CANT_FULFILL',
+    'NOT_SERVICEABLE',
+    'CUSTOMER_BOOKED_ELSEWHERE',
+    'QUOTE_NOT_SUBMITTED',
+    'WAITING_CUSTOMER_CONFIRMATION',
+    'ADVANCE_PAYMENT_PENDING',
+    'OTHER_REASON',
+    'CONNECTED',
+    'RESPONDED',
+    'NO_RESPONSE',
+    'HOT_LEAD',
+    'COLD_LEAD'
+  ) NOT NULL;
+
+ALTER TABLE `inquiry_tag_assignments`
+  MODIFY COLUMN `tag` ENUM(
+    'FOLLOW_UP_REQUIRED',
+    'NOT_INTERESTED',
+    'WRONG_NUMBER',
+    'PRICE_TOO_HIGH',
+    'CONVERTED',
+    'DUPLICATE_INQUIRY',
+    'CUSTOMER_CONNECTED',
+    'NO_VENDOR_AVAILABLE',
+    'VENDOR_NOT_RESPONDING',
+    'AWAITING_VENDOR_QUOTE',
+    'CUSTOMER_NOT_RESPONDING',
+    'CANCELLED',
+    'INVALID_LEAD',
+    'VENDOR_DECLINED',
+    'VENDOR_CANT_FULFILL',
+    'NOT_SERVICEABLE',
+    'CUSTOMER_BOOKED_ELSEWHERE',
+    'QUOTE_NOT_SUBMITTED',
+    'WAITING_CUSTOMER_CONFIRMATION',
+    'ADVANCE_PAYMENT_PENDING',
+    'OTHER_REASON',
+    'CONNECTED',
+    'RESPONDED',
+    'NO_RESPONSE',
+    'HOT_LEAD',
+    'COLD_LEAD'
+  ) NOT NULL;

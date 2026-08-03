@@ -68,6 +68,11 @@ const indianStates = [
   'Delhi', 'Jammu and Kashmir', 'Ladakh',
 ];
 
+function clearVendorProfileCache(session: ReturnType<typeof useSession>['data']) {
+  const vendorId = (session?.user as any)?.id || (session?.user as any)?.email || 'unknown';
+  try { sessionStorage.removeItem(`vendor_profile_cache_${vendorId}`); } catch { /* ignore */ }
+}
+
 export default function VendorProfilePage() {
   const { data: session } = useSession();
   const [isFlipped, setIsFlipped] = useState(false);
@@ -212,6 +217,7 @@ export default function VendorProfilePage() {
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
         try { sessionStorage.removeItem('vendor_logo_cache'); } catch { /* ignore */ }
+        clearVendorProfileCache(session);
       } else {
         const errorData = await res.json();
         setError(errorData.error || 'Failed to update profile');
@@ -513,10 +519,6 @@ export default function VendorProfilePage() {
                 <label className={labelClass}>Owner Name *</label>
                 <input type="text" name="ownerName" value={formData.ownerName} onChange={handleChange} required className={inputClass} />
               </div>
-              <div>
-                <label className={labelClass}>Website</label>
-                <input type="url" name="website" value={formData.website} onChange={handleChange} placeholder="https://example.com" className={inputClass} />
-              </div>
               <div className="md:col-span-2">
                 <label className={labelClass}>Business Description</label>
                 <textarea name="description" value={formData.description} onChange={handleChange} rows={3} placeholder="Describe your business..." className={inputClass} />
@@ -697,7 +699,8 @@ export default function VendorProfilePage() {
           </div>
 
           {/* ── BACKR Rewards ── */}
-          <BackrCard type="vendor" />
+          {/* Temporarily hidden from the vendor profile page (frontend-only — backend untouched) */}
+          {false && <BackrCard type="vendor" />}
 
         </form>
       </div>

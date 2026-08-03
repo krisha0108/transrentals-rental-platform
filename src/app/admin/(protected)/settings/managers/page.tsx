@@ -1,7 +1,33 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, User, MapPin, Briefcase, Eye, EyeOff, Check, X, Shield } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Edit, Trash2, User, MapPin, Briefcase, Eye, EyeOff, Check, X, Shield, Activity, TrendingUp, Mail, Phone as PhoneIcon } from 'lucide-react';
+
+type PresenceStatus = 'active' | 'idle' | 'offline';
+
+interface PresenceInfo {
+  status: PresenceStatus;
+  lastSeenAt: string | null;
+}
+
+const PRESENCE_META: Record<PresenceStatus, { label: string; dot: string; text: string }> = {
+  active: { label: 'Active now', dot: 'bg-emerald-500 animate-pulse', text: 'text-emerald-700' },
+  idle: { label: 'Idle', dot: 'bg-amber-500', text: 'text-amber-700' },
+  offline: { label: 'Offline', dot: 'bg-gray-300', text: 'text-gray-500' },
+};
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return 'never';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
 
 interface Location {
   id: string;
@@ -36,6 +62,8 @@ export default function ManagersPage() {
   const [editingItem, setEditingItem] = useState<Manager | null>(null);
   const [saving, setSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [viewingManager, setViewingManager] = useState<Manager | null>(null);
+  const [presence, setPresence] = useState<Record<string, PresenceInfo>>({});
 
   const [formData, setFormData] = useState({
     name: '',
@@ -51,7 +79,22 @@ export default function ManagersPage() {
     fetchManagers();
     fetchLocations();
     fetchServices();
+    fetchPresence();
+    const interval = setInterval(fetchPresence, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  const fetchPresence = async () => {
+    try {
+      const res = await fetch('/api/admin/managers/presence');
+      const data = await res.json();
+      if (data.presence) {
+        setPresence(data.presence);
+      }
+    } catch (error) {
+      console.error('Failed to fetch manager presence:', error);
+    }
+  };
 
   const fetchManagers = async () => {
     try {
@@ -69,10 +112,13 @@ export default function ManagersPage() {
 
   const fetchLocations = async () => {
     try {
-      const res = await fetch('/api/admin/locations');
+      // flat=true — a plain array, not wrapped in {success, locations}.
+      // Without it, this endpoint returns a parentId-nested tree, which
+      // doesn't work for a flat assignable-locations checkbox list.
+      const res = await fetch('/api/admin/locations?flat=true');
       const data = await res.json();
-      if (data.success) {
-        setLocations(data.locations);
+      if (Array.isArray(data)) {
+        setLocations(data);
       }
     } catch (error) {
       console.error('Failed to fetch locations:', error);
@@ -222,22 +268,38 @@ export default function ManagersPage() {
             Manage manager accounts and their location/service assignments
           </p>
         </div>
-        <button
-          onClick={() => {
-            resetForm();
-            setShowModal(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <Plus size={20} />
-          Add Manager
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/settings/managers/performance"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-green-600 text-green-700 rounded-lg hover:bg-green-50"
+          >
+            <TrendingUp size={18} />
+            Performance
+          </Link>
+          <Link
+            href="/admin/settings/managers/activity"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-blue-600 text-blue-700 rounded-lg hover:bg-blue-50"
+          >
+            <Activity size={18} />
+            Manager Activity
+          </Link>
+          <button
+            onClick={() => {
+              resetForm();
+              setShowModal(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus size={20} />
+            Add Manager
+          </button>
+        </div>
       </div>
 
-      {/* Managers List */}
-      <div className="grid gap-4">
+      {/* Managers Table */}
+      <div className="bg-white rounded-lg border overflow-hidden">
         {managers.length === 0 ? (
-          <div className="bg-white rounded-lg p-8 text-center border">
+          <div className="p-8 text-center">
             <Shield className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-4 text-lg font-medium text-gray-900">No Managers</h3>
             <p className="mt-2 text-gray-500">
@@ -245,95 +307,196 @@ export default function ManagersPage() {
             </p>
           </div>
         ) : (
-          managers.map((item) => (
-            <div
-              key={item.id}
-              className={`bg-white rounded-lg border p-4 ${!item.isActive ? 'opacity-60' : ''
-                }`}
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex gap-4">
-                  <div className="p-3 bg-purple-50 rounded-lg">
-                    <User className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                      {!item.isActive && (
-                        <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
-                          Inactive
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-600">{item.email}</p>
-                    {item.phone && (
-                      <p className="text-sm text-gray-500">{item.phone}</p>
-                    )}
-
-                    {/* Assigned Locations */}
-                    <div className="mt-3">
-                      <div className="flex items-center gap-1 text-sm text-gray-500 mb-1">
-                        <MapPin size={14} />
-                        <span>Locations:</span>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b text-xs text-gray-500">
+                <tr>
+                  <th className="text-left px-5 py-2.5 font-semibold">Manager</th>
+                  <th className="text-left px-5 py-2.5 font-semibold">Phone</th>
+                  <th className="text-left px-5 py-2.5 font-semibold">Status</th>
+                  <th className="text-left px-5 py-2.5 font-semibold">Activity</th>
+                  <th className="text-left px-5 py-2.5 font-semibold">Locations</th>
+                  <th className="text-left px-5 py-2.5 font-semibold">Services</th>
+                  <th className="text-right px-5 py-2.5 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {managers.map((item) => (
+                  <tr
+                    key={item.id}
+                    onClick={() => setViewingManager(item)}
+                    className={`cursor-pointer hover:bg-gray-50 transition ${!item.isActive ? 'opacity-60' : ''}`}
+                  >
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-50 rounded-lg shrink-0">
+                          <User className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900">{item.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{item.email}</p>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-1">
-                        {item.locations.length > 0 ? (
-                          item.locations.map((loc) => (
-                            <span
-                              key={loc.id}
-                              className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full"
-                            >
-                              {loc.name}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-gray-600">{item.phone || '—'}</td>
+                    <td className="px-5 py-3">
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                        item.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {item.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      {(() => {
+                        const p = presence[item.id];
+                        const meta = PRESENCE_META[p?.status || 'offline'];
+                        return (
+                          <div>
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${meta.text}`}>
+                              <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+                              {meta.label}
                             </span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-gray-400">No locations assigned</span>
-                        )}
+                            {p?.status !== 'active' && (
+                              <p className="text-[11px] text-gray-400 mt-0.5">
+                                {p ? `Last seen ${timeAgo(p.lastSeenAt)}` : 'Never logged in'}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                        <MapPin size={12} />
+                        {item.locations.length}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium bg-green-50 text-green-700 px-2 py-0.5 rounded-full">
+                        <Briefcase size={12} />
+                        {item.services.length}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => handleEdit(item)}
+                          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                          title="Edit"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
-                    </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-                    {/* Assigned Services */}
-                    <div className="mt-2">
-                      <div className="flex items-center gap-1 text-sm text-gray-500 mb-1">
-                        <Briefcase size={14} />
-                        <span>Services:</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {item.services.length > 0 ? (
-                          item.services.map((svc) => (
-                            <span
-                              key={svc.id}
-                              className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full"
-                            >
-                              {svc.name}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-gray-400">No services assigned</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+      {/* Manager Detail Modal */}
+      {viewingManager && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setViewingManager(null)}
+        >
+          <div
+            className="bg-white rounded-lg max-w-lg w-full max-h-[85vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-purple-50 rounded-lg">
+                  <User className="h-6 w-6 text-purple-600" />
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(item)}
-                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
-                  >
-                    <Edit size={18} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-gray-900">{viewingManager.name}</h2>
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                      viewingManager.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {viewingManager.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                    <Mail size={12} /> {viewingManager.email}
+                  </p>
+                  {viewingManager.phone && (
+                    <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                      <PhoneIcon size={12} /> {viewingManager.phone}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button onClick={() => setViewingManager(null)} className="p-1.5 hover:bg-gray-100 rounded-lg shrink-0">
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4">
+              <div>
+                <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2 text-sm">
+                  <MapPin size={16} className="text-blue-600" />
+                  Locations ({viewingManager.locations.length})
+                </h3>
+                <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto border rounded-lg p-3">
+                  {viewingManager.locations.length > 0 ? (
+                    viewingManager.locations.map((loc) => (
+                      <span key={loc.id} className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                        {loc.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-gray-400">No locations assigned</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2 text-sm">
+                  <Briefcase size={16} className="text-green-600" />
+                  Services ({viewingManager.services.length})
+                </h3>
+                <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto border rounded-lg p-3">
+                  {viewingManager.services.length > 0 ? (
+                    viewingManager.services.map((svc) => (
+                      <span key={svc.id} className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">
+                        {svc.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-gray-400">No services assigned</span>
+                  )}
                 </div>
               </div>
             </div>
-          ))
-        )}
-      </div>
+
+            <div className="p-5 border-t flex justify-end gap-2">
+              <button
+                onClick={() => { setViewingManager(null); handleEdit(viewingManager); }}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm border rounded-lg hover:bg-gray-50"
+              >
+                <Edit size={14} /> Edit
+              </button>
+              <button
+                onClick={() => setViewingManager(null)}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       {showModal && (

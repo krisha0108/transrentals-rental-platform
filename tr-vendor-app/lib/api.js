@@ -7,7 +7,10 @@ const DEFAULT_PROD = "https://transrentals.in";
 const DEFAULT_DEV_ANDROID = "http://localhost:3000"; // Physical device via ADB reverse
 const DEFAULT_DEV_IOS = "http://localhost:3000";
 
+const FORCE_PROD = true; // TEMP: testing against live API — flip back to false for local dev
+
 function getBaseURL() {
+  if (FORCE_PROD) return DEFAULT_PROD;
   if (__DEV__) {
     return Platform.OS === "android" ? DEFAULT_DEV_ANDROID : DEFAULT_DEV_IOS;
   }

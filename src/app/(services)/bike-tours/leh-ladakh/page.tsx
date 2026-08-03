@@ -4,7 +4,7 @@ import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
 import { FAQSection } from '@/components/services/FAQSection';
 
 export const metadata: Metadata = {
-  title: 'Leh Ladakh Bike Tour 2025 | Guided Motorcycle Tour from ₹32,999 | TransRentals',
+  title: 'Leh Ladakh Bike Tour 2025 | Guided Tour from ₹32,999',
   description: 'Book Leh Ladakh guided bike tour. 10 days Manali-Leh-Srinagar with ride captain, Royal Enfield, backup vehicle, accommodation & meals. Khardung La, Pangong Lake included.',
   keywords: [
     'leh ladakh bike tour',

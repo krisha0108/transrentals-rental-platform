@@ -4,7 +4,7 @@ import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBoo
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: 'Round Trip Cab Service | Outstation Round Trip Taxi @ Best Rates | TransRentals',
+  title: 'Round Trip Cab Service | Outstation Taxi @ Best Rates',
   description: 'Book round trip cabs for outstation travel. AC sedans, SUVs with professional drivers. Round trip packages starting @₹10/km. Go and return with same driver.',
   keywords: [
     'round trip cab',

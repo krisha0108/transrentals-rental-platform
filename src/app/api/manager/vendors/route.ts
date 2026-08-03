@@ -165,6 +165,13 @@ export async function GET(request: NextRequest) {
         const requestedServices = v.vendor_service_requests.map((sr) => `${sr.services.name} (Requested)`);
         const allServices = [...approvedServices, ...requestedServices];
 
+        // Only genuinely PENDING requests count as "new" — requestedLocations/
+        // requestedServices above include approved/rejected rows too (the
+        // request row isn't deleted after review), so this is a separate,
+        // correctly-filtered signal for the "new request" badge/filter.
+        const pendingLocationRequests = v.vendor_location_requests.filter((lr) => lr.status === 'PENDING');
+        const pendingServiceRequests = v.vendor_service_requests.filter((sr) => sr.status === 'PENDING');
+
         return {
           id: v.id,
           vid: v.vid ?? null,
@@ -180,6 +187,10 @@ export async function GET(request: NextRequest) {
           locationNames: approvedLocations,
           services: allServices,
           serviceNames: approvedServices,
+          hasPendingLocationRequest: pendingLocationRequests.length > 0,
+          hasPendingServiceRequest: pendingServiceRequests.length > 0,
+          pendingLocationNames: pendingLocationRequests.map((lr) => lr.locations.name),
+          pendingServiceNames: pendingServiceRequests.map((sr) => sr.services.name),
           documentCount: v._count.vendor_documents,
           fleetCount: v._count.vendor_fleets,
           tags: tagsByVendor[v.id] || [],

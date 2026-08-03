@@ -4,7 +4,7 @@ import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
 import { FAQSection } from '@/components/services/FAQSection';
 
 export const metadata: Metadata = {
-  title: 'Spiti Valley Bike Tour 2025 | Guided Motorcycle Tour from ₹26,999 | TransRentals',
+  title: 'Spiti Valley Bike Tour 2025 | Guided Tour from ₹26,999',
   description: 'Book Spiti Valley guided bike tour. 8 days Shimla-Spiti-Manali with ride captain, Royal Enfield, backup vehicle, accommodation & meals. Key Monastery, Chandratal included.',
   keywords: [
     'spiti valley bike tour',

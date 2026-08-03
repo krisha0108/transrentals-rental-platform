@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Script from 'next/script';
 import Image from 'next/image';
@@ -25,9 +25,12 @@ declare global {
   }
 }
 
-export default function CustomerLoginPage() {
+function CustomerLoginPageContent() {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>('login');
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<AuthMode>(
+    searchParams.get('mode') === 'register' ? 'register' : 'login'
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,10 +38,13 @@ export default function CustomerLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [googleScriptLoaded, setGoogleScriptLoaded] = useState(false);
 
+  // Pre-filled when arriving from the contact-form success popup, so an
+  // existing customer only has to type their password, and a new one only
+  // has to set one — name/email/phone are already carried over.
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
+    name: searchParams.get('name') || '',
+    email: searchParams.get('email') || '',
+    phone: searchParams.get('phone') || '',
     password: '',
     address: '',
     city: '',
@@ -306,6 +312,7 @@ export default function CustomerLoginPage() {
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} required
+                  autoFocus={!!searchParams.get('email')}
                   className="w-full pl-10 pr-11 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/25 focus:border-[#09B368] focus:outline-none text-sm bg-gray-50/50"
                   placeholder="Enter your password" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
@@ -377,6 +384,7 @@ export default function CustomerLoginPage() {
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} required minLength={6}
+                  autoFocus={!!searchParams.get('email')}
                   className="w-full pl-10 pr-11 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/25 focus:border-[#09B368] focus:outline-none text-sm bg-gray-50/50"
                   placeholder="Min. 6 characters" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
@@ -505,10 +513,18 @@ export default function CustomerLoginPage() {
     }
   };
 
+  const arrivedWithEmail = !!searchParams.get('email');
+
   const getSubtitle = () => {
     switch (mode) {
-      case 'login': return 'Sign in to manage your bookings and trips';
-      case 'register': return 'Join thousands of happy customers across India';
+      case 'login':
+        return arrivedWithEmail
+          ? 'We found your account — just enter your password to continue'
+          : 'Sign in to manage your bookings and trips';
+      case 'register':
+        return arrivedWithEmail
+          ? "We've filled in your details — just set a password to finish"
+          : 'Join thousands of happy customers across India';
       case 'verify-otp': return 'Enter the 6-digit OTP sent to your email';
       case 'forgot-password': return "We'll send a reset code to your inbox";
       case 'reset-password': return 'Create a strong new password';
@@ -645,5 +661,22 @@ export default function CustomerLoginPage() {
         </div>
       </div>
     </>
+  );
+}
+
+function LoginPageFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4"
+      style={{ background: 'linear-gradient(140deg, #033D26 0%, #056040 30%, #078F53 65%, #09B368 100%)' }}>
+      <Loader2 className="h-8 w-8 text-white animate-spin" />
+    </div>
+  );
+}
+
+export default function CustomerLoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <CustomerLoginPageContent />
+    </Suspense>
   );
 }

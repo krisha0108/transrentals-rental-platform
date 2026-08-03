@@ -1,8 +1,10 @@
 'use client';
 
 import { FormEvent, useState, useRef, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { trackFormSubmission } from '@/components/analytics/VisitorTracker';
+import { useCustomerAuth } from '@/hooks/useCustomer';
+import ContactSuccessModal from './ContactSuccessModal';
 
 type ContactFormField = {
   name: string;
@@ -67,8 +69,22 @@ export function ContactForm() {
   const [formData, setFormData] = useState(initialContactFormValues);
   const [formStatus, setFormStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [formMessage, setFormMessage] = useState('');
+  const [successInfo, setSuccessInfo] = useState<{
+    referenceNumber: string;
+    name: string;
+    email: string;
+    phone: string;
+    isExistingCustomer: boolean;
+  } | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
+  const { isAuthenticated } = useCustomerAuth();
   const formStartTimeRef = useRef<number>(Date.now());
+  // A ref (not formStatus state) guards re-entrance: state updates are
+  // async, so two synchronous clicks before the first re-render both read
+  // formStatus === 'idle' and both submit — which was firing duplicate
+  // manager notifications for one contact-form message.
+  const isSubmittingRef = useRef(false);
 
   // Reset form start time when component mounts
   useEffect(() => {
@@ -82,7 +98,8 @@ export function ContactForm() {
   const handleContactFormSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (formStatus === 'submitting') return;
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
 
     setFormStatus('submitting');
     setFormMessage('');
@@ -104,6 +121,8 @@ export function ContactForm() {
         throw new Error(errorMessage);
       }
 
+      const successPayload = await response.json().catch(() => null);
+
       // Track successful submission
       await trackFormSubmission({
         formType: 'CONTACT',
@@ -114,9 +133,29 @@ export function ContactForm() {
         timeToFill,
       });
 
+      isSubmittingRef.current = false;
       setFormStatus('success');
-      setFormMessage('Thanks for reaching out! We will reply within one business day.');
       setFormData(initialContactFormValues);
+
+      if (isAuthenticated) {
+        // Already logged in — no point asking them to log in again. Show a
+        // quick confirmation, then send them straight to their dashboard.
+        setFormMessage(
+          `Thanks for reaching out! Reference ${successPayload?.referenceNumber || ''} — redirecting you to your dashboard...`
+        );
+        setTimeout(() => router.push('/customer/dashboard'), 1200);
+      } else {
+        setFormMessage('Thanks for reaching out! We will reply within one business day.');
+        if (successPayload?.referenceNumber) {
+          setSuccessInfo({
+            referenceNumber: successPayload.referenceNumber,
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            isExistingCustomer: !!successPayload.isExistingCustomer,
+          });
+        }
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Something went wrong.';
 
@@ -131,6 +170,7 @@ export function ContactForm() {
         timeToFill,
       });
 
+      isSubmittingRef.current = false;
       setFormStatus('error');
       setFormMessage(message);
     }
@@ -204,6 +244,12 @@ export function ContactForm() {
           )}
         </form>
       </div>
+      {successInfo && (
+        <ContactSuccessModal
+          {...successInfo}
+          onClose={() => setSuccessInfo(null)}
+        />
+      )}
     </div>
   );
 }

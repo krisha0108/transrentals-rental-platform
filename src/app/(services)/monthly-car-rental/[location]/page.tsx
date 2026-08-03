@@ -34,20 +34,17 @@ export const dynamicParams = true;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
-  // Fallback: getAllCities().find(c => c.slug === params.location);
-
-  if (!city) {
-    return { title: 'Monthly Car Rental | TransRentals' };
-  }
-
-  const locationName = city.name;
+  // Fall back to a humanized slug for cities not in the curated list — otherwise
+  // metadata is left without a description and inherits the generic site-wide
+  // one from the root layout, producing mass duplicate meta descriptions.
+  const locationName = city?.name ?? params.location.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   const [_seoDb, scContent] = await Promise.all([
     resolvePageMeta(`monthly-car-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('monthly-car-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Monthly Car Rental ${locationName} | Car Subscription @₹12k | Long Term Lease`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Monthly Car Rental in ${locationName} | Subscription @₹12k`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent car monthly in ${locationName}. Car subscription service. Long term rental @₹12000/month. Self-drive & chauffeur options.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `monthly car rental ${locationName.toLowerCase()}`,
@@ -56,7 +53,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `long term car rental ${locationName.toLowerCase()}`,
       `monthly car lease ${locationName.toLowerCase()}`,
       `monthly self drive ${locationName.toLowerCase()}`,
-      ...(city.keywords || []).map(k => `monthly car ${k}`),
+      ...(city?.keywords || []).map(k => `monthly car ${k}`),
     ],
     openGraph: {
       title: `Monthly Car Rental in ${locationName} - Car Subscription @₹12k`,
@@ -258,7 +255,7 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
             ))}
           </div>
         </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content

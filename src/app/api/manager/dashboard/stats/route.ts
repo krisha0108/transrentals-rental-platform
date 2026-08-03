@@ -7,11 +7,16 @@ import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
 // Helper function to get date ranges based on filter
-function getDateRange(filter: string) {
+function getDateRange(filter: string, customFrom?: string | null, customTo?: string | null) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
+
+  const dayOfWeek = (now.getDay() + 6) % 7; // Monday = 0
+  const mondayThisWeek = new Date(today);
+  mondayThisWeek.setDate(today.getDate() - dayOfWeek);
 
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -19,13 +24,21 @@ function getDateRange(filter: string) {
 
   switch (filter) {
     case 'today':
-      return { gte: today };
+      return { gte: today, lte: endOfToday };
     case 'yesterday':
       return { gte: yesterday, lt: today };
+    case 'thisWeek':
+      return { gte: mondayThisWeek, lte: endOfToday };
     case 'thisMonth':
-      return { gte: thisMonthStart };
+      return { gte: thisMonthStart, lte: endOfToday };
     case 'lastMonth':
       return { gte: lastMonthStart, lte: lastMonthEnd };
+    case 'custom': {
+      const range: { gte?: Date; lte?: Date } = {};
+      if (customFrom) range.gte = new Date(customFrom + 'T00:00:00');
+      if (customTo) range.lte = new Date(customTo + 'T23:59:59.999');
+      return range;
+    }
     case 'all':
     default:
       return {};
@@ -40,7 +53,9 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const filter = searchParams.get('filter') || 'all';
+    const filter = searchParams.get('filter') || 'today';
+    const customFrom = searchParams.get('dateFrom');
+    const customTo = searchParams.get('dateTo');
 
     // Get current user and verify they are a manager
     const manager = await prisma.admin_users.findUnique({
@@ -91,7 +106,7 @@ export async function GET(request: Request) {
     };
 
     // Build date filter
-    const dateFilter = getDateRange(filter);
+    const dateFilter = getDateRange(filter, customFrom, customTo);
     const dateFilterObj = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
 
     // Filter for tables with locationId field (bike_bookings, self_drive)
@@ -125,7 +140,7 @@ export async function GET(request: Request) {
       truckBookings,
     ] = await Promise.all([
       // bike-rental
-      isServiceAssigned('bike-rental') || isServiceAssigned('bike')
+      isServiceAssigned('bike-rental') || isServiceAssigned('bike') || isServiceAssigned('bike-on-rent')
         ? prisma.bike_bookings.count({ where: locationIdFilter }).catch(() => 0)
         : Promise.resolve(0),
       // bus-rental
@@ -173,7 +188,7 @@ export async function GET(request: Request) {
       truckQuotes,
     ] = await Promise.all([
       // bike-rental
-      isServiceAssigned('bike-rental') || isServiceAssigned('bike')
+      isServiceAssigned('bike-rental') || isServiceAssigned('bike') || isServiceAssigned('bike-on-rent')
         ? prisma.bike_quote_requests.count({ where: locationIdFilter }).catch(() => 0)
         : Promise.resolve(0),
       // bus-rental
@@ -274,7 +289,7 @@ export async function GET(request: Request) {
     const quotesByService: { [key: string]: number } = {};
 
     // Add services only if they are assigned to the manager
-    if (isServiceAssigned('bike-rental') || isServiceAssigned('bike')) {
+    if (isServiceAssigned('bike-rental') || isServiceAssigned('bike') || isServiceAssigned('bike-on-rent')) {
       bookingsByService['Bike Rental'] = bikeBookings;
       quotesByService['Bike Rental'] = bikeQuotes;
     }

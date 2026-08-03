@@ -66,14 +66,10 @@ export const dynamicParams = true;
 // Generate metadata for SEO
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
-
-  if (!city) {
-    return {
-      title: 'Car Rental | TransRentals',
-    };
-  }
-
-  const locationName = city.name;
+  // Fall back to a humanized slug for cities not in the curated list — otherwise
+  // metadata is left without a description and inherits the generic site-wide
+  // one from the root layout, producing mass duplicate meta descriptions.
+  const locationName = city?.name ?? params.location.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   const [_seoDb, scContent] = await Promise.all([
     resolvePageMeta(`car-rental:${params.location.toLowerCase()}`),
@@ -95,7 +91,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `creta on rent ${locationName.toLowerCase()}`,
       `swift on rent ${locationName.toLowerCase()}`,
       `cab rental ${locationName.toLowerCase()}`,
-      ...(city.keywords || []).map(k => `car rental ${k}`),
+      ...(city?.keywords || []).map(k => `car rental ${k}`),
     ],
     openGraph: {
       title: `Car Rental in ${locationName} - With Driver | Starting ₹999/Day | TransRentals`,
@@ -191,6 +187,7 @@ async function getPackagesForLocation(locationSlug: string) {
       select: {
         id: true,
         vehicleCategoryId: true,
+        locationId: true,
         name: true,
         hours: true,
         kms: true,
@@ -203,11 +200,24 @@ async function getPackagesForLocation(locationSlug: string) {
       },
     });
 
-    // Group packages by category
-    const categoriesWithPackages = categories.map((category) => ({
-      ...category,
-      packages: packagesData.filter((p) => p.vehicleCategoryId === category.id),
-    })).filter((category) => category.packages.length > 0); // Only include categories with packages
+    // Group packages by category. A category can have both a location-specific
+    // and a global (locationId: null) package for the same hours/km combo — keep
+    // only the location-specific one when both exist, instead of showing duplicates.
+    const categoriesWithPackages = categories.map((category) => {
+      const categoryPackages = packagesData.filter((p) => p.vehicleCategoryId === category.id);
+      const byHoursKms = new Map<string, (typeof categoryPackages)[number]>();
+      for (const pkg of categoryPackages) {
+        const key = `${pkg.hours}-${pkg.kms}`;
+        const existing = byHoursKms.get(key);
+        if (!existing || (existing.locationId === null && pkg.locationId !== null)) {
+          byHoursKms.set(key, pkg);
+        }
+      }
+      return {
+        ...category,
+        packages: Array.from(byHoursKms.values()).map(({ locationId, ...pkg }) => pkg),
+      };
+    }).filter((category) => category.packages.length > 0); // Only include categories with packages
 
     return categoriesWithPackages;
   } catch (error) {

@@ -6,7 +6,7 @@ import { formatPriceHighlight } from '@/lib/utils';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: formatPriceHighlight('Vintage Car Rental | Classic Car for Wedding @₹8999 | Ambassador Car Hire'),
+  title: 'Vintage Car Rental | Classic Car for Wedding from ₹8999',
   description: formatPriceHighlight('Rent vintage cars for weddings. Classic Ambassador, retro cars available. Vintage car for baraat. Heritage car booking @₹8999. Photo shoot ready.'),
   keywords: [
     'vintage car rental',

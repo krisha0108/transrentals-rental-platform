@@ -43,20 +43,17 @@ export const dynamicParams = true;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
-  // Fallback: getAllCities().find(c => c.slug === params.location);
-
-  if (!city) {
-    return { title: 'Local Taxi | TransRentals' };
-  }
-
-  const locationName = city.name;
+  // Fall back to a humanized slug for cities not in the curated list — otherwise
+  // metadata is left without a description and inherits the generic site-wide
+  // one from the root layout, producing mass duplicate meta descriptions.
+  const locationName = city?.name ?? params.location.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   const [_seoDb, scContent] = await Promise.all([
     resolvePageMeta(`local-taxi:${params.location.toLowerCase()}`),
     getServiceCityContent('local-taxi', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Local Taxi ${locationName} | Hourly Cab @₹399 | 4 Hour 8 Hour Package`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Local Taxi in ${locationName} | Hourly Cab @₹399`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Book local taxi in ${locationName}. Hourly cab rental - 4hr, 8hr, 12hr packages. City taxi service. AC sedan, SUV @₹399.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `local taxi ${locationName.toLowerCase()}`,
@@ -67,7 +64,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `city taxi ${locationName.toLowerCase()}`,
       `hourly cab ${locationName.toLowerCase()}`,
       `local car rental ${locationName.toLowerCase()}`,
-      ...(city.keywords || []).map(k => `local taxi ${k}`),
+      ...(city?.keywords || []).map(k => `local taxi ${k}`),
     ],
     openGraph: {
       title: `Local Taxi in ${locationName} - Hourly Cab @₹399`,
@@ -314,7 +311,7 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
             ))}
           </div>
         </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content

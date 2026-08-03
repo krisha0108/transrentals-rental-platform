@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -40,16 +41,16 @@ export async function GET(
         phone: true,
         isActive: true,
         createdAt: true,
-        managerLocations: {
+        manager_locations: {
           include: {
-            location: {
+            locations: {
               select: { id: true, name: true, slug: true, type: true },
             },
           },
         },
-        managerServices: {
+        manager_services: {
           include: {
-            service: {
+            services: {
               select: { id: true, name: true, slug: true },
             },
           },
@@ -65,8 +66,8 @@ export async function GET(
       success: true,
       manager: {
         ...manager,
-        locations: manager.managerLocations.map((ml) => ml.location),
-        services: manager.managerServices.map((ms) => ms.service),
+        locations: manager.manager_locations.map((ml) => ml.locations),
+        services: manager.manager_services.map((ms) => ms.services),
       },
     });
   } catch (error: any) {
@@ -139,7 +140,7 @@ export async function PUT(
     // Update manager with transaction to handle locations and services
     const manager = await prisma.$transaction(async (tx) => {
       // Update manager basic info
-      await tx.adminUser.update({
+      await tx.admin_users.update({
         where: { id },
         data: updateData,
       });
@@ -147,13 +148,14 @@ export async function PUT(
       // Update locations if provided
       if (locationIds !== undefined) {
         // Delete existing locations
-        await tx.managerLocation.deleteMany({
+        await tx.manager_locations.deleteMany({
           where: { managerId: id },
         });
         // Create new locations
         if (locationIds.length > 0) {
-          await tx.managerLocation.createMany({
+          await tx.manager_locations.createMany({
             data: locationIds.map((locationId: string) => ({
+              id: `ml-${randomBytes(8).toString('hex')}`,
               managerId: id,
               locationId,
             })),
@@ -164,13 +166,14 @@ export async function PUT(
       // Update services if provided
       if (serviceIds !== undefined) {
         // Delete existing services
-        await tx.managerService.deleteMany({
+        await tx.manager_services.deleteMany({
           where: { managerId: id },
         });
         // Create new services
         if (serviceIds.length > 0) {
-          await tx.managerService.createMany({
+          await tx.manager_services.createMany({
             data: serviceIds.map((serviceId: string) => ({
+              id: `ms-${randomBytes(8).toString('hex')}`,
               managerId: id,
               serviceId,
             })),
@@ -179,7 +182,7 @@ export async function PUT(
       }
 
       // Fetch updated manager
-      return tx.adminUser.findUnique({
+      return tx.admin_users.findUnique({
         where: { id },
         select: {
           id: true,
@@ -188,16 +191,16 @@ export async function PUT(
           phone: true,
           isActive: true,
           createdAt: true,
-          managerLocations: {
+          manager_locations: {
             include: {
-              location: {
+              locations: {
                 select: { id: true, name: true, slug: true, type: true },
               },
             },
           },
-          managerServices: {
+          manager_services: {
             include: {
-              service: {
+              services: {
                 select: { id: true, name: true, slug: true },
               },
             },
@@ -210,8 +213,8 @@ export async function PUT(
       success: true,
       manager: {
         ...manager,
-        locations: manager?.managerLocations.map((ml) => ml.location) || [],
-        services: manager?.managerServices.map((ms) => ms.service) || [],
+        locations: manager?.manager_locations.map((ml) => ml.locations) || [],
+        services: manager?.manager_services.map((ms) => ms.services) || [],
       },
     });
   } catch (error: any) {
@@ -257,9 +260,9 @@ export async function DELETE(
 
     // Delete manager and related assignments (cascade)
     await prisma.$transaction(async (tx) => {
-      await tx.managerLocation.deleteMany({ where: { managerId: id } });
-      await tx.managerService.deleteMany({ where: { managerId: id } });
-      await tx.adminUser.delete({ where: { id } });
+      await tx.manager_locations.deleteMany({ where: { managerId: id } });
+      await tx.manager_services.deleteMany({ where: { managerId: id } });
+      await tx.admin_users.delete({ where: { id } });
     });
 
     return NextResponse.json({

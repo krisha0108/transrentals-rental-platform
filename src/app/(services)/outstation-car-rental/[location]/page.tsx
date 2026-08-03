@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('outstation-car-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Outstation Car Rental in ${locationName} | Intercity Hire @₹10/Km | TransRentals`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Outstation Car Rental in ${locationName} | ₹10/Km Intercity`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent cars for outstation trips from ${locationName}. Round trips, one-way drops, multi-city tours. Professional drivers, all India permits. Book now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `outstation car rental in ${locationName}`,
@@ -316,7 +316,7 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
         </section>
       )}
 
-      <WhyRentHere locationName={locationName} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location.toLowerCase()}

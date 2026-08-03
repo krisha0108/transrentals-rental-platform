@@ -493,6 +493,16 @@ const websiteItems: NavItem[] = [
 const settingsItems: NavItem[] = [
   { name: 'Bank Details', href: '/admin/settings/bank-details', icon: CreditCard },
   { name: 'Payment & Fees', href: '/admin/settings/fees', icon: CircleDollarSign },
+  {
+    name: 'Managers',
+    href: '/admin/settings/managers',
+    icon: UserCog,
+    children: [
+      { name: 'All Managers', href: '/admin/settings/managers', icon: UserCog },
+      { name: 'Manager Performance', href: '/admin/settings/managers/performance', icon: TrendingUp },
+      { name: 'Manager Activity', href: '/admin/settings/managers/activity', icon: Activity },
+    ],
+  },
 ];
 
 export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {

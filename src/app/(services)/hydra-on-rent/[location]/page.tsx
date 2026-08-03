@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('hydra-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Hydra on Rent in ${locationName} | @₹6000/Day | TransRentals`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Hydra on Rent in ${locationName} | @₹6000/Day`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire hydra crane in ${locationName} for loading, unloading, construction. 8T-14T capacity.`,
     alternates: { canonical: `https://transrentals.in/hydra-on-rent/${params.location.toLowerCase()}` },
     twitter: {
@@ -137,7 +137,7 @@ export default async function HydraLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
+      */}
       <BikeServiceSchema
         serviceName="Hydra Crane on Rent"
         serviceSlug="hydra-on-rent"

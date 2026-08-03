@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
+
+// Helper to generate a cuid-like unique ID
+function generateId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+}
 
 // PUT - Approve or reject a vendor request
 export async function PUT(
@@ -53,8 +59,8 @@ export async function PUT(
       const locationRequest = await prisma.vendor_location_requests.findUnique({
         where: { id: requestId },
         include: {
-          vendor: true,
-          location: true,
+          vendors: true,
+          locations: true,
         },
       });
 
@@ -81,7 +87,7 @@ export async function PUT(
         // Approve: Update request and create approved location entry
         await prisma.$transaction(async (tx) => {
           // Update request status
-          await tx.vendorLocationRequest.update({
+          await tx.vendor_location_requests.update({
             where: { id: requestId },
             data: {
               status: 'APPROVED',
@@ -91,7 +97,7 @@ export async function PUT(
           });
 
           // Create approved location entry
-          await tx.vendorApprovedLocation.upsert({
+          await tx.vendor_approved_locations.upsert({
             where: {
               vendorId_locationId: {
                 vendorId: locationRequest.vendorId,
@@ -99,6 +105,7 @@ export async function PUT(
               },
             },
             create: {
+              id: generateId(),
               vendorId: locationRequest.vendorId,
               locationId: locationRequest.locationId,
               isActive: true,
@@ -112,14 +119,14 @@ export async function PUT(
         sendVendorDirectNotification({
           vendorId: locationRequest.vendorId,
           title: '📍 Location Approved',
-          body: `Your request for ${locationRequest.location?.name || 'the location'} has been approved. You can now start accepting bookings in this area.`,
+          body: `Your request for ${locationRequest.locations?.name || 'the location'} has been approved. You can now start accepting bookings in this area.`,
           type: 'location_approved',
           serviceType: 'general',
         }).catch((err: any) => console.error('[ManagerLocApprove] Vendor notify failed:', err));
 
         return NextResponse.json({
           success: true,
-          message: `Location request approved. ${locationRequest.vendor.businessName} can now operate in ${locationRequest.locations.name}.`,
+          message: `Location request approved. ${locationRequest.vendors.businessName} can now operate in ${locationRequest.locations.name}.`,
         });
       } else {
         // Reject
@@ -136,7 +143,7 @@ export async function PUT(
         sendVendorDirectNotification({
           vendorId: locationRequest.vendorId,
           title: '❌ Location Request Rejected',
-          body: `Your request for ${locationRequest.location?.name || 'the location'} was rejected. ${reason ? 'Reason: ' + reason : 'Please contact support for more information.'}.`,
+          body: `Your request for ${locationRequest.locations?.name || 'the location'} was rejected. ${reason ? 'Reason: ' + reason : 'Please contact support for more information.'}.`,
           type: 'location_rejected',
           serviceType: 'general',
         }).catch((err: any) => console.error('[ManagerLocReject] Vendor notify failed:', err));
@@ -151,8 +158,8 @@ export async function PUT(
       const serviceRequest = await prisma.vendor_service_requests.findUnique({
         where: { id: requestId },
         include: {
-          vendor: true,
-          service: true,
+          vendors: true,
+          services: true,
         },
       });
 
@@ -179,7 +186,7 @@ export async function PUT(
         // Approve: Update request and create approved service entry
         await prisma.$transaction(async (tx) => {
           // Update request status
-          await tx.vendorServiceRequest.update({
+          await tx.vendor_service_requests.update({
             where: { id: requestId },
             data: {
               status: 'APPROVED',
@@ -189,7 +196,7 @@ export async function PUT(
           });
 
           // Create approved service entry
-          await tx.vendorApprovedService.upsert({
+          await tx.vendor_approved_services.upsert({
             where: {
               vendorId_serviceId: {
                 vendorId: serviceRequest.vendorId,
@@ -197,6 +204,7 @@ export async function PUT(
               },
             },
             create: {
+              id: generateId(),
               vendorId: serviceRequest.vendorId,
               serviceId: serviceRequest.serviceId,
               isActive: true,
@@ -210,14 +218,14 @@ export async function PUT(
         sendVendorDirectNotification({
           vendorId: serviceRequest.vendorId,
           title: '🎉 Service Approved',
-          body: `Your request for ${serviceRequest.service?.name || 'the service'} has been approved. You can now start offering this service.`,
+          body: `Your request for ${serviceRequest.services?.name || 'the service'} has been approved. You can now start offering this service.`,
           type: 'service_approved',
           serviceType: 'general',
         }).catch((err: any) => console.error('[ManagerSvcApprove] Vendor notify failed:', err));
 
         return NextResponse.json({
           success: true,
-          message: `Service request approved. ${serviceRequest.vendor.businessName} can now offer ${serviceRequest.services.name}.`,
+          message: `Service request approved. ${serviceRequest.vendors.businessName} can now offer ${serviceRequest.services.name}.`,
         });
       } else {
         // Reject
@@ -234,7 +242,7 @@ export async function PUT(
         sendVendorDirectNotification({
           vendorId: serviceRequest.vendorId,
           title: '❌ Service Request Rejected',
-          body: `Your request for ${serviceRequest.service?.name || 'the service'} was rejected. ${reason ? 'Reason: ' + reason : 'Please contact support for more information.'}.`,
+          body: `Your request for ${serviceRequest.services?.name || 'the service'} was rejected. ${reason ? 'Reason: ' + reason : 'Please contact support for more information.'}.`,
           type: 'service_rejected',
           serviceType: 'general',
         }).catch((err: any) => console.error('[ManagerSvcReject] Vendor notify failed:', err));

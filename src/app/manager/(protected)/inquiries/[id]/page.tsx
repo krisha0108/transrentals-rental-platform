@@ -2,7 +2,65 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Calendar, MapPin, User, Phone, Mail, FileText, Clock, Building } from 'lucide-react';
+import {
+  ArrowLeft, Calendar, MapPin, User, Phone, Mail, FileText, Clock, Building,
+  PhoneCall, StickyNote, ThumbsUp, ThumbsDown, Bell, Loader2 as Spinner, History,
+  Tag, Plus, X, Check, AlertTriangle, IndianRupee, Copy,
+  Ban, PhoneOff, UserX, XOctagon, CalendarX, MapPinOff, ExternalLink, FileX,
+  Hourglass, CreditCard, Flag, XCircle, HelpCircle,
+} from 'lucide-react';
+
+const QUICK_ACTIONS = [
+  { key: 'CALLED',                       label: 'Mark as Called',              icon: Phone,        classes: 'border-sky-200 text-sky-700 bg-sky-50 hover:bg-sky-100' },
+  { key: 'CUSTOMER_CONNECTED',           label: 'Customer Connected',          icon: Check,        classes: 'border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100' },
+  { key: 'NO_VENDOR_AVAILABLE',          label: 'No Vendor Available',         icon: Ban,          classes: 'border-cyan-200 text-cyan-700 bg-cyan-50 hover:bg-cyan-100' },
+  { key: 'VENDOR_DECLINED',              label: 'Vendor Declined',             icon: XOctagon,     classes: 'border-pink-200 text-pink-700 bg-pink-50 hover:bg-pink-100' },
+  { key: 'VENDOR_CANT_FULFILL',          label: "Vendor Available – Can't Fulfill", icon: CalendarX, classes: 'border-teal-200 text-teal-700 bg-teal-50 hover:bg-teal-100' },
+  { key: 'FOLLOW_UP',                    label: 'Follow-Up Required',          icon: PhoneCall,    classes: 'border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100' },
+  { key: 'CONVERTED',                    label: 'Converted',                   icon: ThumbsUp,     classes: 'border-green-200 text-green-700 bg-green-50 hover:bg-green-100' },
+  { key: 'NOT_INTERESTED',               label: 'Not Interested',              icon: ThumbsDown,   classes: 'border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100' },
+  { key: 'VENDOR_NOT_RESPONDING',        label: 'Vendor Not Responding',       icon: PhoneOff,     classes: 'border-stone-200 text-stone-700 bg-stone-50 hover:bg-stone-100' },
+  { key: 'WRONG_NUMBER',                 label: 'Wrong Number',                icon: AlertTriangle, classes: 'border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100' },
+  { key: 'PRICE_TOO_HIGH',               label: 'Price Too High',              icon: IndianRupee,  classes: 'border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100' },
+  { key: 'NOT_SERVICEABLE',              label: 'Not Serviceable',             icon: MapPinOff,    classes: 'border-violet-200 text-violet-700 bg-violet-50 hover:bg-violet-100' },
+  { key: 'AWAITING_VENDOR_QUOTE',        label: 'Awaiting Vendor Quote',       icon: Clock,        classes: 'border-red-200 text-red-700 bg-red-50 hover:bg-red-100' },
+  { key: 'QUOTE_NOT_SUBMITTED',          label: 'Quote Not Submitted',         icon: FileX,        classes: 'border-yellow-200 text-yellow-700 bg-yellow-50 hover:bg-yellow-100' },
+  { key: 'CUSTOMER_NOT_RESPONDING',      label: 'Customer Not Responding',     icon: UserX,        classes: 'border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100' },
+  { key: 'CUSTOMER_BOOKED_ELSEWHERE',    label: 'Customer Booked Elsewhere',   icon: ExternalLink, classes: 'border-fuchsia-200 text-fuchsia-700 bg-fuchsia-50 hover:bg-fuchsia-100' },
+  { key: 'WAITING_CUSTOMER_CONFIRMATION', label: 'Waiting for Customer Confirmation', icon: Hourglass, classes: 'border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100' },
+  { key: 'ADVANCE_PAYMENT_PENDING',      label: 'Advance Payment Pending',     icon: CreditCard,   classes: 'border-lime-200 text-lime-700 bg-lime-50 hover:bg-lime-100' },
+  { key: 'INVALID_LEAD',                 label: 'Invalid/Fake Lead',           icon: Flag,         classes: 'border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100' },
+  { key: 'CANCELLED',                    label: 'Cancelled',                   icon: XCircle,      classes: 'border-zinc-200 text-zinc-700 bg-zinc-50 hover:bg-zinc-100' },
+  { key: 'DUPLICATE_INQUIRY',            label: 'Duplicate Inquiry',           icon: Copy,         classes: 'border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100' },
+  { key: 'OTHER_REASON',                 label: 'Other Reason',                icon: HelpCircle,   classes: 'border-neutral-200 text-neutral-700 bg-neutral-50 hover:bg-neutral-100' },
+] as const;
+
+const INQUIRY_TAGS = [
+  { key: 'FOLLOW_UP_REQUIRED',            label: 'Follow-Up Required',              color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  { key: 'CUSTOMER_CONNECTED',            label: 'Customer Connected',              color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { key: 'NO_VENDOR_AVAILABLE',           label: 'No Vendor Available',             color: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
+  { key: 'VENDOR_DECLINED',               label: 'Vendor Declined',                 color: 'bg-pink-100 text-pink-700 border-pink-200' },
+  { key: 'VENDOR_CANT_FULFILL',           label: "Vendor Available – Can't Fulfill", color: 'bg-teal-100 text-teal-700 border-teal-200' },
+  { key: 'NOT_INTERESTED',                label: 'Not Interested',                  color: 'bg-gray-200 text-gray-700 border-gray-300' },
+  { key: 'VENDOR_NOT_RESPONDING',         label: 'Vendor Not Responding',           color: 'bg-stone-100 text-stone-700 border-stone-200' },
+  { key: 'WRONG_NUMBER',                  label: 'Wrong Number',                    color: 'bg-rose-100 text-rose-700 border-rose-200' },
+  { key: 'PRICE_TOO_HIGH',                label: 'Price Too High',                  color: 'bg-orange-100 text-orange-700 border-orange-200' },
+  { key: 'NOT_SERVICEABLE',               label: 'Not Serviceable',                 color: 'bg-violet-100 text-violet-700 border-violet-200' },
+  { key: 'AWAITING_VENDOR_QUOTE',         label: 'Awaiting Vendor Quote',           color: 'bg-red-100 text-red-700 border-red-200' },
+  { key: 'QUOTE_NOT_SUBMITTED',           label: 'Quote Not Submitted',             color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  { key: 'CUSTOMER_NOT_RESPONDING',       label: 'Customer Not Responding',         color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+  { key: 'CUSTOMER_BOOKED_ELSEWHERE',     label: 'Customer Booked Elsewhere',       color: 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200' },
+  { key: 'WAITING_CUSTOMER_CONFIRMATION', label: 'Waiting for Customer Confirmation', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  { key: 'ADVANCE_PAYMENT_PENDING',       label: 'Advance Payment Pending',         color: 'bg-lime-100 text-lime-700 border-lime-200' },
+  { key: 'INVALID_LEAD',                  label: 'Invalid/Fake Lead',               color: 'bg-slate-100 text-slate-700 border-slate-200' },
+  { key: 'CANCELLED',                     label: 'Cancelled',                       color: 'bg-zinc-100 text-zinc-700 border-zinc-200' },
+  { key: 'CONVERTED',                     label: 'Converted',                       color: 'bg-green-100 text-green-700 border-green-200' },
+  { key: 'DUPLICATE_INQUIRY',             label: 'Duplicate Inquiry',               color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  { key: 'OTHER_REASON',                  label: 'Other Reason',                    color: 'bg-neutral-100 text-neutral-700 border-neutral-200' },
+] as const;
+const TAG_BY_KEY: Record<string, { label: string; color: string }> = Object.fromEntries(
+  INQUIRY_TAGS.map((t) => [t.key, { label: t.label, color: t.color }])
+);
 
 interface QuoteRequest {
   id: string;
@@ -34,6 +92,14 @@ interface QuoteRequest {
   tripType?: string;
   customerNotes?: string;
   createdAt: string;
+}
+
+interface ActionLog {
+  id: string;
+  actionType: string;
+  note: string | null;
+  createdAt: string;
+  manager: { id: string; name: string; email: string } | null;
 }
 
 interface VendorQuote {
@@ -70,6 +136,12 @@ export default function InquiryDetailPage() {
   const [quotes, setQuotes] = useState<VendorQuote[]>([]);
   const [quotesCount, setQuotesCount] = useState(0);
   const [callLogs, setCallLogs] = useState<any[]>([]);
+  const [actionLogs, setActionLogs] = useState<ActionLog[]>([]);
+  const [noteText, setNoteText] = useState('');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagEditorOpen, setTagEditorOpen] = useState(false);
+  const [tagSaving, setTagSaving] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInquiryDetails();
@@ -92,6 +164,8 @@ export default function InquiryDetailPage() {
         setRequest(data.request);
         setQuotes(data.quotes || []);
         setQuotesCount(data.quotesCount || 0);
+        setActionLogs(data.actionLogs || []);
+        setTags(data.tags || []);
       } else {
         if (data.redirectUrl) { router.push(data.redirectUrl); return; }
         console.error('Failed to fetch inquiry:', data.error);
@@ -100,6 +174,56 @@ export default function InquiryDetailPage() {
       console.error('Error fetching inquiry details:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const logAction = async (actionType: string, note?: string) => {
+    setActionLoading(actionType);
+    try {
+      const res = await fetch(`/api/manager/inquiries/${inquiryId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionType, note }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to log action');
+        return;
+      }
+      if (actionType === 'NOTE_ADDED') setNoteText('');
+      await fetchInquiryDetails();
+    } catch {
+      alert('Network error. Please try again.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCallClick = () => {
+    // Best-effort: log the call action without blocking the tel: navigation.
+    logAction('CALLED');
+  };
+
+  const handleToggleTag = async (tag: string, present: boolean) => {
+    setTagSaving(tag);
+    const prev = tags;
+    setTags(present ? prev.filter((t) => t !== tag) : [...prev, tag]);
+    try {
+      const res = present
+        ? await fetch(`/api/manager/inquiries/${inquiryId}/tags?tag=${tag}`, { method: 'DELETE' })
+        : await fetch(`/api/manager/inquiries/${inquiryId}/tags`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tag }),
+          });
+      if (!res.ok) throw new Error('Server rejected tag change');
+      const data = await res.json();
+      if (Array.isArray(data?.tags)) setTags(data.tags);
+    } catch {
+      setTags(prev);
+      alert('Could not update tag. Please try again.');
+    } finally {
+      setTagSaving(null);
     }
   };
 
@@ -173,6 +297,75 @@ export default function InquiryDetailPage() {
         </span>
       </div>
 
+      {/* ── CRM Tags ── */}
+      <div>
+        <div className="flex flex-wrap gap-1.5 items-center">
+          {tags.map((t) => {
+            const meta = TAG_BY_KEY[t];
+            if (!meta) return null;
+            const saving = tagSaving === t;
+            return (
+              <span
+                key={t}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${meta.color} ${saving ? 'opacity-50' : ''}`}
+              >
+                <Tag className="w-3 h-3" />
+                {meta.label}
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => handleToggleTag(t, true)}
+                  className="ml-0.5 hover:opacity-70"
+                  title="Remove tag"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setTagEditorOpen((o) => !o)}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-dashed border-gray-300 text-gray-500 hover:bg-gray-50 hover:border-gray-400"
+          >
+            <Plus className="w-3 h-3" />
+            {tags.length === 0 ? 'Add tag' : 'Edit tags'}
+          </button>
+        </div>
+
+        {tagEditorOpen && (
+          <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg max-w-2xl">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-gray-700">Toggle tags</span>
+              <button type="button" onClick={() => setTagEditorOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {INQUIRY_TAGS.map((t) => {
+                const present = tags.includes(t.key);
+                const saving = tagSaving === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    disabled={saving}
+                    onClick={() => handleToggleTag(t.key, present)}
+                    className={`px-2 py-1 rounded-full text-xs font-medium border transition ${
+                      present
+                        ? `${t.color} ring-1 ring-offset-1 ring-current`
+                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-100'
+                    } ${saving ? 'opacity-50' : ''}`}
+                  >
+                    {present ? '✓ ' : '+ '}{t.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* ── Quick Stats ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
@@ -219,7 +412,7 @@ export default function InquiryDetailPage() {
               <Phone className="w-4 h-4 text-gray-400 shrink-0" />
               <div>
                 <p className="text-xs text-gray-500">Phone</p>
-                <a href={`tel:${request.customerPhone}`} className="font-medium text-blue-600 text-sm hover:underline">
+                <a href={`tel:${request.customerPhone}`} onClick={handleCallClick} className="font-medium text-blue-600 text-sm hover:underline">
                   {request.customerPhone}
                 </a>
               </div>
@@ -332,6 +525,78 @@ export default function InquiryDetailPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Manager Actions ── */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Bell className="w-4 h-4 text-orange-500" />
+          Manager Actions
+          {actionLogs.length > 0 && (
+            <span className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+              Actioned · {actionLogs.length}
+            </span>
+          )}
+        </h2>
+
+        <div className="flex flex-wrap gap-2 mb-4">
+          {QUICK_ACTIONS.map((a) => {
+            const Icon = a.icon;
+            return (
+              <button
+                key={a.key}
+                onClick={() => logAction(a.key)}
+                disabled={!!actionLoading}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border disabled:opacity-50 transition ${a.classes}`}
+              >
+                {actionLoading === a.key ? <Spinner className="w-3.5 h-3.5 animate-spin" /> : <Icon className="w-3.5 h-3.5" />}
+                {a.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-start gap-2">
+          <textarea
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            placeholder="Add a note about this inquiry..."
+            rows={2}
+            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
+          />
+          <button
+            onClick={() => logAction('NOTE_ADDED', noteText)}
+            disabled={!noteText.trim() || !!actionLoading}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-40 transition shrink-0"
+          >
+            {actionLoading === 'NOTE_ADDED' ? <Spinner className="w-3.5 h-3.5 animate-spin" /> : <StickyNote className="w-3.5 h-3.5" />}
+            Add Note
+          </button>
+        </div>
+
+        {actionLogs.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1.5">
+              <History className="w-3.5 h-3.5" />
+              Action History
+            </p>
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {actionLogs.map((log) => (
+                <div key={log.id} className="flex items-start gap-2.5 text-sm bg-gray-50 rounded-lg px-3 py-2">
+                  <span className="shrink-0 mt-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-white border border-gray-200 text-gray-600">
+                    {log.actionType.replace(/_/g, ' ')}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    {log.note && <p className="text-gray-700 break-words">{log.note}</p>}
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {log.manager?.name || 'Manager'} · {new Date(log.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Vendor Quotes — full width ── */}

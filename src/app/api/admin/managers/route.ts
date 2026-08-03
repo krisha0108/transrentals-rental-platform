@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -34,16 +35,16 @@ export async function GET(request: NextRequest) {
         phone: true,
         isActive: true,
         createdAt: true,
-        managerLocations: {
+        manager_locations: {
           include: {
-            location: {
+            locations: {
               select: { id: true, name: true, slug: true, type: true },
             },
           },
         },
-        managerServices: {
+        manager_services: {
           include: {
-            service: {
+            services: {
               select: { id: true, name: true, slug: true },
             },
           },
@@ -60,8 +61,8 @@ export async function GET(request: NextRequest) {
       phone: m.phone,
       isActive: m.isActive,
       createdAt: m.createdAt,
-      locations: m.managerLocations.map((ml) => ml.location),
-      services: m.managerServices.map((ms) => ms.service),
+      locations: m.manager_locations.map((ml) => ml.locations),
+      services: m.manager_services.map((ms) => ms.services),
     }));
 
     return NextResponse.json({
@@ -121,8 +122,10 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create manager with locations and services
+    const managerId = `user-${randomBytes(8).toString('hex')}`;
     const manager = await prisma.admin_users.create({
       data: {
+        id: managerId,
         name,
         email,
         phone: phone || null,
@@ -130,13 +133,15 @@ export async function POST(request: NextRequest) {
         role: 'MANAGER',
         isActive: isActive !== false,
         createdById: currentUser.id,
-        managerLocations: {
+        manager_locations: {
           create: (locationIds || []).map((locationId: string) => ({
+            id: `ml-${randomBytes(8).toString('hex')}`,
             locationId,
           })),
         },
-        managerServices: {
+        manager_services: {
           create: (serviceIds || []).map((serviceId: string) => ({
+            id: `ms-${randomBytes(8).toString('hex')}`,
             serviceId,
           })),
         },
@@ -148,16 +153,16 @@ export async function POST(request: NextRequest) {
         phone: true,
         isActive: true,
         createdAt: true,
-        managerLocations: {
+        manager_locations: {
           include: {
-            location: {
+            locations: {
               select: { id: true, name: true, slug: true },
             },
           },
         },
-        managerServices: {
+        manager_services: {
           include: {
-            service: {
+            services: {
               select: { id: true, name: true, slug: true },
             },
           },
@@ -170,8 +175,8 @@ export async function POST(request: NextRequest) {
         success: true,
         manager: {
           ...manager,
-          locations: manager.managerLocations.map((ml) => ml.location),
-          services: manager.managerServices.map((ms) => ms.service),
+          locations: manager.manager_locations.map((ml) => ml.locations),
+          services: manager.manager_services.map((ms) => ms.services),
         },
       },
       { status: 201 }

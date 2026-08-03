@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import { sendContactInquiryReplyEmail } from '@/lib/services/email-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const resolvedAt = status === 'RESOLVED' || status === 'CLOSED' ? new Date() : null;
 
+    // Fetch the row first — need the previous status/resolution (for the
+    // manager accountability log and to avoid re-emailing on every unrelated
+    // edit) and the submitter's name/email/subject to compose the reply email.
+    const existingRows = await prisma.$queryRaw<any[]>`
+      SELECT name, email, subject, status, resolution FROM contact_inquiries WHERE id = ${params.id} LIMIT 1
+    `;
+    const existing = existingRows[0];
+
     await prisma.$executeRaw`
       UPDATE contact_inquiries
       SET status     = ${status},
@@ -30,6 +39,35 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
           resolvedAt = ${resolvedAt}
       WHERE id = ${params.id}
     `;
+
+    // Record this in the manager accountability log — same table/pattern
+    // used for regular inquiries and bookings — so it surfaces on the admin
+    // Manager Performance pages. contact_inquiries has no location/service
+    // scope, so `serviceType` is a fixed label rather than a real slug.
+    prisma.manager_action_logs.create({
+      data: {
+        recordType: 'CONTACT_INQUIRY',
+        serviceType: 'contact-inquiry',
+        recordId: params.id,
+        actionType: 'STATUS_CHANGED',
+        previousStatus: existing?.status ?? null,
+        newStatus: status,
+        note: resolution?.trim() || null,
+        managerId: session.user.id,
+      },
+    }).catch((err) => console.error('[Manager Contact Inquiry] action log failed', err));
+
+    // Notify the submitter by email only when a resolution note is newly
+    // written or changed — never block the response on this.
+    if (existing && resolution && resolution.trim() && resolution !== existing.resolution) {
+      sendContactInquiryReplyEmail({
+        to: existing.email,
+        name: existing.name,
+        subject: existing.subject,
+        resolution,
+        referenceNumber: `INQ-${params.id.slice(-6).toUpperCase()}`,
+      }).catch((err) => console.error('[Manager Contact Inquiry] reply email failed', err));
+    }
 
     return NextResponse.json({ success: true, status, resolution, resolvedAt });
   } catch (error) {

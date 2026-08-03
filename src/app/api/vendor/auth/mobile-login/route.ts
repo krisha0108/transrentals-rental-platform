@@ -214,6 +214,8 @@ export async function POST(request: NextRequest) {
     // --- TRAVEL AGENT LOGIN ---
     // Same form & endpoint as vendor; we detect TA credentials here and return userType='travel_agent'
     // so the mobile app can route to the Travel Agent dashboard instead.
+    // findFirst, not findUnique: a TA can sign in with either their TAID
+    // (ta-0001) or their email, and the two lookups take different shapes.
     const travelAgent = await prisma.travel_agents.findFirst({
       where: /^ta-\d+$/i.test(loginIdentifier)
         ? { tid: loginIdentifier.toLowerCase() }

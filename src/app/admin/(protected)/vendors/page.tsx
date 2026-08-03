@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ChevronDown,
   MoreHorizontal,
+  CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -58,6 +59,52 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.C
   SUSPENDED: { label: 'Suspended', color: 'bg-purple-100 text-purple-800', icon: AlertTriangle },
   BLOCKED: { label: 'Blocked', color: 'bg-gray-100 text-gray-800', icon: Ban },
 };
+
+type DatePreset = 'all' | 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'custom';
+
+const datePresetLabels: Record<DatePreset, string> = {
+  all: 'All Time',
+  today: 'Today',
+  yesterday: 'Yesterday',
+  thisWeek: 'This Week',
+  thisMonth: 'This Month',
+  custom: 'Custom Range',
+};
+
+// Returns [from, to] as Date objects (local time, full-day bounds) for a preset.
+// 'thisWeek' uses a Monday-start calendar week.
+function getDateRange(preset: DatePreset, customFrom: string, customTo: string): [Date | null, Date | null] {
+  const now = new Date();
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+  const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+
+  switch (preset) {
+    case 'today':
+      return [startOfDay(now), endOfDay(now)];
+    case 'yesterday': {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      return [startOfDay(y), endOfDay(y)];
+    }
+    case 'thisWeek': {
+      const dayOfWeek = (now.getDay() + 6) % 7; // Monday = 0
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - dayOfWeek);
+      return [startOfDay(monday), endOfDay(now)];
+    }
+    case 'thisMonth': {
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      return [startOfDay(first), endOfDay(now)];
+    }
+    case 'custom':
+      return [
+        customFrom ? startOfDay(new Date(customFrom)) : null,
+        customTo ? endOfDay(new Date(customTo)) : null,
+      ];
+    default:
+      return [null, null];
+  }
+}
 
 const statusActions: Record<string, { action: string; label: string; color: string }[]> = {
   PENDING: [
@@ -195,6 +242,9 @@ export default function VendorsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [datePreset, setDatePreset] = useState<DatePreset>('all');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
 
   // Status change state
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -208,6 +258,12 @@ export default function VendorsPage() {
       params.append('limit', pagination.limit.toString());
       if (statusFilter !== 'ALL') params.append('status', statusFilter);
       if (search) params.append('search', search);
+
+      if (datePreset !== 'all' && !(datePreset === 'custom' && !customFrom && !customTo)) {
+        const [from, to] = getDateRange(datePreset, customFrom, customTo);
+        if (from) params.append('dateFrom', from.toISOString());
+        if (to) params.append('dateTo', to.toISOString());
+      }
 
       const res = await fetch(`/api/admin/vendors?${params}`);
       if (res.ok) {
@@ -224,7 +280,7 @@ export default function VendorsPage() {
 
   useEffect(() => {
     fetchVendors();
-  }, [pagination.page, statusFilter, search]);
+  }, [pagination.page, statusFilter, search, datePreset, customFrom, customTo]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -298,6 +354,12 @@ export default function VendorsPage() {
           <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full">
             {vendors.filter((v) => v.status === 'APPROVED').length} Approved
           </span>
+          {datePreset !== 'all' && (
+            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full flex items-center gap-1">
+              <CalendarDays className="w-3.5 h-3.5" />
+              {pagination.total} joined {datePresetLabels[datePreset] === 'Custom Range' ? 'in range' : datePresetLabels[datePreset].toLowerCase()}
+            </span>
+          )}
         </div>
       </div>
 
@@ -339,6 +401,49 @@ export default function VendorsPage() {
               <option value="BLOCKED">Blocked</option>
             </select>
           </div>
+
+          {/* Joined Date Filter */}
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-5 h-5 text-gray-400" />
+            <select
+              value={datePreset}
+              onChange={(e) => {
+                setDatePreset(e.target.value as DatePreset);
+                setPagination((prev) => ({ ...prev, page: 1 }));
+              }}
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              {(Object.keys(datePresetLabels) as DatePreset[]).map((preset) => (
+                <option key={preset} value={preset}>{datePresetLabels[preset]}</option>
+              ))}
+            </select>
+          </div>
+
+          {datePreset === 'custom' && (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={customFrom}
+                max={customTo || undefined}
+                onChange={(e) => {
+                  setCustomFrom(e.target.value);
+                  setPagination((prev) => ({ ...prev, page: 1 }));
+                }}
+                className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-gray-400 text-sm">to</span>
+              <input
+                type="date"
+                value={customTo}
+                min={customFrom || undefined}
+                onChange={(e) => {
+                  setCustomTo(e.target.value);
+                  setPagination((prev) => ({ ...prev, page: 1 }));
+                }}
+                className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          )}
         </div>
       </div>
 

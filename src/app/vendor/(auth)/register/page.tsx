@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import {
   Building2,
   User,
@@ -10,7 +11,6 @@ import {
   Phone,
   Lock,
   MapPin,
-  FileText,
   Loader2,
   CheckCircle,
   ArrowRight,
@@ -56,8 +56,6 @@ export default function VendorRegisterPage() {
     phone: '',
     password: '',
     confirmPassword: '',
-    gstNumber: '',
-    panNumber: '',
     address: '',
     city: '',
     state: '',
@@ -113,11 +111,9 @@ export default function VendorRegisterPage() {
   };
 
   const validateStep2 = () => {
-    if (!formData.address.trim()) { setError('Business address is required'); return false; }
     if (!formData.city.trim()) { setError('City is required'); return false; }
     if (!formData.state) { setError('Please select your state'); return false; }
-    if (!formData.pincode.trim()) { setError('Pincode is required'); return false; }
-    if (!/^\d{6}$/.test(formData.pincode)) { setError('Please enter a valid 6-digit pincode'); return false; }
+    if (formData.pincode.trim() && !/^\d{6}$/.test(formData.pincode)) { setError('Please enter a valid 6-digit pincode'); return false; }
     return true;
   };
 
@@ -142,18 +138,27 @@ export default function VendorRegisterPage() {
           businessName: formData.businessName,
           businessType: formData.businessType || null,
           ownerName: formData.ownerName,
-          gstNumber: formData.gstNumber || null,
-          panNumber: formData.panNumber || null,
           address: formData.address,
           city: formData.city,
           state: formData.state,
-          pincode: formData.pincode,
+          pincode: formData.pincode || null,
         }),
       });
       const data = await res.json();
       if (res.ok) {
-        setSuccess(true);
-        setTimeout(() => router.push('/vendor/login'), 4000);
+        const result = await signIn('vendor-credentials', {
+          identifier: formData.email,
+          password: formData.password,
+          redirect: false,
+        });
+        if (result?.ok) {
+          router.push('/vendor/dashboard');
+          router.refresh();
+        } else {
+          // Fallback — account was created but auto-login didn't go through
+          setSuccess(true);
+          setTimeout(() => router.push('/vendor/login'), 4000);
+        }
       } else {
         setError(data.error || 'Registration failed. Please try again.');
       }
@@ -540,50 +545,10 @@ export default function VendorRegisterPage() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* GST */}
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">
-                          GST Number
-                          <span className="ml-1 text-xs font-normal text-gray-400">(optional)</span>
-                        </label>
-                        <div className="relative">
-                          <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <input
-                            type="text"
-                            name="gstNumber"
-                            value={formData.gstNumber}
-                            onChange={handleChange}
-                            placeholder="22AAAAA0000A1Z5"
-                            maxLength={15}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm uppercase"
-                          />
-                        </div>
-                      </div>
-
-                      {/* PAN */}
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">
-                          PAN Number
-                          <span className="ml-1 text-xs font-normal text-gray-400">(optional)</span>
-                        </label>
-                        <div className="relative">
-                          <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <input
-                            type="text"
-                            name="panNumber"
-                            value={formData.panNumber}
-                            onChange={handleChange}
-                            placeholder="AAAAA0000A"
-                            maxLength={10}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm uppercase"
-                          />
-                        </div>
-                      </div>
-
                       {/* Address */}
                       <div className="sm:col-span-2">
                         <label className="block text-sm font-semibold text-gray-700 mb-1">
-                          Business Address <span className="text-red-500">*</span>
+                          Business Address
                         </label>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
@@ -594,7 +559,6 @@ export default function VendorRegisterPage() {
                             placeholder="Shop / Office no., Street name, Landmark"
                             rows={2}
                             className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
-                            required
                           />
                         </div>
                       </div>
@@ -637,7 +601,8 @@ export default function VendorRegisterPage() {
                       {/* Pincode */}
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-1">
-                          Pincode <span className="text-red-500">*</span>
+                          Pincode
+                          <span className="ml-1 text-xs font-normal text-gray-400">(optional)</span>
                         </label>
                         <input
                           type="text"
@@ -647,7 +612,6 @@ export default function VendorRegisterPage() {
                           placeholder="380001"
                           maxLength={6}
                           className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                          required
                         />
                       </div>
                     </div>
