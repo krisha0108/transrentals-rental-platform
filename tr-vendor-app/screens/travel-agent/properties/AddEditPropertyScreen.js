@@ -1,13 +1,19 @@
 // screens/travel-agent/properties/AddEditPropertyScreen.js
+// REDESIGNED (v2) — premium "Deep Emerald + Champagne" Add/Edit Property form.
+// Circular progress-ring header, animated bubbles, self-contained section cards
+// with completion badges, unified pill inputs.
+// NOTE: UI-only redesign — all form state, handlers, payload shape and API
+// calls are unchanged from the previous version.
 import React, { useMemo, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Alert, StatusBar,
+  Alert, StatusBar, Animated, Easing, LayoutAnimation, UIManager,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
+import Svg, { Circle } from "react-native-svg";
 import {
   createTravelAgentProperty,
   updateTravelAgentProperty,
@@ -15,26 +21,32 @@ import {
   PROPERTY_TYPE,
 } from "../../api/travelAgentClient";
 import ImagePickerField from "../_shared/ImagePickerField";
+import { DISPLAY } from "../_shared/typography";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669", emerald700: "#047857", emerald500: "#10B981",
-  emerald50: "#ECFDF5", ink: "#0F172A", text: "#334155", subText: "#64748B",
-  bg: "#F6F8FB", card: "#FFFFFF", border: "#E6EDF5",
-  blue: "#3B82F6", blueLight: "#EFF6FF",
-  red: "#EF4444", redLight: "#FEE2E2",
-  green: "#10B981", amber: "#F59E0B", amberLight: "#FEF3C7",
-  purple: "#8B5CF6", purpleLight: "#EDE9FE", teal: "#0D9488",
-};
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+function animate() {
+  LayoutAnimation.configureNext(
+    LayoutAnimation.create(200, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity)
+  );
+}
+
+const GOLD = C.gold;               // champagne accent (matches header orb)
+const FILL = "#FBF8F1";               // warm cream input fill
+// Canonical Elevate hero gradient (was #0B211A — one shade off the dashboard).
+const HEADER_GRAD = ["#0F2A22", "#16382E", "#1C6B52"];
 
 const TYPE_META = {
-  RESORT:      { icon: "umbrella",            color: "#F97316", label: "Resort" },
+  RESORT:      { icon: "umbrella",            color: "#C4703A", label: "Resort" },
   HOTEL:       { icon: "business",            color: C.blue,    label: "Hotel" },
   HOMESTAY:    { icon: "home",                color: C.emerald600, label: "Homestay" },
   APARTMENT:   { icon: "grid",               color: C.purple,  label: "Apartment" },
-  VILLA:       { icon: "diamond",             color: "#EC4899", label: "Villa" },
+  VILLA:       { icon: "diamond",             color: "#B0567A", label: "Villa" },
   GUEST_HOUSE: { icon: "people",              color: C.amber,   label: "Guest house" },
-  HOSTEL:      { icon: "bed",                 color: "#06B6D4", label: "Hostel" },
-  ROOMS:       { icon: "bed-outline",         color: "#64748B", label: "Rooms" },
+  HOSTEL:      { icon: "bed",                 color: "#2C6E8C", label: "Hostel" },
+  ROOMS:       { icon: "bed-outline",         color: C.subText, label: "Rooms" },
   OTHER:       { icon: "ellipsis-horizontal", color: C.subText, label: "Other" },
 };
 
@@ -127,6 +139,47 @@ function toArr(v) {
   return [];
 }
 
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />;
+}
+
+// Circular completion ring for the header (SVG). Purely presentational.
+function ProgressRing({ pct }) {
+  const size = 54, stroke = 5;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(100, pct || 0));
+  const offset = circ * (1 - clamped / 100);
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <Svg width={size} height={size} style={{ position: "absolute" }}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.22)" strokeWidth={stroke} fill="none" />
+        <Circle
+          cx={size / 2} cy={size / 2} r={r}
+          stroke={GOLD} strokeWidth={stroke} fill="none"
+          strokeDasharray={`${circ} ${circ}`} strokeDashoffset={offset}
+          strokeLinecap="round" rotation="-90" origin={`${size / 2}, ${size / 2}`}
+        />
+      </Svg>
+      <Text style={styles.ringPct}>{clamped}%</Text>
+    </View>
+  );
+}
+
 export default function AddEditPropertyScreen({ navigation, route }) {
   const existing = route?.params?.property || null;
   const isEdit = !!existing?.id;
@@ -202,6 +255,20 @@ export default function AddEditPropertyScreen({ navigation, route }) {
     return c;
   }, [form]);
 
+  const pct = Math.round((completedSections / 5) * 100);
+
+  // Per-section "has meaningful data" flags — drive the green check badges.
+  // Presentational only (no effect on the payload).
+  const done = {
+    images: !!form.coverImage,
+    basics: !!form.name.trim(),
+    location: !!(form.city.trim() || form.address.trim()),
+    capacity: !!(form.totalRooms || form.startingPrice),
+    amenities: (form.amenityIds.length + form.customAmenities.length) > 0,
+    content: !!(form.inclusions.trim() || form.exclusions.trim() || form.rules.trim()),
+    policies: !!form.cancellationPolicy,
+  };
+
   const save = async () => {
     if (!form.name.trim()) return Alert.alert("Required", "Property name is required.");
     const payload = {
@@ -262,47 +329,39 @@ export default function AddEditPropertyScreen({ navigation, route }) {
     ]);
   };
 
-  const tog = (key) => setExpanded((s) => ({ ...s, [key]: !s[key] }));
+  const tog = (key) => { animate(); setExpanded((s) => ({ ...s, [key]: !s[key] })); };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor={HEADER_GRAD[0]} />
 
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={HEADER_GRAD}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 16 }}>
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-              <Ionicons name="close" size={24} color="#fff" />
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+          {/* Top row — close · eyebrow · ring */}
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerCircleBtn} activeOpacity={0.8}>
+              <Ionicons name="close" size={22} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>{isEdit ? "Edit Property" : "Add Property"}</Text>
-              <Text style={styles.headerSub}>
-                {completedSections}/5 sections · {typeMeta.label}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[styles.headerSaveBtn, !canSave && { opacity: 0.5 }]}
-              onPress={save} disabled={!canSave}
-            >
-              {saving ? <ActivityIndicator size="small" color={C.emerald700} />
-                : <Text style={styles.headerSaveText}>Save</Text>}
-            </TouchableOpacity>
+            <Text style={styles.headerEyebrow}>{isEdit ? "EDITING PROPERTY" : "NEW PROPERTY"}</Text>
+            <ProgressRing pct={pct} />
           </View>
 
-          {/* Progress dots */}
-          <View style={styles.progressRow}>
-            {["Photos", "Basics", "Location", "Capacity", "Amenities"].map((label, i) => (
-              <View key={label} style={styles.progressItem}>
-                <View style={[styles.progressDot, i < completedSections && styles.progressDotDone]}>
-                  {i < completedSections && <Ionicons name="checkmark" size={9} color={C.emerald700} />}
-                </View>
-                <Text style={styles.progressLabel} numberOfLines={1}>{label}</Text>
+          {/* Title block — flush under eyebrow */}
+          <View style={styles.headerTitleBlock}>
+            <Text style={styles.headerTitle}>{isEdit ? "Edit Property" : "Add Property"}</Text>
+            <View style={styles.headerBadgeRow}>
+              <View style={styles.typePill}>
+                <Ionicons name={typeMeta.icon} size={11} color="#fff" />
+                <Text style={styles.typePillText}>{typeMeta.label}</Text>
               </View>
-            ))}
+              <Text style={styles.headerSub}>{completedSections} of 5 sections</Text>
+            </View>
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -311,310 +370,289 @@ export default function AddEditPropertyScreen({ navigation, route }) {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
           {/* ── PHOTOS ── */}
-          <SectionToggle icon="image" color={C.purple} label="Photos"
+          <Section icon="image" color={C.purple} label="Photos"
             sub={`${form.coverImage ? "Cover ✓" : "No cover"} · ${form.galleryImages.length} gallery`}
-            open={expanded.images} onToggle={() => tog("images")} />
-          {expanded.images && (
-            <Card>
-              <ImagePickerField label="Cover photo" value={form.coverImage}
-                onChange={(v) => update("coverImage", v)} folder="properties"
-                helperText="Main photo shown on property cards." />
-              <ImagePickerField label="Gallery (up to 8)" multi max={8}
-                value={form.galleryImages} onChange={(v) => update("galleryImages", v)} folder="properties" />
-            </Card>
-          )}
+            done={done.images} open={expanded.images} onToggle={() => tog("images")}>
+            <ImagePickerField label="Cover photo" value={form.coverImage}
+              onChange={(v) => update("coverImage", v)} folder="properties"
+              helperText="Main photo shown on property cards." />
+            <ImagePickerField label="Gallery (up to 8)" multi max={8}
+              value={form.galleryImages} onChange={(v) => update("galleryImages", v)} folder="properties" />
+          </Section>
 
           {/* ── BASICS ── */}
-          <SectionToggle icon="business" color={C.emerald600} label="Listing Basics"
+          <Section icon="business" color={C.emerald600} label="Listing Basics"
             sub={form.name ? form.name.slice(0, 32) : "Name · type · description"}
-            open={expanded.basics} onToggle={() => tog("basics")} />
-          {expanded.basics && (
-            <Card>
-              <Field label="Property name *">
-                <TextInput style={styles.input} placeholder="e.g. Sunrise Beach Resort"
-                  placeholderTextColor="#A3B3C2" value={form.name}
-                  onChangeText={(v) => update("name", v)} />
-              </Field>
+            done={done.basics} open={expanded.basics} onToggle={() => tog("basics")}>
+            <Field label="Property name *">
+              <TextInput style={styles.input} placeholder="e.g. Sunrise Beach Resort"
+                placeholderTextColor="#A99F8D" value={form.name}
+                onChangeText={(v) => update("name", v)} />
+            </Field>
 
-              <Field label="Property type">
-                <View style={styles.typeGrid}>
-                  {PROPERTY_TYPE.map((t) => {
-                    const meta = TYPE_META[t] || TYPE_META.OTHER;
-                    const active = form.propertyType === t;
+            <Field label="Property type">
+              <View style={styles.typeGrid}>
+                {PROPERTY_TYPE.map((t) => {
+                  const meta = TYPE_META[t] || TYPE_META.OTHER;
+                  const active = form.propertyType === t;
+                  return (
+                    <TouchableOpacity key={t}
+                      style={[styles.typeTile, active && { backgroundColor: `${meta.color}14`, borderColor: meta.color }]}
+                      onPress={() => update("propertyType", t)} activeOpacity={0.85}>
+                      <View style={[styles.typeIconWrap, { backgroundColor: active ? meta.color : `${meta.color}18` }]}>
+                        <Ionicons name={meta.icon} size={16} color={active ? "#fff" : meta.color} />
+                      </View>
+                      <Text style={[styles.typeLabel, active && { color: meta.color, fontWeight: "bold" }]}>
+                        {meta.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </Field>
+
+            <Field label="Description">
+              <TextInput style={[styles.input, styles.inputMultiline]}
+                placeholder="What makes this property special — ambiance, location, experience…"
+                placeholderTextColor="#A99F8D" value={form.description}
+                onChangeText={(v) => update("description", v)}
+                multiline numberOfLines={4} textAlignVertical="top" />
+            </Field>
+
+            <Field label="Key highlights" helper="One per line — shown as bullet points">
+              <TextInput style={[styles.input, styles.inputMultiline]}
+                placeholder={"Stunning sea-facing rooms\nPrivate beach access\n10 min from airport"}
+                placeholderTextColor="#A99F8D" value={form.highlights}
+                onChangeText={(v) => update("highlights", v)}
+                multiline numberOfLines={3} textAlignVertical="top" />
+            </Field>
+          </Section>
+
+          {/* ── LOCATION ── */}
+          <Section icon="location" color={C.blue} label="Location"
+            sub={form.city ? `${form.city}${form.state ? `, ${form.state}` : ""}` : "Address · city · landmark"}
+            done={done.location} open={expanded.location} onToggle={() => tog("location")}>
+            <Field label="Street address">
+              <TextInput style={[styles.input, styles.inputMultiline]}
+                placeholder="Building, street, area"
+                placeholderTextColor="#A99F8D" value={form.address}
+                onChangeText={(v) => update("address", v)}
+                multiline numberOfLines={2} textAlignVertical="top" />
+            </Field>
+            <View style={styles.row2}>
+              <Field label="City" style={{ flex: 1 }}>
+                <TextInput style={styles.input} placeholder="City"
+                  placeholderTextColor="#A99F8D" value={form.city}
+                  onChangeText={(v) => update("city", v)} />
+              </Field>
+              <Field label="State" style={{ flex: 1 }}>
+                <TextInput style={styles.input} placeholder="State"
+                  placeholderTextColor="#A99F8D" value={form.state}
+                  onChangeText={(v) => update("state", v)} />
+              </Field>
+            </View>
+            <View style={styles.row2}>
+              <Field label="Pincode" style={{ flex: 1 }}>
+                <TextInput style={styles.input} placeholder="6-digit pincode"
+                  placeholderTextColor="#A99F8D" keyboardType="number-pad" maxLength={6}
+                  value={form.pincode} onChangeText={(v) => update("pincode", v.replace(/\D/g, ""))} />
+              </Field>
+              <Field label="Nearby landmark" style={{ flex: 1 }}>
+                <TextInput style={styles.input} placeholder="e.g. Near Baga Beach"
+                  placeholderTextColor="#A99F8D" value={form.landmark}
+                  onChangeText={(v) => update("landmark", v)} />
+              </Field>
+            </View>
+          </Section>
+
+          {/* ── CAPACITY & PRICING ── */}
+          <Section icon="bed" color={C.amber} label="Capacity & Pricing"
+            sub={[form.totalRooms && `${form.totalRooms} rooms`, form.startingPrice && `₹${form.startingPrice}/night`].filter(Boolean).join(" · ") || "Rooms · guests · price · stay"}
+            done={done.capacity} open={expanded.capacity} onToggle={() => tog("capacity")}>
+            <View style={styles.row2}>
+              <Field label="Total rooms *" style={{ flex: 1 }}>
+                <NumberInput value={form.totalRooms} placeholder="12"
+                  onChange={(v) => update("totalRooms", v)} icon="bed" color={C.amber} />
+              </Field>
+              <Field label="Bedrooms" style={{ flex: 1 }}>
+                <NumberInput value={form.bedroomsCount} placeholder="2"
+                  onChange={(v) => update("bedroomsCount", v)} icon="bed-outline" color={C.blue} />
+              </Field>
+            </View>
+            <View style={styles.row2}>
+              <Field label="Bathrooms" style={{ flex: 1 }}>
+                <NumberInput value={form.bathroomsCount} placeholder="2"
+                  onChange={(v) => update("bathroomsCount", v)} icon="water" color={C.teal} />
+              </Field>
+              <Field label="Max guests" style={{ flex: 1 }}>
+                <NumberInput value={form.maxGuests} placeholder="6"
+                  onChange={(v) => update("maxGuests", v)} icon="people" color={C.purple} />
+              </Field>
+            </View>
+            <Field label="Starting price (₹ / night)">
+              <View style={styles.prefixInputWrap}>
+                <View style={styles.prefixBox}><Text style={styles.prefixText}>₹</Text></View>
+                <TextInput style={[styles.input, styles.prefixInput]} placeholder="3500"
+                  placeholderTextColor="#A99F8D" keyboardType="number-pad"
+                  value={form.startingPrice}
+                  onChangeText={(v) => update("startingPrice", v.replace(/[^\d.]/g, ""))} />
+              </View>
+            </Field>
+            <View style={styles.row2}>
+              <Field label="Min nights" style={{ flex: 1 }}>
+                <NumberInput value={form.minNights} placeholder="1"
+                  onChange={(v) => update("minNights", v)} icon="moon" color={C.emerald600} />
+              </Field>
+              <Field label="Max nights" style={{ flex: 1 }}>
+                <NumberInput value={form.maxNights} placeholder="No limit"
+                  onChange={(v) => update("maxNights", v)} icon="moon-outline" color={C.subText} />
+              </Field>
+            </View>
+            <View style={styles.row2}>
+              <Field label="Check-in" style={{ flex: 1 }}>
+                <View style={styles.iconInputWrap}>
+                  <View style={[styles.iconInputIcon, { backgroundColor: `${C.emerald600}18` }]}>
+                    <Ionicons name="log-in" size={15} color={C.emerald600} />
+                  </View>
+                  <TextInput style={[styles.input, styles.iconInputField]} placeholder="14:00"
+                    placeholderTextColor="#A99F8D" value={form.checkInTime}
+                    onChangeText={(v) => update("checkInTime", v)} />
+                </View>
+              </Field>
+              <Field label="Check-out" style={{ flex: 1 }}>
+                <View style={styles.iconInputWrap}>
+                  <View style={[styles.iconInputIcon, { backgroundColor: `${C.red}18` }]}>
+                    <Ionicons name="log-out" size={15} color={C.red} />
+                  </View>
+                  <TextInput style={[styles.input, styles.iconInputField]} placeholder="11:00"
+                    placeholderTextColor="#A99F8D" value={form.checkOutTime}
+                    onChangeText={(v) => update("checkOutTime", v)} />
+                </View>
+              </Field>
+            </View>
+          </Section>
+
+          {/* ── AMENITIES ── */}
+          <Section icon="star" color={C.teal} label="Amenities"
+            sub={(form.amenityIds.length + form.customAmenities.length) > 0 ? `${form.amenityIds.length + form.customAmenities.length} selected` : "WiFi · Pool · AC · Parking…"}
+            done={done.amenities} open={expanded.amenities} onToggle={() => tog("amenities")}>
+            {AMENITY_GROUPS.map((group) => (
+              <View key={group.id} style={styles.amenityGroup}>
+                <Text style={styles.amenityGroupLabel}>{group.label}</Text>
+                <View style={styles.amenityGrid}>
+                  {group.items.map((item) => {
+                    const selected = form.amenityIds.includes(item.id);
                     return (
-                      <TouchableOpacity key={t}
-                        style={[styles.typeTile, active && { backgroundColor: `${meta.color}1A`, borderColor: meta.color }]}
-                        onPress={() => update("propertyType", t)} activeOpacity={0.85}>
-                        <View style={[styles.typeIconWrap, { backgroundColor: active ? meta.color : `${meta.color}22` }]}>
-                          <Ionicons name={meta.icon} size={16} color={active ? "#fff" : meta.color} />
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[styles.amenityChip, selected && styles.amenityChipActive]}
+                        onPress={() => toggleAmenity(item.id)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={[styles.amenityCheckbox, selected && styles.amenityCheckboxActive]}>
+                          {selected && <Ionicons name="checkmark" size={10} color="#fff" />}
                         </View>
-                        <Text style={[styles.typeLabel, active && { color: meta.color, fontWeight: "800" }]}>
-                          {meta.label}
+                        <Text style={[styles.amenityChipText, selected && styles.amenityChipTextActive]} numberOfLines={1}>
+                          {item.label}
                         </Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
-              </Field>
-
-              <Field label="Description">
-                <TextInput style={[styles.input, styles.inputMultiline]}
-                  placeholder="What makes this property special — ambiance, location, experience…"
-                  placeholderTextColor="#A3B3C2" value={form.description}
-                  onChangeText={(v) => update("description", v)}
-                  multiline numberOfLines={4} textAlignVertical="top" />
-              </Field>
-
-              <Field label="Key highlights" helper="One per line — shown as bullet points">
-                <TextInput style={[styles.input, styles.inputMultiline]}
-                  placeholder={"Stunning sea-facing rooms\nPrivate beach access\n10 min from airport"}
-                  placeholderTextColor="#A3B3C2" value={form.highlights}
-                  onChangeText={(v) => update("highlights", v)}
-                  multiline numberOfLines={3} textAlignVertical="top" />
-              </Field>
-            </Card>
-          )}
-
-          {/* ── LOCATION ── */}
-          <SectionToggle icon="location" color={C.blue} label="Location"
-            sub={form.city ? `${form.city}${form.state ? `, ${form.state}` : ""}` : "Address · city · landmark"}
-            open={expanded.location} onToggle={() => tog("location")} />
-          {expanded.location && (
-            <Card>
-              <Field label="Street address">
-                <TextInput style={[styles.input, styles.inputMultiline]}
-                  placeholder="Building, street, area"
-                  placeholderTextColor="#A3B3C2" value={form.address}
-                  onChangeText={(v) => update("address", v)}
-                  multiline numberOfLines={2} textAlignVertical="top" />
-              </Field>
-              <View style={styles.row2}>
-                <Field label="City" style={{ flex: 1 }}>
-                  <TextInput style={styles.input} placeholder="City"
-                    placeholderTextColor="#A3B3C2" value={form.city}
-                    onChangeText={(v) => update("city", v)} />
-                </Field>
-                <Field label="State" style={{ flex: 1 }}>
-                  <TextInput style={styles.input} placeholder="State"
-                    placeholderTextColor="#A3B3C2" value={form.state}
-                    onChangeText={(v) => update("state", v)} />
-                </Field>
               </View>
-              <View style={styles.row2}>
-                <Field label="Pincode" style={{ flex: 1 }}>
-                  <TextInput style={styles.input} placeholder="6-digit pincode"
-                    placeholderTextColor="#A3B3C2" keyboardType="number-pad" maxLength={6}
-                    value={form.pincode} onChangeText={(v) => update("pincode", v.replace(/\D/g, ""))} />
-                </Field>
-                <Field label="Nearby landmark" style={{ flex: 1 }}>
-                  <TextInput style={styles.input} placeholder="e.g. Near Baga Beach"
-                    placeholderTextColor="#A3B3C2" value={form.landmark}
-                    onChangeText={(v) => update("landmark", v)} />
-                </Field>
+            ))}
+            {/* Custom amenity input */}
+            <View style={styles.customAmenitySection}>
+              <Text style={styles.amenityGroupLabel}>Add Custom Amenity</Text>
+              <View style={styles.customAmenityRow}>
+                <TextInput
+                  style={[styles.input, styles.customAmenityInput]}
+                  placeholder="e.g. Bonfire area, Telescope…"
+                  placeholderTextColor="#A99F8D"
+                  value={customAmenityInput}
+                  onChangeText={setCustomAmenityInput}
+                  onSubmitEditing={addCustomAmenity}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity
+                  style={[styles.customAmenityAddBtn, !customAmenityInput.trim() && { opacity: 0.4 }]}
+                  onPress={addCustomAmenity}
+                  disabled={!customAmenityInput.trim()}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="add" size={20} color="#fff" />
+                </TouchableOpacity>
               </View>
-            </Card>
-          )}
-
-          {/* ── CAPACITY & PRICING ── */}
-          <SectionToggle icon="bed" color={C.amber} label="Capacity & Pricing"
-            sub={[form.totalRooms && `${form.totalRooms} rooms`, form.startingPrice && `₹${form.startingPrice}/night`].filter(Boolean).join(" · ") || "Rooms · guests · price · stay"}
-            open={expanded.capacity} onToggle={() => tog("capacity")} />
-          {expanded.capacity && (
-            <Card>
-              <View style={styles.row2}>
-                <Field label="Total rooms *" style={{ flex: 1 }}>
-                  <NumberInput value={form.totalRooms} placeholder="12"
-                    onChange={(v) => update("totalRooms", v)} icon="bed" color={C.amber} />
-                </Field>
-                <Field label="Bedrooms" style={{ flex: 1 }}>
-                  <NumberInput value={form.bedroomsCount} placeholder="2"
-                    onChange={(v) => update("bedroomsCount", v)} icon="bed-outline" color={C.blue} />
-                </Field>
-              </View>
-              <View style={styles.row2}>
-                <Field label="Bathrooms" style={{ flex: 1 }}>
-                  <NumberInput value={form.bathroomsCount} placeholder="2"
-                    onChange={(v) => update("bathroomsCount", v)} icon="water" color={C.teal} />
-                </Field>
-                <Field label="Max guests" style={{ flex: 1 }}>
-                  <NumberInput value={form.maxGuests} placeholder="6"
-                    onChange={(v) => update("maxGuests", v)} icon="people" color={C.purple} />
-                </Field>
-              </View>
-              <Field label="Starting price (₹ / night)">
-                <View style={styles.prefixInputWrap}>
-                  <View style={styles.prefixBox}><Text style={styles.prefixText}>₹</Text></View>
-                  <TextInput style={[styles.input, styles.prefixInput]} placeholder="3500"
-                    placeholderTextColor="#A3B3C2" keyboardType="number-pad"
-                    value={form.startingPrice}
-                    onChangeText={(v) => update("startingPrice", v.replace(/[^\d.]/g, ""))} />
-                </View>
-              </Field>
-              <View style={styles.row2}>
-                <Field label="Min nights" style={{ flex: 1 }}>
-                  <NumberInput value={form.minNights} placeholder="1"
-                    onChange={(v) => update("minNights", v)} icon="moon" color={C.emerald600} />
-                </Field>
-                <Field label="Max nights" style={{ flex: 1 }}>
-                  <NumberInput value={form.maxNights} placeholder="No limit"
-                    onChange={(v) => update("maxNights", v)} icon="moon-outline" color={C.subText} />
-                </Field>
-              </View>
-              <View style={styles.row2}>
-                <Field label="Check-in" style={{ flex: 1 }}>
-                  <View style={styles.iconInputWrap}>
-                    <View style={[styles.iconInputIcon, { backgroundColor: `${C.emerald600}22` }]}>
-                      <Ionicons name="log-in" size={14} color={C.emerald600} />
+              {form.customAmenities.length > 0 && (
+                <View style={styles.customTagsRow}>
+                  {form.customAmenities.map((a) => (
+                    <View key={a} style={styles.customTag}>
+                      <Text style={styles.customTagText}>{a}</Text>
+                      <TouchableOpacity onPress={() => removeCustomAmenity(a)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                        <Ionicons name="close" size={13} color={C.emerald700} />
+                      </TouchableOpacity>
                     </View>
-                    <TextInput style={[styles.input, styles.iconInputField]} placeholder="14:00"
-                      placeholderTextColor="#A3B3C2" value={form.checkInTime}
-                      onChangeText={(v) => update("checkInTime", v)} />
-                  </View>
-                </Field>
-                <Field label="Check-out" style={{ flex: 1 }}>
-                  <View style={styles.iconInputWrap}>
-                    <View style={[styles.iconInputIcon, { backgroundColor: `${C.red}22` }]}>
-                      <Ionicons name="log-out" size={14} color={C.red} />
-                    </View>
-                    <TextInput style={[styles.input, styles.iconInputField]} placeholder="11:00"
-                      placeholderTextColor="#A3B3C2" value={form.checkOutTime}
-                      onChangeText={(v) => update("checkOutTime", v)} />
-                  </View>
-                </Field>
-              </View>
-            </Card>
-          )}
-
-          {/* ── AMENITIES ── */}
-          <SectionToggle icon="star" color={C.teal} label="Amenities"
-            sub={(form.amenityIds.length + form.customAmenities.length) > 0 ? `${form.amenityIds.length + form.customAmenities.length} selected` : "WiFi · Pool · AC · Parking…"}
-            open={expanded.amenities} onToggle={() => tog("amenities")} />
-          {expanded.amenities && (
-            <Card>
-              {AMENITY_GROUPS.map((group) => (
-                <View key={group.id} style={styles.amenityGroup}>
-                  <Text style={styles.amenityGroupLabel}>{group.label}</Text>
-                  <View style={styles.amenityGrid}>
-                    {group.items.map((item) => {
-                      const selected = form.amenityIds.includes(item.id);
-                      return (
-                        <TouchableOpacity
-                          key={item.id}
-                          style={[styles.amenityChip, selected && styles.amenityChipActive]}
-                          onPress={() => toggleAmenity(item.id)}
-                          activeOpacity={0.8}
-                        >
-                          <View style={[styles.amenityCheckbox, selected && styles.amenityCheckboxActive]}>
-                            {selected && <Ionicons name="checkmark" size={10} color="#fff" />}
-                          </View>
-                          <Text style={[styles.amenityChipText, selected && styles.amenityChipTextActive]} numberOfLines={1}>
-                            {item.label}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              ))}
-              {/* Custom amenity input */}
-              <View style={styles.customAmenitySection}>
-                <Text style={styles.amenityGroupLabel}>Add Custom Amenity</Text>
-                <View style={styles.customAmenityRow}>
-                  <TextInput
-                    style={[styles.input, styles.customAmenityInput]}
-                    placeholder="e.g. Bonfire area, Telescope…"
-                    placeholderTextColor="#A3B3C2"
-                    value={customAmenityInput}
-                    onChangeText={setCustomAmenityInput}
-                    onSubmitEditing={addCustomAmenity}
-                    returnKeyType="done"
-                  />
-                  <TouchableOpacity
-                    style={[styles.customAmenityAddBtn, !customAmenityInput.trim() && { opacity: 0.4 }]}
-                    onPress={addCustomAmenity}
-                    disabled={!customAmenityInput.trim()}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="add" size={20} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-                {form.customAmenities.length > 0 && (
-                  <View style={styles.customTagsRow}>
-                    {form.customAmenities.map((a) => (
-                      <View key={a} style={styles.customTag}>
-                        <Text style={styles.customTagText}>{a}</Text>
-                        <TouchableOpacity onPress={() => removeCustomAmenity(a)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                          <Ionicons name="close" size={13} color={C.emerald700} />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-
-              {(form.amenityIds.length + form.customAmenities.length) > 0 && (
-                <View style={styles.amenityCountRow}>
-                  <Ionicons name="checkmark-circle" size={14} color={C.emerald600} />
-                  <Text style={styles.amenityCount}>
-                    {form.amenityIds.length + form.customAmenities.length} amenit{(form.amenityIds.length + form.customAmenities.length) === 1 ? "y" : "ies"} selected
-                  </Text>
+                  ))}
                 </View>
               )}
-            </Card>
-          )}
+            </View>
+
+            {(form.amenityIds.length + form.customAmenities.length) > 0 && (
+              <View style={styles.amenityCountRow}>
+                <Ionicons name="checkmark-circle" size={14} color={C.emerald600} />
+                <Text style={styles.amenityCount}>
+                  {form.amenityIds.length + form.customAmenities.length} amenit{(form.amenityIds.length + form.customAmenities.length) === 1 ? "y" : "ies"} selected
+                </Text>
+              </View>
+            )}
+          </Section>
 
           {/* ── INCLUSIONS / EXCLUSIONS / RULES ── */}
-          <SectionToggle icon="list" color={C.purple} label="Inclusions & Rules"
+          <Section icon="list" color={C.purple} label="Inclusions & Rules"
             sub={`${countLines(form.inclusions)}I · ${countLines(form.exclusions)}E · ${countLines(form.rules)}R`}
-            open={expanded.content} onToggle={() => tog("content")} />
-          {expanded.content && (
-            <Card>
-              <LinesField label="Inclusions" icon="checkmark-circle" color={C.emerald600}
-                placeholder={"Daily breakfast\nWelcome drink\nAll taxes"}
-                value={form.inclusions} onChange={(v) => update("inclusions", v)} />
-              <LinesField label="Exclusions" icon="close-circle" color={C.red}
-                placeholder={"Lunch & dinner\nPersonal expenses"}
-                value={form.exclusions} onChange={(v) => update("exclusions", v)} />
-              <LinesField label="House rules" icon="shield-checkmark" color={C.blue}
-                placeholder={"No smoking inside\nNo pets\nQuiet hours 10 PM – 7 AM"}
-                value={form.rules} onChange={(v) => update("rules", v)} />
-            </Card>
-          )}
+            done={done.content} open={expanded.content} onToggle={() => tog("content")}>
+            <LinesField label="Inclusions" icon="checkmark-circle" color={C.emerald600}
+              placeholder={"Daily breakfast\nWelcome drink\nAll taxes"}
+              value={form.inclusions} onChange={(v) => update("inclusions", v)} />
+            <LinesField label="Exclusions" icon="close-circle" color={C.red}
+              placeholder={"Lunch & dinner\nPersonal expenses"}
+              value={form.exclusions} onChange={(v) => update("exclusions", v)} />
+            <LinesField label="House rules" icon="shield-checkmark" color={C.blue}
+              placeholder={"No smoking inside\nNo pets\nQuiet hours 10 PM – 7 AM"}
+              value={form.rules} onChange={(v) => update("rules", v)} />
+          </Section>
 
           {/* ── CANCELLATION POLICY ── */}
-          <SectionToggle icon="shield" color={C.amber} label="Cancellation Policy"
+          <Section icon="shield" color={C.amber} label="Cancellation Policy"
             sub={form.cancellationPolicy
               ? CANCELLATION_POLICIES.find((c) => c.value === form.cancellationPolicy)?.label || ""
               : "Select cancellation terms"}
-            open={expanded.policies} onToggle={() => tog("policies")} />
-          {expanded.policies && (
-            <Card>
-              <Field label="Select a policy">
-                <View style={styles.policyGrid}>
-                  {CANCELLATION_POLICIES.map((cp) => {
-                    const active = form.cancellationPolicy === cp.value;
-                    return (
-                      <TouchableOpacity key={cp.value}
-                        style={[styles.policyCard, active && styles.policyCardActive]}
-                        onPress={() => update("cancellationPolicy", active ? "" : cp.value)}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={[styles.policyTitle, active && styles.policyTitleActive]}>
-                          {cp.label}
-                        </Text>
-                        <Text style={styles.policyDesc} numberOfLines={2}>{cp.desc}</Text>
-                        {active && (
-                          <View style={styles.policyCheck}>
-                            <Ionicons name="checkmark-circle" size={16} color={C.emerald600} />
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </Field>
-            </Card>
-          )}
+            done={done.policies} open={expanded.policies} onToggle={() => tog("policies")}>
+            <Field label="Select a policy">
+              <View style={styles.policyGrid}>
+                {CANCELLATION_POLICIES.map((cp) => {
+                  const active = form.cancellationPolicy === cp.value;
+                  return (
+                    <TouchableOpacity key={cp.value}
+                      style={[styles.policyCard, active && styles.policyCardActive]}
+                      onPress={() => update("cancellationPolicy", active ? "" : cp.value)}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[styles.policyTitle, active && styles.policyTitleActive]}>
+                        {cp.label}
+                      </Text>
+                      <Text style={styles.policyDesc} numberOfLines={2}>{cp.desc}</Text>
+                      {active && (
+                        <View style={styles.policyCheck}>
+                          <Ionicons name="checkmark-circle" size={16} color={C.emerald600} />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </Field>
+          </Section>
 
           {/* Active + Publish toggles */}
           <View style={styles.togglesRow}>
@@ -622,7 +660,7 @@ export default function AddEditPropertyScreen({ navigation, route }) {
               style={[styles.toggleCard, form.isActive && { borderColor: C.emerald600, backgroundColor: C.emerald50 }]}
               onPress={() => update("isActive", !form.isActive)} activeOpacity={0.85}
             >
-              <View style={[styles.toggleIconWrap, { backgroundColor: form.isActive ? C.emerald600 : "#E2E8F0" }]}>
+              <View style={[styles.toggleIconWrap, { backgroundColor: form.isActive ? C.emerald600 : C.border }]}>
                 <Ionicons name={form.isActive ? "checkmark" : "close"} size={16} color="#fff" />
               </View>
               <Text style={[styles.toggleTitle, form.isActive && { color: C.emerald700 }]}>Active</Text>
@@ -635,7 +673,7 @@ export default function AddEditPropertyScreen({ navigation, route }) {
               style={[styles.toggleCard, form.isPublic && { borderColor: C.purple, backgroundColor: C.purpleLight }]}
               onPress={() => update("isPublic", !form.isPublic)} activeOpacity={0.85}
             >
-              <View style={[styles.toggleIconWrap, { backgroundColor: form.isPublic ? C.purple : "#E2E8F0" }]}>
+              <View style={[styles.toggleIconWrap, { backgroundColor: form.isPublic ? C.purple : C.border }]}>
                 <Ionicons name={form.isPublic ? "globe" : "globe-outline"} size={16} color="#fff" />
               </View>
               <Text style={[styles.toggleTitle, form.isPublic && { color: C.purple }]}>
@@ -648,10 +686,16 @@ export default function AddEditPropertyScreen({ navigation, route }) {
           </View>
 
           {isEdit && (
-            <SectionToggle icon="alert-circle" color={C.red} label="Danger zone"
-              sub="Delete this property permanently"
-              open={false} onToggle={onDelete} showChevron={false}
-              actionIcon="trash" actionColor={C.red} />
+            <TouchableOpacity style={styles.dangerCard} onPress={onDelete} activeOpacity={0.85}>
+              <View style={styles.dangerIcon}>
+                <Ionicons name="trash" size={16} color={C.red} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.dangerTitle}>Delete property</Text>
+                <Text style={styles.dangerSub}>Permanently remove — this cannot be undone</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={C.red} />
+            </TouchableOpacity>
           )}
 
           <View style={{ height: 100 }} />
@@ -661,7 +705,7 @@ export default function AddEditPropertyScreen({ navigation, route }) {
       <View style={styles.bottomBar}>
         <TouchableOpacity style={[styles.publishBtnWrap, !canSave && { opacity: 0.5 }]}
           onPress={save} disabled={!canSave} activeOpacity={0.9}>
-          <LinearGradient colors={[C.emerald600, C.emerald700]}
+          <LinearGradient colors={[C.emerald500, C.emerald700]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={styles.publishBtnInner}>
             {saving ? <ActivityIndicator size="small" color="#fff" /> : (
@@ -679,7 +723,34 @@ export default function AddEditPropertyScreen({ navigation, route }) {
 
 /* ── Sub-components ── */
 
-function Card({ children }) { return <View style={styles.card}>{children}</View>; }
+// Self-contained rounded section card: tappable header + (when open) an
+// animated body separated by a hairline divider.
+function Section({ icon, color, label, sub, open, onToggle, done, children }) {
+  return (
+    <View style={[styles.section, open && [styles.sectionOpen, { borderColor: `${color}40` }]]}>
+      <TouchableOpacity style={styles.sectionHead} onPress={onToggle} activeOpacity={0.7}>
+        <View style={styles.sectionIconWrap}>
+          <View style={[styles.sectionIcon, { backgroundColor: `${color}16` }, open && { backgroundColor: color }]}>
+            <Ionicons name={icon} size={18} color={open ? "#fff" : color} />
+          </View>
+          {done && (
+            <View style={styles.doneBadge}>
+              <Ionicons name="checkmark" size={9} color="#fff" />
+            </View>
+          )}
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.sectionLabel}>{label}</Text>
+          {!!sub && <Text style={styles.sectionSub} numberOfLines={1}>{sub}</Text>}
+        </View>
+        <View style={[styles.chevWrap, open && { backgroundColor: `${color}14` }]}>
+          <Ionicons name={open ? "chevron-up" : "chevron-down"} size={16} color={open ? color : C.subText} />
+        </View>
+      </TouchableOpacity>
+      {open && <View style={styles.sectionBody}>{children}</View>}
+    </View>
+  );
+}
 
 function Field({ label, helper, children, style }) {
   return (
@@ -691,32 +762,15 @@ function Field({ label, helper, children, style }) {
   );
 }
 
-function SectionToggle({ icon, color, label, sub, open, onToggle, showChevron = true, actionIcon, actionColor }) {
-  return (
-    <TouchableOpacity style={styles.sectionToggle} onPress={onToggle} activeOpacity={0.85}>
-      <View style={[styles.sectionToggleIcon, { backgroundColor: `${color}22` }]}>
-        <Ionicons name={icon} size={16} color={color} />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={[styles.sectionToggleText, { color }]}>{label}</Text>
-        {!!sub && <Text style={styles.sectionToggleSub} numberOfLines={1}>{sub}</Text>}
-      </View>
-      {showChevron
-        ? <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={color} />
-        : <Ionicons name={actionIcon || "chevron-forward"} size={18} color={actionColor || color} />}
-    </TouchableOpacity>
-  );
-}
-
 function NumberInput({ value, placeholder, onChange, icon, color }) {
   return (
     <View style={styles.iconInputWrap}>
-      <View style={[styles.iconInputIcon, { backgroundColor: `${color || C.emerald600}22` }]}>
-        <Ionicons name={icon || "ellipse"} size={14} color={color || C.emerald600} />
+      <View style={[styles.iconInputIcon, { backgroundColor: `${color || C.emerald600}18` }]}>
+        <Ionicons name={icon || "ellipse"} size={15} color={color || C.emerald600} />
       </View>
       <TextInput
         style={[styles.input, styles.iconInputField]}
-        placeholder={placeholder} placeholderTextColor="#A3B3C2"
+        placeholder={placeholder} placeholderTextColor="#A99F8D"
         keyboardType="number-pad" value={value}
         onChangeText={(v) => onChange(v.replace(/\D/g, ""))} />
     </View>
@@ -739,7 +793,7 @@ function LinesField({ label, icon, color, placeholder, value, onChange }) {
         <Text style={styles.linesHint}>One per line</Text>
       </View>
       <TextInput style={[styles.input, styles.inputMultiline]}
-        placeholder={placeholder} placeholderTextColor="#A3B3C2"
+        placeholder={placeholder} placeholderTextColor="#A99F8D"
         value={value} onChangeText={onChange}
         multiline numberOfLines={4} textAlignVertical="top" />
     </View>
@@ -752,93 +806,164 @@ function countLines(s) {
 }
 
 const styles = StyleSheet.create({
-  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 19, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "700", marginTop: 2 },
-  headerSaveBtn: { backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, minWidth: 60, alignItems: "center" },
-  headerSaveText: { color: C.emerald700, fontWeight: "800", fontSize: 13 },
+  // Header
+  headerGrad: { borderBottomLeftRadius: 30, borderBottomRightRadius: 30, overflow: "hidden", position: "relative" },
+  orbA: {
+    position: "absolute", top: -44, right: -28,
+    width: 170, height: 170, borderRadius: 85,
+    backgroundColor: "rgba(201,154,63,0.10)",
+  },
+  orbB: {
+    position: "absolute", bottom: -36, left: -32,
+    width: 140, height: 140, borderRadius: 70,
+    backgroundColor: "rgba(46,158,119,0.14)",
+  },
+  headerTopRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
+  headerCircleBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    alignItems: "center", justifyContent: "center",
+  },
+  headerEyebrow: {
+    flex: 1, marginLeft: 12, alignSelf: "center",
+    fontFamily: DISPLAY, color: GOLD, fontSize: 10, fontWeight: "bold",
+    letterSpacing: 1.8, textTransform: "uppercase",
+  },
+  // marginLeft = close btn width (40) + gap (12) → title lines up under eyebrow
+  headerTitleBlock: { marginTop: -15, marginLeft: 52 },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: "bold", color: "#fff", letterSpacing: 0.2, lineHeight: 23 },
+  headerBadgeRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 },
+  typePill: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.14)",
+  },
+  typePillText: { fontFamily: DISPLAY, color: "#fff", fontSize: 10.5, fontWeight: "bold", letterSpacing: 0.3 },
+  headerSub: { fontFamily: DISPLAY, color: "rgba(255,255,255,0.72)", fontSize: 11.5, fontWeight: "600" },
+  ringPct: { fontFamily: DISPLAY, color: "#fff", fontSize: 11, fontWeight: "bold", letterSpacing: 0 },
 
-  progressRow: { flexDirection: "row", marginTop: 12, paddingHorizontal: 4 },
-  progressItem: { flex: 1, alignItems: "center", gap: 4 },
-  progressDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.4)" },
-  progressDotDone: { backgroundColor: "#fff", borderColor: "#fff" },
-  progressLabel: { fontSize: 9, color: "rgba(255,255,255,0.85)", fontWeight: "700", letterSpacing: 0.2 },
+  scroll: { paddingTop: 8, paddingBottom: 24 },
 
-  scroll: { paddingTop: 4, paddingBottom: 24 },
+  // Section card
+  section: {
+    marginHorizontal: 16, marginTop: 14,
+    backgroundColor: C.card, borderRadius: 20,
+    borderWidth: 1, borderColor: C.border, overflow: "hidden",
+    ...Platform.select({
+      ios: { shadowColor: "#2A2216", shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
+      android: { elevation: 2 },
+    }),
+  },
+  sectionOpen: {
+    ...Platform.select({
+      ios: { shadowOpacity: 0.1, shadowRadius: 22, shadowOffset: { width: 0, height: 12 } },
+      android: { elevation: 5 },
+    }),
+  },
+  sectionHead: { flexDirection: "row", alignItems: "center", gap: 13, padding: 15 },
+  sectionIconWrap: { width: 42, height: 42 },
+  sectionIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  doneBadge: {
+    position: "absolute", top: -4, right: -4,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: C.emerald500, alignItems: "center", justifyContent: "center",
+    borderWidth: 2, borderColor: C.card,
+  },
+  sectionLabel: { fontFamily: DISPLAY, fontSize: 15.5, fontWeight: "bold", color: C.ink, letterSpacing: 0.2 },
+  sectionSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, marginTop: 3, fontWeight: "600" },
+  chevWrap: { width: 30, height: 30, borderRadius: 15, backgroundColor: C.bg, alignItems: "center", justifyContent: "center" },
+  sectionBody: { borderTopWidth: 1, borderTopColor: C.border, padding: 16, paddingTop: 15 },
 
-  sectionToggle: { flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border },
-  sectionToggleIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  sectionToggleText: { fontSize: 13.5, fontWeight: "800", letterSpacing: 0.3 },
-  sectionToggleSub: { fontSize: 11, color: C.subText, marginTop: 2, fontWeight: "600" },
+  // Field
+  field: { marginBottom: 16 },
+  fieldLabel: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.text, marginBottom: 7 },
+  helper: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, marginTop: 5, fontWeight: "600" },
+  input: { fontFamily: DISPLAY, backgroundColor: FILL, borderWidth: 1.5, borderColor: C.border, borderRadius: 14, paddingHorizontal: 15, paddingVertical: 13, fontSize: 14.5, color: C.ink, minHeight: 52 },
+  inputMultiline: { minHeight: 96, paddingTop: 13 },
+  row2: { flexDirection: "row", gap: 12 },
 
-  card: { marginHorizontal: 16, backgroundColor: C.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: C.border, marginTop: -1, borderTopLeftRadius: 0, borderTopRightRadius: 0 },
-
-  field: { marginBottom: 14 },
-  fieldLabel: { fontSize: 12, fontWeight: "700", color: C.text, marginBottom: 6 },
-  helper: { fontSize: 11, color: C.subText, marginTop: 4, fontWeight: "600" },
-  input: { backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: C.ink, minHeight: 46 },
-  inputMultiline: { minHeight: 90, paddingTop: 10 },
-  row2: { flexDirection: "row", gap: 10 },
-
+  // Type grid
   typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  typeTile: { width: "31%", paddingVertical: 12, paddingHorizontal: 6, borderRadius: 12, backgroundColor: "#FAFBFC", borderWidth: 1.5, borderColor: C.border, alignItems: "center", gap: 6 },
-  typeIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  typeLabel: { fontSize: 11, color: C.text, fontWeight: "700", textAlign: "center" },
+  typeTile: { width: "31.5%", paddingVertical: 12, paddingHorizontal: 6, borderRadius: 14, backgroundColor: FILL, borderWidth: 1.5, borderColor: C.border, alignItems: "center", gap: 7 },
+  typeIconWrap: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  typeLabel: { fontFamily: DISPLAY, fontSize: 11, color: C.text, fontWeight: "bold", textAlign: "center" },
 
-  prefixInputWrap: { flexDirection: "row", alignItems: "stretch" },
-  prefixBox: { paddingHorizontal: 14, justifyContent: "center", backgroundColor: C.emerald50, borderTopLeftRadius: 10, borderBottomLeftRadius: 10, borderWidth: 1, borderRightWidth: 0, borderColor: C.border },
-  prefixText: { color: C.emerald700, fontWeight: "800", fontSize: 16 },
-  prefixInput: { flex: 1, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeftWidth: 0 },
+  // ₹ prefix input (unified pill)
+  prefixInputWrap: { flexDirection: "row", alignItems: "stretch", backgroundColor: FILL, borderWidth: 1.5, borderColor: C.border, borderRadius: 14, overflow: "hidden" },
+  prefixBox: { paddingHorizontal: 16, justifyContent: "center", backgroundColor: C.emerald50 },
+  prefixText: { fontFamily: DISPLAY, color: C.emerald700, fontWeight: "bold", fontSize: 16 },
+  prefixInput: { flex: 1, borderWidth: 0, backgroundColor: "transparent", borderRadius: 0 },
 
-  iconInputWrap: { flexDirection: "row", alignItems: "stretch" },
-  iconInputIcon: { width: 44, justifyContent: "center", alignItems: "center", borderTopLeftRadius: 10, borderBottomLeftRadius: 10, borderWidth: 1, borderRightWidth: 0, borderColor: C.border },
-  iconInputField: { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 },
+  // Icon-prefix input (unified pill)
+  iconInputWrap: { flexDirection: "row", alignItems: "stretch", backgroundColor: FILL, borderWidth: 1.5, borderColor: C.border, borderRadius: 14, overflow: "hidden" },
+  iconInputIcon: { width: 48, justifyContent: "center", alignItems: "center" },
+  iconInputField: { flex: 1, borderWidth: 0, backgroundColor: "transparent", borderRadius: 0 },
 
   // Amenity checkbox grid
-  amenityGroup: { marginBottom: 14 },
-  amenityGroupLabel: { fontSize: 11, fontWeight: "800", color: C.subText, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 8 },
-  amenityGrid: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  amenityChip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: C.border, backgroundColor: "#FAFBFC" },
+  amenityGroup: { marginBottom: 16 },
+  amenityGroupLabel: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold", color: C.subText, letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 9 },
+  amenityGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  amenityChip: { flexDirection: "row", alignItems: "center", gap: 7, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, backgroundColor: FILL },
   amenityChipActive: { backgroundColor: C.emerald50, borderColor: C.emerald600 },
-  amenityCheckbox: { width: 14, height: 14, borderRadius: 3, borderWidth: 1.5, borderColor: "#CBD5E1", alignItems: "center", justifyContent: "center" },
+  amenityCheckbox: { width: 15, height: 15, borderRadius: 4, borderWidth: 1.5, borderColor: "#C9C1B2", alignItems: "center", justifyContent: "center" },
   amenityCheckboxActive: { backgroundColor: C.emerald600, borderColor: C.emerald600 },
-  amenityChipText: { fontSize: 11.5, color: C.text, fontWeight: "600" },
-  amenityChipTextActive: { color: C.emerald700, fontWeight: "800" },
-  amenityCountRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border },
-  amenityCount: { fontSize: 12, color: C.emerald700, fontWeight: "700" },
+  amenityChipText: { fontFamily: DISPLAY, fontSize: 11.5, color: C.text, fontWeight: "600" },
+  amenityChipTextActive: { color: C.emerald700, fontWeight: "bold" },
+  amenityCountRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border },
+  amenityCount: { fontFamily: DISPLAY, fontSize: 12, color: C.emerald700, fontWeight: "bold" },
 
-  customAmenitySection: { marginTop: 6, paddingTop: 14, borderTopWidth: 1, borderTopColor: C.border },
+  customAmenitySection: { marginTop: 6, paddingTop: 16, borderTopWidth: 1, borderTopColor: C.border },
   customAmenityRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  customAmenityInput: { flex: 1, minHeight: 44 },
-  customAmenityAddBtn: { width: 44, height: 44, borderRadius: 10, backgroundColor: C.emerald600, alignItems: "center", justifyContent: "center" },
-  customTagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 10 },
-  customTag: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: C.emerald50, borderWidth: 1, borderColor: C.emerald600 },
-  customTagText: { fontSize: 12, color: C.emerald700, fontWeight: "700" },
+  customAmenityInput: { flex: 1, minHeight: 50 },
+  customAmenityAddBtn: { width: 50, height: 50, borderRadius: 12, backgroundColor: C.emerald600, alignItems: "center", justifyContent: "center" },
+  customTagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+  customTag: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999, backgroundColor: C.emerald50, borderWidth: 1, borderColor: C.emerald600 },
+  customTagText: { fontFamily: DISPLAY, fontSize: 12, color: C.emerald700, fontWeight: "bold" },
 
   // Cancellation policy cards
-  policyGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  policyCard: { width: "48%", padding: 12, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, backgroundColor: "#FAFBFC" },
+  policyGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  policyCard: { width: "47.5%", padding: 13, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, backgroundColor: FILL },
   policyCardActive: { backgroundColor: C.emerald50, borderColor: C.emerald600 },
-  policyTitle: { fontSize: 12.5, fontWeight: "800", color: C.ink, marginBottom: 4 },
+  policyTitle: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", color: C.ink, marginBottom: 4 },
   policyTitleActive: { color: C.emerald700 },
-  policyDesc: { fontSize: 10.5, color: C.subText, lineHeight: 14 },
-  policyCheck: { position: "absolute", top: 8, right: 8 },
+  policyDesc: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, lineHeight: 14 },
+  policyCheck: { position: "absolute", top: 9, right: 9 },
 
-  linesHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
+  linesHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 9 },
   linesCountBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999 },
-  linesCountText: { fontSize: 10.5, fontWeight: "800" },
-  linesHint: { fontSize: 10, color: C.subText, fontWeight: "600", fontStyle: "italic" },
+  linesCountText: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold" },
+  linesHint: { fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "600", fontStyle: "italic" },
 
-  togglesRow: { flexDirection: "row", gap: 10, marginHorizontal: 16, marginTop: 12 },
-  toggleCard: { flex: 1, alignItems: "center", gap: 6, padding: 14, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.card },
-  toggleIconWrap: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  toggleTitle: { fontSize: 13, color: C.text, fontWeight: "800", textAlign: "center" },
-  toggleSub: { fontSize: 10.5, color: C.subText, fontWeight: "600", textAlign: "center" },
+  // Toggles
+  togglesRow: { flexDirection: "row", gap: 12, marginHorizontal: 16, marginTop: 14 },
+  toggleCard: { flex: 1, alignItems: "center", gap: 6, padding: 14, borderRadius: 16, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.card },
+  toggleIconWrap: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  toggleTitle: { fontFamily: DISPLAY, fontSize: 13, color: C.text, fontWeight: "bold", textAlign: "center" },
+  toggleSub: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "600", textAlign: "center" },
 
-  bottomBar: { flexDirection: "row", gap: 10, paddingHorizontal: 16, paddingTop: 10, paddingBottom: Platform.OS === "ios" ? 24 : 12, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border },
-  publishBtnWrap: { flex: 1, borderRadius: 12, overflow: "hidden", shadowColor: C.emerald600, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
-  publishBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 15 },
-  publishBtnText: { color: "#fff", fontWeight: "800", fontSize: 14.5 },
+  // Danger zone
+  dangerCard: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    marginHorizontal: 16, marginTop: 14,
+    padding: 14, borderRadius: 16,
+    borderWidth: 1.5, borderColor: C.redLight, backgroundColor: "#FBF1EF",
+  },
+  dangerIcon: { width: 36, height: 36, borderRadius: 11, backgroundColor: C.redLight, alignItems: "center", justifyContent: "center" },
+  dangerTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.red },
+  dangerSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 2 },
+
+  // Bottom save bar
+  bottomBar: {
+    flexDirection: "row", gap: 10, paddingHorizontal: 16, paddingTop: 12,
+    paddingBottom: Platform.OS === "ios" ? 26 : 12,
+    backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
+    ...Platform.select({
+      ios: { shadowColor: "#2A2216", shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: -6 } },
+      android: { elevation: 16 },
+    }),
+  },
+  publishBtnWrap: { flex: 1, borderRadius: 16, overflow: "hidden", shadowColor: C.emerald600, shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  publishBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12 },
+  publishBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 15, letterSpacing: 0.3 },
 });

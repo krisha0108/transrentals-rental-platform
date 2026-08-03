@@ -10,12 +10,13 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   RefreshControl, ActivityIndicator, Share, Alert, Linking,
-  StatusBar,
+  StatusBar, Animated, Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import Clipboard from "@react-native-clipboard/clipboard";
+import { DISPLAY } from "../_shared/typography";
 import {
   listTravelAgentCaptureLinks,
   updateTravelAgentCaptureLink,
@@ -23,26 +24,8 @@ import {
   getCaptureLinkPublicUrl,
   getCurrentTravelAgent,
 } from "../../api/travelAgentClient";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-};
 
 // Trip-type chip colour mapping for the form-default badge.
 const TRIP_TYPE_COLORS = {
@@ -51,6 +34,24 @@ const TRIP_TYPE_COLORS = {
   TRANSPORT:    { color: C.amber,     icon: "car" },
   CUSTOM:       { color: C.emerald600, icon: "compass" },
 };
+
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />;
+}
 
 export default function CaptureLinksListScreen({ navigation }) {
   const [links, setLinks] = useState([]);
@@ -173,23 +174,22 @@ export default function CaptureLinksListScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
 
       {/* ===== Gradient header ===== */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 28 }}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 42 }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
               <Ionicons name="arrow-back" size={22} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>Capture Links</Text>
-              <Text style={styles.headerSub}>Shareable lead-capture forms</Text>
-            </View>
+            <Text style={styles.headerTitle} numberOfLines={1}>Capture Links</Text>
             <TouchableOpacity
               style={styles.iconBtn}
               onPress={goCreate}
@@ -197,6 +197,7 @@ export default function CaptureLinksListScreen({ navigation }) {
               <Ionicons name="add-circle" size={26} color="#fff" />
             </TouchableOpacity>
           </View>
+          <Text style={styles.headerSub}>Shareable lead-capture forms</Text>
         </SafeAreaView>
       </LinearGradient>
 
@@ -211,7 +212,7 @@ export default function CaptureLinksListScreen({ navigation }) {
 
       {!isApproved && (
         <View style={styles.warnBanner}>
-          <Ionicons name="information-circle" size={16} color="#A16207" />
+          <Ionicons name="information-circle" size={16} color="#8A6420" />
           <Text style={styles.warnText}>
             Approval pending — capture links work, but won't be discoverable on the public site yet.
           </Text>
@@ -336,7 +337,7 @@ function LinkCard({ link, busy, onEdit, onToggle, onShare, onCopy, onOpen, onDel
                 styles.statusPill,
                 link.isActive
                   ? { backgroundColor: C.emerald50 }
-                  : { backgroundColor: "#F1F5F9" },
+                  : { backgroundColor: C.tintSand },
               ]}>
                 <View style={[
                   styles.statusDot,
@@ -455,11 +456,21 @@ function LinkCard({ link, busy, onEdit, onToggle, onShare, onCopy, onOpen, onDel
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
   // Header
-  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
+  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20, overflow: "hidden", position: "relative" },
+  orbA: {
+    position: "absolute", top: -44, right: -28,
+    width: 150, height: 150, borderRadius: 75,
+    backgroundColor: "rgba(201,154,63,0.13)",
+  },
+  orbB: {
+    position: "absolute", bottom: -36, left: -32,
+    width: 128, height: 128, borderRadius: 64,
+    backgroundColor: "rgba(46,158,119,0.16)",
+  },
+  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 8 },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 2 },
+  headerTitle: { flex: 1, fontFamily: DISPLAY, fontSize: 25, fontWeight: "bold", color: "#fff", marginLeft: 2 },
+  headerSub: { fontFamily: DISPLAY, fontSize: 13, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 4, marginLeft: 42 },
 
   // Floating stats
   statsCard: {
@@ -471,29 +482,29 @@ const styles = StyleSheet.create({
   },
   statCell: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, justifyContent: "center" },
   statIcon: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  statValue: { fontSize: 16, fontWeight: "900" },
-  statLabel: { fontSize: 10.5, color: C.subText, fontWeight: "700", marginTop: 1, letterSpacing: 0.3 },
+  statValue: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold" },
+  statLabel: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "bold", marginTop: 1, letterSpacing: 0.3 },
   statDivider: { width: 1, height: 28, backgroundColor: C.border },
 
-  warnBanner: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 12, padding: 10, borderRadius: 10, backgroundColor: C.amberLight, borderWidth: 1, borderColor: "#FDE68A" },
-  warnText: { color: "#A16207", fontSize: 11.5, flex: 1, fontWeight: "600", lineHeight: 16 },
+  warnBanner: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 12, padding: 10, borderRadius: 10, backgroundColor: C.amberLight, borderWidth: 1, borderColor: "#EBD9AE" },
+  warnText: { fontFamily: DISPLAY, color: "#8A6420", fontSize: 11.5, flex: 1, fontWeight: "600", lineHeight: 16 },
 
-  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: C.red, fontSize: 12.5, flex: 1 },
-  errorRetry: { color: C.red, fontWeight: "800", fontSize: 12.5 },
+  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, padding: 10, backgroundColor: "#FBEDEB", borderRadius: 10, borderWidth: 1, borderColor: "#EAC9C4" },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 12.5, flex: 1 },
+  errorRetry: { fontFamily: DISPLAY, color: C.red, fontWeight: "bold", fontSize: 12.5 },
 
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 13, color: C.subText, fontWeight: "600" },
+  loadingText: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, fontWeight: "600" },
 
   listContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 100 },
   emptyWrap: { flexGrow: 1, justifyContent: "center", padding: 16 },
   empty: { alignItems: "center", padding: 24 },
   emptyIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  emptyTitle: { fontSize: 17, fontWeight: "800", color: C.ink, marginTop: 6 },
-  emptyBody: { fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 19 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, marginTop: 6 },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 19 },
   emptyCta: { marginTop: 18, borderRadius: 12, overflow: "hidden" },
   emptyCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11 },
-  emptyCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  emptyCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
 
   // Card
   card: {
@@ -504,21 +515,21 @@ const styles = StyleSheet.create({
   },
   cardInactive: { opacity: 0.85 },
   cardStripe: { width: 4 },
-  cardBody: { flex: 1, padding: 14 },
+  cardBody: { flex: 1, padding: 12 },
 
-  cardTop: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 10 },
-  statusPillRow: { flexDirection: "row", flexWrap: "wrap", gap: 5, marginBottom: 6 },
+  cardTop: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 8 },
+  statusPillRow: { flexDirection: "row", flexWrap: "wrap", gap: 5, marginBottom: 5 },
   statusPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusPillText: { fontSize: 9.5, fontWeight: "900", letterSpacing: 0.5 },
+  statusPillText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.5 },
   tripPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
-  tripPillText: { fontSize: 9.5, fontWeight: "800", letterSpacing: 0.3 },
-  cardTitle: { fontSize: 15, fontWeight: "800", color: C.ink, lineHeight: 19 },
-  cardDesc: { fontSize: 12, color: C.subText, marginTop: 4, fontWeight: "500", lineHeight: 16 },
+  tripPillText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.3 },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: "bold", color: C.ink, lineHeight: 19 },
+  cardDesc: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, marginTop: 4, fontWeight: "500", lineHeight: 16 },
 
   // Custom toggle switch
   toggleBtn: { width: 44, height: 40, alignItems: "center", justifyContent: "center" },
-  toggleTrack: { width: 36, height: 20, borderRadius: 10, backgroundColor: "#E2E8F0", padding: 2, justifyContent: "center" },
+  toggleTrack: { width: 36, height: 20, borderRadius: 10, backgroundColor: C.border, padding: 2, justifyContent: "center" },
   toggleThumb: {
     width: 16, height: 16, borderRadius: 8, backgroundColor: "#fff",
     shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 2,
@@ -527,37 +538,37 @@ const styles = StyleSheet.create({
   // Slug URL chip
   slugRow: {
     flexDirection: "row", alignItems: "center", gap: 6,
-    paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8,
-    backgroundColor: C.emerald50, borderWidth: 1, borderColor: "#A7F3D0",
-    marginBottom: 10,
+    paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8,
+    backgroundColor: C.emerald50, borderWidth: 1, borderColor: "#C6DACE",
+    marginBottom: 8,
   },
-  slugText: { fontSize: 11.5, color: C.emerald700, fontWeight: "700", flex: 1, fontFamily: "monospace" },
+  slugText: { fontSize: 11.5, color: C.emerald700, fontWeight: "bold", flex: 1, fontFamily: "monospace" },
 
   // Stats grid (2 boxes)
   statsGrid: {
     flexDirection: "row", alignItems: "center",
-    paddingVertical: 10, paddingHorizontal: 4,
-    backgroundColor: "#FAFBFC", borderRadius: 10,
-    borderWidth: 1, borderColor: C.border, marginBottom: 12,
+    paddingVertical: 7, paddingHorizontal: 4,
+    backgroundColor: "#FBF8F1", borderRadius: 10,
+    borderWidth: 1, borderColor: C.border, marginBottom: 9,
   },
   statBox: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" },
-  statBoxIcon: { width: 28, height: 28, borderRadius: 9, alignItems: "center", justifyContent: "center" },
-  statBoxValue: { fontSize: 15, fontWeight: "900", color: C.ink },
-  statBoxLabel: { fontSize: 10, color: C.subText, fontWeight: "700", letterSpacing: 0.3, textTransform: "uppercase", marginTop: -1 },
-  statBoxDivider: { width: 1, height: 28, backgroundColor: C.border },
+  statBoxIcon: { width: 25, height: 25, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  statBoxValue: { fontFamily: DISPLAY, fontSize: 15, fontWeight: "bold", color: C.ink },
+  statBoxLabel: { fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "bold", letterSpacing: 0.3, textTransform: "uppercase", marginTop: -1 },
+  statBoxDivider: { width: 1, height: 26, backgroundColor: C.border },
 
   // Primary actions
-  primaryActionsRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  primaryActionsRow: { flexDirection: "row", gap: 8, marginBottom: 7 },
   shareBtnWrap: { flex: 2, borderRadius: 10, overflow: "hidden", shadowColor: C.emerald600, shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
-  shareBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 11 },
-  shareBtnText: { color: "#fff", fontWeight: "800", fontSize: 13 },
-  openBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 11, borderRadius: 10, backgroundColor: C.emerald50, borderWidth: 1.5, borderColor: C.emerald600 },
-  openBtnText: { color: C.emerald700, fontWeight: "800", fontSize: 12.5 },
+  shareBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 9 },
+  shareBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
+  openBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 9, borderRadius: 10, backgroundColor: C.emerald50, borderWidth: 1.5, borderColor: C.emerald600 },
+  openBtnText: { fontFamily: DISPLAY, color: C.emerald700, fontWeight: "bold", fontSize: 12.5 },
 
   // Secondary actions
   secondaryActionsRow: { flexDirection: "row", gap: 8 },
-  secondaryBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 9, borderRadius: 9, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: C.border },
-  secondaryBtnText: { fontSize: 11.5, fontWeight: "800" },
+  secondaryBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 8, borderRadius: 9, backgroundColor: "#F7F3EA", borderWidth: 1, borderColor: C.border },
+  secondaryBtnText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold" },
 
   // FAB
   fab: {

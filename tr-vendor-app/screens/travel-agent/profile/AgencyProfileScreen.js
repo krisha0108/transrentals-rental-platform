@@ -11,38 +11,21 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
   Alert, RefreshControl, Modal, Share, Linking, StatusBar,
+  Animated, Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import Clipboard from "@react-native-clipboard/clipboard";
+import { DISPLAY } from "../_shared/typography";
 import {
   getTravelAgentProfile,
   updateTravelAgentProfile,
   getBaseURL,
   updateCachedTravelAgent,
 } from "../../api/travelAgentClient";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-  purpleLight: "#EDE9FE",
-};
 
 const AGENCY_TYPES = [
   "Solo Travel Agent",
@@ -65,16 +48,37 @@ const STATES = [
 
 const STATUS_META = {
   APPROVED:          { bg: C.emerald50,  fg: C.emerald700, label: "Verified",      icon: "checkmark-circle" },
-  PENDING:           { bg: C.amberLight, fg: "#A16207",    label: "Pending",       icon: "time" },
-  DOCUMENTS_PENDING: { bg: C.amberLight, fg: "#A16207",    label: "Docs pending",  icon: "document-attach" },
-  UNDER_REVIEW:      { bg: C.blueLight,  fg: "#1D4ED8",    label: "Under review",  icon: "hourglass" },
-  REJECTED:          { bg: C.redLight,   fg: "#B91C1C",    label: "Rejected",      icon: "close-circle" },
-  SUSPENDED:         { bg: C.redLight,   fg: "#B91C1C",    label: "Suspended",     icon: "ban" },
+  PENDING:           { bg: C.amberLight, fg: "#8A6420",    label: "Pending",       icon: "time" },
+  DOCUMENTS_PENDING: { bg: C.amberLight, fg: "#8A6420",    label: "Docs pending",  icon: "document-attach" },
+  UNDER_REVIEW:      { bg: C.blueLight,  fg: "#1E4E86",    label: "Under review",  icon: "hourglass" },
+  REJECTED:          { bg: C.redLight,   fg: "#9E362E",    label: "Rejected",      icon: "close-circle" },
+  SUSPENDED:         { bg: C.redLight,   fg: "#9E362E",    label: "Suspended",     icon: "ban" },
 };
 
 function initials(name) {
   if (!name) return "?";
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+}
+
+// Slowly drifting/pulsing decorative orb for the hero — gentle ambient motion.
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return (
+    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
+  );
 }
 
 export default function AgencyProfileScreen({ navigation }) {
@@ -202,9 +206,9 @@ export default function AgencyProfileScreen({ navigation }) {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg }}>
-        <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+        <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
         <LinearGradient
-          colors={["#022C22", "#064E3B", "#047857"]}
+          colors={["#0F2A22", "#16382E", "#1C6B52"]}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.headerGradSimple}
         >
@@ -229,9 +233,9 @@ export default function AgencyProfileScreen({ navigation }) {
   if (!profile || !form) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg }}>
-        <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+        <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
         <LinearGradient
-          colors={["#022C22", "#064E3B", "#047857"]}
+          colors={["#0F2A22", "#16382E", "#1C6B52"]}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.headerGradSimple}
         >
@@ -271,14 +275,16 @@ export default function AgencyProfileScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
 
       {/* ===== Compact gradient header (horizontal: avatar | info) ===== */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
         <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 38 }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
@@ -293,7 +299,7 @@ export default function AgencyProfileScreen({ navigation }) {
               {saving ? (
                 <ActivityIndicator size="small" color={C.emerald700} />
               ) : (
-                <Text style={styles.headerSaveText}>Save Changes</Text>
+                <Text style={styles.headerSaveText}>Save</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -302,7 +308,7 @@ export default function AgencyProfileScreen({ navigation }) {
           <View style={styles.heroBody}>
             <View style={styles.avatarRing}>
               <LinearGradient
-                colors={["#FFFFFF", "#F1F5F9"]}
+                colors={["#FFFFFF", "#F1ECE0"]}
                 style={styles.avatar}
               >
                 <Text style={styles.avatarText}>
@@ -452,7 +458,7 @@ export default function AgencyProfileScreen({ navigation }) {
                   <TextInput
                     style={[styles.input, styles.iconInputField]}
                     placeholder="Your Agency Name"
-                    placeholderTextColor="#A3B3C2"
+                    placeholderTextColor="#9AA79E"
                     value={form.agencyName}
                     onChangeText={(v) => update("agencyName", v)}
                   />
@@ -476,7 +482,7 @@ export default function AgencyProfileScreen({ navigation }) {
                   <TextInput
                     style={[styles.input, styles.iconInputField]}
                     placeholder="Owner full name"
-                    placeholderTextColor="#A3B3C2"
+                    placeholderTextColor="#9AA79E"
                     value={form.ownerName}
                     onChangeText={(v) => update("ownerName", v)}
                   />
@@ -489,7 +495,7 @@ export default function AgencyProfileScreen({ navigation }) {
                 <TextInput
                   style={[styles.input, styles.inputMultiline]}
                   placeholder="What makes your agency special — services, regions, USP…"
-                  placeholderTextColor="#A3B3C2"
+                  placeholderTextColor="#9AA79E"
                   value={form.description}
                   onChangeText={(v) => update("description", v)}
                   multiline numberOfLines={4} textAlignVertical="top"
@@ -507,7 +513,7 @@ export default function AgencyProfileScreen({ navigation }) {
                       !!form.website?.trim() && { paddingRight: 44 },
                     ]}
                     placeholder="https://your-site.com"
-                    placeholderTextColor="#A3B3C2"
+                    placeholderTextColor="#9AA79E"
                     autoCapitalize="none"
                     keyboardType="url"
                     value={form.website}
@@ -552,7 +558,7 @@ export default function AgencyProfileScreen({ navigation }) {
                       { textTransform: "uppercase", letterSpacing: 1, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
                     ]}
                     placeholder="22AAAAA0000A1Z5"
-                    placeholderTextColor="#A3B3C2"
+                    placeholderTextColor="#9AA79E"
                     maxLength={15}
                     autoCapitalize="characters"
                     value={form.gstNumber}
@@ -571,7 +577,7 @@ export default function AgencyProfileScreen({ navigation }) {
                       { textTransform: "uppercase", letterSpacing: 1, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
                     ]}
                     placeholder="AAAAA0000A"
-                    placeholderTextColor="#A3B3C2"
+                    placeholderTextColor="#9AA79E"
                     maxLength={10}
                     autoCapitalize="characters"
                     value={form.panNumber}
@@ -604,7 +610,7 @@ export default function AgencyProfileScreen({ navigation }) {
                   <TextInput
                     style={[styles.input, styles.iconInputField, { minHeight: 70, paddingTop: 12 }]}
                     placeholder="Building, street, area"
-                    placeholderTextColor="#A3B3C2"
+                    placeholderTextColor="#9AA79E"
                     multiline numberOfLines={2} textAlignVertical="top"
                     value={form.address}
                     onChangeText={(v) => update("address", v)}
@@ -616,7 +622,7 @@ export default function AgencyProfileScreen({ navigation }) {
                   <TextInput
                     style={styles.input}
                     placeholder="City"
-                    placeholderTextColor="#A3B3C2"
+                    placeholderTextColor="#9AA79E"
                     value={form.city}
                     onChangeText={(v) => update("city", v)}
                   />
@@ -625,7 +631,7 @@ export default function AgencyProfileScreen({ navigation }) {
                   <TextInput
                     style={styles.input}
                     placeholder="6-digit"
-                    placeholderTextColor="#A3B3C2"
+                    placeholderTextColor="#9AA79E"
                     keyboardType="number-pad"
                     maxLength={6}
                     value={form.pincode}
@@ -665,7 +671,7 @@ export default function AgencyProfileScreen({ navigation }) {
           >
             {saving ? <ActivityIndicator size="small" color="#fff" /> : (
               <>
-                <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                <Ionicons name="checkmark-circle" size={16} color="#fff" />
                 <Text style={styles.publishBtnText}>Save changes</Text>
               </>
             )}
@@ -725,15 +731,21 @@ function SectionLabel({ icon, color, label, hint }) {
 
 function SectionToggle({ icon, color, label, sub, open, onToggle }) {
   return (
-    <TouchableOpacity style={styles.sectionToggle} onPress={onToggle} activeOpacity={0.85}>
-      <View style={[styles.sectionToggleIcon, { backgroundColor: `${color}22` }]}>
-        <Ionicons name={icon} size={16} color={color} />
+    <TouchableOpacity
+      style={[styles.sectionToggle, open && styles.sectionToggleOpen]}
+      onPress={onToggle}
+      activeOpacity={0.85}
+    >
+      <View style={[styles.sectionToggleIcon, { backgroundColor: `${color}1F` }]}>
+        <Ionicons name={icon} size={17} color={color} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={[styles.sectionToggleText, { color }]}>{label}</Text>
         {!!sub && <Text style={styles.sectionToggleSub} numberOfLines={1}>{sub}</Text>}
       </View>
-      <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={color} />
+      <View style={[styles.sectionToggleChev, { backgroundColor: `${color}14` }]}>
+        <Ionicons name={open ? "chevron-up" : "chevron-down"} size={15} color={color} />
+      </View>
     </TouchableOpacity>
   );
 }
@@ -789,7 +801,7 @@ function PickerBtn({ icon, iconColor, value, placeholder, onPress, onClear }) {
         activeOpacity={0.7}
       >
         <Text
-          style={[styles.pickerText, placeholder && { color: "#A3B3C2", fontWeight: "600" }]}
+          style={[styles.pickerText, placeholder && { color: "#9AA79E", fontWeight: "600" }]}
           numberOfLines={1}
         >
           {value}
@@ -813,7 +825,7 @@ function PickerModal({ visible, title, subtitle, options, selected, onClose, onS
         <View style={styles.modalSheet}>
           {/* Gradient header */}
           <LinearGradient
-            colors={["#022C22", "#064E3B", "#047857"]}
+            colors={["#0F2A22", "#16382E", "#1C6B52"]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={styles.modalHeaderGrad}
           >
@@ -851,7 +863,7 @@ function PickerModal({ visible, title, subtitle, options, selected, onClose, onS
                   </View>
                   <Text style={[
                     styles.modalItemText,
-                    active && { color: C.emerald700, fontWeight: "800" },
+                    active && { color: C.emerald700, fontWeight: "bold" },
                   ]}>
                     {opt}
                   </Text>
@@ -871,25 +883,33 @@ const styles = StyleSheet.create({
   headerGradSimple: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
   headerRowSimple: { flexDirection: "row", alignItems: "center", paddingTop: 4, paddingBottom: 12 },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitleSimple: { flex: 1, fontSize: 18, fontWeight: "800", color: "#fff", textAlign: "center" },
+  headerTitleSimple: { fontFamily: DISPLAY, flex: 1, fontSize: 18, fontWeight: "bold", color: "#fff", textAlign: "left", marginLeft: 4 },
 
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 13, color: C.subText, fontWeight: "600" },
+  loadingText: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, fontWeight: "600" },
 
   notFoundWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
   notFoundIconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: C.redLight, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  notFoundTitle: { fontSize: 17, fontWeight: "800", color: C.ink, marginTop: 6 },
-  notFoundBody: { fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", lineHeight: 19 },
+  notFoundTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, marginTop: 6 },
+  notFoundBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", lineHeight: 19 },
   backCta: { marginTop: 18, borderRadius: 12, overflow: "hidden" },
   backCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11 },
-  backCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  backCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
 
   // Hero
-  headerGrad: { borderBottomLeftRadius: 22, borderBottomRightRadius: 22 },
+  headerGrad: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
+  orbA: {
+    position: "absolute", top: -50, right: -40, width: 180, height: 180,
+    borderRadius: 90, backgroundColor: "rgba(201,154,63,0.10)",
+  },
+  orbB: {
+    position: "absolute", top: 10, left: -55, width: 140, height: 140,
+    borderRadius: 70, backgroundColor: "rgba(46,158,119,0.13)",
+  },
   headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: "800", color: "#fff", textAlign: "center" },
-  headerSaveBtn: { backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, minWidth: 60, alignItems: "center" },
-  headerSaveText: { color: C.emerald700, fontWeight: "800", fontSize: 13 },
+  headerTitle: { fontFamily: DISPLAY, flex: 1, fontSize: 18, fontWeight: "bold", color: "#fff", textAlign: "left", marginLeft: 4 },
+  headerSaveBtn: { backgroundColor: "#fff", paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, minWidth: 44, alignItems: "center" },
+  headerSaveText: { fontFamily: DISPLAY, color: C.emerald700, fontWeight: "bold", fontSize: 12.5 },
 
   // Horizontal hero — avatar on left, info on right (compact).
   heroBody: { flexDirection: "row", alignItems: "center", gap: 12, paddingTop: 8, paddingHorizontal: 4 },
@@ -901,13 +921,13 @@ const styles = StyleSheet.create({
     shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4,
   },
   avatar: { width: 54, height: 54, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  avatarText: { color: C.emerald700, fontWeight: "900", fontSize: 20, letterSpacing: 0.5 },
-  displayName: { fontSize: 17, fontWeight: "900", color: "#fff", letterSpacing: -0.2 },
-  ownerName: { fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2, fontWeight: "600" },
+  avatarText: { fontFamily: DISPLAY, color: C.emerald700, fontWeight: "bold", fontSize: 20, letterSpacing: 0.5 },
+  displayName: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: "#fff", letterSpacing: -0.2 },
+  ownerName: { fontFamily: DISPLAY, fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2, fontWeight: "600" },
 
   metaRow: { flexDirection: "row", gap: 5, marginTop: 6, flexWrap: "wrap" },
   statusPill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-  statusPillText: { color: "#fff", fontSize: 9.5, fontWeight: "900", letterSpacing: 0.4 },
+  statusPillText: { fontFamily: DISPLAY, color: "#fff", fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.4 },
 
   // Actionable status card (not approved)
   actionableStatusCard: {
@@ -918,8 +938,8 @@ const styles = StyleSheet.create({
     shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   actionableStatusIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  actionableStatusTitle: { fontSize: 14, fontWeight: "800", color: C.ink },
-  actionableStatusSub: { fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 2 },
+  actionableStatusTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.ink },
+  actionableStatusSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 2 },
 
   // Approved → share card
   shareCard: {
@@ -930,17 +950,17 @@ const styles = StyleSheet.create({
   },
   shareTopRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
   shareIconWrap: { width: 24, height: 24, borderRadius: 8, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center" },
-  shareLabel: { fontSize: 10.5, color: C.emerald700, fontWeight: "900", letterSpacing: 0.6, flex: 1 },
+  shareLabel: { fontFamily: DISPLAY, fontSize: 10.5, color: C.emerald700, fontWeight: "bold", letterSpacing: 0.6, flex: 1 },
   shareLiveDot: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, backgroundColor: C.emerald50, borderWidth: 1, borderColor: C.emerald600 },
   shareLiveDotInner: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.emerald600 },
-  shareLiveText: { fontSize: 9.5, color: C.emerald700, fontWeight: "900", letterSpacing: 0.5 },
-  shareUrl: { fontSize: 12.5, color: C.text, fontWeight: "700", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", marginBottom: 10 },
+  shareLiveText: { fontFamily: DISPLAY, fontSize: 9.5, color: C.emerald700, fontWeight: "bold", letterSpacing: 0.5 },
+  shareUrl: { fontSize: 12.5, color: C.text, fontWeight: "bold", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", marginBottom: 10 },
   shareActionsRow: { flexDirection: "row", gap: 6 },
   shareActionPrimaryWrap: { flex: 2, borderRadius: 10, overflow: "hidden", shadowColor: C.emerald600, shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
   shareActionPrimaryInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 10 },
-  shareActionPrimaryText: { color: "#fff", fontWeight: "800", fontSize: 12.5 },
-  shareActionLight: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 10, borderRadius: 10, backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border },
-  shareActionLightText: { fontSize: 12, fontWeight: "800" },
+  shareActionPrimaryText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 12.5 },
+  shareActionLight: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 10, borderRadius: 10, backgroundColor: "#FBF8F1", borderWidth: 1, borderColor: C.border },
+  shareActionLightText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold" },
 
   scroll: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 },
 
@@ -948,18 +968,22 @@ const styles = StyleSheet.create({
   sectionLabelWrap: { marginTop: 6, marginBottom: 10 },
   sectionLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   sectionLabelIcon: { width: 24, height: 24, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  sectionLabelText: { fontSize: 12, fontWeight: "900", letterSpacing: 0.5, textTransform: "uppercase" },
-  sectionLabelHint: { fontSize: 11, color: C.subText, fontWeight: "600", marginTop: 4, marginLeft: 30, fontStyle: "italic" },
+  sectionLabelText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", letterSpacing: 0.5, textTransform: "uppercase" },
+  sectionLabelHint: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "600", marginTop: 4, marginLeft: 30, fontStyle: "italic" },
 
   // Section toggle (collapsible card header)
   sectionToggle: {
-    flexDirection: "row", alignItems: "center", gap: 10,
-    marginTop: 14, paddingHorizontal: 14, paddingVertical: 12,
-    backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border,
+    flexDirection: "row", alignItems: "center", gap: 12,
+    marginTop: 14, paddingHorizontal: 14, paddingVertical: 13,
+    backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border,
+    shadowColor: C.shadow, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2,
   },
-  sectionToggleIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  sectionToggleText: { fontSize: 13.5, fontWeight: "800", letterSpacing: 0.3 },
-  sectionToggleSub: { fontSize: 11, color: C.subText, marginTop: 2, fontWeight: "600" },
+  // When expanded, flatten the bottom so it reads as one unit with the card below.
+  sectionToggleOpen: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0 },
+  sectionToggleIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  sectionToggleText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", letterSpacing: 0.3 },
+  sectionToggleSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, marginTop: 2, fontWeight: "600" },
+  sectionToggleChev: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
 
   // Card
   card: {
@@ -970,10 +994,11 @@ const styles = StyleSheet.create({
 
   // Field
   field: { marginBottom: 14 },
-  fieldLabel: { fontSize: 12, fontWeight: "700", color: C.text, marginBottom: 6 },
-  helper: { fontSize: 11, color: C.subText, marginTop: 4, fontWeight: "600", fontStyle: "italic" },
+  fieldLabel: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.text, marginBottom: 6 },
+  helper: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, marginTop: 4, fontWeight: "600", fontStyle: "italic" },
   input: {
-    backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border, borderRadius: 10,
+    fontFamily: DISPLAY,
+    backgroundColor: "#FBF8F1", borderWidth: 1, borderColor: C.border, borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: C.ink, minHeight: 46,
   },
   inputMultiline: { minHeight: 100, paddingTop: 10 },
@@ -995,7 +1020,7 @@ const styles = StyleSheet.create({
   // Read-only field
   readonlyBox: {
     flexDirection: "row", alignItems: "stretch",
-    backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border, borderRadius: 10,
+    backgroundColor: "#FBF8F1", borderWidth: 1, borderColor: C.border, borderRadius: 10,
     minHeight: 48, overflow: "hidden",
   },
   // Full-height tinted icon tile (left side of row)
@@ -1003,7 +1028,8 @@ const styles = StyleSheet.create({
     width: 44, alignItems: "center", justifyContent: "center",
   },
   readonlyText: {
-    flex: 1, fontSize: 14, color: C.ink, fontWeight: "700",
+    fontFamily: DISPLAY,
+    flex: 1, fontSize: 14, color: C.ink, fontWeight: "bold",
     paddingHorizontal: 12, alignSelf: "center",
   },
   copyBtn: { width: 44, alignItems: "center", justifyContent: "center" },
@@ -1012,10 +1038,10 @@ const styles = StyleSheet.create({
   // Picker button
   pickerBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border, borderRadius: 10,
+    backgroundColor: "#FBF8F1", borderWidth: 1, borderColor: C.border, borderRadius: 10,
     paddingHorizontal: 12, height: 46,
   },
-  pickerText: { flex: 1, fontSize: 14, color: C.ink, fontWeight: "700" },
+  pickerText: { fontFamily: DISPLAY, flex: 1, fontSize: 14, color: C.ink, fontWeight: "bold" },
 
   // Bottom save bar
   bottomBar: {
@@ -1028,8 +1054,8 @@ const styles = StyleSheet.create({
     flex: 1, borderRadius: 12, overflow: "hidden",
     shadowColor: C.emerald600, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4,
   },
-  publishBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 15 },
-  publishBtnText: { color: "#fff", fontWeight: "800", fontSize: 14.5 },
+  publishBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, paddingVertical: 12 },
+  publishBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13.5 },
 
   // Picker modal (gradient header)
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
@@ -1042,16 +1068,16 @@ const styles = StyleSheet.create({
   modalHeaderGrad: { paddingHorizontal: 16, paddingVertical: 16 },
   modalHeaderRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   modalHeaderIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
-  modalTitle: { fontSize: 17, fontWeight: "800", color: "#fff" },
-  modalSub: { fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 1 },
+  modalTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: "#fff" },
+  modalSub: { fontFamily: DISPLAY, fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 1 },
   modalCloseBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.15)" },
 
   modalItem: {
     flexDirection: "row", alignItems: "center", gap: 12,
     paddingVertical: 13, paddingHorizontal: 14,
     borderRadius: 12, marginBottom: 6,
-    borderWidth: 1.5, borderColor: C.border, backgroundColor: "#FAFBFC",
+    borderWidth: 1.5, borderColor: C.border, backgroundColor: "#FBF8F1",
   },
   modalItemRadio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: C.border, alignItems: "center", justifyContent: "center" },
-  modalItemText: { flex: 1, fontSize: 14, color: C.text, fontWeight: "700" },
+  modalItemText: { fontFamily: DISPLAY, flex: 1, fontSize: 14, color: C.text, fontWeight: "bold" },
 });

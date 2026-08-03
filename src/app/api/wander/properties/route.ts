@@ -45,6 +45,11 @@ export async function GET(request: NextRequest) {
         rating: true,
         totalRatings: true,
         createdAt: true,
+        maxGuests: true,
+        minNights: true,
+        maxNights: true,
+        bedroomsCount: true,
+        bathroomsCount: true,
         travel_agents: {
           select: {
             id: true,
@@ -69,13 +74,22 @@ export async function GET(request: NextRequest) {
       coverImage: p.coverImage,
       rating: p.rating,
       totalRatings: p.totalRatings,
+      maxGuests: p.maxGuests ?? null,
+      minNights: p.minNights ?? null,
+      maxNights: p.maxNights ?? null,
+      bedroomsCount: p.bedroomsCount ?? null,
+      bathroomsCount: p.bathroomsCount ?? null,
       agencyId: p.travel_agents?.id || null,
       agencySlug: p.travel_agents?.slug || null,
       agencyName: p.travel_agents?.agencyName || null,
       agencyLogo: p.travel_agents?.logo || null,
     }));
 
-    return NextResponse.json({ success: true, properties, total: properties.length });
+    const res = NextResponse.json({ success: true, properties, total: properties.length });
+    // Cache in the browser so repeat page loads show properties instantly
+    // (fresh data every 30s; serves stale while revalidating up to 5 min).
+    res.headers.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=300');
+    return res;
   } catch (error) {
     console.error('[GET /api/wander/properties]', error);
     return NextResponse.json(

@@ -2,6 +2,7 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/db/prisma';
 import bcrypt from 'bcryptjs';
+import { generateTaid } from '@/lib/utils/generate-taid';
 
 export const travelAgentAuthOptions: NextAuthOptions = {
   providers: [
@@ -17,8 +18,12 @@ export const travelAgentAuthOptions: NextAuthOptions = {
           throw new Error('Invalid credentials');
         }
 
-        const agent = await prisma.travel_agents.findUnique({
-          where: { email: credentials.email.toLowerCase() },
+        // Support login via Travel Agent ID (ta-0001) or email.
+        const identifier = credentials.email.trim();
+        const agent = await prisma.travel_agents.findFirst({
+          where: /^ta-\d+$/i.test(identifier)
+            ? { tid: identifier.toLowerCase() }
+            : { email: identifier.toLowerCase() },
         });
 
         if (!agent) {
@@ -40,9 +45,15 @@ export const travelAgentAuthOptions: NextAuthOptions = {
           throw new Error('Invalid credentials');
         }
 
+        // Lazily assign a Travel Agent ID to older accounts missing one.
+        let tid = agent.tid;
+        if (!tid) {
+          try { tid = await generateTaid(); } catch { /* non-fatal */ }
+        }
+
         await prisma.travel_agents.update({
           where: { id: agent.id },
-          data: { lastLoginAt: new Date() },
+          data: { lastLoginAt: new Date(), ...(tid ? { tid } : {}) },
         });
 
         return {

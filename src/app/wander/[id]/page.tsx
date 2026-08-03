@@ -1,17 +1,85 @@
 // @ts-nocheck
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
   Compass, MapPin, Clock, Users, ChevronLeft, ChevronRight,
   Check, X, Star, Shield, Globe, Loader2, AlertCircle,
   Calendar, Phone, Mail, User, MessageSquare, ChevronDown,
-  Car, Info, ArrowLeft, Sparkles, CheckCircle, Building2, UserPlus, TrendingUp, Images,
+  Car, Info, ArrowLeft, ArrowRight, Sparkles, CheckCircle, Building2, UserPlus, TrendingUp, Images,
   Lock, Eye, EyeOff,
+  Utensils, Coffee, Camera, Mountain, Waves, Trees, Landmark, Footprints, ShoppingBag, BedDouble, Sunrise, Flag, Ship, Plane, Bus, Train, Tent, Wine,
 } from 'lucide-react';
-import ReviewsSection from '@/components/wander/ReviewsSection';
+
+// Pick a contextual timeline icon from an itinerary stop's title / activities / description.
+function getStopIcon(stop: any) {
+  const text = [stop?.title, stop?.description, ...(Array.isArray(stop?.activities) ? stop.activities : [])]
+    .filter(Boolean).join(' ').toLowerCase().replace(/<[^>]*>/g, ' ');
+  // match at word starts so "views" / "temples" hit, but internal substrings
+  // (e.g. "eat" inside "breathtaking") do not.
+  const has = (...w: string[]) => w.some((k) => new RegExp('\\b' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(text));
+  if (has('lunch', 'dinner', 'meal', 'food', 'restaurant', 'dining', 'thali', 'buffet')) return Utensils;
+  if (has('breakfast', 'tea', 'coffee', 'snack', 'cafe', 'refreshment', 'brunch')) return Coffee;
+  if (has('wine', 'brewery', 'drinks', 'nightlife')) return Wine;
+  if (has('flight', 'airport', 'fly', 'plane')) return Plane;
+  if (has('train', 'railway', 'metro')) return Train;
+  if (has('bus', 'coach')) return Bus;
+  if (has('cruise', 'ferry', 'boat', 'yacht', 'kayak')) return Ship;
+  if (has('return', 'drop-off', 'drop off', 'depart to', 'back to', 'transfer', 'drive back', 'homeward', 'journey back')) return Car;
+  if (has('pickup', 'pick up', 'pick-up', 'departure', 'start', 'begin', 'assemble', 'meet', 'kick off')) return Flag;
+  if (has('camp', 'bonfire', 'tent', 'glamping')) return Tent;
+  if (has('waterfall', 'river', 'lake', 'beach', 'water', 'dam', 'stream', 'falls')) return Waves;
+  if (has('hike', 'trek', 'mountain', 'hill', 'climb', 'peak', 'valley', 'cliff')) return Mountain;
+  if (has('walk', 'stroll', 'leisure walk', 'promenade')) return Footprints;
+  if (has('temple', 'mandir', 'monument', 'heritage', 'museum', 'fort', 'palace', 'mosque', 'church', 'landmark', 'shrine', 'stepwell', 'mahal', 'gurudwara')) return Landmark;
+  if (has('garden', 'park', 'nature', 'forest', 'zoo', 'wildlife', 'sanctuary', 'botanical', 'jungle', 'safari')) return Trees;
+  if (has('photo', 'sightsee', 'viewpoint', 'view point', 'scenic', 'gallery', 'circuit')) return Camera;
+  if (has('shopping', 'market', 'bazaar', 'mall', 'souvenir', 'shop')) return ShoppingBag;
+  if (has('hotel', 'resort', 'check-in', 'checkin', 'check in', 'stay', 'rest', 'overnight', 'lodge')) return BedDouble;
+  if (has('sunrise', 'sunset', 'morning')) return Sunrise;
+  return MapPin;
+}
+
+// Rich-text description that collapses to the first `limit` block-level elements
+// (paragraphs/headings/lists) with a "View more" toggle to reveal the rest.
+function CollapsibleRichText({ html, className, limit = 2 }: { html: string; className?: string; limit?: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const blocks = useMemo(() => {
+    if (typeof window === 'undefined' || !html) return null;
+    try {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const nodes = Array.from(doc.body.children).map((n) => (n as HTMLElement).outerHTML);
+      return nodes.length ? nodes : null;
+    } catch { return null; }
+  }, [html]);
+
+  // Can't split, or already short enough — render everything, no toggle.
+  if (!blocks || blocks.length <= limit) {
+    return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
+  }
+
+  const shown = expanded ? blocks : blocks.slice(0, limit);
+  return (
+    <div className="relative">
+      <div className="relative">
+        <div className={className} dangerouslySetInnerHTML={{ __html: shown.join('') }} />
+        {!expanded && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white via-white/70 to-transparent" />
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className="relative mt-4 inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50/70 px-3 py-1.5 text-xs font-semibold text-teal-700 transition-all hover:border-teal-300 hover:bg-teal-50"
+      >
+        {expanded ? 'View less' : 'View more'}
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+    </div>
+  );
+}
 import { sanitizeRichText } from '@/lib/utils/sanitize';
 
 function parseJSON(str: any, fallback: any) {
@@ -20,10 +88,10 @@ function parseJSON(str: any, fallback: any) {
   try { return JSON.parse(str); } catch { return fallback; }
 }
 
-const CANCEL_LABELS: Record<string, { label: string; desc: string; color: string }> = {
-  FLEXIBLE: { label: 'Flexible', desc: 'Full refund up to 24 hrs before', color: 'text-emerald-600' },
-  MODERATE: { label: 'Moderate', desc: 'Full refund up to 48 hrs before', color: 'text-amber-600' },
-  STRICT: { label: 'Strict', desc: 'No refund after confirmation', color: 'text-red-600' },
+const CANCEL_LABELS: Record<string, { label: string; desc: string; color: string; tint: string; ring: string }> = {
+  FLEXIBLE: { label: 'Flexible', desc: 'Full refund up to 24 hrs before', color: 'text-emerald-600', tint: 'bg-emerald-50 text-emerald-700', ring: 'ring-emerald-200/70' },
+  MODERATE: { label: 'Moderate', desc: 'Full refund up to 48 hrs before', color: 'text-amber-600', tint: 'bg-amber-50 text-amber-700', ring: 'ring-amber-200/70' },
+  STRICT: { label: 'Strict', desc: 'No refund after confirmation', color: 'text-red-600', tint: 'bg-red-50 text-red-700', ring: 'ring-red-200/70' },
 };
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -71,168 +139,38 @@ function Gallery({ images, title, meta }: {
     return () => window.removeEventListener('keydown', handler);
   }, [lightboxIdx, images.length]);
 
-  /* ── no images ── */
-  if (!images.length) {
-    return (
-      <div className="h-72 md:h-[480px] bg-gradient-to-br from-slate-800 to-indigo-900 flex flex-col items-center justify-center rounded-2xl relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-        <span className="text-8xl opacity-10 mb-4 relative z-10">🗺️</span>
-        <p className="text-sm text-white/40 relative z-10">No photos yet</p>
-        <div className="absolute bottom-0 left-0 right-0 px-5 pb-6 z-10">
-          <h1 className="font-black text-white text-xl md:text-2xl leading-tight drop-shadow-xl">{title}</h1>
-        </div>
-      </div>
-    );
-  }
+  /* ── hero already shows the first image; nothing extra below when 0/1 image ── */
+  if (images.length <= 1) return null;
+
+  const gridImages = images.slice(1); // hero already shows images[0]
+  const shown = gridImages.slice(0, 5);
+  const more = gridImages.length - shown.length;
 
   return (
     <>
-      {/* ══ SLIDER ══ */}
-      <div
-        className="relative w-full h-72 md:h-[520px] rounded-2xl overflow-hidden bg-gray-900 select-none"
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-      >
-        {/* slides */}
-        {images.map((src, i) => (
-          <img
-            key={i}
-            src={src}
-            alt={i === 0 ? title : ''}
-            onClick={() => setLightboxIdx(i)}
-            className={`absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-700 ${
-              i === current ? 'opacity-100 z-10' : 'opacity-0 z-0'
-            }`}
-          />
-        ))}
-
-        {/* Strong bottom-heavy gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10 z-20 pointer-events-none" />
-        {/* Side vignette */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-black/30 z-20 pointer-events-none" />
-
-        {/* Top bar: category + popular */}
-        <div className="absolute top-0 left-0 right-0 z-30 px-4 pt-4 flex items-start justify-between">
-          {meta?.category && (
-            <span className="inline-flex items-center gap-1.5 bg-black/45 backdrop-blur-md text-[11px] font-bold text-white px-3 py-1.5 rounded-xl border border-white/10 shadow-lg">
-              {meta.category.icon} {meta.category.name}
-            </span>
-          )}
-          {meta?.popular && (
-            <div className="ml-auto bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl flex items-center gap-1 shadow-lg">
-              <TrendingUp className="w-2.5 h-2.5" /> Hot
-            </div>
-          )}
-        </div>
-
-        {/* prev / next arrows — only when 2+ images */}
-        {images.length > 1 && (
-          <>
-            <button
-              onClick={goPrev}
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-sm flex items-center justify-center text-white transition-all hover:scale-110"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={goNext}
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-sm flex items-center justify-center text-white transition-all hover:scale-110"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </>
-        )}
-
-        {/* Bottom overlay: title + meta + dots + counter */}
-        <div className="absolute bottom-0 left-0 right-0 z-30 px-5 pb-4 pt-20">
-          {/* Title */}
-          <h1 className="font-black text-white text-xl md:text-[1.65rem] leading-snug mb-2.5 drop-shadow-xl tracking-tight">
-            {title}
-          </h1>
-          {/* Location + Duration + Rating */}
-          <div className="flex flex-wrap items-center gap-3 mb-3">
-            {meta?.location && (
-              <span className="flex items-center gap-1.5 text-white/85 text-sm font-medium">
-                <MapPin className="w-3.5 h-3.5 text-indigo-300 flex-shrink-0" /> {meta.location}
-              </span>
-            )}
-            {meta?.duration && (
-              <span className="flex items-center gap-1.5 text-white/70 text-sm">
-                <Clock className="w-3.5 h-3.5 flex-shrink-0" /> {meta.duration}
-              </span>
-            )}
-            {meta?.rating != null && meta.rating > 0 && (
-              <span className="inline-flex items-center gap-1 bg-amber-400 text-gray-900 text-xs font-black px-2.5 py-1 rounded-lg shadow-md">
-                <Star className="w-3 h-3 fill-gray-900" /> {meta.rating}
-                {meta.totalRatings != null && meta.totalRatings > 0 && (
-                  <span className="font-normal ml-0.5 text-gray-700">({meta.totalRatings})</span>
-                )}
-              </span>
-            )}
-          </div>
-          {/* Dots + counter row */}
-          <div className="flex items-center justify-between">
-            {images.length > 1 ? (
-              <div className="flex items-center gap-1.5">
-                {images.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => goTo(i)}
-                    className={`rounded-full transition-all duration-300 ${
-                      i === current ? 'w-5 h-2 bg-white' : 'w-2 h-2 bg-white/45 hover:bg-white/70'
-                    }`}
-                  />
-                ))}
-              </div>
-            ) : <span />}
-            <button
-              onClick={() => setLightboxIdx(current)}
-              className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm hover:bg-black/70 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
-            >
-              <Images className="w-3.5 h-3.5" />
-              {images.length > 1 ? `${current + 1} / ${images.length}` : '1 photo'}
-            </button>
-          </div>
-        </div>
-
-        {/* progress bar */}
-        {images.length > 1 && !paused && lightboxIdx === null && (
-          <div className="absolute bottom-0 left-0 right-0 h-[3px] z-40 bg-white/20">
-            <div
-              key={current}
-              className="h-full bg-white/80 rounded-full"
-              style={{ animation: 'slideProgress 3s linear forwards' }}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* progress bar keyframe */}
-      <style>{`
-        @keyframes slideProgress {
-          from { width: 0% }
-          to   { width: 100% }
-        }
-      `}</style>
-
-      {/* ══ THUMBNAIL STRIP (below slider, 2+ images) ══ */}
-      {images.length > 1 && (
-        <div className="flex gap-2 mt-2 overflow-x-auto pb-0.5">
-          {images.map((img, i) => (
+      {/* ══ PHOTO GRID (remaining images — reference style) ══ */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 auto-rows-[100px] sm:auto-rows-[125px]">
+        {shown.map((src, i) => {
+          const big = i === 0;
+          const isLast = i === shown.length - 1;
+          return (
             <button
               key={i}
-              onClick={() => goTo(i)}
-              className={`flex-shrink-0 w-16 h-11 rounded-xl overflow-hidden border-2 transition-all duration-200 ${
-                i === current
-                  ? 'border-indigo-500 scale-105 shadow-md'
-                  : 'border-transparent opacity-55 hover:opacity-100'
-              }`}
+              onClick={() => setLightboxIdx(i + 1)}
+              className={`relative group overflow-hidden rounded-2xl ${big ? 'col-span-2 row-span-2' : ''}`}
             >
-              <img src={img} alt="" className="w-full h-full object-cover" />
+              <img src={src} alt="" className="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-transform duration-500 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+              {isLast && more > 0 && (
+                <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center text-white">
+                  <Images className="w-5 h-5 mb-1" />
+                  <span className="text-sm font-semibold">+{more} photos</span>
+                </div>
+              )}
             </button>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
 
       {/* ══ LIGHTBOX ══ */}
       {lightboxIdx !== null && (
@@ -401,7 +339,7 @@ function QuoteForm({
         <p className="text-xs font-mono bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg inline-block mb-4">{success}</p>
         <button
           onClick={() => { setSuccess(''); setForm(f => ({ ...f, travelDate: '', groupSize: '2', pickupLocation: '', requirements: '' })); }}
-          className="block w-full text-sm text-indigo-600 hover:underline"
+          className="block w-full text-sm text-teal-600 hover:underline"
         >
           Submit another request
         </button>
@@ -414,8 +352,8 @@ function QuoteForm({
       {/* Logged-in customer: show identity card, skip name/phone/email fields */}
       {loggedInCustomer ? (
         <>
-          <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2.5">
-            <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+          <div className="flex items-center gap-3 bg-teal-50 border border-teal-100 rounded-xl px-3 py-2.5">
+            <div className="w-8 h-8 bg-teal-600 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
               {loggedInCustomer.name.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
@@ -430,7 +368,7 @@ function QuoteForm({
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                 <input value={form.email} onChange={e => set('email', e.target.value)}
                   type="email" required placeholder="you@example.com"
-                  className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
                 />
               </div>
               <p className="text-[11px] text-gray-500 mt-1">We'll send tour quotes & updates to this email.</p>
@@ -442,20 +380,20 @@ function QuoteForm({
               <label className="text-xs font-medium text-gray-600 mb-1.5 block">This trip is for?</label>
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => setBookingFor('PERSONAL')}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition ${bookingFor === 'PERSONAL' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition ${bookingFor === 'PERSONAL' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
                 >
                   <User className="w-4 h-4 flex-shrink-0" />
                   Personal
                 </button>
                 <button type="button" onClick={() => setBookingFor('COMPANY')}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition ${bookingFor === 'COMPANY' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition ${bookingFor === 'COMPANY' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
                 >
                   <Building2 className="w-4 h-4 flex-shrink-0" />
                   For Company
                 </button>
               </div>
               {bookingFor === 'COMPANY' && loggedInCustomer.companyName && (
-                <p className="text-xs text-indigo-600 mt-1.5 pl-1">Booking under: <span className="font-semibold">{loggedInCustomer.companyName}</span></p>
+                <p className="text-xs text-teal-600 mt-1.5 pl-1">Booking under: <span className="font-semibold">{loggedInCustomer.companyName}</span></p>
               )}
               {bookingFor === 'COMPANY' && (
                 <p className="text-[11px] text-emerald-600 mt-1 pl-1 flex items-center gap-1">
@@ -473,7 +411,7 @@ function QuoteForm({
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input value={form.name} onChange={e => set('name', e.target.value)}
                 placeholder="Your name"
-                className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
               />
             </div>
           </div>
@@ -483,7 +421,7 @@ function QuoteForm({
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input value={form.phone} onChange={e => set('phone', e.target.value)}
                 placeholder="10-digit"
-                className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
               />
             </div>
           </div>
@@ -493,12 +431,12 @@ function QuoteForm({
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input value={form.email} onChange={e => set('email', e.target.value)}
                 type="email" required placeholder="you@example.com"
-                className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
               />
             </div>
           </div>
-          <div className="col-span-2 mt-1 p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl">
-            <p className="text-[11px] font-semibold text-indigo-700 mb-2 flex items-center gap-1.5">
+          <div className="col-span-2 mt-1 p-3 bg-teal-50/60 border border-teal-100 rounded-xl">
+            <p className="text-[11px] font-semibold text-teal-700 mb-2 flex items-center gap-1.5">
               <Lock className="w-3 h-3" /> Set a password to track your quote
             </p>
             <div className="grid grid-cols-2 gap-2">
@@ -508,7 +446,7 @@ function QuoteForm({
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                   <input value={form.password} onChange={e => set('password', e.target.value)}
                     type={showPassword ? 'text' : 'password'} required minLength={8} placeholder="Min 8 characters"
-                    className="w-full pl-8 pr-9 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                    className="w-full pl-8 pr-9 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
                   />
                   <button type="button" onClick={() => setShowPassword(s => !s)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
@@ -524,7 +462,7 @@ function QuoteForm({
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                   <input value={form.confirmPassword} onChange={e => set('confirmPassword', e.target.value)}
                     type={showPassword ? 'text' : 'password'} required minLength={8} placeholder="Re-enter"
-                    className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                    className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
                   />
                 </div>
               </div>
@@ -542,7 +480,7 @@ function QuoteForm({
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <input value={form.travelDate} onChange={e => set('travelDate', e.target.value)}
               type="date" min={today}
-              className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
             />
           </div>
         </div>
@@ -552,7 +490,7 @@ function QuoteForm({
             <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <input value={form.groupSize} onChange={e => set('groupSize', e.target.value)}
               type="number" min="1" max="200"
-              className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
             />
           </div>
         </div>
@@ -563,7 +501,7 @@ function QuoteForm({
           <MapPin className="absolute left-3 top-3 w-3.5 h-3.5 text-gray-400" />
           <input value={form.pickupLocation} onChange={e => set('pickupLocation', e.target.value)}
             placeholder="Hotel name / area"
-            className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
           />
         </div>
       </div>
@@ -571,7 +509,7 @@ function QuoteForm({
         <label className="text-xs font-medium text-gray-600 mb-1 block">Special Requirements</label>
         <textarea value={form.requirements} onChange={e => set('requirements', e.target.value)}
           rows={3} placeholder="Any specific needs, dietary requirements, accessibility..."
-          className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"
+          className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-300 resize-none"
         />
       </div>
       {/* Advance payment notice */}
@@ -616,22 +554,22 @@ function QuoteForm({
             : advancePaymentValue
           : null;
         return (
-          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 space-y-1.5">
+          <div className="bg-teal-50 border border-teal-100 rounded-xl p-3 space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-indigo-600 font-medium">
+              <span className="text-xs text-teal-600 font-medium">
                 {priceType === 'PER_PERSON'
                   ? `Estimated for ${qty} person${qty !== 1 ? 's' : ''}`
                   : 'Estimated total'}
               </span>
-              <span className="text-lg font-black text-indigo-700">
+              <span className="text-lg font-black text-teal-700">
                 ~₹{estPrice.toLocaleString('en-IN')}
               </span>
             </div>
             {priceType === 'PER_PERSON' && basePrice && (
-              <p className="text-xs text-indigo-400">₹{Number(basePrice).toLocaleString('en-IN')} × {qty} person{qty !== 1 ? 's' : ''}</p>
+              <p className="text-xs text-teal-400">₹{Number(basePrice).toLocaleString('en-IN')} × {qty} person{qty !== 1 ? 's' : ''}</p>
             )}
             {advAmt && (
-              <div className="border-t border-indigo-100 pt-1.5 flex items-center justify-between">
+              <div className="border-t border-teal-100 pt-1.5 flex items-center justify-between">
                 <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
                   ⚡ Advance required
                   {advancePaymentType === 'PERCENTAGE' ? ` (${advancePaymentValue}%)` : ''}
@@ -639,7 +577,7 @@ function QuoteForm({
                 <span className="text-sm font-bold text-amber-700">₹{advAmt.toLocaleString('en-IN')}</span>
               </div>
             )}
-            <p className="text-[10px] text-indigo-400">Final price confirmed by vendor in the quote</p>
+            <p className="text-[10px] text-teal-400">Final price confirmed by vendor in the quote</p>
           </div>
         );
       })()}
@@ -652,7 +590,7 @@ function QuoteForm({
             {needsLogin && (
               <Link
                 href={`/customer/login?redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname : '')}`}
-                className="inline-block mt-1.5 font-semibold text-indigo-600 hover:underline"
+                className="inline-block mt-1.5 font-semibold text-teal-600 hover:underline"
               >
                 Login to your account →
               </Link>
@@ -662,7 +600,7 @@ function QuoteForm({
       )}
       <button
         type="submit" disabled={submitting}
-        className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-60 text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 flex items-center justify-center gap-2"
+        className="w-full py-3.5 bg-gradient-to-r from-teal-600 to-teal-600 hover:from-teal-500 hover:to-teal-500 disabled:opacity-60 text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-teal-500/20 hover:shadow-lg hover:shadow-teal-500/30 flex items-center justify-center gap-2"
       >
         {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
         {submitting ? 'Submitting...' : 'Get Free Quote'}
@@ -858,14 +796,14 @@ function VendorCard({ vendor, listingCount }: { vendor: any; listingCount?: numb
     : null;
   const showLogo = vendor.logo && !logoError;
   return (
-    <div className="bg-gradient-to-br from-gray-50 to-indigo-50/30 border border-gray-200/80 rounded-2xl p-5">
+    <div className="bg-gradient-to-br from-gray-50 to-teal-50/30 border border-gray-200/80 rounded-2xl p-5">
       <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Your Tour Operator</p>
       <div className="flex items-start gap-4">
         <div className="flex-shrink-0">
           {showLogo ? (
             <img src={vendor.logo} alt={vendor.businessName} onError={() => setLogoError(true)} className="w-16 h-16 rounded-2xl object-cover ring-2 ring-white shadow-md" />
           ) : (
-            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-md ring-2 ring-white">
+            <div className="w-16 h-16 bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-md ring-2 ring-white">
               <span className="text-2xl font-black text-white">{vendor.businessName?.[0]?.toUpperCase() || '?'}</span>
             </div>
           )}
@@ -921,9 +859,9 @@ function SimilarCard({ listing }: { listing: any }) {
   const cover = images[0] || null;
   return (
     <Link href={`/wander/${listing.slug || listing.id}`}
-      className="group flex gap-3 bg-white border border-gray-100 rounded-2xl p-3 hover:shadow-md hover:border-indigo-100 transition-all duration-300 hover:-translate-y-0.5"
+      className="group flex gap-3 bg-white border border-gray-100 rounded-2xl p-3 hover:shadow-md hover:border-teal-100 transition-all duration-300 hover:-translate-y-0.5"
     >
-      <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-indigo-50">
+      <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-teal-50">
         {cover ? (
           <img src={cover} alt={listing.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
         ) : (
@@ -931,18 +869,109 @@ function SimilarCard({ listing }: { listing: any }) {
         )}
       </div>
       <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <h4 className="text-sm font-bold text-gray-900 line-clamp-2 group-hover:text-indigo-600 transition-colors leading-snug">{listing.title}</h4>
+        <h4 className="text-sm font-bold text-gray-900 line-clamp-2 group-hover:text-teal-600 transition-colors leading-snug">{listing.title}</h4>
         <div className="flex items-center gap-2 mt-1.5">
           {listing.duration && (
             <span className="text-[10px] text-gray-400 flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" /> {listing.duration}</span>
           )}
           {listing.basePrice && (
-            <span className="text-xs font-bold text-indigo-600">₹{Number(listing.basePrice).toLocaleString('en-IN')}</span>
+            <span className="text-xs font-bold text-teal-600">₹{Number(listing.basePrice).toLocaleString('en-IN')}</span>
           )}
         </div>
       </div>
-      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-400 flex-shrink-0 self-center transition-colors" />
+      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-teal-400 flex-shrink-0 self-center transition-colors" />
     </Link>
+  );
+}
+
+/* ─── Section kicker (editorial eyebrow) ─────────────────────────────────────── */
+function Kicker({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-3 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.24em] text-teal-700">
+      <span className="h-px w-8 bg-teal-600/50" /> {children}
+    </div>
+  );
+}
+
+/* ─── RelatedCard (reference-style image card) ───────────────────────────────── */
+function RelatedCard({ listing }: { listing: any }) {
+  const imgs: string[] = Array.isArray(listing.images) ? listing.images : (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
+  const cover = imgs[0] || null;
+  return (
+    <Link
+      href={`/wander/${listing.slug || listing.id}`}
+      className="group overflow-hidden rounded-3xl border border-slate-200/70 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_-28px_rgba(15,23,42,0.32)]"
+    >
+      <div className="relative aspect-[4/3] overflow-hidden bg-slate-800">
+        {cover ? (
+          <img src={cover} alt={listing.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-teal-800 to-slate-900" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+        {listing.duration && (
+          <div className="absolute right-3 top-3 rounded-full bg-white/85 px-2.5 py-1 text-[10px] font-semibold text-slate-800 backdrop-blur">{listing.duration}</div>
+        )}
+        <div className="absolute bottom-4 left-4 right-4 text-white">
+          {listing.mainLocation?.name && (
+            <p className="text-[10px] font-semibold uppercase tracking-widest opacity-80">{listing.mainLocation.name}</p>
+          )}
+          <h3 className="mt-0.5 font-display text-lg font-light leading-snug line-clamp-2 drop-shadow">{listing.title}</h3>
+        </div>
+      </div>
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-1.5 text-sm">
+          {listing.rating > 0 ? (
+            <><Star className="h-4 w-4 fill-amber-400 text-amber-400" /> <span className="font-semibold text-slate-800">{Number(listing.rating).toFixed(1)}</span></>
+          ) : (
+            <span className="text-slate-400 text-xs">New tour</span>
+          )}
+        </div>
+        {listing.basePrice ? (
+          <p className="text-sm"><span className="text-slate-400">from </span><span className="font-bold text-slate-900">₹{Number(listing.basePrice).toLocaleString('en-IN')}</span></p>
+        ) : (
+          <span className="text-xs font-semibold text-teal-700">Get quote</span>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+/* ─── FAQ accordion (editorial) ──────────────────────────────────────────────── */
+function FaqAccordion() {
+  const [open, setOpen] = useState<number | null>(0);
+  const faqs = [
+    { q: 'How do I book this tour?', a: "Send a free quote request through the form — the operator replies with custom pricing for your group and dates. No payment is needed to enquire." },
+    { q: 'Can I customise the itinerary?', a: 'Yes. Mention your preferences in the "Special requirements" box and the operator will tailor stops, pace and inclusions to your group.' },
+    { q: "What's the cancellation policy?", a: 'It follows the operator\'s policy shown in the "Cancellation Policy" section above — most allow a full refund up to 48 hours before departure.' },
+    { q: 'Is this suitable for families and groups?', a: 'Absolutely. Group pricing tiers make it cost-effective for families and larger groups — share your group size to get the best rate.' },
+    { q: 'How will I get my confirmation?', a: 'Once you accept a quote, you receive confirmation and the operator\'s contact on WhatsApp and email — support is available before, during and after your trip.' },
+  ];
+  return (
+    <div>
+      <Kicker>Questions, answered</Kicker>
+      <h2 className="font-display text-4xl md:text-5xl font-light text-slate-900 tracking-tight leading-[1.05] mb-8">The details worth knowing.</h2>
+      <div className="space-y-3">
+        {faqs.map((f, i) => {
+          const isOpen = open === i;
+          return (
+            <div key={i} className="rounded-2xl border border-slate-200/70 bg-white overflow-hidden transition-shadow hover:shadow-[0_10px_30px_-20px_rgba(15,23,42,0.25)]">
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : i)}
+                className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
+              >
+                <span className="text-sm font-semibold text-slate-900">{f.q}</span>
+                <span className={`grid h-6 w-6 flex-shrink-0 place-items-center rounded-full transition-colors ${isOpen ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                </span>
+              </button>
+              {isOpen && <div className="px-5 pb-4 text-sm text-slate-500 leading-relaxed">{f.a}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -967,13 +996,25 @@ export default function TourDetailPage() {
         else {
           const l = d.listing ?? d;
           setListing(l);
-          // Fetch similar tours
+          // Fetch similar tours — prefer same category, fall back to other tours to fill
           const catParam = l.categoryId ? `&categoryIds=${l.categoryId}` : '';
-          fetch(`/api/wander/listings?limit=4&page=1${catParam}`)
+          fetch(`/api/wander/listings?limit=6&page=1${catParam}`)
             .then(r => r.json())
             .then(sd => {
-              const others = (sd.listings || []).filter((s: any) => s.id !== l.id).slice(0, 3);
-              setSimilarListings(others);
+              const others = (sd.listings || []).filter((s: any) => s.id !== l.id);
+              if (others.length < 3 && catParam) {
+                // Not enough in this category — top up with any other tours
+                return fetch(`/api/wander/listings?limit=6&page=1`)
+                  .then(r => r.json())
+                  .then(sd2 => {
+                    const seen = new Set(others.map((o: any) => o.id));
+                    for (const m of (sd2.listings || [])) {
+                      if (m.id !== l.id && !seen.has(m.id)) { others.push(m); seen.add(m.id); }
+                    }
+                    setSimilarListings(others.slice(0, 3));
+                  });
+              }
+              setSimilarListings(others.slice(0, 3));
             })
             .catch(() => {});
         }
@@ -1032,7 +1073,7 @@ export default function TourDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
       </div>
     );
   }
@@ -1044,7 +1085,7 @@ export default function TourDetailPage() {
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
           <h2 className="text-lg font-bold text-gray-700 mb-2">Tour not found</h2>
           <p className="text-sm text-gray-400 mb-4">{error}</p>
-          <Link href="/wander" className="text-indigo-600 hover:underline text-sm">← Back to Tours</Link>
+          <Link href="/wander" className="text-teal-600 hover:underline text-sm">← Back to Tours</Link>
         </div>
       </div>
     );
@@ -1073,17 +1114,86 @@ export default function TourDetailPage() {
   const isPreviewMode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1';
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="wander-lux min-h-screen">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .wander-lux{ background:#FAFAF8; }
+        .wander-lux .font-display{ font-family:var(--font-display),"Fraunces",Georgia,serif; letter-spacing:-.02em; }
+        .wander-lux .wg-chip{ display:inline-flex; align-items:center; gap:.4rem; padding:.4rem .85rem; border-radius:9999px; font-size:11px; font-weight:600; letter-spacing:.02em; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.24); backdrop-filter:blur(12px); color:#fff; }
+        .wander-lux .wg-btn-luxe{ background:linear-gradient(135deg,#0F766E,#14B8A6); color:#fff; box-shadow:0 10px 40px -8px rgba(15,118,110,.5); transition:transform .3s, box-shadow .3s; }
+        .wander-lux .wg-btn-luxe:hover{ transform:translateY(-2px); box-shadow:0 16px 52px -8px rgba(15,118,110,.6); }
+        .wander-lux .wg-btn-ghost{ border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.1); color:#fff; backdrop-filter:blur(12px); transition:background .3s; }
+        .wander-lux .wg-btn-ghost:hover{ background:rgba(255,255,255,.2); }
+        @keyframes lux-kenburns{ 0%{transform:scale(1.02);} 100%{transform:scale(1.06);} }
+        .wander-lux .wg-kenburns{ animation:lux-kenburns 20s ease-out infinite alternate; }
+        @media (prefers-reduced-motion:reduce){ .wander-lux .wg-kenburns{ animation:none !important; } }
+      ` }} />
       {/* Preview banner */}
       {isPreviewMode && (
         <div className="bg-amber-400 text-amber-900 text-xs font-bold text-center py-2 px-4 flex items-center justify-center gap-2">
           <span>👁️ Preview Mode — This tour is not yet published</span>
         </div>
       )}
+
+      {/* ══════════════ PREMIUM HERO ══════════════ */}
+      <section className="relative h-[68vh] min-h-[540px] w-full overflow-hidden bg-slate-950">
+        {images[0] ? (
+          <img src={images[0]} alt={listing.title} className="absolute inset-0 h-full w-full object-cover wg-kenburns" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-teal-800 to-slate-900" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/25 to-black/85" />
+        <div className="relative z-10 mx-auto flex h-full max-w-6xl items-end px-4 sm:px-6 pb-10 pt-32">
+          <div className="text-white max-w-3xl">
+            <div className="mb-4 flex flex-wrap gap-2">
+              <span className="wg-chip"><CheckCircle className="w-3.5 h-3.5" /> Verified Tour</span>
+              {(listing._count?.quoteRequests ?? 0) > 5 && <span className="wg-chip"><Sparkles className="w-3.5 h-3.5" /> Bestseller</span>}
+              {listing.category && <span className="wg-chip">{listing.category.icon} {listing.category.name}</span>}
+              {listing.mainLocation?.name && <span className="wg-chip"><MapPin className="w-3.5 h-3.5" /> {listing.mainLocation.name}</span>}
+            </div>
+            <h1 className="font-display font-light leading-[1.0] tracking-tight" style={{ fontSize: 'clamp(2rem,4.6vw,3.75rem)' }}>
+              {listing.title}
+            </h1>
+            {listing.shortDescription && (
+              <p className="mt-3.5 max-w-xl text-sm sm:text-base text-white/80 leading-relaxed line-clamp-2">{listing.shortDescription}</p>
+            )}
+            <div className="mt-4 flex flex-wrap items-center gap-x-7 gap-y-3 text-sm text-white/85">
+              {listing.rating > 0 ? (
+                <span className="flex items-center gap-2">
+                  <span className="flex">{[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />)}</span>
+                  {Number(listing.rating).toFixed(1)}{listing.totalRatings ? ` · ${listing.totalRatings} reviews` : ''}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1 text-xs font-medium text-white/85 ring-1 ring-white/20 backdrop-blur">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" /> New · No reviews yet
+                </span>
+              )}
+              {listing.duration && <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {listing.duration}</span>}
+              {(listing.minGroupSize > 1 || listing.maxGroupSize) && (
+                <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> {listing.maxGroupSize ? `${listing.minGroupSize || 1}–${listing.maxGroupSize} pax` : `Min ${listing.minGroupSize} pax`}</span>
+              )}
+            </div>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => document.getElementById('book')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="wg-btn-luxe inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold"
+              >
+                Book now{priceLabel ? ` · from ${priceLabel}` : ''} <ChevronRight className="w-4 h-4" />
+              </button>
+              <button onClick={handleWhatsApp} className="wg-btn-ghost inline-flex items-center gap-1.5 rounded-full px-5 py-3.5 text-sm font-medium">
+                💬 WhatsApp
+              </button>
+              <button onClick={handleShare} className="wg-btn-ghost inline-flex items-center gap-1.5 rounded-full px-5 py-3.5 text-sm font-medium">
+                <Info className="w-4 h-4" /> {copied ? 'Copied!' : 'Share'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Breadcrumb */}
       <div className="bg-gray-50 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-2 text-xs text-gray-500">
-          <Link href="/wander" className="hover:text-indigo-600 flex items-center gap-1">
+          <Link href="/wander" className="hover:text-teal-600 flex items-center gap-1">
             <Compass className="w-3.5 h-3.5" /> Tours
           </Link>
           <ChevronRight className="w-3 h-3" />
@@ -1101,7 +1211,7 @@ export default function TourDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           {/* ── LEFT / MAIN ── */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-10 sm:space-y-14">
 
             {/* Gallery */}
             <Gallery
@@ -1117,85 +1227,93 @@ export default function TourDetailPage() {
               }}
             />
 
-            {/* Info below image */}
+            {/* At a glance — quick facts grid */}
             <div>
-              {listing.shortDescription && (
-                <p className="text-gray-500 text-base leading-relaxed mb-5">{listing.shortDescription}</p>
-              )}
-
-              {/* Quick stats — only additional info not already shown in gallery */}
-              <div className="flex flex-wrap gap-2">
-                {(listing.minGroupSize > 1 || listing.maxGroupSize) && (
-                  <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-2 rounded-xl">
-                    <Users className="w-3.5 h-3.5 text-indigo-400" />
-                    {listing.maxGroupSize
-                      ? `${listing.minGroupSize || 1}–${listing.maxGroupSize} pax`
-                      : `Min ${listing.minGroupSize} pax`}
-                  </span>
-                )}
-                {guideLanguages.length > 0 && (
-                  <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-2 rounded-xl">
-                    <Globe className="w-3.5 h-3.5 text-indigo-400" /> {guideLanguages.join(', ')}
-                  </span>
-                )}
-                {listing.tourStartDate && (
-                  <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-2 rounded-xl">
-                    <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-                    {new Date(listing.tourStartDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    {listing.tourEndDate && ` – ${new Date(listing.tourEndDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`}
-                  </span>
-                )}
-              </div>
-
-              {/* Share row */}
-              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
-                <span className="text-xs text-gray-400 mr-1">Share:</span>
-                <button
-                  onClick={handleWhatsApp}
-                  className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-xl transition border border-emerald-200/80"
-                >
-                  <span className="text-sm">💬</span> WhatsApp
-                </button>
-                <button
-                  onClick={handleShare}
-                  className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-xl transition"
-                >
-                  {copied ? (
-                    <><Check className="w-3.5 h-3.5 text-emerald-600" /> Copied!</>
-                  ) : (
-                    <><Info className="w-3.5 h-3.5" /> Copy Link</>
-                  )}
-                </button>
+              <Kicker>At a glance</Kicker>
+              <h2 className="font-display text-4xl md:text-5xl font-light text-slate-900 tracking-tight leading-[1.05] mb-8">Everything, taken care of.</h2>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                {[
+                  listing.duration && { icon: Clock, label: 'Duration', value: listing.duration },
+                  (listing.minGroupSize > 1 || listing.maxGroupSize) && { icon: Users, label: 'Group size', value: listing.maxGroupSize ? `${listing.minGroupSize || 1}–${listing.maxGroupSize} pax` : `Min ${listing.minGroupSize} pax` },
+                  listing.mainLocation?.name && { icon: MapPin, label: 'Location', value: listing.mainLocation.name },
+                  listing.tourStartDate && { icon: Calendar, label: 'Dates', value: `${new Date(listing.tourStartDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}${listing.tourEndDate ? ` – ${new Date(listing.tourEndDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}` },
+                  guideLanguages.length > 0 && { icon: Globe, label: 'Languages', value: guideLanguages.join(', ') },
+                  listing.pickupType && { icon: Car, label: 'Pickup', value: listing.pickupType === 'HOTEL_PICKUP' ? 'Hotel pickup' : listing.pickupType === 'FIXED_POINT' ? 'Meeting point' : 'Included' },
+                  cancelInfo && { icon: Shield, label: 'Cancellation', value: cancelInfo.label || 'Flexible' },
+                  inclusions.length > 0 && { icon: Check, label: 'Inclusions', value: `${inclusions.length} included` },
+                  { icon: CheckCircle, label: 'Local guide', value: 'Included' },
+                ].filter(Boolean).map((c: any) => (
+                  <div key={c.label} className="group rounded-2xl border border-slate-200/70 bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_44px_-24px_rgba(15,23,42,0.25)]">
+                    <div className="grid h-11 w-11 place-items-center rounded-xl bg-teal-50 text-teal-700 transition-colors group-hover:bg-teal-600 group-hover:text-white">
+                      <c.icon className="h-5 w-5" />
+                    </div>
+                    <p className="mt-4 text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">{c.label}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900 line-clamp-1">{c.value}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Description */}
+            {/* Description — premium editorial */}
             {listing.description && (
               <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-3">About this Tour</h2>
-                <div
-                  className="prose prose-sm max-w-none text-gray-600 prose-headings:text-gray-900 prose-a:text-emerald-700 prose-strong:text-gray-900"
-                  dangerouslySetInnerHTML={{ __html: sanitizeRichText(listing.description) }}
-                />
+                <Kicker>About this journey</Kicker>
+                <h2 className="font-display text-4xl md:text-5xl font-light text-slate-900 tracking-tight leading-[1.05] mb-4 max-w-2xl">
+                  The story behind this journey.
+                </h2>
+                <div className="mb-9 h-px w-24 bg-gradient-to-r from-teal-500 to-amber-400" />
+                <div className="grid items-start gap-10 md:grid-cols-[1.85fr_1fr]">
+                  {/* Reading column — editorial card with drop-cap + optimal measure */}
+                  <div className="relative overflow-hidden rounded-[28px] border border-slate-200/60 bg-gradient-to-b from-white to-slate-50/70 p-7 shadow-[0_30px_80px_-42px_rgba(15,23,42,0.28)] sm:p-10">
+                    <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-gradient-to-br from-teal-200/40 to-amber-100/0 blur-3xl" />
+                    <div className="pointer-events-none absolute left-0 top-9 bottom-9 w-[3px] rounded-full bg-gradient-to-b from-teal-500 via-teal-400 to-amber-400/70" />
+                    <CollapsibleRichText
+                      html={sanitizeRichText(listing.description)}
+                      limit={2}
+                      className="relative font-display prose prose-sm max-w-[62ch] text-[15px] leading-[1.75] tracking-[0.003em] text-slate-600 prose-p:font-normal
+                        prose-p:my-0 prose-p:mb-5 last:prose-p:mb-0
+                        prose-headings:font-display prose-headings:font-medium prose-headings:text-slate-900 prose-headings:mt-8 prose-headings:mb-3
+                        prose-a:text-teal-700 prose-a:font-medium prose-a:no-underline hover:prose-a:underline
+                        prose-strong:font-semibold prose-strong:text-slate-900
+                        prose-li:marker:text-teal-500 prose-li:my-1.5
+                        [&>p:first-of-type]:first-letter:float-left [&>p:first-of-type]:first-letter:mr-3 [&>p:first-of-type]:first-letter:mt-1 [&>p:first-of-type]:first-letter:font-display [&>p:first-of-type]:first-letter:text-[52px] [&>p:first-of-type]:first-letter:font-medium [&>p:first-of-type]:first-letter:leading-[0.7] [&>p:first-of-type]:first-letter:text-teal-700"
+                    />
+                  </div>
+                  <aside className="space-y-4 self-start md:sticky md:top-24">
+                    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-[0_24px_60px_-32px_rgba(15,23,42,0.6)]">
+                      <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-amber-400/10 blur-2xl" />
+                      <div className="relative flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
+                        <Sparkles className="h-4 w-4 text-amber-400" /> Wander promise
+                      </div>
+                      <p className="relative mt-4 font-display text-lg font-light leading-snug">
+                        Verified local operators, transparent pricing, and real support on WhatsApp — before, during &amp; after your trip.
+                      </p>
+                    </div>
+                    {images[1] && (
+                      <div className="group overflow-hidden rounded-3xl ring-1 ring-slate-900/5 shadow-[0_20px_50px_-30px_rgba(15,23,42,0.4)]">
+                        <img src={images[1]} alt="" loading="lazy" className="w-full object-cover aspect-[4/3] transition-transform duration-700 group-hover:scale-105" />
+                      </div>
+                    )}
+                  </aside>
+                </div>
               </div>
             )}
 
             {/* Highlights */}
             {highlights.length > 0 && (
               <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <span className="w-7 h-7 bg-indigo-100 rounded-xl flex items-center justify-center">
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                  </span>
-                  Highlights
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <Kicker>Experience highlights</Kicker>
+                <h2 className="font-display text-4xl md:text-5xl font-light text-slate-900 tracking-tight leading-[1.05] mb-8">Moments you'll never scroll past.</h2>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {highlights.map((h: string, i: number) => (
-                    <div key={i} className="flex items-start gap-3 bg-indigo-50/60 border border-indigo-100/80 rounded-xl px-3.5 py-2.5 text-sm text-gray-700">
-                      <span className="w-5 h-5 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Check className="w-3 h-3 text-white" />
-                      </span>
-                      {h}
+                    <div key={i} className="group relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_-24px_rgba(15,23,42,0.28)]">
+                      <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-gradient-to-br from-amber-300/25 to-teal-400/0 opacity-0 blur-2xl transition-opacity group-hover:opacity-100" />
+                      <div className="relative">
+                        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-teal-600 to-teal-400 text-white shadow-lg shadow-teal-500/25 transition-transform group-hover:scale-110">
+                          <Sparkles className="h-5 w-5" />
+                        </div>
+                        <h3 className="mt-5 font-display text-base font-medium leading-snug text-slate-900">{h}</h3>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1216,48 +1334,61 @@ export default function TourDetailPage() {
               if (visibleStops.length === 0) return null;
               return (
               <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-4">Itinerary</h2>
-                <div className="relative">
-                  {/* vertical line */}
-                  <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-indigo-100" />
-                  <div className="space-y-0">
-                    {visibleStops.map((stop: any, i: number) => (
-                      <div key={i} className="relative flex gap-4 pb-6">
-                        <div className="w-10 h-10 bg-white border-2 border-indigo-200 rounded-full flex items-center justify-center flex-shrink-0 z-10 text-lg">
-                          {stop.emoji || '📍'}
-                        </div>
-                        <div className="flex-1 bg-gray-50 rounded-xl p-4 border border-gray-100">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            {stop.time && (
-                              <span className="text-xs text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full">
-                                {stop.time}
-                              </span>
-                            )}
-                            {stop.timeSpent && (
-                              <span className="text-xs text-gray-400">{stop.timeSpent}</span>
-                            )}
+                <Kicker>Day by day</Kicker>
+                <h2 className="font-display text-4xl md:text-5xl font-light text-slate-900 tracking-tight leading-[1.05] mb-8">Your day, hour by hour.</h2>
+                <ol className="relative space-y-4">
+                  <div className="absolute left-[19px] top-3 bottom-3 w-px bg-gradient-to-b from-teal-600 via-teal-400 to-amber-400" />
+                  {visibleStops.map((stop: any, i: number) => (
+                    <li key={i} className="relative flex gap-5">
+                      {(() => {
+                        const StopIcon = getStopIcon(stop);
+                        return (
+                          <div className="relative z-10 grid h-10 w-10 flex-shrink-0 place-items-center rounded-full bg-gradient-to-br from-teal-600 to-teal-400 text-white shadow-lg shadow-teal-500/25 ring-4 ring-white">
+                            <StopIcon className="h-[18px] w-[18px]" strokeWidth={2.2} />
                           </div>
-                          <h3 className="font-bold text-gray-900 text-sm">{stop.title}</h3>
+                        );
+                      })()}
+                      <details
+                        {...(i === 0 ? { open: true } : {})}
+                        className="group flex-1 rounded-2xl border border-slate-200/70 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04)] transition-all open:shadow-[0_16px_40px_-24px_rgba(15,23,42,0.25)]"
+                      >
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 [&::-webkit-details-marker]:hidden">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                              {stop.time && (
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-teal-700">{stop.time}</span>
+                              )}
+                              {stop.timeSpent && (
+                                <span className="text-xs text-slate-400">· {stop.timeSpent}</span>
+                              )}
+                            </div>
+                            <h3 className="font-display text-lg font-medium text-slate-900">{stop.title}</h3>
+                          </div>
+                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-slate-200 text-slate-600 transition-transform group-open:rotate-180">
+                            <ChevronDown className="h-4 w-4" />
+                          </span>
+                        </summary>
+                        <div className="border-t border-slate-100 px-5 pb-5 pt-4">
                           {stop.description && (
                             <div
-                              className="text-xs text-gray-500 mt-1 leading-relaxed prose prose-xs max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-strong:text-gray-900 prose-p:my-1 prose-headings:my-2"
+                              className="text-sm text-slate-500 leading-relaxed prose prose-sm max-w-none prose-headings:text-slate-900 prose-headings:font-semibold prose-strong:text-slate-900 prose-p:my-1 prose-headings:my-2"
                               dangerouslySetInnerHTML={{ __html: sanitizeRichText(stop.description) }}
                             />
                           )}
                           {stop.activities?.filter(Boolean).length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
+                            <div className="flex flex-wrap gap-1.5 mt-3">
                               {stop.activities.filter(Boolean).map((a: string, j: number) => (
-                                <span key={j} className="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                                <span key={j} className="text-xs bg-teal-50 border border-teal-100 text-teal-700 px-2.5 py-1 rounded-full">
                                   {a}
                                 </span>
                               ))}
                             </div>
                           )}
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                      </details>
+                    </li>
+                  ))}
+                </ol>
               </div>
               );
             })()}
@@ -1265,36 +1396,41 @@ export default function TourDetailPage() {
             {/* Inclusions & Exclusions */}
             {(inclusions.length > 0 || exclusions.length > 0) && (
               <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-4">What's Included</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Kicker>What's inside</Kicker>
+                <h2 className="font-display text-4xl md:text-5xl font-light text-slate-900 tracking-tight leading-[1.05] mb-8">Included &amp; not included.</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
                   {inclusions.length > 0 && (
-                    <div className="bg-emerald-50/70 border border-emerald-100 rounded-2xl p-4">
-                      <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                        <Check className="w-3.5 h-3.5" /> Included
-                      </p>
-                      <div className="space-y-2">
-                        {inclusions.map((item: string, i: number) => (
-                          <div key={i} className="flex items-start gap-2.5 text-sm text-gray-700">
-                            <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                            {item}
-                          </div>
-                        ))}
+                    <div className="rounded-3xl border border-emerald-200/70 bg-emerald-50/60 p-6 shadow-[0_20px_50px_-30px_rgba(16,185,129,0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_60px_-26px_rgba(16,185,129,0.5)]">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
+                        <Check className="h-4 w-4" /> Included
                       </div>
+                      <ul className="mt-4 space-y-2.5 text-[14px] text-slate-700">
+                        {inclusions.map((item: string, i: number) => (
+                          <li key={i} className="flex items-start gap-3">
+                            <span className="mt-0.5 grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600">
+                              <Check className="h-3 w-3" />
+                            </span>
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                   {exclusions.length > 0 && (
-                    <div className="bg-red-50/70 border border-red-100 rounded-2xl p-4">
-                      <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                        <X className="w-3.5 h-3.5" /> Not Included
-                      </p>
-                      <div className="space-y-2">
-                        {exclusions.map((item: string, i: number) => (
-                          <div key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
-                            <X className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />
-                            {item}
-                          </div>
-                        ))}
+                    <div className="rounded-3xl border border-rose-200/60 bg-rose-50/60 p-6 shadow-[0_20px_50px_-30px_rgba(244,63,94,0.32)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_60px_-26px_rgba(244,63,94,0.42)]">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-rose-600">
+                        <X className="h-4 w-4" /> Not included
                       </div>
+                      <ul className="mt-4 space-y-2.5 text-[14px] text-slate-600">
+                        {exclusions.map((item: string, i: number) => (
+                          <li key={i} className="flex items-start gap-3">
+                            <span className="mt-0.5 grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-rose-100 text-rose-500">
+                              <X className="h-3 w-3" />
+                            </span>
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>
@@ -1304,11 +1440,12 @@ export default function TourDetailPage() {
             {/* Vehicle Options */}
             {vehicleOptions.length > 0 && (
               <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-3">Available Vehicles</h2>
+                <Kicker>Getting around</Kicker>
+                <h2 className="font-display text-4xl md:text-5xl font-light text-slate-900 tracking-tight leading-[1.05] mb-3">Available Vehicles</h2>
                 <div className="flex flex-wrap gap-2">
                   {vehicleOptions.map((v: string, i: number) => (
                     <span key={i} className="flex items-center gap-1.5 bg-gray-100 text-gray-700 text-sm px-3 py-1.5 rounded-xl">
-                      <Car className="w-3.5 h-3.5 text-indigo-400" /> {v}
+                      <Car className="w-3.5 h-3.5 text-teal-400" /> {v}
                     </span>
                   ))}
                 </div>
@@ -1318,11 +1455,52 @@ export default function TourDetailPage() {
             {/* Custom Places */}
             {customPlaces.length > 0 && (
               <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-3">Places You'll Visit</h2>
-                <div className="flex flex-wrap gap-2">
+                <Kicker>Places to visit</Kicker>
+                <h2 className="font-display text-4xl md:text-5xl font-light text-slate-900 tracking-tight leading-[1.05] mb-8">Places you'll visit.</h2>
+                {(() => {
+                  const pts = customPlaces.slice(0, 9).map((p: { name: string }, i: number, arr: any[]) => ({
+                    l: p.name,
+                    x: 115 + i * (570 / Math.max(1, arr.length - 1)),
+                    y: 165 + Math.sin(i * 0.95) * 85,
+                    // first/last labels anchor inward so long names don't clip at edges
+                    anchor: arr.length > 1 && i === 0 ? 'start' : arr.length > 1 && i === arr.length - 1 ? 'end' : 'middle',
+                  }));
+                  const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(0)},${p.y.toFixed(0)}`).join(' ');
+                  return (
+                    <div className="relative overflow-hidden rounded-3xl border border-slate-200/70 bg-gradient-to-br from-teal-50/60 via-white to-amber-50/30">
+                      <svg viewBox="0 0 800 340" className="h-64 w-full md:h-80">
+                        <defs>
+                          <linearGradient id="routeGrad" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#0F766E" />
+                            <stop offset="100%" stopColor="#F59E0B" />
+                          </linearGradient>
+                          <pattern id="rdots" width="24" height="24" patternUnits="userSpaceOnUse">
+                            <circle cx="1" cy="1" r="1" fill="rgba(15,118,110,0.16)" />
+                          </pattern>
+                        </defs>
+                        <rect width="800" height="340" fill="url(#rdots)" />
+                        <path d={d} fill="none" stroke="url(#routeGrad)" strokeWidth="3" strokeDasharray="6 6" strokeLinecap="round" />
+                        {pts.map((p, i) => (
+                          <g key={i}>
+                            <circle cx={p.x} cy={p.y} r="9" fill="white" stroke="#0F766E" strokeWidth="2" />
+                            <circle cx={p.x} cy={p.y} r="3.5" fill="#0F766E" />
+                            <text x={p.x} y={p.y + (i % 2 ? 26 : -16)} textAnchor={p.anchor} style={{ fontSize: '11px', fontWeight: 600, fill: '#334155' }}>{p.l}</text>
+                          </g>
+                        ))}
+                      </svg>
+                      <div className="grid grid-cols-3 gap-4 border-t border-teal-100/70 bg-white/70 p-6 backdrop-blur">
+                        <div><p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Stops</p><p className="mt-1 text-lg font-semibold text-slate-900">{customPlaces.length} places</p></div>
+                        <div><p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Duration</p><p className="mt-1 text-lg font-semibold text-slate-900">{listing.duration || 'Flexible'}</p></div>
+                        <div><p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Region</p><p className="mt-1 text-lg font-semibold text-slate-900">{listing.mainLocation?.name || 'India'}</p></div>
+                      </div>
+                    </div>
+                  );
+                })()}
+                {/* All stops — full list preserved */}
+                <div className="mt-4 flex flex-wrap gap-2">
                   {customPlaces.map((p: { name: string }, i: number) => (
-                    <span key={i} className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm px-3 py-1.5 rounded-xl">
-                      <MapPin className="w-3.5 h-3.5 text-indigo-400" /> {p.name}
+                    <span key={i} className="flex items-center gap-1.5 bg-teal-50 border border-teal-100 text-teal-700 text-xs px-2.5 py-1.5 rounded-lg">
+                      <MapPin className="w-3 h-3 text-teal-500" /> {p.name}
                     </span>
                   ))}
                 </div>
@@ -1332,39 +1510,40 @@ export default function TourDetailPage() {
             {/* Pricing */}
             {(listing.priceType === 'ON_REQUEST' || priceLabel || priceTiers.length > 0) && (
               <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-3">Pricing</h2>
+                <Kicker>Investment</Kicker>
+                <h2 className="font-display text-4xl md:text-5xl font-light text-slate-900 tracking-tight leading-[1.05] mb-6">Pricing</h2>
                 {priceTiers.length > 0 ? (
-                  <div className="border border-gray-200 rounded-xl overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-gray-50 border-b border-gray-200">
-                          <th className="text-left px-4 py-2.5 font-semibold text-gray-600">Group Size</th>
-                          <th className="text-right px-4 py-2.5 font-semibold text-gray-600">Price</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {priceTiers.map((t: any, i: number) => (
-                          <tr key={i} className="hover:bg-gray-50">
-                            <td className="px-4 py-2.5 text-gray-700">
-                              {t.groupSize ? `${t.groupSize} persons` : '—'}
-                            </td>
-                            <td className="px-4 py-2.5 text-right font-bold text-gray-900">
-                              {t.price ? `₹${Number(t.price).toLocaleString('en-IN')}` : '—'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : priceLabel ? (
-                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-                    <span className="text-3xl font-black text-indigo-700">{priceLabel}</span>
-                    {priceSuffix && <span className="text-sm text-indigo-400 ml-2">{priceSuffix}</span>}
+                  <div className="overflow-hidden rounded-[24px] border border-slate-200/70 bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.25)]">
+                    <div className="flex items-center justify-between bg-gradient-to-r from-teal-600 to-emerald-600 px-5 py-3.5 text-white">
+                      <span className="text-xs font-semibold uppercase tracking-widest text-white/85">Group size</span>
+                      <span className="text-xs font-semibold uppercase tracking-widest text-white/85">Price / person</span>
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                      {priceTiers.map((t: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-teal-50/40">
+                          <span className="flex items-center gap-2 text-sm text-slate-700">
+                            <Users className="h-4 w-4 text-teal-500" />
+                            {t.groupSize ? `${t.groupSize} persons` : '—'}
+                          </span>
+                          <span className="font-display text-lg font-semibold text-slate-900">
+                            {t.price ? `₹${Number(t.price).toLocaleString('en-IN')}` : '—'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : (
-                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-                    <p className="text-lg font-bold text-indigo-700">Price on Request</p>
-                    <p className="text-sm text-indigo-400 mt-1">Get a custom quote tailored to your group & dates</p>
+                  <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200/70 bg-white py-5 pl-7 pr-6 shadow-[0_18px_44px_-34px_rgba(15,23,42,0.28)]">
+                    <div className="absolute left-0 top-4 bottom-4 w-1 rounded-full bg-gradient-to-b from-teal-500 to-amber-400" />
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-teal-600">{priceLabel ? 'Starting from' : 'Custom pricing'}</p>
+                    {priceLabel ? (
+                      <div className="mt-2 flex items-baseline gap-2">
+                        <span className="font-display text-4xl font-medium tracking-tight text-slate-900">{priceLabel}</span>
+                        {priceSuffix && <span className="text-sm font-light text-slate-400">/ {priceSuffix}</span>}
+                      </div>
+                    ) : (
+                      <p className="mt-2 font-display text-3xl font-medium tracking-tight text-slate-900">Price on request</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -1373,13 +1552,14 @@ export default function TourDetailPage() {
             {/* Available Days */}
             {availableDays.length > 0 && (
               <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-3">Available Days</h2>
+                <Kicker>Availability</Kicker>
+                <h2 className="font-display text-4xl md:text-5xl font-light text-slate-900 tracking-tight leading-[1.05] mb-3">Available Days</h2>
                 <div className="flex gap-2 flex-wrap">
                   {DAY_LABELS.map((d, i) => (
                     <div key={d}
                       className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition ${
                         availableDays.includes(i)
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-teal-600 text-white'
                           : 'bg-gray-100 text-gray-400'
                       }`}
                     >
@@ -1392,12 +1572,28 @@ export default function TourDetailPage() {
 
             {/* Cancellation */}
             <div>
-              <h2 className="text-lg font-bold text-gray-900 mb-3">Cancellation Policy</h2>
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                <p className={`font-bold mb-1 ${cancelInfo.color}`}>{cancelInfo.label}</p>
-                <p className="text-sm text-gray-600">{cancelInfo.desc}</p>
+              <Kicker>Good to know</Kicker>
+                <h2 className="font-display text-4xl md:text-5xl font-light text-slate-900 tracking-tight leading-[1.05] mb-6">Cancellation Policy</h2>
+              <div className="relative overflow-hidden rounded-[28px] border border-slate-200/60 bg-gradient-to-b from-white to-slate-50/70 p-7 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.25)] sm:p-8">
+                <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gradient-to-br from-teal-100/40 to-amber-100/0 blur-3xl" />
+                <div className="relative flex items-start gap-4">
+                  <div className={`grid h-12 w-12 flex-shrink-0 place-items-center rounded-2xl ring-1 ${cancelInfo.tint} ${cancelInfo.ring}`}>
+                    <Shield className="h-6 w-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${cancelInfo.tint}`}>
+                      {cancelInfo.label} cancellation
+                    </span>
+                    <p className="mt-2.5 font-display text-xl font-medium leading-snug text-slate-900">{cancelInfo.desc}</p>
+                  </div>
+                </div>
                 {listing.cancellationNotes && (
-                  <p className="text-sm text-gray-500 mt-2 pt-2 border-t border-gray-200">{listing.cancellationNotes}</p>
+                  <div className="relative mt-6 rounded-2xl border border-slate-100 bg-slate-50/80 p-5">
+                    <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      <Info className="h-3.5 w-3.5" /> Good to know
+                    </p>
+                    <p className="text-sm leading-relaxed text-slate-600">{listing.cancellationNotes}</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -1405,32 +1601,92 @@ export default function TourDetailPage() {
             {/* Pickup info */}
             {(listing.pickupType || listing.meetingPoint) && (
               <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-3">Pickup Information</h2>
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm text-gray-600 space-y-2">
+                <Kicker>Meeting point</Kicker>
+                <h2 className="font-display text-4xl md:text-5xl font-light text-slate-900 tracking-tight leading-[1.05] mb-6">Pickup Information</h2>
+                <div className="rounded-2xl border border-slate-200/70 bg-white px-5 py-1 divide-y divide-slate-100">
                   {listing.pickupType && (
-                    <p><span className="font-semibold text-gray-700">Type:</span> {
-                      listing.pickupType === 'HOTEL_PICKUP' ? 'Hotel Pickup'
-                      : listing.pickupType === 'FIXED_POINT' ? 'Fixed Meeting Point'
-                      : listing.pickupType
-                    }</p>
+                    <div className="flex items-start gap-3 py-3">
+                      <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg bg-teal-50 text-teal-700">
+                        <Car className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Pickup type</p>
+                        <p className="mt-0.5 text-sm font-medium text-slate-900">{
+                          listing.pickupType === 'HOTEL_PICKUP' ? 'Hotel Pickup'
+                          : listing.pickupType === 'FIXED_POINT' ? 'Fixed Meeting Point'
+                          : listing.pickupType
+                        }</p>
+                      </div>
+                    </div>
                   )}
                   {listing.meetingPoint && (
-                    <p><span className="font-semibold text-gray-700">Meeting Point:</span> {listing.meetingPoint}</p>
+                    <div className="flex items-start gap-3 py-3">
+                      <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg bg-teal-50 text-teal-700">
+                        <MapPin className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Meeting points</p>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {listing.meetingPoint.split(',').map((m: string, i: number) => {
+                            const t = m.trim();
+                            return t ? (
+                              <span key={i} className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">{t}</span>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                    </div>
                   )}
                   {listing.advanceNoticeHours && (
-                    <p><span className="font-semibold text-gray-700">Advance Notice:</span> {listing.advanceNoticeHours} hours required</p>
+                    <div className="flex items-start gap-3 py-3">
+                      <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg bg-teal-50 text-teal-700">
+                        <Clock className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Advance notice</p>
+                        <p className="mt-0.5 text-sm font-medium text-slate-900">{listing.advanceNoticeHours} hours required</p>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
             )}
 
+            {/* FAQ */}
+            <FaqAccordion />
+
+            {/* Why Wander — the trust behind the trip */}
+            <div>
+              <Kicker>Why Wander</Kicker>
+              <h2 className="font-display text-4xl md:text-5xl font-light text-slate-900 tracking-tight leading-[1.05] mb-6">The trust behind the trip.</h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  { icon: Shield, title: 'Verified vendor', copy: 'Background checked & approved.' },
+                  { icon: Star, title: 'Trusted by travelers', copy: '1000+ bookings completed.' },
+                  { icon: Sparkles, title: 'No commitment', copy: 'Free quotes, cancel anytime.' },
+                ].map((t) => (
+                  <div
+                    key={t.title}
+                    className="group relative flex h-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 text-center transition-all duration-300 hover:-translate-y-1.5 hover:border-teal-200 hover:shadow-[0_28px_60px_-28px_rgba(13,148,136,0.35)]"
+                  >
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-600 via-teal-400 to-amber-400 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                    <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-teal-600 to-teal-400 text-white shadow-lg shadow-teal-500/25 transition-transform duration-300 group-hover:scale-110">
+                      <t.icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="mt-4 font-display text-lg font-medium text-slate-900">{t.title}</h3>
+                    <p className="mt-1.5 text-[13px] text-slate-500 leading-relaxed">{t.copy}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Mobile: inline form */}
-            <div className="lg:hidden bg-white border border-indigo-100 rounded-3xl overflow-hidden shadow-[0_4px_24px_rgba(79,70,229,0.1)]">
-              <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-4">
+            <div className="lg:hidden bg-white border border-teal-100 rounded-3xl overflow-hidden shadow-[0_4px_24px_rgba(79,70,229,0.1)]">
+              <div className="bg-gradient-to-r from-teal-600 to-teal-600 px-5 py-4">
                 <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-indigo-200" /> Get a Free Quote
+                  <MessageSquare className="w-4 h-4 text-teal-200" /> Get a Free Quote
                 </h2>
-                <p className="text-xs text-indigo-200 mt-0.5">Vendors will reply with custom pricing</p>
+                <p className="text-xs text-teal-200 mt-0.5">Vendors will reply with custom pricing</p>
               </div>
               <div className="p-5 space-y-3">
               <QuoteForm
@@ -1449,41 +1705,50 @@ export default function TourDetailPage() {
 
           {/* ── RIGHT / SIDEBAR ── */}
           <div className="hidden lg:block">
-            <div className="sticky top-24 space-y-4">
+            <div id="book" className="sticky top-24 space-y-4">
               {/* Price + Quote card — premium */}
-              <div className="bg-white rounded-3xl overflow-hidden shadow-[0_4px_24px_rgba(79,70,229,0.12),0_1px_4px_rgba(0,0,0,0.06)] border border-indigo-100/60">
-                {/* Gradient header */}
-                <div className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 px-5 py-5">
-                  {listing.priceType === 'ON_REQUEST' ? (
-                    <div>
-                      <p className="text-indigo-200 text-xs font-medium mb-1">Price</p>
-                      <p className="text-3xl font-black text-white">Custom Quote</p>
-                      <p className="text-indigo-200 text-xs mt-1">Tailored to your group & dates</p>
-                    </div>
-                  ) : priceLabel ? (
-                    <div>
-                      <p className="text-indigo-200 text-xs font-medium mb-1">Starting from</p>
-                      <div className="flex items-baseline gap-1.5">
-                        <p className="text-3xl font-black text-white">{priceLabel}</p>
-                        {priceSuffix && <p className="text-indigo-200 text-sm">{priceSuffix}</p>}
+              <div className="bg-white rounded-3xl overflow-hidden border border-slate-200/70 shadow-[0_10px_50px_-20px_rgba(15,23,42,0.28)]">
+                {/* Premium green gradient header */}
+                <div className="relative overflow-hidden px-6 pt-6 pb-5 bg-gradient-to-br from-teal-600 via-teal-600 to-emerald-500 text-white">
+                  <div className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-white/10 blur-2xl" />
+                  <div className="pointer-events-none absolute -left-8 bottom-0 h-24 w-24 rounded-full bg-emerald-300/20 blur-2xl" />
+                  <div className="relative">
+                    {listing.priceType === 'ON_REQUEST' ? (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-white/70 mb-1">Price</p>
+                        <p className="font-display text-3xl font-medium">Custom Quote</p>
+                        <p className="text-white/80 text-xs mt-1">Tailored to your group &amp; dates</p>
                       </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-indigo-200 text-xs font-medium mb-1">Pricing</p>
-                      <p className="text-2xl font-black text-white">Get Free Quote</p>
-                    </div>
-                  )}
-                  {/* Quick stats */}
-                  <div className="flex items-center gap-3 mt-4 pt-3 border-t border-white/20">
-                    {listing.duration && (
-                      <div className="flex items-center gap-1.5 text-indigo-100 text-xs">
-                        <Clock className="w-3.5 h-3.5" /> {listing.duration}
+                    ) : priceLabel ? (
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-white/70">Starting from</p>
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-white bg-white/20 px-2 py-0.5 rounded-full">No booking fee</span>
+                        </div>
+                        <div className="mt-1.5 flex items-baseline gap-1.5">
+                          <p className="font-display text-4xl font-semibold tracking-tight">{priceLabel}</p>
+                          {priceSuffix && <p className="text-white/70 text-sm">{priceSuffix}</p>}
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-white/70 mb-1">Pricing</p>
+                        <p className="font-display text-2xl font-medium">Get Free Quote</p>
                       </div>
                     )}
-                    {listing.mainLocation?.name && (
-                      <div className="flex items-center gap-1.5 text-indigo-100 text-xs">
-                        <MapPin className="w-3.5 h-3.5" /> {listing.mainLocation.name}
+                    {/* Quick stats */}
+                    {(listing.duration || listing.mainLocation?.name) && (
+                      <div className="mt-4 pt-4 border-t border-white/20 flex items-center gap-4">
+                        {listing.duration && (
+                          <div className="flex items-center gap-1.5 text-white/90 text-xs">
+                            <Clock className="w-3.5 h-3.5" /> {listing.duration}
+                          </div>
+                        )}
+                        {listing.mainLocation?.name && (
+                          <div className="flex items-center gap-1.5 text-white/90 text-xs">
+                            <MapPin className="w-3.5 h-3.5" /> {listing.mainLocation.name}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1492,7 +1757,7 @@ export default function TourDetailPage() {
                 {/* Form */}
                 <div className="p-5">
                   <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-indigo-500" />
+                    <MessageSquare className="w-4 h-4 text-teal-500" />
                     Request a Quote — It's Free
                   </h3>
                   <QuoteForm
@@ -1505,6 +1770,12 @@ export default function TourDetailPage() {
                     advancePaymentType={listing.advancePaymentType}
                     advancePaymentValue={listing.advancePaymentValue}
                   />
+                  {/* Micro-features */}
+                  <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2 text-[11px] text-slate-500">
+                    <span className="flex items-center gap-1.5"><Lock className="w-3 h-3 text-teal-600 flex-shrink-0" /> Secure — no payment needed to enquire</span>
+                    <span className="flex items-center gap-1.5"><Check className="w-3 h-3 text-teal-600 flex-shrink-0" /> Free to cancel · vendors reply fast</span>
+                    <span className="flex items-center gap-1.5"><Sparkles className="w-3 h-3 text-teal-600 flex-shrink-0" /> Compare multiple quotes</span>
+                  </div>
                 </div>
               </div>
 
@@ -1512,27 +1783,6 @@ export default function TourDetailPage() {
               {listing.vendor && (
                 <VendorCard vendor={listing.vendor} listingCount={listing.vendor._count?.wander_listings} />
               )}
-
-              {/* Trust badges */}
-              <div className="bg-gradient-to-br from-gray-50 to-indigo-50/40 border border-gray-200/80 rounded-2xl p-4">
-                <div className="space-y-3">
-                  {[
-                    { icon: Shield, text: 'Verified vendor', sub: 'Background checked & approved' },
-                    { icon: Star, text: 'Trusted by travelers', sub: '1000+ bookings completed' },
-                    { icon: Sparkles, text: 'No commitment', sub: 'Free quotes, cancel anytime' },
-                  ].map(b => (
-                    <div key={b.text} className="flex items-start gap-3">
-                      <div className="w-7 h-7 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <b.icon className="w-3.5 h-3.5 text-indigo-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-gray-800">{b.text}</p>
-                        <p className="text-[10px] text-gray-400">{b.sub}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
 
               {/* Similar Tours in sidebar */}
               {similarListings.length > 0 && (
@@ -1548,16 +1798,11 @@ export default function TourDetailPage() {
         </div>
       </div>
 
-      {/* Reviews Section */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
-        <ReviewsSection listingId={listing.id} />
-      </div>
-
       {/* Similar Tours — full width below reviews (mobile) */}
       {similarListings.length > 0 && (
         <div className="lg:hidden bg-gray-50 border-t border-gray-100 px-4 py-8">
           <div className="max-w-6xl mx-auto">
-            <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">More Tours</p>
+            <p className="text-xs font-bold text-teal-600 uppercase tracking-wider mb-1">More Tours</p>
             <h3 className="text-lg font-black text-gray-900 mb-4">You Might Also Like</h3>
             <div className="space-y-3">
               {similarListings.map(s => <SimilarCard key={s.id} listing={s} />)}
@@ -1577,12 +1822,12 @@ export default function TourDetailPage() {
           ) : (
             <div className="flex-1">
               <p className="text-[10px] text-gray-400">Price on request</p>
-              <p className="font-bold text-indigo-600 text-sm">Custom Quote</p>
+              <p className="font-bold text-teal-600 text-sm">Custom Quote</p>
             </div>
           )}
           <button
             onClick={() => document.querySelector('.lg\\:hidden.bg-white')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-            className="flex-1 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-2xl text-sm shadow-lg shadow-indigo-500/30 active:scale-95 transition-transform"
+            className="flex-1 py-3.5 bg-gradient-to-r from-teal-600 to-teal-600 text-white font-bold rounded-2xl text-sm shadow-lg shadow-teal-500/30 active:scale-95 transition-transform"
           >
             Get Free Quote
           </button>

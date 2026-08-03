@@ -7,42 +7,23 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
-  RefreshControl, ActivityIndicator, ScrollView, StatusBar,
+  RefreshControl, ActivityIndicator, ScrollView, StatusBar, Animated, Easing, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import { getTravelAgentPayments } from "../../api/travelAgentClient";
+import { DISPLAY } from "../_shared/typography";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  indigo: "#6366F1",
-  indigoLight: "#E0E7FF",
-  purple: "#8B5CF6",
-};
 
 // Status meta: stripe color + bg/fg pill tint + icon + human label.
 // "To verify" (SUBMITTED) is amber/urgent — agent action required.
 const STATUS_META = {
-  PENDING:   { stripe: C.blue,   bg: C.blueLight,   fg: "#1D4ED8", icon: "hourglass-outline", label: "Awaiting" },
-  SUBMITTED: { stripe: C.amber,  bg: C.amberLight,  fg: "#A16207", icon: "hourglass",         label: "To verify" },
+  PENDING:   { stripe: C.blue,   bg: C.blueLight,   fg: "#1E4E86", icon: "hourglass-outline", label: "Awaiting" },
+  SUBMITTED: { stripe: C.amber,  bg: C.amberLight,  fg: "#8A6420", icon: "hourglass",         label: "To verify" },
   VERIFIED:  { stripe: C.emerald600, bg: C.emerald50,  fg: C.emerald700, icon: "checkmark-circle", label: "Verified" },
-  REJECTED:  { stripe: C.red,    bg: C.redLight,    fg: "#B91C1C", icon: "close-circle",      label: "Rejected" },
+  REJECTED:  { stripe: C.red,    bg: C.redLight,    fg: "#9E362E", icon: "close-circle",      label: "Rejected" },
 };
 
 // Tab order mirrors web payments page.
@@ -87,13 +68,15 @@ function initials(name) {
   const parts = name.trim().split(/\s+/);
   return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "?";
 }
+// Warm Elevate tint/ink pairs — the old set was bright pastel (#DBEAFE,
+// #FCE7F3, #CFFAFE …) and read as a different app on the ivory ground.
 const AVATAR_PALETTE = [
-  { bg: "#DBEAFE", fg: "#1D4ED8" },
-  { bg: "#FCE7F3", fg: "#BE185D" },
-  { bg: "#D1FAE5", fg: "#047857" },
-  { bg: "#FEF3C7", fg: "#A16207" },
-  { bg: "#EDE9FE", fg: "#6D28D9" },
-  { bg: "#CFFAFE", fg: "#0E7490" },
+  { bg: "#E6EFF4", fg: "#245C7A" }, // ocean
+  { bg: "#FBE9EE", fg: "#B14A64" }, // rose
+  { bg: "#E7F1EC", fg: "#1C6B52" }, // emerald
+  { bg: "#F8F0DC", fg: "#9A6B16" }, // gold
+  { bg: "#EFE9FA", fg: "#5E43A8" }, // plum
+  { bg: "#E4F0EF", fg: "#176F66" }, // teal
 ];
 function tintFor(name) {
   if (!name) return AVATAR_PALETTE[0];
@@ -101,6 +84,44 @@ function tintFor(name) {
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
   return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
 }
+
+// Slowly drifting/pulsing decorative orb for the hero — gentle ambient motion.
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return (
+    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
+  );
+}
+
+// TEMP DEMO — sample payment card for previewing the card design without real
+// data. Tapping it shows an info alert instead of navigating (its id is fake).
+// Remove this block, its use in `load`, and the demo guard in onPress later.
+const DEMO_PAY_ID = "__DEMO_PAY__";
+const DEMO_PAYMENT = {
+  id: DEMO_PAY_ID,
+  paymentStatus: "SUBMITTED",
+  customerName: "Priya Nair",
+  customerPhone: "9876500000",
+  tourTitle: "Goa Beach Getaway",
+  destination: "Goa",
+  quotedAmount: 25000,
+  advanceAmount: 10000,
+  balanceAmount: 15000,
+  paymentSubmittedAt: "2026-07-23T09:00:00.000Z",
+};
 
 export default function PaymentsScreen({ navigation }) {
   const [items, setItems] = useState([]);
@@ -124,7 +145,8 @@ export default function PaymentsScreen({ navigation }) {
       if (tab !== "ALL") params.status = tab;
       if (debouncedSearch) params.q = debouncedSearch;
       const data = await getTravelAgentPayments(params);
-      setItems(data.items || []);
+      // TEMP DEMO — prepend a sample payment card (remove after preview)
+      setItems([DEMO_PAYMENT, ...(data.items || [])]);
       setStats(data.stats || null);
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || "Failed to load payments");
@@ -168,15 +190,17 @@ export default function PaymentsScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
 
       {/* ===== Gradient hero header ===== */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 64 }}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 46 }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
               <Ionicons name="arrow-back" size={22} color="#fff" />
@@ -244,7 +268,7 @@ export default function PaymentsScreen({ navigation }) {
         <TextInput
           style={styles.searchInput}
           placeholder="Search customer, phone, txn id…"
-          placeholderTextColor="#A3B3C2"
+          placeholderTextColor="#9AA79E"
           value={search}
           onChangeText={setSearch}
         />
@@ -260,7 +284,8 @@ export default function PaymentsScreen({ navigation }) {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.tabsRow}
-        style={{ flexGrow: 0 }}
+        style={styles.tabsScroll}
+        keyboardShouldPersistTaps="handled"
       >
         {tabsWithCounts.map((t) => {
           const active = tab === t.key;
@@ -279,7 +304,7 @@ export default function PaymentsScreen({ navigation }) {
               <Text
                 style={[
                   styles.tabText,
-                  active && { color, fontWeight: "800" },
+                  active && { color, fontWeight: "bold" },
                 ]}
               >
                 {t.label}
@@ -310,16 +335,26 @@ export default function PaymentsScreen({ navigation }) {
       ) : (
         <FlatList
           data={items}
+          style={styles.list}
+          keyboardShouldPersistTaps="handled"
           keyExtractor={(p, i) => p.id || `pay-${i}`}
           renderItem={({ item }) => (
             <PaymentCard
               payment={item}
-              onPress={() =>
+              onPress={() => {
+                // TEMP DEMO — fake id has no real lead; show info instead of 404
+                if (item.id === DEMO_PAY_ID) {
+                  Alert.alert(
+                    "Demo card",
+                    "This is a sample card. A real payment card opens the customer's Lead Detail screen (to review & verify the payment)."
+                  );
+                  return;
+                }
                 navigation.navigate("TALeadDetail", {
                   id: item.id,
                   customerName: item.customerName,
-                })
-              }
+                });
+              }}
             />
           )}
           contentContainerStyle={items.length === 0 ? styles.emptyWrap : styles.listContent}
@@ -402,7 +437,7 @@ function PaymentCard({ payment, onPress }) {
       <View style={styles.cardBody}>
         {/* Top row: status pill + relative time */}
         <View style={styles.cardTop}>
-          <View style={[styles.statusPill, { backgroundColor: meta.bg }]}>
+          <View style={[styles.statusPill, { backgroundColor: meta.bg, borderColor: meta.fg }]}>
             <Ionicons name={meta.icon} size={11} color={meta.fg} />
             <Text style={[styles.statusText, { color: meta.fg }]}>{meta.label}</Text>
           </View>
@@ -530,7 +565,7 @@ function PaymentCard({ payment, onPress }) {
           <Text
             style={[
               styles.viewLeadText,
-              { color: isUrgent ? "#A16207" : C.emerald700 },
+              { color: isUrgent ? "#8A6420" : C.emerald700 },
             ]}
           >
             {isUrgent ? "Tap to review & verify payment" : "Tap to view lead"}
@@ -550,17 +585,25 @@ function PaymentCard({ payment, onPress }) {
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
   // Header
-  headerGrad: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  headerGrad: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
+  orbA: {
+    position: "absolute", top: -50, right: -40, width: 190, height: 190,
+    borderRadius: 95, backgroundColor: "rgba(201,154,63,0.10)",
+  },
+  orbB: {
+    position: "absolute", top: 20, left: -60, width: 150, height: 150,
+    borderRadius: 75, backgroundColor: "rgba(46,158,119,0.14)",
+  },
   headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "700", marginTop: 2 },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: "bold", color: "#fff" },
+  headerSub: { fontFamily: DISPLAY, fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "bold", marginTop: 2 },
 
-  heroBlock: { flexDirection: "row", alignItems: "flex-end", marginTop: 16, paddingHorizontal: 4 },
-  heroLabel: { fontSize: 10.5, color: "rgba(255,255,255,0.8)", fontWeight: "800", letterSpacing: 1 },
-  heroAmount: { fontSize: 30, color: "#fff", fontWeight: "900", marginTop: 4, letterSpacing: -0.5 },
+  heroBlock: { flexDirection: "row", alignItems: "flex-end", marginTop: 12, paddingHorizontal: 4 },
+  heroLabel: { fontFamily: DISPLAY, fontSize: 10.5, color: "rgba(255,255,255,0.8)", fontWeight: "bold", letterSpacing: 1 },
+  heroAmount: { fontFamily: DISPLAY, fontSize: 28, color: "#fff", fontWeight: "bold", marginTop: 3, letterSpacing: -0.5 },
   heroPctPill: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.2)" },
-  heroPctText: { color: "#fff", fontSize: 13, fontWeight: "900" },
+  heroPctText: { fontFamily: DISPLAY, color: "#fff", fontSize: 13, fontWeight: "bold" },
 
   // Floating stats
   statsCard: {
@@ -568,12 +611,12 @@ const styles = StyleSheet.create({
     backgroundColor: C.card, marginHorizontal: 16, marginTop: -22,
     borderRadius: 16, paddingVertical: 12, paddingHorizontal: 6,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3,
+    shadowColor: C.shadow, shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   statCell: { flexDirection: "row", alignItems: "center", gap: 7, flex: 1, justifyContent: "center", minWidth: 0 },
   statIcon: { width: 26, height: 26, borderRadius: 9, alignItems: "center", justifyContent: "center" },
-  statValue: { fontSize: 13.5, fontWeight: "900" },
-  statLabel: { fontSize: 9.5, color: C.subText, fontWeight: "700", marginTop: 1, letterSpacing: 0.2 },
+  statValue: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: "bold" },
+  statLabel: { fontFamily: DISPLAY, fontSize: 9.5, color: C.subText, fontWeight: "bold", marginTop: 1, letterSpacing: 0.2 },
   statDivider: { width: 1, height: 28, backgroundColor: C.border },
 
   // Search
@@ -582,78 +625,86 @@ const styles = StyleSheet.create({
     marginHorizontal: 16, marginTop: 14, paddingHorizontal: 12, height: 44,
     backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 12,
   },
-  searchInput: { flex: 1, fontSize: 13.5, color: C.ink, paddingVertical: 0 },
+  searchInput: { fontFamily: DISPLAY, flex: 1, fontSize: 13.5, color: C.ink, paddingVertical: 0 },
 
   // Tabs
+  // flexShrink:0 stops the tab strip from collapsing when the keyboard opens
+  // and the window resizes — the FlatList (flex:1) absorbs the height change.
+  tabsScroll: { flexGrow: 0, flexShrink: 0 },
   tabsRow: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, gap: 8, flexDirection: "row" },
+  list: { flex: 1 },
   tab: {
     flexDirection: "row", alignItems: "center", gap: 5,
     paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999,
     backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
   },
-  tabText: { fontSize: 12, color: C.text, fontWeight: "700" },
-  tabBadge: { minWidth: 18, paddingHorizontal: 5, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "#E2E8F0" },
-  tabBadgeText: { fontSize: 10, fontWeight: "800", color: C.text },
+  tabText: { fontFamily: DISPLAY, fontSize: 12, color: C.text, fontWeight: "bold" },
+  tabBadge: { minWidth: 18, paddingHorizontal: 5, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "#EFE7D6" },
+  tabBadgeText: { fontFamily: DISPLAY, fontSize: 10, fontWeight: "bold", color: C.text },
 
-  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: C.red, fontSize: 12.5, flex: 1 },
-  errorRetry: { color: C.red, fontWeight: "800", fontSize: 12.5 },
+  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, padding: 10, backgroundColor: "#FBEDEB", borderRadius: 10, borderWidth: 1, borderColor: "rgba(192,69,59,0.2)" },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 12.5, flex: 1 },
+  errorRetry: { fontFamily: DISPLAY, color: C.red, fontWeight: "bold", fontSize: 12.5 },
 
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 13, color: C.subText, fontWeight: "600" },
+  loadingText: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, fontWeight: "600" },
 
   listContent: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 24 },
   emptyWrap: { flexGrow: 1, justifyContent: "center", padding: 16 },
   empty: { alignItems: "center", padding: 24 },
   emptyIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  emptyTitle: { fontSize: 17, fontWeight: "800", color: C.ink, marginTop: 6 },
-  emptyBody: { fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 19 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, marginTop: 6 },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 19 },
   emptyCta: { marginTop: 18, borderRadius: 12, overflow: "hidden" },
   emptyCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11 },
-  emptyCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  emptyCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
 
   // Card
   card: {
     flexDirection: "row",
-    backgroundColor: C.card, borderRadius: 14, marginBottom: 12, overflow: "hidden",
+    backgroundColor: C.card, borderRadius: 14, marginBottom: 10, overflow: "hidden",
     borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2,
+    shadowColor: C.shadow, shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
   cardStripe: { width: 4 },
-  cardBody: { flex: 1, padding: 12 },
+  cardBody: { flex: 1, padding: 10 },
 
-  cardTop: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
-  statusPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
-  statusText: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.3 },
+  cardTop: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 7 },
+  statusPill: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 9, paddingVertical: 4.5, borderRadius: 999,
+    borderWidth: 1,
+  },
+  statusText: { fontFamily: DISPLAY, fontSize: 10, fontWeight: "bold", letterSpacing: 0.5, textTransform: "uppercase" },
   urgentBadge: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, backgroundColor: C.amber },
-  urgentBadgeText: { color: "#fff", fontSize: 9, fontWeight: "900", letterSpacing: 0.4 },
-  cardTime: { fontSize: 10.5, color: C.subText, fontWeight: "700" },
+  urgentBadgeText: { fontFamily: DISPLAY, color: "#fff", fontSize: 9, fontWeight: "bold", letterSpacing: 0.4 },
+  cardTime: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "bold" },
 
   // Customer
-  customerRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
-  avatar: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  avatarText: { fontSize: 13, fontWeight: "900", letterSpacing: 0.5 },
-  cardName: { fontSize: 14.5, fontWeight: "800", color: C.ink },
+  customerRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+  avatar: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  avatarText: { fontFamily: DISPLAY, fontSize: 13, fontWeight: "bold", letterSpacing: 0.5 },
+  cardName: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: "bold", color: C.ink },
   cardMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
-  cardMetaText: { fontSize: 11, color: C.subText, fontWeight: "600", flexShrink: 1 },
-  cardMetaDot: { fontSize: 11, color: C.subText, fontWeight: "800" },
+  cardMetaText: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "600", flexShrink: 1 },
+  cardMetaDot: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "bold" },
 
   // Payment block
   payBlock: {
-    backgroundColor: "#FAFBFC", borderRadius: 10, padding: 10,
-    borderWidth: 1, borderColor: C.border, marginBottom: 8,
+    backgroundColor: "#FBF8F1", borderRadius: 10, padding: 8,
+    borderWidth: 1, borderColor: C.border, marginBottom: 6,
   },
-  payBarTrack: { height: 6, backgroundColor: "#E2E8F0", borderRadius: 3, overflow: "hidden", marginBottom: 10 },
+  payBarTrack: { height: 6, backgroundColor: "#EFE7D6", borderRadius: 3, overflow: "hidden", marginBottom: 8 },
   payBarFill: { height: "100%", borderRadius: 3 },
   amountsRow: { flexDirection: "row", justifyContent: "space-between" },
   amountBlock: { flex: 1 },
-  amountLabel: { fontSize: 9.5, color: C.subText, fontWeight: "800", letterSpacing: 0.4 },
-  amountValue: { fontSize: 13.5, fontWeight: "900", color: C.ink, marginTop: 2 },
+  amountLabel: { fontFamily: DISPLAY, fontSize: 9.5, color: C.subText, fontWeight: "bold", letterSpacing: 0.4 },
+  amountValue: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: "bold", color: C.ink, marginTop: 2 },
 
   // Txn pill
   txnPill: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: C.purple + "1A", marginBottom: 8 },
-  txnLabel: { fontSize: 9, color: C.purple, fontWeight: "900", letterSpacing: 0.5 },
-  txnText: { fontSize: 11, color: C.text, fontWeight: "700", fontFamily: "monospace", maxWidth: 180 },
+  txnLabel: { fontFamily: DISPLAY, fontSize: 9, color: C.purple, fontWeight: "bold", letterSpacing: 0.5 },
+  txnText: { fontSize: 11, color: C.text, fontWeight: "bold", fontFamily: "monospace", maxWidth: 180 },
 
   // Reject reason
   rejectBox: {
@@ -661,12 +712,12 @@ const styles = StyleSheet.create({
     padding: 10, borderRadius: 10, backgroundColor: C.redLight,
     borderLeftWidth: 3, borderLeftColor: C.red, marginBottom: 8,
   },
-  rejectText: { color: C.red, fontSize: 11.5, flex: 1, fontWeight: "600", lineHeight: 15 },
+  rejectText: { fontFamily: DISPLAY, color: C.red, fontSize: 11.5, flex: 1, fontWeight: "600", lineHeight: 15 },
 
   // Footer hint
   viewLeadHint: {
     flexDirection: "row", alignItems: "center", gap: 5,
-    marginTop: 6, paddingVertical: 8, paddingHorizontal: 8,
+    marginTop: 2, paddingVertical: 6, paddingHorizontal: 8,
   },
-  viewLeadText: { fontSize: 11.5, fontWeight: "800" },
+  viewLeadText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold" },
 });

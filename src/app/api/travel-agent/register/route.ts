@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/prisma';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { checkRateLimit, RATE_LIMITS, logger } from '@/lib/security';
+import { generateTaid } from '@/lib/utils/generate-taid';
 import { getAllActiveManagers, notifyManagers } from '@/lib/notifications/manager-notify';
 
 export const dynamic = 'force-dynamic';
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
     const agent = await prisma.travel_agents.create({
       data: {
         id: generateId(),
+        tid: await generateTaid(),
         email: email.toLowerCase(),
         password: hashedPassword,
         phone,
@@ -108,6 +110,7 @@ export async function POST(request: NextRequest) {
       },
       select: {
         id: true,
+        tid: true,
         email: true,
         phone: true,
         agencyName: true,

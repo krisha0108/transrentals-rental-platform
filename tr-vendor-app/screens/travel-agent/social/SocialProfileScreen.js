@@ -7,11 +7,11 @@
 //   - { me: true }   → view own profile (resolves type+id from cached TA)
 //
 // "Message" button (when !isMe) opens-or-creates a social conversation.
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl, FlatList, Alert, StatusBar,
-  Dimensions,
+  Dimensions, Animated, Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -22,27 +22,15 @@ import {
   getCurrentTravelAgent,
 } from "../../api/travelAgentClient";
 import RemoteImage from "../_shared/RemoteImage";
+import { DISPLAY } from "../_shared/typography";
+import { SC as C, G, TONES } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-  purpleLight: "#EDE9FE",
-};
+// Warm "Elevate" palette — same keys, repainted to match the feed and the rest
+// of the Travel Agent module. The old set was cool slate (#F6F8FB ground).
+// Values now come from the shared Elevate theme; key names unchanged so no JSX
+// edits were needed. Only the emerald family, inks and header gradient drifted.
+const FILL = "#FBF8F1";
+const HEADER_GRAD = G.hero;
 
 const TYPE_META = {
   vendor: { color: C.purple, icon: "storefront", label: "Vendor" },
@@ -65,6 +53,29 @@ function fmtRelative(iso) {
   if (days < 365) return `${Math.round(days / 30)}mo ago`;
   return d.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
 }
+// Slowly drifting/pulsing decorative bubble for the header — same gentle motion
+// as the Fleet, Tours and Agency Profile headers. useNativeDriver keeps it off
+// the JS thread, and the loop is stopped on unmount.
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return (
+    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
+  );
+}
+
 function shade(hex, pct) {
   const f = parseInt(hex.slice(1), 16);
   const t = pct < 0 ? 0 : 255;
@@ -154,7 +165,7 @@ export default function SocialProfileScreen({ navigation, route }) {
       <View style={{ flex: 1, backgroundColor: C.bg }}>
         <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
         <LinearGradient
-          colors={["#022C22", "#064E3B", "#047857"]}
+          colors={HEADER_GRAD}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.headerGradSimple}
         >
@@ -182,7 +193,7 @@ export default function SocialProfileScreen({ navigation, route }) {
       <View style={{ flex: 1, backgroundColor: C.bg }}>
         <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
         <LinearGradient
-          colors={["#022C22", "#064E3B", "#047857"]}
+          colors={HEADER_GRAD}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.headerGradSimple}
         >
@@ -306,32 +317,36 @@ function ProfileHeader({ profile, typeMeta, isMe, openingChat, onBack, onMessage
     <View>
       {/* ===== Gradient hero ===== */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={HEADER_GRAD}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.heroGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12 }}>
+        {/* Opposite drift directions + a 900ms offset so the two bubbles never
+            move in lockstep. */}
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 14 }}>
           {/* Top bar */}
+          {/* Title sits left, right after the back button — same as the Agency
+              Profile header, not centred between the two buttons. */}
           <View style={styles.topBar}>
             <TouchableOpacity onPress={onBack} style={styles.iconBtn}>
               <Ionicons name="arrow-back" size={22} color="#fff" />
             </TouchableOpacity>
-            <Text style={styles.topBarTitle} numberOfLines={1}>
-              {profile.displayName || profile.ownerName || "Profile"}
-            </Text>
+            <Text style={styles.topBarTitle} numberOfLines={1}>Profile</Text>
             {isMe ? (
               <TouchableOpacity onPress={onEdit} style={styles.iconBtn}>
-                <Ionicons name="create-outline" size={22} color="#fff" />
+                <Ionicons name="create-outline" size={21} color="#fff" />
               </TouchableOpacity>
             ) : (
               <View style={{ width: 40 }} />
             )}
           </View>
 
-          {/* Avatar + bio block */}
+          {/* Horizontal hero body — avatar on the left, name + pills stacked on
+              the right, all sharing one left edge. */}
           <View style={styles.heroBody}>
-            {/* Avatar with type-color ring */}
-            <View style={[styles.avatarRing, { borderColor: shade(typeMeta.color, 30) }]}>
+            <View style={styles.avatarRing}>
               {profile.logo ? (
                 <RemoteImage source={{ uri: profile.logo }} style={styles.avatar} />
               ) : (
@@ -346,32 +361,37 @@ function ProfileHeader({ profile, typeMeta, isMe, openingChat, onBack, onMessage
               )}
             </View>
 
-            {/* Name + owner subtitle */}
-            <Text style={styles.displayName} numberOfLines={2}>
-              {profile.displayName || profile.ownerName || "Profile"}
-            </Text>
-            {!!profile.ownerName && profile.ownerName !== profile.displayName && (
-              <Text style={styles.ownerName}>{profile.ownerName}</Text>
-            )}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.displayName} numberOfLines={1}>
+                {profile.displayName || profile.ownerName || "Profile"}
+              </Text>
+              {!!profile.ownerName && profile.ownerName !== profile.displayName && (
+                <Text style={styles.ownerName} numberOfLines={1}>{profile.ownerName}</Text>
+              )}
 
-            {/* Type + location pills */}
-            <View style={styles.metaRow}>
-              <View style={styles.typePill}>
-                <Ionicons name={typeMeta.icon} size={11} color="#fff" />
-                <Text style={styles.typePillText}>{typeMeta.label}</Text>
+              {/* Row 1 — type (+ "You" when it's your own profile) */}
+              <View style={styles.metaRow}>
+                <View style={styles.typePill}>
+                  <Ionicons name={typeMeta.icon} size={10} color="#fff" />
+                  <Text style={styles.typePillText}>{typeMeta.label}</Text>
+                </View>
+                {isMe && (
+                  <View style={styles.youPill}>
+                    <Ionicons name="person" size={10} color={C.emerald700} />
+                    <Text style={styles.youText}>You</Text>
+                  </View>
+                )}
               </View>
+
+              {/* Row 2 — location sits on its own line under the type pill.
+                  alignSelf keeps the pill hugging its text instead of stretching
+                  to the full width of the info column. */}
               {!!profile.city && (
-                <View style={styles.locationPill}>
-                  <Ionicons name="location" size={11} color="#fff" />
-                  <Text style={styles.locationText}>
+                <View style={[styles.locationPill, styles.locationPillBelow]}>
+                  <Ionicons name="location" size={10} color="#fff" />
+                  <Text style={styles.locationText} numberOfLines={1}>
                     {profile.city}{profile.state ? `, ${profile.state}` : ""}
                   </Text>
-                </View>
-              )}
-              {isMe && (
-                <View style={styles.youPill}>
-                  <Ionicons name="person" size={10} color={C.emerald700} />
-                  <Text style={styles.youText}>You</Text>
                 </View>
               )}
             </View>
@@ -383,16 +403,20 @@ function ProfileHeader({ profile, typeMeta, isMe, openingChat, onBack, onMessage
       <View style={styles.statsCard}>
         <StatCell value={profile.postsCount || 0} label="Posts" icon="images" color={C.emerald600} />
         <View style={styles.statDivider} />
+        {/* "Joined" reads correctly with a relative value — the label was
+            "Member since", so it rendered as "Member since · 2mo ago". */}
         <StatCell
           value={memberSince || "—"}
-          label="Member since"
+          label="Joined"
           icon="calendar"
           color={C.blue}
           isText
         />
         <View style={styles.statDivider} />
+        {/* Full label — .split(" ")[0] was cutting "Travel Agent" down to a
+            bare "Travel", which read as a truncation bug. It fits at 11.5px. */}
         <StatCell
-          value={typeMeta.label.split(" ")[0]}
+          value={typeMeta.label}
           label="Type"
           icon={typeMeta.icon}
           color={typeMeta.color}
@@ -467,33 +491,38 @@ function ProfileHeader({ profile, typeMeta, isMe, openingChat, onBack, onMessage
 
 /* ───────── Sub-components ───────── */
 
+// Stacked and centred. The previous version put the icon beside the text and
+// centred the whole group, so cells with wider values ("Travel" vs "12" vs
+// "today") pushed their icon to a different x — nothing lined up across the
+// three columns. A fixed lineHeight on the value keeps the labels on one line
+// even though the values render at two different sizes.
 function StatCell({ value, label, icon, color, isText }) {
   return (
     <View style={styles.statCell}>
       <View style={[styles.statIcon, { backgroundColor: `${color}1A` }]}>
         <Ionicons name={icon} size={14} color={color} />
       </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          style={[styles.statValue, { color, fontSize: isText ? 12 : 18 }]}
-          numberOfLines={1}
-        >
-          {value}
-        </Text>
-        <Text style={styles.statLabel}>{label}</Text>
-      </View>
+      <Text
+        style={[styles.statValue, { color, fontSize: isText ? 11.5 : 17 }]}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
+      <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
 
-// Pleasant text-placeholder gradients cycled for posts without images.
+// Text-placeholder gradients cycled for posts without images. Warm, low-chroma
+// tints drawn from the module palette — the previous set was the old bright
+// cool one (#6EE7B7 / #93C5FD / #67E8F9) and stood out against the ivory ground.
 const PLACEHOLDER_GRADIENTS = [
-  ["#A7F3D0", "#6EE7B7"], // emerald
-  ["#DBEAFE", "#93C5FD"], // blue
-  ["#FCE7F3", "#F9A8D4"], // pink
-  ["#FEF3C7", "#FCD34D"], // amber
-  ["#EDE9FE", "#C4B5FD"], // purple
-  ["#CFFAFE", "#67E8F9"], // cyan
+  ["#E9F5F0", "#CBE3DA"], // emerald tint
+  ["#F6EEDB", "#E8D8B4"], // gold / sand
+  ["#E6EFF4", "#C9DCE6"], // ocean
+  ["#EFE9FA", "#DBD0F0"], // plum
+  ["#FBE9E7", "#F1D0CA"], // rose
+  ["#F1ECE0", "#E1D6C0"], // parchment
 ];
 
 function PostThumb({ post, index, onPress }) {
@@ -534,9 +563,15 @@ function PostThumb({ post, index, onPress }) {
           </View>
         )}
 
-        {/* Engagement strip on hover-equivalent (always shown on mobile) */}
+        {/* Engagement counts — a soft scrim fading up from the bottom edge
+            instead of a solid dark bar, which sat like a block across every
+            thumbnail. Counts hug the bottom-left. */}
         {(post.likesCount > 0 || post.commentsCount > 0) && (
-          <View style={styles.engageOverlay}>
+          <LinearGradient
+            colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.62)"]}
+            style={styles.engageOverlay}
+            pointerEvents="none"
+          >
             {post.likesCount > 0 && (
               <View style={styles.engageItem}>
                 <Ionicons name="heart" size={10} color="#fff" />
@@ -549,7 +584,7 @@ function PostThumb({ post, index, onPress }) {
                 <Text style={styles.engageText}>{post.commentsCount}</Text>
               </View>
             )}
-          </View>
+          </LinearGradient>
         )}
       </View>
     </TouchableOpacity>
@@ -559,73 +594,107 @@ function PostThumb({ post, index, onPress }) {
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
   // Simple header (loading / not found)
-  headerGradSimple: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
+  // Loading / not-found headers mirror the real hero's top bar exactly (same
+  // radius, same 36px glass button, same gold eyebrow) so the header doesn't
+  // visibly change shape the moment the profile finishes loading.
+  headerGradSimple: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
   headerRowSimple: { flexDirection: "row", alignItems: "center", paddingTop: 4, paddingBottom: 12 },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitleSimple: { flex: 1, fontSize: 18, fontWeight: "800", color: "#fff", textAlign: "center" },
+  headerTitleSimple: { fontFamily: DISPLAY, flex: 1, fontSize: 18, fontWeight: "bold", color: "#fff", textAlign: "left", marginLeft: 4 },
 
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 13, color: C.subText, fontWeight: "600" },
+  loadingText: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, fontWeight: "600" },
 
   notFoundWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
   notFoundIconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: C.redLight, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  notFoundTitle: { fontSize: 17, fontWeight: "800", color: C.ink, marginTop: 6 },
-  notFoundBody: { fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", lineHeight: 19 },
+  notFoundTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, marginTop: 6 },
+  notFoundBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", lineHeight: 19 },
   backCta: { marginTop: 18, borderRadius: 12, overflow: "hidden" },
   backCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11 },
-  backCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  backCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
 
   // Hero
-  heroGrad: { borderBottomLeftRadius: 28, borderBottomRightRadius: 28, paddingBottom: 50 },
+  heroGrad: {
+    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+    // gap to the stats card = paddingBottom + its negative marginTop.
+    // 42 + (-16) = 26dp. Both were larger (52 / -26) for the same 26dp gap —
+    // shrinking the pair keeps the gap but makes the gradient 10dp shorter.
+    paddingBottom: 42, overflow: "hidden",
+  },
+  orbA: {
+    position: "absolute", top: -46, right: -32, width: 175, height: 175,
+    borderRadius: 88, backgroundColor: "rgba(228,192,102,0.10)",
+  },
+  orbB: {
+    position: "absolute", bottom: 10, left: -40, width: 145, height: 145,
+    borderRadius: 73, backgroundColor: "rgba(23,166,124,0.14)",
+  },
+  // Matches AgencyProfileScreen's header exactly: plain 40px icon buttons and a
+  // left-aligned 18px title that takes the remaining width.
   topBar: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
-  topBarTitle: { flex: 1, fontSize: 15, fontWeight: "800", color: "#fff", textAlign: "center" },
+  topBarTitle: {
+    fontFamily: DISPLAY, flex: 1, fontSize: 18, fontWeight: "bold",
+    color: "#fff", textAlign: "left", marginLeft: 4,
+  },
 
-  heroBody: { alignItems: "center", paddingTop: 12, paddingHorizontal: 8 },
+  // Horizontal: avatar | info column.
+  heroBody: { flexDirection: "row", alignItems: "center", gap: 12, paddingTop: 6, paddingHorizontal: 4 },
+  // Gold ring instead of a type-tinted one — the type is already stated by the
+  // pill below, and gold ties the hero to the rest of the module.
   avatarRing: {
-    width: 100, height: 100, borderRadius: 30,
-    padding: 3, borderWidth: 3,
+    width: 58, height: 58, borderRadius: 17,
+    padding: 2, borderWidth: 2, borderColor: "rgba(255,255,255,0.35)",
     alignItems: "center", justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.15)",
-    shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+    shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4,
   },
-  avatar: { width: 90, height: 90, borderRadius: 26, alignItems: "center", justifyContent: "center" },
-  avatarText: { color: "#fff", fontWeight: "900", fontSize: 32, letterSpacing: 0.5 },
+  avatar: { width: 50, height: 50, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  avatarText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 19, letterSpacing: 0.5 },
 
-  displayName: { fontSize: 22, fontWeight: "900", color: "#fff", textAlign: "center", marginTop: 14, letterSpacing: -0.3 },
-  ownerName: { fontSize: 13, color: "rgba(255,255,255,0.85)", marginTop: 4, fontWeight: "600" },
+  // Left-aligned stack beside the avatar — name, owner, pills.
+  displayName: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: "#fff" },
+  ownerName: { fontFamily: DISPLAY, fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2, fontWeight: "600" },
 
-  metaRow: { flexDirection: "row", gap: 6, marginTop: 12, flexWrap: "wrap", justifyContent: "center" },
-  typePill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.2)" },
-  typePillText: { fontSize: 11, fontWeight: "800", color: "#fff", letterSpacing: 0.3 },
-  locationPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.2)" },
-  locationText: { fontSize: 11, color: "#fff", fontWeight: "700" },
-  youPill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999, backgroundColor: "#fff" },
-  youText: { fontSize: 11, color: C.emerald700, fontWeight: "900", letterSpacing: 0.3 },
+  metaRow: { flexDirection: "row", gap: 5, rowGap: 5, marginTop: 6, flexWrap: "wrap" },
+  typePill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.22)" },
+  typePillText: { fontFamily: DISPLAY, color: "#fff", fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.4 },
+  locationPill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.22)", flexShrink: 1 },
+  locationPillBelow: { alignSelf: "flex-start", marginTop: 5 },
+  locationText: { fontFamily: DISPLAY, color: "#fff", fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.4, flexShrink: 1 },
+  youPill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: "#fff" },
+  youText: { fontFamily: DISPLAY, color: C.emerald700, fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.4 },
 
-  // Floating stats card
+  // Floating stats card — stacked cells so icons/values/labels each share a line
   statsCard: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: C.card, marginHorizontal: 16, marginTop: -28,
-    borderRadius: 16, paddingVertical: 12, paddingHorizontal: 8,
+    flexDirection: "row", alignItems: "stretch",
+    backgroundColor: C.card, marginHorizontal: 16, marginTop: -16, zIndex: 2,
+    borderRadius: 18, paddingVertical: 13, paddingHorizontal: 4,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3,
+    shadowColor: C.shadow, shadowOpacity: 0.1, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 5,
   },
-  statCell: { flex: 1, flexDirection: "row", alignItems: "center", gap: 7, justifyContent: "center", minWidth: 0, paddingHorizontal: 4 },
-  statIcon: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  statValue: { fontWeight: "900" },
-  statLabel: { fontSize: 9.5, color: C.subText, fontWeight: "700", marginTop: 1, letterSpacing: 0.2 },
-  statDivider: { width: 1, height: 32, backgroundColor: C.border },
+  statCell: { flex: 1, alignItems: "center", justifyContent: "flex-start", paddingHorizontal: 4 },
+  statIcon: { width: 28, height: 28, borderRadius: 9, alignItems: "center", justifyContent: "center", marginBottom: 5 },
+  statValue: {
+    fontFamily: DISPLAY, fontWeight: "bold", lineHeight: 20,
+    textAlign: "center", includeFontPadding: false,
+  },
+  statLabel: {
+    fontFamily: DISPLAY, fontSize: 8.5, color: C.subText, fontWeight: "bold",
+    letterSpacing: 0.4, textTransform: "uppercase", lineHeight: 11,
+    marginTop: 2, textAlign: "center", includeFontPadding: false,
+  },
+  statDivider: { width: 1, height: 46, alignSelf: "center", backgroundColor: C.border },
 
   // About card
   aboutCard: {
-    marginHorizontal: 16, marginTop: 14,
-    backgroundColor: C.card, borderRadius: 14, padding: 14,
+    marginHorizontal: 16, marginTop: 12,
+    backgroundColor: C.card, borderRadius: 16, padding: 14,
     borderWidth: 1, borderColor: C.border,
   },
   aboutHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
   aboutIconWrap: { width: 24, height: 24, borderRadius: 8, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center" },
-  aboutLabel: { fontSize: 11, color: C.emerald700, fontWeight: "900", letterSpacing: 0.6 },
-  description: { fontSize: 13.5, color: C.text, lineHeight: 20, fontWeight: "500" },
+  aboutLabel: { fontFamily: DISPLAY, fontSize: 10, color: C.emerald700, fontWeight: "bold", letterSpacing: 0.8, includeFontPadding: false },
+  description: { fontFamily: DISPLAY, fontSize: 13.5, color: C.text, lineHeight: 21, fontWeight: "500" },
 
   // Primary action button
   actionsWrap: { paddingHorizontal: 16, marginTop: 14 },
@@ -634,38 +703,46 @@ const styles = StyleSheet.create({
     paddingVertical: 13, borderRadius: 12,
     backgroundColor: C.emerald50, borderWidth: 1.5, borderColor: C.emerald600,
   },
-  editBtnText: { color: C.emerald700, fontWeight: "800", fontSize: 14 },
+  editBtnText: { fontFamily: DISPLAY, color: C.emerald700, fontWeight: "bold", fontSize: 14 },
   messageBtnWrap: {
     borderRadius: 12, overflow: "hidden",
     shadowColor: C.emerald600, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4,
   },
   messageBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14 },
-  messageBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },
+  messageBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 14 },
 
   // Grid header
   gridHeader: {
     flexDirection: "row", alignItems: "center", gap: 6,
-    marginTop: 22, marginBottom: 10, paddingHorizontal: 16,
+    marginTop: 20, marginBottom: 8, paddingHorizontal: 16,
   },
-  gridHeaderIcon: { width: 26, height: 26, borderRadius: 9, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center" },
-  gridTitle: { fontSize: 12, fontWeight: "900", color: C.emerald700, letterSpacing: 0.5, flex: 1 },
+  gridHeaderIcon: { width: 24, height: 24, borderRadius: 8, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center" },
+  gridTitle: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold", color: C.emerald700, letterSpacing: 0.8, flex: 1, includeFontPadding: false },
   gridCountBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: C.emerald50 },
-  gridCountText: { fontSize: 11, color: C.emerald700, fontWeight: "900" },
+  gridCountText: { fontFamily: DISPLAY, fontSize: 10.5, color: C.emerald700, fontWeight: "bold", includeFontPadding: false },
 
-  // Post thumbs (3-col grid)
-  thumb: { flex: 1 / 3, aspectRatio: 1, padding: 2 },
-  thumbImageWrap: { flex: 1, position: "relative", borderRadius: 8, overflow: "hidden" },
-  thumbImage: { flex: 1, backgroundColor: "#F1F5F9" },
-  thumbPlaceholder: { padding: 8, justifyContent: "center", alignItems: "center" },
-  thumbText: { fontSize: 10.5, color: C.text, textAlign: "center", lineHeight: 14, fontWeight: "600" },
+  // Post thumbs (3-col grid) — 3px padding gives a 6px gutter between tiles and
+  // a 3px margin at the screen edges, so the grid reads as tiles rather than a
+  // seamless mosaic. Matches the rounded language of the cards above it.
+  thumb: { flex: 1 / 3, aspectRatio: 1, padding: 3 },
+  thumbImageWrap: {
+    flex: 1, position: "relative", borderRadius: 12, overflow: "hidden",
+    borderWidth: 1, borderColor: C.border, backgroundColor: FILL,
+  },
+  thumbImage: { flex: 1, backgroundColor: FILL },
+  thumbPlaceholder: { padding: 9, justifyContent: "center", alignItems: "center" },
+  thumbText: {
+    fontFamily: DISPLAY, fontSize: 10.5, color: C.ink, textAlign: "center",
+    lineHeight: 14, fontWeight: "bold", includeFontPadding: false,
+  },
 
   sosOverlay: {
     position: "absolute", top: 5, left: 5,
     flexDirection: "row", alignItems: "center", gap: 3,
     paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
-    backgroundColor: "rgba(239,68,68,0.95)",
+    backgroundColor: "rgba(192,69,59,0.95)",
   },
-  sosOverlayText: { color: "#fff", fontSize: 9, fontWeight: "900", letterSpacing: 0.4 },
+  sosOverlayText: { fontFamily: DISPLAY, color: "#fff", fontSize: 9, fontWeight: "bold", letterSpacing: 0.4 },
 
   multiOverlay: {
     position: "absolute", top: 5, right: 5,
@@ -674,21 +751,24 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
 
+  // Scrim, not a bar: fixed height fading in from transparent at the top.
   engageOverlay: {
-    position: "absolute", bottom: 0, left: 0, right: 0,
-    flexDirection: "row", justifyContent: "center", gap: 8,
-    paddingVertical: 4, paddingHorizontal: 6,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    position: "absolute", bottom: 0, left: 0, right: 0, height: 34,
+    flexDirection: "row", alignItems: "flex-end", gap: 8,
+    paddingHorizontal: 7, paddingBottom: 6,
   },
   engageItem: { flexDirection: "row", alignItems: "center", gap: 3 },
-  engageText: { color: "#fff", fontSize: 10, fontWeight: "800" },
+  engageText: {
+    fontFamily: DISPLAY, color: "#fff", fontSize: 10, fontWeight: "bold",
+    includeFontPadding: false, fontVariant: ["tabular-nums"],
+  },
 
   // Empty posts
   emptyPosts: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 48, paddingHorizontal: 32 },
   emptyPostsIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  emptyPostsTitle: { fontSize: 16, fontWeight: "800", color: C.ink, marginTop: 6 },
-  emptyPostsSub: { fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", lineHeight: 18 },
+  emptyPostsTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink, marginTop: 6 },
+  emptyPostsSub: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", lineHeight: 18 },
   emptyCta: { marginTop: 18, borderRadius: 12, overflow: "hidden" },
   emptyCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11 },
-  emptyCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  emptyCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
 });

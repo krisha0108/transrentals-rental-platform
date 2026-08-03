@@ -16,6 +16,8 @@ import {
   ActivityIndicator,
   Alert,
   StatusBar,
+  Animated,
+  Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -37,30 +39,11 @@ import {
 import ImagePickerField from "../_shared/ImagePickerField";
 import RemoteImage from "../_shared/RemoteImage"; // resolves relative /uploads URLs
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { DISPLAY } from "../_shared/typography";
+import { SC as C } from "../_shared/theme";
 
 const TOUR_DRAFT_KEY = "ta_tour_draft_v1"; // #6d — only used for new (un-saved) tours
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  green: "#10B981",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  purple: "#8B5CF6",
-  purpleLight: "#EDE9FE",
-};
 
 const PRICE_TYPE_META = {
   PER_PERSON: { label: "Per person", icon: "person", color: C.blue },
@@ -68,7 +51,7 @@ const PRICE_TYPE_META = {
   ON_REQUEST: { label: "On request", icon: "chatbubble-ellipses", color: C.amber },
 };
 const CANCEL_META = {
-  FLEXIBLE: { label: "Flexible", color: C.green, bg: "#D1FAE5",   desc: "Free up to 24h before" },
+  FLEXIBLE: { label: "Flexible", color: C.green, bg: "#DDEBE2",   desc: "Free up to 24h before" },
   MODERATE: { label: "Moderate", color: C.amber, bg: C.amberLight, desc: "Partial refund window" },
   STRICT:   { label: "Strict",   color: C.red,   bg: C.redLight,   desc: "Limited / no refund" },
 };
@@ -114,6 +97,27 @@ function toArr(v) {
     try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; }
   }
   return [];
+}
+
+// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return (
+    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
+  );
 }
 
 export default function AddEditTourScreen({ navigation, route }) {
@@ -508,25 +512,23 @@ export default function AddEditTourScreen({ navigation, route }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
 
       {/* Gradient header */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 16 }}>
-          <View style={styles.headerRow}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 14, paddingTop: 4, paddingBottom: 20 }}>
+          {/* Actions row */}
+          <View style={styles.headerActionsRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
               <Ionicons name="close" size={24} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>{isEdit ? "Edit Tour" : "Create New Tour"}</Text>
-              <Text style={styles.headerSub}>
-                {isQuick ? "Quick add · essentials" : `Step ${detailStep} of 6`} · {form.status}
-              </Text>
-            </View>
+            <View style={{ flex: 1 }} />
             <TouchableOpacity onPress={() => setShowPreview(true)} style={styles.iconBtn}>
               <Ionicons name="eye-outline" size={22} color="#fff" />
             </TouchableOpacity>
@@ -538,10 +540,16 @@ export default function AddEditTourScreen({ navigation, route }) {
               {saving ? (
                 <ActivityIndicator size="small" color={C.emerald700} />
               ) : (
-                <Text style={styles.headerSaveText}>Save</Text>
+                <Text style={styles.headerSaveText}>Save Draft</Text>
               )}
             </TouchableOpacity>
           </View>
+
+          {/* Title block — own line, not cramped with the actions */}
+          <Text style={styles.headerTitleBig} numberOfLines={1}>{isEdit ? "Edit Tour" : "Create New Tour"}</Text>
+          <Text style={styles.headerSub}>
+            {isQuick ? "Quick add · essentials" : `Step ${detailStep} of 6`} · {form.status}
+          </Text>
 
           {/* Mini progress dots — replaced by the detailed step wizard indicator */}
           {false && (
@@ -577,7 +585,7 @@ export default function AddEditTourScreen({ navigation, route }) {
           {isQuick && (
           <>
             {/* Category (required) — grid from DB */}
-            <SectionToggle icon="pricetags" color={C.blue} label="Category *" sub={form.categoryName || "Choose a tour category"} open showChevron={false} onToggle={() => {}} />
+            <SectionToggle icon="pricetags" color={C.emerald600} label="Category *" sub={form.categoryName || "Choose a tour category"} open showChevron={false} onToggle={() => {}} />
             <Card>
               {categories.length === 0 ? (
                 <Text style={styles.helper}>Loading categories…</Text>
@@ -614,7 +622,7 @@ export default function AddEditTourScreen({ navigation, route }) {
                 <TextInput
                   style={styles.input}
                   placeholder="e.g. Goa 3-day beach getaway"
-                  placeholderTextColor="#A3B3C2"
+                  placeholderTextColor="#9AA79E"
                   value={form.title}
                   onChangeText={(v) => update("title", v)}
                   maxLength={120}
@@ -637,13 +645,13 @@ export default function AddEditTourScreen({ navigation, route }) {
                 ) : (
                   <>
                     <View style={styles.iconInputWrap}>
-                      <View style={[styles.iconInputIcon, { backgroundColor: `${C.red}22` }]}>
-                        <Ionicons name="search" size={14} color={C.red} />
+                      <View style={[styles.iconInputIcon, { backgroundColor: `${C.emerald600}18` }]}>
+                        <Ionicons name="search" size={14} color={C.emerald600} />
                       </View>
                       <TextInput
                         style={[styles.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
                         placeholder="Search city or location…"
-                        placeholderTextColor="#A3B3C2"
+                        placeholderTextColor="#9AA79E"
                         value={locQuery}
                         onChangeText={setLocQuery}
                       />
@@ -694,7 +702,7 @@ export default function AddEditTourScreen({ navigation, route }) {
                   <TextInput
                     style={[styles.input, { marginTop: 8 }]}
                     placeholder="e.g. 10 Days 9 Nights"
-                    placeholderTextColor="#A3B3C2"
+                    placeholderTextColor="#9AA79E"
                     value={form.quickCustomDuration}
                     onChangeText={(v) => update("quickCustomDuration", v)}
                   />
@@ -708,7 +716,7 @@ export default function AddEditTourScreen({ navigation, route }) {
                   <TextInput
                     style={[styles.input, styles.prefixInput]}
                     placeholder="0"
-                    placeholderTextColor="#A3B3C2"
+                    placeholderTextColor="#9AA79E"
                     keyboardType="number-pad"
                     value={form.basePrice}
                     onChangeText={(v) => update("basePrice", v.replace(/[^\d.]/g, ""))}
@@ -718,7 +726,7 @@ export default function AddEditTourScreen({ navigation, route }) {
             </Card>
 
             {/* Description */}
-            <SectionToggle icon="document-text" color={C.blue} label="Description" sub="Short overview (optional)" open showChevron={false} onToggle={() => {}} />
+            <SectionToggle icon="document-text" color={C.emerald600} label="Description" sub="Short overview (optional)" open showChevron={false} onToggle={() => {}} />
             <Card>
               <Field label="Description">
                 {/* Formatting toolbar */}
@@ -739,7 +747,7 @@ export default function AddEditTourScreen({ navigation, route }) {
                   <TextInput
                     style={[styles.input, styles.inputMultilineRich, { flex: 1, paddingRight: 48, marginBottom: 0 }]}
                     placeholder="Describe the tour for travellers…"
-                    placeholderTextColor="#A3B3C2"
+                    placeholderTextColor="#9AA79E"
                     value={form.description}
                     onChangeText={(v) => update("description", v)}
                     onSelectionChange={(e) => setDescSelection(e.nativeEvent.selection)}
@@ -754,19 +762,19 @@ export default function AddEditTourScreen({ navigation, route }) {
                     activeOpacity={0.85}
                   >
                     {aiQuickLoading
-                      ? <ActivityIndicator size="small" color={C.purple} />
-                      : <Ionicons name="sparkles" size={18} color={C.purple} />}
+                      ? <ActivityIndicator size="small" color={C.emerald600} />
+                      : <Ionicons name="sparkles" size={18} color={C.emerald600} />}
                   </TouchableOpacity>
                 </View>
                 <TouchableOpacity onPress={handleQuickAiDescription} disabled={aiQuickLoading} style={styles.aiHintRow} activeOpacity={0.7}>
-                  <Ionicons name="sparkles" size={12} color={C.purple} />
+                  <Ionicons name="sparkles" size={12} color={C.emerald600} />
                   <Text style={styles.aiHintText}>{aiQuickLoading ? "Writing…" : "Write with AI from the title"}</Text>
                 </TouchableOpacity>
               </Field>
             </Card>
 
             {/* Images */}
-            <SectionToggle icon="image" color={C.purple} label="Images" sub={`${form.coverImage ? "Cover ✓" : "No cover"} · ${form.galleryImages.length} gallery`} open showChevron={false} onToggle={() => {}} />
+            <SectionToggle icon="image" color={C.gold} label="Images" sub={`${form.coverImage ? "Cover ✓" : "No cover"} · ${form.galleryImages.length} gallery`} open showChevron={false} onToggle={() => {}} />
             <Card>
               <ImagePickerField
                 label="Cover image"
@@ -830,21 +838,21 @@ export default function AddEditTourScreen({ navigation, route }) {
               <Field label="Category *">
                 <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowCategoryModal(true)} activeOpacity={0.85}>
                   <Ionicons name="pricetag" size={15} color={C.blue} />
-                  <Text style={[styles.pickerBtnText, !form.categoryName && { color: "#A3B3C2" }]} numberOfLines={1}>
+                  <Text style={[styles.pickerBtnText, !form.categoryName && { color: "#9AA79E" }]} numberOfLines={1}>
                     {form.categoryName || "Select a category"}
                   </Text>
                   <Ionicons name="chevron-down" size={16} color={C.subText} />
                 </TouchableOpacity>
               </Field>
               <Field label="Title *">
-                <TextInput style={styles.input} placeholder="e.g. Manali 4N5D Honeymoon Package" placeholderTextColor="#A3B3C2" value={form.title} onChangeText={(v) => update("title", v)} />
+                <TextInput style={styles.input} placeholder="e.g. Manali 4N5D Honeymoon Package" placeholderTextColor="#9AA79E" value={form.title} onChangeText={(v) => update("title", v)} />
               </Field>
               <Field label="Short description" helper={`${form.shortDescription.length}/120 — shown on cards`}>
                 <View style={styles.aiInputWrap}>
                   <TextInput
                     style={[styles.input, { flex: 1, marginBottom: 0, paddingRight: 44 }]}
                     placeholder="One-line teaser"
-                    placeholderTextColor="#A3B3C2"
+                    placeholderTextColor="#9AA79E"
                     value={form.shortDescription}
                     onChangeText={(v) => update("shortDescription", v)}
                     maxLength={120}
@@ -884,13 +892,13 @@ export default function AddEditTourScreen({ navigation, route }) {
                 ) : (
                   <>
                     <View style={styles.iconInputWrap}>
-                      <View style={[styles.iconInputIcon, { backgroundColor: `${C.red}22` }]}>
-                        <Ionicons name="search" size={14} color={C.red} />
+                      <View style={[styles.iconInputIcon, { backgroundColor: `${C.emerald600}18` }]}>
+                        <Ionicons name="search" size={14} color={C.emerald600} />
                       </View>
                       <TextInput
                         style={[styles.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
                         placeholder="Search city or location…"
-                        placeholderTextColor="#A3B3C2"
+                        placeholderTextColor="#9AA79E"
                         value={locQuery}
                         onChangeText={setLocQuery}
                       />
@@ -919,7 +927,7 @@ export default function AddEditTourScreen({ navigation, route }) {
           {detailStep === 3 && (
             <Card>
               <Field label="Full description">
-                <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Detailed tour description…" placeholderTextColor="#A3B3C2" value={form.description} onChangeText={(v) => update("description", v)} multiline numberOfLines={4} textAlignVertical="top" />
+                <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Detailed tour description…" placeholderTextColor="#9AA79E" value={form.description} onChangeText={(v) => update("description", v)} multiline numberOfLines={4} textAlignVertical="top" />
               </Field>
               {/* Duration — preset dropdown (web parity) */}
               <Field label="Duration">
@@ -934,7 +942,7 @@ export default function AddEditTourScreen({ navigation, route }) {
                   })}
                 </View>
                 {form.quickDuration === "Custom" && (
-                  <TextInput style={[styles.input, { marginTop: 8 }]} placeholder="e.g. 10 Days 9 Nights" placeholderTextColor="#A3B3C2" value={form.quickCustomDuration} onChangeText={(v) => update("quickCustomDuration", v)} />
+                  <TextInput style={[styles.input, { marginTop: 8 }]} placeholder="e.g. 10 Days 9 Nights" placeholderTextColor="#9AA79E" value={form.quickCustomDuration} onChangeText={(v) => update("quickCustomDuration", v)} />
                 )}
               </Field>
 
@@ -986,9 +994,9 @@ export default function AddEditTourScreen({ navigation, route }) {
                     const meta = PRICE_TYPE_META[pt];
                     const active = form.priceType === pt;
                     return (
-                      <TouchableOpacity key={pt} style={[styles.priceTypeBtn, active && { backgroundColor: `${meta.color}22`, borderColor: meta.color }]} onPress={() => update("priceType", pt)} activeOpacity={0.85}>
-                        <Ionicons name={meta.icon} size={16} color={active ? meta.color : C.subText} />
-                        <Text style={[styles.priceTypeText, active && { color: meta.color, fontWeight: "800" }]}>{meta.label}</Text>
+                      <TouchableOpacity key={pt} style={[styles.priceTypeBtn, active && { backgroundColor: `${meta.color}18`, borderColor: meta.color }]} onPress={() => update("priceType", pt)} activeOpacity={0.85}>
+                        <Ionicons name={meta.icon} size={19} color={active ? meta.color : C.subText} />
+                        <Text style={[styles.priceTypeText, active && { color: meta.color, fontWeight: "bold" }]}>{meta.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -998,7 +1006,7 @@ export default function AddEditTourScreen({ navigation, route }) {
                 <Field label="Base price">
                   <View style={styles.prefixInputWrap}>
                     <View style={styles.prefixBox}><Text style={styles.prefixText}>₹</Text></View>
-                    <TextInput style={[styles.input, styles.prefixInput]} placeholder="12500" placeholderTextColor="#A3B3C2" keyboardType="number-pad" value={form.basePrice} onChangeText={(v) => update("basePrice", v.replace(/[^\d.]/g, ""))} />
+                    <TextInput style={[styles.input, styles.prefixInput]} placeholder="12500" placeholderTextColor="#9AA79E" keyboardType="number-pad" value={form.basePrice} onChangeText={(v) => update("basePrice", v.replace(/[^\d.]/g, ""))} />
                   </View>
                 </Field>
               )}
@@ -1036,7 +1044,7 @@ export default function AddEditTourScreen({ navigation, route }) {
                     const active = form.cancellationPolicy === p;
                     return (
                       <TouchableOpacity key={p} style={[styles.cancelBtn, active && { backgroundColor: meta.bg, borderColor: meta.color }]} onPress={() => update("cancellationPolicy", p)} activeOpacity={0.85}>
-                        <Text style={[styles.cancelLabel, active && { color: meta.color, fontWeight: "800" }]}>{meta.label}</Text>
+                        <Text style={[styles.cancelLabel, active && { color: meta.color, fontWeight: "bold" }]}>{meta.label}</Text>
                         <Text style={[styles.cancelDesc, active && { color: meta.color, opacity: 0.85 }]} numberOfLines={2}>{meta.desc}</Text>
                       </TouchableOpacity>
                     );
@@ -1044,7 +1052,7 @@ export default function AddEditTourScreen({ navigation, route }) {
                 </View>
               </Field>
               <Field label="Cancellation notes">
-                <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Refund timeline, exceptions…" placeholderTextColor="#A3B3C2" value={form.cancellationNotes} onChangeText={(v) => update("cancellationNotes", v)} multiline numberOfLines={3} textAlignVertical="top" />
+                <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Refund timeline, exceptions…" placeholderTextColor="#9AA79E" value={form.cancellationNotes} onChangeText={(v) => update("cancellationNotes", v)} multiline numberOfLines={3} textAlignVertical="top" />
               </Field>
 
               <Field label="Advance payment">
@@ -1065,7 +1073,7 @@ export default function AddEditTourScreen({ navigation, route }) {
                     </View>
                   </Field>
                   <Field label="Value" style={{ flex: 1 }}>
-                    <TextInput style={styles.input} keyboardType="number-pad" placeholder={form.advancePaymentType === "PERCENTAGE" ? "e.g. 30" : "e.g. 5000"} placeholderTextColor="#A3B3C2" value={form.advancePaymentValue} onChangeText={(v) => update("advancePaymentValue", v.replace(/[^0-9]/g, ""))} />
+                    <TextInput style={styles.input} keyboardType="number-pad" placeholder={form.advancePaymentType === "PERCENTAGE" ? "e.g. 30" : "e.g. 5000"} placeholderTextColor="#9AA79E" value={form.advancePaymentValue} onChangeText={(v) => update("advancePaymentValue", v.replace(/[^0-9]/g, ""))} />
                   </Field>
                 </View>
               )}
@@ -1080,7 +1088,7 @@ export default function AddEditTourScreen({ navigation, route }) {
               <ImagePickerField label="Cover image" value={form.coverImage} onChange={(v) => update("coverImage", v)} folder="tours" helperText="Main image shown on tour cards & previews." />
               <ImagePickerField label="Gallery (up to 8)" multi max={8} value={form.galleryImages} onChange={(v) => update("galleryImages", v)} folder="tours" />
               <Field label="Terms & conditions">
-                <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Inclusions, exclusions, booking terms…" placeholderTextColor="#A3B3C2" value={form.termsConditions} onChangeText={(v) => update("termsConditions", v)} multiline numberOfLines={4} textAlignVertical="top" />
+                <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Inclusions, exclusions, booking terms…" placeholderTextColor="#9AA79E" value={form.termsConditions} onChangeText={(v) => update("termsConditions", v)} multiline numberOfLines={4} textAlignVertical="top" />
               </Field>
             </Card>
           )}
@@ -1185,58 +1193,93 @@ export default function AddEditTourScreen({ navigation, route }) {
       {showPreview && (
         <View style={styles.previewOverlay}>
           <View style={styles.previewSheet}>
+            <View style={styles.previewHandle} />
             <View style={styles.previewHeader}>
-              <Text style={styles.previewHeaderTitle}>Preview</Text>
-              <TouchableOpacity onPress={() => setShowPreview(false)} style={styles.previewClose}>
-                <Ionicons name="close" size={22} color={C.ink} />
+              <View style={styles.previewEyeChip}>
+                <Ionicons name="eye" size={13} color={C.emerald600} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.previewHeaderTitle}>Preview</Text>
+                <Text style={styles.previewHeaderSub}>Traveller's view</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowPreview(false)} style={styles.previewClose} activeOpacity={0.8}>
+                <Ionicons name="close" size={20} color={C.ink} />
               </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
-              {previewImages.length > 0 ? (
-                <RemoteImage source={{ uri: previewImages[0] }} style={styles.previewCover} resizeMode="cover" />
-              ) : (
-                <View style={[styles.previewCover, styles.previewCoverEmpty]}>
-                  <Ionicons name="image-outline" size={34} color={C.subText} />
-                  <Text style={styles.previewEmptyText}>No cover image</Text>
-                </View>
-              )}
-
-              <View style={styles.previewBody}>
-                {!!form.categoryName && (
-                  <View style={styles.previewBadge}>
-                    <Text style={styles.previewBadgeText}>{form.categoryName}</Text>
+              {/* Cover hero — carries the category badge and image count, like
+                  the real tour card. Title stays in the body below it. */}
+              <View style={styles.previewCoverWrap}>
+                {previewImages.length > 0 ? (
+                  <RemoteImage source={{ uri: previewImages[0] }} style={styles.previewCover} resizeMode="cover" />
+                ) : (
+                  <View style={[styles.previewCover, styles.previewCoverEmpty]}>
+                    <Ionicons name="image-outline" size={34} color={C.subText} />
+                    <Text style={styles.previewEmptyText}>No cover image</Text>
                   </View>
                 )}
+
+                {previewImages.length > 0 && (
+                  <LinearGradient
+                    colors={["rgba(11,32,25,0.34)", "rgba(11,32,25,0)", "rgba(11,32,25,0.12)"]}
+                    locations={[0, 0.42, 1]}
+                    style={styles.previewCoverScrim}
+                    pointerEvents="none"
+                  />
+                )}
+
+                {!!form.categoryName && (
+                  <View style={styles.previewBadge}>
+                    <Text style={styles.previewBadgeText} numberOfLines={1}>{form.categoryName}</Text>
+                  </View>
+                )}
+
+                {previewImages.length > 1 && (
+                  <View style={styles.previewCountPill}>
+                    <Ionicons name="images" size={11} color="#fff" />
+                    <Text style={styles.previewCountText}>{previewImages.length}</Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.previewBody}>
                 <Text style={styles.previewTitle}>{form.title || "Untitled tour"}</Text>
 
-                <View style={styles.previewMetaRow}>
-                  {!!form.destination && (
-                    <View style={styles.previewMeta}>
-                      <Ionicons name="location-outline" size={15} color={C.emerald600} />
-                      <Text style={styles.previewMetaText}>{form.destination}</Text>
-                    </View>
-                  )}
-                  {!!previewDuration && (
-                    <View style={styles.previewMeta}>
-                      <Ionicons name="time-outline" size={15} color={C.emerald600} />
-                      <Text style={styles.previewMetaText}>{previewDuration}</Text>
-                    </View>
-                  )}
-                </View>
+                {/* Meta as tinted pills rather than loose icon + text */}
+                {(!!form.destination || !!previewDuration) && (
+                  <View style={styles.previewMetaRow}>
+                    {!!form.destination && (
+                      <View style={styles.previewMeta}>
+                        <Ionicons name="location" size={12} color={C.emerald600} />
+                        <Text style={styles.previewMetaText} numberOfLines={1}>{form.destination}</Text>
+                      </View>
+                    )}
+                    {!!previewDuration && (
+                      <View style={styles.previewMeta}>
+                        <Ionicons name="time" size={12} color={C.emerald600} />
+                        <Text style={styles.previewMetaText} numberOfLines={1}>{previewDuration}</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
 
-                <Text style={styles.previewPrice}>{previewPrice}</Text>
+                {/* Price plate — the one hard number, given its own container */}
+                <View style={styles.previewPriceCard}>
+                  <Text style={styles.previewPriceLabel}>Starting from</Text>
+                  <Text style={styles.previewPrice} numberOfLines={1}>{previewPrice}</Text>
+                </View>
 
                 {!!form.description && (
                   <>
-                    <Text style={styles.previewSectionLabel}>ABOUT THIS TOUR</Text>
+                    <PreviewSection icon="document-text" label="About this tour" />
                     <Text style={styles.previewDesc}>{form.description}</Text>
                   </>
                 )}
 
                 {previewImages.length > 1 && (
                   <>
-                    <Text style={styles.previewSectionLabel}>GALLERY</Text>
+                    <PreviewSection icon="images" label="Gallery" />
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                       {previewImages.slice(1).map((uri, i) => (
                         <RemoteImage key={i} source={{ uri }} style={styles.previewThumb} resizeMode="cover" />
@@ -1248,7 +1291,7 @@ export default function AddEditTourScreen({ navigation, route }) {
             </ScrollView>
 
             <View style={styles.previewFooter}>
-              <Ionicons name="eye-outline" size={14} color={C.subText} />
+              <Ionicons name="eye-outline" size={14} color={C.emerald600} />
               <Text style={styles.previewFooterText}>This is how travellers will see your tour.</Text>
             </View>
           </View>
@@ -1279,7 +1322,7 @@ export default function AddEditTourScreen({ navigation, route }) {
               <View style={styles.gateStepLine} />
               <View style={styles.gateStep}>
                 <View style={styles.gateStepDotCurrent}><Text style={styles.gateStepDotNum}>2</Text></View>
-                <Text style={[styles.gateStepText, { color: C.ink, fontWeight: "800" }]}>Upload document</Text>
+                <Text style={[styles.gateStepText, { color: C.ink, fontWeight: "bold" }]}>Upload document</Text>
               </View>
             </View>
 
@@ -1397,7 +1440,7 @@ function DateBtn({ value, onPress, onClear }) {
   return (
     <TouchableOpacity style={styles.dateBtn} onPress={onPress} activeOpacity={0.7}>
       <Ionicons name="calendar" size={14} color={C.emerald600} />
-      <Text style={[styles.dateBtnText, !value && { color: "#A3B3C2", fontWeight: "600" }]}>{value || "Pick date"}</Text>
+      <Text style={[styles.dateBtnText, !value && { color: "#9AA79E", fontWeight: "600" }]}>{value || "Pick date"}</Text>
       {onClear ? (
         <TouchableOpacity onPress={onClear} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="close-circle" size={16} color={C.subText} />
@@ -1433,15 +1476,29 @@ function PriceTierEditor({ tiers, onChange }) {
       ) : (
         tiers.map((t, i) => (
           <View key={i} style={styles.tierRow}>
-            <TextInput style={[styles.input, styles.tierInput]} placeholder="Pax" placeholderTextColor="#A3B3C2" keyboardType="number-pad" value={String(t.groupSize ?? "")} onChangeText={(v) => upd(i, "groupSize", v)} />
+            <TextInput style={[styles.input, styles.tierInput]} placeholder="Pax" placeholderTextColor="#9AA79E" keyboardType="number-pad" value={String(t.groupSize ?? "")} onChangeText={(v) => upd(i, "groupSize", v)} />
             <Text style={styles.tierDash}>persons →</Text>
-            <TextInput style={[styles.input, styles.tierPrice]} placeholder="₹ price" placeholderTextColor="#A3B3C2" keyboardType="number-pad" value={String(t.price ?? "")} onChangeText={(v) => upd(i, "price", v)} />
+            <TextInput style={[styles.input, styles.tierPrice]} placeholder="₹ price" placeholderTextColor="#9AA79E" keyboardType="number-pad" value={String(t.price ?? "")} onChangeText={(v) => upd(i, "price", v)} />
             <TouchableOpacity onPress={() => remove(i)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="trash-outline" size={16} color={C.red} />
             </TouchableOpacity>
           </View>
         ))
       )}
+    </View>
+  );
+}
+
+// Editorial section header inside the preview sheet — icon chip + ink title +
+// a hairline to the edge. Replaces the old grey uppercase micro-label.
+function PreviewSection({ icon, label }) {
+  return (
+    <View style={styles.previewSectionHeader}>
+      <View style={styles.previewSectionIcon}>
+        <Ionicons name={icon} size={12} color={C.emerald600} />
+      </View>
+      <Text style={styles.previewSectionLabel} numberOfLines={1}>{label}</Text>
+      <View style={styles.previewSectionRule} />
     </View>
   );
 }
@@ -1486,7 +1543,7 @@ function NumberInput({ value, placeholder, onChange, icon, color, suffix }) {
       <TextInput
         style={[styles.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderRightWidth: suffix ? 0 : 1, borderTopRightRadius: suffix ? 0 : 10, borderBottomRightRadius: suffix ? 0 : 10 }]}
         placeholder={placeholder}
-        placeholderTextColor="#A3B3C2"
+        placeholderTextColor="#9AA79E"
         keyboardType="number-pad"
         value={value}
         onChangeText={(v) => onChange(v.replace(/\D/g, ""))}
@@ -1536,7 +1593,7 @@ function PresetTagEditor({ label, icon, accentColor, presets, items, onChange, p
               style={[styles.presetChip, active && { borderColor: accentColor, backgroundColor: `${accentColor}14` }]}
             >
               {active && <Ionicons name="checkmark" size={12} color={accentColor} />}
-              <Text style={[styles.presetChipText, active && { color: accentColor, fontWeight: "800" }]}>{p}</Text>
+              <Text style={[styles.presetChipText, active && { color: accentColor, fontWeight: "bold" }]}>{p}</Text>
             </TouchableOpacity>
           );
         })}
@@ -1547,7 +1604,7 @@ function PresetTagEditor({ label, icon, accentColor, presets, items, onChange, p
         <TextInput
           style={[styles.input, { flex: 1, marginBottom: 0 }]}
           placeholder={placeholder}
-          placeholderTextColor="#A3B3C2"
+          placeholderTextColor="#9AA79E"
           value={text}
           onChangeText={setText}
           onSubmitEditing={addCustom}
@@ -1603,7 +1660,7 @@ function TagListEditor({ label, accentColor, icon, placeholder, items, onChange 
         <TextInput
           style={[styles.input, { flex: 1 }]}
           placeholder={placeholder}
-          placeholderTextColor="#A3B3C2"
+          placeholderTextColor="#9AA79E"
           value={draft}
           onChangeText={setDraft}
           onSubmitEditing={add}
@@ -1679,75 +1736,103 @@ function ItineraryEditor({ items, onChange }) {
         const isBreak = it.type === "break";
         return (
           <View key={it.id || i} style={[styles.itinCard, isBreak && styles.itinCardBreak]}>
-            {/* Header row */}
-            <View style={[styles.itinHeadRow, !isBreak && styles.itinHeadRowStop]}>
-              {isBreak ? (
-                <View style={styles.itinBreakIcon}><Ionicons name="cafe" size={15} color={C.emerald600} /></View>
-              ) : (
-                <TouchableOpacity onPress={() => setEmojiOpen(emojiOpen === i ? null : i)} style={styles.itinEmojiBtn} activeOpacity={0.8}>
-                  <Text style={{ fontSize: 20 }}>{it.emoji || "📍"}</Text>
-                </TouchableOpacity>
-              )}
-              <TextInput style={styles.itinTimeInput} placeholder="Time" placeholderTextColor="#A3B3C2" value={it.time || ""} onChangeText={(v) => updateStop(i, "time", v)} />
-              <TextInput
-                style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                placeholder={isBreak ? "Break note (e.g. Lunch)" : "Stop name (e.g. Fort Aguada)"}
-                placeholderTextColor="#A3B3C2"
-                value={isBreak ? (it.breakNote || "") : (it.title || "")}
-                onChangeText={(v) => updateStop(i, isBreak ? "breakNote" : "title", v)}
-              />
-              {isBreak && <View style={styles.itinBreakBadge}><Text style={styles.itinBreakBadgeText}>BREAK</Text></View>}
-              <TouchableOpacity onPress={() => move(i, -1)} disabled={i === 0} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={{ opacity: i === 0 ? 0.3 : 1, marginLeft: 6 }}>
-                <Ionicons name="arrow-up" size={16} color={C.subText} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => move(i, 1)} disabled={i === list.length - 1} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={{ opacity: i === list.length - 1 ? 0.3 : 1, marginLeft: 6 }}>
-                <Ionicons name="arrow-down" size={16} color={C.subText} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => removeStop(i)} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={{ marginLeft: 6 }}>
-                <Ionicons name="trash-outline" size={15} color={C.red} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Emoji palette */}
-            {!isBreak && emojiOpen === i && (
-              <View style={styles.itinEmojiPalette}>
-                {STOP_EMOJIS.map((em) => (
-                  <TouchableOpacity key={em} onPress={() => { updateStop(i, "emoji", em); setEmojiOpen(null); }} style={styles.itinEmojiOpt} activeOpacity={0.8}>
-                    <Text style={{ fontSize: 18 }}>{em}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {/* Body */}
             {isBreak ? (
-              <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
-                <TextInput style={[styles.input, { marginBottom: 0 }]} placeholder="Duration (e.g. 45 minutes)" placeholderTextColor="#A3B3C2" value={it.timeSpent || ""} onChangeText={(v) => updateStop(i, "timeSpent", v)} />
-              </View>
-            ) : (
-              <View style={{ padding: 12, gap: 8 }}>
-                <TextInput style={[styles.input, styles.inputMultiline, { marginBottom: 0 }]} placeholder="Description of this stop…" placeholderTextColor="#A3B3C2" value={it.description || ""} onChangeText={(v) => updateStop(i, "description", v)} multiline numberOfLines={2} textAlignVertical="top" />
-                <Text style={styles.itinSubLabel}>Activities / Highlights at this stop</Text>
-                {(it.activities || []).map((act, ai) => (
-                  <View key={ai} style={styles.itinActRow}>
-                    <Text style={styles.itinBullet}>•</Text>
-                    <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} placeholder="e.g. Lighthouse viewpoint" placeholderTextColor="#A3B3C2" value={act} onChangeText={(v) => updateActivity(i, ai, v)} />
-                    {(it.activities || []).length > 1 && (
-                      <TouchableOpacity onPress={() => removeActivity(i, ai)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                        <Ionicons name="close" size={15} color={C.subText} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                ))}
-                <TouchableOpacity onPress={() => addActivity(i)} style={styles.itinAddAct} activeOpacity={0.8}>
-                  <Ionicons name="add" size={14} color={C.emerald600} />
-                  <Text style={styles.itinAddActText}>Add activity</Text>
-                </TouchableOpacity>
-                <View style={styles.itinTimeSpentRow}>
-                  <Ionicons name="time-outline" size={15} color={C.subText} />
-                  <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} placeholder="Time spent (e.g. 45 minutes)" placeholderTextColor="#A3B3C2" value={it.timeSpent || ""} onChangeText={(v) => updateStop(i, "timeSpent", v)} />
+              <>
+                {/* ===== Break — clean header + body ===== */}
+                <View style={styles.itinBreakHead}>
+                  <View style={styles.itinBreakIcon}><Ionicons name="cafe" size={15} color={C.emerald600} /></View>
+                  <View style={styles.itinBreakBadge}><Text style={styles.itinBreakBadgeText}>BREAK</Text></View>
+                  <View style={{ flex: 1 }} />
+                  <TouchableOpacity onPress={() => move(i, -1)} disabled={i === 0} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={[styles.itinActBtn, { opacity: i === 0 ? 0.3 : 1 }]}>
+                    <Ionicons name="arrow-up" size={16} color={C.subText} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => move(i, 1)} disabled={i === list.length - 1} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={[styles.itinActBtn, { opacity: i === list.length - 1 ? 0.3 : 1 }]}>
+                    <Ionicons name="arrow-down" size={16} color={C.subText} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => removeStop(i)} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={styles.itinActBtn}>
+                    <Ionicons name="trash-outline" size={15} color={C.red} />
+                  </TouchableOpacity>
                 </View>
-              </View>
+                <View style={styles.itinBreakBody}>
+                  <TextInput
+                    style={[styles.input, { marginBottom: 0 }]}
+                    placeholder="Break note (e.g. Lunch, Tea break)"
+                    placeholderTextColor="#9AA79E"
+                    value={it.breakNote || ""}
+                    onChangeText={(v) => updateStop(i, "breakNote", v)}
+                  />
+                  <View style={styles.itinDurRow}>
+                    <View style={styles.itinDurIcon}><Ionicons name="time-outline" size={15} color={C.emerald600} /></View>
+                    <TextInput
+                      style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                      placeholder="Duration (e.g. 45 minutes)"
+                      placeholderTextColor="#9AA79E"
+                      value={it.timeSpent || ""}
+                      onChangeText={(v) => updateStop(i, "timeSpent", v)}
+                    />
+                  </View>
+                </View>
+              </>
+            ) : (
+              <>
+                {/* ===== Stop ===== */}
+                <View style={[styles.itinHeadRow, styles.itinHeadRowStop]}>
+                  <TouchableOpacity onPress={() => setEmojiOpen(emojiOpen === i ? null : i)} style={styles.itinEmojiBtn} activeOpacity={0.8}>
+                    <Text style={{ fontSize: 20 }}>{it.emoji || "📍"}</Text>
+                  </TouchableOpacity>
+                  <TextInput style={styles.itinTimeInput} placeholder="Time" placeholderTextColor="#9AA79E" value={it.time || ""} onChangeText={(v) => updateStop(i, "time", v)} />
+                  <TextInput
+                    style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                    placeholder="Stop name (e.g. Fort Aguada)"
+                    placeholderTextColor="#9AA79E"
+                    value={it.title || ""}
+                    onChangeText={(v) => updateStop(i, "title", v)}
+                  />
+                  <TouchableOpacity onPress={() => move(i, -1)} disabled={i === 0} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={{ opacity: i === 0 ? 0.3 : 1, marginLeft: 6 }}>
+                    <Ionicons name="arrow-up" size={16} color={C.subText} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => move(i, 1)} disabled={i === list.length - 1} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={{ opacity: i === list.length - 1 ? 0.3 : 1, marginLeft: 6 }}>
+                    <Ionicons name="arrow-down" size={16} color={C.subText} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => removeStop(i)} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={{ marginLeft: 6 }}>
+                    <Ionicons name="trash-outline" size={15} color={C.red} />
+                  </TouchableOpacity>
+                </View>
+
+                {emojiOpen === i && (
+                  <View style={styles.itinEmojiPalette}>
+                    {STOP_EMOJIS.map((em) => (
+                      <TouchableOpacity key={em} onPress={() => { updateStop(i, "emoji", em); setEmojiOpen(null); }} style={styles.itinEmojiOpt} activeOpacity={0.8}>
+                        <Text style={{ fontSize: 18 }}>{em}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                <View style={{ padding: 12, gap: 8 }}>
+                  <TextInput style={[styles.input, styles.inputMultiline, { marginBottom: 0 }]} placeholder="Description of this stop…" placeholderTextColor="#9AA79E" value={it.description || ""} onChangeText={(v) => updateStop(i, "description", v)} multiline numberOfLines={2} textAlignVertical="top" />
+                  <Text style={styles.itinSubLabel}>Activities / Highlights at this stop</Text>
+                  {(it.activities || []).map((act, ai) => (
+                    <View key={ai} style={styles.itinActRow}>
+                      <Text style={styles.itinBullet}>•</Text>
+                      <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} placeholder="e.g. Lighthouse viewpoint" placeholderTextColor="#9AA79E" value={act} onChangeText={(v) => updateActivity(i, ai, v)} />
+                      {(it.activities || []).length > 1 && (
+                        <TouchableOpacity onPress={() => removeActivity(i, ai)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                          <Ionicons name="close" size={15} color={C.subText} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                  <TouchableOpacity onPress={() => addActivity(i)} style={styles.itinAddAct} activeOpacity={0.8}>
+                    <Ionicons name="add" size={14} color={C.emerald600} />
+                    <Text style={styles.itinAddActText}>Add activity</Text>
+                  </TouchableOpacity>
+                  <View style={styles.itinTimeSpentRow}>
+                    <Ionicons name="time-outline" size={15} color={C.subText} />
+                    <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} placeholder="Time spent (e.g. 45 minutes)" placeholderTextColor="#9AA79E" value={it.timeSpent || ""} onChangeText={(v) => updateStop(i, "timeSpent", v)} />
+                  </View>
+                </View>
+              </>
             )}
           </View>
         );
@@ -1781,7 +1866,7 @@ function ActivityAdder({ onAdd }) {
       <TextInput
         style={[styles.input, { flex: 1, marginBottom: 0 }]}
         placeholder="Add activity (e.g. Cable car ride)"
-        placeholderTextColor="#A3B3C2"
+        placeholderTextColor="#9AA79E"
         value={text}
         onChangeText={setText}
         onSubmitEditing={commit}
@@ -1798,43 +1883,70 @@ function ActivityAdder({ onAdd }) {
 
 const styles = StyleSheet.create({
   // Header
-  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
+  headerGrad: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
+  orbA: {
+    position: "absolute", top: -50, right: -40, width: 180, height: 180,
+    borderRadius: 90, backgroundColor: "rgba(201,154,63,0.10)",
+  },
+  orbB: {
+    position: "absolute", top: 10, left: -55, width: 140, height: 140,
+    borderRadius: 70, backgroundColor: "rgba(46,158,119,0.13)",
+  },
   headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
+  headerActionsRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 19, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "700", marginTop: 2 },
-  headerSaveBtn: { backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, minWidth: 60, alignItems: "center" },
-  headerSaveText: { color: C.emerald700, fontWeight: "800", fontSize: 13 },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 21, fontWeight: "bold", color: "#fff", letterSpacing: -0.3 },
+  headerTitleBig: { fontFamily: DISPLAY, fontSize: 25, fontWeight: "bold", color: "#fff", letterSpacing: -0.5, marginTop: 10, marginLeft: 2 },
+  headerSub: { fontFamily: DISPLAY, fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 4, marginLeft: 2 },
+  headerSaveBtn: { backgroundColor: "#fff", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, minWidth: 48, alignItems: "center" },
+  headerSaveText: { fontFamily: DISPLAY, color: C.emerald700, fontWeight: "bold", fontSize: 11.5 },
+  // Hero header (reference-style)
+  headerTopRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingTop: 4 },
+  hCircleBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    alignItems: "center", justifyContent: "center",
+  },
+  heroKicker: { fontFamily: DISPLAY, fontSize: 11, fontWeight: "bold", color: "rgba(255,255,255,0.7)", letterSpacing: 2, marginTop: 18 },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 30, fontWeight: "bold", color: "#fff", letterSpacing: -0.6, marginTop: 4 },
+  heroSubtitle: { fontFamily: DISPLAY, fontSize: 13, color: "rgba(255,255,255,0.82)", fontWeight: "600", marginTop: 4 },
 
   // Progress dots
   progressRow: { flexDirection: "row", marginTop: 12, paddingHorizontal: 4 },
   progressItem: { flex: 1, alignItems: "center", gap: 4 },
   progressDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.4)" },
   progressDotDone: { backgroundColor: "#fff", borderColor: "#fff" },
-  progressLabel: { fontSize: 9.5, color: "rgba(255,255,255,0.85)", fontWeight: "700", letterSpacing: 0.3 },
+  progressLabel: { fontFamily: DISPLAY, fontSize: 9.5, color: "rgba(255,255,255,0.85)", fontWeight: "bold", letterSpacing: 0.3 },
 
   scroll: { paddingTop: 4, paddingBottom: 24 },
 
   // Section toggle (collapsible card header)
   sectionToggle: {
-    flexDirection: "row", alignItems: "center", gap: 10,
-    marginHorizontal: 16, marginTop: 12, paddingHorizontal: 14, paddingVertical: 12,
-    backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border,
+    flexDirection: "row", alignItems: "center", gap: 12,
+    marginHorizontal: 16, marginTop: 12, paddingHorizontal: 14, paddingVertical: 13,
+    backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border,
+    shadowColor: C.shadow, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2,
   },
-  sectionToggleIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  sectionToggleText: { fontSize: 13.5, fontWeight: "800", letterSpacing: 0.3 },
-  sectionToggleSub: { fontSize: 11, color: C.subText, marginTop: 2, fontWeight: "600" },
+  sectionToggleIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  sectionToggleText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", letterSpacing: 0.3 },
+  sectionToggleSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, marginTop: 2, fontWeight: "600" },
 
   // Card (form sections)
-  card: { marginHorizontal: 16, backgroundColor: C.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: C.border, marginTop: -1, borderTopLeftRadius: 0, borderTopRightRadius: 0 },
+  card: {
+    marginHorizontal: 16, backgroundColor: C.card, borderRadius: 16, padding: 15,
+    borderWidth: 1, borderColor: C.border, marginTop: -1,
+    borderTopLeftRadius: 0, borderTopRightRadius: 0,
+    shadowColor: C.shadow, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 2,
+  },
 
   // Field
   field: { marginBottom: 14 },
-  fieldLabel: { fontSize: 12, fontWeight: "700", color: C.text, marginBottom: 6 },
-  helper: { fontSize: 11, color: C.subText, marginTop: 4, fontWeight: "600" },
+  fieldLabel: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.text, marginBottom: 6 },
+  helper: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, marginTop: 4, fontWeight: "600" },
   input: {
-    backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: C.ink, minHeight: 46,
+    fontFamily: DISPLAY,
+    backgroundColor: "#F1F2EF", borderWidth: 1, borderColor: C.border, borderRadius: 12,
+    paddingHorizontal: 13, paddingVertical: 12, fontSize: 14, color: C.ink, minHeight: 48,
   },
   inputMultiline: { minHeight: 80, paddingTop: 10 },
 
@@ -1842,58 +1954,58 @@ const styles = StyleSheet.create({
 
   // Prefix input
   prefixInputWrap: { flexDirection: "row", alignItems: "stretch" },
-  prefixBox: { paddingHorizontal: 14, justifyContent: "center", backgroundColor: C.emerald50, borderTopLeftRadius: 10, borderBottomLeftRadius: 10, borderWidth: 1, borderRightWidth: 0, borderColor: C.border },
-  prefixText: { color: C.emerald700, fontWeight: "800", fontSize: 16 },
+  prefixBox: { paddingHorizontal: 14, justifyContent: "center", backgroundColor: C.emerald50, borderTopLeftRadius: 12, borderBottomLeftRadius: 12, borderWidth: 1, borderRightWidth: 0, borderColor: C.border },
+  prefixText: { fontFamily: DISPLAY, color: C.emerald700, fontWeight: "bold", fontSize: 16 },
   prefixInput: { flex: 1, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeftWidth: 0 },
 
   // Icon-prefixed number input
   iconInputWrap: { flexDirection: "row", alignItems: "stretch" },
-  iconInputIcon: { width: 44, justifyContent: "center", alignItems: "center", borderTopLeftRadius: 10, borderBottomLeftRadius: 10, borderWidth: 1, borderRightWidth: 0, borderColor: C.border },
-  suffixBox: { paddingHorizontal: 12, justifyContent: "center", backgroundColor: "#FAFBFC", borderTopRightRadius: 10, borderBottomRightRadius: 10, borderWidth: 1, borderLeftWidth: 0, borderColor: C.border },
-  suffixText: { fontSize: 12, color: C.subText, fontWeight: "700" },
+  iconInputIcon: { width: 44, justifyContent: "center", alignItems: "center", borderTopLeftRadius: 12, borderBottomLeftRadius: 12, borderWidth: 1, borderRightWidth: 0, borderColor: C.border },
+  suffixBox: { paddingHorizontal: 12, justifyContent: "center", backgroundColor: "#F1F2EF", borderTopRightRadius: 12, borderBottomRightRadius: 12, borderWidth: 1, borderLeftWidth: 0, borderColor: C.border },
+  suffixText: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, fontWeight: "bold" },
 
   // Price type selector
-  priceTypeRow: { flexDirection: "row", gap: 6 },
+  priceTypeRow: { flexDirection: "row", gap: 8 },
   priceTypeBtn: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    paddingVertical: 10, borderRadius: 10,
-    backgroundColor: "#FAFBFC", borderWidth: 1.5, borderColor: C.border,
+    flex: 1, flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
+    paddingVertical: 14, paddingHorizontal: 4, borderRadius: 14,
+    backgroundColor: "#F1F2EF", borderWidth: 1.5, borderColor: C.border,
   },
-  priceTypeText: { fontSize: 11.5, color: C.subText, fontWeight: "700" },
+  priceTypeText: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, fontWeight: "bold", textAlign: "center" },
 
   // Cancellation policy
   cancelRow: { flexDirection: "row", gap: 6 },
-  cancelBtn: { flex: 1, padding: 10, borderRadius: 10, backgroundColor: "#FAFBFC", borderWidth: 1.5, borderColor: C.border, minHeight: 70 },
-  cancelLabel: { fontSize: 12.5, color: C.subText, fontWeight: "800", letterSpacing: 0.3, marginBottom: 4 },
-  cancelDesc: { fontSize: 10.5, color: C.subText, fontWeight: "600", lineHeight: 14 },
+  cancelBtn: { flex: 1, padding: 10, borderRadius: 12, backgroundColor: "#F1F2EF", borderWidth: 1.5, borderColor: C.border, minHeight: 70 },
+  cancelLabel: { fontFamily: DISPLAY, fontSize: 12.5, color: C.subText, fontWeight: "bold", letterSpacing: 0.3, marginBottom: 4 },
+  cancelDesc: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "600", lineHeight: 14 },
 
   // Tag list
   tagHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
   tagCountBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999 },
-  tagCountText: { fontSize: 10.5, fontWeight: "800" },
+  tagCountText: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold" },
   tagInputRow: { flexDirection: "row", gap: 6, alignItems: "center" },
-  tagAddBtn: { width: 44, height: 44, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  tagAddBtn: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
-  tag: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: "#FAFBFC", borderWidth: 1 },
-  tagText: { fontSize: 12, color: C.text, fontWeight: "600", maxWidth: 180 },
+  tag: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: "#F1F2EF", borderWidth: 1 },
+  tagText: { fontFamily: DISPLAY, fontSize: 12, color: C.text, fontWeight: "600", maxWidth: 180 },
 
   // Itinerary day rows
   addDayBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: C.purple },
-  addDayText: { color: "#fff", fontSize: 11, fontWeight: "800" },
+  addDayText: { fontFamily: DISPLAY, color: "#fff", fontSize: 11, fontWeight: "bold" },
   dayRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
   dayBadge: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", marginTop: 4 },
-  dayBadgeText: { color: "#fff", fontWeight: "900", fontSize: 13 },
-  dayContent: { flex: 1, backgroundColor: "#FAFBFC", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: C.border },
+  dayBadgeText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
+  dayContent: { flex: 1, backgroundColor: "#F1F2EF", borderRadius: 12, padding: 10, borderWidth: 1, borderColor: C.border },
   dayHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
-  dayLabel: { fontSize: 12, fontWeight: "800", color: C.purple, letterSpacing: 0.3 },
+  dayLabel: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.purple, letterSpacing: 0.3 },
   // #6b — itinerary emoji + activities
   emojiChip: { width: 34, height: 34, borderRadius: 9, alignItems: "center", justifyContent: "center", marginRight: 6, backgroundColor: "#fff", borderWidth: 1, borderColor: C.border },
   emojiChipSel: { borderColor: C.purple, backgroundColor: C.purpleLight, borderWidth: 2 },
   activityWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
   activityChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: C.purpleLight, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  activityChipText: { fontSize: 11.5, fontWeight: "700", color: C.purple },
+  activityChipText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold", color: C.purple },
   activityAddRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 },
-  activityAddBtn: { width: 38, height: 38, borderRadius: 10, backgroundColor: C.purple, alignItems: "center", justifyContent: "center" },
+  activityAddBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: C.purple, alignItems: "center", justifyContent: "center" },
 
   // Bottom bar with dual actions
   bottomBar: {
@@ -1903,64 +2015,65 @@ const styles = StyleSheet.create({
     backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
   },
   draftBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14, borderRadius: 12, backgroundColor: C.emerald50, borderWidth: 1.5, borderColor: C.emerald600 },
-  draftBtnText: { color: C.emerald600, fontWeight: "800", fontSize: 13.5 },
+  draftBtnText: { fontFamily: DISPLAY, color: C.emerald600, fontWeight: "bold", fontSize: 13.5 },
   publishBtnWrap: { flex: 1, borderRadius: 12, overflow: "hidden", shadowColor: C.emerald600, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
   publishBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14 },
-  publishBtnText: { color: "#fff", fontWeight: "800", fontSize: 13.5 },
+  publishBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13.5 },
 
   // Category & location (D1/D2)
-  pickerBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12 },
-  pickerBtnText: { flex: 1, fontSize: 14, color: C.ink, fontWeight: "700" },
-  locResults: { marginTop: 6, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 10, overflow: "hidden" },
-  locRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: "#F1F5F9" },
-  locName: { flex: 1, fontSize: 13.5, color: C.ink, fontWeight: "700" },
-  locType: { fontSize: 10, color: C.subText, fontWeight: "700", textTransform: "uppercase", backgroundColor: "#F1F5F9", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  pickerBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#F1F2EF", borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12 },
+  pickerBtnText: { fontFamily: DISPLAY, flex: 1, fontSize: 14, color: C.ink, fontWeight: "bold" },
+  locResults: { marginTop: 6, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 12, overflow: "hidden" },
+  locRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: C.tintSand },
+  locName: { fontFamily: DISPLAY, flex: 1, fontSize: 13.5, color: C.ink, fontWeight: "bold" },
+  locType: { fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "bold", textTransform: "uppercase", backgroundColor: C.tintSand, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   locSelected: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, backgroundColor: C.emerald50, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
-  locSelectedText: { flex: 1, fontSize: 12.5, color: C.emerald700, fontWeight: "700" },
+  locSelectedText: { fontFamily: DISPLAY, flex: 1, fontSize: 12.5, color: C.emerald700, fontWeight: "bold" },
 
   // Vehicles (D5)
-  vehSelRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: C.border, backgroundColor: "#FAFBFC", marginBottom: 8 },
+  vehSelRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: C.border, backgroundColor: "#F1F2EF", marginBottom: 8 },
   vehSelRowActive: { borderColor: C.emerald600, backgroundColor: C.emerald50 },
-  vehSelName: { fontSize: 14, color: C.ink, fontWeight: "800" },
-  vehSelSub: { fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 1 },
+  vehSelName: { fontFamily: DISPLAY, fontSize: 14, color: C.ink, fontWeight: "bold" },
+  vehSelSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 1 },
 
   // Advance payment (D6)
-  checkRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 10, borderWidth: 1.5, borderColor: C.border, backgroundColor: "#FAFBFC" },
+  checkRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, backgroundColor: "#F1F2EF" },
   checkRowActive: { borderColor: C.emerald600, backgroundColor: C.emerald50 },
-  checkRowText: { flex: 1, fontSize: 13, color: C.text, fontWeight: "700" },
+  checkRowText: { fontFamily: DISPLAY, flex: 1, fontSize: 13, color: C.text, fontWeight: "bold" },
   segRow: { flexDirection: "row", gap: 8 },
-  segBtn: { flex: 1, paddingVertical: 11, borderRadius: 10, borderWidth: 1, borderColor: C.border, alignItems: "center", backgroundColor: "#FAFBFC" },
+  segBtn: { flex: 1, paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: C.border, alignItems: "center", backgroundColor: "#F1F2EF" },
   segBtnActive: { borderColor: C.emerald600, backgroundColor: C.emerald50 },
-  segText: { fontSize: 14, fontWeight: "800", color: C.subText },
+  segText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.subText },
   segTextActive: { color: C.emerald700 },
-  dateBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, height: 46 },
-  dateBtnText: { flex: 1, fontSize: 13, color: C.ink, fontWeight: "700" },
+  dateBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#F1F2EF", borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 12, height: 46 },
+  dateBtnText: { fontFamily: DISPLAY, flex: 1, fontSize: 13, color: C.ink, fontWeight: "bold" },
 
   // Price tiers (D4)
   tierRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
   tierInput: { width: 56, textAlign: "center", paddingHorizontal: 6, minHeight: 42 },
-  tierDash: { fontSize: 12, color: C.subText, fontWeight: "700" },
+  tierDash: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, fontWeight: "bold" },
   tierPrice: { flex: 1, minHeight: 42 },
 
   // Category modal (D1)
   modalOverlay: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   modalSheet: { backgroundColor: C.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 24, paddingTop: 16, paddingHorizontal: 16 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  modalTitle: { fontSize: 16, fontWeight: "800", color: C.ink },
-  catRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#F8FAFC" },
+  modalTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink },
+  catRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: "#F1F2EF" },
   catRowActive: { backgroundColor: C.emerald50 },
-  catRowText: { flex: 1, fontSize: 14, color: C.ink, fontWeight: "800" },
+  catRowText: { fontFamily: DISPLAY, flex: 1, fontSize: 14, color: C.ink, fontWeight: "bold" },
   subCatRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 9, paddingHorizontal: 12, marginLeft: 18 },
-  subCatText: { fontSize: 13, color: C.text, fontWeight: "600" },
+  subCatText: { fontFamily: DISPLAY, fontSize: 13, color: C.text, fontWeight: "600" },
 
   // #6c — quick-mode banner
   quickBanner: {
-    flexDirection: "row", alignItems: "center", flexWrap: "wrap",
-    backgroundColor: C.amberLight, borderWidth: 1, borderColor: "#FDE68A",
-    borderRadius: 12, paddingVertical: 11, paddingHorizontal: 14, marginBottom: 12,
+    flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 3,
+    backgroundColor: C.amberLight, borderWidth: 1, borderColor: "#E4CE97",
+    borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16,
+    marginHorizontal: 16, marginTop: 6, marginBottom: 14,
   },
-  quickBannerText: { fontSize: 12.5, color: "#92400E", fontWeight: "600" },
-  quickBannerLink: { fontSize: 12.5, color: C.emerald700, fontWeight: "800" },
+  quickBannerText: { fontFamily: DISPLAY, fontSize: 13, color: "#8A6420", fontWeight: "600", lineHeight: 19 },
+  quickBannerLink: { fontFamily: DISPLAY, fontSize: 13, color: C.emerald700, fontWeight: "bold", lineHeight: 19 },
 
   // #6c — quick-mode category grid
   catGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -1970,48 +2083,97 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: C.border, backgroundColor: "#fff",
   },
   catChipActive: { borderColor: C.emerald500, backgroundColor: C.emerald50 },
-  catChipIcon: { fontSize: 14 },
-  catChipText: { fontSize: 13, fontWeight: "700", color: C.text, maxWidth: 130 },
+  catChipIcon: { fontFamily: DISPLAY, fontSize: 14 },
+  catChipText: { fontFamily: DISPLAY, fontSize: 13, fontWeight: "bold", color: C.text, maxWidth: 130 },
   catChipTextActive: { color: C.emerald700 },
 
   // #6c — quick-mode duration chips
   durWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   durChip: {
     paddingHorizontal: 12, paddingVertical: 9, borderRadius: 999,
-    borderWidth: 1, borderColor: C.border, backgroundColor: "#F8FAFC",
+    borderWidth: 1, borderColor: C.border, backgroundColor: "#F1F2EF",
   },
   durChipActive: { borderColor: C.emerald500, backgroundColor: C.emerald50 },
-  durChipText: { fontSize: 12.5, fontWeight: "700", color: C.text },
+  durChipText: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", color: C.text },
   durChipTextActive: { color: C.emerald700 },
 
+  // ===== Quick Add — reference layout =====
+  qSecHead: { marginHorizontal: 16, marginTop: 18, marginBottom: 10 },
+  qSecTitle: { fontFamily: DISPLAY, fontSize: 19, fontWeight: "bold", color: C.ink, letterSpacing: -0.2 },
+  qSecSub: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 2, fontWeight: "500" },
+  qCatRow: { paddingHorizontal: 16, gap: 9, flexDirection: "row", paddingBottom: 4, paddingRight: 24 },
+  qCatChip: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingHorizontal: 16, paddingVertical: 12, borderRadius: 999,
+    borderWidth: 1, borderColor: C.border, backgroundColor: "#fff",
+    shadowColor: C.shadow, shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 1,
+  },
+  qCatChipActive: { borderColor: C.emerald600, backgroundColor: C.emerald600 },
+  qCatChipIcon: { fontSize: 15 },
+  qCatChipText: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: "bold", color: C.text, maxWidth: 150 },
+  qCatChipTextActive: { color: "#fff" },
+
+  qCard: {
+    marginHorizontal: 16, marginTop: 16,
+    backgroundColor: C.card, borderRadius: 20, padding: 16,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: C.shadow, shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2,
+  },
+  qCardTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, letterSpacing: -0.2 },
+  qCardSub: { fontFamily: DISPLAY, fontSize: 12.5, color: C.subText, marginTop: 2, fontWeight: "500" },
+
+  qFieldRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 14 },
+  qBadge: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  qBadgeTxt: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold" },
+  qInput: {
+    flex: 1, fontFamily: DISPLAY,
+    backgroundColor: "#F1F2EF", borderWidth: 1, borderColor: C.border, borderRadius: 14,
+    paddingHorizontal: 15, paddingVertical: 13, fontSize: 14, color: C.ink, minHeight: 48,
+  },
+  qLocLinked: { flexDirection: "row", alignItems: "center", gap: 6 },
+
+  qDurHead: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 18 },
+  qDurTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.ink },
+  qDurSub: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, marginTop: 1, fontWeight: "500" },
+  qDurGrid: { flexDirection: "row", flexWrap: "wrap", gap: 9, marginTop: 10, marginLeft: 52 },
+
+  qPriceWrap: {
+    flex: 1, flexDirection: "row", alignItems: "center",
+    backgroundColor: "#F1F2EF", borderRadius: 14, borderWidth: 1, borderColor: C.border,
+    paddingHorizontal: 15, minHeight: 48,
+  },
+  qPriceInput: { flex: 1, fontFamily: DISPLAY, fontSize: 15, fontWeight: "bold", color: C.ink, paddingVertical: 12 },
+  qPriceSuffix: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.subText, letterSpacing: 0.5 },
+
   // Detailed-mode step wizard
-  stepperRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 4, marginTop: 4, marginBottom: 14 },
+  stepperRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, marginTop: 6, marginBottom: 16 },
   stepperDot: {
-    width: 30, height: 30, borderRadius: 15, backgroundColor: "#E5E7EB",
+    width: 28, height: 28, borderRadius: 14, backgroundColor: "#FFFFFF",
+    borderWidth: 1.5, borderColor: "#E2DBCC",
     alignItems: "center", justifyContent: "center",
   },
   stepperDotCurrent: {
-    width: 34, height: 34, borderRadius: 17, backgroundColor: C.emerald600,
+    width: 32, height: 32, borderRadius: 16, backgroundColor: C.emerald600,
     borderWidth: 3, borderColor: C.emerald50,
-    shadowColor: C.emerald600, shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 3,
+    shadowColor: C.emerald600, shadowOpacity: 0.35, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 4,
   },
-  stepperDotDone: { backgroundColor: C.emerald500 },
-  stepperNum: { fontSize: 13, fontWeight: "800", color: C.subText },
-  stepperLine: { flex: 1, height: 3, backgroundColor: "#E5E7EB", borderRadius: 2, marginHorizontal: 2 },
-  stepperLineDone: { backgroundColor: C.emerald500 },
-  stepHead: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14, marginTop: 2 },
+  stepperDotDone: { backgroundColor: C.emerald600, borderColor: C.emerald600 },
+  stepperNum: { fontFamily: DISPLAY, fontSize: 13, fontWeight: "bold", color: C.subText },
+  stepperLine: { flex: 1, height: 2.5, backgroundColor: "#E2DBCC", borderRadius: 2, marginHorizontal: 3 },
+  stepperLineDone: { backgroundColor: C.emerald600 },
+  stepHead: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 16, marginBottom: 14, marginTop: 2 },
   stepHeadIcon: {
     width: 44, height: 44, borderRadius: 13, backgroundColor: C.emerald50,
-    alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#D1FAE5",
+    alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#DDEBE2",
   },
-  stepHeadTitle: { fontSize: 17, fontWeight: "800", color: C.ink, letterSpacing: -0.2 },
-  stepHeadSub: { fontSize: 12, color: C.subText, marginTop: 2, fontWeight: "500" },
+  stepHeadTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, letterSpacing: -0.2 },
+  stepHeadSub: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, marginTop: 2, fontWeight: "500" },
 
   // Quick tour description formatting toolbar
   fmtToolbar: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10 },
-  fmtBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: C.border, backgroundColor: "#F8FAFC" },
-  fmtBtnText: { fontSize: 12, fontWeight: "700", color: C.ink },
-  inputMultilineRich: { minHeight: 200, paddingTop: 12, paddingBottom: 12, fontSize: 14, lineHeight: 22 },
+  fmtBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: C.border, backgroundColor: "#F1F2EF" },
+  fmtBtnText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.ink },
+  inputMultilineRich: { fontFamily: DISPLAY, minHeight: 200, paddingTop: 12, paddingBottom: 12, fontSize: 14, lineHeight: 22 },
 
   // AI "write with AI" affordance on the short description
   aiInputWrap: { flexDirection: "row", alignItems: "flex-start" },
@@ -2020,33 +2182,39 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   aiHintRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
-  aiHintText: { fontSize: 12, fontWeight: "700", color: C.purple },
+  aiHintText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.emerald600 },
 
   // Itinerary (time-based stops + breaks)
-  itinHint: { fontSize: 12.5, color: C.subText, marginBottom: 10, fontWeight: "600" },
+  itinHint: { fontFamily: DISPLAY, fontSize: 12.5, color: C.subText, marginBottom: 10, fontWeight: "600" },
   itinCard: { borderWidth: 1, borderColor: C.border, borderRadius: 14, backgroundColor: "#fff", marginBottom: 10, overflow: "hidden" },
-  itinCardBreak: { borderColor: "#A7F3D0", backgroundColor: C.emerald50 },
+  itinCardBreak: { borderColor: "#CADFD1", backgroundColor: C.emerald50 },
   itinHeadRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 10 },
-  itinHeadRowStop: { backgroundColor: "#F8FAFC", borderBottomWidth: 1, borderBottomColor: C.border },
+  itinHeadRowStop: { backgroundColor: "#F1F2EF", borderBottomWidth: 1, borderBottomColor: C.border },
   itinEmojiBtn: { width: 34, height: 34, borderRadius: 9, backgroundColor: "#fff", borderWidth: 1, borderColor: C.border, alignItems: "center", justifyContent: "center" },
-  itinBreakIcon: { width: 30, height: 30, borderRadius: 9, backgroundColor: "#D1FAE5", alignItems: "center", justifyContent: "center" },
-  itinTimeInput: { width: 78, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 8, height: 40, fontSize: 13, color: C.ink, backgroundColor: "#fff" },
-  itinBreakBadge: { backgroundColor: "#D1FAE5", paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
-  itinBreakBadgeText: { fontSize: 9, fontWeight: "900", color: C.emerald700, letterSpacing: 0.4 },
-  itinEmojiPalette: { flexDirection: "row", flexWrap: "wrap", gap: 4, padding: 10, backgroundColor: "#F8FAFC", borderBottomWidth: 1, borderBottomColor: C.border },
+  itinBreakIcon: { width: 30, height: 30, borderRadius: 9, backgroundColor: "#DDEBE2", alignItems: "center", justifyContent: "center" },
+  itinTimeInput: { fontFamily: DISPLAY, width: 78, borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 8, height: 40, fontSize: 13, color: C.ink, backgroundColor: "#fff" },
+  itinBreakBadge: { backgroundColor: "#DDEBE2", paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999 },
+  itinBreakBadgeText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", color: C.emerald700, letterSpacing: 0.6 },
+  // Break — clean header + body
+  itinBreakHead: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingTop: 11, paddingBottom: 9 },
+  itinBreakBody: { paddingHorizontal: 12, paddingBottom: 12, gap: 9 },
+  itinDurRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  itinDurIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: "#DDEBE2", alignItems: "center", justifyContent: "center" },
+  itinActBtn: { width: 30, height: 30, borderRadius: 9, backgroundColor: "#fff", borderWidth: 1, borderColor: C.border, alignItems: "center", justifyContent: "center", marginLeft: 6 },
+  itinEmojiPalette: { flexDirection: "row", flexWrap: "wrap", gap: 4, padding: 10, backgroundColor: "#F1F2EF", borderBottomWidth: 1, borderBottomColor: C.border },
   itinEmojiOpt: { width: 34, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: "#fff", borderWidth: 1, borderColor: C.border },
-  itinSubLabel: { fontSize: 11.5, fontWeight: "700", color: C.subText, marginTop: 2 },
+  itinSubLabel: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold", color: C.subText, marginTop: 2 },
   itinActRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  itinBullet: { fontSize: 16, color: C.subText, fontWeight: "800" },
+  itinBullet: { fontFamily: DISPLAY, fontSize: 16, color: C.subText, fontWeight: "bold" },
   itinAddAct: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", paddingVertical: 4 },
-  itinAddActText: { fontSize: 12.5, fontWeight: "700", color: C.emerald600 },
+  itinAddActText: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", color: C.emerald600 },
   itinTimeSpentRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   itinAddRow: { flexDirection: "row", gap: 10, marginTop: 4 },
   itinAddBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, borderColor: "#A7F3D0", borderStyle: "dashed", backgroundColor: C.emerald50,
+    paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, borderColor: "#CADFD1", borderStyle: "dashed", backgroundColor: C.emerald50,
   },
-  itinAddBtnText: { fontSize: 13, fontWeight: "800", color: C.emerald700 },
+  itinAddBtnText: { fontFamily: DISPLAY, fontSize: 13, fontWeight: "bold", color: C.emerald700 },
 
   // Preset tag editor (inclusions / exclusions)
   presetWrap: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginBottom: 10 },
@@ -2055,7 +2223,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999,
     borderWidth: 1, borderColor: C.border, backgroundColor: "#fff",
   },
-  presetChipText: { fontSize: 12, fontWeight: "600", color: C.subText },
+  presetChipText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "600", color: C.subText },
   presetAddRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   presetAddBtn: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   selectedWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
@@ -2063,7 +2231,7 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: 6,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, maxWidth: "100%",
   },
-  selectedChipText: { fontSize: 12, fontWeight: "700", flexShrink: 1 },
+  selectedChipText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", flexShrink: 1 },
 
   // #6c — Quick/Detailed chooser overlay
   chooserOverlay: {
@@ -2075,18 +2243,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18, paddingTop: 10, paddingBottom: 28,
   },
   chooserHandle: { alignSelf: "center", width: 42, height: 5, borderRadius: 3, backgroundColor: C.border, marginBottom: 14 },
-  chooserTitle: { fontSize: 18, fontWeight: "800", color: C.ink },
-  chooserSub: { fontSize: 13, color: C.subText, marginTop: 4, marginBottom: 16 },
+  chooserTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: "bold", color: C.ink },
+  chooserSub: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 4, marginBottom: 16 },
   chooserOpt: {
     flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: C.border,
+    backgroundColor: "#F1F2EF", borderWidth: 1, borderColor: C.border,
     borderRadius: 14, padding: 14, marginBottom: 10,
   },
   chooserIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  chooserOptTitle: { fontSize: 15, fontWeight: "800", color: C.ink },
-  chooserOptDesc: { fontSize: 12, color: C.subText, marginTop: 2, lineHeight: 16 },
+  chooserOptTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: "bold", color: C.ink },
+  chooserOptDesc: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, marginTop: 2, lineHeight: 16 },
   chooserCancel: { alignItems: "center", paddingVertical: 12, marginTop: 4 },
-  chooserCancelText: { fontSize: 14, fontWeight: "700", color: C.subText },
+  chooserCancelText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.subText },
 
   // KYC document gate modal
   gateOverlay: {
@@ -2107,15 +2275,15 @@ const styles = StyleSheet.create({
     backgroundColor: C.amber, alignItems: "center", justifyContent: "center",
     borderWidth: 2.5, borderColor: C.card,
   },
-  gateTitle: { fontSize: 18.5, fontWeight: "800", color: C.ink, textAlign: "center" },
-  gateMsg: { fontSize: 13.5, color: C.subText, textAlign: "center", marginTop: 8, lineHeight: 20 },
+  gateTitle: { fontFamily: DISPLAY, fontSize: 18.5, fontWeight: "bold", color: C.ink, textAlign: "center" },
+  gateMsg: { fontFamily: DISPLAY, fontSize: 13.5, color: C.subText, textAlign: "center", marginTop: 8, lineHeight: 20 },
 
   gateStepsRow: { flexDirection: "row", alignItems: "center", marginTop: 18, marginBottom: 4, paddingHorizontal: 4 },
   gateStep: { alignItems: "center", gap: 5, width: 92 },
   gateStepDotDone: { width: 24, height: 24, borderRadius: 12, backgroundColor: C.emerald600, alignItems: "center", justifyContent: "center" },
   gateStepDotCurrent: { width: 24, height: 24, borderRadius: 12, backgroundColor: C.amber, alignItems: "center", justifyContent: "center" },
-  gateStepDotNum: { color: "#fff", fontWeight: "800", fontSize: 12 },
-  gateStepText: { fontSize: 11, color: C.subText, fontWeight: "600", textAlign: "center" },
+  gateStepDotNum: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 12 },
+  gateStepText: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "600", textAlign: "center" },
   gateStepLine: { flex: 1, height: 2, backgroundColor: C.border, marginBottom: 18, marginHorizontal: 2 },
 
   gatePrimary: {
@@ -2123,9 +2291,9 @@ const styles = StyleSheet.create({
     shadowColor: C.emerald600, shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 4,
   },
   gatePrimaryInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 52 },
-  gatePrimaryText: { color: "#fff", fontSize: 15.5, fontWeight: "800" },
+  gatePrimaryText: { fontFamily: DISPLAY, color: "#fff", fontSize: 15.5, fontWeight: "bold" },
   gateSecondary: { width: "100%", alignItems: "center", paddingVertical: 13, marginTop: 2 },
-  gateSecondaryText: { fontSize: 14, fontWeight: "700", color: C.subText },
+  gateSecondaryText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.subText },
 
   // Live preview modal
   previewOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(15,23,42,0.6)", justifyContent: "flex-end" },
@@ -2133,29 +2301,116 @@ const styles = StyleSheet.create({
     backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     maxHeight: "92%", overflow: "hidden",
   },
-  previewHeader: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border,
+  previewHandle: {
+    alignSelf: "center", width: 40, height: 4, borderRadius: 2,
+    backgroundColor: "#D8D0C0", marginTop: 8, marginBottom: 4,
   },
-  previewHeaderTitle: { fontSize: 17, fontWeight: "800", color: C.ink },
-  previewClose: { width: 34, height: 34, borderRadius: 17, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" },
-  previewCover: { width: "100%", height: 210, backgroundColor: "#EEF2F7" },
+  previewHeader: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  previewEyeChip: {
+    width: 28, height: 28, borderRadius: 10, backgroundColor: C.emerald50,
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: "rgba(28,107,82,0.14)",
+  },
+  previewHeaderTitle: {
+    fontFamily: DISPLAY, fontSize: 16.5, fontWeight: "bold", color: C.ink,
+    includeFontPadding: false,
+  },
+  previewHeaderSub: {
+    fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold", color: C.subText,
+    letterSpacing: 0.4, marginTop: 1, includeFontPadding: false,
+  },
+  previewClose: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: C.tintSand,
+    alignItems: "center", justifyContent: "center",
+  },
+
+  // Cover hero — badge + image count sit on the photo, title stays in the body.
+  previewCoverWrap: { position: "relative" },
+  previewCover: { width: "100%", height: 190, backgroundColor: "#EDE7DB" },
+  previewCoverScrim: { ...StyleSheet.absoluteFillObject },
   previewCoverEmpty: { alignItems: "center", justifyContent: "center", gap: 6 },
-  previewEmptyText: { fontSize: 12.5, color: C.subText, fontWeight: "600" },
-  previewBody: { padding: 18 },
-  previewBadge: { alignSelf: "flex-start", backgroundColor: C.emerald50, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, marginBottom: 10 },
-  previewBadgeText: { fontSize: 11, fontWeight: "800", color: C.emerald700, letterSpacing: 0.3 },
-  previewTitle: { fontSize: 21, fontWeight: "800", color: C.ink, letterSpacing: -0.3 },
-  previewMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 10 },
-  previewMeta: { flexDirection: "row", alignItems: "center", gap: 4 },
-  previewMetaText: { fontSize: 13.5, color: C.text, fontWeight: "600" },
-  previewPrice: { fontSize: 20, fontWeight: "900", color: C.emerald700, marginTop: 14 },
-  previewSectionLabel: { fontSize: 11.5, fontWeight: "800", color: C.subText, letterSpacing: 1, marginTop: 20, marginBottom: 8 },
-  previewDesc: { fontSize: 14, color: C.text, lineHeight: 21 },
-  previewThumb: { width: 96, height: 96, borderRadius: 12, backgroundColor: "#EEF2F7" },
+  previewEmptyText: { fontFamily: DISPLAY, fontSize: 12.5, color: C.subText, fontWeight: "600" },
+  previewBadge: {
+    position: "absolute", top: 11, left: 12, maxWidth: "60%",
+    backgroundColor: "rgba(255,255,255,0.94)",
+    paddingHorizontal: 10, height: 24, justifyContent: "center", borderRadius: 999,
+    borderWidth: 1, borderColor: "rgba(28,107,82,0.22)",
+  },
+  previewBadgeText: {
+    fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold", color: C.emerald700,
+    letterSpacing: 0.5, textTransform: "uppercase", includeFontPadding: false,
+  },
+  previewCountPill: {
+    position: "absolute", top: 11, right: 12,
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 9, height: 24, borderRadius: 999,
+    backgroundColor: "rgba(11,32,25,0.55)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.22)",
+  },
+  previewCountText: {
+    fontFamily: DISPLAY, fontSize: 10, fontWeight: "bold", color: "#fff",
+    includeFontPadding: false,
+  },
+
+  previewBody: { padding: 16 },
+  previewTitle: {
+    fontFamily: DISPLAY, fontSize: 21, fontWeight: "bold", color: C.ink,
+    letterSpacing: -0.3, lineHeight: 26, includeFontPadding: false,
+  },
+  // Meta as tinted pills — the old version was loose icon + text.
+  previewMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
+  previewMeta: {
+    flexDirection: "row", alignItems: "center", gap: 5, maxWidth: "100%",
+    paddingHorizontal: 9, height: 26, borderRadius: 999,
+    backgroundColor: C.emerald50, borderWidth: 1, borderColor: "rgba(28,107,82,0.18)",
+  },
+  previewMetaText: {
+    fontFamily: DISPLAY, fontSize: 11.5, color: C.emerald700, fontWeight: "bold",
+    flexShrink: 1, includeFontPadding: false,
+  },
+
+  // Price plate — the one hard number, in its own emerald container.
+  previewPriceCard: {
+    marginTop: 14, paddingHorizontal: 13, paddingVertical: 11, borderRadius: 14,
+    backgroundColor: C.emerald50, borderWidth: 1, borderColor: "rgba(28,107,82,0.2)",
+  },
+  previewPriceLabel: {
+    fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", color: C.subText,
+    letterSpacing: 0.8, textTransform: "uppercase", includeFontPadding: false,
+  },
+  previewPrice: {
+    fontFamily: DISPLAY, fontSize: 21, fontWeight: "bold", color: C.emerald700,
+    marginTop: 3, includeFontPadding: false,
+  },
+
+  // Editorial section header
+  previewSectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 20, marginBottom: 9 },
+  previewSectionIcon: {
+    width: 26, height: 26, borderRadius: 9, backgroundColor: C.emerald50,
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: "rgba(28,107,82,0.12)",
+  },
+  previewSectionLabel: {
+    fontFamily: DISPLAY, fontSize: 13.5, fontWeight: "bold", color: C.ink,
+    flexShrink: 1, includeFontPadding: false,
+  },
+  previewSectionRule: { flex: 1, height: 1, backgroundColor: C.border, marginLeft: 2 },
+
+  previewDesc: { fontFamily: DISPLAY, fontSize: 14, color: C.text, lineHeight: 21 },
+  previewThumb: {
+    width: 96, height: 96, borderRadius: 14, backgroundColor: "#EDE7DB",
+    borderWidth: 1, borderColor: C.border,
+  },
   previewFooter: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    paddingVertical: 12, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: "#F8FAFC",
+    paddingVertical: 12, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.emerald50,
   },
-  previewFooterText: { fontSize: 12, color: C.subText, fontWeight: "600" },
+  previewFooterText: {
+    fontFamily: DISPLAY, fontSize: 12, color: C.emerald700, fontWeight: "bold",
+    includeFontPadding: false,
+  },
 });

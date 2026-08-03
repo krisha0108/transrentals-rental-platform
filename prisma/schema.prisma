@@ -6463,6 +6463,7 @@ enum drivers_status {
 
 model travel_agents {
   id                String               @id
+  tid               String?              @unique(map: "travel_agents_tid")
   email             String               @unique
   password          String
   phone             String               @unique

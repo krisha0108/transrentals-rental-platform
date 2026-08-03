@@ -9,41 +9,22 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  RefreshControl, Alert, StatusBar,
+  RefreshControl, Alert, StatusBar, Animated, Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
+import { DISPLAY } from "../_shared/typography";
 import {
   getCurrentTravelAgent,
   getTravelAgentDashboard,
   logoutTravelAgent,
 } from "../../api/travelAgentClient";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-  purpleLight: "#EDE9FE",
-  indigo: "#6366F1",
-  indigoLight: "#E0E7FF",
-};
 
-const AVATAR_COLORS = ["#059669", "#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B", "#6366F1", "#14B8A6", "#EF4444"];
+// Warm Elevate tones (was the bright set: #059669, #3B82F6, #EC4899 …).
+const AVATAR_COLORS = ["#1C6B52", "#2C6E8C", "#5E43A8", "#C65772", "#9A6B16", "#2E9E78", "#245C7A", "#B14A64"];
 function avatarColor(name) {
   if (!name) return C.emerald600;
   let h = 0;
@@ -134,6 +115,27 @@ const SECTIONS = [
   },
 ];
 
+// Slowly drifting/pulsing decorative orb for the hero — gentle ambient motion.
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return (
+    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
+  );
+}
+
 export default function MoreScreen({ navigation }) {
   const [agent, setAgent] = useState(null);
   const [stats, setStats] = useState(null);
@@ -204,7 +206,7 @@ export default function MoreScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
 
       <ScrollView
         style={{ flex: 1 }}
@@ -216,11 +218,28 @@ export default function MoreScreen({ navigation }) {
       >
         {/* ===== Compact gradient hero (horizontal) ===== */}
         <LinearGradient
-          colors={["#022C22", "#064E3B", "#047857"]}
+          colors={["#0F2A22", "#16382E", "#1C6B52"]}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.heroGrad}
         >
-          <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 14, paddingBottom: 32 }}>
+          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+          <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 16, paddingTop: 2, paddingBottom: 26 }}>
+            {/* Top row: kicker label + labelled Edit pill */}
+            <View style={styles.heroTopRow}>
+              <Text style={styles.heroKicker}>MY ACCOUNT</Text>
+              <TouchableOpacity
+                style={styles.editPill}
+                onPress={() => navigation.navigate("TAProfile")}
+                activeOpacity={0.85}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Ionicons name="create-outline" size={13} color={C.emerald700} />
+                <Text style={styles.editPillText}>Edit</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Avatar + name block */}
             <View style={styles.heroRow}>
               <LinearGradient
                 colors={[aColor, shade(aColor, -18)]}
@@ -230,7 +249,7 @@ export default function MoreScreen({ navigation }) {
                 <Text style={styles.avatarText}>{initials(agencyName)}</Text>
               </LinearGradient>
 
-              <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
+              <View style={{ flex: 1, minWidth: 0, marginLeft: 13 }}>
                 <Text style={styles.agencyName} numberOfLines={1}>{agencyName}</Text>
                 {!!agent?.email && (
                   <Text style={styles.email} numberOfLines={1}>{agent.email}</Text>
@@ -240,15 +259,6 @@ export default function MoreScreen({ navigation }) {
                   <Text style={styles.statusPillText}>{statusMeta.label.toUpperCase()}</Text>
                 </View>
               </View>
-
-              <TouchableOpacity
-                style={styles.editBtn}
-                onPress={() => navigation.navigate("TAProfile")}
-                activeOpacity={0.85}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              >
-                <Ionicons name="create" size={16} color={C.emerald700} />
-              </TouchableOpacity>
             </View>
           </SafeAreaView>
         </LinearGradient>
@@ -297,7 +307,7 @@ export default function MoreScreen({ navigation }) {
             activeOpacity={0.9}
           >
             <LinearGradient
-              colors={[C.amber, "#D97706"]}
+              colors={[C.amber, shade(C.amber, -18)]}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               style={styles.approvalCard}
             >
@@ -364,7 +374,7 @@ export default function MoreScreen({ navigation }) {
                     <View
                       style={[
                         styles.itemIcon,
-                        { backgroundColor: gated ? "#F1F5F9" : `${item.color}18` },
+                        { backgroundColor: gated ? C.tintSand : `${item.color}18` },
                       ]}
                     >
                       <Ionicons
@@ -428,7 +438,7 @@ export default function MoreScreen({ navigation }) {
               <Ionicons name="log-out-outline" size={18} color={C.red} />
             </View>
             <Text style={styles.logoutText}>Log Out</Text>
-            <Ionicons name="chevron-forward" size={16} color="#FCA5A5" />
+            <Ionicons name="chevron-forward" size={16} color="#CE9A94" />
           </TouchableOpacity>
         </View>
 
@@ -456,44 +466,57 @@ function StatBlock({ label, value, icon, color, onPress }) {
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
   // Hero (compact horizontal)
-  heroGrad: { borderBottomLeftRadius: 22, borderBottomRightRadius: 22 },
-  heroRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
+  heroGrad: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
+  orbA: {
+    position: "absolute", top: -50, right: -40, width: 190, height: 190,
+    borderRadius: 95, backgroundColor: "rgba(201,154,63,0.10)",
+  },
+  orbB: {
+    position: "absolute", top: 10, left: -60, width: 150, height: 150,
+    borderRadius: 75, backgroundColor: "rgba(46,158,119,0.14)",
+  },
+  heroTopRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 11 },
+  heroKicker: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold", color: "rgba(255,255,255,0.62)", letterSpacing: 1.8, marginTop: 12 },
+  editPill: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    backgroundColor: "#fff",
+    paddingHorizontal: 13, paddingVertical: 7, borderRadius: 999,
+    marginTop: 12,
+    shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 2,
+  },
+  editPillText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.emerald700, letterSpacing: 0.2 },
+  heroRow: { flexDirection: "row", alignItems: "center" },
   avatar: {
-    width: 58, height: 58, borderRadius: 18,
+    width: 54, height: 54, borderRadius: 17,
     alignItems: "center", justifyContent: "center",
     borderWidth: 2, borderColor: "rgba(255,255,255,0.35)",
     shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 4,
   },
-  avatarText: { color: "#fff", fontWeight: "900", fontSize: 19, letterSpacing: 0.3 },
-  agencyName: { fontSize: 17, fontWeight: "900", color: "#fff", letterSpacing: -0.2 },
-  email: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", marginTop: 2, fontWeight: "600" },
+  avatarText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 18, letterSpacing: 0.3 },
+  agencyName: { fontFamily: DISPLAY, fontSize: 18.5, fontWeight: "bold", color: "#fff", letterSpacing: -0.2 },
+  email: { fontFamily: DISPLAY, fontSize: 11.5, color: "rgba(255,255,255,0.85)", marginTop: 3, fontWeight: "600" },
   statusPill: {
     alignSelf: "flex-start",
     flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
+    paddingHorizontal: 9, paddingVertical: 3.5, borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.22)",
-    marginTop: 6,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.18)",
+    marginTop: 7,
   },
-  statusPillText: { color: "#fff", fontSize: 9.5, fontWeight: "900", letterSpacing: 0.5 },
-  editBtn: {
-    width: 36, height: 36, borderRadius: 12,
-    backgroundColor: "#fff",
-    alignItems: "center", justifyContent: "center",
-    shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2,
-  },
+  statusPillText: { fontFamily: DISPLAY, color: "#fff", fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.5 },
 
   // Floating stats card (pulled up -22)
   statsCard: {
     flexDirection: "row", alignItems: "center",
-    marginHorizontal: 14, marginTop: -22,
+    marginHorizontal: 14, marginTop: -10,
     backgroundColor: C.card, borderRadius: 16, paddingVertical: 14,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4,
+    shadowColor: C.shadow, shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 4,
   },
   statBlock: { flex: 1, alignItems: "center", gap: 4 },
   statIcon: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center", marginBottom: 2 },
-  statValue: { fontSize: 18, fontWeight: "900" },
-  statLabel: { fontSize: 10, color: C.subText, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
+  statValue: { fontFamily: DISPLAY, fontSize: 18, fontWeight: "bold" },
+  statLabel: { fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 0.5 },
   statDivider: { width: 1, height: 36, backgroundColor: C.border },
 
   // Approval CTA card (gradient)
@@ -503,8 +526,8 @@ const styles = StyleSheet.create({
   },
   approvalCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
   approvalIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center" },
-  approvalTitle: { fontSize: 14, fontWeight: "900", color: "#fff" },
-  approvalDesc: { fontSize: 11.5, color: "rgba(255,255,255,0.92)", marginTop: 2, fontWeight: "600" },
+  approvalTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: "#fff" },
+  approvalDesc: { fontFamily: DISPLAY, fontSize: 11.5, color: "rgba(255,255,255,0.92)", marginTop: 2, fontWeight: "600" },
 
   // Featured quick shortcuts — 4 tiles in a single horizontal row (white card).
   featuredStrip: {
@@ -513,20 +536,20 @@ const styles = StyleSheet.create({
     paddingVertical: 14, paddingHorizontal: 8,
     backgroundColor: C.card, borderRadius: 14,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 1,
+    shadowColor: C.shadow, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1,
   },
   featuredTile: { flex: 1, alignItems: "center", gap: 6, paddingHorizontal: 4 },
   featuredIconWrap: {
     width: 42, height: 42, borderRadius: 12,
     alignItems: "center", justifyContent: "center",
   },
-  featuredLabel: { fontSize: 11.5, fontWeight: "800", color: C.text, textAlign: "center" },
+  featuredLabel: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold", color: C.text, textAlign: "center" },
 
   // Section
   section: { marginTop: 18 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginHorizontal: 14, marginBottom: 6 },
   sectionIcon: { width: 22, height: 22, borderRadius: 7, alignItems: "center", justifyContent: "center" },
-  sectionTitle: { fontSize: 11, fontWeight: "900", letterSpacing: 0.7, textTransform: "uppercase" },
+  sectionTitle: { fontFamily: DISPLAY, fontSize: 11, fontWeight: "bold", letterSpacing: 0.7, textTransform: "uppercase" },
 
   sectionCard: {
     marginHorizontal: 14, backgroundColor: C.card, borderRadius: 14,
@@ -536,9 +559,9 @@ const styles = StyleSheet.create({
   itemRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 11, paddingHorizontal: 12 },
   itemRowBorder: { borderTopWidth: 1, borderTopColor: C.border },
   itemIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  itemLabel: { flex: 1, fontSize: 13.5, fontWeight: "700", color: C.ink },
+  itemLabel: { fontFamily: DISPLAY, flex: 1, fontSize: 13.5, fontWeight: "bold", color: C.ink },
   gatedBadge: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, backgroundColor: C.amberLight },
-  gatedBadgeText: { color: "#A16207", fontSize: 9, fontWeight: "900", letterSpacing: 0.4 },
+  gatedBadgeText: { fontFamily: DISPLAY, color: "#8A6420", fontSize: 9, fontWeight: "bold", letterSpacing: 0.4 },
 
   // Logout card
   logoutCard: {
@@ -546,7 +569,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.card, borderRadius: 16,
     borderWidth: 1, borderColor: C.border,
     overflow: "hidden",
-    shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2,
+    shadowColor: C.shadow, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2,
   },
   logoutUserRow: {
     flexDirection: "row", alignItems: "center", gap: 12,
@@ -556,21 +579,21 @@ const styles = StyleSheet.create({
     width: 44, height: 44, borderRadius: 13,
     alignItems: "center", justifyContent: "center",
   },
-  logoutAvatarText: { color: "#fff", fontWeight: "900", fontSize: 15 },
-  logoutName: { fontSize: 14, fontWeight: "800", color: C.ink },
-  logoutEmail: { fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 2 },
-  logoutDivider: { height: 1, backgroundColor: "#FEE2E2", marginHorizontal: 0 },
+  logoutAvatarText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 15 },
+  logoutName: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.ink },
+  logoutEmail: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 2 },
+  logoutDivider: { height: 1, backgroundColor: "#F3DAD6", marginHorizontal: 0 },
   logoutBtn: {
     flexDirection: "row", alignItems: "center", gap: 12,
     paddingHorizontal: 14, paddingVertical: 14,
-    backgroundColor: "#FFF5F5",
+    backgroundColor: "#FBEDEB",
   },
   logoutIconWrap: {
     width: 34, height: 34, borderRadius: 10,
-    backgroundColor: "#FEE2E2",
+    backgroundColor: "#F3DAD6",
     alignItems: "center", justifyContent: "center",
   },
-  logoutText: { flex: 1, color: C.red, fontWeight: "800", fontSize: 14 },
+  logoutText: { fontFamily: DISPLAY, flex: 1, color: C.red, fontWeight: "bold", fontSize: 14 },
 
-  versionText: { fontSize: 10.5, color: C.subText, textAlign: "center", marginTop: 16, marginBottom: 4, fontWeight: "700", letterSpacing: 0.5 },
+  versionText: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, textAlign: "center", marginTop: 16, marginBottom: 4, fontWeight: "bold", letterSpacing: 0.5 },
 });

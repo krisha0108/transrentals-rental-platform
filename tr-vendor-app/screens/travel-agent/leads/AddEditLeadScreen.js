@@ -13,6 +13,8 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Animated,
+  Easing,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -25,6 +27,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { DISPLAY } from "../_shared/typography";
 import {
   createTravelAgentLead,
   updateTravelAgentLead,
@@ -32,26 +35,8 @@ import {
   LEAD_PRIORITY,
   LEAD_SOURCE,
 } from "../../api/travelAgentClient";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-};
 
 const TRIP_TYPES = [
   { value: "ONE_WAY",       label: "One-way",       icon: "arrow-forward" },
@@ -94,6 +79,27 @@ function formatWhen(iso) {
     const d = new Date(iso);
     return `${d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}, ${d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
   } catch { return ""; }
+}
+
+// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return (
+    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
+  );
 }
 
 export default function AddEditLeadScreen({ navigation, route }) {
@@ -193,17 +199,23 @@ export default function AddEditLeadScreen({ navigation, route }) {
 
       {/* Gradient header */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 16 }}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingTop: 10, paddingBottom: 18 }}>
           <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-              <Ionicons name="close" size={24} color="#fff" />
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.circleBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close" size={20} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.headerTitle}>{isEdit ? "Edit Lead" : "New Lead"}</Text>
               <Text style={styles.headerSub}>
                 {isEdit ? "Update lead details" : "Capture a new customer enquiry"}
@@ -217,7 +229,10 @@ export default function AddEditLeadScreen({ navigation, route }) {
               {saving ? (
                 <ActivityIndicator size="small" color={C.emerald700} />
               ) : (
-                <Text style={styles.headerSaveText}>Save</Text>
+                <>
+                  <Ionicons name="checkmark" size={12} color={C.emerald700} />
+                  <Text style={styles.headerSaveText}>Save</Text>
+                </>
               )}
             </TouchableOpacity>
           </View>
@@ -376,7 +391,7 @@ export default function AddEditLeadScreen({ navigation, route }) {
                       <Text
                         style={[
                           styles.prioritySegText,
-                          active && { color: meta.fg, fontWeight: "800" },
+                          active && { color: meta.fg, fontWeight: "bold" },
                         ]}
                       >
                         {meta.label}
@@ -620,45 +635,61 @@ function PickerModal({ visible, title, options, selected, onClose, onSelect }) {
 
 const styles = StyleSheet.create({
   // Header
-  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 19, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "700", marginTop: 2 },
-  headerSaveBtn: { backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, minWidth: 60, alignItems: "center" },
-  headerSaveText: { color: C.emerald700, fontWeight: "800", fontSize: 13 },
+  headerGrad: { borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: "hidden" },
+  orbA: {
+    position: "absolute", top: -60, right: -40,
+    width: 190, height: 190, borderRadius: 95,
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  orbB: {
+    position: "absolute", bottom: -70, left: -50,
+    width: 170, height: 170, borderRadius: 85,
+    backgroundColor: "rgba(46,158,120,0.16)",
+  },
+  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 6 },
+  circleBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.16)",
+    alignItems: "center", justifyContent: "center",
+  },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 19, fontWeight: "bold", color: "#fff" },
+  headerSub: { fontFamily: DISPLAY, fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "bold", marginTop: 2 },
+  headerSaveBtn: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#fff", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, justifyContent: "center" },
+  headerSaveText: { fontFamily: DISPLAY, color: C.emerald700, fontWeight: "bold", fontSize: 11.5 },
 
   scroll: { paddingTop: 8, paddingBottom: 24 },
 
   // Section header
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 18, marginBottom: 8 },
   sectionIcon: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  sectionLabel: { fontSize: 12, fontWeight: "800", letterSpacing: 0.4, textTransform: "uppercase" },
+  sectionLabel: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", letterSpacing: 0.4, textTransform: "uppercase" },
 
   // Card grouping inputs
   card: { marginHorizontal: 16, backgroundColor: C.card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: C.border },
 
   // Field
   field: { marginBottom: 14 },
-  fieldLabel: { fontSize: 12, fontWeight: "700", color: C.text, marginBottom: 6, letterSpacing: 0.2 },
+  fieldLabel: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.text, marginBottom: 6, letterSpacing: 0.2 },
   input: {
+    fontFamily: DISPLAY,
     backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border, borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: C.ink, minHeight: 46,
   },
   inputMultiline: { minHeight: 80, paddingTop: 10 },
-  errorText: { color: C.red, fontSize: 11.5, marginTop: 4, fontWeight: "600" },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 11.5, marginTop: 4, fontWeight: "600" },
 
   row2: { flexDirection: "row", gap: 10 },
 
   // Phone with +91 prefix
   phoneInputWrap: { flexDirection: "row", alignItems: "stretch" },
   phonePrefix: { paddingHorizontal: 12, justifyContent: "center", backgroundColor: C.emerald50, borderTopLeftRadius: 10, borderBottomLeftRadius: 10, borderWidth: 1, borderRightWidth: 0, borderColor: C.border },
-  phonePrefixText: { color: C.emerald700, fontWeight: "800", fontSize: 14 },
+  phonePrefixText: { fontFamily: DISPLAY, color: C.emerald700, fontWeight: "bold", fontSize: 14 },
 
   // Value with ₹ prefix
   valueInputWrap: { flexDirection: "row", alignItems: "stretch" },
   valuePrefix: { paddingHorizontal: 14, justifyContent: "center", backgroundColor: C.emerald50, borderTopLeftRadius: 10, borderBottomLeftRadius: 10, borderWidth: 1, borderRightWidth: 0, borderColor: C.border },
-  valuePrefixText: { color: C.emerald700, fontWeight: "800", fontSize: 16 },
+  valuePrefixText: { fontFamily: DISPLAY, color: C.emerald700, fontWeight: "bold", fontSize: 16 },
 
   // Picker button
   pickerBtn: {
@@ -666,7 +697,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border, borderRadius: 10,
     paddingHorizontal: 12, height: 46,
   },
-  pickerText: { flex: 1, fontSize: 14, color: C.ink, fontWeight: "600" },
+  pickerText: { fontFamily: DISPLAY, flex: 1, fontSize: 14, color: C.ink, fontWeight: "600" },
 
   // Priority segmented
   prioritySegRow: { flexDirection: "row", gap: 6 },
@@ -675,7 +706,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11, borderRadius: 10,
     backgroundColor: "#FAFBFC", borderWidth: 1.5, borderColor: C.border,
   },
-  prioritySegText: { fontSize: 13, fontWeight: "700", color: C.subText },
+  prioritySegText: { fontFamily: DISPLAY, fontSize: 13, fontWeight: "bold", color: C.subText },
 
   // Sticky save bar
   bottomBar: {
@@ -685,20 +716,20 @@ const styles = StyleSheet.create({
   },
   saveBtnWrap: { borderRadius: 14, overflow: "hidden", shadowColor: C.emerald600, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
   saveBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 15 },
-  saveBtnText: { color: "#fff", fontWeight: "800", fontSize: 15, letterSpacing: 0.3 },
+  saveBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 15, letterSpacing: 0.3 },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   modalSheet: { backgroundColor: C.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 24, paddingTop: 8, paddingHorizontal: 16 },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: "center", marginBottom: 12 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  modalTitle: { fontSize: 16, fontWeight: "800", color: C.ink },
+  modalTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink },
   modalItem: {
     flexDirection: "row", alignItems: "center", gap: 12,
     paddingVertical: 14, paddingHorizontal: 12, borderRadius: 10,
     marginBottom: 6, backgroundColor: "#FAFBFC",
   },
   modalItemActive: { backgroundColor: C.emerald50 },
-  modalItemText: { flex: 1, fontSize: 14, color: C.text, fontWeight: "600" },
-  modalItemTextActive: { color: C.emerald700, fontWeight: "800" },
+  modalItemText: { fontFamily: DISPLAY, flex: 1, fontSize: 14, color: C.text, fontWeight: "600" },
+  modalItemTextActive: { color: C.emerald700, fontWeight: "bold" },
 });

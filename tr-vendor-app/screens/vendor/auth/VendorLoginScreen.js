@@ -152,19 +152,20 @@ export default function LoginScreen({ navigation }) {
       .catch(err => console.log('FCM error', err));
   }, []);
 
-  // simple validators - accept email or vendor ID (vn-0001)
+  // simple validators - accept email, vendor ID (vn-0001) or travel agent ID (ta-0001)
   const isIdentifierValid = useMemo(() => {
     const trimmed = email.trim();
     const isEmail = /^\S+@\S+\.\S+$/.test(trimmed);
     const isVendorId = /^vn-\d+$/i.test(trimmed);
-    return isEmail || isVendorId;
+    const isAgentId = /^ta-\d+$/i.test(trimmed);
+    return isEmail || isVendorId || isAgentId;
   }, [email]);
   const isPasswordValid = useMemo(() => password?.length >= 6, [password]);
   const canSubmit = isIdentifierValid && isPasswordValid && !loading;
 
   const handleLogin = async () => {
     if (!isIdentifierValid) {
-      showAlert('Invalid Email', 'Please enter a valid email address.');
+      showAlert('Invalid Login', 'Please enter a valid email, Vendor ID (vn-0001) or Agent ID (ta-0001).');
       return;
     }
     if (!isPasswordValid) {
@@ -316,7 +317,7 @@ export default function LoginScreen({ navigation }) {
           >
             {/* Email or Vendor ID */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email or Vendor ID</Text>
+              <Text style={styles.label}>Email or ID</Text>
               <View
                 style={[
                   styles.inputWrap,
@@ -335,7 +336,7 @@ export default function LoginScreen({ navigation }) {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="Email or Vendor ID (vn-0001)"
+                  placeholder="Email, Vendor ID or Agent ID"
                   placeholderTextColor="#A3B3C2"
                   keyboardType="default"
                   autoCapitalize="none"
@@ -353,7 +354,7 @@ export default function LoginScreen({ navigation }) {
                 )}
               </View>
               {!!email && !isIdentifierValid && (
-                <Text style={styles.helperError}>Enter a valid email.</Text>
+                <Text style={styles.helperError}>Enter a valid email, Vendor ID or Agent ID.</Text>
               )}
             </View>
 
