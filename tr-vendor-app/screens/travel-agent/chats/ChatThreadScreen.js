@@ -21,35 +21,25 @@ import {
   Alert,
   StatusBar,
   Pressable,
+  Animated,
+  Easing,
 } from "react-native";
 import Clipboard from "@react-native-clipboard/clipboard";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
+import { DISPLAY } from "../_shared/typography";
 import {
   getTravelAgentConversation,
   sendTravelAgentChatMessage,
 } from "../../api/travelAgentClient";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  red: "#EF4444",
-  whatsapp: "#25D366",
-};
 
 const POLL_INTERVAL_MS = 5000;
 // Consistent avatar color from name hash
-const AVATAR_COLORS = ["#059669", "#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B", "#6366F1", "#14B8A6", "#EF4444"];
+// Warm Elevate tones (was the bright set: #059669, #3B82F6, #EC4899 …).
+const AVATAR_COLORS = ["#1C6B52", "#2C6E8C", "#5E43A8", "#C65772", "#9A6B16", "#2E9E78", "#245C7A", "#B14A64"];
 function avatarColor(name) {
   if (!name) return C.subText;
   let h = 0;
@@ -91,6 +81,27 @@ function fmtDay(iso) {
     day: "2-digit", month: "short",
     year: d.getFullYear() === today.getFullYear() ? undefined : "numeric",
   });
+}
+
+// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return (
+    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
+  );
 }
 
 export default function ChatThreadScreen({ navigation, route }) {
@@ -238,15 +249,17 @@ export default function ChatThreadScreen({ navigation, route }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
 
       {/* Gradient header */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
+        <AnimatedOrb style={styles.orbA} delay={0} dx={12} dy={10} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-10} dy={8} />
         <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 8, paddingBottom: 10 }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
@@ -361,7 +374,7 @@ export default function ChatThreadScreen({ navigation, route }) {
             <TextInput
               style={styles.input}
               placeholder="Message…"
-              placeholderTextColor="#A3B3C2"
+              placeholderTextColor="#9AA79E"
               value={draft}
               onChangeText={setDraft}
               multiline
@@ -377,7 +390,7 @@ export default function ChatThreadScreen({ navigation, route }) {
             <LinearGradient
               colors={
                 !draft.trim() || sending
-                  ? ["#A7F3D0", "#A7F3D0"]
+                  ? ["#C9DED2", "#C9DED2"]
                   : [C.emerald500, C.emerald700]
               }
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -515,44 +528,52 @@ function Bubble({ message }) {
 
 const styles = StyleSheet.create({
   // Header
-  headerGrad: { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
-  headerRow: { flexDirection: "row", alignItems: "center" },
+  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20, overflow: "hidden" },
+  orbA: {
+    position: "absolute", top: -40, right: -30, width: 150, height: 150,
+    borderRadius: 75, backgroundColor: "rgba(201,154,63,0.10)",
+  },
+  orbB: {
+    position: "absolute", top: 0, left: -50, width: 120, height: 120,
+    borderRadius: 60, backgroundColor: "rgba(46,158,119,0.12)",
+  },
+  headerRow: { flexDirection: "row", alignItems: "center", marginTop: 8 },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
 
   // The whole avatar+name block — tappable to open lead profile.
   headerCenter: { flex: 1, flexDirection: "row", alignItems: "center", minWidth: 0 },
   headerAvatar: { width: 40, height: 40, borderRadius: 13, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.4)" },
-  headerAvatarText: { color: "#fff", fontWeight: "900", fontSize: 14 },
+  headerAvatarText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 14 },
 
   headerNameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  headerName: { fontSize: 15.5, fontWeight: "800", color: "#fff", flexShrink: 1 },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 1 },
+  headerName: { fontFamily: DISPLAY, fontSize: 15.5, fontWeight: "bold", color: "#fff", flexShrink: 1 },
+  headerSub: { fontFamily: DISPLAY, fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 1 },
 
   headerActions: { flexDirection: "row", gap: 4, marginLeft: 4 },
   actionIconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginLeft: 4 },
 
   // Subject sub-bar
   subjectBar: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: C.emerald50 },
-  subjectText: { fontSize: 12, color: C.emerald700, fontWeight: "800", flex: 1 },
+  subjectText: { fontFamily: DISPLAY, fontSize: 12, color: C.emerald700, fontWeight: "bold", flex: 1 },
 
   // Error
-  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, margin: 12, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: C.red, fontSize: 12.5, flex: 1 },
-  errorRetry: { color: C.red, fontWeight: "800", fontSize: 12.5 },
+  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, margin: 12, padding: 10, backgroundColor: "#FBEDEB", borderRadius: 10, borderWidth: 1, borderColor: "rgba(192,69,59,0.2)" },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 12.5, flex: 1 },
+  errorRetry: { fontFamily: DISPLAY, color: C.red, fontWeight: "bold", fontSize: 12.5 },
 
   // List
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
   listContent: { padding: 12, paddingBottom: 16 },
   emptyWrap: { flexGrow: 1, justifyContent: "center", padding: 16 },
   empty: { alignItems: "center", padding: 32 },
-  emptyIconBox: { width: 84, height: 84, borderRadius: 42, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 16 },
-  emptyTitle: { fontSize: 19, fontWeight: "800", color: C.ink, textAlign: "center" },
-  emptyBody: { fontSize: 13.5, color: C.subText, marginTop: 8, textAlign: "center", lineHeight: 20, maxWidth: 280 },
+  emptyIconBox: { width: 84, height: 84, borderRadius: 42, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 16, borderWidth: 1, borderColor: "rgba(28,107,82,0.12)" },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 19, fontWeight: "bold", color: C.ink, textAlign: "center" },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 13.5, color: C.subText, marginTop: 8, textAlign: "center", lineHeight: 20, maxWidth: 280 },
 
   // Day break
   dayBreak: { alignItems: "center", marginVertical: 12 },
   dayPill: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  dayText: { fontSize: 11.5, color: C.subText, fontWeight: "800", letterSpacing: 0.3 },
+  dayText: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "bold", letterSpacing: 0.3 },
 
   // Bubbles
   bubbleRow: {},
@@ -568,8 +589,8 @@ const styles = StyleSheet.create({
   },
   bubbleCustomer: {
     backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.04,
-    shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1,
+    shadowColor: C.shadow, shadowOpacity: 0.05,
+    shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 1,
   },
   // Failed agent bubble — keep emerald but add red border + subtle red glow
   // so user sees the problem without losing the "this is mine" cue.
@@ -577,8 +598,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: C.red,
     shadowColor: C.red, shadowOpacity: 0.35, shadowRadius: 6,
   },
-  senderName: { fontSize: 11.5, color: C.emerald700, fontWeight: "800", marginBottom: 2 },
-  bubbleText: { fontSize: 14.5, color: C.ink, lineHeight: 20 },
+  senderName: { fontFamily: DISPLAY, fontSize: 11.5, color: C.emerald700, fontWeight: "bold", marginBottom: 2 },
+  bubbleText: { fontFamily: DISPLAY, fontSize: 14.5, color: C.ink, lineHeight: 20 },
 
   // Footers
   bubbleFooter: {
@@ -589,16 +610,17 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "flex-end",
     marginTop: 4, gap: 0,
   },
-  bubbleTime: { fontSize: 10.5, color: C.subText, fontWeight: "600" },
+  bubbleTime: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "600" },
   failedLabel: {
-    fontSize: 10, color: "#FECACA", fontWeight: "700",
+    fontFamily: DISPLAY,
+    fontSize: 10, color: "#FECACA", fontWeight: "bold",
     marginLeft: 6,
   },
 
   // Input bar
   inputBar: { flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.card },
-  inputWrap: { flex: 1, backgroundColor: "#F8FAFC", borderRadius: 22, borderWidth: 1, borderColor: C.border, paddingHorizontal: 4 },
-  input: { fontSize: 14.5, color: C.ink, paddingHorizontal: 14, paddingVertical: 10, minHeight: 40, maxHeight: 120 },
+  inputWrap: { flex: 1, backgroundColor: "#FBF8F1", borderRadius: 22, borderWidth: 1, borderColor: C.border, paddingHorizontal: 4 },
+  input: { fontFamily: DISPLAY, fontSize: 14.5, color: C.ink, paddingHorizontal: 14, paddingVertical: 10, minHeight: 40, maxHeight: 120 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, overflow: "hidden", shadowColor: C.emerald600, shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   sendBtnDisabled: { shadowOpacity: 0 },
   sendBtnInner: { flex: 1, borderRadius: 22, alignItems: "center", justifyContent: "center" },

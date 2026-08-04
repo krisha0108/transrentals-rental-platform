@@ -9,6 +9,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StatusBar,
+  Animated, Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -18,24 +19,15 @@ import {
   sendSocialMessage,
 } from "../../api/travelAgentClient";
 import RemoteImage from "../_shared/RemoteImage";
+import { DISPLAY } from "../_shared/typography";
+import { SC as C, G, TONES } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  amber: "#F59E0B",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-};
+// Warm "Elevate" palette — same keys, repainted to match the feed, profile and
+// the rest of the Travel Agent module. The old set was cool slate (#F6F8FB).
+// Values now come from the shared Elevate theme; key names unchanged so no JSX
+// edits were needed. Only the emerald family, inks and header gradient drifted.
+const FILL = "#FBF8F1";
+const HEADER_GRAD = G.hero;
 
 const POLL_MS = 5000;
 
@@ -79,6 +71,28 @@ function parsePostCard(content) {
   } catch {}
   return null;
 }
+// Drifting decorative bubble — same motion as the Feed / Profile / Fleet
+// headers. Native-driven, loop stopped on unmount.
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return (
+    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
+  );
+}
+
 function shade(hex, pct) {
   const f = parseInt(hex.slice(1), 16);
   const t = pct < 0 ? 0 : 255;
@@ -212,11 +226,13 @@ export default function SocialChatScreen({ navigation, route }) {
 
       {/* ===== Gradient chat header ===== */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={HEADER_GRAD}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 6, paddingBottom: 10 }}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 10, paddingBottom: 16 }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
               <Ionicons name="arrow-back" size={22} color="#fff" />
@@ -405,7 +421,7 @@ function Bubble({ message, mine }) {
                 "checkmark-done"
               }
               size={12}
-              color={failed ? "#FECACA" : "rgba(255,255,255,0.85)"}
+              color={failed ? "#F1D0CA" : "rgba(255,255,255,0.85)"}
               style={{ marginLeft: 4 }}
             />
           </View>
@@ -497,42 +513,50 @@ const pcStyles = StyleSheet.create({
   },
   header: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 10 },
   avatar: { width: 30, height: 30, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center" },
-  avatarText: { color: "#fff", fontWeight: "900", fontSize: 13 },
-  name: { color: "#fff", fontWeight: "900", fontSize: 13 },
-  owner: { color: "rgba(255,255,255,0.8)", fontSize: 10.5, marginTop: 1, fontWeight: "600" },
+  avatarText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
+  name: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
+  owner: { fontFamily: DISPLAY, color: "rgba(255,255,255,0.8)", fontSize: 10.5, marginTop: 1, fontWeight: "600" },
   categoryPill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.22)" },
-  categoryText: { color: "#fff", fontSize: 9.5, fontWeight: "800", letterSpacing: 0.3, maxWidth: 80 },
+  categoryText: { fontFamily: DISPLAY, color: "#fff", fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.3, maxWidth: 80 },
 
   body: { paddingHorizontal: 12, paddingVertical: 11, backgroundColor: C.card },
-  content: { fontSize: 13, color: C.text, lineHeight: 18 },
+  content: { fontFamily: DISPLAY, fontSize: 13, color: C.text, lineHeight: 18 },
 
-  footer: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: "#FAFBFC" },
-  footerText: { fontSize: 10, color: C.subText, fontWeight: "700" },
-  time: { fontSize: 10, color: C.subText, marginLeft: 4, fontWeight: "600" },
+  footer: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: FILL },
+  footerText: { fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "bold" },
+  time: { fontFamily: DISPLAY, fontSize: 10, color: C.subText, marginLeft: 4, fontWeight: "600" },
 });
 
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
   // Gradient header
-  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  headerRow: { flexDirection: "row", alignItems: "center", gap: 4, paddingTop: 4 },
+  headerGrad: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
+  orbA: {
+    position: "absolute", top: -50, right: -34, width: 165, height: 165,
+    borderRadius: 83, backgroundColor: "rgba(228,192,102,0.10)",
+  },
+  orbB: {
+    position: "absolute", bottom: -46, left: -38, width: 135, height: 135,
+    borderRadius: 68, backgroundColor: "rgba(23,166,124,0.14)",
+  },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingTop: 10 },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerCenter: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
-  headerAvatarRing: { width: 44, height: 44, borderRadius: 14, padding: 2, borderWidth: 2, alignItems: "center", justifyContent: "center" },
-  headerAvatar: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  headerAvatarText: { color: "#fff", fontWeight: "900", fontSize: 13 },
-  headerName: { fontSize: 15, fontWeight: "800", color: "#fff" },
-  headerMetaRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
-  headerMeta: { fontSize: 11, color: "rgba(255,255,255,0.9)", fontWeight: "700" },
-  headerMetaDot: { fontSize: 11, color: "rgba(255,255,255,0.9)", fontWeight: "800" },
-  headerActionBtn: { width: 40, height: 40, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.15)" },
+  headerCenter: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 11 },
+  headerAvatarRing: { width: 50, height: 50, borderRadius: 16, padding: 2, borderWidth: 2, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.12)" },
+  headerAvatar: { width: 44, height: 44, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  headerAvatarText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 15 },
+  headerName: { fontFamily: DISPLAY, fontSize: 16.5, fontWeight: "bold", color: "#fff", lineHeight: 21, includeFontPadding: false },
+  headerMetaRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3 },
+  headerMeta: { fontFamily: DISPLAY, fontSize: 10.5, color: "rgba(255,255,255,0.88)", fontWeight: "bold", lineHeight: 14, includeFontPadding: false, flexShrink: 1 },
+  headerMetaDot: { fontFamily: DISPLAY, fontSize: 10.5, color: "rgba(255,255,255,0.7)", fontWeight: "bold" },
+  headerActionBtn: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.15)", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
 
-  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, margin: 12, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: C.red, fontSize: 12.5, flex: 1 },
-  errorRetry: { color: C.red, fontWeight: "800", fontSize: 12.5 },
+  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, margin: 12, padding: 10, backgroundColor: C.redLight, borderRadius: 12, borderWidth: 1, borderColor: "#E7B5AF" },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 12.5, flex: 1 },
+  errorRetry: { fontFamily: DISPLAY, color: C.red, fontWeight: "bold", fontSize: 12.5 },
 
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 13, color: C.subText, fontWeight: "600" },
+  loadingText: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, fontWeight: "600" },
 
   // List
   listContent: { paddingHorizontal: 12, paddingVertical: 12, paddingBottom: 8 },
@@ -540,35 +564,35 @@ const styles = StyleSheet.create({
   // Day break
   dayBreak: { flexDirection: "row", alignItems: "center", gap: 8, marginVertical: 12 },
   dayBreakLine: { flex: 1, height: 1, backgroundColor: C.border },
-  dayPill: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
-  dayText: { fontSize: 10.5, color: C.subText, fontWeight: "800", letterSpacing: 0.5 },
+  dayPill: { paddingHorizontal: 11, paddingVertical: 4, borderRadius: 999, backgroundColor: FILL, borderWidth: 1, borderColor: C.border },
+  dayText: { fontFamily: DISPLAY, fontSize: 9.5, color: C.subText, fontWeight: "bold", letterSpacing: 0.7, textTransform: "uppercase", includeFontPadding: false },
 
   // Bubble
-  bubbleRow: { marginVertical: 3 },
+  bubbleRow: { marginVertical: 2.5 },
   bubbleRowLeft: { alignItems: "flex-start" },
   bubbleRowRight: { alignItems: "flex-end" },
   bubble: {
-    maxWidth: "82%",
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 18,
-    shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1,
+    maxWidth: "80%",
+    paddingHorizontal: 13, paddingVertical: 9,
+    borderRadius: 20,
+    shadowColor: C.shadow, shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1,
   },
-  bubbleMine: { borderBottomRightRadius: 4 },
+  bubbleMine: { borderBottomRightRadius: 6 },
   bubbleTheirs: {
-    backgroundColor: C.card, borderBottomLeftRadius: 4,
+    backgroundColor: C.card, borderBottomLeftRadius: 6,
     borderWidth: 1, borderColor: C.border,
   },
-  bubbleText: { fontSize: 14, lineHeight: 19 },
+  bubbleText: { fontFamily: DISPLAY, fontSize: 14, lineHeight: 20, includeFontPadding: false },
   bubbleFooter: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", marginTop: 3 },
-  bubbleTimeMine: { fontSize: 10, color: "rgba(255,255,255,0.85)", fontWeight: "600" },
-  bubbleTimeTheirs: { fontSize: 10, color: C.subText, fontWeight: "600" },
+  bubbleTimeMine: { fontFamily: DISPLAY, fontSize: 9.5, color: "rgba(255,255,255,0.8)", fontWeight: "bold", includeFontPadding: false },
+  bubbleTimeTheirs: { fontFamily: DISPLAY, fontSize: 9.5, color: C.subText, fontWeight: "bold", includeFontPadding: false },
 
   // Empty
   emptyWrap: { flexGrow: 1, justifyContent: "center", padding: 16 },
   empty: { alignItems: "center", padding: 24 },
   emptyIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  emptyTitle: { fontSize: 17, fontWeight: "800", color: C.ink, marginTop: 6 },
-  emptyBody: { fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 19 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, marginTop: 6 },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 19 },
 
   // Input bar
   inputBar: {
@@ -579,13 +603,14 @@ const styles = StyleSheet.create({
   },
   inputWrap: { flex: 1, position: "relative" },
   input: {
+    fontFamily: DISPLAY,
     fontSize: 14, color: C.ink,
-    backgroundColor: "#FAFBFC", borderRadius: 22,
+    backgroundColor: FILL, borderRadius: 22,
     paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10,
     minHeight: 44, maxHeight: 130,
     borderWidth: 1, borderColor: C.border,
   },
-  charCount: { position: "absolute", right: 12, bottom: 4, fontSize: 9.5, color: C.subText, fontWeight: "700" },
+  charCount: { fontFamily: DISPLAY, position: "absolute", right: 12, bottom: 4, fontSize: 9.5, color: C.subText, fontWeight: "bold" },
   sendBtnWrap: {
     width: 44, height: 44, borderRadius: 22, overflow: "hidden",
     shadowColor: C.emerald600, shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4,

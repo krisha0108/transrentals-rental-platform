@@ -236,6 +236,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       },
       _count: { quoteRequests: agentTour.totalBookings || 0 },
       attachedVehicles,
+      // Location & logistics fields the wander detail page renders
+      // (route map, vehicles, pickup, availability) — previously dropped.
+      customPlaces:   safeJson(agentTour.customPlaces, []),
+      vehicleOptions: safeJson(agentTour.vehicleOptions, []),
+      guideLanguages: safeJson(agentTour.guideLanguages, []),
+      availableDays:  safeJson(agentTour.availableDays, []),
+      pickupType:     agentTour.pickupType || null,
+      meetingPoint:   agentTour.meetingPoint || null,
       source: 'TRAVEL_AGENT',
     };
 

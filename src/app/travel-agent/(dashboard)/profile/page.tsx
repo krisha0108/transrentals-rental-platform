@@ -245,7 +245,6 @@ export default function TravelAgentProfilePage() {
             <Field label="Owner Name *" name="ownerName" value={data.ownerName} onChange={handleChange} required />
             <Field label="Email" name="email" value={data.email} disabled />
             <Field label="Phone" name="phone" value={data.phone} disabled />
-            <Field label="Website" name="website" value={data.website} onChange={handleChange} placeholder="https://..." />
           </div>
           <div className="mt-4">
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>

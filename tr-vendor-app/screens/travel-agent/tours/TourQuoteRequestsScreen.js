@@ -6,32 +6,15 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
   RefreshControl, ActivityIndicator, Linking, StatusBar, ScrollView,
+  Animated, Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import { listTravelAgentTourQuoteRequests, LEAD_STATUS } from "../../api/travelAgentClient";
+import { DISPLAY } from "../_shared/typography";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-  wa: "#25D366",
-};
 
 function fmtDate(iso) {
   try { return new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }); } catch { return ""; }
@@ -52,18 +35,36 @@ function initials(name) {
 // Pleasant avatar tints cycled by name hash so each customer has a
 // stable but varied background.
 const AVATAR_PALETTE = [
-  { bg: "#DBEAFE", fg: "#1D4ED8" },
-  { bg: "#FCE7F3", fg: "#BE185D" },
-  { bg: "#D1FAE5", fg: "#047857" },
-  { bg: "#FEF3C7", fg: "#A16207" },
-  { bg: "#EDE9FE", fg: "#6D28D9" },
-  { bg: "#CFFAFE", fg: "#0E7490" },
+  { bg: "#E9F1F8", fg: "#1E4E86" },
+  { bg: "#F7E9EF", fg: "#B0567A" },
+  { bg: "#DDEBE2", fg: "#16382E" },
+  { bg: "#F6EEDB", fg: "#8A6420" },
+  { bg: "#EFE9F5", fg: "#5B3E7E" },
+  { bg: "#E0EDEA", fg: "#2C6E8C" },
 ];
 function tintFor(name) {
   if (!name) return AVATAR_PALETTE[0];
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
   return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
+}
+
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />;
 }
 
 export default function TourQuoteRequestsScreen({ navigation }) {
@@ -157,27 +158,27 @@ export default function TourQuoteRequestsScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
 
       {/* ===== Gradient header ===== */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 28 }}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 42 }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
               <Ionicons name="arrow-back" size={22} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>Tour Quote Requests</Text>
-              <Text style={styles.headerSub}>From your tours on the website</Text>
-            </View>
+            <Text style={styles.headerTitle} numberOfLines={1}>Tour Quote Requests</Text>
             <TouchableOpacity onPress={() => fetchPage(1, false)} style={styles.iconBtn}>
               <Ionicons name="refresh" size={22} color="#fff" />
             </TouchableOpacity>
           </View>
+          <Text style={styles.headerSub}>From your tours on the website</Text>
         </SafeAreaView>
       </LinearGradient>
 
@@ -233,7 +234,8 @@ export default function TourQuoteRequestsScreen({ navigation }) {
       </View>
 
       {/* Status filter (server-side; counts from API stats) */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statusBar}>
+      <Text style={styles.filterLabel}>Status</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.statusBar}>
         {["ALL", ...LEAD_STATUS].map((s) => {
           const active = statusFilter === s;
           const count = s === "ALL" ? (statusStats?.total ?? null) : (statusStats?.[s] ?? null);
@@ -256,21 +258,29 @@ export default function TourQuoteRequestsScreen({ navigation }) {
         })}
       </ScrollView>
 
-      {/* Priority filter */}
-      <View style={styles.priorityBar}>
-        {[{ k: "ALL", l: "Any" }, { k: "HOT", l: "Hot" }, { k: "WARM", l: "Warm" }, { k: "COLD", l: "Cold" }].map((p) => {
+      {/* Priority filter — colour-coded by temperature */}
+      <Text style={styles.filterLabel}>Priority</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.statusBar}>
+        {[
+          { k: "ALL", l: "Any", c: C.emerald600, dot: false },
+          { k: "HOT", l: "Hot", c: "#C0453B", dot: true },
+          { k: "WARM", l: "Warm", c: C.amber, dot: true },
+          { k: "COLD", l: "Cold", c: C.blue, dot: true },
+        ].map((p) => {
           const active = priorityFilter === p.k;
           return (
             <TouchableOpacity
               key={p.k}
               onPress={() => setPriorityFilter(p.k)}
-              style={[styles.prioChip, active && { backgroundColor: C.emerald50, borderColor: C.emerald600 }]}
+              activeOpacity={0.85}
+              style={[styles.prioChip, active && { backgroundColor: `${p.c}18`, borderColor: p.c }]}
             >
-              <Text style={[styles.prioChipText, active && { color: C.emerald700, fontWeight: "800" }]}>{p.l}</Text>
+              {p.dot && <View style={[styles.prioDot, { backgroundColor: p.c }]} />}
+              <Text style={[styles.prioChipText, active && { color: p.c, fontWeight: "bold" }]}>{p.l}</Text>
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
 
       {error && (
         <View style={styles.errorBox}>
@@ -279,13 +289,7 @@ export default function TourQuoteRequestsScreen({ navigation }) {
         </View>
       )}
 
-      {loading ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={C.emerald600} />
-          <Text style={styles.loadingText}>Loading quote requests…</Text>
-        </View>
-      ) : (
-        <FlatList
+      <FlatList
           data={filteredItems}
           keyExtractor={(item, idx) => item.id || `req-${idx}`}
           renderItem={({ item }) => (
@@ -321,6 +325,12 @@ export default function TourQuoteRequestsScreen({ navigation }) {
             ) : null
           }
           ListEmptyComponent={
+            loading ? (
+              <View style={styles.loadingWrap}>
+                <ActivityIndicator size="large" color={C.emerald600} />
+                <Text style={styles.loadingText}>Loading quote requests…</Text>
+              </View>
+            ) : (
             <View style={styles.empty}>
               <View style={styles.emptyIconWrap}>
                 <Ionicons name="mail-unread-outline" size={42} color={C.emerald600} />
@@ -350,9 +360,9 @@ export default function TourQuoteRequestsScreen({ navigation }) {
                 </TouchableOpacity>
               )}
             </View>
+            )
           }
         />
-      )}
     </View>
   );
 }
@@ -381,7 +391,7 @@ function Chip({ label, icon, count, active, onPress, color }) {
       activeOpacity={0.85}
     >
       <Ionicons name={icon} size={12} color={active ? color : C.subText} />
-      <Text style={[styles.chipText, active && { color, fontWeight: "800" }]}>{label}</Text>
+      <Text style={[styles.chipText, active && { color, fontWeight: "bold" }]}>{label}</Text>
       {count > 0 && (
         <View style={[styles.chipBadge, active && { backgroundColor: color }]}>
           <Text style={[styles.chipBadgeText, active && { color: "#fff" }]}>{count}</Text>
@@ -561,11 +571,21 @@ function RequestCard({ request, onPress }) {
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
   // Header
-  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
+  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20, overflow: "hidden", position: "relative" },
+  orbA: {
+    position: "absolute", top: -44, right: -28,
+    width: 150, height: 150, borderRadius: 75,
+    backgroundColor: "rgba(201,154,63,0.13)",
+  },
+  orbB: {
+    position: "absolute", bottom: -36, left: -32,
+    width: 128, height: 128, borderRadius: 64,
+    backgroundColor: "rgba(46,158,119,0.16)",
+  },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingTop: 8 },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 2 },
+  headerTitle: { flex: 1, fontFamily: DISPLAY, fontSize: 20, fontWeight: "bold", color: "#fff", marginLeft: 2 },
+  headerSub: { fontFamily: DISPLAY, fontSize: 12.5, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: -1, marginLeft: 46 },
 
   // Floating stats
   statsCard: {
@@ -577,51 +597,66 @@ const styles = StyleSheet.create({
   },
   statCell: { flexDirection: "row", alignItems: "center", gap: 6, flex: 1, justifyContent: "center", minWidth: 0 },
   statIcon: { width: 26, height: 26, borderRadius: 9, alignItems: "center", justifyContent: "center" },
-  statValue: { fontSize: 14.5, fontWeight: "900" },
-  statLabel: { fontSize: 9.5, color: C.subText, fontWeight: "700", marginTop: 1, letterSpacing: 0.2 },
+  statValue: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: "bold" },
+  statLabel: { fontFamily: DISPLAY, fontSize: 9.5, color: C.subText, fontWeight: "bold", marginTop: 1, letterSpacing: 0.2 },
   statDivider: { width: 1, height: 26, backgroundColor: C.border },
 
   // Filter chips
-  chipsRow: { flexDirection: "row", paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4, gap: 8 },
+  chipsRow: { flexDirection: "row", paddingHorizontal: 16, paddingTop: 12, paddingBottom: 2, gap: 8 },
   chip: {
     flexDirection: "row", alignItems: "center", gap: 5,
     paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999,
     backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
   },
-  chipText: { fontSize: 12, color: C.text, fontWeight: "600" },
-  chipBadge: { minWidth: 18, paddingHorizontal: 5, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "#E2E8F0" },
-  chipBadgeText: { fontSize: 10, fontWeight: "800", color: C.text },
+  chipText: { fontFamily: DISPLAY, fontSize: 12, color: C.text, fontWeight: "600" },
+  chipBadge: { minWidth: 18, paddingHorizontal: 5, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: C.border },
+  chipBadgeText: { fontFamily: DISPLAY, fontSize: 10, fontWeight: "bold", color: C.text },
 
   // Search + priority (E3)
   searchBar: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9 },
-  searchInput: { flex: 1, fontSize: 14, color: C.ink, padding: 0 },
-  priorityBar: { flexDirection: "row", gap: 6, paddingHorizontal: 16, paddingTop: 10 },
-  prioChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
-  prioChipText: { fontSize: 12, color: C.text, fontWeight: "700" },
-  statusBar: { gap: 6, paddingHorizontal: 16, paddingTop: 10, alignItems: "center" },
+  searchInput: { fontFamily: DISPLAY, flex: 1, fontSize: 14, color: C.ink, padding: 0 },
+  filterLabel: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold", color: C.subText, letterSpacing: 0.8, textTransform: "uppercase", paddingHorizontal: 16, marginTop: 9, marginBottom: 3 },
+  // Grouped filter panel (Status + Priority in one card)
+  filterCard: {
+    marginHorizontal: 16, marginTop: 12,
+    backgroundColor: C.card, borderRadius: 14,
+    borderWidth: 1, borderColor: C.border,
+    paddingVertical: 2,
+  },
+  filterRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 9, minHeight: 48 },
+  filterRowLabel: { width: 66, fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold", color: C.subText, letterSpacing: 0.3, textTransform: "uppercase" },
+  filterRowScroll: { gap: 7, alignItems: "center", paddingRight: 8 },
+  filterRowDivider: { height: 1, backgroundColor: C.border, marginHorizontal: 12 },
+  priorityBar: { flexDirection: "row", gap: 7, paddingHorizontal: 16, paddingTop: 7 },
+  prioChip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 13, paddingVertical: 6, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
+  prioDot: { width: 7, height: 7, borderRadius: 4 },
+  prioChipText: { fontFamily: DISPLAY, fontSize: 12, color: C.text, fontWeight: "600" },
+  filterScroll: { flexGrow: 0, flexShrink: 0, height: 42 },
+  statusBar: { gap: 7, paddingHorizontal: 16, alignItems: "center" },
   statusChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
-  statusChipText: { fontSize: 12, color: C.text, fontWeight: "700" },
-  statusChipBadge: { minWidth: 16, paddingHorizontal: 4, borderRadius: 999, backgroundColor: "#E2E8F0", alignItems: "center" },
-  statusChipBadgeText: { fontSize: 9.5, fontWeight: "800", color: C.text },
+  statusChipText: { fontFamily: DISPLAY, fontSize: 12, color: C.text, fontWeight: "bold" },
+  statusChipBadge: { minWidth: 16, paddingHorizontal: 4, borderRadius: 999, backgroundColor: C.border, alignItems: "center" },
+  statusChipBadgeText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", color: C.text },
 
-  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: C.red, fontSize: 12.5, flex: 1 },
+  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, padding: 10, backgroundColor: "#FBEDEB", borderRadius: 10, borderWidth: 1, borderColor: "#EAC9C4" },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 12.5, flex: 1 },
 
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 13, color: C.subText, fontWeight: "600" },
+  loadingText: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, fontWeight: "600" },
 
+  list: { flex: 1 },
   listContent: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 30 },
   footerLoad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 18 },
-  footerLoadText: { fontSize: 12, color: C.subText, fontWeight: "600" },
+  footerLoadText: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, fontWeight: "600" },
 
   emptyWrap: { flexGrow: 1, justifyContent: "center", padding: 16 },
   empty: { alignItems: "center", padding: 24 },
   emptyIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  emptyTitle: { fontSize: 17, fontWeight: "800", color: C.ink, marginTop: 6 },
-  emptyBody: { fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 19 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, marginTop: 6 },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 19 },
   emptyCta: { marginTop: 18, borderRadius: 12, overflow: "hidden" },
   emptyCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11 },
-  emptyCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  emptyCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
 
   // Card
   card: {
@@ -636,25 +671,25 @@ const styles = StyleSheet.create({
 
   // Header inside card
   avatar: { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  avatarText: { fontSize: 14, fontWeight: "900", letterSpacing: 0.5 },
+  avatarText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", letterSpacing: 0.5 },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  cardName: { flex: 1, fontSize: 15, fontWeight: "800", color: C.ink },
+  cardName: { fontFamily: DISPLAY, flex: 1, fontSize: 15, fontWeight: "bold", color: C.ink },
   newDot: { backgroundColor: C.emerald600, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  newDotText: { color: "#fff", fontSize: 9, fontWeight: "900", letterSpacing: 0.5 },
+  newDotText: { fontFamily: DISPLAY, color: "#fff", fontSize: 9, fontWeight: "bold", letterSpacing: 0.5 },
   metaTopRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
-  cardTime: { fontSize: 11, color: C.subText, fontWeight: "700" },
-  cardTimeDot: { fontSize: 11, color: C.subText, fontWeight: "800" },
+  cardTime: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "bold" },
+  cardTimeDot: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "bold" },
 
   // Contact pills
   contactRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
-  contactPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: C.border, maxWidth: "100%" },
-  contactPillText: { fontSize: 11, color: C.text, fontWeight: "700", maxWidth: 180 },
+  contactPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: "#F7F3EA", borderWidth: 1, borderColor: C.border, maxWidth: "100%" },
+  contactPillText: { fontFamily: DISPLAY, fontSize: 11, color: C.text, fontWeight: "bold", maxWidth: 180 },
 
   // Trip meta block
   metaBlock: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   metaIconWrap: { width: 22, height: 22, borderRadius: 7, alignItems: "center", justifyContent: "center" },
-  metaText: { fontSize: 11.5, color: C.text, fontWeight: "700" },
+  metaText: { fontFamily: DISPLAY, fontSize: 11.5, color: C.text, fontWeight: "bold" },
 
   // Requirement
   requirementBox: {
@@ -663,11 +698,11 @@ const styles = StyleSheet.create({
     backgroundColor: C.emerald50, borderLeftWidth: 3, borderLeftColor: C.emerald600,
     marginTop: 10,
   },
-  requirement: { flex: 1, fontSize: 12.5, color: C.text, lineHeight: 18, fontStyle: "italic" },
+  requirement: { fontFamily: DISPLAY, flex: 1, fontSize: 12.5, color: C.text, lineHeight: 18, fontStyle: "italic" },
 
   // Expired
   expiredPill: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: C.redLight, marginTop: 10 },
-  expiredText: { color: C.red, fontSize: 10, fontWeight: "900", letterSpacing: 0.5 },
+  expiredText: { fontFamily: DISPLAY, color: C.red, fontSize: 10, fontWeight: "bold", letterSpacing: 0.5 },
 
   // Action row
   actionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 12 },
@@ -677,9 +712,9 @@ const styles = StyleSheet.create({
     gap: 4, paddingVertical: 9, paddingHorizontal: 6,
     borderRadius: 10, borderWidth: 1,
   },
-  actionCall: { backgroundColor: C.blueLight, borderColor: "#BFDBFE" },
-  actionWA:   { backgroundColor: "#F0FDF4",   borderColor: "#BBF7D0" },
-  actionMail: { backgroundColor: "#F5F3FF",   borderColor: "#DDD6FE" },
-  actionOpen: { backgroundColor: C.emerald50, borderColor: "#A7F3D0" },
-  actionBtnText: { fontSize: 11.5, fontWeight: "800" },
+  actionCall: { backgroundColor: C.blueLight, borderColor: "#CBDDEC" },
+  actionWA:   { backgroundColor: "#EDF3EE",   borderColor: "#C6DACE" },
+  actionMail: { backgroundColor: "#F1ECF6",   borderColor: "#E5DCEF" },
+  actionOpen: { backgroundColor: C.emerald50, borderColor: "#C6DACE" },
+  actionBtnText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold" },
 });

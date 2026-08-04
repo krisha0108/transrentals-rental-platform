@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
   RefreshControl, ActivityIndicator, StatusBar, Modal,
+  Animated, Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -17,26 +18,16 @@ import {
   getOrCreateSocialConversation,
 } from "../../api/travelAgentClient";
 import RemoteImage from "../_shared/RemoteImage";
+import { DISPLAY } from "../_shared/typography";
+import { SC as C, G, TONES } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-};
+// Warm "Elevate" palette — same keys, repainted to match the rest of the
+// Travel Agent module. The old set was cool slate (#F6F8FB ground).
+// Values now come from the shared Elevate theme; key names unchanged so no JSX
+// edits were needed. Only the emerald family, inks and header gradient drifted.
+const GOLD = "#E4C066";
+const FILL = "#FBF8F1";
+const HEADER_GRAD = G.hero;
 
 const POLL_MS = 15000;
 
@@ -96,6 +87,27 @@ function previewText(conv) {
     } catch {}
   }
   return raw;
+}
+
+// Drifting decorative bubble — same motion as the Feed / Profile / Chat headers.
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return (
+    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
+  );
 }
 
 function shade(hex, pct) {
@@ -238,18 +250,21 @@ export default function SocialMessagesListScreen({ navigation }) {
 
       {/* ===== Gradient header ===== */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={HEADER_GRAD}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 16 }}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 26 }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
               <Ionicons name="arrow-back" size={22} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>Social Messages</Text>
-              <Text style={styles.headerSub}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.headerEyebrow}>DIRECT MESSAGES</Text>
+              <Text style={styles.headerTitle} numberOfLines={1}>Social Messages</Text>
+              <Text style={styles.headerSub} numberOfLines={1}>
                 {stats.totalUnread > 0
                   ? `${stats.totalUnread} unread message${stats.totalUnread > 1 ? "s" : ""}`
                   : stats.all > 0
@@ -313,7 +328,7 @@ export default function SocialMessagesListScreen({ navigation }) {
                 activeOpacity={0.85}
               >
                 <Ionicons name={f.icon} size={12} color={active ? f.color : C.subText} />
-                <Text style={[styles.chipText, active && { color: f.color, fontWeight: "800" }]}>
+                <Text style={[styles.chipText, active && { color: f.color, fontWeight: "bold" }]}>
                   {f.label}
                 </Text>
                 {count > 0 && (
@@ -408,7 +423,7 @@ export default function SocialMessagesListScreen({ navigation }) {
         <View style={styles.ncOverlay}>
           <View style={styles.ncSheet}>
             <LinearGradient
-              colors={["#022C22", "#064E3B", "#047857"]}
+              colors={HEADER_GRAD}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               style={styles.ncHeader}
             >
@@ -510,7 +525,11 @@ function ConversationRow({ conversation, onPress }) {
   const isUnread = unread > 0;
 
   return (
-    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity
+      style={[styles.row, isUnread && styles.rowUnread]}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
       {/* Avatar with online dot for unread */}
       <View style={styles.avatarWrap}>
         {other.logo ? (
@@ -534,14 +553,14 @@ function ConversationRow({ conversation, onPress }) {
           <Text
             style={[
               styles.name,
-              isUnread && { color: C.ink, fontWeight: "900" },
+              isUnread && { color: C.ink, fontWeight: "bold" },
             ]}
             numberOfLines={1}
           >
             {other.displayName || other.name || "Someone"}
           </Text>
           {!!time && (
-            <Text style={[styles.time, isUnread && { color: C.emerald700, fontWeight: "800" }]}>
+            <Text style={[styles.time, isUnread && { color: C.emerald700, fontWeight: "bold" }]}>
               {time}
             </Text>
           )}
@@ -563,7 +582,7 @@ function ConversationRow({ conversation, onPress }) {
           <Text
             style={[
               styles.preview,
-              isUnread && { color: C.ink, fontWeight: "700" },
+              isUnread && { color: C.ink, fontWeight: "bold" },
             ]}
             numberOfLines={1}
           >
@@ -583,16 +602,34 @@ function ConversationRow({ conversation, onPress }) {
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
   // Header
-  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
+  headerGrad: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
+  orbA: {
+    position: "absolute", top: -48, right: -32, width: 170, height: 170,
+    borderRadius: 85, backgroundColor: "rgba(228,192,102,0.10)",
+  },
+  orbB: {
+    position: "absolute", bottom: -44, left: -38, width: 140, height: 140,
+    borderRadius: 70, backgroundColor: "rgba(23,166,124,0.14)",
+  },
+  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 12, gap: 4 },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "700", marginTop: 2 },
+  headerEyebrow: {
+    fontFamily: DISPLAY, fontSize: 9, color: GOLD, fontWeight: "bold",
+    letterSpacing: 1.4, includeFontPadding: false,
+  },
+  headerTitle: {
+    fontFamily: DISPLAY, fontSize: 20, fontWeight: "bold", color: "#fff",
+    lineHeight: 24, marginTop: 2, includeFontPadding: false,
+  },
+  headerSub: {
+    fontFamily: DISPLAY, fontSize: 11, color: "rgba(255,255,255,0.82)",
+    fontWeight: "bold", lineHeight: 14, marginTop: 2, includeFontPadding: false,
+  },
   unreadBadgeHeader: {
     minWidth: 28, paddingHorizontal: 8, height: 28, borderRadius: 14,
     backgroundColor: "#fff", alignItems: "center", justifyContent: "center",
   },
-  unreadBadgeHeaderText: { color: C.emerald700, fontSize: 13, fontWeight: "900" },
+  unreadBadgeHeaderText: { fontFamily: DISPLAY, color: C.emerald700, fontSize: 13, fontWeight: "bold" },
   composeBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", marginLeft: 8 },
 
   // New-message directory modal
@@ -600,35 +637,35 @@ const styles = StyleSheet.create({
   ncSheet: { backgroundColor: C.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22, overflow: "hidden", height: "82%" },
   ncHeader: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 16 },
   ncHeaderRow: { flexDirection: "row", alignItems: "center" },
-  ncTitle: { fontSize: 18, fontWeight: "800", color: "#fff" },
-  ncSub: { fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 2 },
+  ncTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: "bold", color: "#fff" },
+  ncSub: { fontFamily: DISPLAY, fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 2 },
   ncCloseBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.15)" },
   ncSearchWrap: {
     flexDirection: "row", alignItems: "center", gap: 8,
     margin: 12, paddingHorizontal: 14, height: 46,
     backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border,
   },
-  ncSearchInput: { flex: 1, fontSize: 14, color: C.ink, paddingVertical: 0 },
+  ncSearchInput: { fontFamily: DISPLAY, flex: 1, fontSize: 14, color: C.ink, paddingVertical: 0 },
   ncRow: {
     flexDirection: "row", alignItems: "center", gap: 12,
     backgroundColor: C.card, borderRadius: 14, padding: 12, marginBottom: 8,
     borderWidth: 1, borderColor: C.border,
   },
   ncAvatar: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  ncAvatarText: { color: "#fff", fontWeight: "900", fontSize: 14, letterSpacing: 0.5 },
-  ncName: { fontSize: 14.5, color: C.ink, fontWeight: "800" },
+  ncAvatarText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 14, letterSpacing: 0.5 },
+  ncName: { fontFamily: DISPLAY, fontSize: 14.5, color: C.ink, fontWeight: "bold" },
   ncMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   ncEmpty: { alignItems: "center", gap: 10, padding: 24 },
-  ncEmptyText: { fontSize: 13, color: C.subText, fontWeight: "600", textAlign: "center" },
+  ncEmptyText: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, fontWeight: "600", textAlign: "center" },
 
   // Search
   searchWrap: {
     flexDirection: "row", alignItems: "center", gap: 8,
-    marginTop: 12, marginHorizontal: 4, paddingHorizontal: 14, height: 44,
+    marginTop: 18, marginHorizontal: 4, paddingHorizontal: 14, height: 46,
     backgroundColor: "#fff", borderRadius: 14,
     shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
-  searchInput: { flex: 1, fontSize: 14, color: C.ink, paddingVertical: 0 },
+  searchInput: { fontFamily: DISPLAY, flex: 1, fontSize: 14, color: C.ink, paddingVertical: 0 },
 
   // Filter chips
   chipsBar: {
@@ -643,37 +680,40 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border,
     minHeight: 34,
   },
-  chipText: { fontSize: 12, color: C.text, fontWeight: "600" },
+  chipText: { fontFamily: DISPLAY, fontSize: 12, color: C.text, fontWeight: "600" },
   chipBadge: { minWidth: 18, paddingHorizontal: 5, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "#E2E8F0" },
-  chipBadgeText: { fontSize: 10, fontWeight: "800", color: C.text },
+  chipBadgeText: { fontFamily: DISPLAY, fontSize: 10, fontWeight: "bold", color: C.text },
 
   errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: C.red, fontSize: 12.5, flex: 1 },
-  errorRetry: { color: C.red, fontWeight: "800", fontSize: 12.5 },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 12.5, flex: 1 },
+  errorRetry: { fontFamily: DISPLAY, color: C.red, fontWeight: "bold", fontSize: 12.5 },
 
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 13, color: C.subText, fontWeight: "600" },
+  loadingText: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, fontWeight: "600" },
 
   listContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 },
   emptyWrap: { flexGrow: 1, justifyContent: "center", padding: 16 },
   empty: { alignItems: "center", padding: 24 },
   emptyIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  emptyTitle: { fontSize: 17, fontWeight: "800", color: C.ink, marginTop: 6 },
-  emptyBody: { fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 19 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, marginTop: 6 },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 19 },
   emptyCta: { marginTop: 18, borderRadius: 12, overflow: "hidden" },
   emptyCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11 },
-  emptyCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  emptyCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
 
   // Conversation row
   row: {
     flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: C.card, borderRadius: 14, padding: 12, marginBottom: 8,
+    backgroundColor: C.card, borderRadius: 16, padding: 12, marginBottom: 8,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 1,
+    shadowColor: C.shadow, shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2,
   },
+  // Unread rows get a warm tint + emerald edge so they are scannable without
+  // relying only on the bold text weight.
+  rowUnread: { backgroundColor: FILL, borderColor: "#CFE3DA" },
   avatarWrap: { position: "relative" },
-  avatar: { width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  avatarText: { color: "#fff", fontWeight: "900", fontSize: 15, letterSpacing: 0.5 },
+  avatar: { width: 50, height: 50, borderRadius: 17, alignItems: "center", justifyContent: "center" },
+  avatarText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 16, letterSpacing: 0.5 },
   unreadDot: {
     position: "absolute", top: -2, right: -2,
     width: 14, height: 14, borderRadius: 7,
@@ -681,17 +721,17 @@ const styles = StyleSheet.create({
   },
 
   rowTopLine: { flexDirection: "row", alignItems: "center", gap: 6 },
-  name: { flex: 1, fontSize: 14.5, color: C.text, fontWeight: "700" },
-  time: { fontSize: 11, color: C.subText, fontWeight: "700" },
+  name: { fontFamily: DISPLAY, flex: 1, fontSize: 14.5, color: C.text, fontWeight: "bold", includeFontPadding: false },
+  time: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "bold", includeFontPadding: false },
 
-  rowMidLine: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+  rowMidLine: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
   typePill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
-  typePillText: { fontSize: 9.5, fontWeight: "800", letterSpacing: 0.3 },
-  dot: { fontSize: 11, color: C.subText, fontWeight: "800" },
-  locationText: { fontSize: 11, color: C.subText, fontWeight: "600", flexShrink: 1 },
+  typePillText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.3 },
+  dot: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "bold" },
+  locationText: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "600", flexShrink: 1, includeFontPadding: false },
 
-  rowBottomLine: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 5 },
-  preview: { flex: 1, fontSize: 12.5, color: C.subText },
+  rowBottomLine: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
+  preview: { fontFamily: DISPLAY, flex: 1, fontSize: 12.5, color: C.subText, includeFontPadding: false },
   unreadBadge: { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 7, backgroundColor: C.emerald600, alignItems: "center", justifyContent: "center" },
-  unreadText: { color: "#fff", fontSize: 11, fontWeight: "900" },
+  unreadText: { fontFamily: DISPLAY, color: "#fff", fontSize: 10.5, fontWeight: "bold", includeFontPadding: false, fontVariant: ["tabular-nums"] },
 });

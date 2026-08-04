@@ -8,7 +8,7 @@ import {
   Compass, ChevronRight, ChevronLeft, Check, Loader2, AlertCircle,
   Plus, Trash2, MapPin, Search, X, Clock, Users, Car, GripVertical, Coffee,
   CalendarRange, ChevronDown, Eye, Sparkles, Images, Calendar, Save,
-  Fuel, RefreshCw,
+  Fuel, RefreshCw, AlertTriangle,
 } from 'lucide-react';
 import TourDescriptionEditor, { type TourDescriptionEditorRef } from '@/components/admin/wander/TourDescriptionEditor';
 import { useToast } from '@/components/ui/toast';
@@ -385,6 +385,7 @@ export default function CreateTravelAgentTourPage() {
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [imageWarning, setImageWarning] = useState('');
   const [error, setError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
@@ -611,9 +612,31 @@ export default function CreateTravelAgentTourPage() {
   };
 
   // Image upload
+  // Read an image file's pixel dimensions in the browser (before upload).
+  function readImageSize(file: File): Promise<{ w: number; h: number }> {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file);
+      const img = new window.Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve({ w: img.naturalWidth, h: img.naturalHeight }); };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve({ w: 0, h: 0 }); };
+      img.src = url;
+    });
+  }
+
+  // Hero/cover renders very large — anything under this looks blurry when stretched.
+  const MIN_IMAGE_WIDTH = 1600;
+
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
+    setImageWarning('');
+    // Check resolutions and warn (non-blocking) about low-res images.
+    const dims = await Promise.all(files.map((f) => readImageSize(f)));
+    const lowRes = files.filter((_, i) => dims[i].w > 0 && dims[i].w < MIN_IMAGE_WIDTH);
+    if (lowRes.length) {
+      const names = lowRes.map((f, i) => `${f.name} (${dims[files.indexOf(f)].w}×${dims[files.indexOf(f)].h}px)`).join(', ');
+      setImageWarning(`${lowRes.length} image${lowRes.length > 1 ? 's are' : ' is'} low-resolution and may look blurry in the hero — use at least ${MIN_IMAGE_WIDTH}px wide (ideally 2000px+). Low-res: ${names}`);
+    }
     setUploadingImages(true);
     try {
       const fd = new FormData();
@@ -1557,7 +1580,13 @@ export default function CreateTravelAgentTourPage() {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Tour Images</label>
-              <p className="text-xs text-gray-500 mb-3">Upload photos. The first image becomes the cover.</p>
+              <p className="text-xs text-gray-500 mb-3">Upload photos. The first image becomes the cover. For a sharp hero, use images at least <strong>1600px</strong> wide (ideally 2000px+).</p>
+              {imageWarning && (
+                <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+                  <span>{imageWarning}</span>
+                </div>
+              )}
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {form.images.map((img: string, i: number) => (
                   <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 group">

@@ -7,8 +7,14 @@ import {
   Compass, Search, MapPin, Clock, Users, ChevronDown, Calendar, Star,
   Loader2, ArrowRight, Sparkles, Globe, Heart, Shield,
   SlidersHorizontal, X, TrendingUp, ArrowUpDown, ChevronRight, Layers, CalendarDays,
+  ArrowUpRight, ShieldCheck, BadgeCheck,
+  // vector icons replacing emojis (each used once — no repeats)
+  Sunrise, Tent, Waves, Palette, Bird, Landmark, Camera, Bike,
+  Umbrella, MountainSnow, Trees, Mountain, Map as MapIcon, MessageSquare, Rocket,
+  Building2, PawPrint, Castle, Flower2, Package, MapPinned, Award, Telescope,
+  LayoutGrid, UserCheck, HeartHandshake, Gem, Sailboat, Fish, Church, Snowflake,
+  Footprints, Flame, Aperture, Route, Tag, Hotel,
 } from 'lucide-react';
-import { PropertiesStrip } from '@/components/wander/PropertiesStrip';
 
 /* ─── constants ────────────────────────────────────── */
 const FALLBACK_CATEGORIES = [
@@ -21,14 +27,14 @@ const FALLBACK_CATEGORIES = [
 ];
 
 const VIBES = [
-  { icon: '🌄', label: 'Sunrise Treks' },
-  { icon: '🏕️', label: 'Camping' },
-  { icon: '🤿', label: 'Scuba & Water' },
-  { icon: '🎭', label: 'Cultural' },
-  { icon: '🦅', label: 'Paragliding' },
-  { icon: '🛕', label: 'Spiritual' },
-  { icon: '📸', label: 'Photography' },
-  { icon: '🚵', label: 'Cycling' },
+  { icon: Sunrise, label: 'Sunrise Treks' },
+  { icon: Tent, label: 'Camping' },
+  { icon: Waves, label: 'Scuba & Water' },
+  { icon: Palette, label: 'Cultural' },
+  { icon: Bird, label: 'Paragliding' },
+  { icon: Landmark, label: 'Spiritual' },
+  { icon: Camera, label: 'Photography' },
+  { icon: Bike, label: 'Cycling' },
 ];
 
 const SORT_OPTIONS = [
@@ -47,50 +53,221 @@ const PRICE_PRESETS = [
 ];
 
 const DESTINATIONS = [
-  { name: 'Goa', emoji: '🏖️' },
-  { name: 'Leh-Ladakh', emoji: '🏔️' },
-  { name: 'Rajasthan', emoji: '🏯' },
-  { name: 'Kerala', emoji: '🌴' },
-  { name: 'Himachal', emoji: '⛰️' },
-  { name: 'Uttarakhand', emoji: '🕉️' },
+  { name: 'Goa', icon: Umbrella, img: '/wander/goa.jpg' },
+  { name: 'Leh-Ladakh', icon: MountainSnow, img: '/wander/leh.jpg' },
+  { name: 'Rajasthan', icon: Castle, img: '/wander/rajasthan.jpg' },
+  { name: 'Kerala', icon: Trees, img: '/wander/kerala.jpg' },
+  { name: 'Himachal', icon: Mountain, img: '/wander/spiti.jpg' },
+  { name: 'Uttarakhand', icon: Flower2, img: '/wander/roadtrip.jpg' },
 ];
 
 const WHY_WANDER = [
-  { icon: Shield, title: 'Verified Vendors', desc: 'All tour operators are vetted and background-checked.' },
-  { icon: Globe, title: '150+ Destinations', desc: 'From Leh to Kerala, we cover India end to end.' },
-  { icon: Heart, title: 'Personalised Quotes', desc: 'Get custom quotes tailored to your group and dates.' },
-  { icon: Sparkles, title: 'Curated Experiences', desc: 'Handpicked tours across every category and budget.' },
+  { icon: UserCheck, title: 'Verified Vendors', desc: 'All tour operators are vetted and background-checked.' },
+  { icon: MapIcon, title: '150+ Destinations', desc: 'From Leh to Kerala, we cover India end to end.' },
+  { icon: HeartHandshake, title: 'Personalised Quotes', desc: 'Get custom quotes tailored to your group and dates.' },
+  { icon: Gem, title: 'Curated Experiences', desc: 'Handpicked tours across every category and budget.' },
 ];
+
+const GALLERY = [
+  { img: '/wander/leh.jpg', label: 'Leh · Ladakh', place: 'Ladakh' },
+  { img: '/wander/kerala.jpg', label: 'Backwaters · Kerala', place: 'Kerala' },
+  { img: '/wander/rajasthan.jpg', label: 'Jaisalmer · Rajasthan', place: 'Rajasthan' },
+  { img: '/wander/spiti.jpg', label: 'Spiti Valley', place: 'Spiti' },
+  { img: '/wander/goa.jpg', label: 'Beaches · Goa', place: 'Goa' },
+  { img: '/wander/wildlife.jpg', label: 'Wildlife Safari', place: 'Wildlife' },
+];
+
+/* ─── Category → vector icon (maps DB/fallback category names to SVG) ── */
+function catIconFor(name = '') {
+  const n = String(name).toLowerCase();
+  if (/beach|coast|goa/.test(n)) return Sailboat;
+  if (/water|scuba|river|lake|dive/.test(n)) return Fish;
+  if (/pilgrim|spiritual|temple|religio|dham|yatra/.test(n)) return Church;
+  if (/heritage|culture|histor|fort|palace/.test(n)) return Building2;
+  if (/wildlife|safari|jungle|nature|forest/.test(n)) return PawPrint;
+  if (/hill|snow|ladakh|leh|spiti/.test(n)) return Snowflake;
+  if (/adventure|trek|mountain|hike/.test(n)) return Footprints;
+  if (/camp/.test(n)) return Flame;
+  if (/photo/.test(n)) return Aperture;
+  if (/cycl|bike/.test(n)) return Route;
+  return Tag; // sensible default
+}
+
+function CatIcon({ name, className = 'w-4 h-4' }: { name?: string; className?: string }) {
+  const Icon = catIconFor(name);
+  return <Icon className={className} />;
+}
+
+/* ─── Premium design tokens + animations (scoped to .wander-premium) ── */
+const WANDER_STYLES = `
+.wander-premium{
+  --w-bg:#FAFAF8; --w-ink:#111827; --w-ink-soft:#475569;
+  --w-teal:#0F766E; --w-teal-bright:#14B8A6; --w-gold:#F59E0B; --w-sand:#F1EEE8;
+  --w-shadow-soft:0 1px 2px rgba(15,23,42,.05), 0 12px 30px -16px rgba(15,23,42,.18);
+  --w-shadow-lift:0 6px 14px -8px rgba(15,23,42,.14), 0 30px 60px -28px rgba(15,23,42,.30);
+  --w-shadow-glow:0 10px 46px -10px rgba(15,118,110,.45);
+  background:var(--w-bg); color:var(--w-ink);
+  font-feature-settings:"ss01","cv11"; -webkit-font-smoothing:antialiased;
+}
+.wander-premium .font-display{
+  font-family:var(--font-display),"Fraunces",Georgia,"Times New Roman",serif;
+  letter-spacing:-.02em; font-weight:600;
+}
+.wander-premium .wg-glass{
+  background:rgba(255,255,255,.72); backdrop-filter:blur(22px) saturate(165%);
+  -webkit-backdrop-filter:blur(22px) saturate(165%);
+  border:1px solid rgba(255,255,255,.6); box-shadow:var(--w-shadow-soft);
+}
+.wander-premium .wg-glass-dark{
+  background:rgba(9,14,24,.36); backdrop-filter:blur(18px) saturate(150%);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+  border:1px solid rgba(255,255,255,.16);
+}
+.wander-premium .wg-grad-teal{ background-image:linear-gradient(135deg,#0F766E,#14B8A6); }
+.wander-premium .wg-grad-warm{ background-image:linear-gradient(135deg,#F59E0B,#EA580C); }
+.wander-premium .wg-text-teal{
+  background-image:linear-gradient(120deg,#0F766E,#14B8A6 60%,#5EEAD4);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.wander-premium .wg-text-gold{
+  background-image:linear-gradient(120deg,#F59E0B,#FBBF24);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.wander-premium .wg-shadow-soft{ box-shadow:var(--w-shadow-soft); }
+.wander-premium .wg-shadow-lift{ box-shadow:var(--w-shadow-lift); }
+.wander-premium .wg-shadow-glow{ box-shadow:var(--w-shadow-glow); }
+.wander-premium .wg-lift{ transition:transform .45s cubic-bezier(.2,.8,.2,1), box-shadow .45s cubic-bezier(.2,.8,.2,1); }
+.wander-premium .wg-lift:hover{ transform:translateY(-6px); box-shadow:var(--w-shadow-lift); }
+.wander-premium .wg-zoom{ overflow:hidden; }
+.wander-premium .wg-zoom img{ transition:transform 1s cubic-bezier(.2,.8,.2,1); }
+.wander-premium .wg-zoom:hover img{ transform:scale(1.08); }
+/* hover helpers for custom (non-Tailwind) classes */
+.wander-premium .wg-hover-teal{ transition:background .3s, color .3s, box-shadow .3s; }
+.wander-premium .group:hover .wg-hover-teal{ background:linear-gradient(135deg,#0F766E,#14B8A6); color:#fff; box-shadow:var(--w-shadow-glow); }
+.wander-premium .wg-glow-hover{ transition:box-shadow .3s, transform .3s; }
+.wander-premium .wg-glow-hover:hover{ box-shadow:var(--w-shadow-glow); }
+.wander-premium input[type="date"]::-webkit-calendar-picker-indicator{ opacity:.5; cursor:pointer; transition:opacity .2s; }
+.wander-premium input[type="date"]:hover::-webkit-calendar-picker-indicator{ opacity:.85; }
+.wander-premium .wg-reveal{ opacity:0; }
+.wander-premium .wg-reveal.wg-in{ animation:wg-fade-up .8s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes wg-fade-up{ from{opacity:0; transform:translateY(26px);} to{opacity:1; transform:translateY(0);} }
+@keyframes wg-kenburns{ 0%{transform:scale(1.08) translate(0,0);} 100%{transform:scale(1.19) translate(-1.8%,-1.2%);} }
+.wander-premium .wg-kenburns{ animation:wg-kenburns 16s ease-in-out infinite alternate; }
+@keyframes wg-float{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
+.wander-premium .wg-float{ animation:wg-float 6s ease-in-out infinite; }
+@keyframes wg-shine{ 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+@media (prefers-reduced-motion:reduce){
+  .wander-premium .wg-reveal, .wander-premium .wg-reveal.wg-in{ opacity:1 !important; animation:none !important; }
+  .wander-premium .wg-kenburns, .wander-premium .wg-float{ animation:none !important; }
+}
+`;
+
+/* ─── Reveal on scroll ─────────────────────────────── */
+function useReveal() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            // replay the fade-up every time it enters the viewport
+            e.target.classList.remove('wg-in');
+            void (e.target as HTMLElement).offsetWidth; // force reflow → restart animation
+            e.target.classList.add('wg-in');
+          } else {
+            // reset when it leaves so it animates again next scroll
+            e.target.classList.remove('wg-in');
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -80px 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return ref;
+}
+
+function Reveal({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+  const ref = useReveal();
+  return (
+    <div ref={ref} className={`wg-reveal ${className}`} style={{ animationDelay: `${delay}ms` }}>
+      {children}
+    </div>
+  );
+}
+
+/* ─── CountUp ──────────────────────────────────────── */
+function CountUp({ to, duration = 1600 }: { to: number; duration?: number }) {
+  const [v, setV] = useState(0);
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let raf = 0;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          const start = performance.now();
+          const tick = (now: number) => {
+            const p = Math.min((now - start) / duration, 1);
+            const eased = 1 - Math.pow(1 - p, 3);
+            setV(Math.round(to * eased));
+            if (p < 1) raf = requestAnimationFrame(tick);
+          };
+          raf = requestAnimationFrame(tick);
+          io.disconnect();
+        }
+      });
+    });
+    io.observe(el);
+    return () => { io.disconnect(); cancelAnimationFrame(raf); };
+  }, [to, duration]);
+  return <span ref={ref}>{v.toLocaleString('en-IN')}</span>;
+}
+
+/* ─── Section eyebrow ──────────────────────────────── */
+function Eyebrow({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
+  return (
+    <div className={`mb-3 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] ${light ? 'text-teal-300' : 'text-teal-700'}`}>
+      <span className={`h-px w-8 ${light ? 'bg-teal-300/60' : 'bg-teal-600/50'}`} /> {children}
+    </div>
+  );
+}
 
 /* ─── ExperienceCard ───────────────────────────────── */
 function ExperienceCard({ exp }: { exp: any }) {
+  const [imgError, setImgError] = useState(false);
   const popular = (exp.vendorCount ?? 0) >= 3;
   const hasPrice = exp.minPrice !== null && exp.minPrice !== undefined;
+  const showImg = exp.coverImage && !imgError;
 
   return (
     <Link
       href={`/wander/experiences/${exp.slug}`}
-      className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-indigo-100 hover:-translate-y-1 flex flex-col"
+      className="group wg-lift h-full bg-white rounded-3xl overflow-hidden wg-shadow-soft border border-slate-100 flex flex-col"
     >
       {/* Image */}
-      <div className="relative h-52 bg-gradient-to-br from-indigo-100 to-purple-100 overflow-hidden flex-shrink-0">
-        {exp.coverImage ? (
-          <img src={exp.coverImage} alt={exp.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+      <div className="wg-zoom relative h-52 bg-gradient-to-br from-teal-50 to-amber-50 overflow-hidden flex-shrink-0">
+        {showImg ? (
+          <img src={exp.coverImage} alt={exp.title} onError={() => setImgError(true)} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-7xl opacity-30">{exp.category?.icon || '🗺️'}</span>
+            <CatIcon name={exp.category?.name} className="w-16 h-16 text-teal-300/60" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent" />
         {exp.category && (
           <div className="absolute top-3 left-3">
-            <span className="inline-flex items-center gap-1 bg-white/95 backdrop-blur-sm text-xs font-semibold text-gray-700 px-2.5 py-1 rounded-full shadow-sm">
-              {exp.category.icon} {exp.category.name}
+            <span className="inline-flex items-center gap-1.5 bg-white/95 backdrop-blur-sm text-xs font-semibold text-slate-700 px-2.5 py-1 rounded-full shadow-sm">
+              <CatIcon name={exp.category.name} className="w-3.5 h-3.5 text-teal-700" /> {exp.category.name}
             </span>
           </div>
         )}
         {popular && (
-          <div className="absolute top-3 right-3 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+          <div className="absolute top-3 right-3 wg-grad-warm text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
             <TrendingUp className="w-2.5 h-2.5" /> Popular
           </div>
         )}
@@ -104,7 +281,7 @@ function ExperienceCard({ exp }: { exp: any }) {
         {/* "X vendors" badge */}
         {exp.vendorCount > 0 && (
           <div className="absolute bottom-3 right-3">
-            <span className="inline-flex items-center gap-1 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 bg-teal-700 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
               <Users className="w-2.5 h-2.5" /> {exp.vendorCount} vendor{exp.vendorCount !== 1 ? 's' : ''}
             </span>
           </div>
@@ -113,29 +290,29 @@ function ExperienceCard({ exp }: { exp: any }) {
 
       {/* Content */}
       <div className="p-4 flex flex-col flex-1">
-        <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1 line-clamp-2 group-hover:text-indigo-600 transition-colors">
+        <h3 className="font-display font-semibold text-slate-900 text-[15px] leading-snug mb-1 line-clamp-2 group-hover:text-teal-700 transition-colors">
           {exp.title}
         </h3>
         {exp.description && (
-          <p className="text-xs text-gray-400 mb-3 line-clamp-2 flex-1">{exp.description}</p>
+          <p className="text-xs text-slate-400 mb-3 line-clamp-2 flex-1">{exp.description}</p>
         )}
         {exp.duration && (
-          <p className="text-xs text-gray-500 flex items-center gap-1 mb-3">
-            <Clock className="w-3 h-3 text-indigo-400" /> {exp.duration}
+          <p className="text-xs text-slate-500 flex items-center gap-1 mb-3">
+            <Clock className="w-3 h-3 text-teal-500" /> {exp.duration}
           </p>
         )}
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-auto">
+        <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-auto">
           <div>
             {hasPrice ? (
               <div>
-                <span className="text-[10px] text-gray-400 block leading-tight">Starting from</span>
-                <span className="text-base font-black text-gray-900">₹{Number(exp.minPrice).toLocaleString('en-IN')}</span>
+                <span className="text-[10px] text-slate-400 block leading-tight">Starting from</span>
+                <span className="text-base font-black text-slate-900">₹{Number(exp.minPrice).toLocaleString('en-IN')}</span>
               </div>
             ) : (
-              <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Get Quotes</span>
+              <span className="text-xs font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full">Get Quotes</span>
             )}
           </div>
-          <span className="inline-flex items-center gap-1 text-xs text-indigo-600 font-semibold bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white px-2.5 py-1 rounded-full transition-colors">
+          <span className="inline-flex items-center gap-1 text-xs text-teal-700 font-semibold bg-teal-50 wg-hover-teal px-2.5 py-1 rounded-full">
             Compare <ArrowRight className="w-3 h-3" />
           </span>
         </div>
@@ -147,8 +324,10 @@ function ExperienceCard({ exp }: { exp: any }) {
 /* ─── TourCard ─────────────────────────────────────── */
 function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; isWishlisted?: boolean; onToggleWishlist?: (id: string) => void }) {
   const [vendorLogoError, setVendorLogoError] = useState(false);
+  const [coverError, setCoverError] = useState(false);
   const images: string[] = Array.isArray(listing.images) ? listing.images : (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
   const coverImg = images[0] || null;
+  const showCover = coverImg && !coverError;
 
   // Parse priceTiers for GROUP_BASED pricing
   const priceTiers: any[] = (() => {
@@ -178,50 +357,64 @@ function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; i
   const showCustomQuote = !priceLabel;
   const popular = (listing._count?.quoteRequests ?? 0) >= 3;
 
+  // Presentational detail rows built from existing fields (no logic change)
+  const details: [string, string][] = [];
+  if (listing.duration) details.push(['Duration', String(listing.duration)]);
+  if (listing.mainLocation?.name) details.push(['Location', String(listing.mainLocation.name)]);
+  if (listing.tourStartDate) {
+    const s = new Date(listing.tourStartDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    const e = listing.tourEndDate && listing.tourEndDate !== listing.tourStartDate
+      ? ` – ${new Date(listing.tourEndDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : '';
+    details.push(['Dates', s + e]);
+  } else if (listing.rating > 0) {
+    details.push(['Rating', `${listing.rating} ★`]);
+  }
+  const detailRows = details.slice(0, 3);
+  const desc = String(listing.shortDescription || listing.description || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+
   return (
     <Link
       href={`/wander/${listing.slug || listing.id}`}
-      className="group relative bg-white rounded-3xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_20px_60px_rgba(79,70,229,0.15),0_8px_24px_rgba(0,0,0,0.1)] transition-all duration-500 border border-gray-100/80 hover:border-indigo-200/60 hover:-translate-y-2 flex flex-col"
+      className="group wg-lift h-full flex flex-col bg-white rounded-3xl overflow-hidden wg-shadow-soft border border-slate-100 hover:border-teal-200/70"
     >
       {/* Image */}
-      <div className="relative h-56 bg-gradient-to-br from-slate-800 to-indigo-900 overflow-hidden flex-shrink-0">
-        {coverImg ? (
+      <div className="wg-zoom relative h-52 bg-gradient-to-br from-slate-800 to-teal-900 overflow-hidden flex-shrink-0">
+        {showCover ? (
           <img
             src={coverImg}
             alt={listing.title}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out opacity-90 group-hover:opacity-100"
+            onError={() => setCoverError(true)}
+            className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900">
-            <span className="text-8xl opacity-20">{listing.category?.icon || '🗺️'}</span>
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-teal-900 via-slate-900 to-slate-950">
+            <CatIcon name={listing.category?.name} className="w-20 h-20 text-white/20" />
           </div>
         )}
 
-        {/* Strong multi-stop gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10" />
-        {/* Side vignette */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/20" />
+        {/* Subtle top gradient for badge legibility */}
+        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/35 to-transparent pointer-events-none" />
 
-        {/* Top bar: Category + Wishlist + Hot badge */}
+        {/* Top bar: Category (left) + Hot + Wishlist (right) */}
         <div className="absolute top-0 left-0 right-0 p-3.5 flex items-start justify-between">
           {listing.category && (
-            <span className="inline-flex items-center gap-1.5 bg-black/40 backdrop-blur-md text-[11px] font-bold text-white px-3 py-1.5 rounded-xl border border-white/10">
-              {listing.category.icon} {listing.category.name}
+            <span className="inline-flex items-center gap-1.5 bg-white/95 backdrop-blur-sm text-[11px] font-semibold text-slate-700 px-3 py-1.5 rounded-full shadow-sm">
+              <CatIcon name={listing.category.name} className="w-3.5 h-3.5 text-teal-700" /> {listing.category.name}
             </span>
           )}
           <div className="flex items-center gap-1.5">
             {popular && (
-              <div className="bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl flex items-center gap-1 shadow-lg">
+              <div className="wg-grad-warm text-white text-[10px] font-bold px-2.5 py-1.5 rounded-full flex items-center gap-1 shadow-lg">
                 <TrendingUp className="w-2.5 h-2.5" /> Hot
               </div>
             )}
             {onToggleWishlist && (
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleWishlist(listing.id); }}
-                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shadow-sm backdrop-blur-md border ${
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm backdrop-blur-md border ${
                   isWishlisted
-                    ? 'bg-red-500 text-white border-red-400 scale-105'
-                    : 'bg-black/30 text-white/80 border-white/10 hover:text-red-400 hover:bg-black/50 hover:scale-105'
+                    ? 'bg-rose-500 text-white border-rose-400 scale-105'
+                    : 'bg-white/85 text-slate-600 border-white/60 hover:text-rose-500 hover:bg-white hover:scale-105'
                 }`}
               >
                 <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-white' : ''}`} />
@@ -229,88 +422,134 @@ function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; i
             )}
           </div>
         </div>
-
-        {/* Bottom text on image: Title + Location + Duration + Rating */}
-        <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-10">
-          {/* Title on image */}
-          <h3 className="font-black text-white text-base leading-snug mb-2 line-clamp-2 drop-shadow-lg group-hover:text-indigo-200 transition-colors">
-            {listing.title}
-          </h3>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {listing.mainLocation?.name && (
-                <span className="flex items-center gap-1 text-white/80 text-xs font-medium">
-                  <MapPin className="w-3 h-3 text-indigo-300" /> {listing.mainLocation.name}
-                </span>
-              )}
-              {listing.duration && (
-                <span className="flex items-center gap-1 text-white/70 text-[11px]">
-                  <Clock className="w-3 h-3" /> {listing.duration}
-                </span>
-              )}
-            </div>
-            {listing.rating > 0 && (
-              <span className="inline-flex items-center gap-1 bg-amber-400 text-gray-900 text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md">
-                <Star className="w-3 h-3 fill-gray-900" />
-                {listing.rating}
-              </span>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Content below image */}
-      <div className="p-4 flex flex-col flex-1">
-        {/* Vendor */}
-        {listing.vendor?.businessName && (
-          <div className="flex items-center gap-2 mb-3">
-            {listing.vendor.logo && !vendorLogoError ? (
-              <img src={listing.vendor.logo} alt="" onError={() => setVendorLogoError(true)} className="w-5 h-5 rounded-full object-cover flex-shrink-0 ring-1 ring-gray-200" />
-            ) : (
-              <span className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center flex-shrink-0 text-[8px] font-bold text-white">
-                {listing.vendor.businessName[0]?.toUpperCase()}
-              </span>
-            )}
-            <span className="text-xs text-gray-400 truncate">{listing.vendor.businessName}</span>
-            <span className="ml-auto text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex-shrink-0">✓ Verified</span>
-          </div>
-        )}
+      <div className="p-5 flex flex-col flex-1">
+        {/* Title — up to 2 lines, fixed height so every card aligns */}
+        <h3 className="font-display font-semibold text-slate-900 text-lg leading-snug line-clamp-2 min-h-[3.1rem] group-hover:text-teal-700 transition-colors">
+          {listing.title}
+        </h3>
 
-        {/* Tour dates if available */}
-        {listing.tourStartDate && (
-          <div className="flex items-center gap-1.5 mb-3">
-            <span className="inline-flex items-center gap-1 text-[11px] text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg font-medium border border-indigo-100/60">
-              <Calendar className="w-3 h-3" />
-              {new Date(listing.tourStartDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-              {listing.tourEndDate && listing.tourEndDate !== listing.tourStartDate && (
-                <> – {new Date(listing.tourEndDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</>
-              )}
-            </span>
-          </div>
-        )}
-
-        {/* Price bar */}
-        <div className="flex items-center justify-between pt-3 mt-auto border-t border-gray-100">
-          {showCustomQuote ? (
-            <div>
-              <span className="text-[10px] text-gray-400 block mb-0.5">Price on request</span>
-              <span className="text-sm font-bold text-indigo-600">Get Free Quote</span>
-            </div>
-          ) : (
-            <div>
-              {isStartingFrom && <span className="text-[10px] text-gray-400 block leading-tight">Starting from</span>}
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-gray-900 tracking-tight">{priceLabel}</span>
-                {priceSuffix && <span className="text-xs text-gray-400">{priceSuffix}</span>}
+        {/* Detail rows */}
+        {detailRows.length > 0 && (
+          <div className="mt-4 space-y-2.5">
+            {detailRows.map(([label, value]) => (
+              <div key={label} className="flex items-center justify-between gap-3">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 flex-shrink-0">{label}</span>
+                <span className="text-xs font-medium text-slate-700 truncate text-right">{value}</span>
               </div>
+            ))}
+          </div>
+        )}
+
+        {/* Bottom group — operator + price pinned together at the bottom */}
+        <div className="mt-auto pt-4">
+          {/* Operator + Verified badge */}
+          {listing.vendor?.businessName && (
+            <div className="mb-4 flex items-center gap-2">
+              {listing.vendor.logo && !vendorLogoError ? (
+                <img src={listing.vendor.logo} alt="" onError={() => setVendorLogoError(true)} className="w-5 h-5 rounded-full object-cover flex-shrink-0 ring-1 ring-slate-200" />
+              ) : (
+                <span className="w-5 h-5 rounded-full wg-grad-teal flex items-center justify-center flex-shrink-0 text-[8px] font-bold text-white">
+                  {listing.vendor.businessName[0]?.toUpperCase()}
+                </span>
+              )}
+              <span className="text-xs text-slate-500 truncate">{listing.vendor.businessName}</span>
+              <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100 flex-shrink-0">
+                <BadgeCheck className="w-3 h-3" /> Verified
+              </span>
             </div>
           )}
-          <span className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 group-hover:bg-gradient-to-r group-hover:from-indigo-600 group-hover:to-violet-600 group-hover:text-white px-3 py-2 rounded-xl transition-all duration-300 group-hover:shadow-md group-hover:shadow-indigo-500/25">
-            View Tour <ArrowRight className="w-3.5 h-3.5" />
-          </span>
+
+          {/* FROM + price (left) + View Tour pill (right) */}
+          <div className="pt-4 border-t border-slate-100 flex items-end justify-between gap-3">
+            {showCustomQuote ? (
+              <div>
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 mb-1">Price on request</span>
+                <span className="text-base font-bold text-teal-700">Get Free Quote</span>
+              </div>
+            ) : (
+              <div>
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 mb-1">{isStartingFrom ? 'Starting from' : 'From'}</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xl font-black text-slate-900 tracking-tight">{priceLabel}</span>
+                  {priceSuffix && <span className="text-xs text-slate-400">{priceSuffix}</span>}
+                </div>
+              </div>
+            )}
+            <span className="flex-shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 border border-teal-300 group-hover:bg-teal-600 group-hover:text-white group-hover:border-teal-600 px-4 py-2 rounded-full transition-colors">
+              View Tour <ArrowRight className="w-3.5 h-3.5" />
+            </span>
+          </div>
         </div>
       </div>
     </Link>
+  );
+}
+
+/* ─── ReviewCard (click quote to expand full text) ──── */
+function ReviewCard({ t }: { t: any }) {
+  const [expanded, setExpanded] = useState(false);
+  const [truncatable, setTruncatable] = useState(false);
+  const quoteRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const el = quoteRef.current;
+    if (el) setTruncatable(el.scrollHeight > el.clientHeight + 2);
+  }, []);
+
+  return (
+    <article className="flex h-full flex-col justify-between bg-white rounded-3xl p-6 border border-slate-100 wg-shadow-soft wg-lift">
+      <div>
+        {/* Stars */}
+        <div className="mb-3 flex items-center gap-1 text-amber-400">
+          {[...Array(t.rating)].map((_, si) => (
+            <Star key={si} className="w-4 h-4 fill-current" />
+          ))}
+        </div>
+        {/* Quote — serif, click to expand full text */}
+        <p
+          ref={quoteRef}
+          onClick={() => truncatable && setExpanded(v => !v)}
+          className={`font-display text-base leading-snug tracking-tight text-slate-900 ${expanded ? '' : 'line-clamp-4'} ${truncatable ? 'cursor-pointer' : ''}`}
+          title={truncatable ? (expanded ? 'Click to collapse' : 'Click to read full review') : undefined}
+        >
+          &ldquo;{t.text}&rdquo;
+        </p>
+        {truncatable && (
+          <button
+            type="button"
+            onClick={() => setExpanded(v => !v)}
+            className="mt-1.5 text-xs font-semibold text-teal-700 hover:text-teal-800"
+          >
+            {expanded ? 'Show less' : 'Read more'}
+          </button>
+        )}
+      </div>
+      <div className="mt-5">
+        {/* 3-photo strip */}
+        <div className="mb-4 grid grid-cols-3 gap-2">
+          {t.gallery.map((g: string, k: number) => (
+            <div key={k} className="wg-zoom aspect-square overflow-hidden rounded-xl">
+              <img src={g} alt="" loading="lazy" className="w-full h-full object-cover" />
+            </div>
+          ))}
+        </div>
+        {/* Reviewer */}
+        <div className="flex items-center gap-3">
+          <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${t.color} flex items-center justify-center text-white font-black text-sm flex-shrink-0`}>
+            {t.avatar}
+          </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+              {t.name} <BadgeCheck className="w-4 h-4 text-teal-600 flex-shrink-0" />
+            </div>
+            <div className="text-xs text-slate-400 truncate">{t.tour} · {t.location}</div>
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -319,6 +558,7 @@ export default function WanderHomePage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [experiences, setExperiences] = useState<any[]>([]);
+  const [galleryProps, setGalleryProps] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -421,6 +661,11 @@ export default function WanderHomePage() {
       .then(r => r.json())
       .then(d => setExperiences(Array.isArray(d) ? d : []))
       .catch(() => setExperiences([]));
+    // Travel-agent properties → shown inside the Wander Gallery section
+    fetch('/api/wander/properties?limit=20')
+      .then(r => r.json())
+      .then(d => setGalleryProps(d?.success && Array.isArray(d.properties) ? d.properties : []))
+      .catch(() => setGalleryProps([]));
   }, []);
 
   const activeCatsKey = activeCats.join(',');
@@ -530,67 +775,59 @@ export default function WanderHomePage() {
   const activeLabel = activeCats.length === 0
     ? (search ? `"${search}"` : 'All Tours')
     : activeCats.length === 1
-      ? `${allCatsFlat.find(c => c.id === activeCats[0])?.icon || ''} ${allCatsFlat.find(c => c.id === activeCats[0])?.name || ''}`.trim()
+      ? `${allCatsFlat.find(c => c.id === activeCats[0])?.name || ''}`.trim()
       : `${activeCats.length} categories selected`;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="wander-premium min-h-screen">
+      <style dangerouslySetInnerHTML={{ __html: WANDER_STYLES }} />
 
       {/* ══════════════════════════════════════════════════
-          HERO
+          HERO — full-bleed editorial
       ══════════════════════════════════════════════════ */}
-      <section className="relative min-h-[92vh] flex items-center overflow-hidden bg-[#050816]">
-        {/* Animated gradient mesh */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-32 -left-32 w-[700px] h-[700px] rounded-full bg-gradient-to-r from-indigo-600/30 to-violet-600/20 blur-[150px]" style={{ animation: 'pulse 8s ease-in-out infinite' }} />
-          <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-gradient-to-l from-fuchsia-600/20 to-cyan-500/15 blur-[130px]" style={{ animation: 'pulse 10s ease-in-out infinite', animationDelay: '3s' }} />
-          <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] rounded-full bg-emerald-500/10 blur-[100px]" style={{ animation: 'pulse 6s ease-in-out infinite', animationDelay: '1.5s' }} />
+      <section className="relative min-h-[94vh] flex items-center overflow-hidden bg-slate-950">
+        {/* Background image with Ken Burns */}
+        <div className="absolute inset-0">
+          <img src="/wander/hero.jpg" alt="Himalayan range at golden hour" className="w-full h-full object-cover wg-kenburns" />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/35 to-slate-950/90" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/70 via-transparent to-transparent" />
         </div>
-        {/* Grain texture */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\' opacity=\'0.5\'/%3E%3C/svg%3E")' }} />
-        {/* Grid lines */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
 
-        <div className="relative z-10 w-full max-w-6xl mx-auto px-6 py-28">
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-6 py-28 pt-40">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left — Copy */}
             <div>
-              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border border-indigo-400/25 text-indigo-300 text-xs font-semibold px-4 py-2 rounded-full mb-8 backdrop-blur-sm">
-                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                Wander Tours by TransRentals
+              <div className="inline-flex items-center gap-2 wg-glass-dark text-white/90 text-[11px] font-semibold uppercase tracking-[0.2em] px-4 py-2 rounded-full mb-8 wg-reveal wg-in">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                Curated by locals · Loved by 10,000+ travellers
               </div>
-              <h1 className="text-5xl sm:text-6xl md:text-[4.5rem] font-black text-white leading-[1.05] tracking-tight mb-6">
-                Discover<br />
-                <span className="relative">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400">
-                    Incredible India
-                  </span>
-                  <div className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 rounded-full opacity-60" />
-                </span>
+              <h1 className="font-display text-white leading-[1.0] tracking-tight mb-6" style={{ fontSize: 'clamp(2.75rem,6vw,5rem)' }}>
+                Explore India <em className="not-italic wg-text-teal">beyond</em>
+                <br /> the ordinary.
               </h1>
-              <p className="text-base sm:text-lg text-gray-400 mb-10 max-w-lg leading-relaxed">
-                Curated tours across adventure, heritage, beaches &amp; wildlife.
-                Get custom quotes from <span className="text-white font-medium">verified local operators</span>.
+              <p className="text-base sm:text-lg text-white/80 mb-10 max-w-lg leading-relaxed">
+                Unforgettable road trips, curated tours &amp; hidden destinations —
+                get custom quotes from <span className="text-white font-medium">verified local operators</span>.
               </p>
 
               {/* Search bar */}
               <form onSubmit={applySearch} className="relative max-w-xl mb-8">
-                <div className="relative flex">
+                <div className="relative flex bg-white rounded-2xl p-1.5 wg-shadow-lift ring-1 ring-black/5">
                   <div className="flex-1 relative">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-teal-600" />
                     <input
                       value={searchInput}
                       onChange={e => setSearchInput(e.target.value)}
                       placeholder="Where do you want to go?"
-                      className="w-full pl-13 pr-4 py-4 bg-white/[0.07] backdrop-blur-xl border border-white/15 text-white placeholder-gray-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 text-sm transition-all"
+                      className="w-full pl-12 pr-4 py-3.5 bg-transparent text-slate-900 placeholder-slate-500 rounded-xl focus:outline-none text-sm"
                     />
                     {searchInput && (
-                      <button type="button" onClick={() => setSearchInput('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
+                      <button type="button" onClick={() => setSearchInput('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                         <X className="w-4 h-4" />
                       </button>
                     )}
                   </div>
-                  <button type="submit" className="ml-2 px-7 py-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-2xl transition text-sm whitespace-nowrap shadow-lg shadow-indigo-500/25">
+                  <button type="submit" className="ml-1 px-7 py-3.5 wg-grad-teal wg-glow-hover text-white font-semibold rounded-xl transition text-sm whitespace-nowrap">
                     Search
                   </button>
                 </div>
@@ -602,9 +839,9 @@ export default function WanderHomePage() {
                   <button
                     key={v.label}
                     onClick={() => setVibe(v.label)}
-                    className="flex items-center gap-1.5 bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 hover:border-white/20 text-white/70 hover:text-white text-xs px-3.5 py-2 rounded-full transition-all backdrop-blur-sm"
+                    className="flex items-center gap-1.5 wg-glass-dark text-white/80 hover:text-white text-xs px-3.5 py-2 rounded-full transition-all"
                   >
-                    {v.icon} {v.label}
+                    <v.icon className="w-3.5 h-3.5 text-teal-300" /> {v.label}
                   </button>
                 ))}
               </div>
@@ -613,19 +850,21 @@ export default function WanderHomePage() {
             {/* Right — Stats cards */}
             <div className="hidden lg:grid grid-cols-2 gap-4">
               {[
-                { n: '500+', label: 'Tour Packages', icon: '🗺️', gradient: 'from-indigo-500/20 to-indigo-600/10' },
-                { n: '150+', label: 'Destinations', icon: '📍', gradient: 'from-violet-500/20 to-purple-600/10' },
-                { n: '200+', label: 'Verified Vendors', icon: '✅', gradient: 'from-emerald-500/20 to-teal-600/10' },
-                { n: '4.8★', label: 'Average Rating', icon: '⭐', gradient: 'from-amber-500/20 to-orange-600/10' },
+                { n: 500, s: '+', label: 'Tour Packages', icon: Package },
+                { n: 150, s: '+', label: 'Destinations', icon: MapPinned },
+                { n: 200, s: '+', label: 'Verified Vendors', icon: ShieldCheck },
+                { n: null, s: '4.8★', label: 'Average Rating', icon: Award },
               ].map((s, i) => (
                 <div
                   key={s.label}
-                  className={`bg-gradient-to-br ${s.gradient} backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-all hover:scale-[1.02]`}
-                  style={{ animationDelay: `${i * 0.1}s` }}
+                  className="wg-glass-dark rounded-2xl p-6 wg-lift wg-reveal wg-in"
+                  style={{ animationDelay: `${i * 90}ms` }}
                 >
-                  <span className="text-2xl mb-3 block">{s.icon}</span>
-                  <p className="text-3xl font-black text-white mb-1">{s.n}</p>
-                  <p className="text-xs text-gray-400">{s.label}</p>
+                  <span className="mb-3 flex"><s.icon className="w-6 h-6 text-teal-300" /></span>
+                  <p className="font-display text-3xl font-semibold text-white mb-1">
+                    {s.n !== null ? <><CountUp to={s.n} />{s.s}</> : s.s}
+                  </p>
+                  <p className="text-xs text-white/60">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -640,15 +879,15 @@ export default function WanderHomePage() {
               { n: '4.8★', label: 'Rating' },
             ].map(s => (
               <div key={s.label}>
-                <p className="text-xl font-black text-white">{s.n}</p>
-                <p className="text-[10px] text-gray-500 mt-0.5">{s.label}</p>
+                <p className="font-display text-xl font-semibold text-white">{s.n}</p>
+                <p className="text-[10px] text-white/50 mt-0.5">{s.label}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-40">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50">
           <div className="w-6 h-10 border-2 border-white/30 rounded-full flex items-start justify-center p-1.5">
             <div className="w-1.5 h-3 bg-white/60 rounded-full animate-bounce" />
           </div>
@@ -659,18 +898,18 @@ export default function WanderHomePage() {
           MY GROUP TRIPS BANNER (logged-in customers only)
       ══════════════════════════════════════════════════ */}
       {customerId && (
-        <div className="bg-white border-b border-gray-100">
+        <div className="bg-white border-b border-slate-100">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
             <Link
               href="/customer/wander-groups"
-              className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-2xl text-white transition-all duration-200 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:scale-[1.01] group"
+              className="flex items-center gap-3 px-5 py-3 wg-grad-teal rounded-2xl text-white transition-all duration-200 wg-shadow-soft wg-glow-hover hover:scale-[1.01] group"
             >
               <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Users className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold leading-tight">My Group Trips</p>
-                <p className="text-xs text-emerald-100 leading-tight">Plan trips with your friends &amp; family</p>
+                <p className="text-xs text-white/80 leading-tight">Plan trips with your friends &amp; family</p>
               </div>
               <ChevronRight className="w-5 h-5 text-white/70 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
             </Link>
@@ -681,8 +920,8 @@ export default function WanderHomePage() {
       {/* ══════════════════════════════════════════════════
           STICKY FILTER BAR
       ══════════════════════════════════════════════════ */}
-      <div ref={filterBarRef} className="sticky top-0 z-30 bg-white/[0.97] backdrop-blur-xl border-b border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+      <div ref={filterBarRef} className="sticky top-3 z-30 px-3 sm:px-6 -mt-10">
+        <div className="font-display max-w-6xl mx-auto wg-glass rounded-[1.75rem] wg-shadow-lift ring-1 ring-black/5 px-4 sm:px-6">
 
           {/* Row 1: Categories + Search + Filters toggle */}
           <div className="flex items-center gap-3 py-3">
@@ -692,11 +931,11 @@ export default function WanderHomePage() {
                 onClick={() => { setActiveCats([]); setSearch(''); setSearchInput(''); }}
                 className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
                   activeCats.length === 0 && !search
-                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20'
-                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                    ? 'wg-grad-teal text-white wg-shadow-soft'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100'
                 }`}
               >
-                🗺️ All
+                <LayoutGrid className="w-3.5 h-3.5" /> All
               </button>
               {(loading ? FALLBACK_CATEGORIES : categories).map(cat => {
                 const isActive = activeCats.includes(cat.id);
@@ -707,12 +946,12 @@ export default function WanderHomePage() {
                     onClick={() => { toggleCat(cat.id, true); setSearch(''); setSearchInput(''); }}
                     className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
                       isActive
-                        ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20'
-                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                        ? 'wg-grad-teal text-white wg-shadow-soft'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100'
                     }`}
                   >
-                    {cat.icon} {cat.name}
-                    {hasSubs && <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isActive ? 'rotate-180 text-indigo-200' : 'text-gray-400'}`} />}
+                    <CatIcon name={cat.name} className="w-3.5 h-3.5" /> {cat.name}
+                    {hasSubs && <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isActive ? 'rotate-180 text-white/80' : 'text-slate-400'}`} />}
                   </button>
                 );
               })}
@@ -724,31 +963,31 @@ export default function WanderHomePage() {
                 onClick={() => setShowFilters(f => !f)}
                 className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all border ${
                   showFilters || hasActiveFilters
-                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                    : 'bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100'
+                    ? 'bg-teal-50 border-teal-200 text-teal-700'
+                    : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
                 Filters
                 {hasActiveFilters && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
                 )}
               </button>
               <button
                 onClick={() => setViewMode(v => v === 'grid' ? 'calendar' : 'grid')}
                 className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all border ${
                   viewMode === 'calendar'
-                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-transparent shadow-md shadow-indigo-500/20'
-                    : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
+                    ? 'wg-grad-teal text-white border-transparent wg-shadow-soft'
+                    : 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-100'
                 }`}
               >
                 <CalendarDays className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{viewMode === 'calendar' ? 'Calendar' : 'Calendar'}</span>
+                <span className="hidden sm:inline">{viewMode === 'calendar' ? 'Grid View' : 'Calendar'}</span>
               </button>
               {hasActiveFilters && (
                 <button
                   onClick={resetFilters}
-                  className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium text-red-500 hover:bg-red-50 border border-red-100 transition-all"
+                  className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium text-rose-500 hover:bg-rose-50 border border-rose-100 transition-all"
                 >
                   <X className="w-3 h-3" /> Clear
                 </button>
@@ -759,7 +998,7 @@ export default function WanderHomePage() {
           {/* Sub-categories (shown when parent with subs is selected) */}
           {visibleSubCats.length > 0 && (
             <div className="flex items-center gap-1.5 pb-2.5 overflow-x-auto scrollbar-hide">
-              <span className="flex-shrink-0 text-[10px] font-bold text-indigo-400 uppercase tracking-widest mr-1">Sub:</span>
+              <span className="flex-shrink-0 text-[10px] font-bold text-teal-500 uppercase tracking-widest mr-1">Sub:</span>
               {visibleSubCats.map((sub: any) => {
                 const isActive = activeCats.includes(sub.id);
                 return (
@@ -768,11 +1007,11 @@ export default function WanderHomePage() {
                     onClick={() => toggleCat(sub.id)}
                     className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 border ${
                       isActive
-                        ? 'bg-indigo-100 text-indigo-700 border-indigo-300 shadow-sm'
-                        : 'bg-white text-gray-500 border-gray-200 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600'
+                        ? 'bg-teal-100 text-teal-700 border-teal-300 shadow-sm'
+                        : 'bg-white text-slate-500 border-slate-200 hover:bg-teal-50 hover:border-teal-200 hover:text-teal-600'
                     }`}
                   >
-                    {sub.icon && <span>{sub.icon}</span>} {sub.name}
+                    <CatIcon name={sub.name} className="w-3 h-3" /> {sub.name}
                   </button>
                 );
               })}
@@ -781,17 +1020,17 @@ export default function WanderHomePage() {
 
           {/* Advanced filters panel (collapsible) */}
           {showFilters && (
-            <div className="pb-3 border-t border-gray-100 pt-3 animate-in slide-in-from-top-2 duration-200">
-              <div className="flex items-center gap-3 flex-wrap">
+            <div className="pb-4 border-t border-slate-100 pt-4 animate-in slide-in-from-top-2 duration-200 space-y-3">
+              <div className="flex flex-wrap items-center gap-2.5">
 
                 {/* Search */}
                 <form onSubmit={applySearch} className="relative min-w-[160px] max-w-[220px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                   <input
                     value={searchInput}
                     onChange={e => setSearchInput(e.target.value)}
                     placeholder="Search tours..."
-                    className="w-full pl-8 pr-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 bg-gray-50/50 transition-all"
+                    className="w-full h-10 pl-8 pr-3 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 bg-slate-50/50 transition-all"
                   />
                 </form>
 
@@ -799,10 +1038,10 @@ export default function WanderHomePage() {
                 <div ref={locationDropdownRef} className="relative flex-shrink-0">
                   <button
                     onClick={() => { setLocationOpen(o => !o); setLocationSearch(''); }}
-                    className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs border rounded-xl transition-all ${
+                    className={`flex items-center gap-1.5 h-10 px-3.5 text-xs border rounded-xl transition-all ${
                       locationId
-                        ? 'border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold'
-                        : 'border-gray-200 bg-gray-50/50 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+                        ? 'border-teal-300 bg-teal-50 text-teal-700 font-semibold'
+                        : 'border-slate-200 bg-slate-50/50 text-slate-600 hover:bg-slate-100 hover:border-slate-300'
                     }`}
                   >
                     <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
@@ -810,20 +1049,20 @@ export default function WanderHomePage() {
                       {locationId ? locations.find((l: any) => l.id === locationId)?.name || 'Location' : 'All Locations'}
                     </span>
                     {locationId
-                      ? <X className="w-3 h-3 ml-1 text-indigo-400 hover:text-indigo-700" onClick={e => { e.stopPropagation(); setLocationId(''); setLocationOpen(false); }} />
+                      ? <X className="w-3 h-3 ml-1 text-teal-400 hover:text-teal-700" onClick={e => { e.stopPropagation(); setLocationId(''); setLocationOpen(false); }} />
                       : <ChevronDown className={`w-3 h-3 ml-0.5 transition-transform duration-200 ${locationOpen ? 'rotate-180' : ''}`} />
                     }
                   </button>
                   {locationOpen && (
-                    <div className="absolute top-full left-0 mt-1.5 w-60 bg-white border border-gray-200 rounded-2xl shadow-xl shadow-gray-200/50 z-50 overflow-hidden">
-                      <div className="p-2.5 border-b border-gray-100">
+                    <div className="absolute top-full left-0 mt-1.5 w-60 bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 z-50 overflow-hidden">
+                      <div className="p-2.5 border-b border-slate-100">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                           <input
                             value={locationSearch}
                             onChange={e => setLocationSearch(e.target.value)}
                             placeholder="Search location..."
-                            className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 bg-gray-50"
+                            className="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 bg-slate-50"
                           />
                         </div>
                       </div>
@@ -831,14 +1070,14 @@ export default function WanderHomePage() {
                         <button
                           onClick={() => { setLocationId(''); setLocationOpen(false); }}
                           className={`w-full text-left px-3.5 py-2.5 text-xs flex items-center gap-2 transition-colors rounded-lg mx-1 ${
-                            !locationId ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-gray-600 hover:bg-gray-50'
+                            !locationId ? 'bg-teal-50 text-teal-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'
                           }`}
                           style={{ width: 'calc(100% - 8px)' }}
                         >
                           <Globe className="w-3.5 h-3.5" /> All Locations
                         </button>
                         {locations.length === 0 && (
-                          <p className="px-3 py-4 text-xs text-gray-400 text-center">No locations</p>
+                          <p className="px-3 py-4 text-xs text-slate-400 text-center">No locations</p>
                         )}
                         {locations
                           .filter((loc: any) => loc.name.toLowerCase().includes(locationSearch.toLowerCase()))
@@ -847,11 +1086,11 @@ export default function WanderHomePage() {
                               key={loc.id}
                               onClick={() => { setLocationId(loc.id); setLocationOpen(false); }}
                               className={`w-full text-left px-3.5 py-2.5 text-xs flex items-center gap-2 transition-colors rounded-lg mx-1 ${
-                                locationId === loc.id ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-gray-600 hover:bg-gray-50'
+                                locationId === loc.id ? 'bg-teal-50 text-teal-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'
                               }`}
                               style={{ width: 'calc(100% - 8px)' }}
                             >
-                              <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" /> {loc.name}
+                              <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" /> {loc.name}
                             </button>
                           ))}
                       </div>
@@ -861,73 +1100,67 @@ export default function WanderHomePage() {
 
                 {/* Sort */}
                 <div className="relative flex-shrink-0">
-                  <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                  <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                   <select
                     value={sortBy}
                     onChange={e => setSortBy(e.target.value)}
-                    className="appearance-none pl-8 pr-8 py-2.5 text-xs border border-gray-200 rounded-xl bg-gray-50/50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 cursor-pointer transition-all"
+                    className="appearance-none h-10 pl-8 pr-8 text-xs border border-slate-200 rounded-xl bg-slate-50/50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 cursor-pointer transition-all"
                   >
                     {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
                 </div>
-
-                {/* Divider */}
-                <div className="hidden sm:block w-px h-7 bg-gray-200" />
 
                 {/* Date range */}
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
                     <input
                       type="date"
                       value={dateFrom}
                       onChange={e => setDateFrom(e.target.value)}
-                      className={`pl-8 pr-2.5 py-2.5 text-xs border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 w-[135px] transition-all ${
-                        dateFrom ? 'border-indigo-300 bg-indigo-50 text-indigo-700 font-medium' : 'border-gray-200 bg-gray-50/50 text-gray-600'
+                      className={`h-10 px-3 text-xs border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 w-[158px] transition-all ${
+                        dateFrom ? 'border-teal-300 bg-teal-50 text-teal-700 font-medium' : 'border-slate-200 bg-slate-50/50 text-slate-600'
                       }`}
                       title="From date"
                     />
                   </div>
-                  <span className="text-gray-300">→</span>
+                  <span className="text-slate-300">→</span>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
                     <input
                       type="date"
                       value={dateTo}
                       onChange={e => setDateTo(e.target.value)}
-                      className={`pl-8 pr-2.5 py-2.5 text-xs border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 w-[135px] transition-all ${
-                        dateTo ? 'border-indigo-300 bg-indigo-50 text-indigo-700 font-medium' : 'border-gray-200 bg-gray-50/50 text-gray-600'
+                      className={`h-10 px-3 text-xs border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 w-[158px] transition-all ${
+                        dateTo ? 'border-teal-300 bg-teal-50 text-teal-700 font-medium' : 'border-slate-200 bg-slate-50/50 text-slate-600'
                       }`}
                       title="To date"
                     />
                   </div>
                   {(dateFrom || dateTo) && (
-                    <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                    <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
 
-                {/* Divider */}
-                <div className="hidden sm:block w-px h-7 bg-gray-200" />
+              </div>
 
-                {/* Price presets */}
-                <div className="flex items-center gap-1">
-                  {PRICE_PRESETS.map((p, i) => (
-                    <button
-                      key={p.label}
-                      onClick={() => setPricePreset(i)}
-                      className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
-                        pricePreset === i
-                          ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-sm shadow-indigo-500/20'
-                          : 'bg-gray-50 text-gray-500 hover:bg-gray-100 border border-gray-100'
-                      }`}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
+              {/* Price presets — own row */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mr-0.5">Budget</span>
+                {PRICE_PRESETS.map((p, i) => (
+                  <button
+                    key={p.label}
+                    onClick={() => setPricePreset(i)}
+                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
+                      pricePreset === i
+                        ? 'wg-grad-teal text-white wg-shadow-soft'
+                        : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-100'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -937,49 +1170,14 @@ export default function WanderHomePage() {
       {/* ══════════════════════════════════════════════════
           LISTINGS
       ══════════════════════════════════════════════════ */}
-      <section ref={listingsRef} className="py-12 px-4 sm:px-6 bg-gradient-to-b from-gray-50/50 to-gray-50">
+      <section ref={listingsRef} className="py-14 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
 
-          {/* Experiences section — shown when experiences match current filter */}
-          {(() => {
-            const catIds = categories.map((c: any) => c.id);
-            const selParents = activeCats.filter(id => catIds.includes(id));
-            const selSubs = activeCats.filter(id => !catIds.includes(id));
-            const visibleExps = experiences.filter((exp: any) => {
-              if (locationId && exp.location?.id !== locationId) return false;
-              if (selParents.length && !selParents.includes(exp.categoryId)) return false;
-              if (selSubs.length) {
-                // sub-cat filter: don't filter experiences since they're parent-level
-                // show experiences only when no sub is selected or when parent is selected
-              }
-              if (search && !exp.title.toLowerCase().includes(search.toLowerCase())) return false;
-              return true;
-            });
-            if (visibleExps.length === 0) return null;
-            return (
-              <div className="mb-10">
-                <div className="flex items-center gap-2 mb-4">
-                  <Layers className="w-4 h-4 text-indigo-500" />
-                  <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Curated Experiences</p>
-                  <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Compare vendors</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {visibleExps.map((exp: any) => (
-                    <ExperienceCard key={exp.id} exp={exp} />
-                  ))}
-                </div>
-                <div className="border-b border-gray-200 mt-10 mb-6" />
-              </div>
-            );
-          })()}
-
           {/* Section header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-7">
             <div>
-              <p className="text-xs font-semibold text-indigo-600 uppercase tracking-widest mb-0.5">
-                {activeLabel}
-              </p>
-              <h2 className="text-xl font-black text-gray-900">
+              <Eyebrow>{activeLabel}</Eyebrow>
+              <h2 className="font-display text-2xl sm:text-3xl font-semibold text-slate-900">
                 {listingsLoading
                   ? 'Loading tours...'
                   : total > 0
@@ -992,20 +1190,20 @@ export default function WanderHomePage() {
           {/* Grid */}
           {listingsLoading ? (
             <div className="flex justify-center py-24">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+              <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
             </div>
           ) : listings.length === 0 ? (
-            <div className="text-center py-24 bg-white border border-dashed border-gray-200 rounded-2xl">
-              <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Compass className="w-10 h-10 text-indigo-300" />
+            <div className="text-center py-24 bg-white border border-dashed border-slate-200 rounded-3xl">
+              <div className="w-20 h-20 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Compass className="w-10 h-10 text-teal-300" />
               </div>
-              <h3 className="text-lg font-bold text-gray-700 mb-2">No tours found</h3>
-              <p className="text-sm text-gray-400 mb-6">
+              <h3 className="font-display text-xl font-semibold text-slate-700 mb-2">No tours found</h3>
+              <p className="text-sm text-slate-400 mb-6">
                 {search ? `No results for "${search}". Try a different keyword.` : 'No active tours in this category yet.'}
               </p>
               <button
                 onClick={resetFilters}
-                className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition"
+                className="px-6 py-2.5 wg-grad-teal wg-glow-hover text-white rounded-xl text-sm font-semibold transition"
               >
                 Browse All Tours
               </button>
@@ -1029,7 +1227,7 @@ export default function WanderHomePage() {
                 const sortedMonths = Object.keys(monthGroups).sort();
 
                 return (
-                  <div className="space-y-8">
+                  <div className="space-y-12">
                     {sortedMonths.map(monthKey => {
                       const [y, m] = monthKey.split('-').map(Number);
                       const monthName = new Date(y, m - 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
@@ -1039,14 +1237,13 @@ export default function WanderHomePage() {
 
                       return (
                         <div key={monthKey}>
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-                              <CalendarDays className="w-5 h-5 text-indigo-600" />
+                          <div className="flex items-center gap-4 mb-6">
+                            <div className="flex items-baseline gap-2.5 flex-shrink-0">
+                              <CalendarDays className="w-5 h-5 text-teal-600 self-center" />
+                              <h3 className="font-display font-semibold text-slate-900 text-2xl">{monthName}</h3>
+                              <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full">{monthListings.length} tour{monthListings.length !== 1 ? 's' : ''}</span>
                             </div>
-                            <div>
-                              <h3 className="font-bold text-gray-900 text-lg">{monthName}</h3>
-                              <p className="text-xs text-gray-400">{monthListings.length} tour{monthListings.length !== 1 ? 's' : ''}</p>
-                            </div>
+                            <div className="flex-1 h-px bg-gradient-to-r from-slate-200 to-transparent" />
                           </div>
                           <div className="space-y-3">
                             {monthListings.map((listing: any) => {
@@ -1057,10 +1254,10 @@ export default function WanderHomePage() {
                                 <Link
                                   key={listing.id}
                                   href={`/wander/${listing.slug || listing.id}`}
-                                  className="flex items-stretch bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition overflow-hidden group"
+                                  className="flex items-stretch bg-white rounded-3xl border border-slate-100 wg-shadow-soft wg-lift overflow-hidden group"
                                 >
                                   {/* Date badge */}
-                                  <div className="w-20 flex-shrink-0 bg-gradient-to-br from-indigo-600 to-purple-600 flex flex-col items-center justify-center text-white p-2">
+                                  <div className="w-24 flex-shrink-0 wg-grad-teal flex flex-col items-center justify-center text-white p-2">
                                     <span className="text-2xl font-black leading-none">{startD.getDate()}</span>
                                     <span className="text-[10px] uppercase tracking-wider mt-0.5">
                                       {startD.toLocaleDateString('en-IN', { month: 'short' })}
@@ -1076,22 +1273,22 @@ export default function WanderHomePage() {
                                     )}
                                   </div>
                                   {/* Image */}
-                                  <div className="w-28 flex-shrink-0 bg-indigo-50 overflow-hidden">
+                                  <div className="w-32 flex-shrink-0 bg-teal-50 overflow-hidden">
                                     {images[0] ? (
                                       <img src={images[0]} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                     ) : (
                                       <div className="w-full h-full flex items-center justify-center">
-                                        <Compass className="w-8 h-8 text-indigo-200" />
+                                        <Compass className="w-8 h-8 text-teal-200" />
                                       </div>
                                     )}
                                   </div>
                                   {/* Content */}
                                   <div className="flex-1 p-4 min-w-0 flex flex-col justify-center">
                                     {listing.category && (
-                                      <span className="text-[10px] font-semibold text-indigo-500 mb-0.5">{listing.category.icon} {listing.category.name}</span>
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-600 mb-0.5"><CatIcon name={listing.category.name} className="w-3 h-3" /> {listing.category.name}</span>
                                     )}
-                                    <h4 className="font-bold text-gray-900 text-sm truncate group-hover:text-indigo-600 transition-colors">{listing.title}</h4>
-                                    <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
+                                    <h4 className="font-bold text-slate-900 text-sm truncate group-hover:text-teal-700 transition-colors">{listing.title}</h4>
+                                    <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
                                       {listing.mainLocation?.name && (
                                         <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{listing.mainLocation.name}</span>
                                       )}
@@ -1099,12 +1296,12 @@ export default function WanderHomePage() {
                                         <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{listing.duration}</span>
                                       )}
                                       {listing.vendor?.businessName && (
-                                        <span className="text-gray-300">by {listing.vendor.businessName}</span>
+                                        <span className="text-slate-300">by {listing.vendor.businessName}</span>
                                       )}
                                     </div>
                                   </div>
                                   <div className="flex items-center pr-4">
-                                    <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-500 transition-colors" />
+                                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-teal-500 transition-colors" />
                                   </div>
                                 </Link>
                               );
@@ -1117,25 +1314,26 @@ export default function WanderHomePage() {
                     {/* Tours without dates */}
                     {toursWithoutDates.length > 0 && (
                       <div>
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
-                            <Compass className="w-5 h-5 text-gray-400" />
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="flex items-baseline gap-2.5 flex-shrink-0">
+                            <Compass className="w-5 h-5 text-slate-400 self-center" />
+                            <h3 className="font-display font-semibold text-slate-900 text-2xl">Anytime Tours</h3>
+                            <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">{toursWithoutDates.length} · no fixed dates</span>
                           </div>
-                          <div>
-                            <h3 className="font-bold text-gray-900 text-lg">Anytime Tours</h3>
-                            <p className="text-xs text-gray-400">{toursWithoutDates.length} tour{toursWithoutDates.length !== 1 ? 's' : ''} · no fixed dates</p>
-                          </div>
+                          <div className="flex-1 h-px bg-gradient-to-r from-slate-200 to-transparent" />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {toursWithoutDates.map(listing => (
-                            <TourCard key={listing.id} listing={listing} isWishlisted={wishlistedIds.has(listing.id)} onToggleWishlist={toggleWishlist} />
+                          {toursWithoutDates.map((listing, i) => (
+                            <Reveal key={listing.id} delay={(i % 3) * 90} className="h-full">
+                              <TourCard listing={listing} isWishlisted={wishlistedIds.has(listing.id)} onToggleWishlist={toggleWishlist} />
+                            </Reveal>
                           ))}
                         </div>
                       </div>
                     )}
 
                     {listings.length > 0 && (
-                      <p className="text-center text-xs text-gray-400 mt-4">Showing {listings.length} of {total} tours</p>
+                      <p className="text-center text-xs text-slate-400 mt-4">Showing {listings.length} of {total} tours</p>
                     )}
                   </div>
                 );
@@ -1144,8 +1342,10 @@ export default function WanderHomePage() {
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {listings.map(listing => (
-                  <TourCard key={listing.id} listing={listing} isWishlisted={wishlistedIds.has(listing.id)} onToggleWishlist={toggleWishlist} />
+                {listings.map((listing, i) => (
+                  <Reveal key={listing.id} delay={(i % 3) * 90} className="h-full">
+                    <TourCard listing={listing} isWishlisted={wishlistedIds.has(listing.id)} onToggleWishlist={toggleWishlist} />
+                  </Reveal>
                 ))}
               </div>
 
@@ -1153,17 +1353,17 @@ export default function WanderHomePage() {
               {page < totalPages && (
                 <div className="flex flex-col items-center gap-3 mt-10">
                   {/* Progress bar */}
-                  <div className="w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="w-48 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500"
+                      className="h-full wg-grad-teal rounded-full transition-all duration-500"
                       style={{ width: `${(listings.length / total) * 100}%` }}
                     />
                   </div>
-                  <p className="text-xs text-gray-400">Showing <span className="font-semibold text-gray-700">{listings.length}</span> of <span className="font-semibold text-gray-700">{total}</span> tours</p>
+                  <p className="text-xs text-slate-400">Showing <span className="font-semibold text-slate-700">{listings.length}</span> of <span className="font-semibold text-slate-700">{total}</span> tours</p>
                   <button
                     onClick={loadMore}
                     disabled={loadingMore}
-                    className="flex items-center gap-2 px-8 py-3 bg-white border border-gray-200 text-gray-700 font-semibold rounded-2xl hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-all text-sm disabled:opacity-50 shadow-sm"
+                    className="flex items-center gap-2 px-8 py-3 bg-white border border-slate-200 text-slate-700 font-semibold rounded-2xl hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700 transition-all text-sm disabled:opacity-50 wg-shadow-soft"
                   >
                     {loadingMore ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Loading...</>
@@ -1174,128 +1374,120 @@ export default function WanderHomePage() {
                 </div>
               )}
               {page >= totalPages && listings.length > 0 && (
-                <p className="text-center text-xs text-gray-400 mt-8">
+                <p className="text-center text-xs text-slate-400 mt-8">
                   ✓ All {total} tour{total !== 1 ? 's' : ''} shown
                 </p>
               )}
             </>
           )}
+
+          {/* Curated Experiences — moved below the tours grid */}
+          {(() => {
+            const catIds = categories.map((c: any) => c.id);
+            const selParents = activeCats.filter(id => catIds.includes(id));
+            const selSubs = activeCats.filter(id => !catIds.includes(id));
+            const visibleExps = experiences.filter((exp: any) => {
+              if (locationId && exp.location?.id !== locationId) return false;
+              if (selParents.length && !selParents.includes(exp.categoryId)) return false;
+              if (selSubs.length) {
+                // sub-cat filter: don't filter experiences since they're parent-level
+                // show experiences only when no sub is selected or when parent is selected
+              }
+              if (search && !exp.title.toLowerCase().includes(search.toLowerCase())) return false;
+              return true;
+            });
+            if (visibleExps.length === 0) return null;
+            return (
+              <div className="mt-16 pt-12 border-t border-slate-200">
+                <div className="flex items-center gap-2 mb-5">
+                  <Layers className="w-4 h-4 text-teal-600" />
+                  <p className="text-xs font-bold text-teal-700 uppercase tracking-[0.2em]">Curated Experiences</p>
+                  <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Compare vendors</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {visibleExps.map((exp: any, i: number) => (
+                    <Reveal key={exp.id} delay={(i % 3) * 90} className="h-full">
+                      <ExperienceCard exp={exp} />
+                    </Reveal>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════
-          TRAVEL-AGENT PROPERTIES — Curated stays strip
-      ══════════════════════════════════════════════════ */}
-      <PropertiesStrip />
-
-      {/* ══════════════════════════════════════════════════
           HOW IT WORKS
       ══════════════════════════════════════════════════ */}
-      <section className="py-28 px-4 sm:px-6 bg-[#050816] relative overflow-hidden">
-        {/* Background blobs */}
+      <section className="py-28 px-4 sm:px-6 bg-slate-950 relative overflow-hidden">
+        {/* Background glows */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[140px]" />
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-violet-600/10 blur-[120px]" />
+          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-teal-600/10 blur-[140px]" />
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-amber-500/10 blur-[120px]" />
         </div>
-        {/* Grid lines */}
-        <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
 
         <div className="relative max-w-6xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-20">
-            <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-400/20 text-indigo-400 text-xs font-semibold px-4 py-2 rounded-full mb-6">
-              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" />
-              How It Works
+          <Reveal>
+            <div className="text-center mb-20">
+              <div className="flex justify-center"><Eyebrow light>How It Works</Eyebrow></div>
+              <h2 className="font-display text-4xl sm:text-5xl font-semibold text-white mb-4 leading-tight">
+                3 steps to your <span className="wg-text-teal">perfect trip</span>
+              </h2>
+              <p className="text-slate-400 text-sm max-w-sm mx-auto leading-relaxed">
+                No hidden fees. No confusion. Just browse, request, and travel.
+              </p>
             </div>
-            <h2 className="text-4xl sm:text-5xl font-black text-white mb-4 leading-tight">
-              3 steps to your<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400">
-                perfect trip
-              </span>
-            </h2>
-            <p className="text-gray-400 text-sm max-w-sm mx-auto leading-relaxed">
-              No hidden fees. No confusion. Just browse, request, and travel.
-            </p>
-          </div>
+          </Reveal>
 
           {/* Steps grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6 relative">
-            {/* Connecting dashes (desktop only) */}
-            <div className="hidden lg:flex absolute top-10 left-[calc(33.33%+12px)] right-[calc(33.33%+12px)] items-center justify-between pointer-events-none" style={{ zIndex: 0 }}>
-              <div className="flex-1 border-t-2 border-dashed border-white/10" />
-            </div>
-
             {[
               {
-                num: '01',
-                emoji: '🔍',
-                title: 'Browse & Discover',
+                num: '01', icon: Telescope, title: 'Browse & Discover',
                 desc: 'Explore 500+ curated tours across adventure, heritage, beaches, and wildlife. Filter by destination, dates, and budget.',
-                gradient: 'from-indigo-500 to-blue-500',
-                glow: 'shadow-indigo-500/30',
                 tag: 'Start here',
-                tagColor: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/20',
               },
               {
-                num: '02',
-                emoji: '💬',
-                title: 'Request a Quote',
+                num: '02', icon: MessageSquare, title: 'Request a Quote',
                 desc: 'Tell vendors your group size, dates, and preferences. Get multiple personalised offers from verified local operators.',
-                gradient: 'from-violet-500 to-purple-500',
-                glow: 'shadow-violet-500/30',
                 tag: 'Compare offers',
-                tagColor: 'bg-violet-500/15 text-violet-300 border-violet-500/20',
               },
               {
-                num: '03',
-                emoji: '🚀',
-                title: 'Book & Travel',
+                num: '03', icon: Rocket, title: 'Book & Travel',
                 desc: 'Pick the best offer, pay securely, and start your adventure. Our support team is with you every step of the way.',
-                gradient: 'from-fuchsia-500 to-pink-500',
-                glow: 'shadow-fuchsia-500/30',
                 tag: 'Best price',
-                tagColor: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/20',
               },
             ].map((s, i) => (
-              <div
-                key={s.num}
-                className="relative bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] hover:border-white/[0.15] rounded-3xl p-8 transition-all duration-300 group overflow-hidden"
-                style={{ zIndex: 1 }}
-              >
-                {/* Large watermark number */}
-                <span className="absolute -top-4 -right-2 text-[120px] font-black text-white/[0.03] leading-none select-none pointer-events-none">
-                  {s.num}
-                </span>
-
-                {/* Top row: icon + tag */}
-                <div className="flex items-start justify-between mb-7">
-                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center text-3xl shadow-xl ${s.glow} group-hover:scale-110 transition-transform duration-300`}>
-                    {s.emoji}
-                  </div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border ${s.tagColor}`}>
-                    {s.tag}
+              <Reveal key={s.num} delay={i * 100}>
+                <div className="relative h-full bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] hover:border-teal-400/25 rounded-3xl p-8 transition-all duration-300 group overflow-hidden">
+                  {/* Large watermark number */}
+                  <span className="absolute -top-4 -right-2 font-display text-[120px] font-semibold text-white/[0.04] leading-none select-none pointer-events-none">
+                    {s.num}
                   </span>
-                </div>
 
-                {/* Step number pill */}
-                <div className="flex items-center gap-2 mb-3">
-                  <span className={`text-xs font-black text-transparent bg-clip-text bg-gradient-to-r ${s.gradient}`}>
-                    STEP {s.num}
-                  </span>
-                  <div className="flex-1 h-px bg-white/10" />
-                </div>
-
-                {/* Content */}
-                <h3 className="text-xl font-black text-white mb-3">{s.title}</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">{s.desc}</p>
-
-                {/* Bottom arrow */}
-                {i < 2 && (
-                  <div className="lg:hidden flex justify-center mt-8 mb-2">
-                    <div className="w-px h-8 bg-gradient-to-b from-white/20 to-transparent" />
+                  {/* Top row: icon + tag */}
+                  <div className="flex items-start justify-between mb-7">
+                    <div className="w-16 h-16 rounded-2xl wg-grad-teal flex items-center justify-center wg-shadow-glow group-hover:scale-110 transition-transform duration-300">
+                      <s.icon className="w-7 h-7 text-white" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border bg-teal-500/10 text-teal-300 border-teal-500/20">
+                      {s.tag}
+                    </span>
                   </div>
-                )}
-              </div>
+
+                  {/* Step number pill */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs font-black wg-text-teal">STEP {s.num}</span>
+                    <div className="flex-1 h-px bg-white/10" />
+                  </div>
+
+                  {/* Content */}
+                  <h3 className="font-display text-xl font-semibold text-white mb-3">{s.title}</h3>
+                  <p className="text-sm text-slate-400 leading-relaxed">{s.desc}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
 
@@ -1303,36 +1495,42 @@ export default function WanderHomePage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-14">
             <button
               onClick={() => listingsRef.current?.scrollIntoView({ behavior: 'smooth' })}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-2xl transition-all shadow-xl shadow-indigo-500/25 hover:scale-[1.02] active:scale-[0.98] text-sm"
+              className="inline-flex items-center gap-2 px-8 py-4 wg-grad-teal wg-glow-hover text-white font-bold rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] text-sm"
             >
               Explore Tours <ArrowRight className="w-4 h-4" />
             </button>
-            <p className="text-xs text-gray-500">Free to browse · No account needed</p>
+            <p className="text-xs text-slate-500">Free to browse · No account needed</p>
           </div>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════
-          POPULAR DESTINATIONS
+          POPULAR DESTINATIONS — premium photo tiles
       ══════════════════════════════════════════════════ */}
-      <section className="py-20 px-4 sm:px-6 bg-gradient-to-b from-gray-50 to-white">
+      <section className="py-20 px-4 sm:px-6 bg-white">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <p className="text-xs font-bold text-indigo-600 uppercase tracking-[0.2em] mb-2">Top Destinations</p>
-            <h2 className="text-3xl sm:text-4xl font-black text-gray-900">Where do you want to go?</h2>
-            <p className="text-gray-400 text-sm mt-2">Click a destination to explore tours</p>
-          </div>
+          <Reveal>
+            <div className="text-center mb-12">
+              <Eyebrow>Top Destinations</Eyebrow>
+              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-slate-900">Where do you want to go?</h2>
+              <p className="text-slate-400 text-sm mt-3">Tap a destination to explore its tours</p>
+            </div>
+          </Reveal>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {DESTINATIONS.map(dest => (
-              <button
-                key={dest.name}
-                onClick={() => { setSearchInput(dest.name); setSearch(dest.name); setActiveCats([]); listingsRef.current?.scrollIntoView({ behavior: 'smooth' }); }}
-                className="group relative flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-white border border-gray-100 hover:border-indigo-300 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/10 hover:-translate-y-1"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <span className="relative text-4xl group-hover:scale-125 transition-transform duration-300 drop-shadow-sm">{dest.emoji}</span>
-                <p className="relative text-sm font-bold text-gray-800 group-hover:text-indigo-700 transition-colors">{dest.name}</p>
-              </button>
+            {DESTINATIONS.map((dest, i) => (
+              <Reveal key={dest.name} delay={i * 60}>
+                <button
+                  onClick={() => { setSearchInput(dest.name); setSearch(dest.name); setActiveCats([]); listingsRef.current?.scrollIntoView({ behavior: 'smooth' }); }}
+                  className="group wg-zoom wg-lift relative w-full aspect-[3/4] rounded-2xl overflow-hidden wg-shadow-soft"
+                >
+                  <img src={dest.img} alt={dest.name} className="absolute inset-0 w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/10 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-3 text-left">
+                    <dest.icon className="w-5 h-5 text-white drop-shadow mb-1" />
+                    <p className="text-sm font-bold text-white drop-shadow">{dest.name}</p>
+                  </div>
+                </button>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -1341,30 +1539,106 @@ export default function WanderHomePage() {
       {/* ══════════════════════════════════════════════════
           WHY WANDER
       ══════════════════════════════════════════════════ */}
-      <section className="py-24 px-4 sm:px-6 bg-[#050816] relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-indigo-600/10 blur-[120px]" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-violet-600/10 blur-[100px]" />
-        </div>
-        <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+      <section className="py-24 px-4 sm:px-6 bg-[var(--w-sand)] relative overflow-hidden">
         <div className="relative max-w-6xl mx-auto">
-          <div className="text-center mb-14">
-            <p className="text-xs font-bold text-indigo-400 uppercase tracking-[0.2em] mb-3">Why Choose Wander</p>
-            <h2 className="text-4xl sm:text-5xl font-black text-white">Travel smarter,<br className="sm:hidden" /> not harder</h2>
-          </div>
+          <Reveal>
+            <div className="text-center mb-14">
+              <div className="flex justify-center"><Eyebrow>Why Choose Wander</Eyebrow></div>
+              <h2 className="font-display text-4xl sm:text-5xl font-semibold text-slate-900">Travel smarter,<br className="sm:hidden" /> not harder</h2>
+            </div>
+          </Reveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {WHY_WANDER.map((item, i) => (
-              <div
-                key={item.title}
-                className="group bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-white/10 rounded-2xl p-7 hover:border-indigo-500/30 hover:bg-white/[0.08] transition-all duration-300 hover:-translate-y-1"
-              >
-                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500/30 to-violet-500/20 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <item.icon className="w-6 h-6 text-indigo-400" />
+              <Reveal key={item.title} delay={i * 80}>
+                <div className="group h-full bg-white border border-slate-100 rounded-3xl p-7 wg-lift">
+                  <div className="w-12 h-12 wg-grad-teal rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform wg-shadow-glow">
+                    <item.icon className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="font-display font-semibold text-slate-900 text-lg mb-2">{item.title}</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">{item.desc}</p>
                 </div>
-                <h3 className="font-bold text-white text-lg mb-2">{item.title}</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">{item.desc}</p>
-              </div>
+              </Reveal>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════
+          GALLERY — editorial photo strip (NEW section)
+      ══════════════════════════════════════════════════ */}
+      <section className="py-24 px-4 sm:px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <Reveal>
+            <div className="mb-12 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <Eyebrow>Curated Stays</Eyebrow>
+                <h2 className="font-display text-3xl sm:text-4xl font-semibold text-slate-900">Handpicked places to stay</h2>
+              </div>
+              <Link
+                href="/wander/properties"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 hover:text-teal-800 group"
+              >
+                Browse all stays <ArrowUpRight className="w-4 h-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </Link>
+            </div>
+          </Reveal>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              // Real published properties first — bookable "Stay" tiles
+              ...galleryProps.map((p: any) => ({
+                type: 'stay',
+                key: p.id,
+                img: p.coverImage || '/wander/luxury.jpg',
+                title: p.name,
+                sub: [p.city, p.state].filter(Boolean).join(', '),
+                href: (p.agencySlug || p.agencyId) ? `/agent/${p.agencySlug || p.agencyId}/property/${p.id}` : null,
+              })),
+              // Pad remaining slots with clickable "Explore destination" tiles (not fake stays)
+              ...GALLERY.map((g, gi) => ({ type: 'explore', key: 'scene-' + gi, img: g.img, title: g.place })),
+            ].slice(0, Math.max(6, galleryProps.length)).map((item: any, i: number) => {
+              const tall = i === 0 || i === 3;
+              const inner = (
+                <div className={`wg-zoom wg-lift relative rounded-3xl overflow-hidden wg-shadow-soft ${tall ? 'h-full min-h-[220px] md:min-h-[420px]' : 'h-[220px]'}`}>
+                  <img src={item.img} alt={item.title} className="absolute inset-0 w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/10 to-transparent" />
+                  {/* Type badge — makes 'Stay' (bookable) vs 'Explore' (destination) obvious */}
+                  <span className={`absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide backdrop-blur-md ${item.type === 'stay' ? 'bg-teal-600/90 text-white' : 'bg-white/85 text-slate-700'}`}>
+                    {item.type === 'stay' ? <><Hotel className="w-3 h-3" /> Stay</> : <><Compass className="w-3 h-3" /> Explore</>}
+                  </span>
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    {item.type === 'stay' ? (
+                      <>
+                        <span className="block text-white text-sm font-semibold drop-shadow truncate">{item.title}</span>
+                        {item.sub && (
+                          <span className="mt-0.5 flex items-center gap-1 text-white/75 text-xs drop-shadow">
+                            <MapPin className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{item.sub}</span>
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-white text-sm font-semibold drop-shadow">
+                        Explore {item.title} <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+              return (
+                <Reveal key={item.key} delay={i * 60} className={tall ? 'md:row-span-2' : ''}>
+                  {item.type === 'stay'
+                    ? (item.href ? <Link href={item.href} className="block h-full">{inner}</Link> : inner)
+                    : (
+                      <button
+                        type="button"
+                        onClick={() => { setSearchInput(item.title); setSearch(item.title); setActiveCats([]); setLocationId(''); listingsRef.current?.scrollIntoView({ behavior: 'smooth' }); }}
+                        className="block h-full w-full text-left"
+                      >
+                        {inner}
+                      </button>
+                    )}
+                </Reveal>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -1372,141 +1646,95 @@ export default function WanderHomePage() {
       {/* ══════════════════════════════════════════════════
           TRAVELER TESTIMONIALS
       ══════════════════════════════════════════════════ */}
-      <section className="py-24 px-4 sm:px-6 bg-gradient-to-b from-white to-gray-50 relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-r from-indigo-50 via-violet-50 to-purple-50 rounded-full blur-3xl opacity-70 pointer-events-none" />
+      <section className="py-24 px-4 sm:px-6 bg-[var(--w-sand)] relative overflow-hidden">
         <div className="relative max-w-6xl mx-auto">
-          <div className="text-center mb-14">
-            <p className="text-xs font-bold text-indigo-600 uppercase tracking-[0.2em] mb-3">Traveler Stories</p>
-            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3">Real trips. Real smiles.</h2>
-            <p className="text-gray-400 text-sm max-w-sm mx-auto">Thousands of travelers have explored India through Wander. Here's what they say.</p>
-          </div>
+          <Reveal>
+            <div className="mb-12">
+              <Eyebrow>Traveler Stories</Eyebrow>
+              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-slate-900">Real trips. Real smiles.</h2>
+            </div>
+          </Reveal>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
-                name: 'Priya Sharma',
-                location: 'Mumbai',
-                tour: '7 Days Goa Beach Tour',
-                rating: 5,
-                avatar: 'P',
+                name: 'Priya Sharma', location: 'Mumbai', tour: '7 Days Goa Beach Tour', rating: 5, avatar: 'P',
                 color: 'from-pink-500 to-rose-500',
+                gallery: ['/wander/review-1.jpg', '/wander/review-2.jpg', '/wander/review-3.jpg'],
                 text: 'Absolutely loved the experience! The vendor was super responsive, the hotel was exactly as described, and the itinerary was perfectly planned. Will definitely book again through Wander.',
               },
               {
-                name: 'Rahul Mehta',
-                location: 'Delhi',
-                tour: 'Leh-Ladakh Adventure',
-                rating: 5,
-                avatar: 'R',
-                color: 'from-indigo-500 to-violet-500',
+                name: 'Rahul Mehta', location: 'Delhi', tour: 'Leh-Ladakh Adventure', rating: 5, avatar: 'R',
+                color: 'from-teal-500 to-emerald-500',
+                gallery: ['/wander/review-4.jpg', '/wander/review-5.jpg', '/wander/review-6.jpg'],
                 text: 'Getting multiple quotes from different operators saved us ₹8,000! The comparison feature is amazing. Our Ladakh trip was the best holiday we\'ve ever taken as a family.',
-                featured: true,
               },
               {
-                name: 'Ananya Rao',
-                location: 'Bangalore',
-                tour: 'Kerala Backwaters 5D',
-                rating: 5,
-                avatar: 'A',
-                color: 'from-emerald-500 to-teal-500',
+                name: 'Ananya Rao', location: 'Bangalore', tour: 'Kerala Backwaters 5D', rating: 5, avatar: 'A',
+                color: 'from-amber-500 to-orange-500',
+                gallery: ['/wander/review-7.jpg', '/wander/review-8.jpg', '/wander/review-9.jpg'],
                 text: 'From booking to checkout, everything was seamless. The houseboat experience was surreal. Huge thanks to the Wander team for recommending the right vendor for our group.',
               },
-            ].map((t) => (
-              <div
-                key={t.name}
-                className={`relative bg-white rounded-3xl p-7 border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col ${
-                  t.featured ? 'border-indigo-200 shadow-indigo-100/80 ring-2 ring-indigo-200/50' : 'border-gray-100'
-                }`}
-              >
-                {t.featured && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center gap-1 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-md">
-                      <Sparkles className="w-2.5 h-2.5" /> Featured Review
-                    </span>
-                  </div>
-                )}
-                {/* Stars */}
-                <div className="flex items-center gap-0.5 mb-4">
-                  {[...Array(t.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                {/* Quote */}
-                <p className="text-sm text-gray-600 leading-relaxed flex-1 mb-5">"{t.text}"</p>
-                {/* Tour badge */}
-                <div className="flex items-center gap-1.5 mb-5">
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100">
-                    <Compass className="w-3 h-3" /> {t.tour}
-                  </span>
-                </div>
-                {/* Reviewer */}
-                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-                  <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${t.color} flex items-center justify-center text-white font-black text-sm flex-shrink-0`}>
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">{t.name}</p>
-                    <p className="text-xs text-gray-400 flex items-center gap-1"><MapPin className="w-3 h-3" /> {t.location}</p>
-                  </div>
-                  <div className="ml-auto">
-                    <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">✓ Verified Trip</span>
-                  </div>
-                </div>
-              </div>
+            ].map((t, i) => (
+              <Reveal key={t.name} delay={i * 90}>
+                <ReviewCard t={t} />
+              </Reveal>
             ))}
           </div>
 
           {/* Rating summary bar */}
-          <div className="mt-12 bg-white border border-gray-100 rounded-3xl p-8 shadow-sm flex flex-col sm:flex-row items-center gap-8 max-w-2xl mx-auto">
-            <div className="text-center flex-shrink-0">
-              <p className="text-6xl font-black text-gray-900">4.8</p>
-              <div className="flex items-center justify-center gap-0.5 my-2">
-                {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />)}
-              </div>
-              <p className="text-xs text-gray-400">Average rating</p>
-            </div>
-            <div className="flex-1 w-full space-y-2">
-              {[
-                { label: '5 stars', width: '82%', count: '2,140' },
-                { label: '4 stars', width: '13%', count: '339' },
-                { label: '3 stars', width: '3%', count: '78' },
-                { label: '2 stars', width: '1%', count: '26' },
-                { label: '1 star', width: '1%', count: '13' },
-              ].map(r => (
-                <div key={r.label} className="flex items-center gap-3">
-                  <span className="text-[11px] text-gray-400 w-12 flex-shrink-0">{r.label}</span>
-                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full" style={{ width: r.width }} />
-                  </div>
-                  <span className="text-[11px] text-gray-400 w-10 text-right flex-shrink-0">{r.count}</span>
+          <Reveal>
+            <div className="mt-12 bg-white border border-slate-100 rounded-3xl p-8 wg-shadow-soft flex flex-col sm:flex-row items-center gap-8 max-w-2xl mx-auto">
+              <div className="text-center flex-shrink-0">
+                <p className="font-display text-6xl font-semibold text-slate-900">4.8</p>
+                <div className="flex items-center justify-center gap-0.5 my-2">
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />)}
                 </div>
-              ))}
+                <p className="text-xs text-slate-400">Average rating</p>
+              </div>
+              <div className="flex-1 w-full space-y-2">
+                {[
+                  { label: '5 stars', width: '82%', count: '2,140' },
+                  { label: '4 stars', width: '13%', count: '339' },
+                  { label: '3 stars', width: '3%', count: '78' },
+                  { label: '2 stars', width: '1%', count: '26' },
+                  { label: '1 star', width: '1%', count: '13' },
+                ].map(r => (
+                  <div key={r.label} className="flex items-center gap-3">
+                    <span className="text-[11px] text-slate-400 w-12 flex-shrink-0">{r.label}</span>
+                    <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full" style={{ width: r.width }} />
+                    </div>
+                    <span className="text-[11px] text-slate-400 w-10 text-right flex-shrink-0">{r.count}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════
-          VENDOR CTA
+          VENDOR CTA — photo background
       ══════════════════════════════════════════════════ */}
-      <section className="py-20 px-4 sm:px-6 bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-20 -right-20 w-[300px] h-[300px] rounded-full bg-white/10 blur-[80px]" />
-          <div className="absolute -bottom-20 -left-20 w-[250px] h-[250px] rounded-full bg-fuchsia-500/15 blur-[60px]" />
+      <section className="relative py-24 px-4 sm:px-6 overflow-hidden">
+        <div className="absolute inset-0">
+          <img src="/wander/cta.jpg" alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-br from-teal-950/90 via-teal-900/85 to-slate-950/90" />
         </div>
         <div className="relative max-w-3xl mx-auto text-center">
-          <div className="w-16 h-16 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-6 border border-white/20">
+          <div className="w-16 h-16 wg-glass-dark rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Compass className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-3xl md:text-5xl font-black text-white mb-5">Are you a Tour Operator?</h2>
-          <p className="text-indigo-100 mb-10 text-lg leading-relaxed max-w-xl mx-auto">
+          <h2 className="font-display text-3xl md:text-5xl font-semibold text-white mb-5">Are you a Tour Operator?</h2>
+          <p className="text-teal-50/90 mb-10 text-lg leading-relaxed max-w-xl mx-auto">
             List your tours on Wander and reach thousands of travelers across India. No listing fees.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/vendor" className="px-10 py-4 bg-white text-indigo-700 font-bold rounded-2xl hover:bg-indigo-50 transition text-sm shadow-xl shadow-indigo-900/30 hover:scale-[1.02] active:scale-[0.98]">
+            <Link href="/vendor" className="px-10 py-4 bg-white text-teal-800 font-bold rounded-2xl hover:bg-teal-50 transition text-sm wg-shadow-lift hover:scale-[1.02] active:scale-[0.98]">
               Become a Vendor
             </Link>
-            <Link href="/contact" className="px-10 py-4 bg-white/10 border border-white/30 text-white font-semibold rounded-2xl hover:bg-white/20 transition text-sm backdrop-blur-sm">
+            <Link href="/contact" className="px-10 py-4 wg-glass-dark text-white font-semibold rounded-2xl hover:bg-white/20 transition text-sm">
               Contact Us
             </Link>
           </div>

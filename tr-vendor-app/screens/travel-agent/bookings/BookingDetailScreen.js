@@ -17,11 +17,14 @@ import {
   Share,
   Platform,
   StatusBar,
+  Animated,
+  Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import Clipboard from "@react-native-clipboard/clipboard";
+import { DISPLAY } from "../_shared/typography";
 import {
   getTravelAgentBooking,
   updateTravelAgentBooking,
@@ -32,51 +35,49 @@ import {
   BOOKING_STATUS,
   BOOKING_PAYMENT_STATUS,
 } from "../../api/travelAgentClient";
+import { SC as C, TONES } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  green: "#10B981",
-  greenLight: "#D1FAE5",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-  purpleLight: "#EDE9FE",
-  whatsapp: "#25D366",
-};
 
 const STATUS_COLORS = {
   DRAFT:            { bg: "rgba(255,255,255,0.22)", fg: "#fff", icon: "create" },
-  PENDING_CUSTOMER: { bg: "rgba(255,255,255,0.22)", fg: "#FEF3C7", icon: "hourglass" },
+  PENDING_CUSTOMER: { bg: "rgba(255,255,255,0.22)", fg: "#F6EEDB", icon: "hourglass" },
   CONFIRMED:        { bg: "rgba(255,255,255,0.22)", fg: "#fff", icon: "checkmark-circle" },
   IN_PROGRESS:      { bg: "rgba(255,255,255,0.22)", fg: "#fff", icon: "navigate" },
   COMPLETED:        { bg: "rgba(255,255,255,0.22)", fg: "#fff", icon: "checkmark-done" },
   CANCELLED:        { bg: "rgba(255,255,255,0.22)", fg: "#FECACA", icon: "close-circle" },
 };
 const TYPE_META = {
-  TOUR:      { icon: "map",       label: "Tour",      gradient: [C.purple, "#6D28D9"], color: "#6D28D9" },
-  PROPERTY:  { icon: "bed",       label: "Property",  gradient: [C.amber, "#D97706"], color: "#A16207" },
-  TRANSPORT: { icon: "car",       label: "Transport", gradient: [C.blue, "#1D4ED8"],  color: "#1D4ED8" },
-  CUSTOM:    { icon: "construct", label: "Custom",    gradient: ["#EC4899", "#9D174D"], color: "#9D174D" },
+  TOUR:      { icon: "map",       label: "Tour",      gradient: TONES.plum.grad,  color: TONES.plum.ink },
+  PROPERTY:  { icon: "bed",       label: "Property",  gradient: TONES.amber.grad, color: TONES.amber.ink },
+  TRANSPORT: { icon: "car",       label: "Transport", gradient: TONES.ocean.grad, color: TONES.ocean.ink },
+  CUSTOM:    { icon: "construct", label: "Custom",    gradient: TONES.rose.grad,  color: TONES.rose.ink },
 };
 const PAYMENT_META = {
-  PENDING:  { bg: C.amberLight, fg: "#A16207", icon: "hourglass" },
-  PARTIAL:  { bg: "#E0E7FF",    fg: "#4338CA", icon: "card" },
-  PAID:     { bg: C.greenLight, fg: "#15803D", icon: "checkmark-circle" },
-  REFUNDED: { bg: C.redLight,   fg: "#B91C1C", icon: "return-up-back" },
+  PENDING:  { bg: C.amberLight, fg: "#8A6420", icon: "hourglass" },
+  PARTIAL:  { bg: C.blueLight,  fg: "#1E4E86", icon: "card" },
+  PAID:     { bg: C.greenLight, fg: C.emerald700, icon: "checkmark-circle" },
+  REFUNDED: { bg: C.redLight,   fg: "#9E362E", icon: "return-up-back" },
 };
+
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return (
+    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
+  );
+}
 
 const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 const formatRelative = (iso) => {
@@ -197,7 +198,7 @@ export default function BookingDetailScreen({ navigation, route }) {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg }}>
-        <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+        <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
         <View style={styles.loadingWrap}><ActivityIndicator size="large" color={C.emerald600} /></View>
       </View>
     );
@@ -229,7 +230,7 @@ export default function BookingDetailScreen({ navigation, route }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
 
       <ScrollView
         style={{ flex: 1 }}
@@ -238,11 +239,13 @@ export default function BookingDetailScreen({ navigation, route }) {
       >
         {/* ===== Gradient hero ===== */}
         <LinearGradient
-          colors={["#022C22", "#064E3B", "#047857"]}
+          colors={["#0F2A22", "#16382E", "#1C6B52"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.heroWrap}
         >
+          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
           <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 40 }}>
             <View style={styles.headerRow}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
@@ -279,9 +282,9 @@ export default function BookingDetailScreen({ navigation, route }) {
                 onPress={() => setShowStatusModal(true)}
                 activeOpacity={0.85}
               >
-                <Ionicons name={sc.icon} size={12} color={sc.fg} />
+                <Ionicons name={sc.icon} size={11} color={sc.fg} />
                 <Text style={[styles.statusBtnText, { color: sc.fg }]}>{booking.status.replace("_", " ")}</Text>
-                <Ionicons name="chevron-down" size={13} color={sc.fg} />
+                <Ionicons name="chevron-down" size={11} color={sc.fg} />
               </TouchableOpacity>
               {!!booking.shareToken && (
                 <View style={styles.sharedBadge}>
@@ -668,7 +671,7 @@ function PickerModal({ visible, title, options, selected, onClose, onSelect }) {
                   onPress={() => onSelect(opt.value)}
                 >
                   {opt.icon && <Ionicons name={opt.icon} size={16} color={active ? C.emerald600 : C.subText} />}
-                  <Text style={[styles.modalItemText, active && { color: opt.color || C.emerald700, fontWeight: "800" }]}>
+                  <Text style={[styles.modalItemText, active && { color: opt.color || C.emerald700, fontWeight: "bold" }]}>
                     {opt.label}
                   </Text>
                   {active && <Ionicons name="checkmark-circle" size={20} color={opt.color || C.emerald600} />}
@@ -687,125 +690,135 @@ function PickerModal({ visible, title, options, selected, onClose, onSelect }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  emptyTitle: { fontSize: 16, fontWeight: "800", color: C.ink, marginTop: 12 },
-  emptyBody: { fontSize: 13, color: C.subText, marginTop: 6, textAlign: "center" },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink, marginTop: 12 },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 6, textAlign: "center" },
   backCta: { marginTop: 16, backgroundColor: C.emerald600, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10 },
-  backCtaText: { color: "#fff", fontWeight: "700" },
+  backCtaText: { color: "#fff", fontWeight: "bold" },
 
   // Hero
-  heroWrap: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  heroWrap: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden", position: "relative" },
+  orbA: {
+    position: "absolute", top: -46, right: -28,
+    width: 150, height: 150, borderRadius: 75,
+    backgroundColor: "rgba(201,154,63,0.13)",
+  },
+  orbB: {
+    position: "absolute", bottom: -40, left: -34,
+    width: 130, height: 130, borderRadius: 65,
+    backgroundColor: "rgba(46,158,119,0.16)",
+  },
   headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
 
   identityBlock: { flexDirection: "row", alignItems: "center", paddingHorizontal: 4, marginTop: 8 },
   typeIcon: { width: 56, height: 56, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  typeLabel: { fontSize: 10.5, color: "rgba(255,255,255,0.85)", fontWeight: "800", letterSpacing: 0.6 },
-  bookingNumber: { fontSize: 18, fontWeight: "800", color: "#fff", marginTop: 2 },
-  customerName: { fontSize: 13.5, color: "rgba(255,255,255,0.9)", fontWeight: "700", marginTop: 2 },
+  typeLabel: { fontFamily: DISPLAY, fontSize: 10.5, color: "rgba(255,255,255,0.85)", fontWeight: "bold", letterSpacing: 0.6 },
+  bookingNumber: { fontFamily: DISPLAY, fontSize: 18, fontWeight: "bold", color: "#fff", marginTop: 2 },
+  customerName: { fontFamily: DISPLAY, fontSize: 13.5, color: "rgba(255,255,255,0.9)", fontWeight: "bold", marginTop: 2 },
 
-  pillRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 14, marginBottom: 4, paddingHorizontal: 4 },
-  statusBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 },
-  statusBtnText: { fontSize: 12.5, fontWeight: "800", letterSpacing: 0.3 },
-  sharedBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.22)" },
-  sharedBadgeText: { color: "#fff", fontSize: 11, fontWeight: "800" },
+  pillRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10, marginTop: 14, marginBottom: 4, paddingHorizontal: 4 },
+  statusBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999, alignSelf: "flex-start" },
+  statusBtnText: { fontFamily: DISPLAY, fontSize: 11, fontWeight: "bold", letterSpacing: 0.3 },
+  sharedBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.22)" },
+  sharedBadgeText: { fontFamily: DISPLAY, color: "#fff", fontSize: 11, fontWeight: "bold" },
 
   // Floating contact bar
   contactRowWrap: { marginHorizontal: 16, marginTop: -28 },
   contactRow: { flexDirection: "row", backgroundColor: C.card, borderRadius: 16, padding: 6, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 5 },
   contactBtn: { flex: 1, alignItems: "center", paddingVertical: 12, gap: 4 },
-  contactBtnText: { fontSize: 11.5, fontWeight: "800" },
+  contactBtnText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold" },
   contactDivider: { width: 1, backgroundColor: C.border, marginVertical: 8 },
 
   // Section header
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 18, marginBottom: 10 },
   sectionIconBox: { width: 26, height: 26, borderRadius: 8, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center" },
-  sectionLabel: { fontSize: 11, fontWeight: "800", color: C.emerald700, letterSpacing: 0.6 },
+  sectionLabel: { fontFamily: DISPLAY, fontSize: 11, fontWeight: "bold", color: C.emerald700, letterSpacing: 0.6 },
 
   // Payment card (hero of page)
   paymentCard: { marginHorizontal: 16, backgroundColor: C.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: C.border },
   paymentTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  paymentTotalLabel: { fontSize: 10, color: C.subText, fontWeight: "800", letterSpacing: 0.6 },
-  paymentTotalValue: { fontSize: 26, fontWeight: "900", color: C.ink, marginTop: 4 },
+  paymentTotalLabel: { fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "bold", letterSpacing: 0.6 },
+  paymentTotalValue: { fontFamily: DISPLAY, fontSize: 26, fontWeight: "bold", color: C.ink, marginTop: 4 },
   paymentStatusPill: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999 },
-  paymentStatusText: { fontSize: 11.5, fontWeight: "800", letterSpacing: 0.3 },
+  paymentStatusText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold", letterSpacing: 0.3 },
 
-  progressTrack: { height: 8, backgroundColor: "#F1F5F9", borderRadius: 4, overflow: "hidden", marginTop: 14 },
+  progressTrack: { height: 8, backgroundColor: C.tintSand, borderRadius: 4, overflow: "hidden", marginTop: 14 },
   progressFill: { height: "100%", borderRadius: 4 },
 
   paymentRow: { flexDirection: "row", alignItems: "center", marginTop: 12 },
   paymentItem: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6 },
   paymentDot: { width: 8, height: 8, borderRadius: 4 },
-  paymentItemLabel: { fontSize: 10, color: C.subText, fontWeight: "700", letterSpacing: 0.3 },
-  paymentItemValue: { fontSize: 13.5, color: C.emerald600, fontWeight: "800", marginTop: 1 },
+  paymentItemLabel: { fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "bold", letterSpacing: 0.3 },
+  paymentItemValue: { fontFamily: DISPLAY, fontSize: 13.5, color: C.emerald600, fontWeight: "bold", marginTop: 1 },
   paymentVDivider: { width: 1, height: 28, backgroundColor: C.border, marginHorizontal: 4 },
 
   // Card
   card: { marginHorizontal: 16, backgroundColor: C.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: C.border },
 
   // Customer card
-  customerCardName: { fontSize: 16, fontWeight: "800", color: C.ink },
+  customerCardName: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink },
   contactItem: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
-  contactItemText: { fontSize: 13, color: C.text, fontWeight: "600" },
+  contactItemText: { fontFamily: DISPLAY, fontSize: 13, color: C.text, fontWeight: "600" },
 
   // Reference
   referenceRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   referenceIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  referenceText: { flex: 1, fontSize: 14, fontWeight: "700", color: C.ink },
+  referenceText: { fontFamily: DISPLAY, flex: 1, fontSize: 14, fontWeight: "bold", color: C.ink },
 
   // Date row (highlighted from→to layout)
   dateRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
-  dateLabel: { fontSize: 10, color: C.subText, fontWeight: "800", letterSpacing: 0.5 },
-  dateValue: { fontSize: 14, fontWeight: "800", color: C.ink, marginTop: 4 },
+  dateLabel: { fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "bold", letterSpacing: 0.5 },
+  dateValue: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.ink, marginTop: 4 },
   dateArrow: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginHorizontal: 8 },
 
   // Location row (trip)
   locationRow: { flexDirection: "row", alignItems: "center", marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border },
   locationItem: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
-  locationLabel: { fontSize: 10, color: C.subText, fontWeight: "800", letterSpacing: 0.5 },
-  locationValue: { fontSize: 12.5, color: C.ink, fontWeight: "700", marginTop: 1, maxWidth: 100 },
+  locationLabel: { fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "bold", letterSpacing: 0.5 },
+  locationValue: { fontFamily: DISPLAY, fontSize: 12.5, color: C.ink, fontWeight: "bold", marginTop: 1, maxWidth: 100 },
 
   passengerPill: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: C.blueLight, marginTop: 12 },
-  passengerText: { fontSize: 12, color: C.blue, fontWeight: "800" },
+  passengerText: { fontFamily: DISPLAY, fontSize: 12, color: C.blue, fontWeight: "bold" },
 
   // Stat box (property guests/rooms)
   guestsRow: { flexDirection: "row", gap: 10, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border },
   statBox: { flex: 1, alignItems: "center", padding: 12, borderRadius: 12 },
-  statBoxValue: { fontSize: 18, fontWeight: "900", marginTop: 4 },
-  statBoxLabel: { fontSize: 10, color: C.subText, fontWeight: "700", marginTop: 1, textTransform: "uppercase", letterSpacing: 0.4 },
+  statBoxValue: { fontFamily: DISPLAY, fontSize: 18, fontWeight: "bold", marginTop: 4 },
+  statBoxLabel: { fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "bold", marginTop: 1, textTransform: "uppercase", letterSpacing: 0.4 },
 
   // Notes
   notesCard: { borderLeftWidth: 4, borderLeftColor: C.emerald600, paddingLeft: 12 },
-  notesText: { fontSize: 13.5, color: C.text, lineHeight: 20 },
+  notesText: { fontFamily: DISPLAY, fontSize: 13.5, color: C.text, lineHeight: 20 },
 
   // Share — active state
   shareActiveCard: { marginHorizontal: 16, borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: C.border },
   shareActiveHeader: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 10 },
-  shareActiveTitle: { color: "#fff", fontSize: 13, fontWeight: "800", flex: 1 },
+  shareActiveTitle: { fontFamily: DISPLAY, color: "#fff", fontSize: 13, fontWeight: "bold", flex: 1 },
   shareExpiresPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.22)" },
-  shareExpiresText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+  shareExpiresText: { fontFamily: DISPLAY, color: "#fff", fontSize: 10, fontWeight: "bold" },
   shareActions: { flexDirection: "row", backgroundColor: C.card },
   shareAction: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 14 },
-  shareActionText: { fontSize: 12.5, fontWeight: "800", color: C.emerald600 },
+  shareActionText: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", color: C.emerald600 },
   shareActionDivider: { width: 1, backgroundColor: C.border, marginVertical: 6 },
 
   // Share — create state
   createShareCard: {
     flexDirection: "row", alignItems: "center", gap: 12,
     marginHorizontal: 16, padding: 14, borderRadius: 14,
-    backgroundColor: C.emerald50, borderWidth: 1, borderColor: "#A7F3D0",
+    backgroundColor: C.emerald50, borderWidth: 1, borderColor: "rgba(28,107,82,0.25)",
   },
   createShareIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
-  createShareTitle: { fontSize: 13.5, fontWeight: "800", color: C.emerald700 },
-  createShareSub: { fontSize: 11.5, color: C.text, marginTop: 3, lineHeight: 16 },
+  createShareTitle: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: "bold", color: C.emerald700 },
+  createShareSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.text, marginTop: 3, lineHeight: 16 },
 
   // Meta
   metaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 7 },
-  metaLabel: { fontSize: 12, color: C.subText, fontWeight: "600" },
-  metaValue: { fontSize: 12.5, color: C.ink, fontWeight: "700", maxWidth: "60%", textAlign: "right" },
+  metaLabel: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, fontWeight: "600" },
+  metaValue: { fontFamily: DISPLAY, fontSize: 12.5, color: C.ink, fontWeight: "bold", maxWidth: "60%", textAlign: "right" },
 
   // Danger
   deleteBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginHorizontal: 16, paddingVertical: 14, borderRadius: 12, backgroundColor: C.redLight, borderWidth: 1, borderColor: "#FECACA" },
-  deleteBtnText: { color: C.red, fontWeight: "800", fontSize: 13.5 },
+  deleteBtnText: { fontFamily: DISPLAY, color: C.red, fontWeight: "bold", fontSize: 13.5 },
 
   // Bottom bar
   bottomBar: {
@@ -816,15 +829,15 @@ const styles = StyleSheet.create({
   },
   editBtnWrap: { borderRadius: 14, overflow: "hidden", shadowColor: C.emerald600, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
   editBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 15 },
-  editBtnText: { color: "#fff", fontWeight: "800", fontSize: 15 },
+  editBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 15 },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   modalSheet: { backgroundColor: C.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 24, paddingTop: 8, paddingHorizontal: 16 },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: "center", marginBottom: 12 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  modalTitle: { fontSize: 16, fontWeight: "800", color: C.ink },
-  modalItem: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, paddingHorizontal: 12, borderRadius: 10, marginBottom: 6, backgroundColor: "#FAFBFC" },
+  modalTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink },
+  modalItem: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, paddingHorizontal: 12, borderRadius: 10, marginBottom: 6, backgroundColor: "#FBF8F1" },
   modalItemActive: { backgroundColor: C.emerald50 },
-  modalItemText: { flex: 1, fontSize: 14, color: C.text, fontWeight: "700" },
+  modalItemText: { fontFamily: DISPLAY, flex: 1, fontSize: 14, color: C.text, fontWeight: "bold" },
 });

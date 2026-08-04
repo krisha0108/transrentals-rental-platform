@@ -1,13 +1,17 @@
 // screens/travel-agent/documents/DocumentsScreen.js
-// REDESIGNED — emerald-themed KYC documents screen.
-// Same screen serves the post-register onboarding flow (route name
-// "TravelAgentDocuments") AND the "More → Documents" entry ("TADocuments").
-// In onboarding mode, "Skip for now" lives at the TOP-RIGHT of the header
-// (user requested).
+// REDESIGNED (v2) — "Elevate" luxury-travel visual language, matching
+// TravelAgentDashboardScreen / LeadsListScreen / GetStartedScreen.
 //
-// Backend: GET / POST (multipart) / DELETE on /api/travel-agent/documents.
-// Required: ADDRESS_PROOF only (GST & PAN are now optional). Backend auto-promotes
-// status to UNDER_REVIEW once the required doc(s) are uploaded.
+// ⚠️ UI ONLY. All behaviour is preserved exactly:
+//   • Same screen serves BOTH the post-register onboarding flow (route name
+//     "TravelAgentDocuments", no back stack) AND "More → Documents"
+//     ("TADocuments"). `isOnboardingMode` still drives the top-right
+//     Skip/Continue pill, and the header still falls back to a Logout action
+//     when there's no back stack so the user is never trapped.
+//   • Same GET / POST (multipart) / DELETE on /api/travel-agent/documents.
+//   • Required: ADDRESS_PROOF only (GST & PAN optional). Backend auto-promotes
+//     status to UNDER_REVIEW once the required doc(s) are uploaded.
+//   • Same byType resolution, same counters, same upload modal + validation.
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Image,
@@ -19,6 +23,10 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import { launchImageLibrary } from "react-native-image-picker";
 import { pick, types as docTypes } from "@react-native-documents/picker";
+import { DISPLAY } from "../_shared/typography";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import RemoteImage from "../_shared/RemoteImage";
+import { C, G, TONES, rs, rf, GUT, alpha, cardShadow, rowShadow } from "../_shared/theme";
 import {
   listTravelAgentDocuments,
   uploadTravelAgentDocument,
@@ -27,51 +35,49 @@ import {
   REQUIRED_DOCUMENT_TYPES,
 } from "../../api/travelAgentClient";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-  purpleLight: "#EDE9FE",
-};
-
-// Per-type meta: icon (Ionicons), accent color, hint text. `required` flag is
-// the source of truth for which docs the backend enforces.
+// Per-type meta: icon (Ionicons), accent tone, hint text. `required` is the
+// source of truth for which docs the backend enforces.
 const DOC_META = {
-  ADDRESS_PROOF:        { label: "Address Proof",       icon: "home",             color: C.amber,      required: true,  hint: "Aadhaar / Electricity / Rental" },
-  GST_CERTIFICATE:      { label: "GST Certificate",     icon: "receipt",          color: C.emerald600, required: false, hint: "Download from gst.gov.in" },
-  PAN_CARD:             { label: "PAN Card",            icon: "card",             color: C.blue,       required: false, hint: "Front side, clearly visible" },
-  AGENCY_REGISTRATION:  { label: "Agency Registration", icon: "business",         color: C.purple,     required: false, hint: "Shop & Establishment / Partnership" },
-  IATA_CERTIFICATE:     { label: "IATA Certificate",    icon: "airplane",         color: "#06B6D4",    required: false, hint: "If applicable" },
-  TRAVEL_AGENT_LICENSE: { label: "Travel Agent License", icon: "ribbon",          color: "#EC4899",    required: false, hint: "State-issued license" },
-  CANCELLED_CHEQUE:     { label: "Cancelled Cheque",    icon: "wallet",           color: "#F97316",    required: false, hint: "For bank verification" },
-  OWNER_AADHAAR:        { label: "Owner Aadhaar",       icon: "person",           color: C.emerald600, required: false, hint: "Aadhaar of agency owner" },
-  OWNER_PAN:            { label: "Owner PAN",           icon: "card",             color: C.blue,       required: false, hint: "Personal PAN of owner" },
-  BANK_DETAILS:         { label: "Bank Statement",      icon: "wallet",           color: C.amber,      required: false, hint: "Recent bank statement" },
-  OTHER:                { label: "Other Document",      icon: "document-attach",  color: C.subText,    required: false, hint: "Any additional document" },
+  ADDRESS_PROOF:        { label: "Address Proof",        icon: "home",            tone: "amber",   required: true,  hint: "Aadhaar / Electricity / Rental" },
+  GST_CERTIFICATE:      { label: "GST Certificate",      icon: "receipt",         tone: "emerald", required: false, hint: "Download from gst.gov.in" },
+  PAN_CARD:             { label: "PAN Card",             icon: "card",            tone: "ocean",   required: false, hint: "Front side, clearly visible" },
+  AGENCY_REGISTRATION:  { label: "Agency Registration",  icon: "business",        tone: "plum",    required: false, hint: "Shop & Establishment / Partnership" },
+  IATA_CERTIFICATE:     { label: "IATA Certificate",     icon: "airplane",        tone: "ocean",   required: false, hint: "If applicable" },
+  TRAVEL_AGENT_LICENSE: { label: "Travel Agent License", icon: "ribbon",          tone: "rose",    required: false, hint: "State-issued license" },
+  CANCELLED_CHEQUE:     { label: "Cancelled Cheque",     icon: "wallet",          tone: "amber",   required: false, hint: "For bank verification" },
+  OWNER_AADHAAR:        { label: "Owner Aadhaar",        icon: "person",          tone: "emerald", required: false, hint: "Aadhaar of agency owner" },
+  OWNER_PAN:            { label: "Owner PAN",            icon: "card",            tone: "ocean",   required: false, hint: "Personal PAN of owner" },
+  BANK_DETAILS:         { label: "Bank Statement",       icon: "wallet",          tone: "amber",   required: false, hint: "Recent bank statement" },
+  OTHER:                { label: "Other Document",       icon: "document-attach", tone: "plum",    required: false, hint: "Any additional document" },
 };
 
 const STATUS_META = {
-  PENDING:  { label: "UNDER REVIEW", bg: C.amberLight,  fg: "#A16207",      icon: "hourglass" },
-  VERIFIED: { label: "VERIFIED",     bg: C.emerald50,    fg: C.emerald700,   icon: "checkmark-circle" },
-  REJECTED: { label: "REJECTED",     bg: C.redLight,     fg: "#B91C1C",      icon: "alert-circle" },
+  PENDING:  { label: "UNDER REVIEW", bg: C.tintGold,    fg: "#9A6B16",    accent: C.gold,        icon: "hourglass" },
+  VERIFIED: { label: "VERIFIED",     bg: C.tintEmerald, fg: C.emeraldDeep, accent: C.emeraldDeep, icon: "checkmark-circle" },
+  REJECTED: { label: "REJECTED",     bg: C.redL,        fg: C.red,        accent: C.red,         icon: "alert-circle" },
 };
 
+// Hero ↔ stats-card spacing. The card is pulled up by STATS_OVERLAP so it
+// tucks into the hero's rounded bottom; HERO_TAIL is the padding under the
+// progress rail. Visible gap = HERO_TAIL + hero paddingBottom(8) − overlap.
+const HERO_TAIL = rs(30);
+const STATS_OVERLAP = rs(20);
+
+/** PDFs can't be previewed by <Image> — they get a styled tile instead. */
 function isPdfUrl(url) {
   return typeof url === "string" && /\.pdf(\?|$)/i.test(url);
+}
+
+/** Short, human date for the card meta line — "3 Mar 2026". */
+function fmtDocDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  try {
+    return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  } catch {
+    return "—";
+  }
 }
 
 export default function DocumentsScreen({ navigation, route }) {
@@ -155,129 +161,163 @@ export default function DocumentsScreen({ navigation, route }) {
     navigation.reset({ index: 0, routes: [{ name: "TravelAgentDashboard" }] });
   };
 
+  const onLogout = () =>
+    Alert.alert("Logout?", "You can come back to upload documents later.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout", style: "destructive",
+        onPress: () => navigation.reset({ index: 0, routes: [{ name: "VendorLoginScreen" }] }),
+      },
+    ]);
+
   const progressPct = Math.round((verifiedRequired / REQUIRED_DOCUMENT_TYPES.length) * 100);
+
+  const stageLabel = requiredDone
+    ? "VERIFIED"
+    : uploadedRequired === 0
+    ? "NOT STARTED"
+    : verifiedRequired < REQUIRED_DOCUMENT_TYPES.length
+    ? "IN REVIEW"
+    : "ALMOST THERE";
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor={C.forestDark} />
 
-      {/* ===== Gradient hero header ===== */}
+      {/* ── Hero ── */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={G.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={styles.headerGrad}
+        style={styles.hero}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 40 }}>
-          <View style={styles.headerRow}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: GUT }}>
+          <View style={styles.heroTop}>
             {navigation.canGoBack() ? (
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-                <Ionicons name="arrow-back" size={22} color="#fff" />
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.circleBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="arrow-back" size={rs(19)} color="#fff" />
               </TouchableOpacity>
             ) : (
-              // Onboarding entry — no back stack. Logout option so user isn't trapped.
+              // Onboarding entry — no back stack. Logout so the user isn't trapped.
               <TouchableOpacity
-                onPress={() =>
-                  Alert.alert("Logout?", "You can come back to upload documents later.", [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Logout", style: "destructive",
-                      onPress: () => navigation.reset({ index: 0, routes: [{ name: "VendorLoginScreen" }] }),
-                    },
-                  ])
-                }
-                style={styles.iconBtn}
+                onPress={onLogout}
+                style={styles.circleBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name="log-out-outline" size={22} color="#fff" />
+                <Ionicons name="log-out-outline" size={rs(19)} color="#fff" />
               </TouchableOpacity>
             )}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>Documents</Text>
-              <Text style={styles.headerSub}>
-                {requiredDone
-                  ? "All required docs verified"
-                  : `${verifiedRequired}/${REQUIRED_DOCUMENT_TYPES.length} required verified`}
-              </Text>
-            </View>
 
-            {/* Skip button — top-right in onboarding mode (user-requested placement) */}
+            <View style={{ flex: 1 }} />
+
+            {/* Skip / Continue — top-right in onboarding mode */}
             {isOnboardingMode && (
               <TouchableOpacity
-                style={styles.skipPillTop}
+                style={styles.skipPill}
                 onPress={onSkipToDashboard}
                 activeOpacity={0.85}
               >
-                <Text style={styles.skipPillTopText}>
-                  {requiredDone ? "Continue →" : "Skip →"}
+                <Text style={styles.skipPillText}>
+                  {requiredDone ? "Continue" : "Skip"}
                 </Text>
+                <Ionicons name="arrow-forward" size={rs(12)} color={C.emeraldDeep} />
               </TouchableOpacity>
             )}
           </View>
 
-          {/* Progress block inside hero */}
-          <View style={styles.heroProgress}>
-            <View style={styles.heroProgressTopRow}>
-              <View>
-                <Text style={styles.heroProgressLabel}>KYC PROGRESS</Text>
-                <Text style={styles.heroProgressValue}>{progressPct}%</Text>
-              </View>
-              {requiredDone ? (
-                <View style={styles.heroProgressBadge}>
-                  <Ionicons name="checkmark-circle" size={13} color="#fff" />
-                  <Text style={styles.heroProgressBadgeText}>VERIFIED</Text>
-                </View>
-              ) : (
-                <View style={[styles.heroProgressBadge, { backgroundColor: "rgba(255,255,255,0.25)" }]}>
-                  <Ionicons name="hourglass" size={13} color="#fff" />
-                  <Text style={styles.heroProgressBadgeText}>
-                    {uploadedRequired === 0
-                      ? "NOT STARTED"
-                      : verifiedRequired < REQUIRED_DOCUMENT_TYPES.length
-                      ? "IN REVIEW"
-                      : "ALMOST THERE"}
-                  </Text>
-                </View>
-              )}
+          {/* Title block */}
+          <View style={styles.heroTitleCol}>
+            <Text style={styles.heroTitle} numberOfLines={1}>Documents</Text>
+            <Text style={styles.heroSub} numberOfLines={1}>
+              {requiredDone
+                ? "All required docs verified"
+                : `${verifiedRequired}/${REQUIRED_DOCUMENT_TYPES.length} required verified`}
+            </Text>
+          </View>
+
+          {/* Pills sit directly under the sub line. Both share a fixed height
+              so they read as one row. The "%" is a NESTED <Text> — RN
+              baseline-aligns nested text automatically, which two sibling
+              <Text>s with different lineHeights cannot do. */}
+          <View style={styles.heroPillRow}>
+            <View style={styles.heroPctPill}>
+              <Text style={styles.heroPct}>
+                {progressPct}
+                <Text style={styles.heroPctSign}>%</Text>
+              </Text>
+              <Text style={styles.heroPctCaption}>COMPLETE</Text>
             </View>
-            {/* Big progress bar */}
-            <View style={styles.heroBarTrack}>
-              <View
-                style={[
-                  styles.heroBarFill,
-                  { width: `${progressPct}%` },
-                ]}
+
+            <View
+              style={[
+                styles.heroStageChip,
+                requiredDone
+                  ? { backgroundColor: "#fff" }
+                  : { backgroundColor: "rgba(255,255,255,0.14)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
+              ]}
+            >
+              <Ionicons
+                name={requiredDone ? "checkmark-circle" : "hourglass"}
+                size={rs(11)}
+                color={requiredDone ? C.emeraldDeep : "#fff"}
               />
+              <Text
+                style={[
+                  styles.heroStageText,
+                  { color: requiredDone ? C.emeraldDeep : "#fff" },
+                ]}
+              >
+                {stageLabel}
+              </Text>
             </View>
           </View>
+
+          {/* Full-width rail */}
+          <View style={styles.heroBarTrack}>
+            <LinearGradient
+              colors={requiredDone ? G.emerald : G.gold}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={[styles.heroBarFill, { width: `${progressPct}%` }]}
+            />
+          </View>
+
+          {/* Breathing room under the rail. The stats card below is pulled up
+              by STATS_OVERLAP to tuck into the hero's curve, so the visible
+              gap is (this + hero paddingBottom − STATS_OVERLAP). */}
+          <View style={{ height: HERO_TAIL }} />
         </SafeAreaView>
       </LinearGradient>
 
-      {/* ===== Floating stats card ===== */}
-      <View style={styles.statsCard}>
-        <StatCell
-          value={`${verifiedRequired}/${REQUIRED_DOCUMENT_TYPES.length}`}
-          label="Required"
-          icon="alert-circle"
-          color={requiredDone ? C.emerald600 : C.red}
-        />
-        <View style={styles.statDivider} />
-        <StatCell
-          value={totalUploaded}
-          label="Uploaded"
-          icon="cloud-upload"
-          color={C.blue}
-        />
-        <View style={styles.statDivider} />
-        <StatCell
-          value={docs.filter((d) => d.status === "VERIFIED").length}
-          label="Verified"
-          icon="checkmark-done"
-          color={C.emerald600}
-        />
+      {/* ── Stats card tucked into the hero curve ── */}
+      <View style={styles.statsWrap}>
+        <View style={[styles.statsCard, cardShadow]}>
+          <StatCell
+            value={`${verifiedRequired}/${REQUIRED_DOCUMENT_TYPES.length}`}
+            label="Required"
+            icon="alert-circle"
+            tone={requiredDone ? "emerald" : "rose"}
+          />
+          <View style={styles.statDivider} />
+          <StatCell value={totalUploaded} label="Uploaded" icon="cloud-upload" tone="ocean" />
+          <View style={styles.statDivider} />
+          <StatCell
+            value={docs.filter((d) => d.status === "VERIFIED").length}
+            label="Verified"
+            icon="checkmark-done"
+            tone="emerald"
+          />
+        </View>
       </View>
 
       {error && (
         <View style={styles.errorBox}>
-          <Ionicons name="alert-circle-outline" size={16} color={C.red} />
+          <Ionicons name="alert-circle-outline" size={rs(16)} color={C.red} />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity onPress={load}><Text style={styles.errorRetry}>Retry</Text></TouchableOpacity>
         </View>
@@ -285,18 +325,19 @@ export default function DocumentsScreen({ navigation, route }) {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={C.emerald600} />
+          <ActivityIndicator size="large" color={C.emeraldDeep} />
           <Text style={styles.loadingText}>Loading documents…</Text>
         </View>
       ) : (
         <ScrollView
           contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={C.emerald600}
-              colors={[C.emerald600]}
+              tintColor={C.emeraldDeep}
+              colors={[C.emeraldDeep]}
             />
           }
         >
@@ -304,10 +345,10 @@ export default function DocumentsScreen({ navigation, route }) {
           {requiredDone && (
             <View style={styles.doneBanner}>
               <View style={styles.doneIconWrap}>
-                <Ionicons name="checkmark-done-circle" size={22} color={C.emerald700} />
+                <Ionicons name="checkmark-done-circle" size={rs(21)} color={C.emeraldDeep} />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.doneTitle}>You're all set! 🎉</Text>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.doneTitle}>You're all set</Text>
                 <Text style={styles.doneBody}>
                   All required documents are verified — your account is active.
                 </Text>
@@ -315,12 +356,12 @@ export default function DocumentsScreen({ navigation, route }) {
             </View>
           )}
 
-          {/* ===== Required section ===== */}
+          {/* ===== Required ===== */}
           <SectionLabel
-            icon="alert-circle" color={C.red}
+            icon="alert-circle"
+            tone={requiredDone ? "emerald" : "rose"}
             label="Required"
             badge={`${uploadedRequired}/${REQUIRED_DOCUMENT_TYPES.length}`}
-            badgeColor={requiredDone ? C.emerald600 : C.red}
           />
           {requiredTypes.map((type) => (
             <DocCard
@@ -333,9 +374,10 @@ export default function DocumentsScreen({ navigation, route }) {
             />
           ))}
 
-          {/* ===== Optional section ===== */}
+          {/* ===== Optional ===== */}
           <SectionLabel
-            icon="add-circle" color={C.blue}
+            icon="add-circle"
+            tone="ocean"
             label="Optional"
             hint="Speeds up verification & unlocks higher limits"
           />
@@ -350,7 +392,7 @@ export default function DocumentsScreen({ navigation, route }) {
             />
           ))}
 
-          <View style={{ height: 28 }} />
+          <View style={{ height: rs(28) }} />
         </ScrollView>
       )}
 
@@ -365,33 +407,33 @@ export default function DocumentsScreen({ navigation, route }) {
 
 /* ───────── Sub-components ───────── */
 
-function StatCell({ value, label, icon, color }) {
+function StatCell({ value, label, icon, tone }) {
+  const t = TONES[tone] || TONES.emerald;
   return (
     <View style={styles.statCell}>
-      <View style={[styles.statIcon, { backgroundColor: `${color}18` }]}>
-        <Ionicons name={icon} size={14} color={color} />
+      <View style={[styles.statIcon, { backgroundColor: t.tint }]}>
+        <Ionicons name={icon} size={rs(14)} color={t.ink} />
       </View>
-      <View style={{ minWidth: 0, flexShrink: 1 }}>
-        <Text style={[styles.statValue, { color }]} numberOfLines={1}>{value}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
+      <View style={styles.statTextCol}>
+        <Text style={[styles.statValue, { color: t.ink }]} numberOfLines={1}>{value}</Text>
+        <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
       </View>
     </View>
   );
 }
 
-function SectionLabel({ icon, color, label, badge, badgeColor, hint }) {
+function SectionLabel({ icon, tone, label, badge, hint }) {
+  const t = TONES[tone] || TONES.emerald;
   return (
     <View style={styles.sectionLabelWrap}>
       <View style={styles.sectionLabelRow}>
-        <View style={[styles.sectionLabelIcon, { backgroundColor: `${color}22` }]}>
-          <Ionicons name={icon} size={13} color={color} />
+        <View style={[styles.sectionLabelIcon, { backgroundColor: t.tint }]}>
+          <Ionicons name={icon} size={rs(13)} color={t.ink} />
         </View>
-        <Text style={[styles.sectionLabelText, { color }]}>{label}</Text>
+        <Text style={[styles.sectionLabelText, { color: t.ink }]}>{label}</Text>
         {!!badge && (
-          <View style={[styles.sectionLabelBadge, { backgroundColor: `${badgeColor || color}1A` }]}>
-            <Text style={[styles.sectionLabelBadgeText, { color: badgeColor || color }]}>
-              {badge}
-            </Text>
+          <View style={[styles.sectionLabelBadge, { backgroundColor: t.tint }]}>
+            <Text style={[styles.sectionLabelBadgeText, { color: t.ink }]}>{badge}</Text>
           </View>
         )}
       </View>
@@ -401,130 +443,172 @@ function SectionLabel({ icon, color, label, badge, badgeColor, hint }) {
 }
 
 function DocCard({ type, doc, onUpload, onView, onDelete }) {
-  const meta = DOC_META[type] || { label: type, icon: "document", color: C.subText, hint: "" };
+  const meta = DOC_META[type] || { label: type, icon: "document", tone: "emerald", hint: "" };
+  const tone = TONES[meta.tone] || TONES.emerald;
   const status = doc?.status;
   const sMeta = status ? STATUS_META[status] : null;
   const isRejected = status === "REJECTED";
   const isVerified = status === "VERIFIED";
-  const isPending = status === "PENDING";
+  const isPdf = isPdfUrl(doc?.documentUrl);
 
-  // Card border color reflects status: emerald=verified, red=rejected, amber=pending, otherwise neutral.
-  const borderColor =
-    isVerified ? C.emerald600 :
-    isRejected ? C.red :
-    isPending ? C.amber : C.border;
-  const stripeColor =
-    isVerified ? C.emerald600 :
-    isRejected ? C.red :
-    isPending ? C.amber : meta.color;
+  // ── Empty slot ── the whole row is tappable, styled as a dashed drop-zone
+  // rather than a card with a big button bolted on the bottom.
+  if (!doc) {
+    // Icon and its dashed border share one accent — red on the required slot,
+    // the doc type's own tone on every optional one. Border is that colour at
+    // 30% so it reads as a tint of the icon. The card itself stays white.
+    const slotAccent = meta.required ? C.red : tone.ink;
+    return (
+      <TouchableOpacity
+        style={styles.emptyCard}
+        onPress={onUpload}
+        activeOpacity={0.75}
+      >
+        <View style={[styles.emptyThumb, { borderColor: alpha(slotAccent, 0.3) }]}>
+          <Ionicons name={meta.icon} size={rs(21)} color={slotAccent} />
+        </View>
+
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={styles.docLabelRow}>
+            <Text style={styles.docLabel} numberOfLines={1}>{meta.label}</Text>
+            {meta.required && (
+              <View style={styles.requiredDot}>
+                <Text style={styles.requiredDotText}>REQUIRED</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.docHint} numberOfLines={1}>{meta.hint}</Text>
+          <View style={styles.emptyCta}>
+            <Ionicons name="cloud-upload-outline" size={rs(12)} color={C.emeraldDeep} />
+            <Text style={styles.emptyCtaText}>Tap to upload</Text>
+          </View>
+        </View>
+
+        <Ionicons name="chevron-forward" size={rs(17)} color={C.muted} />
+      </TouchableOpacity>
+    );
+  }
+
+  // ── Filled card ──
+  const accent = sMeta ? sMeta.accent : tone.ink;
 
   return (
     <View
       style={[
         styles.docCard,
-        { borderColor },
-        isVerified && { backgroundColor: C.emerald50 },
-        isRejected && { backgroundColor: "#FEF7F7" },
+        rowShadow,
+        isVerified && { borderColor: "rgba(28,107,82,0.22)" },
+        isRejected && { borderColor: "rgba(192,69,59,0.26)" },
       ]}
     >
-      {/* Left status stripe */}
-      <View style={[styles.docCardStripe, { backgroundColor: stripeColor }]} />
+      {/* Status accent rail across the top */}
+      <View style={[styles.docTopRail, { backgroundColor: accent }]} />
 
-      <View style={styles.docCardBody}>
-        {/* Header: icon tile + label + hint + status pill */}
-        <View style={styles.docHeader}>
-          <View style={[styles.docIconWrap, { backgroundColor: `${meta.color}1A` }]}>
-            <Ionicons name={meta.icon} size={18} color={meta.color} />
-          </View>
+      <View style={styles.docBody}>
+        <View style={styles.docRow}>
+          {/* Thumbnail — real preview for images, styled tile for PDFs */}
+          <TouchableOpacity onPress={onView} activeOpacity={0.85} style={styles.thumbWrap}>
+            {isPdf ? (
+              <View style={[styles.thumb, styles.thumbPdf]}>
+                <Ionicons name="document-text" size={rs(24)} color={C.red} />
+                <Text style={styles.thumbPdfText}>PDF</Text>
+              </View>
+            ) : (
+              <View style={styles.thumb}>
+                <RemoteImage
+                  source={{ uri: doc.documentUrl }}
+                  style={styles.thumbImg}
+                  resizeMode="cover"
+                />
+              </View>
+            )}
+
+            {/* Corner status badge floating on the thumbnail */}
+            <View style={[styles.thumbBadge, { backgroundColor: accent }]}>
+              <Ionicons name={sMeta?.icon || "time"} size={rs(10)} color="#fff" />
+            </View>
+          </TouchableOpacity>
+
+          {/* Meta column */}
           <View style={{ flex: 1, minWidth: 0 }}>
             <View style={styles.docLabelRow}>
-              <Text style={styles.docLabel}>{meta.label}</Text>
-              {meta.required && !doc && (
-                <View style={styles.requiredDot}>
-                  <Text style={styles.requiredDotText}>REQUIRED</Text>
-                </View>
-              )}
+              <Text style={styles.docLabel} numberOfLines={1}>{meta.label}</Text>
             </View>
-            <Text style={styles.docHint}>{meta.hint}</Text>
+
+            {sMeta && (
+              <View style={[styles.statusPill, { backgroundColor: sMeta.bg }]}>
+                <View style={[styles.statusDot, { backgroundColor: sMeta.accent }]} />
+                <Text style={[styles.statusText, { color: sMeta.fg }]}>{sMeta.label}</Text>
+              </View>
+            )}
+
+            {/* Doc number */}
+            {!!doc.documentNumber && (
+              <View style={styles.metaLine}>
+                <Ionicons name="key-outline" size={rs(11)} color={C.muted} />
+                <Text style={styles.metaText} numberOfLines={1}>{doc.documentNumber}</Text>
+              </View>
+            )}
+
+            {/* Date line — verified date wins over upload date */}
+            <View style={styles.metaLine}>
+              <Ionicons
+                name={isVerified ? "shield-checkmark-outline" : "time-outline"}
+                size={rs(11)}
+                color={C.muted}
+              />
+              <Text style={styles.metaText} numberOfLines={1}>
+                {isVerified && doc.verifiedAt
+                  ? `Verified ${fmtDocDate(doc.verifiedAt)}`
+                  : `Uploaded ${fmtDocDate(doc.createdAt || doc.updatedAt)}`}
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* Status pill (full width when present) */}
-        {sMeta && (
-          <View style={[styles.statusPill, { backgroundColor: sMeta.bg }]}>
-            <Ionicons name={sMeta.icon} size={11} color={sMeta.fg} />
-            <Text style={[styles.statusText, { color: sMeta.fg }]}>{sMeta.label}</Text>
-          </View>
-        )}
-
-        {/* Doc number */}
-        {!!doc?.documentNumber && (
-          <View style={styles.docNumberRow}>
-            <Ionicons name="key-outline" size={11} color={C.subText} />
-            <Text style={styles.docNumber}>{doc.documentNumber}</Text>
-          </View>
-        )}
-
         {/* Rejection reason */}
-        {isRejected && !!doc?.rejectionReason && (
+        {isRejected && !!doc.rejectionReason && (
           <View style={styles.rejectBox}>
-            <Ionicons name="alert-circle" size={13} color={C.red} />
+            <Ionicons name="alert-circle" size={rs(13)} color={C.red} />
             <Text style={styles.rejectText} numberOfLines={3}>
               {doc.rejectionReason}
             </Text>
           </View>
         )}
 
-        {/* Actions */}
-        {!doc ? (
-          <TouchableOpacity
-            style={styles.uploadBtnWrap}
-            onPress={onUpload}
-            activeOpacity={0.9}
-          >
-            <LinearGradient
-              colors={[C.emerald600, C.emerald700]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={styles.uploadBtnInner}
-            >
-              <Ionicons name="cloud-upload" size={15} color="#fff" />
-              <Text style={styles.uploadBtnText}>Upload</Text>
-            </LinearGradient>
+        {/* Actions — primary "View" pill + icon-only secondary buttons */}
+        <View style={styles.actionsRow}>
+          <TouchableOpacity style={styles.viewBtn} onPress={onView} activeOpacity={0.85}>
+            <Ionicons name="eye-outline" size={rs(14)} color={C.emeraldDeep} />
+            <Text style={styles.viewBtnText}>View document</Text>
           </TouchableOpacity>
-        ) : (
-          <View style={styles.actionsRow}>
+
+          {!isVerified && (
             <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: C.blueLight, borderColor: "#BFDBFE" }]}
-              onPress={onView}
+              style={[styles.iconBtn, { backgroundColor: C.tintGold }]}
+              onPress={onUpload}
               activeOpacity={0.85}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Ionicons name="eye" size={13} color={C.blue} />
-              <Text style={[styles.actionText, { color: C.blue }]}>View</Text>
+              <Ionicons
+                name={isRejected ? "refresh" : "swap-horizontal"}
+                size={rs(15)}
+                color={TONES.amber.ink}
+              />
             </TouchableOpacity>
-            {!isVerified && (
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: C.amberLight, borderColor: "#FDE68A" }]}
-                onPress={onUpload}
-                activeOpacity={0.85}
-              >
-                <Ionicons name={isRejected ? "refresh" : "swap-horizontal"} size={13} color={C.amber} />
-                <Text style={[styles.actionText, { color: C.amber }]}>
-                  {isRejected ? "Re-upload" : "Replace"}
-                </Text>
-              </TouchableOpacity>
-            )}
-            {!isVerified && (
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: C.redLight, borderColor: "#FCA5A5" }]}
-                onPress={onDelete}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="trash-outline" size={13} color={C.red} />
-                <Text style={[styles.actionText, { color: C.red }]}>Delete</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+          )}
+
+          {!isVerified && (
+            <TouchableOpacity
+              style={[styles.iconBtn, { backgroundColor: C.redL }]}
+              onPress={onDelete}
+              activeOpacity={0.85}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons name="trash-outline" size={rs(15)} color={C.red} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -537,6 +621,7 @@ function UploadModal({ type, onClose, onUploaded }) {
   const [docNumber, setDocNumber] = useState("");
   const [uploading, setUploading] = useState(false);
   const meta = type ? DOC_META[type] || {} : {};
+  const tone = TONES[meta.tone] || TONES.emerald;
 
   const reset = () => { setFile(null); setDocNumber(""); setUploading(false); };
 
@@ -599,25 +684,31 @@ function UploadModal({ type, onClose, onUploaded }) {
         <View style={styles.modalSheet}>
           {/* Gradient header */}
           <LinearGradient
-            colors={["#022C22", "#064E3B", "#047857"]}
+            colors={G.hero}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={styles.modalHeaderGrad}
           >
             <View style={styles.modalHeaderRow}>
-              <View style={[styles.modalHeaderIcon, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
-                <Ionicons name={meta.icon || "cloud-upload"} size={20} color="#fff" />
-              </View>
+              <LinearGradient
+                colors={tone.grad}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={styles.modalHeaderIcon}
+              >
+                <Ionicons name={meta.icon || "cloud-upload"} size={rs(20)} color="#fff" />
+              </LinearGradient>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={styles.modalTitle}>Upload Document</Text>
+                <Text style={styles.modalTitle} numberOfLines={1}>
+                  {meta.label || "Upload Document"}
+                </Text>
                 <Text style={styles.modalHint} numberOfLines={1}>{meta.hint}</Text>
               </View>
               <TouchableOpacity onPress={close} style={styles.modalCloseBtn}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={rs(21)} color="#fff" />
               </TouchableOpacity>
             </View>
           </LinearGradient>
 
-          <ScrollView style={{ maxHeight: 540 }} contentContainerStyle={{ padding: 14 }}>
+          <ScrollView style={{ maxHeight: rs(540) }} contentContainerStyle={{ padding: rs(16) }}>
             {/* Picked file preview OR pick options */}
             {file ? (
               <View style={styles.filePreview}>
@@ -625,7 +716,7 @@ function UploadModal({ type, onClose, onUploaded }) {
                   <Image source={{ uri: file.uri }} style={styles.previewImage} />
                 ) : (
                   <View style={styles.previewPdf}>
-                    <Ionicons name="document-text" size={28} color={C.red} />
+                    <Ionicons name="document-text" size={rs(26)} color={C.red} />
                     <Text style={styles.previewPdfText}>PDF</Text>
                   </View>
                 )}
@@ -635,26 +726,29 @@ function UploadModal({ type, onClose, onUploaded }) {
                     <Text style={styles.fileSize}>{(file.size / 1024).toFixed(0)} KB</Text>
                   )}
                   <View style={styles.fileOkRow}>
-                    <Ionicons name="checkmark-circle" size={11} color={C.emerald600} />
+                    <Ionicons name="checkmark-circle" size={rs(11)} color={C.emeraldDeep} />
                     <Text style={styles.fileOkText}>Ready to upload</Text>
                   </View>
                 </View>
-                <TouchableOpacity onPress={() => setFile(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="close-circle" size={22} color={C.red} />
+                <TouchableOpacity
+                  onPress={() => setFile(null)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close-circle" size={rs(22)} color={C.red} />
                 </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.pickRow}>
                 <TouchableOpacity style={styles.pickBtn} onPress={pickImage} activeOpacity={0.85}>
-                  <View style={[styles.pickIconWrap, { backgroundColor: `${C.blue}1A` }]}>
-                    <Ionicons name="image" size={22} color={C.blue} />
+                  <View style={[styles.pickIconWrap, { backgroundColor: C.tintOcean }]}>
+                    <Ionicons name="image" size={rs(21)} color={TONES.ocean.ink} />
                   </View>
                   <Text style={styles.pickBtnLabel}>From gallery</Text>
                   <Text style={styles.pickBtnHint}>JPG / PNG / WebP</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.pickBtn} onPress={pickDocument} activeOpacity={0.85}>
-                  <View style={[styles.pickIconWrap, { backgroundColor: `${C.red}1A` }]}>
-                    <Ionicons name="document-text" size={22} color={C.red} />
+                  <View style={[styles.pickIconWrap, { backgroundColor: C.tintGold }]}>
+                    <Ionicons name="document-text" size={rs(21)} color={TONES.amber.ink} />
                   </View>
                   <Text style={styles.pickBtnLabel}>From files</Text>
                   <Text style={styles.pickBtnHint}>PDF or image</Text>
@@ -671,7 +765,7 @@ function UploadModal({ type, onClose, onUploaded }) {
                 type === "PAN_CARD" ? "PAN (AAAAA0000A)" :
                 "ID number"
               }
-              placeholderTextColor="#A3B3C2"
+              placeholderTextColor={C.muted}
               value={docNumber}
               onChangeText={setDocNumber}
               autoCapitalize="characters"
@@ -686,13 +780,13 @@ function UploadModal({ type, onClose, onUploaded }) {
               activeOpacity={0.9}
             >
               <LinearGradient
-                colors={[C.emerald600, C.emerald700]}
+                colors={G.emerald}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                 style={styles.uploadCtaInner}
               >
                 {uploading ? <ActivityIndicator size="small" color="#fff" /> : (
                   <>
-                    <Ionicons name="cloud-upload" size={17} color="#fff" />
+                    <Ionicons name="cloud-upload" size={rs(17)} color="#fff" />
                     <Text style={styles.uploadCtaText}>Upload</Text>
                   </>
                 )}
@@ -707,168 +801,359 @@ function UploadModal({ type, onClose, onUploaded }) {
 
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
-  // Header
-  headerGrad: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "700", marginTop: 2 },
-
-  // Skip pill — top-right of header (user requested this placement)
-  skipPillTop: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
+  // ── Hero ──
+  hero: {
+    paddingBottom: rs(8),
+    borderBottomLeftRadius: rs(28),
+    borderBottomRightRadius: rs(28),
+    overflow: "hidden",
+  },
+  orbA: {
+    position: "absolute", top: -rs(60), right: -rs(40),
+    width: rs(190), height: rs(190), borderRadius: rs(95),
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  orbB: {
+    position: "absolute", bottom: -rs(70), left: -rs(50),
+    width: rs(170), height: rs(170), borderRadius: rs(85),
+    backgroundColor: "rgba(46,158,120,0.16)",
+  },
+  heroTop: { flexDirection: "row", alignItems: "center", paddingTop: rs(6) },
+  circleBtn: {
+    width: rs(38), height: rs(38), borderRadius: rs(19),
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.16)",
+    alignItems: "center", justifyContent: "center",
+  },
+  // Height pinned to the back button's so the two sit on the same optical line.
+  skipPill: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: rs(5), height: rs(38),
+    paddingHorizontal: rs(15), borderRadius: 999,
     backgroundColor: "#fff",
   },
-  skipPillTopText: { color: C.emerald700, fontWeight: "800", fontSize: 12.5 },
+  skipPillText: {
+    fontFamily: DISPLAY, color: C.emeraldDeep, fontWeight: "bold",
+    fontSize: rf(12.5), lineHeight: rf(16),
+  },
+  // Title block, then a pill row, then a full-width rail. Explicit lineHeights
+  // keep the vertical rhythm predictable across the serif metrics.
+  heroTitleCol: { marginTop: rs(12) },
+  heroTitle: {
+    fontFamily: DISPLAY, fontSize: rf(21), lineHeight: rf(26),
+    color: "#fff", letterSpacing: 0.2,
+  },
+  heroSub: {
+    fontFamily: DISPLAY, fontSize: rf(11.5), lineHeight: rf(15),
+    color: "rgba(255,255,255,0.65)", fontWeight: "bold", marginTop: rs(3),
+  },
 
-  // Hero progress block
-  heroProgress: { marginTop: 16, paddingHorizontal: 4 },
-  heroProgressTopRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 10 },
-  heroProgressLabel: { fontSize: 10, color: "rgba(255,255,255,0.8)", fontWeight: "800", letterSpacing: 0.8 },
-  heroProgressValue: { fontSize: 28, color: "#fff", fontWeight: "900", marginTop: 2, letterSpacing: -0.5 },
-  heroProgressBadge: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.25)" },
-  heroProgressBadgeText: { color: "#fff", fontSize: 10, fontWeight: "900", letterSpacing: 0.5 },
-  heroBarTrack: { height: 8, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 4, overflow: "hidden" },
-  heroBarFill: { height: "100%", borderRadius: 4, backgroundColor: "#fff" },
+  // Both pills share HERO_PILL_H so they sit on one clean line.
+  heroPillRow: {
+    flexDirection: "row", alignItems: "center",
+    flexWrap: "wrap", gap: rs(8), marginTop: rs(11),
+  },
+  heroPctPill: {
+    flexDirection: "row", alignItems: "center", gap: rs(5),
+    height: rs(28), paddingHorizontal: rs(11), borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.16)",
+  },
+  heroPct: {
+    fontFamily: DISPLAY, fontSize: rf(14), lineHeight: rf(18),
+    color: "#fff", letterSpacing: -0.2,
+  },
+  // Nested inside heroPct — inherits the family, only overrides size/colour.
+  heroPctSign: { fontSize: rf(10), color: "rgba(255,255,255,0.65)" },
+  heroPctCaption: {
+    fontFamily: DISPLAY, fontSize: rf(8.5), lineHeight: rf(12),
+    color: "rgba(255,255,255,0.55)", fontWeight: "bold", letterSpacing: 0.8,
+  },
 
-  // Floating stats card
+  heroStageChip: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: rs(4), height: rs(28), paddingHorizontal: rs(10), borderRadius: 999,
+  },
+  heroStageText: {
+    fontFamily: DISPLAY, fontSize: rf(9.5), lineHeight: rf(13),
+    fontWeight: "bold", letterSpacing: 0.5,
+  },
+
+  heroBarTrack: {
+    height: rs(7), backgroundColor: "rgba(255,255,255,0.18)",
+    borderRadius: rs(4), overflow: "hidden", marginTop: rs(12),
+  },
+  heroBarFill: { height: "100%", borderRadius: rs(4) },
+
+  // ── Stats card ──
+  statsWrap: { marginHorizontal: GUT, marginTop: -STATS_OVERLAP },
   statsCard: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-around",
-    backgroundColor: C.card, marginHorizontal: 16, marginTop: -22,
-    borderRadius: 16, paddingVertical: 12, paddingHorizontal: 8,
-    borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3,
+    backgroundColor: C.card, borderRadius: rs(18),
+    paddingVertical: rs(13), paddingHorizontal: rs(8),
+    borderWidth: 1, borderColor: C.glassBorder,
   },
-  statCell: { flexDirection: "row", alignItems: "center", gap: 7, flex: 1, justifyContent: "center", minWidth: 0 },
-  statIcon: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  statValue: { fontSize: 15, fontWeight: "900" },
-  statLabel: { fontSize: 10, color: C.subText, fontWeight: "700", marginTop: 1, letterSpacing: 0.3 },
-  statDivider: { width: 1, height: 28, backgroundColor: C.border },
+  // Stays a compact row (keeps the card short), but the text column has a
+  // fixed minWidth so every cell is the same width — otherwise the icons
+  // drift left/right as the value text ("1/1" vs "3") changes width.
+  statCell: {
+    flex: 1, minWidth: 0,
+    flexDirection: "row", alignItems: "center",
+    justifyContent: "center", gap: rs(8),
+  },
+  statIcon: {
+    width: rs(28), height: rs(28), borderRadius: rs(10),
+    alignItems: "center", justifyContent: "center",
+  },
+  statTextCol: { minWidth: rs(48), flexShrink: 1 },
+  statValue: {
+    fontFamily: DISPLAY, fontSize: rf(15), lineHeight: rf(19), fontWeight: "bold",
+  },
+  statLabel: {
+    fontFamily: DISPLAY, fontSize: rf(9.5), lineHeight: rf(13),
+    color: C.muted, fontWeight: "bold", letterSpacing: 0.4,
+  },
+  statDivider: { width: 1, height: rs(28), backgroundColor: C.border },
 
-  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: C.red, fontSize: 12.5, flex: 1 },
-  errorRetry: { color: C.red, fontWeight: "800", fontSize: 12.5 },
+  errorBox: {
+    flexDirection: "row", alignItems: "center", gap: rs(8),
+    marginHorizontal: GUT, marginTop: rs(12), padding: rs(11),
+    backgroundColor: C.redL, borderRadius: rs(12),
+    borderWidth: 1, borderColor: "rgba(192,69,59,0.22)",
+  },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: rf(12.5), flex: 1, fontWeight: "600" },
+  errorRetry: { fontFamily: DISPLAY, color: C.red, fontWeight: "bold", fontSize: rf(12.5) },
 
-  loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 13, color: C.subText, fontWeight: "600" },
+  loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: rs(12) },
+  loadingText: { fontFamily: DISPLAY, fontSize: rf(13), color: C.muted, fontWeight: "600" },
 
-  scroll: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 24 },
+  scroll: { paddingHorizontal: GUT, paddingTop: rs(18), paddingBottom: rs(24) },
 
-  // Done banner
+  // ── Done banner ──
   doneBanner: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    padding: 14, borderRadius: 14,
-    backgroundColor: C.emerald50, borderWidth: 1, borderColor: "#A7F3D0",
-    marginBottom: 14,
+    flexDirection: "row", alignItems: "center", gap: rs(12),
+    padding: rs(14), borderRadius: rs(16),
+    backgroundColor: C.tintEmerald, borderWidth: 1, borderColor: "rgba(28,107,82,0.18)",
+    marginBottom: rs(14),
   },
-  doneIconWrap: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(5,150,105,0.15)", alignItems: "center", justifyContent: "center" },
-  doneTitle: { fontSize: 14, fontWeight: "800", color: C.emerald700 },
-  doneBody: { fontSize: 12, color: C.text, fontWeight: "500", marginTop: 2, lineHeight: 16 },
+  doneIconWrap: {
+    width: rs(40), height: rs(40), borderRadius: rs(13),
+    backgroundColor: "rgba(28,107,82,0.12)",
+    alignItems: "center", justifyContent: "center",
+  },
+  doneTitle: { fontFamily: DISPLAY, fontSize: rf(14), fontWeight: "bold", color: C.emeraldDeep },
+  doneBody: {
+    fontFamily: DISPLAY, fontSize: rf(11.5), color: C.sub,
+    fontWeight: "600", marginTop: rs(2), lineHeight: rf(16),
+  },
 
-  // Section label
-  sectionLabelWrap: { marginTop: 14, marginBottom: 10 },
-  sectionLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  sectionLabelIcon: { width: 26, height: 26, borderRadius: 9, alignItems: "center", justifyContent: "center" },
-  sectionLabelText: { fontSize: 12, fontWeight: "900", letterSpacing: 0.5, textTransform: "uppercase" },
-  sectionLabelBadge: { marginLeft: "auto", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
-  sectionLabelBadgeText: { fontSize: 11, fontWeight: "900" },
-  sectionLabelHint: { fontSize: 11, color: C.subText, fontWeight: "600", marginTop: 4, marginLeft: 32, fontStyle: "italic" },
+  // ── Section label ──
+  sectionLabelWrap: { marginTop: rs(14), marginBottom: rs(11) },
+  sectionLabelRow: { flexDirection: "row", alignItems: "center", gap: rs(7) },
+  sectionLabelIcon: {
+    width: rs(26), height: rs(26), borderRadius: rs(9),
+    alignItems: "center", justifyContent: "center",
+  },
+  sectionLabelText: {
+    fontFamily: DISPLAY, flex: 1, fontSize: rf(11.5), fontWeight: "bold",
+    letterSpacing: 0.6, textTransform: "uppercase",
+  },
+  sectionLabelBadge: { paddingHorizontal: rs(9), paddingVertical: rs(3), borderRadius: 999 },
+  sectionLabelBadgeText: { fontFamily: DISPLAY, fontSize: rf(10.5), fontWeight: "bold" },
+  sectionLabelHint: {
+    fontFamily: DISPLAY, fontSize: rf(11), color: C.muted,
+    fontWeight: "600", marginTop: rs(4), marginLeft: rs(33), fontStyle: "italic",
+  },
 
-  // Doc card
+  // ── Empty slot (no doc uploaded yet) ──
+  emptyCard: {
+    flexDirection: "row", alignItems: "center", gap: rs(12),
+    backgroundColor: C.card, borderRadius: rs(16), marginBottom: rs(10),
+    paddingVertical: rs(13), paddingHorizontal: rs(13),
+    borderWidth: 1, borderColor: C.border, borderStyle: "dashed",
+  },
+  emptyThumb: {
+    width: rs(52), height: rs(52), borderRadius: rs(14),
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: C.ivory, borderWidth: 1.5, borderStyle: "dashed",
+  },
+  emptyCta: { flexDirection: "row", alignItems: "center", gap: rs(4), marginTop: rs(6) },
+  emptyCtaText: {
+    fontFamily: DISPLAY, fontSize: rf(11.5), color: C.emeraldDeep,
+    fontWeight: "bold", letterSpacing: 0.2,
+  },
+
+  // ── Filled doc card ──
   docCard: {
-    flexDirection: "row",
-    backgroundColor: C.card, borderRadius: 14, marginBottom: 10, overflow: "hidden",
-    borderWidth: 1.5,
-    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 1,
+    backgroundColor: C.card, borderRadius: rs(16), marginBottom: rs(10),
+    overflow: "hidden", borderWidth: 1, borderColor: C.border,
   },
-  docCardStripe: { width: 4 },
-  docCardBody: { flex: 1, padding: 12 },
+  docTopRail: { height: rs(3), width: "100%" },
+  docBody: { padding: rs(13) },
+  docRow: { flexDirection: "row", alignItems: "flex-start", gap: rs(12) },
 
-  docHeader: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 8 },
-  docIconWrap: { width: 40, height: 40, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  docLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  docLabel: { fontSize: 14, fontWeight: "800", color: C.ink, flex: 0 },
-  docHint: { fontSize: 11.5, color: C.subText, marginTop: 2, fontWeight: "600" },
-  requiredDot: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: C.redLight },
-  requiredDotText: { fontSize: 9, fontWeight: "900", color: C.red, letterSpacing: 0.4 },
+  // Thumbnail
+  thumbWrap: { position: "relative" },
+  thumb: {
+    width: rs(64), height: rs(64), borderRadius: rs(14),
+    backgroundColor: C.ivory, overflow: "hidden",
+    borderWidth: 1, borderColor: C.border,
+    alignItems: "center", justifyContent: "center",
+  },
+  thumbImg: { width: "100%", height: "100%" },
+  thumbPdf: { backgroundColor: C.redL, borderColor: "rgba(192,69,59,0.2)" },
+  thumbPdfText: {
+    fontFamily: DISPLAY, fontSize: rf(8.5), color: C.red,
+    fontWeight: "bold", marginTop: rs(2), letterSpacing: 0.6,
+  },
+  thumbBadge: {
+    position: "absolute", right: -rs(4), bottom: -rs(4),
+    width: rs(21), height: rs(21), borderRadius: rs(11),
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 2, borderColor: C.card,
+  },
 
-  statusPill: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, marginBottom: 6 },
-  statusText: { fontSize: 9.5, fontWeight: "900", letterSpacing: 0.4 },
+  docLabelRow: { flexDirection: "row", alignItems: "center", gap: rs(6) },
+  docLabel: {
+    fontFamily: DISPLAY, fontSize: rf(14), fontWeight: "bold",
+    color: C.ink, flexShrink: 1,
+  },
+  docHint: { fontFamily: DISPLAY, fontSize: rf(11), color: C.muted, marginTop: rs(2), fontWeight: "600" },
+  requiredDot: {
+    paddingHorizontal: rs(6), paddingVertical: rs(2),
+    borderRadius: rs(5), backgroundColor: C.redL,
+  },
+  requiredDotText: {
+    fontFamily: DISPLAY, fontSize: rf(8.5), fontWeight: "bold",
+    color: C.red, letterSpacing: 0.4,
+  },
 
-  docNumberRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 },
-  docNumber: { fontSize: 11.5, color: C.text, fontWeight: "700", letterSpacing: 0.5, fontFamily: "monospace" },
+  statusPill: {
+    alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: rs(5),
+    paddingHorizontal: rs(8), paddingVertical: rs(4), borderRadius: 999, marginTop: rs(5),
+  },
+  statusDot: { width: rs(5), height: rs(5), borderRadius: rs(3) },
+  statusText: { fontFamily: DISPLAY, fontSize: rf(9.5), fontWeight: "bold", letterSpacing: 0.4 },
+
+  metaLine: { flexDirection: "row", alignItems: "center", gap: rs(5), marginTop: rs(5) },
+  metaText: {
+    fontFamily: DISPLAY, fontSize: rf(11), color: C.sub,
+    fontWeight: "600", letterSpacing: 0.2, flexShrink: 1,
+  },
 
   rejectBox: {
-    flexDirection: "row", alignItems: "flex-start", gap: 6,
-    padding: 10, borderRadius: 10,
-    backgroundColor: C.redLight, borderLeftWidth: 3, borderLeftColor: C.red,
-    marginBottom: 8,
+    flexDirection: "row", alignItems: "flex-start", gap: rs(6),
+    padding: rs(10), borderRadius: rs(11),
+    backgroundColor: "rgba(192,69,59,0.08)",
+    borderLeftWidth: rs(3), borderLeftColor: C.red,
+    marginTop: rs(11),
   },
-  rejectText: { color: C.red, fontSize: 11.5, flex: 1, fontWeight: "600", lineHeight: 16 },
-
-  uploadBtnWrap: {
-    marginTop: 6, borderRadius: 10, overflow: "hidden",
-    shadowColor: C.emerald600, shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 3,
+  rejectText: {
+    fontFamily: DISPLAY, color: C.red, fontSize: rf(11.5),
+    flex: 1, fontWeight: "600", lineHeight: rf(16),
   },
-  uploadBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 11 },
-  uploadBtnText: { color: "#fff", fontWeight: "800", fontSize: 13 },
 
-  actionsRow: { flexDirection: "row", gap: 6, marginTop: 4 },
-  actionBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 9, borderRadius: 10, borderWidth: 1 },
-  actionText: { fontSize: 11.5, fontWeight: "800" },
+  // Actions — wide primary + compact icon buttons
+  actionsRow: {
+    flexDirection: "row", alignItems: "center", gap: rs(8),
+    marginTop: rs(12), paddingTop: rs(11),
+    borderTopWidth: 1, borderTopColor: C.border,
+  },
+  viewBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: rs(6), paddingVertical: rs(10), borderRadius: rs(11),
+    backgroundColor: C.tintEmerald,
+    borderWidth: 1, borderColor: "rgba(28,107,82,0.16)",
+  },
+  viewBtnText: {
+    fontFamily: DISPLAY, fontSize: rf(12.5), fontWeight: "bold", color: C.emeraldDeep,
+  },
+  iconBtn: {
+    width: rs(40), height: rs(40), borderRadius: rs(12),
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: C.border,
+  },
 
-  // Upload modal
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  // ── Upload modal ──
+  modalOverlay: { flex: 1, backgroundColor: "rgba(11,51,39,0.55)", justifyContent: "flex-end" },
   modalSheet: {
-    backgroundColor: C.card,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    paddingBottom: Platform.OS === "ios" ? 24 : 12,
+    backgroundColor: C.bg,
+    borderTopLeftRadius: rs(26), borderTopRightRadius: rs(26),
+    paddingBottom: Platform.OS === "ios" ? rs(24) : rs(12),
     overflow: "hidden",
     maxHeight: "88%",
   },
-  modalHeaderGrad: { paddingHorizontal: 16, paddingVertical: 16 },
-  modalHeaderRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  modalHeaderIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  modalTitle: { fontSize: 17, fontWeight: "800", color: "#fff" },
-  modalHint: { fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 2 },
-  modalCloseBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.15)" },
+  modalHeaderGrad: { paddingHorizontal: rs(16), paddingVertical: rs(16) },
+  modalHeaderRow: { flexDirection: "row", alignItems: "center", gap: rs(12) },
+  modalHeaderIcon: {
+    width: rs(42), height: rs(42), borderRadius: rs(14),
+    alignItems: "center", justifyContent: "center",
+  },
+  modalTitle: { fontFamily: DISPLAY, fontSize: rf(17), fontWeight: "bold", color: "#fff" },
+  modalHint: {
+    fontFamily: DISPLAY, fontSize: rf(11.5), color: "rgba(255,255,255,0.7)",
+    fontWeight: "600", marginTop: rs(2),
+  },
+  modalCloseBtn: {
+    width: rs(36), height: rs(36), borderRadius: rs(12),
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.16)",
+  },
 
-  pickRow: { flexDirection: "row", gap: 10, marginBottom: 14 },
+  pickRow: { flexDirection: "row", gap: rs(10), marginBottom: rs(14) },
   pickBtn: {
-    flex: 1, alignItems: "center", gap: 8, paddingVertical: 18, paddingHorizontal: 8,
-    borderRadius: 14, backgroundColor: "#FAFBFC",
+    flex: 1, alignItems: "center", gap: rs(7),
+    paddingVertical: rs(18), paddingHorizontal: rs(8),
+    borderRadius: rs(16), backgroundColor: C.card,
     borderWidth: 1.5, borderColor: C.border, borderStyle: "dashed",
   },
-  pickIconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  pickBtnLabel: { fontSize: 13, fontWeight: "800", color: C.ink },
-  pickBtnHint: { fontSize: 10.5, color: C.subText, fontWeight: "600" },
+  pickIconWrap: {
+    width: rs(44), height: rs(44), borderRadius: rs(14),
+    alignItems: "center", justifyContent: "center",
+  },
+  pickBtnLabel: { fontFamily: DISPLAY, fontSize: rf(13), fontWeight: "bold", color: C.ink },
+  pickBtnHint: { fontFamily: DISPLAY, fontSize: rf(10.5), color: C.muted, fontWeight: "600" },
 
   filePreview: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    padding: 12, borderRadius: 12,
-    backgroundColor: C.emerald50, borderWidth: 1, borderColor: "#A7F3D0",
-    marginBottom: 14,
+    flexDirection: "row", alignItems: "center", gap: rs(12),
+    padding: rs(12), borderRadius: rs(14),
+    backgroundColor: C.tintEmerald, borderWidth: 1, borderColor: "rgba(28,107,82,0.18)",
+    marginBottom: rs(14),
   },
-  previewImage: { width: 56, height: 56, borderRadius: 10, backgroundColor: "#F1F5F9" },
-  previewPdf: { width: 56, height: 56, borderRadius: 10, backgroundColor: C.redLight, alignItems: "center", justifyContent: "center" },
-  previewPdfText: { fontSize: 9, color: C.red, fontWeight: "900", marginTop: 2, letterSpacing: 0.5 },
-  fileName: { fontSize: 13, fontWeight: "800", color: C.ink },
-  fileSize: { fontSize: 11, color: C.subText, marginTop: 2, fontWeight: "600" },
-  fileOkRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
-  fileOkText: { fontSize: 10.5, color: C.emerald600, fontWeight: "800" },
+  previewImage: { width: rs(56), height: rs(56), borderRadius: rs(12), backgroundColor: C.sand },
+  previewPdf: {
+    width: rs(56), height: rs(56), borderRadius: rs(12), backgroundColor: C.redL,
+    alignItems: "center", justifyContent: "center",
+  },
+  previewPdfText: {
+    fontFamily: DISPLAY, fontSize: rf(9), color: C.red,
+    fontWeight: "bold", marginTop: rs(2), letterSpacing: 0.5,
+  },
+  fileName: { fontFamily: DISPLAY, fontSize: rf(13), fontWeight: "bold", color: C.ink },
+  fileSize: { fontFamily: DISPLAY, fontSize: rf(11), color: C.muted, marginTop: rs(2), fontWeight: "600" },
+  fileOkRow: { flexDirection: "row", alignItems: "center", gap: rs(4), marginTop: rs(4) },
+  fileOkText: { fontFamily: DISPLAY, fontSize: rf(10.5), color: C.emeraldDeep, fontWeight: "bold" },
 
-  fieldLabel: { fontSize: 12, color: C.text, fontWeight: "700", marginBottom: 6, marginTop: 4 },
+  fieldLabel: {
+    fontFamily: DISPLAY, fontSize: rf(11.5), color: C.sub,
+    fontWeight: "bold", marginBottom: rs(6), marginTop: rs(4),
+    letterSpacing: 0.4, textTransform: "uppercase",
+  },
   input: {
-    backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: C.ink, minHeight: 46,
-    letterSpacing: 0.5, fontFamily: "monospace",
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: rs(12),
+    paddingHorizontal: rs(13), paddingVertical: rs(11), fontSize: rf(14),
+    color: C.ink, minHeight: rs(48), letterSpacing: 0.5, fontFamily: DISPLAY,
   },
-  formatHint: { fontSize: 11, color: C.subText, textAlign: "center", marginTop: 10, fontStyle: "italic", fontWeight: "600" },
+  formatHint: {
+    fontFamily: DISPLAY, fontSize: rf(11), color: C.muted,
+    textAlign: "center", marginTop: rs(10), fontStyle: "italic", fontWeight: "600",
+  },
 
-  uploadCtaWrap: {
-    marginTop: 14, borderRadius: 12, overflow: "hidden",
-    shadowColor: C.emerald600, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4,
+  uploadCtaWrap: { marginTop: rs(14), borderRadius: rs(14), overflow: "hidden" },
+  uploadCtaInner: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: rs(8), paddingVertical: rs(14),
   },
-  uploadCtaInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14 },
-  uploadCtaText: { color: "#fff", fontWeight: "800", fontSize: 14.5 },
+  uploadCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: rf(14.5) },
 });

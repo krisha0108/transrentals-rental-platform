@@ -3,8 +3,22 @@
 // /api/travel-agent/register endpoint. On success, auto-logs the agent in
 // and navigates to the document upload screen.
 //
-// UI: minimal / professional redesign — flat single-surface form, slim progress
-// bar, hairline section headers. Functionality, fields and validations unchanged.
+// REDESIGNED (v2) — "Elevate" visual language (ivory + forest→emerald hero,
+// serif DISPLAY type, gold progress rail, glass form card), matching
+// TravelAgentDashboardScreen / DocumentsScreen / GetStartedScreen.
+//
+// ⚠️ UI ONLY — ZERO logic changes. Every one of these is byte-for-byte the same
+// as the previous version:
+//   • all state hooks, formData shape and handleChange
+//   • isEmailValid / isPhoneValid / isPasswordValid / passwordsMatch /
+//     isStep1Valid, and validateStep1's exact alert order + copy
+//   • handleNextStep, handleSkipRegister, handleRegister (registerTravelAgent →
+//     loginTravelAgentDirect → navigation.reset to "TravelAgentDocuments",
+//     same fallbacks to setSuccess(true), same error extraction)
+//   • the inline password-strength scoring, both pickers' data and behaviour,
+//     the entrance animation and the floating-icon loop
+//   • SectionHeader / Field / PrimaryButton stay at MODULE SCOPE — remounting
+//     them per render would make TextInputs lose focus on every keystroke.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
@@ -26,27 +40,16 @@ import {
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 import Ionicons from "react-native-vector-icons/Ionicons";
+import LinearGradient from "react-native-linear-gradient";
 import CustomAlert from "../../CustomAlertmahek";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { DISPLAY } from "../_shared/typography";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import { C, G, rs, rf, GUT, cardShadow } from "../_shared/theme";
 import {
   registerTravelAgent,
   loginTravelAgentDirect,
 } from "../../api/travelAgentClient";
-
-const C = {
-  primary: "#12AD66",
-  primaryDark: "#0E9457",
-  primarySoft: "#E8F7F0",
-  ink: "#0F172A",
-  text: "#334155",
-  sub: "#64748B",
-  faint: "#94A3B8",
-  bg: "#FFFFFF",
-  field: "#F8FAFC",
-  border: "#E2E8F0",
-  borderStrong: "#CBD5E1",
-  error: "#EF4444",
-};
 
 // Agency types — mirror web register options
 const AGENCY_TYPES = [
@@ -68,6 +71,12 @@ const STATES = [
   "Uttar Pradesh", "Uttarakhand", "West Bengal", "Delhi", "Chandigarh",
 ];
 
+// Fade + rise reveal driven by a 0→1 Animated.Value. Used to stagger the hero.
+const revealStyle = (v) => ({
+  opacity: v,
+  transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
+});
+
 // ---- Stable presentational helpers (module scope so inputs keep focus) ----
 const SectionHeader = ({ label, hint }) => (
   <View style={styles.sectionHeader}>
@@ -84,30 +93,111 @@ const Field = ({ label, icon, required, valid, invalid, helper, children }) => (
       {required && <Text style={styles.req}> *</Text>}
     </Text>
     <View style={[styles.inputWrap, valid && styles.inputOK, invalid && styles.inputError]}>
-      {!!icon && <Ionicons name={icon} size={18} color={C.faint} style={styles.leftIcon} />}
+      {!!icon && <Ionicons name={icon} size={rs(18)} color={C.muted} style={styles.leftIcon} />}
       {children}
     </View>
     {!!helper && <Text style={[styles.helperText, invalid && styles.helperError]}>{helper}</Text>}
   </View>
 );
 
-const PrimaryButton = ({ onPress, disabled, loading: btnLoading, label, icon = "arrow-forward", style }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    disabled={disabled || btnLoading}
-    activeOpacity={0.85}
-    style={[styles.cta, disabled && styles.ctaDisabled, style]}
-  >
-    {btnLoading ? (
-      <ActivityIndicator size="small" color="#fff" />
-    ) : (
-      <>
-        <Text style={styles.ctaText}>{label}</Text>
-        <Ionicons name={icon} size={18} color="#fff" />
-      </>
-    )}
-  </TouchableOpacity>
-);
+const PrimaryButton = ({ onPress, disabled, loading: btnLoading, label, icon = "arrow-forward", style }) => {
+  // Press feedback — a small spring "squeeze" so the CTA feels physical.
+  const press = useRef(new Animated.Value(0)).current;
+  // Slow light sweep across the gradient; idles while disabled/loading.
+  const sheen = useRef(new Animated.Value(0)).current;
+  // Gentle right-drift of the trailing chevron, hinting "forward".
+  const nudge = useRef(new Animated.Value(0)).current;
+
+  const idle = !disabled && !btnLoading;
+
+  useEffect(() => {
+    if (!idle) return undefined;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(1600),
+        Animated.timing(sheen, {
+          toValue: 1, duration: 950,
+          easing: Easing.inOut(Easing.ease), useNativeDriver: true,
+        }),
+        Animated.timing(sheen, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [sheen, idle]);
+
+  useEffect(() => {
+    if (!idle) return undefined;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(nudge, {
+          toValue: 1, duration: 900,
+          easing: Easing.inOut(Easing.quad), useNativeDriver: true,
+        }),
+        Animated.timing(nudge, {
+          toValue: 0, duration: 900,
+          easing: Easing.inOut(Easing.quad), useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [nudge, idle]);
+
+  const scale = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.97] });
+  const sheenX = sheen.interpolate({ inputRange: [0, 1], outputRange: [-rs(140), SCREEN_W] });
+  const sheenOpacity = sheen.interpolate({
+    inputRange: [0, 0.15, 0.85, 1],
+    outputRange: [0, 0.5, 0.5, 0],
+  });
+  const nudgeX = nudge.interpolate({ inputRange: [0, 1], outputRange: [0, rs(4)] });
+
+  return (
+    <Animated.View style={[styles.cta, style, { transform: [{ scale }] }]}>
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={disabled || btnLoading}
+        activeOpacity={1}
+        onPressIn={() =>
+          Animated.spring(press, { toValue: 1, useNativeDriver: true, speed: 40, bounciness: 0 }).start()
+        }
+        onPressOut={() =>
+          Animated.spring(press, { toValue: 0, useNativeDriver: true, speed: 26, bounciness: 9 }).start()
+        }
+        style={StyleSheet.absoluteFill}
+      >
+        <LinearGradient
+          colors={disabled ? ["#B7C6BF", "#A3B5AC"] : G.emerald}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.ctaInner}
+        >
+          {/* Light sweep */}
+          {idle && (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.ctaSheen,
+                { opacity: sheenOpacity, transform: [{ translateX: sheenX }, { skewX: "-20deg" }] },
+              ]}
+            />
+          )}
+
+          {btnLoading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Text style={styles.ctaText}>{label}</Text>
+              <Animated.View style={{ transform: [{ translateX: nudgeX }] }}>
+                <Ionicons name={icon} size={rs(18)} color="#fff" />
+              </Animated.View>
+            </>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 export default function TravelAgentRegisterScreen({ navigation }) {
   const [step, setStep] = useState(1);
@@ -155,26 +245,96 @@ export default function TravelAgentRegisterScreen({ navigation }) {
     ]).start();
   }, [fade, slide]);
 
+  // ── Presentation-only animations ─────────────────────────────────────
+  // Staggered hero reveal: logo → title → subtitle → progress.
+  const heroSteps = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+  useEffect(() => {
+    Animated.stagger(
+      95,
+      heroSteps.map((v) =>
+        Animated.timing(v, {
+          toValue: 1, duration: 560,
+          easing: Easing.out(Easing.cubic), useNativeDriver: true,
+        })
+      )
+    ).start();
+  }, [heroSteps]);
+
+  // Logo badge springs in with a slight overshoot.
+  const logoPop = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(logoPop, {
+      toValue: 1, useNativeDriver: true, speed: 11, bounciness: 12, delay: 120,
+    }).start();
+  }, [logoPop]);
+
+  // Progress rail glides between 50% and 100% instead of snapping.
+  // (width can't run on the native driver — it's one small element.)
+  const progress = useRef(new Animated.Value(step === 1 ? 0.5 : 1)).current;
+  const pctPop = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: step === 1 ? 0.5 : 1, duration: 700,
+      easing: Easing.out(Easing.cubic), useNativeDriver: false,
+    }).start();
+    Animated.sequence([
+      Animated.timing(pctPop, { toValue: 1.22, duration: 180, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      Animated.spring(pctPop, { toValue: 1, useNativeDriver: true, speed: 14, bounciness: 12 }),
+    ]).start();
+  }, [step, progress, pctPop]);
+
+  // Step swap: forward slides in from the right, Back from the left.
+  const stepAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    stepAnim.setValue(0);
+    Animated.timing(stepAnim, {
+      toValue: 1, duration: 420,
+      easing: Easing.out(Easing.cubic), useNativeDriver: true,
+    }).start();
+  }, [step, stepAnim]);
+
+  // Success badge: spring pop + a repeating halo. Declared unconditionally
+  // (hook rules) but only started once the success screen is actually shown.
+  const successPop = useRef(new Animated.Value(0)).current;
+  const successRing = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!success) return undefined;
+    Animated.spring(successPop, {
+      toValue: 1, useNativeDriver: true, speed: 9, bounciness: 14,
+    }).start();
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(successRing, {
+          toValue: 1, duration: 1700,
+          easing: Easing.out(Easing.ease), useNativeDriver: true,
+        }),
+        Animated.timing(successRing, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [success, successPop, successRing]);
+
   // Floating icons
   const L = 6;
   const R = SCREEN_W - 32;
   const FLOAT_ICONS = [
     // LEFT SIDE
-    { name: "calendar",    color: "#0A7A4B", size: 22, x: L,     startY: SCREEN_H * 0.06, delay: 0,    duration: 3400 },
-    { name: "bicycle",     color: "#DB2777", size: 22, x: L + 2, startY: SCREEN_H * 0.18, delay: 550,  duration: 3000 },
-    { name: "people",      color: "#7C3AED", size: 20, x: L,     startY: SCREEN_H * 0.30, delay: 250,  duration: 3200 },
-    { name: "car-sport",   color: "#1e6bb8", size: 22, x: L + 2, startY: SCREEN_H * 0.43, delay: 800,  duration: 3800 },
-    { name: "bus",         color: "#D97706", size: 22, x: L,     startY: SCREEN_H * 0.56, delay: 350,  duration: 3100 },
-    { name: "location",    color: "#0A7A4B", size: 20, x: L + 2, startY: SCREEN_H * 0.68, delay: 650,  duration: 3500 },
-    { name: "trending-up", color: "#DB2777", size: 19, x: L,     startY: SCREEN_H * 0.80, delay: 150,  duration: 3600 },
+    { name: "calendar",    color: C.emeraldDeep, size: 22, x: L,     startY: SCREEN_H * 0.06, delay: 0,    duration: 3400 },
+    { name: "bicycle",     color: C.rose,        size: 22, x: L + 2, startY: SCREEN_H * 0.18, delay: 550,  duration: 3000 },
+    { name: "people",      color: C.plum,        size: 20, x: L,     startY: SCREEN_H * 0.30, delay: 250,  duration: 3200 },
+    { name: "car-sport",   color: C.ocean,       size: 22, x: L + 2, startY: SCREEN_H * 0.43, delay: 800,  duration: 3800 },
+    { name: "bus",         color: C.gold,        size: 22, x: L,     startY: SCREEN_H * 0.56, delay: 350,  duration: 3100 },
+    { name: "location",    color: C.emeraldDeep, size: 20, x: L + 2, startY: SCREEN_H * 0.68, delay: 650,  duration: 3500 },
+    { name: "trending-up", color: C.rose,        size: 19, x: L,     startY: SCREEN_H * 0.80, delay: 150,  duration: 3600 },
     // RIGHT SIDE
-    { name: "airplane",    color: "#1e6bb8", size: 22, x: R,     startY: SCREEN_H * 0.05, delay: 400,  duration: 3300 },
-    { name: "map",         color: "#0A7A4B", size: 22, x: R - 2, startY: SCREEN_H * 0.17, delay: 900,  duration: 3100 },
-    { name: "bar-chart",   color: "#D97706", size: 20, x: R,     startY: SCREEN_H * 0.29, delay: 100,  duration: 3700 },
-    { name: "card",        color: "#DB2777", size: 22, x: R - 2, startY: SCREEN_H * 0.41, delay: 600,  duration: 2900 },
-    { name: "train",       color: "#7C3AED", size: 22, x: R,     startY: SCREEN_H * 0.54, delay: 300,  duration: 3400 },
-    { name: "briefcase",   color: "#1e6bb8", size: 20, x: R - 2, startY: SCREEN_H * 0.66, delay: 750,  duration: 3500 },
-    { name: "key",         color: "#0A7A4B", size: 19, x: R,     startY: SCREEN_H * 0.79, delay: 500,  duration: 3200 },
+    { name: "airplane",    color: C.ocean,       size: 22, x: R,     startY: SCREEN_H * 0.05, delay: 400,  duration: 3300 },
+    { name: "map",         color: C.emeraldDeep, size: 22, x: R - 2, startY: SCREEN_H * 0.17, delay: 900,  duration: 3100 },
+    { name: "bar-chart",   color: C.gold,        size: 20, x: R,     startY: SCREEN_H * 0.29, delay: 100,  duration: 3700 },
+    { name: "card",        color: C.rose,        size: 22, x: R - 2, startY: SCREEN_H * 0.41, delay: 600,  duration: 2900 },
+    { name: "train",       color: C.plum,        size: 22, x: R,     startY: SCREEN_H * 0.54, delay: 300,  duration: 3400 },
+    { name: "briefcase",   color: C.ocean,       size: 20, x: R - 2, startY: SCREEN_H * 0.66, delay: 750,  duration: 3500 },
+    { name: "key",         color: C.emeraldDeep, size: 19, x: R,     startY: SCREEN_H * 0.79, delay: 500,  duration: 3200 },
   ];
   const floatAnims = useRef(FLOAT_ICONS.map((_, i) => new Animated.Value(i % 2 === 0 ? 0 : 0.5))).current;
   useEffect(() => {
@@ -297,19 +457,56 @@ export default function TravelAgentRegisterScreen({ navigation }) {
   // ===== Success screen =====
   if (success) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
-        <View style={styles.successContainer}>
-          <View style={styles.successIcon}>
-            <Ionicons name="checkmark" size={44} color={C.primary} />
-          </View>
-          <Text style={styles.successTitle}>Registration successful</Text>
-          <Text style={styles.successText}>
-            Your travel agent account has been created. Please login and upload your business
-            documents for verification.
-          </Text>
+      <View style={styles.safe}>
+        <StatusBar barStyle="light-content" backgroundColor={C.forestDark} />
 
-          <View style={styles.stepsCard}>
+        <LinearGradient
+          colors={G.hero}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={styles.successHero}
+        >
+          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+          <SafeAreaView edges={["top"]} style={{ paddingHorizontal: GUT }}>
+            <View style={styles.successIconWrap}>
+              {/* Expanding halo behind the badge */}
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.successRing,
+                  {
+                    opacity: successRing.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] }),
+                    transform: [{ scale: successRing.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] }) }],
+                  },
+                ]}
+              />
+              <Animated.View
+                style={[
+                  styles.successIcon,
+                  {
+                    transform: [
+                      { scale: successPop.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) },
+                    ],
+                  },
+                ]}
+              >
+                <Ionicons name="checkmark" size={rs(40)} color="#fff" />
+              </Animated.View>
+            </View>
+            <Text style={styles.successTitle}>Registration successful</Text>
+            <Text style={styles.successText}>
+              Your travel agent account has been created. Please login and upload your business
+              documents for verification.
+            </Text>
+            <View style={{ height: rs(26) }} />
+          </SafeAreaView>
+        </LinearGradient>
+
+        <ScrollView
+          contentContainerStyle={styles.successScroll}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.stepsCard, cardShadow]}>
             <Text style={styles.stepsTitle}>Next steps</Text>
             {[
               "Login to your account",
@@ -318,7 +515,13 @@ export default function TravelAgentRegisterScreen({ navigation }) {
               "Start managing leads, tours & bookings!",
             ].map((t, i) => (
               <View key={i} style={[styles.stepItem, i === 3 && { marginBottom: 0 }]}>
-                <View style={styles.stepNumber}><Text style={styles.stepNumberText}>{i + 1}</Text></View>
+                <LinearGradient
+                  colors={G.emerald}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={styles.stepNumber}
+                >
+                  <Text style={styles.stepNumberText}>{i + 1}</Text>
+                </LinearGradient>
                 <Text style={styles.stepText}>{t}</Text>
               </View>
             ))}
@@ -330,33 +533,48 @@ export default function TravelAgentRegisterScreen({ navigation }) {
             style={{ width: "100%" }}
             onPress={() => navigation.navigate("VendorLoginScreen")}
           />
-        </View>
-      </SafeAreaView>
+        </ScrollView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+    <View style={styles.safe}>
+      <StatusBar barStyle="light-content" backgroundColor={C.forestDark} />
 
       {/* Floating icons overlay */}
       <View style={styles.floatOverlay} pointerEvents="none">
-        {FLOAT_ICONS.map((cfg, i) => (
-          <Animated.View
-            key={i}
-            style={[
-              styles.floatIcon,
-              {
-                left: cfg.x,
-                top: cfg.startY,
-                opacity: floatAnims[i].interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.10, 0.25, 0.10] }),
-                transform: [{ translateY: floatAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) }],
-              },
-            ]}
-          >
-            <Ionicons name={cfg.name} size={cfg.size} color={cfg.color} />
-          </Animated.View>
-        ))}
+        {FLOAT_ICONS.map((cfg, i) => {
+          // Alternate sway/tilt direction per icon so the field feels organic
+          // rather than everything drifting in lockstep.
+          const dir = i % 2 === 0 ? 1 : -1;
+          return (
+            <Animated.View
+              key={i}
+              style={[
+                styles.floatIcon,
+                {
+                  left: cfg.x,
+                  top: cfg.startY,
+                  opacity: floatAnims[i].interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.10, 0.25, 0.10] }),
+                  transform: [
+                    { translateY: floatAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) },
+                    { translateX: floatAnims[i].interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 7 * dir, 0] }) },
+                    {
+                      rotate: floatAnims[i].interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [`${-7 * dir}deg`, `${7 * dir}deg`, `${-7 * dir}deg`],
+                      }),
+                    },
+                    { scale: floatAnims[i].interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.9, 1.12, 0.9] }) },
+                  ],
+                },
+              ]}
+            >
+              <Ionicons name={cfg.name} size={cfg.size} color={cfg.color} />
+            </Animated.View>
+          );
+        })}
       </View>
 
       <KeyboardAvoidingView
@@ -368,346 +586,418 @@ export default function TravelAgentRegisterScreen({ navigation }) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View style={{ opacity: fade, transform: [{ translateY: slide }] }}>
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={styles.logoRow}>
-                <View style={styles.logoBadge}>
-                  <Image source={require("../../../assets/logo-white-tr.png")} style={{ width: 30, height: 30 }} />
-                </View>
+          {/* ── Hero ── */}
+          <LinearGradient
+            colors={G.hero}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.hero}
+          >
+            <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+            <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+
+            <SafeAreaView edges={["top"]} style={{ paddingHorizontal: GUT }}>
+              {/* Back button — only on Step 2. Returns to Step 1 so the
+                  entered Basic Info stays visible/editable. Intentionally
+                  hidden on Step 1 to avoid an accidental exit that would
+                  discard what the user typed. */}
+              {step === 2 && (
+                <TouchableOpacity
+                  style={styles.headerBackBtn}
+                  onPress={() => setStep(1)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="arrow-back" size={rs(17)} color="#fff" />
+                  <Text style={styles.headerBackText}>Back to Basic Info</Text>
+                </TouchableOpacity>
+              )}
+
+              <Animated.View style={[styles.logoRow, revealStyle(heroSteps[0])]}>
+                <Animated.View
+                  style={[
+                    styles.logoBadge,
+                    {
+                      transform: [
+                        { scale: logoPop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) },
+                        { rotate: logoPop.interpolate({ inputRange: [0, 1], outputRange: ["-25deg", "0deg"] }) },
+                      ],
+                    },
+                  ]}
+                >
+                  <Image source={require("../../../assets/logo-white-tr.png")} style={{ width: rs(28), height: rs(28) }} />
+                </Animated.View>
                 <Image
                   source={require("../../../assets/logo-trans.png")}
                   style={styles.logoWordmark}
                   resizeMode="contain"
                 />
-              </View>
-              <Text style={styles.title}>Become a Travel Agent</Text>
-              <Text style={styles.subtitle}>
+              </Animated.View>
+
+              <Animated.Text style={[styles.title, revealStyle(heroSteps[1])]}>
+                Become a Travel Agent
+              </Animated.Text>
+              <Animated.Text style={[styles.subtitle, revealStyle(heroSteps[2])]}>
                 Manage leads, tours, properties and bookings — all in one place.
-              </Text>
-            </View>
+              </Animated.Text>
 
-            {/* Progress */}
-            <View style={styles.progressBlock}>
-              <View style={styles.progressTopRow}>
-                <Text style={styles.progressStepText}>
-                  Step {step} of 2 · <Text style={{ color: C.ink, fontWeight: "700" }}>
-                    {step === 1 ? "Basic Info" : "Business Details"}
-                  </Text>
-                </Text>
-                <Text style={styles.progressPct}>{step === 1 ? "50%" : "100%"}</Text>
-              </View>
-              <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: step === 1 ? "50%" : "100%" }]} />
-              </View>
-            </View>
-
-            {/* Step 1 */}
-            {step === 1 && (
-              <>
-                <SectionHeader label="AGENCY" />
-
-                <Field label="Agency Name" required valid={formData.agencyName.trim().length >= 2} icon="briefcase-outline">
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Your agency name"
-                    placeholderTextColor={C.faint}
-                    value={formData.agencyName}
-                    onChangeText={(v) => handleChange("agencyName", v)}
-                  />
-                  {formData.agencyName.trim().length >= 2 && (
-                    <Ionicons name="checkmark-circle" size={20} color={C.primary} style={styles.rightIcon} />
-                  )}
-                </Field>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Agency Type</Text>
-                  <TouchableOpacity style={styles.inputWrap} onPress={() => setShowAgencyTypeModal(true)} activeOpacity={0.7}>
-                    <Ionicons name="business-outline" size={18} color={C.faint} style={styles.leftIcon} />
-                    <Text style={[styles.dropdownText, !formData.agencyType && styles.dropdownPlaceholder]}>
-                      {formData.agencyType || "Select agency type"}
+              {/* Progress */}
+              <Animated.View style={[styles.progressBlock, revealStyle(heroSteps[3])]}>
+                <View style={styles.progressTopRow}>
+                  <Text style={styles.progressStepText}>
+                    Step {step} of 2 · <Text style={styles.progressStepName}>
+                      {step === 1 ? "Basic Info" : "Business Details"}
                     </Text>
-                    <Ionicons name="chevron-down" size={20} color={C.faint} style={styles.rightIcon} />
-                  </TouchableOpacity>
+                  </Text>
+                  <Animated.Text style={[styles.progressPct, { transform: [{ scale: pctPop }] }]}>
+                    {step === 1 ? "50%" : "100%"}
+                  </Animated.Text>
                 </View>
-
-                <SectionHeader label="CONTACT" />
-
-                <Field label="Owner / Contact Name" required valid={formData.ownerName.trim().length >= 2} icon="person-outline">
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Full name"
-                    placeholderTextColor={C.faint}
-                    value={formData.ownerName}
-                    onChangeText={(v) => handleChange("ownerName", v)}
-                  />
-                  {formData.ownerName.trim().length >= 2 && (
-                    <Ionicons name="checkmark-circle" size={20} color={C.primary} style={styles.rightIcon} />
-                  )}
-                </Field>
-
-                <Field
-                  label="Email"
-                  required
-                  icon="mail-outline"
-                  valid={!!formData.email && isEmailValid}
-                  invalid={!!formData.email && !isEmailValid}
-                  helper={formData.email && !isEmailValid ? "Please enter a valid email" : undefined}
-                >
-                  <TextInput
-                    style={styles.input}
-                    placeholder="agency@example.com"
-                    placeholderTextColor={C.faint}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={formData.email}
-                    onChangeText={(v) => handleChange("email", v)}
-                  />
-                  {!!formData.email && (
-                    <Ionicons
-                      name={isEmailValid ? "checkmark-circle" : "alert-circle"}
-                      size={20}
-                      color={isEmailValid ? C.primary : C.error}
-                      style={styles.rightIcon}
-                    />
-                  )}
-                </Field>
-
-                {/* Phone */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Phone<Text style={styles.req}> *</Text></Text>
-                  <View
+                <View style={styles.progressTrack}>
+                  <Animated.View
                     style={[
-                      styles.inputWrap,
-                      formData.phone && (isPhoneValid ? styles.inputOK : styles.inputError),
+                      styles.progressFillWrap,
+                      { width: progress.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) },
                     ]}
                   >
-                    <View style={styles.phonePrefix}>
-                      <Text style={styles.phonePrefixText}>+91</Text>
-                    </View>
-                    <TextInput
-                      style={styles.phoneInput}
-                      placeholder="9737965551"
-                      placeholderTextColor={C.faint}
-                      keyboardType="phone-pad"
-                      value={formData.phone}
-                      onChangeText={(v) => handleChange("phone", v.replace(/\D/g, ""))}
-                      maxLength={10}
+                    <LinearGradient
+                      colors={G.gold}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                      style={styles.progressFill}
                     />
-                    {!!formData.phone && (
+                  </Animated.View>
+                </View>
+              </Animated.View>
+
+              <View style={{ height: rs(26) }} />
+            </SafeAreaView>
+          </LinearGradient>
+
+          <Animated.View style={{ opacity: fade, transform: [{ translateY: slide }] }}>
+            {/* ── Form card tucked into the hero curve ── */}
+            <Animated.View
+              style={[
+                styles.formCard,
+                cardShadow,
+                {
+                  opacity: stepAnim,
+                  transform: [
+                    {
+                      translateX: stepAnim.interpolate({
+                        inputRange: [0, 1],
+                        // forward (→ step 2) enters from the right, Back from the left
+                        outputRange: [step === 2 ? rs(30) : -rs(30), 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              {/* Step 1 */}
+              {step === 1 && (
+                <>
+                  <SectionHeader label="AGENCY" />
+
+                  <Field label="Agency Name" required valid={formData.agencyName.trim().length >= 2} icon="briefcase-outline">
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Your agency name"
+                      placeholderTextColor={C.muted}
+                      value={formData.agencyName}
+                      onChangeText={(v) => handleChange("agencyName", v)}
+                    />
+                    {formData.agencyName.trim().length >= 2 && (
+                      <Ionicons name="checkmark-circle" size={rs(20)} color={C.emerald} style={styles.rightIcon} />
+                    )}
+                  </Field>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Agency Type</Text>
+                    <TouchableOpacity style={styles.inputWrap} onPress={() => setShowAgencyTypeModal(true)} activeOpacity={0.7}>
+                      <Ionicons name="business-outline" size={rs(18)} color={C.muted} style={styles.leftIcon} />
+                      <Text style={[styles.dropdownText, !formData.agencyType && styles.dropdownPlaceholder]}>
+                        {formData.agencyType || "Select agency type"}
+                      </Text>
+                      <Ionicons name="chevron-down" size={rs(20)} color={C.muted} style={styles.rightIcon} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <SectionHeader label="CONTACT" />
+
+                  <Field label="Owner / Contact Name" required valid={formData.ownerName.trim().length >= 2} icon="person-outline">
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Full name"
+                      placeholderTextColor={C.muted}
+                      value={formData.ownerName}
+                      onChangeText={(v) => handleChange("ownerName", v)}
+                    />
+                    {formData.ownerName.trim().length >= 2 && (
+                      <Ionicons name="checkmark-circle" size={rs(20)} color={C.emerald} style={styles.rightIcon} />
+                    )}
+                  </Field>
+
+                  <Field
+                    label="Email"
+                    required
+                    icon="mail-outline"
+                    valid={!!formData.email && isEmailValid}
+                    invalid={!!formData.email && !isEmailValid}
+                    helper={formData.email && !isEmailValid ? "Please enter a valid email" : undefined}
+                  >
+                    <TextInput
+                      style={styles.input}
+                      placeholder="agency@example.com"
+                      placeholderTextColor={C.muted}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      value={formData.email}
+                      onChangeText={(v) => handleChange("email", v)}
+                    />
+                    {!!formData.email && (
                       <Ionicons
-                        name={isPhoneValid ? "checkmark-circle" : "alert-circle"}
-                        size={20}
-                        color={isPhoneValid ? C.primary : C.error}
+                        name={isEmailValid ? "checkmark-circle" : "alert-circle"}
+                        size={rs(20)}
+                        color={isEmailValid ? C.emerald : C.red}
                         style={styles.rightIcon}
                       />
                     )}
-                  </View>
-                  {formData.phone && !isPhoneValid && (
-                    <Text style={styles.helperError}>Please enter a valid 10-digit phone number</Text>
-                  )}
-                </View>
+                  </Field>
 
-                <SectionHeader label="SECURITY" />
-
-                {/* Password */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Password<Text style={styles.req}> *</Text></Text>
-                  <View
-                    style={[
-                      styles.inputWrap,
-                      formData.password && (isPasswordValid ? styles.inputOK : styles.inputError),
-                    ]}
-                  >
-                    <Ionicons name="lock-closed-outline" size={18} color={C.faint} style={styles.leftIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Min 8 characters"
-                      placeholderTextColor={C.faint}
-                      secureTextEntry={!isPasswordVisible}
-                      value={formData.password}
-                      onChangeText={(v) => handleChange("password", v)}
-                    />
-                    <TouchableOpacity onPress={() => setIsPasswordVisible((v) => !v)} style={styles.eyeBtn}>
-                      <Ionicons name={isPasswordVisible ? "eye" : "eye-off"} size={18} color={C.faint} />
-                    </TouchableOpacity>
-                  </View>
-                  {!!formData.password && (() => {
-                    const p = formData.password;
-                    let s = 0;
-                    if (p.length >= 8) s++; if (/[A-Z]/.test(p)) s++; if (/[a-z]/.test(p)) s++;
-                    if (/\d/.test(p)) s++; if (/[^A-Za-z0-9]/.test(p)) s++;
-                    s = Math.min(s, 5);
-                    const color = s <= 2 ? "#EF4444" : s === 3 ? "#F59E0B" : "#22C55E";
-                    const label = s <= 2 ? "Weak" : s === 3 ? "Fair" : "Strong";
-                    return (
-                      <View style={styles.pwStrengthRow}>
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <View key={i} style={[styles.pwStrengthSeg, { backgroundColor: i <= s ? color : C.border }]} />
-                        ))}
-                        <Text style={[styles.pwStrengthText, { color }]}>{label}</Text>
+                  {/* Phone */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Phone<Text style={styles.req}> *</Text></Text>
+                    <View
+                      style={[
+                        styles.inputWrap,
+                        formData.phone && (isPhoneValid ? styles.inputOK : styles.inputError),
+                      ]}
+                    >
+                      <View style={styles.phonePrefix}>
+                        <Text style={styles.phonePrefixText}>+91</Text>
                       </View>
-                    );
-                  })()}
-                  {formData.password && !isPasswordValid && (
-                    <Text style={styles.helperError}>Password must be at least 8 characters</Text>
-                  )}
-                </View>
+                      <TextInput
+                        style={styles.phoneInput}
+                        placeholder="9737965551"
+                        placeholderTextColor={C.muted}
+                        keyboardType="phone-pad"
+                        value={formData.phone}
+                        onChangeText={(v) => handleChange("phone", v.replace(/\D/g, ""))}
+                        maxLength={10}
+                      />
+                      {!!formData.phone && (
+                        <Ionicons
+                          name={isPhoneValid ? "checkmark-circle" : "alert-circle"}
+                          size={rs(20)}
+                          color={isPhoneValid ? C.emerald : C.red}
+                          style={styles.rightIcon}
+                        />
+                      )}
+                    </View>
+                    {formData.phone && !isPhoneValid && (
+                      <Text style={styles.helperError}>Please enter a valid 10-digit phone number</Text>
+                    )}
+                  </View>
 
-                {/* Confirm Password */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Confirm Password<Text style={styles.req}> *</Text></Text>
-                  <View
-                    style={[
-                      styles.inputWrap,
-                      formData.confirmPassword && (passwordsMatch ? styles.inputOK : styles.inputError),
-                    ]}
+                  <SectionHeader label="SECURITY" />
+
+                  {/* Password */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Password<Text style={styles.req}> *</Text></Text>
+                    <View
+                      style={[
+                        styles.inputWrap,
+                        formData.password && (isPasswordValid ? styles.inputOK : styles.inputError),
+                      ]}
+                    >
+                      <Ionicons name="lock-closed-outline" size={rs(18)} color={C.muted} style={styles.leftIcon} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Min 8 characters"
+                        placeholderTextColor={C.muted}
+                        secureTextEntry={!isPasswordVisible}
+                        value={formData.password}
+                        onChangeText={(v) => handleChange("password", v)}
+                      />
+                      <TouchableOpacity onPress={() => setIsPasswordVisible((v) => !v)} style={styles.eyeBtn}>
+                        <Ionicons name={isPasswordVisible ? "eye" : "eye-off"} size={rs(18)} color={C.muted} />
+                      </TouchableOpacity>
+                    </View>
+                    {!!formData.password && (() => {
+                      const p = formData.password;
+                      let s = 0;
+                      if (p.length >= 8) s++; if (/[A-Z]/.test(p)) s++; if (/[a-z]/.test(p)) s++;
+                      if (/\d/.test(p)) s++; if (/[^A-Za-z0-9]/.test(p)) s++;
+                      s = Math.min(s, 5);
+                      const color = s <= 2 ? C.red : s === 3 ? C.gold : C.emerald;
+                      const label = s <= 2 ? "Weak" : s === 3 ? "Fair" : "Strong";
+                      return (
+                        <View style={styles.pwStrengthRow}>
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <View key={i} style={[styles.pwStrengthSeg, { backgroundColor: i <= s ? color : C.border }]} />
+                          ))}
+                          <Text style={[styles.pwStrengthText, { color }]}>{label}</Text>
+                        </View>
+                      );
+                    })()}
+                    {formData.password && !isPasswordValid && (
+                      <Text style={styles.helperError}>Password must be at least 8 characters</Text>
+                    )}
+                  </View>
+
+                  {/* Confirm Password */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Confirm Password<Text style={styles.req}> *</Text></Text>
+                    <View
+                      style={[
+                        styles.inputWrap,
+                        formData.confirmPassword && (passwordsMatch ? styles.inputOK : styles.inputError),
+                      ]}
+                    >
+                      <Ionicons name="lock-closed-outline" size={rs(18)} color={C.muted} style={styles.leftIcon} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Re-enter your password"
+                        placeholderTextColor={C.muted}
+                        secureTextEntry={!isConfirmPasswordVisible}
+                        value={formData.confirmPassword}
+                        onChangeText={(v) => handleChange("confirmPassword", v)}
+                      />
+                      <TouchableOpacity onPress={() => setIsConfirmPasswordVisible((v) => !v)} style={styles.eyeBtn}>
+                        <Ionicons name={isConfirmPasswordVisible ? "eye" : "eye-off"} size={rs(18)} color={C.muted} />
+                      </TouchableOpacity>
+                    </View>
+                    {formData.confirmPassword && !passwordsMatch && (
+                      <Text style={styles.helperError}>Passwords do not match</Text>
+                    )}
+                  </View>
+
+                  <PrimaryButton label="Continue" onPress={handleNextStep} disabled={!isStep1Valid} />
+
+                  {/* Skip optional business details and register directly */}
+                  <TouchableOpacity
+                    style={styles.skipBtn}
+                    onPress={handleSkipRegister}
+                    disabled={loading}
+                    activeOpacity={0.7}
                   >
-                    <Ionicons name="lock-closed-outline" size={18} color={C.faint} style={styles.leftIcon} />
+                    {loading ? (
+                      <ActivityIndicator size="small" color={C.emeraldDeep} />
+                    ) : (
+                      <Text style={styles.skipText}>
+                        Skip &amp; register without business details
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {/* Step 2 */}
+              {step === 2 && (
+                <>
+                  <SectionHeader label="TAX INFORMATION" hint="Optional" />
+
+                  <Field label="GST Number" icon="document-text-outline" helper="Can be added later">
+                    <TextInput
+                      style={[styles.input, { textTransform: "uppercase" }]}
+                      placeholder="22AAAAA0000A1Z5"
+                      placeholderTextColor={C.muted}
+                      value={formData.gstNumber}
+                      onChangeText={(v) => handleChange("gstNumber", v.toUpperCase())}
+                      maxLength={15}
+                      autoCapitalize="characters"
+                    />
+                  </Field>
+
+                  <Field label="PAN Number" icon="card-outline">
+                    <TextInput
+                      style={[styles.input, { textTransform: "uppercase" }]}
+                      placeholder="AAAAA0000A"
+                      placeholderTextColor={C.muted}
+                      value={formData.panNumber}
+                      onChangeText={(v) => handleChange("panNumber", v.toUpperCase())}
+                      maxLength={10}
+                      autoCapitalize="characters"
+                    />
+                  </Field>
+
+                  <SectionHeader label="BUSINESS ADDRESS" />
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Street Address</Text>
+                    <View style={[styles.inputWrap, styles.textareaWrap]}>
+                      <Ionicons name="location-outline" size={rs(18)} color={C.muted} style={[styles.leftIcon, { top: rs(16) }]} />
+                      <TextInput
+                        style={[styles.input, { textAlignVertical: "top", paddingTop: 0 }]}
+                        placeholder="Street address, building name, etc."
+                        placeholderTextColor={C.muted}
+                        value={formData.address}
+                        onChangeText={(v) => handleChange("address", v)}
+                        multiline
+                        numberOfLines={2}
+                      />
+                    </View>
+                  </View>
+
+                  <Field label="City" icon="business-outline">
                     <TextInput
                       style={styles.input}
-                      placeholder="Re-enter your password"
-                      placeholderTextColor={C.faint}
-                      secureTextEntry={!isConfirmPasswordVisible}
-                      value={formData.confirmPassword}
-                      onChangeText={(v) => handleChange("confirmPassword", v)}
+                      placeholder="City"
+                      placeholderTextColor={C.muted}
+                      value={formData.city}
+                      onChangeText={(v) => handleChange("city", v)}
                     />
-                    <TouchableOpacity onPress={() => setIsConfirmPasswordVisible((v) => !v)} style={styles.eyeBtn}>
-                      <Ionicons name={isConfirmPasswordVisible ? "eye" : "eye-off"} size={18} color={C.faint} />
+                  </Field>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>State</Text>
+                    <TouchableOpacity style={styles.inputWrap} onPress={() => setShowStateModal(true)} activeOpacity={0.7}>
+                      <Ionicons name="map-outline" size={rs(18)} color={C.muted} style={styles.leftIcon} />
+                      <Text style={[styles.dropdownText, !formData.state && styles.dropdownPlaceholder]}>
+                        {formData.state || "Select state"}
+                      </Text>
+                      <Ionicons name="chevron-down" size={rs(20)} color={C.muted} style={styles.rightIcon} />
                     </TouchableOpacity>
                   </View>
-                  {formData.confirmPassword && !passwordsMatch && (
-                    <Text style={styles.helperError}>Passwords do not match</Text>
-                  )}
-                </View>
 
-                <PrimaryButton label="Continue" onPress={handleNextStep} disabled={!isStep1Valid} />
-
-                {/* Skip optional business details and register directly */}
-                <TouchableOpacity
-                  style={styles.skipBtn}
-                  onPress={handleSkipRegister}
-                  disabled={loading}
-                  activeOpacity={0.7}
-                >
-                  {loading ? (
-                    <ActivityIndicator size="small" color={C.primary} />
-                  ) : (
-                    <Text style={styles.skipText}>
-                      Skip & register without business details
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </>
-            )}
-
-            {/* Step 2 */}
-            {step === 2 && (
-              <>
-                <SectionHeader label="TAX INFORMATION" hint="Optional" />
-
-                <Field label="GST Number" icon="document-text-outline" helper="Can be added later">
-                  <TextInput
-                    style={[styles.input, { textTransform: "uppercase" }]}
-                    placeholder="22AAAAA0000A1Z5"
-                    placeholderTextColor={C.faint}
-                    value={formData.gstNumber}
-                    onChangeText={(v) => handleChange("gstNumber", v.toUpperCase())}
-                    maxLength={15}
-                    autoCapitalize="characters"
-                  />
-                </Field>
-
-                <Field label="PAN Number" icon="card-outline">
-                  <TextInput
-                    style={[styles.input, { textTransform: "uppercase" }]}
-                    placeholder="AAAAA0000A"
-                    placeholderTextColor={C.faint}
-                    value={formData.panNumber}
-                    onChangeText={(v) => handleChange("panNumber", v.toUpperCase())}
-                    maxLength={10}
-                    autoCapitalize="characters"
-                  />
-                </Field>
-
-                <SectionHeader label="BUSINESS ADDRESS" />
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Street Address</Text>
-                  <View style={[styles.inputWrap, styles.textareaWrap]}>
-                    <Ionicons name="location-outline" size={18} color={C.faint} style={[styles.leftIcon, { top: 16 }]} />
+                  <Field label="Pincode" icon="navigate-outline">
                     <TextInput
-                      style={[styles.input, { textAlignVertical: "top", paddingTop: 0 }]}
-                      placeholder="Street address, building name, etc."
-                      placeholderTextColor={C.faint}
-                      value={formData.address}
-                      onChangeText={(v) => handleChange("address", v)}
-                      multiline
-                      numberOfLines={2}
+                      style={styles.input}
+                      placeholder="380001"
+                      placeholderTextColor={C.muted}
+                      keyboardType="number-pad"
+                      value={formData.pincode}
+                      onChangeText={(v) => handleChange("pincode", v.replace(/\D/g, ""))}
+                      maxLength={6}
+                    />
+                  </Field>
+
+                  {/* Buttons */}
+                  <View style={styles.buttonRow}>
+                    <TouchableOpacity style={styles.backBtn} onPress={() => setStep(1)} activeOpacity={0.8}>
+                      <Ionicons name="arrow-back" size={rs(18)} color={C.sub} />
+                      <Text style={styles.backBtnText}>Back</Text>
+                    </TouchableOpacity>
+
+                    <PrimaryButton
+                      label="Create Account"
+                      onPress={handleRegister}
+                      loading={loading}
+                      disabled={loading}
+                      style={{ flex: 1, marginTop: 0 }}
                     />
                   </View>
-                </View>
 
-                <Field label="City" icon="business-outline">
-                  <TextInput
-                    style={styles.input}
-                    placeholder="City"
-                    placeholderTextColor={C.faint}
-                    value={formData.city}
-                    onChangeText={(v) => handleChange("city", v)}
-                  />
-                </Field>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>State</Text>
-                  <TouchableOpacity style={styles.inputWrap} onPress={() => setShowStateModal(true)} activeOpacity={0.7}>
-                    <Ionicons name="map-outline" size={18} color={C.faint} style={styles.leftIcon} />
-                    <Text style={[styles.dropdownText, !formData.state && styles.dropdownPlaceholder]}>
-                      {formData.state || "Select state"}
-                    </Text>
-                    <Ionicons name="chevron-down" size={20} color={C.faint} style={styles.rightIcon} />
-                  </TouchableOpacity>
-                </View>
-
-                <Field label="Pincode" icon="navigate-outline">
-                  <TextInput
-                    style={styles.input}
-                    placeholder="380001"
-                    placeholderTextColor={C.faint}
-                    keyboardType="number-pad"
-                    value={formData.pincode}
-                    onChangeText={(v) => handleChange("pincode", v.replace(/\D/g, ""))}
-                    maxLength={6}
-                  />
-                </Field>
-
-                {/* Buttons */}
-                <View style={styles.buttonRow}>
-                  <TouchableOpacity style={styles.backBtn} onPress={() => setStep(1)} activeOpacity={0.8}>
-                    <Ionicons name="arrow-back" size={18} color={C.text} />
-                    <Text style={styles.backBtnText}>Back</Text>
-                  </TouchableOpacity>
-
-                  <PrimaryButton
-                    label="Create Account"
+                  {/* Skip the optional business details and register now */}
+                  <TouchableOpacity
+                    style={styles.skipBtn}
                     onPress={handleRegister}
-                    loading={loading}
                     disabled={loading}
-                    style={{ flex: 1, marginTop: 0 }}
-                  />
-                </View>
-
-                {/* Skip the optional business details and register now */}
-                <TouchableOpacity
-                  style={styles.skipBtn}
-                  onPress={handleRegister}
-                  disabled={loading}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.skipText}>Skip for now &amp; create account</Text>
-                </TouchableOpacity>
-              </>
-            )}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.skipText}>Skip for now &amp; create account</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </Animated.View>
 
             {/* Login link */}
             <View style={styles.loginRow}>
@@ -719,8 +1009,8 @@ export default function TravelAgentRegisterScreen({ navigation }) {
 
             {/* Trust note */}
             <View style={styles.trustRow}>
-              <Ionicons name="shield-checkmark-outline" size={15} color={C.faint} />
-              <Text style={styles.trustText}>Your details are kept private & secure.</Text>
+              <Ionicons name="shield-checkmark-outline" size={rs(15)} color={C.muted} />
+              <Text style={styles.trustText}>Your details are kept private &amp; secure.</Text>
             </View>
           </Animated.View>
         </ScrollView>
@@ -742,14 +1032,19 @@ export default function TravelAgentRegisterScreen({ navigation }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <View style={styles.modalHandle} />
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Agency Type</Text>
-              <TouchableOpacity style={styles.modalClose} onPress={() => setShowAgencyTypeModal(false)}>
-                <Ionicons name="close" size={22} color={C.text} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+            <LinearGradient
+              colors={G.hero}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.modalHeaderGrad}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Agency Type</Text>
+                <TouchableOpacity style={styles.modalClose} onPress={() => setShowAgencyTypeModal(false)}>
+                  <Ionicons name="close" size={rs(21)} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+            <ScrollView style={styles.modalList} contentContainerStyle={{ paddingVertical: rs(14) }} showsVerticalScrollIndicator={false}>
               {AGENCY_TYPES.map((type) => (
                 <TouchableOpacity
                   key={type}
@@ -763,7 +1058,7 @@ export default function TravelAgentRegisterScreen({ navigation }) {
                     {type}
                   </Text>
                   {formData.agencyType === type && (
-                    <Ionicons name="checkmark-circle" size={22} color={C.primary} />
+                    <Ionicons name="checkmark-circle" size={rs(21)} color={C.emeraldDeep} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -781,14 +1076,19 @@ export default function TravelAgentRegisterScreen({ navigation }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <View style={styles.modalHandle} />
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select State</Text>
-              <TouchableOpacity style={styles.modalClose} onPress={() => setShowStateModal(false)}>
-                <Ionicons name="close" size={22} color={C.text} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+            <LinearGradient
+              colors={G.hero}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.modalHeaderGrad}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select State</Text>
+                <TouchableOpacity style={styles.modalClose} onPress={() => setShowStateModal(false)}>
+                  <Ionicons name="close" size={rs(21)} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+            <ScrollView style={styles.modalList} contentContainerStyle={{ paddingVertical: rs(14) }} showsVerticalScrollIndicator={false}>
               {STATES.map((state) => (
                 <TouchableOpacity
                   key={state}
@@ -802,7 +1102,7 @@ export default function TravelAgentRegisterScreen({ navigation }) {
                     {state}
                   </Text>
                   {formData.state === state && (
-                    <Ionicons name="checkmark-circle" size={22} color={C.primary} />
+                    <Ionicons name="checkmark-circle" size={rs(21)} color={C.emeraldDeep} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -810,7 +1110,7 @@ export default function TravelAgentRegisterScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -818,132 +1118,245 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
   floatOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 },
   floatIcon: { position: "absolute" },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 12, paddingBottom: 36 },
+  scrollContent: { flexGrow: 1, paddingBottom: rs(36) },
 
-  // ===== Header =====
-  header: { alignItems: "flex-start", marginBottom: 22 },
-  logoRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 18 },
+  // ===== Hero =====
+  hero: {
+    paddingBottom: rs(8),
+    borderBottomLeftRadius: rs(28),
+    borderBottomRightRadius: rs(28),
+    overflow: "hidden",
+  },
+  orbA: {
+    position: "absolute", top: -rs(60), right: -rs(40),
+    width: rs(190), height: rs(190), borderRadius: rs(95),
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  orbB: {
+    position: "absolute", bottom: -rs(70), left: -rs(50),
+    width: rs(170), height: rs(170), borderRadius: rs(85),
+    backgroundColor: "rgba(46,158,120,0.16)",
+  },
+  headerBackBtn: {
+    flexDirection: "row", alignItems: "center", gap: rs(6),
+    alignSelf: "flex-start", marginTop: rs(8), marginBottom: rs(4),
+    paddingVertical: rs(7), paddingHorizontal: rs(12), borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.16)",
+  },
+  headerBackText: { fontFamily: DISPLAY, fontSize: rf(12.5), color: "#fff", fontWeight: "bold" },
+  logoRow: { flexDirection: "row", alignItems: "center", gap: rs(10), marginTop: rs(14), marginBottom: rs(18) },
   logoBadge: {
-    width: 48, height: 48, borderRadius: 14, backgroundColor: C.primary,
+    width: rs(46), height: rs(46), borderRadius: rs(15),
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.18)",
     alignItems: "center", justifyContent: "center",
   },
-  logoWordmark: { height: 28, width: 140 },
-  title: { fontSize: 24, fontWeight: "800", color: C.ink, letterSpacing: -0.3 },
-  subtitle: { fontSize: 14, color: C.sub, marginTop: 6, lineHeight: 20 },
+  logoWordmark: { height: rs(26), width: rs(136), tintColor: "#fff" },
+  title: { fontFamily: DISPLAY, fontSize: rf(25), color: "#fff", letterSpacing: 0.2 },
+  subtitle: {
+    fontFamily: DISPLAY, fontSize: rf(12.5), color: "rgba(255,255,255,0.7)",
+    marginTop: rs(5), lineHeight: rf(18), fontWeight: "600",
+  },
 
   // ===== Progress =====
-  progressBlock: { marginBottom: 24 },
-  progressTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  progressStepText: { fontSize: 13, color: C.sub, fontWeight: "500" },
-  progressPct: { fontSize: 13, color: C.primary, fontWeight: "700" },
-  progressTrack: { height: 6, borderRadius: 3, backgroundColor: C.border, overflow: "hidden" },
-  progressFill: { height: "100%", borderRadius: 3, backgroundColor: C.primary },
+  progressBlock: { marginTop: rs(20) },
+  progressTopRow: {
+    flexDirection: "row", justifyContent: "space-between",
+    alignItems: "center", marginBottom: rs(8),
+  },
+  progressStepText: {
+    fontFamily: DISPLAY, fontSize: rf(11.5),
+    color: "rgba(255,255,255,0.6)", fontWeight: "600",
+  },
+  progressStepName: { color: "#fff", fontWeight: "bold" },
+  progressPct: { fontFamily: DISPLAY, fontSize: rf(12.5), color: C.goldLight, fontWeight: "bold" },
+  progressTrack: {
+    height: rs(7), borderRadius: rs(4),
+    backgroundColor: "rgba(255,255,255,0.18)", overflow: "hidden",
+  },
+  progressFillWrap: { height: "100%", borderRadius: rs(4), overflow: "hidden" },
+  progressFill: { flex: 1, borderRadius: rs(4) },
+
+  // ===== Form card =====
+  formCard: {
+    marginHorizontal: GUT, marginTop: -rs(20),
+    backgroundColor: C.card, borderRadius: rs(20),
+    paddingHorizontal: rs(16), paddingTop: rs(6), paddingBottom: rs(18),
+    borderWidth: 1, borderColor: C.glassBorder,
+  },
 
   // ===== Section header =====
-  sectionHeader: { flexDirection: "row", alignItems: "center", marginTop: 10, marginBottom: 14 },
-  sectionLabel: { fontSize: 12, fontWeight: "800", color: C.faint, letterSpacing: 1.2 },
-  sectionHint: { fontSize: 11, fontWeight: "600", color: C.faint, marginLeft: 8, fontStyle: "italic" },
-  sectionRule: { flex: 1, height: 1, backgroundColor: C.border, marginLeft: 12 },
+  sectionHeader: { flexDirection: "row", alignItems: "center", marginTop: rs(14), marginBottom: rs(14) },
+  sectionLabel: {
+    fontFamily: DISPLAY, fontSize: rf(11), fontWeight: "bold",
+    color: C.emeraldDeep, letterSpacing: 1.2,
+  },
+  sectionHint: {
+    fontFamily: DISPLAY, fontSize: rf(10.5), fontWeight: "600",
+    color: C.muted, marginLeft: rs(8), fontStyle: "italic",
+  },
+  sectionRule: { flex: 1, height: 1, backgroundColor: C.border, marginLeft: rs(12) },
 
   // ===== Inputs =====
-  inputGroup: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: "600", color: C.text, marginBottom: 7 },
-  req: { color: C.primary, fontWeight: "800" },
-  inputWrap: {
-    flexDirection: "row", alignItems: "center", backgroundColor: C.field,
-    borderWidth: 1, borderColor: C.border, borderRadius: 12, height: 52,
+  inputGroup: { marginBottom: rs(16) },
+  label: {
+    fontFamily: DISPLAY, fontSize: rf(12), fontWeight: "bold",
+    color: C.sub, marginBottom: rs(7),
+    letterSpacing: 0.3,
   },
-  textareaWrap: { height: 80, alignItems: "flex-start", paddingTop: 12 },
-  input: { flex: 1, paddingLeft: 42, paddingRight: 42, fontSize: 15, color: C.ink, fontWeight: "500" },
-  leftIcon: { position: "absolute", left: 14 },
-  rightIcon: { position: "absolute", right: 14 },
-  eyeBtn: { position: "absolute", right: 10, height: "100%", width: 40, alignItems: "center", justifyContent: "center" },
+  req: { color: C.gold, fontWeight: "bold" },
+  inputWrap: {
+    flexDirection: "row", alignItems: "center", backgroundColor: C.ivory,
+    borderWidth: 1, borderColor: C.border, borderRadius: rs(13), height: rs(52),
+  },
+  textareaWrap: { height: rs(80), alignItems: "flex-start", paddingTop: rs(12) },
+  input: {
+    fontFamily: DISPLAY, flex: 1, paddingLeft: rs(42), paddingRight: rs(42),
+    fontSize: rf(15), color: C.ink, fontWeight: "500",
+  },
+  leftIcon: { position: "absolute", left: rs(14) },
+  rightIcon: { position: "absolute", right: rs(14) },
+  eyeBtn: {
+    position: "absolute", right: rs(10), height: "100%", width: rs(40),
+    alignItems: "center", justifyContent: "center",
+  },
 
   // Phone +91 prefix
   phonePrefix: {
-    height: "100%", justifyContent: "center", paddingLeft: 14, paddingRight: 12,
-    borderRightWidth: 1, borderRightColor: C.border, marginRight: 12,
+    height: "100%", justifyContent: "center", paddingLeft: rs(14), paddingRight: rs(12),
+    borderRightWidth: 1, borderRightColor: C.border, marginRight: rs(12),
   },
-  phonePrefixText: { fontSize: 15, fontWeight: "700", color: C.text },
-  phoneInput: { flex: 1, paddingRight: 42, fontSize: 15, color: C.ink, fontWeight: "500" },
+  phonePrefixText: { fontFamily: DISPLAY, fontSize: rf(15), fontWeight: "bold", color: C.ink },
+  phoneInput: {
+    fontFamily: DISPLAY, flex: 1, paddingRight: rs(42),
+    fontSize: rf(15), color: C.ink, fontWeight: "500",
+  },
 
-  dropdownText: { flex: 1, paddingLeft: 42, paddingRight: 42, fontSize: 15, color: C.ink, fontWeight: "500" },
-  dropdownPlaceholder: { color: C.faint, fontWeight: "400" },
+  dropdownText: {
+    fontFamily: DISPLAY, flex: 1, paddingLeft: rs(42), paddingRight: rs(42),
+    fontSize: rf(15), color: C.ink, fontWeight: "500",
+  },
+  dropdownPlaceholder: { color: C.muted, fontWeight: "400" },
 
-  inputOK: { borderColor: C.primary, backgroundColor: "#FFFFFF" },
-  inputError: { borderColor: C.error, backgroundColor: "#FFFFFF" },
-  helperText: { color: C.sub, fontSize: 12, marginTop: 6 },
-  helperError: { color: C.error, fontSize: 12.5, marginTop: 6 },
+  inputOK: { borderColor: C.emerald, backgroundColor: C.card },
+  inputError: { borderColor: C.red, backgroundColor: C.card },
+  helperText: { fontFamily: DISPLAY, color: C.muted, fontSize: rf(11.5), marginTop: rs(6), fontWeight: "600" },
+  helperError: { fontFamily: DISPLAY, color: C.red, fontSize: rf(12), marginTop: rs(6), fontWeight: "600" },
 
-  pwStrengthRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 },
-  pwStrengthSeg: { flex: 1, height: 4, borderRadius: 2 },
-  pwStrengthText: { marginLeft: 6, fontWeight: "700", fontSize: 12 },
+  pwStrengthRow: { flexDirection: "row", alignItems: "center", gap: rs(6), marginTop: rs(10) },
+  pwStrengthSeg: { flex: 1, height: rs(4), borderRadius: rs(2) },
+  pwStrengthText: { fontFamily: DISPLAY, marginLeft: rs(6), fontWeight: "bold", fontSize: rf(11.5) },
 
   // ===== Buttons =====
-  buttonRow: { flexDirection: "row", gap: 12, marginTop: 22, alignItems: "stretch" },
+  buttonRow: { flexDirection: "row", gap: rs(12), marginTop: rs(22), alignItems: "stretch" },
   backBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", height: 54,
-    paddingHorizontal: 22, borderRadius: 12, borderWidth: 1, borderColor: C.borderStrong,
-    backgroundColor: C.bg, gap: 6,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", height: rs(54),
+    paddingHorizontal: rs(20), borderRadius: rs(14), borderWidth: 1, borderColor: C.border,
+    backgroundColor: C.ivory, gap: rs(6),
   },
-  backBtnText: { fontSize: 15, fontWeight: "600", color: C.text },
+  backBtnText: { fontFamily: DISPLAY, fontSize: rf(14.5), fontWeight: "bold", color: C.sub },
 
-  cta: {
-    height: 54, borderRadius: 12, backgroundColor: C.primary,
-    alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8,
-    marginTop: 24,
+  cta: { height: rs(54), borderRadius: rs(14), overflow: "hidden", marginTop: rs(24) },
+  ctaInner: {
+    flex: 1, alignItems: "center", justifyContent: "center",
+    flexDirection: "row", gap: rs(8), overflow: "hidden",
   },
-  ctaDisabled: { backgroundColor: "#A7D9C0" },
-  ctaText: { color: "#fff", fontSize: 16, fontWeight: "700", letterSpacing: 0.2 },
+  // Diagonal light sweep that travels across the CTA every few seconds.
+  ctaSheen: {
+    position: "absolute", top: -rs(20), bottom: -rs(20), left: 0,
+    width: rs(70), backgroundColor: "rgba(255,255,255,0.35)",
+  },
+  ctaText: {
+    fontFamily: DISPLAY, color: "#fff", fontSize: rf(16),
+    fontWeight: "bold", letterSpacing: 0.2,
+  },
 
-  skipBtn: { height: 46, alignItems: "center", justifyContent: "center", marginTop: 10 },
-  skipText: { color: C.primaryDark, fontSize: 14, fontWeight: "700", textDecorationLine: "underline" },
+  skipBtn: { height: rs(46), alignItems: "center", justifyContent: "center", marginTop: rs(10) },
+  skipText: {
+    fontFamily: DISPLAY, color: C.emeraldDeep, fontSize: rf(13.5),
+    fontWeight: "bold", textDecorationLine: "underline",
+  },
 
   // ===== Footer =====
-  loginRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 24 },
-  smallText: { color: C.sub, fontSize: 14 },
-  linkBold: { color: C.primaryDark, fontWeight: "800", fontSize: 14 },
-  trustRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 16 },
-  trustText: { color: C.faint, fontSize: 12 },
+  loginRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: rs(22) },
+  smallText: { fontFamily: DISPLAY, color: C.sub, fontSize: rf(13.5), fontWeight: "600" },
+  linkBold: { fontFamily: DISPLAY, color: C.emeraldDeep, fontWeight: "bold", fontSize: rf(13.5) },
+  trustRow: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: rs(6), marginTop: rs(14),
+  },
+  trustText: { fontFamily: DISPLAY, color: C.muted, fontSize: rf(11.5), fontWeight: "600" },
 
   // ===== Success =====
-  successContainer: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24, backgroundColor: C.bg },
+  successHero: {
+    paddingBottom: rs(8),
+    borderBottomLeftRadius: rs(28),
+    borderBottomRightRadius: rs(28),
+    overflow: "hidden",
+  },
+  successScroll: { paddingHorizontal: GUT, paddingTop: rs(20), paddingBottom: rs(36) },
+  successIconWrap: {
+    width: rs(78), height: rs(78),
+    alignItems: "center", justifyContent: "center",
+    marginTop: rs(24), marginBottom: rs(20),
+  },
   successIcon: {
-    width: 84, height: 84, borderRadius: 42, backgroundColor: C.primarySoft,
-    alignItems: "center", justifyContent: "center", marginBottom: 24,
+    width: rs(78), height: rs(78), borderRadius: rs(39),
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.2)",
+    alignItems: "center", justifyContent: "center",
   },
-  successTitle: { fontSize: 22, fontWeight: "800", color: C.ink, marginBottom: 10, textAlign: "center" },
-  successText: { fontSize: 14.5, color: C.sub, textAlign: "center", marginBottom: 28, lineHeight: 21 },
+  successRing: {
+    position: "absolute",
+    width: rs(78), height: rs(78), borderRadius: rs(39),
+    borderWidth: rs(2), borderColor: "rgba(255,255,255,0.55)",
+  },
+  successTitle: { fontFamily: DISPLAY, fontSize: rf(24), color: "#fff", letterSpacing: 0.2 },
+  successText: {
+    fontFamily: DISPLAY, fontSize: rf(13), color: "rgba(255,255,255,0.72)",
+    marginTop: rs(8), lineHeight: rf(20), fontWeight: "600",
+  },
   stepsCard: {
-    width: "100%", backgroundColor: C.field, borderRadius: 14, padding: 20, marginBottom: 24,
-    borderWidth: 1, borderColor: C.border,
+    width: "100%", backgroundColor: C.card, borderRadius: rs(20),
+    padding: rs(20), marginBottom: rs(4),
+    borderWidth: 1, borderColor: C.glassBorder,
   },
-  stepsTitle: { fontSize: 13, fontWeight: "800", color: C.faint, letterSpacing: 1, marginBottom: 16, textTransform: "uppercase" },
-  stepItem: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
+  stepsTitle: {
+    fontFamily: DISPLAY, fontSize: rf(11.5), fontWeight: "bold",
+    color: C.emeraldDeep, letterSpacing: 1, marginBottom: rs(16),
+    textTransform: "uppercase",
+  },
+  stepItem: { flexDirection: "row", alignItems: "center", marginBottom: rs(14) },
   stepNumber: {
-    width: 26, height: 26, borderRadius: 13, backgroundColor: C.primary,
-    alignItems: "center", justifyContent: "center", marginRight: 12,
+    width: rs(27), height: rs(27), borderRadius: rs(14),
+    alignItems: "center", justifyContent: "center", marginRight: rs(12),
   },
-  stepNumberText: { color: "#fff", fontWeight: "700", fontSize: 13 },
-  stepText: { fontSize: 14, color: C.text, flex: 1 },
+  stepNumberText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: rf(12.5) },
+  stepText: { fontFamily: DISPLAY, fontSize: rf(13.5), color: C.sub, flex: 1, fontWeight: "600" },
 
   // ===== Modal =====
-  modalOverlay: { flex: 1, backgroundColor: "rgba(15, 23, 42, 0.5)", justifyContent: "flex-end" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(11,51,39,0.55)", justifyContent: "flex-end" },
   modalContent: {
-    backgroundColor: C.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22,
-    paddingTop: 10, paddingBottom: 32, maxHeight: "72%",
+    backgroundColor: C.bg, borderTopLeftRadius: rs(26), borderTopRightRadius: rs(26),
+    paddingBottom: rs(28), maxHeight: "72%", overflow: "hidden",
   },
-  modalHandle: { alignSelf: "center", width: 42, height: 5, borderRadius: 3, backgroundColor: C.border, marginBottom: 10 },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, marginBottom: 14 },
-  modalTitle: { fontSize: 17, fontWeight: "800", color: C.ink },
-  modalClose: { padding: 4 },
-  modalList: { paddingHorizontal: 20 },
+  modalHeaderGrad: { paddingHorizontal: rs(18), paddingVertical: rs(16) },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  modalTitle: { fontFamily: DISPLAY, fontSize: rf(17), fontWeight: "bold", color: "#fff" },
+  modalClose: {
+    width: rs(34), height: rs(34), borderRadius: rs(12),
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.16)",
+  },
+  modalList: { paddingHorizontal: rs(18) },
   modalItem: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingVertical: 15, paddingHorizontal: 16, marginBottom: 8,
-    backgroundColor: C.field, borderRadius: 12, borderWidth: 1, borderColor: C.border,
+    paddingVertical: rs(15), paddingHorizontal: rs(16), marginBottom: rs(8),
+    backgroundColor: C.card, borderRadius: rs(14), borderWidth: 1, borderColor: C.border,
   },
-  modalItemSelected: { backgroundColor: C.primarySoft, borderColor: C.primary },
-  modalItemText: { fontSize: 15, color: C.text, fontWeight: "500" },
-  modalItemTextSelected: { color: C.primaryDark, fontWeight: "700" },
+  modalItemSelected: { backgroundColor: C.tintEmerald, borderColor: "rgba(28,107,82,0.28)" },
+  modalItemText: { fontFamily: DISPLAY, fontSize: rf(14.5), color: C.sub, fontWeight: "600" },
+  modalItemTextSelected: { color: C.emeraldDeep, fontWeight: "bold" },
 });

@@ -1,8 +1,11 @@
 // screens/travel-agent/bookings/AddEditBookingScreen.js
-// REDESIGNED — emerald-themed Add/Edit Booking form.
+// REDESIGNED (UI only) — clean card-section Add/Edit Booking form matching the
+// reference: light header, section cards (icon + title + subtitle), inline-icon
+// inputs, a green payment card (total / advance / balance), segmented status
+// controls and a Cancel + Create Booking bottom bar.
 //
-// Visual type selector (gradient tiles), customer/trip/stay/pricing sections
-// with color accents, payment progress preview, status pills, sticky save.
+// UI ONLY — every piece of state, validation, field binding and the save /
+// reference-picker logic is byte-for-byte the same as before.
 //
 // POST /api/travel-agent/bookings or PATCH /api/travel-agent/bookings/[id]
 import React, { useMemo, useState } from "react";
@@ -24,6 +27,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { DISPLAY } from "../_shared/typography";
 import {
   createTravelAgentBooking,
   updateTravelAgentBooking,
@@ -33,49 +37,30 @@ import {
   BOOKING_STATUS,
   BOOKING_PAYMENT_STATUS,
 } from "../../api/travelAgentClient";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  purple: "#8B5CF6",
-  green: "#10B981",
-  greenLight: "#D1FAE5",
-};
 
 const TYPE_META = {
-  TOUR:      { icon: "map",       label: "Tour",      desc: "Tour package",      gradient: [C.purple, "#6D28D9"], color: "#6D28D9" },
-  PROPERTY:  { icon: "bed",       label: "Property",  desc: "Hotel / resort",    gradient: [C.amber, "#D97706"],  color: "#A16207" },
-  TRANSPORT: { icon: "car",       label: "Transport", desc: "Vehicle / cab",     gradient: [C.blue, "#1D4ED8"],   color: "#1D4ED8" },
-  CUSTOM:    { icon: "construct", label: "Custom",    desc: "Anything else",     gradient: ["#EC4899", "#9D174D"], color: "#9D174D" },
+  TOUR:      { icon: "airplane",  label: "Tour",      desc: "Group & packages",       color: C.purple, light: "#EFE9F5", gradient: [C.purple, "#5B3E7E"] },
+  PROPERTY:  { icon: "bed",       label: "Property",  desc: "Villa · Hotel · Stay",   color: "#8A6420", light: "#F6EEDB", gradient: [C.gold, "#8A6420"] },
+  TRANSPORT: { icon: "car",       label: "Transport", desc: "Cab · Fleet",            color: C.blue, light: "#E9F1F8", gradient: [C.blue, "#1E4E86"] },
+  CUSTOM:    { icon: "sparkles",  label: "Custom",    desc: "Bespoke itinerary",      color: "#B0567A", light: "#F7E9EF", gradient: ["#B0567A", "#7E3A54"] },
 };
 
 const PAYMENT_META = {
-  PENDING:  { fg: "#A16207", bg: C.amberLight, icon: "hourglass" },
-  PARTIAL:  { fg: "#4338CA", bg: "#E0E7FF",    icon: "card" },
-  PAID:     { fg: "#15803D", bg: C.greenLight, icon: "checkmark-circle" },
-  REFUNDED: { fg: "#B91C1C", bg: "#FEE2E2",    icon: "return-up-back" },
+  PENDING:  { fg: "#8A6420",      bg: C.amberLight, icon: "hourglass" },
+  PARTIAL:  { fg: "#1E4E86",      bg: C.blueLight,  icon: "card" },
+  PAID:     { fg: C.emerald700,   bg: C.greenLight, icon: "checkmark-circle" },
+  REFUNDED: { fg: "#9E362E",      bg: C.redLight,   icon: "return-up-back" },
 };
 
 const STATUS_META = {
-  DRAFT:            { fg: "#475569", bg: "#F1F5F9" },
-  PENDING_CUSTOMER: { fg: "#A16207", bg: C.amberLight },
-  CONFIRMED:        { fg: "#1D4ED8", bg: "#DBEAFE" },
-  IN_PROGRESS:      { fg: "#4338CA", bg: "#E0E7FF" },
-  COMPLETED:        { fg: "#15803D", bg: C.greenLight },
-  CANCELLED:        { fg: "#B91C1C", bg: "#FEE2E2" },
+  DRAFT:            { fg: C.subText, bg: C.tintSand },
+  PENDING_CUSTOMER: { fg: "#8A6420", bg: C.amberLight },
+  CONFIRMED:        { fg: "#1E4E86", bg: C.blueLight },
+  IN_PROGRESS:      { fg: "#5B3E7E", bg: C.purpleLight },
+  COMPLETED:        { fg: C.emerald700, bg: C.greenLight },
+  CANCELLED:        { fg: "#9E362E", bg: C.redLight },
 };
 
 function isoOrNull(v) { try { return v ? new Date(v).toISOString() : null; } catch { return null; } }
@@ -191,34 +176,40 @@ export default function AddEditBookingScreen({ navigation, route }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
 
-      {/* Gradient header */}
+      {/* ===== Green header ===== */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 16 }}>
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 16 }}>
           <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-              <Ionicons name="close" size={24} color="#fff" />
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backCircle}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="arrow-back" size={20} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.headerTitle}>{isEdit ? "Edit Booking" : "Add Booking"}</Text>
-              <Text style={styles.headerSub}>
-                {isEdit ? `Update ${existing?.bookingNumber || ""}` : "Create a customer booking"}
-              </Text>
+              <Text style={styles.headerSub}>Create a new booking for your customer.</Text>
             </View>
             <TouchableOpacity
-              style={[styles.headerSaveBtn, !canSave && { opacity: 0.5 }]}
+              style={[styles.savePill, !canSave && { opacity: 0.5 }]}
               onPress={save}
               disabled={!canSave}
+              activeOpacity={0.85}
             >
               {saving ? (
                 <ActivityIndicator size="small" color={C.emerald700} />
               ) : (
-                <Text style={styles.headerSaveText}>Save</Text>
+                <>
+                  <Ionicons name="checkmark" size={15} color={C.emerald700} />
+                  <Text style={styles.savePillText}>Save</Text>
+                </>
               )}
             </TouchableOpacity>
           </View>
@@ -226,348 +217,282 @@ export default function AddEditBookingScreen({ navigation, route }) {
       </LinearGradient>
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          {/* ===== Booking type selector (4 colorful tiles) ===== */}
-          <Section icon="layers" label="Booking Type" color={C.emerald600} />
-          <View style={styles.typeGrid}>
-            {BOOKING_TYPE.map((t) => {
-              const meta = TYPE_META[t];
-              const active = form.bookingType === t;
-              return (
-                <TouchableOpacity
-                  key={t}
-                  style={styles.typeTileWrap}
-                  onPress={() => update("bookingType", t)}
-                  activeOpacity={0.85}
-                >
-                  {active ? (
-                    <LinearGradient
-                      colors={meta.gradient}
-                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                      style={styles.typeTileActive}
-                    >
-                      <View style={styles.typeIconActive}>
-                        <Ionicons name={meta.icon} size={20} color="#fff" />
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+
+          {/* ===== Booking Type (no card behind the tiles) ===== */}
+          <View style={styles.bareHeader}>
+            <View style={styles.sectionCardIcon}>
+              <Ionicons name="pricetags" size={16} color={C.emerald600} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.sectionCardTitle}>Booking Type</Text>
+              <Text style={styles.sectionCardSub}>Choose booking category</Text>
+            </View>
+          </View>
+          <View style={styles.typeGridBare}>
+              {BOOKING_TYPE.map((t) => {
+                const meta = TYPE_META[t] || TYPE_META.CUSTOM;
+                const active = form.bookingType === t;
+                const inner = (
+                  <>
+                    <View style={styles.typeTileTop}>
+                      <View style={[styles.typeTileIcon, { backgroundColor: active ? meta.color : meta.light }]}>
+                        <Ionicons name={meta.icon} size={17} color={active ? "#fff" : meta.color} />
                       </View>
-                      <Text style={styles.typeLabelActive}>{meta.label}</Text>
-                      <Text style={styles.typeDescActive}>{meta.desc}</Text>
-                    </LinearGradient>
-                  ) : (
-                    <View style={styles.typeTile}>
-                      <View style={[styles.typeIcon, { backgroundColor: `${meta.color}22` }]}>
-                        <Ionicons name={meta.icon} size={18} color={meta.color} />
-                      </View>
-                      <Text style={styles.typeLabel}>{meta.label}</Text>
-                      <Text style={styles.typeDesc}>{meta.desc}</Text>
+                      {active && (
+                        <View style={[styles.typeTileCheck, { backgroundColor: meta.color }]}>
+                          <Ionicons name="checkmark" size={12} color="#fff" />
+                        </View>
+                      )}
                     </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
+                    <Text style={[styles.typeTileLabel, active && { color: meta.color }]} numberOfLines={1}>{meta.label}</Text>
+                    <Text style={[styles.typeTileDesc, active && { color: meta.color, opacity: 0.72 }]} numberOfLines={1}>{meta.desc}</Text>
+                  </>
+                );
+                return (
+                  <TouchableOpacity
+                    key={t}
+                    style={styles.typeTileWrap}
+                    onPress={() => update("bookingType", t)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={[styles.typeTile, active ? { backgroundColor: meta.light, borderWidth: 1.5, borderColor: meta.color } : styles.typeTileUnsel]}>
+                      {inner}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
           </View>
 
           {/* ===== Customer ===== */}
-          <Section icon="person" label="Customer" color={C.emerald600} />
-          <Card>
-            <Field label="Name *">
-              <TextInput
-                style={styles.input}
-                placeholder="Customer's full name"
-                placeholderTextColor="#A3B3C2"
-                value={form.customerName}
-                onChangeText={(v) => update("customerName", v)}
-              />
-            </Field>
-            <Field
-              label="Phone *"
-              error={form.customerPhone && !isPhoneValid ? "Enter a valid 10-digit phone" : null}
-            >
-              <View style={styles.prefixInputWrap}>
-                <View style={styles.prefixBox}><Text style={styles.prefixText}>+91</Text></View>
-                <TextInput
-                  style={[styles.input, styles.prefixInput]}
-                  placeholder="9876543210"
-                  placeholderTextColor="#A3B3C2"
-                  keyboardType="phone-pad"
-                  maxLength={10}
-                  value={form.customerPhone}
-                  onChangeText={(v) => update("customerPhone", v.replace(/\D/g, ""))}
-                />
+          <SectionCard icon="person" title="Customer" subtitle="Customer information">
+            <IconInput
+              icon="person-outline"
+              placeholder="Full Name"
+              value={form.customerName}
+              onChangeText={(v) => update("customerName", v)}
+            />
+            <View style={styles.phoneRow}>
+              <View style={styles.ccBox}>
+                <Text style={styles.ccText}>IN +91</Text>
               </View>
-            </Field>
-            <Field label="Email">
-              <TextInput
-                style={styles.input}
-                placeholder="customer@example.com"
-                placeholderTextColor="#A3B3C2"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={form.customerEmail}
-                onChangeText={(v) => update("customerEmail", v)}
+              <IconInput
+                icon="call-outline"
+                placeholder="Phone Number"
+                keyboardType="phone-pad"
+                maxLength={10}
+                value={form.customerPhone}
+                onChangeText={(v) => update("customerPhone", v.replace(/\D/g, ""))}
+                wrapStyle={{ flex: 1 }}
               />
-            </Field>
-          </Card>
+            </View>
+            {form.customerPhone && !isPhoneValid ? (
+              <Text style={styles.errText}>Enter a valid 10-digit phone</Text>
+            ) : null}
+            <IconInput
+              icon="mail-outline"
+              placeholder="Email Address"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={form.customerEmail}
+              onChangeText={(v) => update("customerEmail", v)}
+            />
+          </SectionCard>
 
           {/* ===== Reference ===== */}
-          <Section icon="bookmark" label="Reference" color={tm.color} />
-          <Card>
+          <SectionCard icon="bookmark" title="Reference" subtitle="Tour or package details">
             {(form.bookingType === "TOUR" || form.bookingType === "PROPERTY") && (
-              <TouchableOpacity style={styles.refPickBtn} onPress={openRefPicker} activeOpacity={0.85}>
-                <Ionicons name="list" size={15} color={tm.color} />
-                <Text style={[styles.refPickText, { color: tm.color }]}>
-                  Choose from your {form.bookingType === "PROPERTY" ? "properties" : "tours"}
+              <TouchableOpacity style={styles.dropdownField} onPress={openRefPicker} activeOpacity={0.8}>
+                <Ionicons name="search-outline" size={17} color={C.subText} style={{ marginRight: 8 }} />
+                <Text style={[styles.dropdownText, !form.referenceId && { color: "#A99F8D" }]} numberOfLines={1}>
+                  {form.referenceId ? form.referenceTitle : `Choose from ${form.bookingType === "PROPERTY" ? "Properties" : "Tours"}`}
                 </Text>
-                {!!form.referenceId && <Ionicons name="checkmark-circle" size={16} color={C.emerald600} />}
+                {!!form.referenceId && <Ionicons name="checkmark-circle" size={16} color={C.emerald600} style={{ marginRight: 4 }} />}
+                <Ionicons name="chevron-down" size={16} color={C.subText} />
               </TouchableOpacity>
             )}
-            <Field label={`${tm.label} name / package title`}>
-              <TextInput
-                style={styles.input}
-                placeholder={
-                  isProperty ? "e.g. Hilltop Resort - Manali" :
-                  form.bookingType === "TOUR" ? "e.g. Manali 4N5D Honeymoon Package" :
-                  form.bookingType === "TRANSPORT" ? "e.g. Innova Crysta - Mumbai to Pune" :
-                  "e.g. Custom package"
-                }
-                placeholderTextColor="#A3B3C2"
-                value={form.referenceTitle}
-                onChangeText={(v) => { update("referenceTitle", v); if (form.referenceId) update("referenceId", ""); }}
-              />
-            </Field>
+            <IconInput
+              icon={isProperty ? "bed-outline" : form.bookingType === "TRANSPORT" ? "car-outline" : "airplane-outline"}
+              placeholder={
+                isProperty ? "Property name" :
+                form.bookingType === "TOUR" ? "Tour name / package title" :
+                form.bookingType === "TRANSPORT" ? "Vehicle / route" :
+                "Package title"
+              }
+              value={form.referenceTitle}
+              onChangeText={(v) => { update("referenceTitle", v); if (form.referenceId) update("referenceId", ""); }}
+            />
             {!!form.referenceId && (
-              <Text style={styles.refLinkedNote}>✓ Linked to a saved {form.bookingType === "PROPERTY" ? "property" : "tour"}.</Text>
+              <Text style={styles.linkedNote}>✓ Linked to a saved {isProperty ? "property" : "tour"}.</Text>
             )}
-          </Card>
+          </SectionCard>
 
-          {/* ===== Dates ===== */}
-          <Section icon={isProperty ? "bed" : "calendar"} label={isProperty ? "Stay Details" : "Trip Details"} color={C.blue} />
-          <Card>
+          {/* ===== Trip / Stay Details ===== */}
+          <SectionCard
+            icon={isProperty ? "bed" : "calendar"}
+            title={isProperty ? "Stay Details" : "Trip Details"}
+            subtitle="Travel schedule"
+          >
+            <View style={styles.dateRow}>
+              <DateBtn
+                value={formatDate(isProperty ? form.checkInDate : form.travelDate)}
+                placeholder={isProperty ? "CHECK-IN" : "TRAVEL"}
+                onPress={() => setPickerType(isProperty ? "checkInDate" : "travelDate")}
+                onClear={(isProperty ? form.checkInDate : form.travelDate) ? () => update(isProperty ? "checkInDate" : "travelDate", null) : null}
+              />
+              <DateBtn
+                value={formatDate(isProperty ? form.checkOutDate : form.returnDate)}
+                placeholder={isProperty ? "CHECK-OUT" : "RETURN"}
+                onPress={() => setPickerType(isProperty ? "checkOutDate" : "returnDate")}
+                onClear={(isProperty ? form.checkOutDate : form.returnDate) ? () => update(isProperty ? "checkOutDate" : "returnDate", null) : null}
+              />
+            </View>
+
             {isProperty ? (
               <>
-                <View style={styles.row2}>
-                  <Field label="Check-in" style={{ flex: 1 }}>
-                    <DateBtn
-                      value={formatDate(form.checkInDate)}
-                      onPress={() => setPickerType("checkInDate")}
-                      onClear={form.checkInDate ? () => update("checkInDate", null) : null}
-                    />
-                  </Field>
-                  <Field label="Check-out" style={{ flex: 1 }}>
-                    <DateBtn
-                      value={formatDate(form.checkOutDate)}
-                      onPress={() => setPickerType("checkOutDate")}
-                      onClear={form.checkOutDate ? () => update("checkOutDate", null) : null}
-                    />
-                  </Field>
-                </View>
-                <View style={styles.row2}>
-                  <Field label="Guests" style={{ flex: 1 }}>
-                    <NumberInput
-                      value={form.passengers}
-                      placeholder="e.g. 4"
-                      onChange={(v) => update("passengers", v)}
-                      icon="people"
-                    />
-                  </Field>
-                  <Field label="Rooms" style={{ flex: 1 }}>
-                    <NumberInput
-                      value={form.rooms}
-                      placeholder="e.g. 2"
-                      onChange={(v) => update("rooms", v)}
-                      icon="bed"
-                    />
-                  </Field>
-                </View>
+                <Stepper icon="people" label="Guests" value={form.passengers} onChange={(v) => update("passengers", v)} />
+                <Stepper icon="bed" label="Rooms" value={form.rooms} onChange={(v) => update("rooms", v)} />
               </>
             ) : (
               <>
-                <View style={styles.row2}>
-                  <Field label="Travel date" style={{ flex: 1 }}>
-                    <DateBtn
-                      value={formatDate(form.travelDate)}
-                      onPress={() => setPickerType("travelDate")}
-                      onClear={form.travelDate ? () => update("travelDate", null) : null}
-                    />
-                  </Field>
-                  <Field label="Return date" style={{ flex: 1 }}>
-                    <DateBtn
-                      value={formatDate(form.returnDate)}
-                      onPress={() => setPickerType("returnDate")}
-                      onClear={form.returnDate ? () => update("returnDate", null) : null}
-                    />
-                  </Field>
-                </View>
-                <Field label="Pickup">
-                  <View style={styles.iconInputWrap}>
-                    <View style={[styles.iconInputIcon, { backgroundColor: C.emerald50 }]}>
-                      <Ionicons name="navigate" size={14} color={C.emerald600} />
-                    </View>
-                    <TextInput
-                      style={[styles.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
-                      placeholder="Pickup location"
-                      placeholderTextColor="#A3B3C2"
-                      value={form.pickupLocation}
-                      onChangeText={(v) => update("pickupLocation", v)}
-                    />
-                  </View>
-                </Field>
-                <Field label="Drop">
-                  <View style={styles.iconInputWrap}>
-                    <View style={[styles.iconInputIcon, { backgroundColor: "#FEE2E2" }]}>
-                      <Ionicons name="flag" size={14} color={C.red} />
-                    </View>
-                    <TextInput
-                      style={[styles.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
-                      placeholder="Drop location"
-                      placeholderTextColor="#A3B3C2"
-                      value={form.dropLocation}
-                      onChangeText={(v) => update("dropLocation", v)}
-                    />
-                  </View>
-                </Field>
-                <Field label="Passengers">
-                  <NumberInput
-                    value={form.passengers}
-                    placeholder="e.g. 4"
-                    onChange={(v) => update("passengers", v)}
-                    icon="people"
+                <View style={styles.locField}>
+                  <View style={styles.locDot} />
+                  <TextInput
+                    style={styles.locInput}
+                    placeholder="Pickup Location"
+                    placeholderTextColor="#A99F8D"
+                    value={form.pickupLocation}
+                    onChangeText={(v) => update("pickupLocation", v)}
                   />
-                </Field>
+                </View>
+                <View style={styles.locField}>
+                  <Ionicons name="location" size={17} color={C.red} />
+                  <TextInput
+                    style={styles.locInput}
+                    placeholder="Drop Location"
+                    placeholderTextColor="#A99F8D"
+                    value={form.dropLocation}
+                    onChangeText={(v) => update("dropLocation", v)}
+                  />
+                </View>
+                <Stepper icon="people" label="Passengers" value={form.passengers} onChange={(v) => update("passengers", v)} />
               </>
             )}
-          </Card>
+          </SectionCard>
 
-          {/* ===== Pricing ===== */}
-          <Section icon="cash" label="Pricing" color={C.emerald600} />
-          <Card>
-            <View style={styles.row2}>
-              <Field label="Total amount" style={{ flex: 1 }}>
-                <View style={styles.prefixInputWrap}>
-                  <View style={styles.prefixBox}><Text style={styles.prefixText}>₹</Text></View>
+          {/* ===== Payment ===== */}
+          <SectionCard icon="wallet" title="Payment" subtitle="Booking amount">
+            {/* Total amount — prominent light field */}
+            <Text style={styles.payLabel}>Total Amount</Text>
+            <View style={styles.amtBig}>
+              <Text style={styles.amtBigRupee}>₹</Text>
+              <TextInput
+                style={styles.amtBigInput}
+                placeholder="0"
+                placeholderTextColor="#B3AA98"
+                keyboardType="number-pad"
+                value={form.totalAmount}
+                onChangeText={(v) => update("totalAmount", v.replace(/[^\d.]/g, ""))}
+              />
+              <View style={styles.inrTag}><Text style={styles.inrTagText}>INR</Text></View>
+            </View>
+
+            {/* Advance + Balance */}
+            <View style={styles.payRow2}>
+              <View style={styles.advField}>
+                <Text style={styles.payLabelSm}>ADVANCE PAID</Text>
+                <View style={styles.advInputRow}>
+                  <Text style={styles.advRupee}>₹</Text>
                   <TextInput
-                    style={[styles.input, styles.prefixInput]}
-                    placeholder="25000"
-                    placeholderTextColor="#A3B3C2"
-                    keyboardType="number-pad"
-                    value={form.totalAmount}
-                    onChangeText={(v) => update("totalAmount", v.replace(/[^\d.]/g, ""))}
-                  />
-                </View>
-              </Field>
-              <Field label="Paid" style={{ flex: 1 }}>
-                <View style={styles.prefixInputWrap}>
-                  <View style={styles.prefixBox}><Text style={styles.prefixText}>₹</Text></View>
-                  <TextInput
-                    style={[styles.input, styles.prefixInput]}
-                    placeholder="5000"
-                    placeholderTextColor="#A3B3C2"
+                    style={styles.advInput}
+                    placeholder="0"
+                    placeholderTextColor="#B3AA98"
                     keyboardType="number-pad"
                     value={form.paidAmount}
                     onChangeText={(v) => update("paidAmount", v.replace(/[^\d.]/g, ""))}
                   />
                 </View>
-              </Field>
+              </View>
+              <View style={styles.balField}>
+                <Text style={styles.balLabel}>BALANCE DUE</Text>
+                <Text style={styles.balValue} numberOfLines={1}>{INR(balanceNum)}</Text>
+              </View>
             </View>
 
-            {/* Live payment preview */}
             {totalNum > 0 && (
-              <View style={styles.paymentPreview}>
-                <View style={styles.paymentPreviewRow}>
-                  <Text style={styles.paymentPreviewLabel}>{INR(paidNum)} of {INR(totalNum)} received</Text>
-                  <Text style={[styles.paymentPreviewPct, { color: paidPct === 100 ? C.emerald600 : C.amber }]}>
-                    {paidPct}%
-                  </Text>
+              <View style={styles.payProgRow}>
+                <View style={styles.payProgTrack}>
+                  <View style={[styles.payProgFill, { width: `${paidPct}%` }]} />
                 </View>
-                <View style={styles.previewTrack}>
-                  <LinearGradient
-                    colors={paidPct === 100 ? [C.emerald500, C.emerald600] : [C.amber, "#D97706"]}
-                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                    style={[styles.previewFill, { width: `${paidPct}%` }]}
-                  />
-                </View>
-                {balanceNum > 0 && (
-                  <Text style={styles.paymentPreviewBalance}>Balance due: {INR(balanceNum)}</Text>
-                )}
+                <Text style={styles.payProgText}>{paidPct}% paid</Text>
               </View>
             )}
 
-            <Field label="Payment status">
-              <View style={styles.statusChipsRow}>
-                {BOOKING_PAYMENT_STATUS.map((s) => {
-                  const meta = PAYMENT_META[s];
-                  const active = form.paymentStatus === s;
-                  return (
-                    <TouchableOpacity
-                      key={s}
-                      style={[
-                        styles.statusChip,
-                        active && { backgroundColor: meta.bg, borderColor: meta.fg },
-                      ]}
-                      onPress={() => update("paymentStatus", s)}
-                      activeOpacity={0.85}
-                    >
-                      <Ionicons name={meta.icon} size={11} color={active ? meta.fg : C.subText} />
-                      <Text style={[
-                        styles.statusChipText,
-                        active && { color: meta.fg, fontWeight: "800" },
-                      ]}>{s}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </Field>
-          </Card>
-
-          {/* ===== Status ===== */}
-          <Section icon="flag" label="Booking Status" color={C.amber} />
-          <Card>
-            <View style={styles.statusChipsRow}>
-              {BOOKING_STATUS.map((s) => {
-                const meta = STATUS_META[s];
-                const active = form.status === s;
+            <Text style={styles.miniLabel}>PAYMENT STATUS</Text>
+            <View style={styles.payPillWrap}>
+              {BOOKING_PAYMENT_STATUS.map((s) => {
+                const meta = PAYMENT_META[s] || PAYMENT_META.PENDING;
+                const active = form.paymentStatus === s;
                 return (
                   <TouchableOpacity
                     key={s}
-                    style={[
-                      styles.statusChip,
-                      active && { backgroundColor: meta.bg, borderColor: meta.fg },
-                    ]}
-                    onPress={() => update("status", s)}
+                    style={[styles.payPill, active && { backgroundColor: meta.bg, borderColor: meta.fg }]}
+                    onPress={() => update("paymentStatus", s)}
                     activeOpacity={0.85}
                   >
-                    <Text style={[
-                      styles.statusChipText,
-                      active && { color: meta.fg, fontWeight: "800" },
-                    ]}>{s.replace("_", " ")}</Text>
+                    <Ionicons name={meta.icon} size={13} color={active ? meta.fg : C.subText} />
+                    <Text style={[styles.payPillText, active && { color: meta.fg }]}>{s}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
-          </Card>
+          </SectionCard>
+
+          {/* ===== Booking status ===== */}
+          <SectionCard icon="flag" title="Booking Status" subtitle="Current stage">
+            <View style={styles.pillWrap}>
+              {BOOKING_STATUS.map((s) => {
+                const meta = STATUS_META[s] || STATUS_META.DRAFT;
+                const active = form.status === s;
+                return (
+                  <TouchableOpacity
+                    key={s}
+                    style={[styles.statusPill, active && { backgroundColor: meta.bg, borderColor: meta.fg }]}
+                    onPress={() => update("status", s)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.statusPillText, active && { color: meta.fg, fontWeight: "bold" }]}>{s.replace("_", " ")}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </SectionCard>
 
           {/* ===== Notes ===== */}
-          <Section icon="document-text" label="Notes" color={C.purple} />
-          <Card>
+          <SectionCard icon="document-text" title="Notes" subtitle="Additional information">
             <TextInput
-              style={[styles.input, styles.inputMultiline]}
+              style={styles.notesInput}
               placeholder="Internal notes about this booking…"
-              placeholderTextColor="#A3B3C2"
+              placeholderTextColor="#A99F8D"
               value={form.notes}
               onChangeText={(v) => update("notes", v)}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
             />
-          </Card>
+          </SectionCard>
 
-          <View style={{ height: 100 }} />
+          <View style={{ height: 110 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Sticky bottom save */}
+      {/* ===== Bottom bar: Cancel + Create Booking ===== */}
       <View style={styles.bottomBar}>
+        <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()} activeOpacity={0.85}>
+          <Text style={styles.cancelBtnText}>Cancel</Text>
+        </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.saveBtnWrap, !canSave && { opacity: 0.5 }]}
+          style={[styles.createBtnWrap, !canSave && { opacity: 0.5 }]}
           onPress={save}
           disabled={!canSave}
           activeOpacity={0.9}
@@ -575,12 +500,12 @@ export default function AddEditBookingScreen({ navigation, route }) {
           <LinearGradient
             colors={[C.emerald600, C.emerald700]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={styles.saveBtnInner}
+            style={styles.createBtn}
           >
             {saving ? <ActivityIndicator size="small" color="#fff" /> : (
               <>
-                <Ionicons name="checkmark" size={18} color="#fff" />
-                <Text style={styles.saveBtnText}>{isEdit ? "Save Changes" : "Create Booking"}</Text>
+                <Ionicons name="checkmark" size={17} color="#fff" />
+                <Text style={styles.createBtnText}>{isEdit ? "Save Changes" : "Create Booking"}</Text>
               </>
             )}
           </LinearGradient>
@@ -642,63 +567,75 @@ export default function AddEditBookingScreen({ navigation, route }) {
 
 /* ───────── Sub-components ───────── */
 
-function Section({ icon, label, color }) {
+function SectionCard({ icon, title, subtitle, children }) {
   return (
-    <View style={styles.sectionHeader}>
-      <View style={[styles.sectionIcon, { backgroundColor: `${color}22` }]}>
-        <Ionicons name={icon} size={14} color={color} />
+    <View style={styles.sectionCard}>
+      <View style={styles.sectionCardHeader}>
+        <View style={styles.sectionCardIcon}>
+          <Ionicons name={icon} size={16} color={C.emerald600} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.sectionCardTitle}>{title}</Text>
+          {!!subtitle && <Text style={styles.sectionCardSub}>{subtitle}</Text>}
+        </View>
       </View>
-      <Text style={[styles.sectionLabel, { color }]}>{label}</Text>
-    </View>
-  );
-}
-
-function Card({ children }) {
-  return <View style={styles.card}>{children}</View>;
-}
-
-function Field({ label, error, children, style }) {
-  return (
-    <View style={[styles.field, style]}>
-      <Text style={styles.fieldLabel}>{label}</Text>
       {children}
-      {!!error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 }
 
-function DateBtn({ value, onPress, onClear }) {
+function IconInput({ icon, wrapStyle, ...props }) {
   return (
-    <TouchableOpacity style={styles.pickerBtn} onPress={onPress} activeOpacity={0.7}>
-      <Ionicons name="calendar" size={15} color={value ? C.emerald600 : C.subText} />
-      <Text style={[styles.pickerText, !value && { color: "#A3B3C2" }]} numberOfLines={1}>
-        {value || "Pick date"}
-      </Text>
+    <View style={[styles.iconField, wrapStyle]}>
+      <Ionicons name={icon} size={17} color={C.subText} style={{ marginRight: 9 }} />
+      <TextInput style={styles.iconFieldInput} placeholderTextColor="#A99F8D" {...props} />
+    </View>
+  );
+}
+
+function DateBtn({ value, placeholder, onPress, onClear }) {
+  return (
+    <TouchableOpacity style={[styles.dateBtn, value && styles.dateBtnFilled]} onPress={onPress} activeOpacity={0.7}>
+      <View style={[styles.dateIcon, value && styles.dateIconFilled]}>
+        <Ionicons name="calendar" size={15} color={value ? "#fff" : C.emerald600} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={styles.dateCaption} numberOfLines={1}>{placeholder || "Date"}</Text>
+        <Text style={[styles.dateValue, !value && { color: "#A99F8D", fontWeight: "600" }]} numberOfLines={1}>
+          {value || "Select"}
+        </Text>
+      </View>
       {onClear ? (
         <TouchableOpacity onPress={onClear} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="close-circle" size={16} color={C.subText} />
         </TouchableOpacity>
       ) : (
-        <Ionicons name="chevron-down" size={16} color={C.subText} />
+        <Ionicons name="chevron-down" size={15} color={C.subText} />
       )}
     </TouchableOpacity>
   );
 }
 
-function NumberInput({ value, placeholder, onChange, icon }) {
+// Number stepper — writes to the same field; keeps "" (→ null on save) at 0.
+function Stepper({ icon, label, value, onChange }) {
+  const n = Number(value) || 0;
+  const dec = () => { const v = Math.max(0, n - 1); onChange(v === 0 ? "" : String(v)); };
+  const inc = () => onChange(String(n + 1));
   return (
-    <View style={styles.iconInputWrap}>
-      <View style={[styles.iconInputIcon, { backgroundColor: C.blueLight }]}>
-        <Ionicons name={icon} size={14} color={C.blue} />
+    <View style={styles.stepperField}>
+      <View style={styles.stepperIcon}>
+        <Ionicons name={icon} size={16} color={C.emerald600} />
       </View>
-      <TextInput
-        style={[styles.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
-        placeholder={placeholder}
-        placeholderTextColor="#A3B3C2"
-        keyboardType="number-pad"
-        value={value}
-        onChangeText={(v) => onChange(v.replace(/\D/g, ""))}
-      />
+      <Text style={styles.stepperLabel} numberOfLines={1}>{label}</Text>
+      <View style={styles.stepper}>
+        <TouchableOpacity style={styles.stepBtn} onPress={dec} activeOpacity={0.7}>
+          <Ionicons name="remove" size={18} color={n > 0 ? C.emerald700 : "#C0B7A5"} />
+        </TouchableOpacity>
+        <Text style={styles.stepCount}>{n}</Text>
+        <TouchableOpacity style={styles.stepBtn} onPress={inc} activeOpacity={0.7}>
+          <Ionicons name="add" size={18} color={C.emerald700} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -706,112 +643,202 @@ function NumberInput({ value, placeholder, onChange, icon }) {
 /* ───────── Styles ───────── */
 
 const styles = StyleSheet.create({
-  // Header
-  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 19, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "700", marginTop: 2 },
-  headerSaveBtn: { backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, minWidth: 60, alignItems: "center" },
-  headerSaveText: { color: C.emerald700, fontWeight: "800", fontSize: 13 },
-
-  scroll: { paddingTop: 8, paddingBottom: 24 },
-
-  // Section header
-  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 18, marginBottom: 8 },
-  sectionIcon: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  sectionLabel: { fontSize: 12, fontWeight: "800", letterSpacing: 0.4, textTransform: "uppercase" },
-
-  // Card
-  card: { marginHorizontal: 16, backgroundColor: C.card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: C.border },
-
-  // Type tile grid (2x2)
-  typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 16 },
-  typeTileWrap: { width: "48.5%" },
-  typeTile: {
-    padding: 14, borderRadius: 14,
-    backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border,
+  // ── Green header ──
+  headerGrad: {
+    paddingBottom: 14,
+    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+    overflow: "hidden",
   },
-  typeTileActive: {
-    padding: 14, borderRadius: 14,
-    shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 6 },
+  backCircle: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.16)",
+    alignItems: "center", justifyContent: "center",
   },
-  typeIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  typeIconActive: { width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  typeLabel: { fontSize: 14, fontWeight: "800", color: C.ink },
-  typeLabelActive: { fontSize: 14, fontWeight: "800", color: "#fff" },
-  typeDesc: { fontSize: 11, color: C.subText, marginTop: 2, fontWeight: "600" },
-  typeDescActive: { fontSize: 11, color: "rgba(255,255,255,0.85)", marginTop: 2, fontWeight: "600" },
-
-  // Field
-  field: { marginBottom: 14 },
-  fieldLabel: { fontSize: 12, fontWeight: "700", color: C.text, marginBottom: 6 },
-  input: {
-    backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: C.ink, minHeight: 46,
-  },
-  inputMultiline: { minHeight: 90, paddingTop: 10 },
-  errorText: { color: C.red, fontSize: 11.5, marginTop: 4, fontWeight: "600" },
-
-  row2: { flexDirection: "row", gap: 10 },
-
-  // Reference picker (E5)
-  refPickBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 11, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1.5, borderColor: C.border, backgroundColor: "#FAFBFC", marginBottom: 12 },
-  refPickText: { flex: 1, fontSize: 13, fontWeight: "800" },
-  refLinkedNote: { fontSize: 11.5, color: C.emerald600, fontWeight: "700", marginTop: 4 },
-  refModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  refModalSheet: { backgroundColor: C.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 24, paddingTop: 16, paddingHorizontal: 16 },
-  refModalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  refModalTitle: { fontSize: 16, fontWeight: "800", color: C.ink },
-  refEmpty: { fontSize: 13, color: C.subText, textAlign: "center", marginVertical: 24, paddingHorizontal: 20, lineHeight: 19 },
-  refRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 10, marginBottom: 6, backgroundColor: "#F8FAFC" },
-  refRowTitle: { fontSize: 14, color: C.ink, fontWeight: "800" },
-  refRowSub: { fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 1 },
-
-  // Prefix input
-  prefixInputWrap: { flexDirection: "row", alignItems: "stretch" },
-  prefixBox: { paddingHorizontal: 12, justifyContent: "center", backgroundColor: C.emerald50, borderTopLeftRadius: 10, borderBottomLeftRadius: 10, borderWidth: 1, borderRightWidth: 0, borderColor: C.border },
-  prefixText: { color: C.emerald700, fontWeight: "800", fontSize: 14 },
-  prefixInput: { flex: 1, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeftWidth: 0 },
-
-  // Icon-prefixed input
-  iconInputWrap: { flexDirection: "row", alignItems: "stretch" },
-  iconInputIcon: { width: 44, justifyContent: "center", alignItems: "center", borderTopLeftRadius: 10, borderBottomLeftRadius: 10, borderWidth: 1, borderRightWidth: 0, borderColor: C.border },
-
-  // Picker button
-  pickerBtn: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border, borderRadius: 10,
-    paddingHorizontal: 12, height: 46,
-  },
-  pickerText: { flex: 1, fontSize: 14, color: C.ink, fontWeight: "600" },
-
-  // Payment preview
-  paymentPreview: { marginTop: 4, marginBottom: 12, padding: 10, borderRadius: 10, backgroundColor: C.emerald50, borderWidth: 1, borderColor: "#A7F3D0" },
-  paymentPreviewRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
-  paymentPreviewLabel: { fontSize: 11.5, color: C.emerald700, fontWeight: "700" },
-  paymentPreviewPct: { fontSize: 14, fontWeight: "900" },
-  previewTrack: { height: 6, backgroundColor: "rgba(255,255,255,0.6)", borderRadius: 3, overflow: "hidden" },
-  previewFill: { height: "100%", borderRadius: 3 },
-  paymentPreviewBalance: { fontSize: 11, color: C.subText, fontWeight: "700", marginTop: 6 },
-
-  // Status chips (payment + booking)
-  statusChipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  statusChip: {
+  headerTitle: { fontFamily: DISPLAY, fontSize: 22, fontWeight: "bold", color: "#fff", letterSpacing: 0.2 },
+  headerSub: { fontFamily: DISPLAY, fontSize: 12, color: "rgba(255,255,255,0.72)", fontWeight: "600", marginTop: 2 },
+  savePill: {
     flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: "#FAFBFC", borderWidth: 1.5, borderColor: C.border,
+    backgroundColor: "#F4F0E7", paddingHorizontal: 13, paddingVertical: 8, borderRadius: 999,
   },
-  statusChipText: { fontSize: 11.5, color: C.subText, fontWeight: "700" },
+  savePillText: { fontFamily: DISPLAY, color: C.emerald700, fontWeight: "bold", fontSize: 13 },
 
-  // Sticky bottom
+  scroll: { paddingTop: 6, paddingBottom: 24 },
+
+  // ── Section card ──
+  sectionCard: {
+    marginHorizontal: 16, marginTop: 12,
+    backgroundColor: C.card, borderRadius: 20, padding: 16,
+    borderWidth: 1, borderColor: C.border,
+  },
+  sectionCardHeader: { flexDirection: "row", alignItems: "center", gap: 11, marginBottom: 14 },
+  sectionCardIcon: {
+    width: 38, height: 38, borderRadius: 12, backgroundColor: C.emerald50,
+    alignItems: "center", justifyContent: "center",
+  },
+  sectionCardTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink },
+  sectionCardSub: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, fontWeight: "600", marginTop: 1 },
+
+  // ── Type grid (2×2) ──
+  bareHeader: { flexDirection: "row", alignItems: "center", gap: 11, marginHorizontal: 16, marginTop: 14, marginBottom: 12 },
+  typeGridBare: { flexDirection: "row", flexWrap: "wrap", gap: 11, marginHorizontal: 16, marginBottom: 4 },
+  typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 11 },
+  typeTileWrap: { width: "47.5%", flexGrow: 1, borderRadius: 18 },
+  typeTile: {
+    borderRadius: 18, padding: 13, minHeight: 98, justifyContent: "space-between",
+    shadowColor: C.shadow, shadowOpacity: 0.06, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 }, elevation: 2,
+  },
+  typeTileUnsel: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: C.border },
+  typeTileTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 9 },
+  typeTileIcon: {
+    width: 36, height: 36, borderRadius: 12,
+    alignItems: "center", justifyContent: "center",
+  },
+  typeTileCheck: {
+    width: 22, height: 22, borderRadius: 11,
+    alignItems: "center", justifyContent: "center",
+  },
+  typeTileLabel: { fontFamily: DISPLAY, fontSize: 15.5, fontWeight: "bold", color: C.ink },
+  typeTileDesc: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 3 },
+
+  // ── Inputs ──
+  iconField: {
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: C.field, borderRadius: 14,
+    paddingHorizontal: 14, minHeight: 52, marginBottom: 12,
+    borderWidth: 1, borderColor: C.border,
+  },
+  iconFieldInput: { fontFamily: DISPLAY, flex: 1, fontSize: 14.5, color: C.ink, paddingVertical: 0, fontWeight: "600" },
+  errText: { fontFamily: DISPLAY, color: C.red, fontSize: 11.5, marginTop: -6, marginBottom: 10, marginLeft: 4, fontWeight: "600" },
+
+  phoneRow: { flexDirection: "row", gap: 10 },
+  ccBox: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    backgroundColor: C.field, borderRadius: 14, paddingHorizontal: 14, minHeight: 52,
+    borderWidth: 1, borderColor: C.border, marginBottom: 12,
+  },
+  ccText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.ink },
+
+  dropdownField: {
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: C.field, borderRadius: 14, paddingHorizontal: 14, minHeight: 52,
+    borderWidth: 1, borderColor: C.border, marginBottom: 12,
+  },
+  dropdownText: { fontFamily: DISPLAY, flex: 1, fontSize: 14.5, color: C.ink, fontWeight: "600" },
+  linkedNote: { fontFamily: DISPLAY, fontSize: 11.5, color: C.emerald600, fontWeight: "bold", marginTop: -4, marginLeft: 4 },
+
+  // ── Dates + locations ──
+  dateRow: { flexDirection: "row", gap: 10 },
+  dateBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: C.field, borderRadius: 14, paddingHorizontal: 11, paddingVertical: 9, minHeight: 56,
+    borderWidth: 1, borderColor: C.border, marginBottom: 12,
+  },
+  dateBtnFilled: { backgroundColor: C.emerald50, borderColor: "#C6DACE" },
+  dateIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center" },
+  dateIconFilled: { backgroundColor: C.emerald600 },
+  dateCaption: { fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "bold", letterSpacing: 0.2 },
+  dateValue: { fontFamily: DISPLAY, fontSize: 13.5, color: C.ink, fontWeight: "bold", marginTop: 1 },
+
+  // Passenger / count stepper
+  stepperField: {
+    flexDirection: "row", alignItems: "center", gap: 11,
+    backgroundColor: C.field, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9, minHeight: 56,
+    borderWidth: 1, borderColor: C.border, marginBottom: 12,
+  },
+  stepperIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center" },
+  stepperLabel: { fontFamily: DISPLAY, flex: 1, fontSize: 14.5, color: C.ink, fontWeight: "bold" },
+  stepper: {
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: "#FFFFFF", borderRadius: 11, borderWidth: 1, borderColor: C.border, overflow: "hidden",
+  },
+  stepBtn: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
+  stepCount: { fontFamily: DISPLAY, fontSize: 15.5, fontWeight: "bold", color: C.ink, minWidth: 30, textAlign: "center" },
+
+  locField: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: C.field, borderRadius: 14, paddingHorizontal: 14, minHeight: 52,
+    borderWidth: 1, borderColor: C.border, marginBottom: 12,
+  },
+  locDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: C.emerald500, borderWidth: 3, borderColor: "#CDE1D6" },
+  locInput: { fontFamily: DISPLAY, flex: 1, fontSize: 14.5, color: C.ink, paddingVertical: 0, fontWeight: "600" },
+
+  // ── Payment (clean light) ──
+  payLabel: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.text, marginBottom: 7 },
+  payLabelSm: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", color: C.subText, letterSpacing: 0.6 },
+  amtBig: {
+    flexDirection: "row", alignItems: "center", gap: 7,
+    backgroundColor: C.emerald50, borderRadius: 16, paddingHorizontal: 15, minHeight: 62,
+    borderWidth: 1.5, borderColor: "#C6DACE", marginBottom: 12,
+  },
+  amtBigRupee: { fontFamily: DISPLAY, fontSize: 22, fontWeight: "bold", color: C.emerald600 },
+  amtBigInput: { fontFamily: DISPLAY, flex: 1, fontSize: 27, fontWeight: "bold", color: C.ink, padding: 0, letterSpacing: -0.4 },
+  inrTag: { backgroundColor: "#FFFFFF", paddingHorizontal: 11, paddingVertical: 5, borderRadius: 999, borderWidth: 1, borderColor: "#C6DACE" },
+  inrTagText: { fontFamily: DISPLAY, fontSize: 11, fontWeight: "bold", color: C.emerald700, letterSpacing: 0.4 },
+  payRow2: { flexDirection: "row", gap: 10, marginBottom: 12 },
+  advField: { flex: 1, backgroundColor: C.field, borderRadius: 14, paddingHorizontal: 13, paddingVertical: 10, borderWidth: 1, borderColor: C.border },
+  advInputRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3 },
+  advRupee: { fontFamily: DISPLAY, fontSize: 15, fontWeight: "bold", color: C.subText },
+  advInput: { fontFamily: DISPLAY, flex: 1, fontSize: 18, fontWeight: "bold", color: C.ink, padding: 0 },
+  balField: { flex: 1, backgroundColor: C.emerald50, borderRadius: 14, paddingHorizontal: 13, paddingVertical: 10, borderWidth: 1, borderColor: "#C6DACE", justifyContent: "center" },
+  balLabel: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", color: C.emerald700, letterSpacing: 0.6 },
+  balValue: { fontFamily: DISPLAY, fontSize: 18, fontWeight: "bold", color: C.emerald700, marginTop: 3 },
+  payProgRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 },
+  payProgTrack: { flex: 1, height: 6, backgroundColor: "#EDE7DA", borderRadius: 3, overflow: "hidden" },
+  payProgFill: { height: "100%", borderRadius: 3, backgroundColor: C.emerald500 },
+  payProgText: { fontFamily: DISPLAY, fontSize: 11, fontWeight: "bold", color: C.emerald600 },
+
+  // ── Payment status pills ──
+  miniLabel: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold", color: C.subText, letterSpacing: 1, marginBottom: 10 },
+  payPillWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  payPill: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999,
+    backgroundColor: C.field, borderWidth: 1, borderColor: C.border,
+  },
+  payPillText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.subText },
+  segBtnTextActive: { color: "#fff" },
+
+  // ── Booking status pills ──
+  pillWrap: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
+  statusPill: {
+    paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999,
+    backgroundColor: C.field, borderWidth: 1, borderColor: C.border,
+  },
+  statusPillText: { fontFamily: DISPLAY, fontSize: 11, fontWeight: "bold", color: C.subText },
+
+  // ── Notes ──
+  notesInput: {
+    fontFamily: DISPLAY, backgroundColor: C.field, borderRadius: 14,
+    borderWidth: 1, borderColor: C.border, padding: 14, fontSize: 14.5, color: C.ink,
+    minHeight: 96, fontWeight: "600",
+  },
+
+  // ── Reference picker modal ──
+  refModalOverlay: { flex: 1, backgroundColor: "rgba(15,23,42,0.5)", justifyContent: "flex-end" },
+  refModalSheet: { backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 24, paddingTop: 16, paddingHorizontal: 16 },
+  refModalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  refModalTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink },
+  refEmpty: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, textAlign: "center", marginVertical: 24, paddingHorizontal: 20, lineHeight: 19 },
+  refRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, marginBottom: 6, backgroundColor: C.field },
+  refRowTitle: { fontFamily: DISPLAY, fontSize: 14, color: C.ink, fontWeight: "bold" },
+  refRowSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 1 },
+
+  // ── Bottom bar ──
   bottomBar: {
-    paddingHorizontal: 16, paddingTop: 10,
-    paddingBottom: Platform.OS === "ios" ? 24 : 12,
+    flexDirection: "row", gap: 10, alignItems: "center",
+    paddingHorizontal: 16, paddingTop: 12,
+    paddingBottom: Platform.OS === "ios" ? 26 : 14,
     backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
   },
-  saveBtnWrap: { borderRadius: 14, overflow: "hidden", shadowColor: C.emerald600, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
-  saveBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 15 },
-  saveBtnText: { color: "#fff", fontWeight: "800", fontSize: 15, letterSpacing: 0.3 },
+  cancelBtn: {
+    paddingHorizontal: 22, paddingVertical: 15, borderRadius: 16,
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
+  },
+  cancelBtnText: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: "bold", color: C.ink },
+  createBtnWrap: { flex: 1, borderRadius: 16, overflow: "hidden" },
+  createBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 15 },
+  createBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 15, letterSpacing: 0.3 },
 });

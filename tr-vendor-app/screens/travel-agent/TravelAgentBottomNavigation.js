@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import LinearGradient from "react-native-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import TravelAgentDashboardScreen from "./dashboard/TravelAgentDashboardScreen";
@@ -16,10 +17,12 @@ import LeadsListScreen from "./leads/LeadsListScreen";
 import BookingsListScreen from "./bookings/BookingsListScreen";
 import ChatsListScreen from "./chats/ChatsListScreen";
 import MoreScreen from "./more/MoreScreen";
+import { DISPLAY } from "./_shared/typography";
 import {
   listTravelAgentConversations,
   getTravelAgentNotifications,
-} from "./api/travelAgentClient";
+} from "../api/travelAgentClient";
+import { SC as C } from "./_shared/theme";
 
 const Tab = createBottomTabNavigator();
 
@@ -31,17 +34,6 @@ const Tab = createBottomTabNavigator();
  */
 export const TA_TAB_BOTTOM_INSET = 100;
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#94A3B8",
-  bg: "#FFFFFF",
-  border: "#E6EDF5",
-  red: "#EF4444",
-};
 
 const TABS = [
   { name: "TADashboard", icon: "home",          iconOutline: "home-outline",          label: "Home" },
@@ -109,6 +101,35 @@ function CustomTabBar({ state, navigation }) {
               navigation.navigate(route.name);
             }
           };
+
+          // Center tab — elevated gradient FAB (same route/badge, only styled)
+          if (index === 2) {
+            return (
+              <TouchableOpacity
+                key={route.key}
+                onPress={onPress}
+                activeOpacity={0.85}
+                style={styles.fabItem}
+              >
+                <LinearGradient
+                  colors={["#2E9E78", "#1C6B52"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.fab}
+                >
+                  <Ionicons name={tab.icon} size={24} color="#fff" />
+                  {badgeCount > 0 && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{badgeCount > 9 ? "9+" : badgeCount}</Text>
+                    </View>
+                  )}
+                </LinearGradient>
+                <Text style={[styles.tabLabel, focused && styles.tabLabelActive]} numberOfLines={1}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          }
 
           return (
             <TouchableOpacity
@@ -192,7 +213,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-around",
     backgroundColor: C.bg,
-    borderRadius: 22,
+    borderRadius: 26,
     paddingVertical: 8,
     paddingHorizontal: 4,
     borderWidth: 1,
@@ -214,14 +235,34 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     gap: 2,
   },
+  fabItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    gap: 3,
+  },
+  fab: {
+    width: 54,
+    height: 54,
+    borderRadius: 19,
+    marginTop: -24,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#0B3327",
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
   iconWrap: { position: "relative", alignItems: "center", justifyContent: "center" },
   tabLabel: {
+    fontFamily: DISPLAY,
     fontSize: 10.5,
     color: C.subText,
-    fontWeight: "700",
+    fontWeight: "bold",
     letterSpacing: 0.2,
   },
-  tabLabelActive: { color: C.emerald600, fontWeight: "900" },
+  tabLabelActive: { color: C.emerald600, fontWeight: "bold" },
   activeDot: {
     width: 4, height: 4, borderRadius: 2,
     backgroundColor: C.emerald600,
@@ -238,5 +279,5 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     borderWidth: 1.5, borderColor: C.bg,
   },
-  badgeText: { color: "#fff", fontSize: 9.5, fontWeight: "900", lineHeight: 11 },
+  badgeText: { fontFamily: DISPLAY, color: "#fff", fontSize: 9.5, fontWeight: "bold", lineHeight: 11 },
 });

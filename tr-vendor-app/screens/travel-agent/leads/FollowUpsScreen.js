@@ -16,35 +16,20 @@ import {
   Alert,
   StatusBar,
   Linking,
+  Animated,
+  Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { DISPLAY } from "../_shared/typography";
 import {
   getTravelAgentFollowUps,
   updateTravelAgentLead,
 } from "../../api/travelAgentClient";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-};
 
 // Bucket meta: color + light bg + icon + title + label, used everywhere
 // (row stripe, bucket header, due pill).
@@ -93,6 +78,27 @@ const SNOOZE_PRESETS = [
   { key: "week",     label: "Next week",  icon: "calendar-clear", days: 7 },
   { key: "custom",   label: "Custom date", icon: "create",     days: null },
 ];
+
+// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return (
+    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
+  );
+}
 
 export default function FollowUpsScreen({ navigation }) {
   const [data, setData] = useState({
@@ -198,15 +204,17 @@ export default function FollowUpsScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
 
       {/* ===== Gradient header ===== */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 28 }}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingTop: 4, paddingBottom: 42 }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
               <Ionicons name="arrow-back" size={22} color="#fff" />
@@ -342,7 +350,7 @@ export default function FollowUpsScreen({ navigation }) {
           />
           <View style={styles.snoozeSheet}>
             <LinearGradient
-              colors={["#022C22", "#064E3B", "#047857"]}
+              colors={["#0F2A22", "#16382E", "#1C6B52"]}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               style={styles.snoozeHeaderGrad}
             >
@@ -510,11 +518,19 @@ function FollowUpRow({ lead, bucketColor, onOpen, onCall, onWhatsApp, onMark, on
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
   // Header
-  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
+  headerGrad: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
+  orbA: {
+    position: "absolute", top: -50, right: -40, width: 180, height: 180,
+    borderRadius: 90, backgroundColor: "rgba(201,154,63,0.10)",
+  },
+  orbB: {
+    position: "absolute", top: 10, left: -55, width: 140, height: 140,
+    borderRadius: 70, backgroundColor: "rgba(46,158,119,0.13)",
+  },
   headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 2 },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 22, fontWeight: "bold", color: "#fff" },
+  headerSub: { fontFamily: DISPLAY, fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 3 },
 
   // Floating stats
   statsCard: {
@@ -522,30 +538,30 @@ const styles = StyleSheet.create({
     backgroundColor: C.card, marginHorizontal: 16, marginTop: -22,
     borderRadius: 16, paddingVertical: 12, paddingHorizontal: 8,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3,
+    shadowColor: C.shadow, shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   statCell: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, justifyContent: "center" },
   statIcon: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  statValue: { fontSize: 16, fontWeight: "900" },
-  statLabel: { fontSize: 10.5, color: C.subText, fontWeight: "700", marginTop: 1, letterSpacing: 0.3 },
+  statValue: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold" },
+  statLabel: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "bold", marginTop: 1, letterSpacing: 0.3 },
   statDivider: { width: 1, height: 28, backgroundColor: C.border },
 
-  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: C.red, fontSize: 12.5, flex: 1 },
+  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, padding: 10, backgroundColor: "#FBEDEB", borderRadius: 10, borderWidth: 1, borderColor: "rgba(192,69,59,0.2)" },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 12.5, flex: 1 },
 
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
-  loadingText: { fontSize: 13, color: C.subText, fontWeight: "600" },
+  loadingText: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, fontWeight: "600" },
 
   scroll: { paddingHorizontal: 16, paddingTop: 16 },
 
   // Empty state
-  emptyState: { alignItems: "center", padding: 24, paddingTop: 32 },
+  emptyState: { alignItems: "center", padding: 24, paddingTop: 100 },
   emptyIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: "800", color: C.ink, marginTop: 6 },
-  emptyBody: { fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 18 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: "bold", color: C.ink, marginTop: 6 },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 18 },
   emptyCta: { marginTop: 18, borderRadius: 12, overflow: "hidden" },
   emptyCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11 },
-  emptyCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  emptyCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
 
   // Bucket
   bucketBlock: { marginBottom: 20 },
@@ -554,10 +570,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4, marginBottom: 10,
   },
   bucketHeaderIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  bucketTitle: { fontSize: 14, fontWeight: "900", letterSpacing: 0.4 },
-  bucketHint: { fontSize: 11, color: C.subText, fontWeight: "600", marginTop: 1 },
+  bucketTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", letterSpacing: 0.4 },
+  bucketHint: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "600", marginTop: 1 },
   bucketCount: { minWidth: 28, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, alignItems: "center" },
-  bucketCountText: { color: "#fff", fontWeight: "800", fontSize: 12 },
+  bucketCountText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 12 },
 
   // Row
   row: {
@@ -565,31 +581,31 @@ const styles = StyleSheet.create({
     backgroundColor: C.card,
     borderRadius: 14, marginBottom: 10, overflow: "hidden",
     borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1,
+    shadowColor: C.shadow, shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1,
   },
   rowStripe: { width: 4 },
   rowMain: { flex: 1, padding: 12 },
 
   rowHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
   avatar: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  avatarText: { fontSize: 14, fontWeight: "900", letterSpacing: 0.5 },
+  avatarText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", letterSpacing: 0.5 },
 
   nameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  rowName: { fontSize: 14, fontWeight: "800", color: C.ink, flex: 1 },
+  rowName: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.ink, flex: 1 },
   priorityPill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
-  priorityText: { fontSize: 9.5, fontWeight: "800", letterSpacing: 0.3 },
+  priorityText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", letterSpacing: 0.3 },
   rowMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
-  rowMeta: { fontSize: 11.5, color: C.subText, fontWeight: "600", flex: 1 },
+  rowMeta: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "600", flex: 1 },
 
   // Due block
   dueBlock: {
     padding: 10, borderRadius: 10, borderWidth: 1, marginBottom: 10,
   },
   dueRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  dueLabel: { fontSize: 12.5, fontWeight: "800", letterSpacing: 0.3 },
-  dueDate: { fontSize: 11.5, color: C.text, fontWeight: "700" },
-  travelText: { fontSize: 11, color: C.subText, fontWeight: "600" },
-  travelDot: { fontSize: 11, color: C.subText, fontWeight: "800" },
+  dueLabel: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", letterSpacing: 0.3 },
+  dueDate: { fontFamily: DISPLAY, fontSize: 11.5, color: C.text, fontWeight: "bold" },
+  travelText: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "600" },
+  travelDot: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "bold" },
 
   // Actions
   actionsRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
@@ -599,11 +615,11 @@ const styles = StyleSheet.create({
     gap: 4, paddingVertical: 8, paddingHorizontal: 6,
     borderRadius: 9, borderWidth: 1,
   },
-  actionCall:   { backgroundColor: C.blueLight,  borderColor: "#BFDBFE" },
-  actionWA:     { backgroundColor: "#F0FDF4",    borderColor: "#BBF7D0" },
-  actionMark:   { backgroundColor: C.emerald50,  borderColor: "#A7F3D0" },
-  actionSnooze: { backgroundColor: C.amberLight, borderColor: "#FDE68A" },
-  actionBtnText: { fontSize: 11.5, fontWeight: "800" },
+  actionCall:   { backgroundColor: C.blueLight,  borderColor: "rgba(37,99,168,0.22)" },
+  actionWA:     { backgroundColor: "#EAF3EE",    borderColor: "rgba(28,107,82,0.22)" },
+  actionMark:   { backgroundColor: C.emerald50,  borderColor: "rgba(28,107,82,0.22)" },
+  actionSnooze: { backgroundColor: C.amberLight, borderColor: "rgba(184,134,46,0.28)" },
+  actionBtnText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold" },
 
   // Snooze sheet
   snoozeBackdrop: {
@@ -619,16 +635,16 @@ const styles = StyleSheet.create({
   snoozeHeaderGrad: { paddingHorizontal: 16, paddingVertical: 16 },
   snoozeHeaderRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   snoozeHeaderIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
-  snoozeTitle: { fontSize: 17, fontWeight: "800", color: "#fff" },
-  snoozeSub: { fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 1 },
+  snoozeTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: "#fff" },
+  snoozeSub: { fontFamily: DISPLAY, fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 1 },
   snoozeCloseBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.15)" },
 
   snoozeRow: {
     flexDirection: "row", alignItems: "center", gap: 12,
     paddingVertical: 14, paddingHorizontal: 14, borderRadius: 12,
-    borderWidth: 1.5, borderColor: C.border, backgroundColor: "#FAFBFC",
+    borderWidth: 1.5, borderColor: C.border, backgroundColor: "#FBF8F1",
     marginBottom: 8,
   },
   snoozeRowIcon: { width: 36, height: 36, borderRadius: 11, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center" },
-  snoozeRowText: { flex: 1, fontSize: 14, fontWeight: "800", color: C.text, letterSpacing: 0.2 },
+  snoozeRowText: { fontFamily: DISPLAY, flex: 1, fontSize: 14, fontWeight: "bold", color: C.text, letterSpacing: 0.2 },
 });

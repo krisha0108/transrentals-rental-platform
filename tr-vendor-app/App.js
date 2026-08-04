@@ -40,7 +40,6 @@ import TravelAgentBottomNavigation from './screens/travel-agent/TravelAgentBotto
 // were both upgraded to real screens (DocumentsScreen in P4, GetStartedScreen here).
 import TAGetStartedScreen from './screens/travel-agent/onboarding/GetStartedScreen';
 import TAAgencyProfileScreen from './screens/travel-agent/profile/AgencyProfileScreen';
-import TAComingSoonScreen from './screens/travel-agent/_shared/TAComingSoonScreen';
 
 // Travel Agent — Phase 2 (CRM Core: Leads + Pipeline + Follow-ups + Notifications)
 import TAPipelineScreen from './screens/travel-agent/leads/PipelineScreen';

@@ -11,12 +11,10 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { launchImageLibrary } from "react-native-image-picker";
 import { uploadTravelAgentImage } from "../../api/travelAgentClient";
 import RemoteImage from "./RemoteImage";
-
-const BRAND = {
-  ink: "#0F1720", text: "#334155", subText: "#64748B",
-  card: "#FFFFFF", border: "#E6EDF5",
-  blue: "#3B82F6", blueLight: "#EFF6FF", red: "#EF4444",
-};
+import { DISPLAY } from "./typography";
+// Named BRAND rather than C only because the styles below already say BRAND.x —
+// the values are the shared palette, same as every screen.
+import { SC as BRAND } from "./theme";
 
 function assetToRNFile(asset) {
   return {
@@ -114,10 +112,10 @@ export default function ImagePickerField({
           {urls.length < max && (
             <TouchableOpacity style={styles.addTile} onPress={pick} disabled={busy}>
               {busy ? (
-                <ActivityIndicator size="small" color={BRAND.blue} />
+                <ActivityIndicator size="small" color={BRAND.emerald600} />
               ) : (
                 <>
-                  <Ionicons name="add" size={28} color={BRAND.blue} />
+                  <Ionicons name="add" size={28} color={BRAND.emerald600} />
                   <Text style={styles.addText}>Add</Text>
                 </>
               )}
@@ -139,10 +137,10 @@ export default function ImagePickerField({
       ) : (
         <TouchableOpacity style={styles.singleEmpty} onPress={pick} disabled={busy} activeOpacity={0.8}>
           {busy ? (
-            <ActivityIndicator size="small" color={BRAND.blue} />
+            <ActivityIndicator size="small" color={BRAND.emerald600} />
           ) : (
             <>
-              <Ionicons name="image-outline" size={32} color={BRAND.blue} />
+              <Ionicons name="image-outline" size={32} color={BRAND.emerald600} />
               <Text style={styles.singleEmptyText}>Pick image</Text>
             </>
           )}
@@ -156,28 +154,28 @@ export default function ImagePickerField({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: 12 },
-  label: { fontSize: 12, fontWeight: "700", color: BRAND.text, marginBottom: 6 },
-  helper: { fontSize: 11, color: BRAND.subText, marginTop: 6 },
+  label: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: BRAND.text, marginBottom: 6 },
+  helper: { fontFamily: DISPLAY, fontSize: 11, color: BRAND.subText, marginTop: 6 },
 
   singleEmpty: {
     height: 140, borderRadius: 12,
-    backgroundColor: BRAND.blueLight,
-    borderWidth: 1.5, borderStyle: "dashed", borderColor: "#BFDBFE",
+    backgroundColor: BRAND.emerald50,
+    borderWidth: 1.5, borderStyle: "dashed", borderColor: "rgba(28,107,82,0.35)",
     alignItems: "center", justifyContent: "center", gap: 6,
   },
-  singleEmptyText: { color: BRAND.blue, fontWeight: "700", fontSize: 13 },
+  singleEmptyText: { fontFamily: DISPLAY, color: BRAND.emerald600, fontWeight: "bold", fontSize: 13 },
   singleWrap: { position: "relative" },
-  singleImage: { width: "100%", height: 180, borderRadius: 12, backgroundColor: "#F1F5F9" },
+  singleImage: { width: "100%", height: 180, borderRadius: 12, backgroundColor: BRAND.tintSand },
   singleActions: { position: "absolute", top: 8, right: 8, flexDirection: "row", gap: 6 },
   iconAction: {
     width: 34, height: 34, borderRadius: 17,
-    backgroundColor: BRAND.blue, alignItems: "center", justifyContent: "center",
+    backgroundColor: BRAND.emerald600, alignItems: "center", justifyContent: "center",
     shadowOpacity: 0.2, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 3,
   },
 
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   thumbWrap: { position: "relative" },
-  thumb: { width: 88, height: 88, borderRadius: 10, backgroundColor: "#F1F5F9" },
+  thumb: { width: 88, height: 88, borderRadius: 10, backgroundColor: BRAND.tintSand },
   removeBtn: {
     position: "absolute", top: -6, right: -6,
     width: 22, height: 22, borderRadius: 11,
@@ -185,9 +183,9 @@ const styles = StyleSheet.create({
   },
   addTile: {
     width: 88, height: 88, borderRadius: 10,
-    backgroundColor: BRAND.blueLight,
-    borderWidth: 1.5, borderStyle: "dashed", borderColor: "#BFDBFE",
+    backgroundColor: BRAND.emerald50,
+    borderWidth: 1.5, borderStyle: "dashed", borderColor: "rgba(28,107,82,0.35)",
     alignItems: "center", justifyContent: "center",
   },
-  addText: { color: BRAND.blue, fontSize: 11, fontWeight: "700", marginTop: 2 },
+  addText: { fontFamily: DISPLAY, color: BRAND.emerald600, fontSize: 11, fontWeight: "bold", marginTop: 2 },
 });

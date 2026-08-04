@@ -13,6 +13,8 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Animated,
+  Easing,
   ActivityIndicator,
   RefreshControl,
   TextInput,
@@ -26,6 +28,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import RemoteImage from "../_shared/RemoteImage";
+import { DISPLAY } from "../_shared/typography";
 import {
   getTravelAgentLead,
   updateTravelAgentLead,
@@ -44,43 +47,23 @@ import {
   LEAD_STATUS,
   LEAD_PRIORITY,
 } from "../../api/travelAgentClient";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-  purpleLight: "#EDE9FE",
-  whatsapp: "#25D366",
-};
 
 const STATUS_COLORS = {
-  NEW:         { bg: "#DBEAFE", fg: "#1D4ED8" },
-  CONTACTED:   { bg: "#CFFAFE", fg: "#0E7490" },
-  INTERESTED:  { bg: "#D1FAE5", fg: "#047857" },
-  QUOTED:      { bg: "#EDE9FE", fg: "#6D28D9" },
-  NEGOTIATING: { bg: "#E0E7FF", fg: "#4338CA" },
-  BOOKED:      { bg: "#DCFCE7", fg: "#15803D" },
-  LOST:        { bg: "#FEE2E2", fg: "#B91C1C" },
-  COLD:        { bg: "#F1F5F9", fg: "#475569" },
+  NEW:         { bg: "#E6EFF4", fg: "#245C7A" },
+  CONTACTED:   { bg: "#DDEFEA", fg: "#0F6B5A" },
+  INTERESTED:  { bg: "#E7F1EC", fg: "#1C6B52" },
+  QUOTED:      { bg: "#EFE9FA", fg: "#5E43A8" },
+  NEGOTIATING: { bg: "#E4EAF7", fg: "#3A4E8C" },
+  BOOKED:      { bg: "#E7F1EC", fg: "#1C6B52" },
+  LOST:        { bg: "#FBEDEB", fg: "#C0453B" },
+  COLD:        { bg: "#ECEAE3", fg: "#6B7770" },
 };
 const PRIORITY_META = {
-  HOT:  { fg: "#B91C1C", bg: "#FEE2E2", icon: "flame", avatarBg: "#E11D48" },
-  WARM: { fg: "#A16207", bg: "#FEF3C7", icon: "sunny", avatarBg: C.amber },
-  COLD: { fg: "#0369A1", bg: "#E0F2FE", icon: "snow",  avatarBg: C.blue },
+  HOT:  { fg: "#B14A64", bg: "#FBE9EE", icon: "flame", avatarBg: "#C65772" },
+  WARM: { fg: "#9A6B16", bg: "#F8F0DC", icon: "sunny", avatarBg: "#DDA33F" },
+  COLD: { fg: "#245C7A", bg: "#E6EFF4", icon: "snow",  avatarBg: C.blue },
 };
 
 const INR = (n) => (n == null || isNaN(Number(n))) ? "—" : `₹${Number(n).toLocaleString("en-IN")}`;
@@ -103,19 +86,33 @@ function parseProofImages(val) {
   }
 }
 const PAYMENT_META = {
-  PENDING:   { fg: "#A16207", bg: "#FEF3C7", label: "Awaiting customer", icon: "hourglass-outline" },
-  SUBMITTED: { fg: "#6D28D9", bg: "#EDE9FE", label: "Proof submitted — review", icon: "document-attach" },
-  VERIFIED:  { fg: "#15803D", bg: "#DCFCE7", label: "Verified", icon: "checkmark-circle" },
-  REJECTED:  { fg: "#B91C1C", bg: "#FEE2E2", label: "Rejected", icon: "close-circle" },
+  PENDING:   { fg: "#9A6B16", bg: "#F8F0DC", label: "Awaiting customer", icon: "hourglass-outline" },
+  SUBMITTED: { fg: "#5E43A8", bg: "#EFE9FA", label: "Proof submitted — review", icon: "document-attach" },
+  VERIFIED:  { fg: "#1C6B52", bg: "#E7F1EC", label: "Verified", icon: "checkmark-circle" },
+  REJECTED:  { fg: "#C0453B", bg: "#FBEDEB", label: "Rejected", icon: "close-circle" },
 };
+// Acquisition-channel tones — icon + tint per source. Labels match the
+// shorthand used on the leads list so both screens read the same.
+const SOURCE_META = {
+  MANUAL:       { icon: "create",              label: "Manual",   fg: "#586B63",   bg: "#EFEDE6" },
+  CAPTURE_LINK: { icon: "link",                label: "Capture",  fg: "#5E43A8",   bg: "#EFE9FA" },
+  WEBSITE:      { icon: "globe",               label: "Website",  fg: "#2C6E8C",   bg: "#E6EFF4" },
+  REFERRAL:     { icon: "people",              label: "Referral", fg: "#1C6B52",   bg: "#E7F1EC" },
+  WALK_IN:      { icon: "walk",                label: "Walk-in",  fg: "#9A6B16",   bg: "#F8F0DC" },
+  SOCIAL_MEDIA: { icon: "share-social",        label: "Social",   fg: "#5E43A8",   bg: "#EFE9FA" },
+  GOOGLE_ADS:   { icon: "megaphone",           label: "Ads",      fg: "#9A6B16",   bg: "#F8F0DC" },
+  WHATSAPP:     { icon: "logo-whatsapp",       label: "WhatsApp", fg: "#128C4A",   bg: "#E4F6EA" },
+  OTHER:        { icon: "ellipsis-horizontal", label: "Other",    fg: "#586B63",   bg: "#EFEDE6" },
+};
+
 const VEH_STATUS = ["CONFIRMED", "TENTATIVE", "COMPLETED", "CANCELLED"];
 function vehStatusColor(s) {
   switch (s) {
-    case "CONFIRMED": return { fg: "#15803D", bg: "#DCFCE7" };
-    case "TENTATIVE": return { fg: "#A16207", bg: "#FEF3C7" };
-    case "COMPLETED": return { fg: "#1D4ED8", bg: "#DBEAFE" };
-    case "CANCELLED": return { fg: "#B91C1C", bg: "#FEE2E2" };
-    default: return { fg: "#475569", bg: "#F1F5F9" };
+    case "CONFIRMED": return { fg: "#1C6B52", bg: "#E7F1EC" };
+    case "TENTATIVE": return { fg: "#9A6B16", bg: "#F8F0DC" };
+    case "COMPLETED": return { fg: "#245C7A", bg: "#E6EFF4" };
+    case "CANCELLED": return { fg: "#C0453B", bg: "#FBEDEB" };
+    default: return { fg: "#6B7770", bg: "#ECEAE3" };
   }
 }
 const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
@@ -134,16 +131,37 @@ function initials(name) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
 }
 function followUpUrgency(iso) {
-  if (!iso) return { color: C.subText, bg: "#F1F5F9", label: "Not scheduled", icon: "calendar-outline" };
+  if (!iso) return { color: C.subText, bg: "#ECEAE3", label: "Not scheduled", icon: "calendar-outline" };
   const d = new Date(iso);
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const t = new Date(d); t.setHours(0, 0, 0, 0);
   const diff = Math.round((t - today) / 86400000);
-  if (diff < 0) return { color: C.red, bg: "#FEF2F2", label: `${Math.abs(diff)}d overdue`, icon: "alert-circle" };
+  if (diff < 0) return { color: C.red, bg: C.redLight, label: `${Math.abs(diff)}d overdue`, icon: "alert-circle" };
   if (diff === 0) return { color: C.amber, bg: C.amberLight, label: "Due today", icon: "today" };
   if (diff === 1) return { color: C.blue, bg: C.blueLight, label: "Due tomorrow", icon: "calendar" };
   if (diff <= 7) return { color: C.blue, bg: C.blueLight, label: `In ${diff} days`, icon: "calendar" };
-  return { color: C.subText, bg: "#F1F5F9", label: formatDate(iso), icon: "calendar-outline" };
+  return { color: C.subText, bg: "#ECEAE3", label: formatDate(iso), icon: "calendar-outline" };
+}
+
+// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return (
+    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
+  );
 }
 
 export default function LeadDetailScreen({ navigation, route }) {
@@ -225,6 +243,13 @@ export default function LeadDetailScreen({ navigation, route }) {
   }, [id]);
 
   useEffect(() => { load(); loadVehicles(); }, [load, loadVehicles]);
+
+  // Re-fetch when the screen regains focus (e.g. returning from the edit
+  // screen) so just-saved changes show immediately instead of stale data.
+  useEffect(() => {
+    const unsub = navigation.addListener("focus", () => { load(); loadVehicles(); });
+    return unsub;
+  }, [navigation, load, loadVehicles]);
 
   const onRefresh = async () => { setRefreshing(true); await Promise.all([load(), loadVehicles()]); };
 
@@ -597,31 +622,39 @@ export default function LeadDetailScreen({ navigation, route }) {
       >
         {/* ===== Gradient hero ===== */}
         <LinearGradient
-          colors={["#022C22", "#064E3B", "#047857"]}
+          colors={["#0F2A22", "#16382E", "#1C6B52"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.heroWrap}
         >
+          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
           <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 40 }}>
             <View style={styles.headerRow}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-                <Ionicons name="arrow-back" size={22} color="#fff" />
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.circleBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="arrow-back" size={20} color="#fff" />
               </TouchableOpacity>
               <View style={{ flex: 1 }} />
-              <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={() => navigation.navigate("TAAddEditLead", { lead })}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              >
-                <Ionicons name="create-outline" size={20} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={onDelete}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              >
-                <Ionicons name="trash-outline" size={20} color="rgba(255,255,255,0.95)" />
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                <TouchableOpacity
+                  style={styles.circleBtn}
+                  onPress={() => navigation.navigate("TAAddEditLead", { lead })}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="create-outline" size={19} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.circleBtn}
+                  onPress={onDelete}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="trash-outline" size={19} color="rgba(255,255,255,0.95)" />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Avatar + name */}
@@ -632,10 +665,16 @@ export default function LeadDetailScreen({ navigation, route }) {
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.customerName} numberOfLines={1}>{lead.customerName || "—"}</Text>
                 {!!lead.customerPhone && (
-                  <Text style={styles.customerSub} numberOfLines={1}>📞 {lead.customerPhone}</Text>
+                  <View style={styles.identitySubRow}>
+                    <Ionicons name="call" size={11} color="rgba(255,255,255,0.75)" />
+                    <Text style={styles.customerSub} numberOfLines={1}>{lead.customerPhone}</Text>
+                  </View>
                 )}
                 {!!lead.customerEmail && (
-                  <Text style={styles.customerSub} numberOfLines={1}>✉ {lead.customerEmail}</Text>
+                  <View style={styles.identitySubRow}>
+                    <Ionicons name="mail" size={11} color="rgba(255,255,255,0.75)" />
+                    <Text style={styles.customerSub} numberOfLines={1}>{lead.customerEmail}</Text>
+                  </View>
                 )}
               </View>
             </View>
@@ -724,7 +763,7 @@ export default function LeadDetailScreen({ navigation, route }) {
         </View>
 
         {/* ===== Next follow-up card (color-coded urgency) ===== */}
-        <SectionLabel icon="alarm" label="NEXT FOLLOW-UP" />
+        <SectionLabel icon="alarm" label="Next follow-up" />
         <TouchableOpacity
           style={[styles.followUpCard, { backgroundColor: fu.bg, borderColor: fu.color + "33" }]}
           onPress={() => setShowFollowUpPicker(true)}
@@ -744,15 +783,44 @@ export default function LeadDetailScreen({ navigation, route }) {
         </TouchableOpacity>
 
         {/* ===== Trip details ===== */}
-        <SectionLabel icon="map" label="TRIP DETAILS" />
+        <SectionLabel icon="map" label="Trip details" />
         <View style={styles.card}>
-          <InfoRow icon="map-outline" label="Trip type" value={lead.tripType ? lead.tripType.replace("_", " ") : "—"} />
-          <InfoRow icon="location" label="Destination" value={lead.destination || "—"} />
-          <InfoRow icon="navigate" label="Pickup" value={lead.pickupLocation || "—"} />
-          <InfoRow icon="flag" label="Drop" value={lead.dropLocation || "—"} />
-          <InfoRow icon="calendar-outline" label="Travel" value={formatDate(lead.travelDate)} />
-          <InfoRow icon="calendar" label="Return" value={formatDate(lead.returnDate)} />
-          <InfoRow icon="people" label="Passengers" value={lead.passengers ? String(lead.passengers) : "—"} />
+          {/* Trip type reads as a category, so it's a pill rather than a row. */}
+          <View style={styles.tripTypePill}>
+            <Ionicons name="git-compare" size={12} color={C.emerald600} />
+            <Text style={styles.tripTypeText}>
+              {lead.tripType ? lead.tripType.replace("_", " ") : "—"}
+            </Text>
+          </View>
+
+          {/* Route — pickup and drop as two stops joined by a line, instead of
+              two unrelated label/value rows. */}
+          <View style={styles.routeWrap}>
+            <View style={styles.routeGutter}>
+              <View style={styles.routeDotStart} />
+              <View style={styles.routeLine} />
+              <View style={styles.routeDotEnd} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <View style={styles.routeStop}>
+                <Text style={styles.routeLabel}>PICKUP</Text>
+                <Text style={styles.routeValue} numberOfLines={2}>{lead.pickupLocation || "—"}</Text>
+              </View>
+              <View style={[styles.routeStop, { marginTop: 14 }]}>
+                <Text style={styles.routeLabel}>DROP</Text>
+                <Text style={styles.routeValue} numberOfLines={2}>{lead.dropLocation || "—"}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* The four remaining facts as a 2×2 grid — same fields, scannable. */}
+          <View style={styles.factGrid}>
+            <FactTile icon="location" label="Destination" value={lead.destination || "—"} />
+            <FactTile icon="people" label="Passengers" value={lead.passengers ? String(lead.passengers) : "—"} />
+            <FactTile icon="calendar-outline" label="Travel" value={formatDate(lead.travelDate)} />
+            <FactTile icon="calendar" label="Return" value={formatDate(lead.returnDate)} />
+          </View>
+
           {!!lead.requirement && (
             <View style={styles.requirementBox}>
               <Text style={styles.requirementLabel}>REQUIREMENT</Text>
@@ -762,7 +830,7 @@ export default function LeadDetailScreen({ navigation, route }) {
         </View>
 
         {/* ===== Money / Quote ===== */}
-        <SectionLabel icon="cash" label="DEAL VALUE" />
+        <SectionLabel icon="cash" label="Deal value" />
         <View style={styles.moneyRow}>
           <MoneyCard label="Estimated" value={INR(lead.estimatedValue)} color={C.blue} bg={C.blueLight} />
           <MoneyCard label="Quoted" value={INR(lead.quotedAmount)} color={C.emerald600} bg={C.emerald50} />
@@ -799,7 +867,7 @@ export default function LeadDetailScreen({ navigation, route }) {
         {/* ===== Advance payment (A2) ===== */}
         {(lead.paymentStatus || lead.customerAcceptedAt || parseProofImages(lead.paymentProofImages).length > 0) && (
           <>
-            <SectionLabel icon="card" label="ADVANCE PAYMENT" />
+            <SectionLabel icon="card" label="Advance payment" />
             <View style={styles.card}>
               {(() => {
                 const pm = PAYMENT_META[lead.paymentStatus] || PAYMENT_META.PENDING;
@@ -868,7 +936,7 @@ export default function LeadDetailScreen({ navigation, route }) {
 
         {/* ===== Assigned vehicles (A3) ===== */}
         <View style={styles.vehHeaderRow}>
-          <SectionLabel icon="car-sport" label={`VEHICLES${assignments.length ? ` · ${assignments.length}` : ""}`} />
+          <SectionLabel icon="car-sport" label={`Vehicles${assignments.length ? ` · ${assignments.length}` : ""}`} compact />
           <TouchableOpacity style={styles.vehAddBtn} onPress={openAssignModal} activeOpacity={0.85}>
             <Ionicons name="add" size={15} color={C.emerald600} />
             <Text style={styles.vehAddText}>Assign Vehicle</Text>
@@ -919,7 +987,7 @@ export default function LeadDetailScreen({ navigation, route }) {
         {/* ===== Source Tour ===== */}
         {!!lead.sourceTour && (
           <>
-            <SectionLabel icon="map" label="SOURCE TOUR" />
+            <SectionLabel icon="map" label="Source tour" />
             <TouchableOpacity
               style={[styles.card, { flexDirection: "row", alignItems: "center", gap: 12 }]}
               activeOpacity={0.8}
@@ -937,10 +1005,10 @@ export default function LeadDetailScreen({ navigation, route }) {
                 </View>
               )}
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 13, fontWeight: "800", color: C.ink }} numberOfLines={2}>
+                <Text style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: "bold", color: C.ink }} numberOfLines={2}>
                   {lead.sourceTour.title}
                 </Text>
-                <Text style={{ fontSize: 11, color: C.subText, marginTop: 3 }}>
+                <Text style={{ fontFamily: DISPLAY, fontSize: 11, color: C.subText, marginTop: 3 }}>
                   This lead came from a tour inquiry
                 </Text>
               </View>
@@ -950,19 +1018,72 @@ export default function LeadDetailScreen({ navigation, route }) {
         )}
 
         {/* ===== Meta ===== */}
-        <SectionLabel icon="information-circle" label="LEAD META" />
+        <SectionLabel icon="information-circle" label="Lead details" />
         <View style={styles.card}>
-          <InfoRow icon="git-network" label="Source" value={lead.source || "—"} />
-          {!!lead.captureLink && <InfoRow icon="link" label="Capture link" value={lead.captureLink.title || lead.captureLink.slug} />}
-          <InfoRow icon="person-circle" label="Assigned to" value={lead.assignedToName || "—"} />
-          <InfoRow icon="time-outline" label="Created" value={formatRelative(lead.createdAt)} />
-          {!!lead.lostReason && <InfoRow icon="alert-circle" label="Lost reason" value={lead.lostReason} />}
+          {/* Source is a channel, not a label/value pair — give it its own
+              tinted pill, with the created time as a quiet chip beside it. */}
+          <View style={styles.metaTopRow}>
+            {(() => {
+              const sm = SOURCE_META[lead.source] || SOURCE_META.OTHER;
+              return (
+                <View style={[styles.sourcePill, { backgroundColor: sm.bg }]}>
+                  <Ionicons name={sm.icon} size={12} color={sm.fg} />
+                  <Text style={[styles.sourcePillText, { color: sm.fg }]}>{sm.label}</Text>
+                </View>
+              );
+            })()}
+            <View style={{ flex: 1 }} />
+            <View style={styles.createdChip}>
+              <Ionicons name="time-outline" size={11} color={C.subText} />
+              <Text style={styles.createdChipText}>{formatRelative(lead.createdAt)}</Text>
+            </View>
+          </View>
+
+          {/* Owner — an avatar makes "who owns this lead" readable at a glance. */}
+          <View style={styles.ownerRow}>
+            <View style={[styles.ownerAvatar, !lead.assignedToName && styles.ownerAvatarEmpty]}>
+              {lead.assignedToName ? (
+                <Text style={styles.ownerAvatarText}>{initials(lead.assignedToName)}</Text>
+              ) : (
+                <Ionicons name="person-add-outline" size={16} color={C.subText} />
+              )}
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.metaMicroLabel}>ASSIGNED TO</Text>
+              <Text style={styles.ownerName} numberOfLines={1}>
+                {lead.assignedToName || "Unassigned"}
+              </Text>
+            </View>
+          </View>
+
+          {!!lead.captureLink && (
+            <View style={styles.captureRow}>
+              <View style={styles.captureIcon}>
+                <Ionicons name="link" size={14} color={C.purple} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.metaMicroLabel}>CAPTURE LINK</Text>
+                <Text style={styles.captureValue} numberOfLines={1}>
+                  {lead.captureLink.title || lead.captureLink.slug}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Lost reason gets the warning treatment rather than blending in as
+              just another grey row. */}
+          {!!lead.lostReason && (
+            <View style={[styles.requirementBox, { backgroundColor: C.redLight, borderLeftColor: C.red }]}>
+              <Text style={[styles.requirementLabel, { color: C.red }]}>LOST REASON</Text>
+              <Text style={styles.requirementText}>{lead.lostReason}</Text>
+            </View>
+          )}
         </View>
 
         {/* ===== Notes timeline ===== */}
         <SectionLabel
           icon="chatbubble-ellipses"
-          label={`NOTES${lead.notes?.length ? ` · ${lead.notes.length}` : ""}`}
+          label={`Notes${lead.notes?.length ? ` · ${lead.notes.length}` : ""}`}
         />
         {/* Inline add note */}
         <View style={styles.noteInputCard}>
@@ -1337,12 +1458,12 @@ export default function LeadDetailScreen({ navigation, route }) {
             </View>
 
             {/* Title */}
-            <Text style={{ fontSize: 18, fontWeight: "800", color: C.ink, textAlign: "center", marginBottom: 10 }}>
+            <Text style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: "bold", color: C.ink, textAlign: "center", marginBottom: 10 }}>
               Bank Details Required
             </Text>
 
             {/* Description */}
-            <Text style={{ fontSize: 13.5, color: C.subText, textAlign: "center", lineHeight: 21, marginBottom: 28 }}>
+            <Text style={{ fontFamily: DISPLAY, fontSize: 13.5, color: C.subText, textAlign: "center", lineHeight: 21, marginBottom: 28 }}>
               Add a bank account before sending a quote.{"\n"}
               Customers pay the advance directly to your account — without it, you can't receive payments.
             </Text>
@@ -1353,7 +1474,7 @@ export default function LeadDetailScreen({ navigation, route }) {
               activeOpacity={0.85}
               onPress={() => { setShowBankGate(false); navigation.navigate("TABankDetails"); }}
             >
-              <Text style={{ fontSize: 15, fontWeight: "800", color: "#fff" }}>Add Bank Details</Text>
+              <Text style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: "bold", color: "#fff" }}>Add Bank Details</Text>
             </TouchableOpacity>
 
             {/* Cancel */}
@@ -1362,7 +1483,7 @@ export default function LeadDetailScreen({ navigation, route }) {
               activeOpacity={0.7}
               onPress={() => setShowBankGate(false)}
             >
-              <Text style={{ fontSize: 13, fontWeight: "700", color: C.subText }}>Cancel</Text>
+              <Text style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: "bold", color: C.subText }}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1397,11 +1518,18 @@ export default function LeadDetailScreen({ navigation, route }) {
 
 /* ───────── Sub-components ───────── */
 
-function SectionLabel({ icon, label }) {
+// Editorial section header — icon chip + ink title + a hairline to the edge.
+// The old version was an 11px uppercase emerald micro-label, which gave all
+// eight sections the same flat weight. `compact` drops the rule for headers
+// that share their row with a button.
+function SectionLabel({ icon, label, compact }) {
   return (
     <View style={styles.sectionLabel}>
-      <Ionicons name={icon} size={12} color={C.emerald600} />
-      <Text style={styles.sectionLabelText}>{label}</Text>
+      <View style={styles.sectionIconBox}>
+        <Ionicons name={icon} size={12} color={C.emerald600} />
+      </View>
+      <Text style={styles.sectionLabelText} numberOfLines={1}>{label}</Text>
+      {!compact && <View style={styles.sectionRule} />}
     </View>
   );
 }
@@ -1412,6 +1540,19 @@ function InfoRow({ icon, label, value }) {
       <Ionicons name={icon} size={13} color={C.subText} />
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValue} numberOfLines={1}>{value}</Text>
+    </View>
+  );
+}
+
+// Fact tile for the trip grid — icon + label above, value below.
+function FactTile({ icon, label, value }) {
+  return (
+    <View style={styles.factTile}>
+      <View style={styles.factTileTop}>
+        <Ionicons name={icon} size={12} color={C.emerald600} />
+        <Text style={styles.factTileLabel} numberOfLines={1}>{label}</Text>
+      </View>
+      <Text style={styles.factTileValue} numberOfLines={1}>{value}</Text>
     </View>
   );
 }
@@ -1468,7 +1609,7 @@ function PickerModal({ visible, title, options, selected, onClose, onSelect }) {
                 >
                   <View style={[styles.modalDot, { backgroundColor: opt.color || C.subText }]} />
                   {!!opt.icon && <Ionicons name={opt.icon} size={14} color={opt.color || C.subText} />}
-                  <Text style={[styles.modalItemText, { color: opt.color || C.text }, active && { fontWeight: "800" }]}>
+                  <Text style={[styles.modalItemText, { color: opt.color || C.text }, active && { fontWeight: "bold" }]}>
                     {opt.label}
                   </Text>
                   {active && <Ionicons name="checkmark-circle" size={20} color={opt.color || C.emerald600} />}
@@ -1487,30 +1628,47 @@ function PickerModal({ visible, title, options, selected, onClose, onSelect }) {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  emptyTitle: { fontSize: 16, fontWeight: "800", color: C.ink, marginTop: 12 },
-  emptyBody: { fontSize: 13, color: C.subText, marginTop: 6, textAlign: "center" },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink, marginTop: 12 },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, marginTop: 6, textAlign: "center" },
   backCta: { marginTop: 16, backgroundColor: C.emerald600, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10 },
-  backCtaText: { color: "#fff", fontWeight: "700" },
+  backCtaText: { color: "#fff", fontWeight: "bold" },
 
   // Hero
-  heroWrap: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  heroWrap: { borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: "hidden" },
+  orbA: {
+    position: "absolute", top: -60, right: -40,
+    width: 190, height: 190, borderRadius: 95,
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  orbB: {
+    position: "absolute", bottom: -70, left: -50,
+    width: 170, height: 170, borderRadius: 85,
+    backgroundColor: "rgba(46,158,120,0.16)",
+  },
+  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 6 },
+  circleBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.16)",
+    alignItems: "center", justifyContent: "center",
+  },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
 
-  identityRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 4, marginTop: 8 },
-  avatar: { width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "rgba(255,255,255,0.3)" },
-  avatarText: { color: "#fff", fontWeight: "800", fontSize: 22 },
-  customerName: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  customerSub: { fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2, fontWeight: "600" },
+  identityRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 4, marginTop: 16 },
+  avatar: { width: 54, height: 54, borderRadius: 27, alignItems: "center", justifyContent: "center", borderWidth: 2.5, borderColor: "rgba(255,255,255,0.3)" },
+  avatarText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 19 },
+  customerName: { fontFamily: DISPLAY, fontSize: 20, fontWeight: "bold", color: "#fff" },
+  identitySubRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 3 },
+  customerSub: { fontFamily: DISPLAY, fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", flexShrink: 1 },
 
   // Status + priority pills — extra marginBottom so the floating contact bar
   // below has a clear breathing gap (otherwise pills + contact bar cramp).
   pillRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 14, marginBottom: 8, paddingHorizontal: 4 },
   pickerPill: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 },
   pickerDot: { width: 8, height: 8, borderRadius: 4 },
-  pickerPillText: { fontSize: 12.5, fontWeight: "800", letterSpacing: 0.3 },
+  pickerPillText: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", letterSpacing: 0.3 },
   convertedBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.22)" },
-  convertedText: { color: "#fff", fontSize: 11.5, fontWeight: "800" },
+  convertedText: { fontFamily: DISPLAY, color: "#fff", fontSize: 11.5, fontWeight: "bold" },
 
   // Floating contact row — pulls up 28px to visually overlap the gradient
   // edge. Combined with SafeAreaView paddingBottom:40, that leaves 12px clear
@@ -1518,74 +1676,183 @@ const styles = StyleSheet.create({
   contactRowWrap: { marginHorizontal: 16, marginTop: -28 },
   contactRow: { flexDirection: "row", backgroundColor: C.card, borderRadius: 16, padding: 6, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 5 },
   contactBtn: { flex: 1, alignItems: "center", paddingVertical: 12, gap: 4 },
-  contactBtnText: { fontSize: 11.5, fontWeight: "800" },
+  contactBtnText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold" },
   contactDivider: { width: 1, backgroundColor: C.border, marginVertical: 8 },
 
   // Action row
   actionsRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16, marginTop: 12 },
   primaryAction: { flex: 1, borderRadius: 14, overflow: "hidden" },
   primaryActionInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14 },
-  primaryActionText: { color: "#fff", fontWeight: "800", fontSize: 13.5 },
-  secondaryAction: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14, backgroundColor: C.card, borderWidth: 1, borderColor: C.emerald600 },
-  secondaryActionText: { color: C.emerald600, fontWeight: "800", fontSize: 13.5 },
+  primaryActionText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13.5 },
   iconAction: { alignItems: "center", justifyContent: "center", gap: 2, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, backgroundColor: C.card, borderWidth: 1, borderColor: C.emerald600 },
-  iconActionText: { color: C.emerald600, fontWeight: "800", fontSize: 11 },
+  iconActionText: { fontFamily: DISPLAY, color: C.emerald600, fontWeight: "bold", fontSize: 11 },
 
-  // Section label
-  sectionLabel: { flexDirection: "row", alignItems: "center", gap: 5, marginHorizontal: 16, marginTop: 22, marginBottom: 8 },
-  sectionLabelText: { fontSize: 11, fontWeight: "800", color: C.emerald600, letterSpacing: 0.6 },
+  // Section label — icon chip + editorial title + hairline to the edge
+  sectionLabel: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 24, marginBottom: 10 },
+  sectionIconBox: {
+    width: 26, height: 26, borderRadius: 9, backgroundColor: C.emerald50,
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: "rgba(28,107,82,0.12)",
+  },
+  sectionLabelText: {
+    fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.ink,
+    flexShrink: 1, includeFontPadding: false,
+  },
+  sectionRule: { flex: 1, height: 1, backgroundColor: C.border, marginLeft: 2 },
 
   // Follow-up card
   followUpCard: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 16, padding: 14, borderRadius: 14, borderWidth: 1 },
   followUpIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  followUpLabel: { fontSize: 13.5, fontWeight: "800" },
-  followUpDate: { fontSize: 12.5, color: C.ink, marginTop: 2, fontWeight: "700" },
-  followUpMeta: { fontSize: 11, color: C.subText, marginTop: 3 },
+  followUpLabel: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: "bold" },
+  followUpDate: { fontFamily: DISPLAY, fontSize: 12.5, color: C.ink, marginTop: 2, fontWeight: "bold" },
+  followUpMeta: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, marginTop: 3 },
 
   // Card
   card: { marginHorizontal: 16, backgroundColor: C.card, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: C.border },
   infoRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 7 },
-  infoLabel: { fontSize: 12, color: C.subText, fontWeight: "600", flex: 0 },
-  infoValue: { flex: 1, fontSize: 13, color: C.ink, fontWeight: "700", textAlign: "right" },
-  requirementBox: { marginTop: 8, padding: 10, borderRadius: 10, backgroundColor: C.emerald50, borderLeftWidth: 3, borderLeftColor: C.emerald600 },
-  requirementLabel: { fontSize: 10, color: C.emerald600, fontWeight: "800", letterSpacing: 0.5 },
-  requirementText: { fontSize: 13, color: C.ink, marginTop: 4, lineHeight: 18 },
+  infoLabel: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, fontWeight: "600", flex: 0 },
+  infoValue: { fontFamily: DISPLAY, flex: 1, fontSize: 13, color: C.ink, fontWeight: "bold", textAlign: "right" },
+  // Trip type — a category, so a pill rather than a label/value row.
+  tripTypePill: {
+    alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 10, height: 26, borderRadius: 999,
+    backgroundColor: C.emerald50, borderWidth: 1, borderColor: "rgba(28,107,82,0.18)",
+  },
+  tripTypeText: {
+    fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold", color: C.emerald700,
+    letterSpacing: 0.3, textTransform: "capitalize", includeFontPadding: false,
+  },
+
+  // Route — pickup → drop as joined stops instead of two unrelated rows.
+  routeWrap: { flexDirection: "row", gap: 11, marginTop: 14 },
+  routeGutter: { width: 12, alignItems: "center", paddingTop: 5 },
+  routeDotStart: {
+    width: 9, height: 9, borderRadius: 5,
+    borderWidth: 2.5, borderColor: C.emerald600, backgroundColor: C.card,
+  },
+  routeLine: { flex: 1, width: 2, backgroundColor: C.border, marginVertical: 3 },
+  routeDotEnd: { width: 9, height: 9, borderRadius: 5, backgroundColor: C.emerald600 },
+  routeStop: { minWidth: 0 },
+  routeLabel: {
+    fontFamily: DISPLAY, fontSize: 9, fontWeight: "bold", color: C.subText,
+    letterSpacing: 0.8, includeFontPadding: false,
+  },
+  routeValue: {
+    fontFamily: DISPLAY, fontSize: 13.5, fontWeight: "bold", color: C.ink,
+    lineHeight: 18, marginTop: 2, includeFontPadding: false,
+  },
+
+  // 2×2 fact grid
+  factGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 14 },
+  factTile: {
+    width: "48%", flexGrow: 1, minWidth: 0,
+    paddingHorizontal: 10, paddingVertical: 9, borderRadius: 11,
+    backgroundColor: C.bg, borderWidth: 1, borderColor: C.border,
+  },
+  factTileTop: { flexDirection: "row", alignItems: "center", gap: 5 },
+  factTileLabel: {
+    fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold", color: C.subText,
+    letterSpacing: 0.5, textTransform: "uppercase", flexShrink: 1, includeFontPadding: false,
+  },
+  factTileValue: {
+    fontFamily: DISPLAY, fontSize: 13.5, fontWeight: "bold", color: C.ink,
+    marginTop: 4, includeFontPadding: false,
+  },
+
+  // ── Lead details card ────────────────────────────────────────────
+  metaTopRow: { flexDirection: "row", alignItems: "center" },
+  sourcePill: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 10, height: 26, borderRadius: 999,
+  },
+  sourcePillText: {
+    fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold",
+    letterSpacing: 0.3, includeFontPadding: false,
+  },
+  createdChip: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 9, height: 24, borderRadius: 999,
+    backgroundColor: C.bg, borderWidth: 1, borderColor: C.border,
+  },
+  createdChipText: {
+    fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold", color: C.subText,
+    includeFontPadding: false,
+  },
+  metaMicroLabel: {
+    fontFamily: DISPLAY, fontSize: 9, fontWeight: "bold", color: C.subText,
+    letterSpacing: 0.8, includeFontPadding: false,
+  },
+  ownerRow: {
+    flexDirection: "row", alignItems: "center", gap: 11, marginTop: 14,
+    paddingTop: 13, borderTopWidth: 1, borderTopColor: C.border,
+  },
+  ownerAvatar: {
+    width: 38, height: 38, borderRadius: 13,
+    backgroundColor: C.emerald600, alignItems: "center", justifyContent: "center",
+  },
+  ownerAvatarEmpty: {
+    backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderStyle: "dashed",
+  },
+  ownerAvatarText: {
+    fontFamily: DISPLAY, color: "#fff", fontSize: 13.5, fontWeight: "bold",
+    letterSpacing: 0.5, includeFontPadding: false,
+  },
+  ownerName: {
+    fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.ink,
+    marginTop: 2, includeFontPadding: false,
+  },
+  captureRow: {
+    flexDirection: "row", alignItems: "center", gap: 11, marginTop: 12,
+    paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border,
+  },
+  captureIcon: {
+    width: 38, height: 38, borderRadius: 13,
+    backgroundColor: C.purpleLight, alignItems: "center", justifyContent: "center",
+  },
+  captureValue: {
+    fontFamily: DISPLAY, fontSize: 13.5, fontWeight: "bold", color: C.ink,
+    marginTop: 2, includeFontPadding: false,
+  },
+
+  requirementBox: { marginTop: 12, padding: 10, borderRadius: 10, backgroundColor: C.emerald50, borderLeftWidth: 3, borderLeftColor: C.emerald600 },
+  requirementLabel: { fontFamily: DISPLAY, fontSize: 10, color: C.emerald600, fontWeight: "bold", letterSpacing: 0.5 },
+  requirementText: { fontFamily: DISPLAY, fontSize: 13, color: C.ink, marginTop: 4, lineHeight: 18 },
 
   // Money
   moneyRow: { flexDirection: "row", gap: 8, marginHorizontal: 16 },
   moneyCard: { flex: 1, padding: 12, borderRadius: 12 },
-  moneyLabel: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.5 },
-  moneyValue: { fontSize: 18, fontWeight: "800", marginTop: 4 },
+  moneyLabel: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold", letterSpacing: 0.5 },
+  moneyValue: { fontFamily: DISPLAY, fontSize: 18, fontWeight: "bold", marginTop: 4 },
 
   // Quote (A1)
   quoteCta: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginHorizontal: 16, marginTop: 8, paddingVertical: 11, borderRadius: 12, borderWidth: 1.5, borderColor: C.emerald600, backgroundColor: C.emerald50 },
-  quoteCtaText: { color: C.emerald600, fontWeight: "800", fontSize: 13.5 },
+  quoteCtaText: { fontFamily: DISPLAY, color: C.emerald600, fontWeight: "bold", fontSize: 13.5 },
   quoteSplitRow: { flexDirection: "row", gap: 8, paddingVertical: 4 },
   quoteStat: { flex: 1, alignItems: "center" },
-  quoteStatLabel: { fontSize: 10, color: C.subText, fontWeight: "700", letterSpacing: 0.4 },
-  quoteStatValue: { fontSize: 15, fontWeight: "800", marginTop: 3 },
-  quoteMeta: { fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 6, marginBottom: 2 },
+  quoteStatLabel: { fontFamily: DISPLAY, fontSize: 10, color: C.subText, fontWeight: "bold", letterSpacing: 0.4 },
+  quoteStatValue: { fontFamily: DISPLAY, fontSize: 15, fontWeight: "bold", marginTop: 3 },
+  quoteMeta: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 6, marginBottom: 2 },
 
   // Modal form fields (A1/A2/A3)
-  fieldLabel: { fontSize: 12, fontWeight: "800", color: C.text, marginTop: 12, marginBottom: 6 },
-  fieldInput: { backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: C.ink },
+  fieldLabel: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.text, marginTop: 12, marginBottom: 6 },
+  fieldInput: { fontFamily: DISPLAY, backgroundColor: "#FBFAF6", borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: C.ink },
   segRow: { flexDirection: "row", gap: 8 },
-  segBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: C.border, alignItems: "center", backgroundColor: "#F8FAFC" },
+  segBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: C.border, alignItems: "center", backgroundColor: "#FBFAF6" },
   segBtnActive: { borderColor: C.emerald600, backgroundColor: C.emerald50 },
-  segText: { fontSize: 12.5, fontWeight: "700", color: C.subText },
+  segText: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", color: C.subText },
   segTextActive: { color: C.emerald700 },
   modalPrimaryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: C.emerald600, paddingVertical: 14, borderRadius: 12, marginTop: 16 },
-  modalPrimaryBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },
+  modalPrimaryBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 14 },
 
   // Payment (A2)
   payStatusPill: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
-  payStatusText: { fontSize: 12, fontWeight: "800" },
-  proofThumb: { width: 84, height: 110, borderRadius: 10, marginRight: 8, backgroundColor: "#EEF2F6", borderWidth: 1, borderColor: C.border },
+  payStatusText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold" },
+  proofThumb: { width: 84, height: 110, borderRadius: 10, marginRight: 8, backgroundColor: "#EFEDE6", borderWidth: 1, borderColor: C.border },
   payActionsRow: { flexDirection: "row", gap: 8, marginTop: 14 },
   payRejectBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, borderColor: C.red, backgroundColor: C.redLight },
-  payRejectText: { color: C.red, fontWeight: "800", fontSize: 13.5 },
+  payRejectText: { fontFamily: DISPLAY, color: C.red, fontWeight: "bold", fontSize: 13.5 },
   payVerifyBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12, borderRadius: 12, backgroundColor: C.emerald600 },
-  payVerifyText: { color: "#fff", fontWeight: "800", fontSize: 13.5 },
+  payVerifyText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13.5 },
 
   // Full-screen image viewer (A2)
   viewerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.92)", alignItems: "center", justifyContent: "center" },
@@ -1596,31 +1863,31 @@ const styles = StyleSheet.create({
   vehHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingRight: 16 },
   vehAddBtn: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: C.emerald600, backgroundColor: C.emerald50, marginTop: 16 },
   vehCalLink: { flexDirection: "row", alignItems: "center", gap: 5, marginHorizontal: 16, marginTop: 4, marginBottom: 8 },
-  vehCalLinkText: { flex: 1, fontSize: 12, color: C.blue, fontWeight: "700" },
-  vehAddText: { color: C.emerald600, fontWeight: "800", fontSize: 12 },
-  vehEmpty: { color: C.subText, fontSize: 12.5, fontStyle: "italic", marginHorizontal: 16, marginVertical: 8 },
+  vehCalLinkText: { fontFamily: DISPLAY, flex: 1, fontSize: 12, color: C.blue, fontWeight: "bold" },
+  vehAddText: { fontFamily: DISPLAY, color: C.emerald600, fontWeight: "bold", fontSize: 12 },
+  vehEmpty: { fontFamily: DISPLAY, color: C.subText, fontSize: 12.5, fontStyle: "italic", marginHorizontal: 16, marginVertical: 8 },
   vehCard: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 16, marginBottom: 8, backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 10 },
-  vehThumb: { width: 56, height: 56, borderRadius: 10, backgroundColor: "#EEF2F6" },
+  vehThumb: { width: 56, height: 56, borderRadius: 10, backgroundColor: "#EFEDE6" },
   vehThumbPlaceholder: { alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: C.border },
-  vehName: { fontSize: 14, fontWeight: "800", color: C.ink },
-  vehSub: { fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 1 },
+  vehName: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", color: C.ink },
+  vehSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 1 },
   vehMetaRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 5 },
   vehStatusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-  vehStatusText: { fontSize: 10.5, fontWeight: "800" },
-  vehAmount: { fontSize: 12.5, fontWeight: "800", color: C.emerald600 },
+  vehStatusText: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold" },
+  vehAmount: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", color: C.emerald600 },
 
   // Fleet picker rows (A3 modal)
-  fleetPickRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 8, borderRadius: 12, borderWidth: 1, borderColor: C.border, backgroundColor: "#F8FAFC", marginBottom: 8 },
+  fleetPickRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 8, borderRadius: 12, borderWidth: 1, borderColor: C.border, backgroundColor: "#FBFAF6", marginBottom: 8 },
   fleetPickRowActive: { borderColor: C.emerald600, backgroundColor: C.emerald50 },
-  fleetPickThumb: { width: 46, height: 46, borderRadius: 9, backgroundColor: "#EEF2F6" },
-  dateField: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11 },
-  dateFieldText: { fontSize: 13.5, color: C.ink, fontWeight: "700" },
+  fleetPickThumb: { width: 46, height: 46, borderRadius: 9, backgroundColor: "#EFEDE6" },
+  dateField: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FBFAF6", borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11 },
+  dateFieldText: { fontFamily: DISPLAY, fontSize: 13.5, color: C.ink, fontWeight: "bold" },
 
   // Notes
   noteInputCard: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginHorizontal: 16, padding: 8, borderRadius: 14, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
-  noteInput: { flex: 1, fontSize: 13.5, color: C.ink, minHeight: 36, maxHeight: 120, paddingHorizontal: 8, paddingVertical: 6 },
+  noteInput: { fontFamily: DISPLAY, flex: 1, fontSize: 13.5, color: C.ink, minHeight: 36, maxHeight: 120, paddingHorizontal: 8, paddingVertical: 6 },
   noteSendBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: C.emerald600, alignItems: "center", justifyContent: "center" },
-  noNotes: { color: C.subText, fontSize: 12.5, fontStyle: "italic", textAlign: "center", marginVertical: 16 },
+  noNotes: { fontFamily: DISPLAY, color: C.subText, fontSize: 12.5, fontStyle: "italic", textAlign: "center", marginVertical: 16 },
 
   // Timeline
   timelineWrap: { marginTop: 10, marginHorizontal: 16 },
@@ -1629,28 +1896,28 @@ const styles = StyleSheet.create({
   timelineDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: C.emerald500, borderWidth: 2, borderColor: "#fff", shadowColor: C.emerald600, shadowOpacity: 0.4, shadowRadius: 3 },
   timelineLine: { flex: 1, width: 2, backgroundColor: C.border, marginTop: 2 },
   timelineCard: { flex: 1, backgroundColor: C.card, borderRadius: 12, borderWidth: 1, borderColor: C.border, padding: 11, marginBottom: 10 },
-  timelineText: { fontSize: 13, color: C.ink, lineHeight: 18 },
+  timelineText: { fontFamily: DISPLAY, fontSize: 13, color: C.ink, lineHeight: 18 },
   timelineFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 },
-  authorChip: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: "#F1F5F9" },
-  authorText: { fontSize: 10.5, color: C.subText, fontWeight: "700" },
-  timelineTime: { fontSize: 10.5, color: C.subText, fontWeight: "600", marginLeft: "auto" },
+  authorChip: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: "#EFEDE6" },
+  authorText: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "bold" },
+  timelineTime: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "600", marginLeft: "auto" },
 
   // Modals
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   modalSheet: { backgroundColor: C.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 24, paddingTop: 16, paddingHorizontal: 16 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  modalTitle: { fontSize: 16, fontWeight: "800", color: C.ink },
-  modalItem: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, paddingHorizontal: 12, borderRadius: 10, marginBottom: 6, backgroundColor: "#F8FAFC" },
+  modalTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink },
+  modalItem: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, paddingHorizontal: 12, borderRadius: 10, marginBottom: 6, backgroundColor: "#FBFAF6" },
   modalDot: { width: 8, height: 8, borderRadius: 4 },
-  modalItemText: { fontSize: 14, fontWeight: "700", flex: 1 },
+  modalItemText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", flex: 1 },
 
   // Confirm convert
   confirmCard: { margin: 24, backgroundColor: C.card, borderRadius: 22, padding: 22, alignItems: "center", alignSelf: "center" },
   confirmIcon: { width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  confirmTitle: { fontSize: 17, fontWeight: "800", color: C.ink, marginTop: 4 },
-  confirmBody: { fontSize: 13, color: C.subText, textAlign: "center", marginTop: 8, lineHeight: 19 },
+  confirmTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, marginTop: 4 },
+  confirmBody: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, textAlign: "center", marginTop: 8, lineHeight: 19 },
   confirmCancel: { flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: C.border, alignItems: "center" },
-  confirmCancelText: { color: C.text, fontWeight: "700", fontSize: 14 },
+  confirmCancelText: { fontFamily: DISPLAY, color: C.text, fontWeight: "bold", fontSize: 14 },
   confirmOk: { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: C.emerald600, alignItems: "center" },
-  confirmOkText: { color: "#fff", fontWeight: "800", fontSize: 14 },
+  confirmOkText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 14 },
 });

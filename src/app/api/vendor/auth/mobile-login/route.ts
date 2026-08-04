@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { checkRateLimit, RATE_LIMITS, logger } from '@/lib/security';
 import { generateDid } from '@/lib/utils/generate-did';
+import { generateTaid } from '@/lib/utils/generate-taid';
 
 export const dynamic = 'force-dynamic';
 
@@ -213,10 +214,15 @@ export async function POST(request: NextRequest) {
     // --- TRAVEL AGENT LOGIN ---
     // Same form & endpoint as vendor; we detect TA credentials here and return userType='travel_agent'
     // so the mobile app can route to the Travel Agent dashboard instead.
-    const travelAgent = await prisma.travel_agents.findUnique({
-      where: { email: loginIdentifier.toLowerCase() },
+    // findFirst, not findUnique: a TA can sign in with either their TAID
+    // (ta-0001) or their email, and the two lookups take different shapes.
+    const travelAgent = await prisma.travel_agents.findFirst({
+      where: /^ta-\d+$/i.test(loginIdentifier)
+        ? { tid: loginIdentifier.toLowerCase() }
+        : { email: loginIdentifier.toLowerCase() },
       select: {
         id: true,
+        tid: true,
         email: true,
         password: true,
         phone: true,
@@ -262,9 +268,20 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Lazily assign a Travel Agent ID (ta-xxxx) to older accounts missing one.
+      if (!travelAgent.tid) {
+        try {
+          travelAgent.tid = await generateTaid();
+        } catch { /* non-fatal — login can proceed without a fresh tid */ }
+      }
+
       await prisma.travel_agents.update({
         where: { id: travelAgent.id },
-        data: { lastLoginAt: new Date(), ...(fcmToken ? { fcmToken } : {}) },
+        data: {
+          lastLoginAt: new Date(),
+          ...(travelAgent.tid ? { tid: travelAgent.tid } : {}),
+          ...(fcmToken ? { fcmToken } : {}),
+        },
       });
 
       const taToken = jwt.sign(

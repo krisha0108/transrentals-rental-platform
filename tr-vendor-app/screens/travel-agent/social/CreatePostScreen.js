@@ -1,14 +1,17 @@
 // screens/travel-agent/social/CreatePostScreen.js
-// REDESIGNED — emerald-themed compose-post screen.
+// REDESIGNED (v2) — premium "Deep Emerald + Champagne" compose-post screen.
+// Animated header bubbles, warm-cream surfaces, self-contained cards.
 // POST /api/social/posts  body: { content, categoryId?, images? }
 //
-// Author preview at top + textarea + category chips + image picker + live
-// post preview. Categories with `isSOS: true` flip the entire UI to red.
-import React, { useEffect, useMemo, useState } from "react";
+// Author preview + textarea + category chips + image picker + tips.
+// Categories with `isSOS: true` flip the entire UI to red.
+// NOTE: UI-only redesign — all state, effects, submit logic and API calls
+// are unchanged from the previous version.
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Alert, StatusBar,
+  Alert, StatusBar, Animated, Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -20,26 +23,18 @@ import {
 } from "../../api/travelAgentClient";
 import ImagePickerField from "../_shared/ImagePickerField";
 import RemoteImage from "../_shared/RemoteImage";
+import { DISPLAY } from "../_shared/typography";
+import { SC as C, C as T, G, TONES } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-};
+// ── Premium "Deep Emerald + Champagne" palette (matches the Fleet screen) ──
+// Values now come from the shared Elevate theme; key names unchanged so no JSX
+// edits were needed. Only the emerald family, inks and header gradient drifted.
+// NOTE: `purple` is used with a hex-alpha suffix (`${C.purple}16`), so it must
+// stay 6-digit hex — T.plumLight is.
+const GOLD = "#E4C066";                 // champagne accent
+const FILL = "#FBF8F1";                 // warm cream input fill
+const HEADER_GRAD = G.hero;
+const SOS_GRAD = ["#B3261E", "#7A0F12"];
 
 const MAX_CHARS = 2000;
 const WARN_AT = MAX_CHARS - 200;
@@ -96,6 +91,24 @@ export default function CreatePostScreen({ navigation, route }) {
     })();
   }, [preSelectSOS]);
 
+  // Gentle looping float for the header's decorative bubbles (presentational).
+  const blobA = useRef(new Animated.Value(0)).current;
+  const blobB = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = (val, dur) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(val, { toValue: 1, duration: dur, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(val, { toValue: 0, duration: dur, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        ])
+      );
+    const a = loop(blobA, 4200);
+    const b = loop(blobB, 5600);
+    a.start();
+    b.start();
+    return () => { a.stop(); b.stop(); };
+  }, [blobA, blobB]);
+
   const canSubmit = content.trim().length >= 2 && !!categoryId && !posting;
   const charsLeft = MAX_CHARS - content.length;
   const overLimit = content.length > MAX_CHARS;
@@ -126,52 +139,79 @@ export default function CreatePostScreen({ navigation, route }) {
   };
 
   // SOS mode flips the hero/Post button to red — visually loud.
-  const heroColors = isSOS
-    ? ["#DC2626", "#B91C1C"]
-    : [C.emerald700, C.emerald600];
+  const heroColors = isSOS ? SOS_GRAD : HEADER_GRAD;
   const accent = isSOS ? C.red : C.emerald600;
+  const eyebrowColor = isSOS ? "#FFD9D9" : GOLD;
+
+  const requestClose = () => {
+    if (content.trim().length > 0 || images.length > 0) {
+      Alert.alert(
+        "Discard post?",
+        "Your draft will be lost.",
+        [
+          { text: "Keep editing", style: "cancel" },
+          { text: "Discard", style: "destructive", onPress: () => navigation.goBack() },
+        ]
+      );
+    } else {
+      navigation.goBack();
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={heroColors[0]} />
 
-      {/* ===== Gradient header ===== */}
+      {/* ===== Gradient header with animated bubbles ===== */}
       <LinearGradient
         colors={heroColors}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 14 }}>
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.headerBlobA, {
+            transform: [
+              { translateY: blobA.interpolate({ inputRange: [0, 1], outputRange: [0, 16] }) },
+              { translateX: blobA.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
+              { scale: blobA.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] }) },
+            ],
+          }]}
+        />
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.headerBlobB, {
+            transform: [
+              { translateY: blobB.interpolate({ inputRange: [0, 1], outputRange: [0, -14] }) },
+              { translateX: blobB.interpolate({ inputRange: [0, 1], outputRange: [0, 12] }) },
+              { scale: blobB.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) },
+            ],
+          }]}
+        />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 16, paddingBottom: 11 }}>
+          {/* One row: close · text column · Post button. The text column is a
+              plain flex child, so the eyebrow, title and subtitle share its
+              left edge automatically — the old version faked that with
+              marginLeft:52 and pulled the title up with marginTop:-9. */}
           <View style={styles.headerRow}>
-            <TouchableOpacity
-              onPress={() => {
-                if (content.trim().length > 0 || images.length > 0) {
-                  Alert.alert(
-                    "Discard post?",
-                    "Your draft will be lost.",
-                    [
-                      { text: "Keep editing", style: "cancel" },
-                      { text: "Discard", style: "destructive", onPress: () => navigation.goBack() },
-                    ]
-                  );
-                } else {
-                  navigation.goBack();
-                }
-              }}
-              style={styles.iconBtn}
-            >
-              <Ionicons name="close" size={24} color="#fff" />
+            <TouchableOpacity onPress={requestClose} style={styles.headerCircleBtn} activeOpacity={0.8}>
+              <Ionicons name="close" size={21} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>
+
+            <View style={styles.headerTitleBlock}>
+              <Text style={[styles.headerEyebrow, { color: eyebrowColor }]}>
+                {isSOS ? "SOS ALERT" : "COMPOSE"}
+              </Text>
+              <Text style={styles.headerTitle} numberOfLines={1}>
                 {isSOS ? "SOS Post" : "Create Post"}
               </Text>
-              <Text style={styles.headerSub}>
+              <Text style={styles.headerSub} numberOfLines={2}>
                 {isSOS
                   ? "Marked urgent — partners will be notified"
                   : "Share with your vendor + agent network"}
               </Text>
             </View>
+
             <TouchableOpacity
               onPress={submit}
               disabled={!canSubmit}
@@ -198,13 +238,13 @@ export default function CreatePostScreen({ navigation, route }) {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ===== Author preview row ===== */}
-          <View style={styles.authorRow}>
+          {/* ===== Author preview card ===== */}
+          <View style={styles.authorCard}>
             {agent?.logo ? (
               <RemoteImage source={{ uri: agent.logo }} style={styles.authorAvatar} />
             ) : (
               <LinearGradient
-                colors={[C.blue, "#1D4ED8"]}
+                colors={[C.emerald500, C.emerald700]}
                 style={styles.authorAvatar}
               >
                 <Text style={styles.authorAvatarText}>
@@ -229,7 +269,7 @@ export default function CreatePostScreen({ navigation, route }) {
           </View>
 
           {/* ===== Textarea ===== */}
-          <View style={[styles.contentCard, isSOS && { borderColor: C.red, backgroundColor: "#FEF7F7" }]}>
+          <View style={[styles.contentCard, isSOS && { borderColor: C.red, backgroundColor: "#FEF6F5" }]}>
             <TextInput
               style={styles.contentInput}
               placeholder={
@@ -237,7 +277,7 @@ export default function CreatePostScreen({ navigation, route }) {
                   ? "What do you need urgently? Be specific — location, dates, requirement."
                   : "Share an update, an offer, an SOS, a question…"
               }
-              placeholderTextColor="#A3B3C2"
+              placeholderTextColor="#B4AE9F"
               value={content}
               onChangeText={setContent}
               multiline
@@ -267,23 +307,23 @@ export default function CreatePostScreen({ navigation, route }) {
 
           {/* ===== Category chips ===== */}
           {categories.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={[styles.sectionIcon, { backgroundColor: `${accent}1A` }]}>
-                  <Ionicons name="pricetag" size={13} color={accent} />
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={[styles.cardIcon, { backgroundColor: `${accent}16` }]}>
+                  <Ionicons name="pricetag" size={16} color={accent} />
                 </View>
-                <Text style={[styles.sectionLabel, { color: accent }]}>CATEGORY</Text>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.cardLabel}>Category</Text>
+                  <Text style={styles.cardHint} numberOfLines={1}>
+                    {isSOS ? "Boosts visibility & notifies partners" : "Helps partners find your post"}
+                  </Text>
+                </View>
                 {selectedCategory && (
-                  <TouchableOpacity onPress={() => setCategoryId(null)}>
+                  <TouchableOpacity onPress={() => setCategoryId(null)} style={styles.clearBtn}>
                     <Text style={styles.clearLink}>Clear</Text>
                   </TouchableOpacity>
                 )}
               </View>
-              <Text style={styles.sectionHint}>
-                {isSOS
-                  ? "🚨 SOS category will boost visibility & notify partners."
-                  : "Helps partners find your post. Tap one or leave blank."}
-              </Text>
 
               {/* Chip grid */}
               <View style={styles.chipsWrap}>
@@ -303,28 +343,21 @@ export default function CreatePostScreen({ navigation, route }) {
                       activeOpacity={0.85}
                     >
                       {sos && (
-                        <Ionicons
-                          name="alert-circle"
-                          size={11}
-                          color={active ? C.red : "#DC2626"}
-                        />
+                        <Ionicons name="alert-circle" size={12} color={C.red} />
                       )}
                       <Text
                         style={[
                           styles.chipText,
-                          active && { fontWeight: "900", color: chipColor },
-                          sos && !active && { color: C.red, fontWeight: "800" },
+                          active && { fontWeight: "bold", color: chipColor },
+                          sos && !active && { color: C.red, fontWeight: "bold" },
                         ]}
                       >
                         {c.name}
                       </Text>
-                      {active && (
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={12}
-                          color={chipColor}
-                        />
-                      )}
+                      {/* No checkmark added on select — appending an icon made
+                          the chip wider, so tapping one reflowed the whole
+                          wrapped grid. The fill, border and bold text already
+                          say it's selected. */}
                     </TouchableOpacity>
                   );
                 })}
@@ -333,20 +366,26 @@ export default function CreatePostScreen({ navigation, route }) {
           )}
 
           {/* ===== Images ===== */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIcon, { backgroundColor: `${C.purple}1A` }]}>
-                <Ionicons name="images" size={13} color={C.purple} />
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIcon, { backgroundColor: `${C.purple}16` }]}>
+                <Ionicons name="images" size={16} color={C.purple} />
               </View>
-              <Text style={[styles.sectionLabel, { color: C.purple }]}>IMAGES</Text>
-              <View style={styles.imgCountBadge}>
-                <Text style={styles.imgCountText}>{images.length}/4</Text>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.cardLabel}>Images</Text>
+                <Text style={styles.cardHint} numberOfLines={1}>
+                  Photos make posts more engaging
+                </Text>
+              </View>
+              {/* Turns emerald once all 4 slots are used, so "full" is obvious
+                  without reading the numbers. */}
+              <View style={[styles.imgCountBadge, images.length >= 4 && { backgroundColor: C.emerald50 }]}>
+                <Text style={[styles.imgCountText, images.length >= 4 && { color: C.emerald700 }]}>
+                  {images.length}/4
+                </Text>
               </View>
             </View>
-            <Text style={styles.sectionHint}>
-              Photos make posts more engaging. Up to 4 images.
-            </Text>
-            <View style={{ marginTop: 8 }}>
+            <View style={{ marginTop: 4 }}>
               <ImagePickerField
                 multi
                 max={4}
@@ -361,7 +400,9 @@ export default function CreatePostScreen({ navigation, route }) {
           {!content.trim() && (
             <View style={styles.tipsCard}>
               <View style={styles.tipsHeader}>
-                <Ionicons name="bulb" size={15} color={C.amber} />
+                <View style={styles.tipsIcon}>
+                  <Ionicons name="bulb" size={15} color="#B45309" />
+                </View>
                 <Text style={styles.tipsTitle}>Tips for great posts</Text>
               </View>
               <View style={styles.tipRow}>
@@ -406,7 +447,7 @@ export default function CreatePostScreen({ navigation, route }) {
             </View>
           )}
           {images.length > 0 && (
-            <View style={styles.bottomCatPill}>
+            <View style={[styles.bottomCatPill, { backgroundColor: C.purpleLight, borderColor: "#DDD6FE" }]}>
               <Ionicons name="images" size={10} color={C.purple} />
               <Text style={[styles.bottomCatText, { color: C.purple }]}>
                 {images.length} {images.length === 1 ? "image" : "images"}
@@ -421,7 +462,7 @@ export default function CreatePostScreen({ navigation, route }) {
           activeOpacity={0.9}
         >
           <LinearGradient
-            colors={isSOS ? ["#DC2626", "#B91C1C"] : [C.emerald600, C.emerald700]}
+            colors={isSOS ? SOS_GRAD : [C.emerald500, C.emerald700]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={styles.publishBtnInner}
           >
@@ -429,7 +470,7 @@ export default function CreatePostScreen({ navigation, route }) {
               <>
                 <Ionicons
                   name={isSOS ? "alert-circle" : "send"}
-                  size={16}
+                  size={17}
                   color="#fff"
                 />
                 <Text style={styles.publishBtnText}>
@@ -447,91 +488,153 @@ export default function CreatePostScreen({ navigation, route }) {
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
   // Header
-  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 2 },
-  postBtn: { backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 9, borderRadius: 999, minWidth: 70, alignItems: "center" },
-  postBtnText: { color: C.emerald700, fontWeight: "900", fontSize: 13, letterSpacing: 0.3 },
+  headerGrad: { borderBottomLeftRadius: 30, borderBottomRightRadius: 30, overflow: "hidden" },
+  headerBlobA: {
+    position: "absolute", top: -50, right: -40, width: 180, height: 180, borderRadius: 90,
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  headerBlobB: {
+    position: "absolute", top: 30, left: -60, width: 150, height: 150, borderRadius: 75,
+    backgroundColor: "rgba(228,192,102,0.06)",
+  },
+  // Three columns; gap does the spacing, no magic margins.
+  headerRow: { flexDirection: "row", alignItems: "flex-start", paddingTop: 12, gap: 12 },
+  headerCircleBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.2)",
+    alignItems: "center", justifyContent: "center",
+  },
+  headerEyebrow: {
+    fontFamily: DISPLAY, fontSize: 9.5, fontWeight: "bold",
+    letterSpacing: 1.4, textTransform: "uppercase",
+    lineHeight: 12, includeFontPadding: false,
+  },
+  // marginLeft = close btn width (40) + gap (12) → title lines up under eyebrow
+  headerTitleBlock: { flex: 1, minWidth: 0, paddingTop: 1 },
+  headerTitle: {
+    fontFamily: DISPLAY, fontSize: 20, fontWeight: "bold", color: "#fff",
+    letterSpacing: 0.2, lineHeight: 24, marginTop: 3, includeFontPadding: false,
+  },
+  headerSub: {
+    fontFamily: DISPLAY, fontSize: 11.5, color: "rgba(255,255,255,0.72)",
+    fontWeight: "600", lineHeight: 15, marginTop: 3, includeFontPadding: false,
+  },
+  // alignSelf centres it against the three-line text column instead of the
+  // marginTop:8 nudge it used to need.
+  postBtn: {
+    backgroundColor: "#fff", paddingHorizontal: 14, paddingVertical: 7,
+    borderRadius: 999, minWidth: 58, alignItems: "center", alignSelf: "center",
+  },
+  postBtnText: { fontFamily: DISPLAY, color: C.emerald700, fontWeight: "bold", fontSize: 12, letterSpacing: 0.3 },
 
-  scroll: { padding: 14, paddingTop: 12 },
+  scroll: { padding: 16, paddingTop: 14 },
 
-  // Author preview
-  authorRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
-  authorAvatar: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  authorAvatarText: { color: "#fff", fontWeight: "900", fontSize: 13 },
-  authorName: { fontSize: 14, fontWeight: "800", color: C.ink },
-  authorMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
-  authorTypePill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, backgroundColor: C.blueLight },
-  authorTypePillText: { fontSize: 9.5, color: C.blue, fontWeight: "800" },
-  authorMeta: { fontSize: 11, color: C.subText, fontWeight: "600" },
+  // Author preview card
+  authorCard: {
+    flexDirection: "row", alignItems: "center", gap: 11,
+    backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border,
+    padding: 12,
+    ...Platform.select({
+      ios: { shadowColor: "#0A2A21", shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } },
+      android: { elevation: 1 },
+    }),
+  },
+  authorAvatar: { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  authorAvatarText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 14 },
+  authorName: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: "bold", color: C.ink },
+  authorMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+  authorTypePill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, backgroundColor: C.blueLight },
+  authorTypePillText: { fontFamily: DISPLAY, fontSize: 9.5, color: C.blue, fontWeight: "bold" },
+  authorMeta: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "600" },
 
   // Content card
   contentCard: {
     position: "relative",
-    backgroundColor: C.card, borderRadius: 14, borderWidth: 1.5, borderColor: C.border,
-    padding: 14, minHeight: 160,
+    marginTop: 14,
+    backgroundColor: C.card, borderRadius: 18, borderWidth: 1.5, borderColor: C.border,
+    padding: 16, minHeight: 172,
+    ...Platform.select({
+      ios: { shadowColor: "#0A2A21", shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } },
+      android: { elevation: 1 },
+    }),
   },
   contentInput: {
-    fontSize: 16, color: C.ink, minHeight: 130,
-    paddingVertical: 0, lineHeight: 22,
+    fontFamily: DISPLAY,
+    fontSize: 16, color: C.ink, minHeight: 138,
+    paddingVertical: 0, lineHeight: 23,
   },
   counter: {
-    position: "absolute", bottom: 8, right: 8,
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-    backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border,
+    position: "absolute", bottom: 10, right: 10,
+    paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999,
+    backgroundColor: FILL, borderWidth: 1, borderColor: C.border,
   },
-  counterText: { fontSize: 10.5, color: C.subText, fontWeight: "800" },
+  counterText: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "bold" },
 
-  // Section
-  section: { marginTop: 18 },
-  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
-  sectionIcon: { width: 24, height: 24, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  sectionLabel: { fontSize: 11.5, fontWeight: "900", letterSpacing: 0.5, flex: 1 },
-  sectionHint: { fontSize: 11, color: C.subText, fontWeight: "600", marginBottom: 10, marginLeft: 30 },
-  clearLink: { fontSize: 11.5, color: C.red, fontWeight: "800" },
-  imgCountBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: C.purpleLight ?? C.emerald50 },
-  imgCountText: { fontSize: 10.5, fontWeight: "900", color: C.purple },
+  // Section card
+  card: {
+    marginTop: 14,
+    backgroundColor: C.card, borderRadius: 18, borderWidth: 1, borderColor: C.border,
+    padding: 16,
+    ...Platform.select({
+      ios: { shadowColor: "#0A2A21", shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } },
+      android: { elevation: 1 },
+    }),
+  },
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: 11, marginBottom: 13 },
+  cardIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  cardLabel: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: "bold", color: C.ink, letterSpacing: 0.2, includeFontPadding: false },
+  cardHint: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 2, includeFontPadding: false },
+  clearBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: C.redLight },
+  clearLink: { fontFamily: DISPLAY, fontSize: 11.5, color: C.red, fontWeight: "bold" },
+  imgCountBadge: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, backgroundColor: C.purpleLight },
+  imgCountText: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold", color: C.purple, includeFontPadding: false, fontVariant: ["tabular-nums"] },
 
-  // Category chips
-  chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  // Category chips — rounded-rect tags
+  chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, rowGap: 8 },
+  // Pill shape matches the chip language used across the social module. The
+  // border is always 1.5 so selecting one never shifts the grid.
   chip: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: "#FAFBFC", borderWidth: 1.5, borderColor: C.border,
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: FILL, borderWidth: 1.5, borderColor: "transparent",
   },
-  chipText: { fontSize: 12, color: C.text, fontWeight: "700" },
+  chipText: { fontFamily: DISPLAY, fontSize: 12.5, color: C.text, fontWeight: "bold", letterSpacing: 0.2, includeFontPadding: false },
 
   // Tips card
   tipsCard: {
-    marginTop: 18, padding: 14, borderRadius: 14,
-    backgroundColor: C.amberLight, borderWidth: 1, borderColor: "#FDE68A",
+    marginTop: 14, padding: 16, borderRadius: 18,
+    backgroundColor: "#FDF6E3", borderWidth: 1, borderColor: "#F1E4BC",
   },
-  tipsHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
-  tipsTitle: { fontSize: 13, fontWeight: "800", color: "#A16207" },
-  tipRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginTop: 6 },
-  tipDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.amber, marginTop: 6 },
-  tipText: { flex: 1, fontSize: 12, color: C.text, fontWeight: "500", lineHeight: 17 },
+  tipsHeader: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 10 },
+  tipsIcon: { width: 30, height: 30, borderRadius: 10, backgroundColor: "#FBEFC8", alignItems: "center", justifyContent: "center" },
+  tipsTitle: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: "bold", color: "#8A5A0B" },
+  tipRow: { flexDirection: "row", alignItems: "flex-start", gap: 9, marginTop: 7 },
+  tipDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: GOLD, marginTop: 6 },
+  tipText: { fontFamily: DISPLAY, flex: 1, fontSize: 12.5, color: C.text, fontWeight: "500", lineHeight: 18 },
 
   // Sticky bottom bar
   bottomBar: {
-    paddingHorizontal: 14, paddingTop: 8,
-    paddingBottom: Platform.OS === "ios" ? 24 : 10,
+    paddingHorizontal: 16, paddingTop: 10,
+    paddingBottom: Platform.OS === "ios" ? 26 : 12,
     backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
+    ...Platform.select({
+      ios: { shadowColor: "#0A2A21", shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: -6 } },
+      android: { elevation: 16 },
+    }),
   },
-  bottomMeta: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8, minHeight: 22 },
+  bottomMeta: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10, minHeight: 22 },
   bottomCatPill: {
     flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-    backgroundColor: C.emerald50, borderWidth: 1, borderColor: "#A7F3D0",
+    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999,
+    backgroundColor: C.emerald50, borderWidth: 1, borderColor: "#BFE3D5",
   },
-  bottomCatText: { fontSize: 10.5, fontWeight: "800", color: C.emerald700 },
+  bottomCatText: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: "bold", color: C.emerald700 },
 
   publishBtnWrap: {
-    borderRadius: 12, overflow: "hidden",
-    shadowColor: C.emerald600, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4,
+    borderRadius: 16, overflow: "hidden",
+    shadowColor: C.emerald600, shadowOpacity: 0.45, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 6,
   },
-  publishBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14 },
-  publishBtnText: { color: "#fff", fontWeight: "800", fontSize: 14.5 },
+  publishBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12 },
+  publishBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 15, letterSpacing: 0.3 },
 });

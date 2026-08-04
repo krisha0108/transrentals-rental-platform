@@ -97,6 +97,12 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
     interval: 1000, // 1 second
     maxRequests: 20, // 20 events per second
   },
+
+  // Help-bot chat endpoints (public-facing, hits a paid external LLM API)
+  helpBot: {
+    interval: 5 * 60 * 1000, // 5 minutes
+    maxRequests: 20, // 20 messages per 5 minutes
+  },
 } as const;
 
 /**

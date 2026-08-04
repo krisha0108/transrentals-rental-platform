@@ -1,5 +1,15 @@
 import type { Metadata } from 'next';
+import { Fraunces } from 'next/font/google';
 import { prisma } from '@/lib/db/prisma';
+
+// Premium serif display font — scoped to the /wander route only
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '900'],
+  style: ['normal', 'italic'],
+  variable: '--font-display',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Wander Experiences - Curated Travel & Adventure Tours | TransRentals',
@@ -98,7 +108,7 @@ export default async function WanderLayout({ children }: { children: React.React
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(wanderSchema) }}
       />
-      {children}
+      <div className={fraunces.variable}>{children}</div>
     </>
   );
 }

@@ -1,8 +1,22 @@
 // screens/travel-agent/bank/BankDetailsListScreen.js
-// REDESIGNED — emerald-themed bank accounts list. Cards look like real
-// credit-card style tiles with gradient stripe + masked account number.
-// Backend has no PATCH endpoint, so "Edit" is not exposed (mirrors web —
-// delete + re-add). Primary flag flips via re-POST (demotes prev primary).
+// Bank accounts list. Cards are credit-card style tiles with a gradient face
+// and a masked account number. Backend has no PATCH endpoint, so "Edit" is not
+// exposed (mirrors web — delete + re-add). Primary flag flips via re-POST
+// (which demotes the previous primary).
+//
+// REDESIGNED (v2) — "Elevate" visual language (ivory ground, forest→emerald
+// gradient hero with floating orbs, serif DISPLAY type, glass cards), matching
+// TravelAgentDashboardScreen / DocumentsScreen / GetStartedScreen / Support.
+//
+// ⚠️ UI ONLY — no logic changes. Preserved exactly:
+//   • every state hook, load() and its primary-first sort, the focus listener
+//   • onSetPrimary / onDelete — identical Alert titles, bodies, button labels
+//     and handlers (including setBusyId and the reload on success)
+//   • onCopyAcc / onCopyIfsc — same Clipboard writes and confirmation Alerts
+//   • hasPrimary useMemo, and both navigate calls passing { hasPrimary }
+//   • mask()'s grouping is untouched
+// The per-account gradient cycle was dropped: cards are now white with a
+// coloured top rail only, matching the Add-account screen's live preview.
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
@@ -12,48 +26,38 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import Clipboard from "@react-native-clipboard/clipboard";
+import { DISPLAY } from "../_shared/typography";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import { C, G, TONES, rs, rf, GUT, alpha, cardShadow } from "../_shared/theme";
 import {
   listTravelAgentBankAccounts,
   deleteTravelAgentBankAccount,
   setPrimaryTravelAgentBankAccount,
 } from "../../api/travelAgentClient";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  blueLight: "#EFF6FF",
-  amber: "#F59E0B",
-  amberLight: "#FEF3C7",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
-  purple: "#8B5CF6",
-};
+// Hero ↔ banner spacing. Visible gap = HERO_TAIL + hero paddingBottom(8) − OVERLAP.
+const HERO_TAIL = rs(30);
+const BANNER_OVERLAP = rs(20);
 
-// Card gradient cycled per account so multiple accounts visually distinct.
-const CARD_GRADIENTS = [
-  ["#047857", "#059669"], // emerald (primary)
-  ["#1E40AF", "#3B82F6"], // blue
-  ["#6D28D9", "#8B5CF6"], // purple
-  ["#0E7490", "#06B6D4"], // cyan
-  ["#BE185D", "#EC4899"], // pink
-  ["#9A3412", "#F97316"], // orange
-];
-function gradientFor(account, isPrimary) {
-  if (isPrimary) return CARD_GRADIENTS[0];
-  // hash the bank name so each non-primary card is stable
-  const seed = (account.bankName || account.id || "x") + "";
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  return CARD_GRADIENTS[1 + (h % (CARD_GRADIENTS.length - 1))];
+// Cards are plain white, matching the Add-account screen's live preview. Only
+// the top rail is coloured: gold on the primary account, emerald on the rest —
+// enough hierarchy to scan the list without six competing gradients.
+const railFor = (isPrimary) => (isPrimary ? G.gold : G.emerald);
+
+// Classic EMV contact plate — the detail that makes a white rectangle read as
+// a real bank card. Same component as the Add-account preview.
+function EmvChip() {
+  return (
+    <LinearGradient
+      colors={G.gold}
+      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+      style={styles.emv}
+    >
+      <View style={styles.emvRowLine} />
+      <View style={[styles.emvColLine, { left: "33%" }]} />
+      <View style={[styles.emvColLine, { left: "66%" }]} />
+    </LinearGradient>
+  );
 }
 
 function mask(n) {
@@ -161,55 +165,71 @@ export default function BankDetailsListScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor={C.forestDark} />
 
-      {/* ===== Gradient header ===== */}
+      {/* ── Hero ── */}
       <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
+        colors={G.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={styles.headerGrad}
+        style={styles.hero}
       >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 24 }}>
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-              <Ionicons name="arrow-back" size={22} color="#fff" />
-            </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>Bank Accounts</Text>
-              <Text style={styles.headerSub}>
-                Where you receive payouts
-              </Text>
-            </View>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: GUT }}>
+          <View style={styles.heroTop}>
             <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() =>
-                navigation.navigate("TAAddBankAccount", { hasPrimary })
-              }
+              onPress={() => navigation.goBack()}
+              style={styles.circleBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="add-circle" size={26} color="#fff" />
+              <Ionicons name="arrow-back" size={rs(19)} color="#fff" />
+            </TouchableOpacity>
+
+            <View style={{ flex: 1 }} />
+
+            <TouchableOpacity
+              style={styles.circleBtn}
+              onPress={() => navigation.navigate("TAAddBankAccount", { hasPrimary })}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="add" size={rs(21)} color="#fff" />
             </TouchableOpacity>
           </View>
+
+          <View style={styles.heroTextBlock}>
+            <Text style={styles.heroTitle} numberOfLines={1}>Bank Accounts</Text>
+            <Text style={styles.heroSub} numberOfLines={1}>
+              {accounts.length > 0
+                ? `${accounts.length} account${accounts.length === 1 ? "" : "s"} · payouts every Monday`
+                : "Where you receive payouts"}
+            </Text>
+          </View>
+
+          <View style={{ height: HERO_TAIL }} />
         </SafeAreaView>
       </LinearGradient>
 
-      {/* ===== Info banner (always shown) ===== */}
-      <View style={styles.infoBanner}>
-        <View style={styles.infoIconWrap}>
-          <Ionicons name="information-circle" size={16} color={C.emerald700} />
+      {/* ── Info banner, tucked into the hero curve ── */}
+      <View style={styles.bannerWrap}>
+        <View style={[styles.infoBanner, cardShadow]}>
+          <View style={styles.infoIconWrap}>
+            <Ionicons name="information-circle" size={rs(16)} color={C.emeraldDeep} />
+          </View>
+          <Text style={styles.infoText}>
+            Payouts go to your{" "}
+            <Text style={styles.infoStrong}>primary</Text> account.
+            {accounts.length > 0 && !hasPrimary
+              ? "  Mark one as primary."
+              : "  Add multiple accounts if you need."}
+          </Text>
         </View>
-        <Text style={styles.infoText}>
-          Payouts go to your{" "}
-          <Text style={{ fontWeight: "900", color: C.amber }}>primary</Text> account.
-          {accounts.length > 0 && !hasPrimary
-            ? "  Mark one as primary."
-            : "  Add multiple accounts if you need."}
-        </Text>
       </View>
 
-      {/* ===== Warning when no primary set ===== */}
+      {/* ── Warning when no primary set ── */}
       {!loading && accounts.length > 0 && !hasPrimary && (
         <View style={styles.warnBanner}>
-          <Ionicons name="alert-circle" size={16} color={C.red} />
+          <Ionicons name="alert-circle" size={rs(15)} color={C.red} />
           <Text style={styles.warnText}>
             No primary account selected — payouts won't be sent until you mark one.
           </Text>
@@ -218,21 +238,24 @@ export default function BankDetailsListScreen({ navigation }) {
 
       {error && (
         <View style={styles.errorBox}>
-          <Ionicons name="alert-circle-outline" size={16} color={C.red} />
+          <Ionicons name="alert-circle-outline" size={rs(15)} color={C.red} />
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={load}><Text style={styles.errorRetry}>Retry</Text></TouchableOpacity>
+          <TouchableOpacity onPress={load}>
+            <Text style={styles.errorRetry}>Retry</Text>
+          </TouchableOpacity>
         </View>
       )}
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={C.emerald600} />
+          <ActivityIndicator size="large" color={C.emeraldDeep} />
           <Text style={styles.loadingText}>Loading bank accounts…</Text>
         </View>
       ) : (
         <FlatList
           data={accounts}
           keyExtractor={(a) => a.id}
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <BankCard
               account={item}
@@ -250,14 +273,14 @@ export default function BankDetailsListScreen({ navigation }) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={C.emerald600}
-              colors={[C.emerald600]}
+              tintColor={C.emeraldDeep}
+              colors={[C.emeraldDeep]}
             />
           }
           ListEmptyComponent={
-            <View style={styles.empty}>
+            <View style={[styles.emptyCard, cardShadow]}>
               <View style={styles.emptyIconWrap}>
-                <Ionicons name="card-outline" size={42} color={C.emerald600} />
+                <Ionicons name="card-outline" size={rs(32)} color={C.emeraldDeep} />
               </View>
               <Text style={styles.emptyTitle}>No bank accounts yet</Text>
               <Text style={styles.emptyBody}>
@@ -265,17 +288,15 @@ export default function BankDetailsListScreen({ navigation }) {
               </Text>
               <TouchableOpacity
                 style={styles.emptyCta}
-                onPress={() =>
-                  navigation.navigate("TAAddBankAccount", { hasPrimary: false })
-                }
+                onPress={() => navigation.navigate("TAAddBankAccount", { hasPrimary: false })}
                 activeOpacity={0.9}
               >
                 <LinearGradient
-                  colors={[C.emerald600, C.emerald700]}
+                  colors={G.emerald}
                   start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                   style={styles.emptyCtaInner}
                 >
-                  <Ionicons name="add" size={18} color="#fff" />
+                  <Ionicons name="add" size={rs(17)} color="#fff" />
                   <Text style={styles.emptyCtaText}>Add Account</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -284,21 +305,19 @@ export default function BankDetailsListScreen({ navigation }) {
         />
       )}
 
-      {/* ===== Floating Add FAB ===== */}
+      {/* ── Floating Add FAB ── */}
       {accounts.length > 0 && (
         <TouchableOpacity
           style={styles.fab}
-          onPress={() =>
-            navigation.navigate("TAAddBankAccount", { hasPrimary })
-          }
+          onPress={() => navigation.navigate("TAAddBankAccount", { hasPrimary })}
           activeOpacity={0.85}
         >
           <LinearGradient
-            colors={[C.emerald500, C.emerald700]}
+            colors={G.emerald}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={styles.fabInner}
           >
-            <Ionicons name="add" size={28} color="#fff" />
+            <Ionicons name="add" size={rs(26)} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
       )}
@@ -309,110 +328,123 @@ export default function BankDetailsListScreen({ navigation }) {
 /* ───────── Sub-components ───────── */
 
 function BankCard({ account, busy, onSetPrimary, onDelete, onCopyAcc, onCopyIfsc }) {
-  const gradient = gradientFor(account, account.isPrimary);
   const accountType = (account.accountType || "SAVINGS").replace("_", " ");
+  const isPrimary = !!account.isPrimary;
 
   return (
     <View style={styles.cardWrap}>
-      {/* The "credit card" tile (gradient) */}
-      <LinearGradient
-        colors={gradient}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={styles.cardTile}
-      >
-        {/* Decorative right-side circle */}
-        <View style={styles.cardCircleA} />
-        <View style={styles.cardCircleB} />
+      {/* White "credit card" tile — same anatomy as the Add-account preview:
+          rail, chip + contactless, number, holder/IFSC, issuer strip. */}
+      <View style={[styles.cardTile, cardShadow]}>
+        <LinearGradient
+          colors={railFor(isPrimary)}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={styles.cardRail}
+        />
+        {/* Two faint washes for depth — emerald top-right, gold bottom-left */}
+        <View style={styles.cardWash} />
+        <View style={styles.cardWashB} />
 
-        {/* Top: bank name + primary badge */}
-        <View style={styles.cardHeader}>
-          <View style={styles.cardChip}>
-            <Ionicons name="business" size={14} color="#fff" />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.cardBankName} numberOfLines={1}>{account.bankName}</Text>
-            {!!account.branchName && (
-              <Text style={styles.cardBranchName} numberOfLines={1}>{account.branchName}</Text>
+        <View style={styles.cardBody}>
+          <View style={styles.emvRow}>
+            <EmvChip />
+            <Ionicons
+              name="wifi"
+              size={rs(16)}
+              color={C.muted}
+              style={{ transform: [{ rotate: "90deg" }] }}
+            />
+            <View style={{ flex: 1 }} />
+            {isPrimary && (
+              <View style={styles.primaryBadge}>
+                <Ionicons name="star" size={rs(10)} color={TONES.amber.ink} />
+                <Text style={styles.primaryText}>PRIMARY</Text>
+              </View>
             )}
           </View>
-          {account.isPrimary && (
-            <View style={styles.primaryBadge}>
-              <Ionicons name="star" size={11} color="#fff" />
-              <Text style={styles.primaryText}>PRIMARY</Text>
-            </View>
-          )}
-        </View>
 
-        {/* Masked account number */}
-        <TouchableOpacity onPress={onCopyAcc} activeOpacity={0.85} style={styles.cardAccRow}>
-          <Text style={styles.cardAccLabel}>ACCOUNT NUMBER</Text>
-          <View style={styles.cardAccValueRow}>
+          {/* Masked account number — tap to copy the full one */}
+          <TouchableOpacity onPress={onCopyAcc} activeOpacity={0.7} style={styles.cardAccRow}>
             <Text style={styles.cardAccValue} numberOfLines={1}>
               {mask(account.accountNumber)}
             </Text>
-            <Ionicons name="copy-outline" size={13} color="rgba(255,255,255,0.7)" />
-          </View>
-        </TouchableOpacity>
-
-        {/* Bottom: holder + IFSC */}
-        <View style={styles.cardBottomRow}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.cardSubLabel}>ACCOUNT HOLDER</Text>
-            <Text style={styles.cardSubValue} numberOfLines={1}>
-              {account.accountHolderName || "—"}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={onCopyIfsc} activeOpacity={0.85} style={styles.cardIfscBlock}>
-            <Text style={styles.cardSubLabel}>IFSC</Text>
-            <View style={styles.cardIfscRow}>
-              <Text style={styles.cardSubValue} numberOfLines={1}>
-                {account.ifscCode || "—"}
-              </Text>
-              <Ionicons name="copy-outline" size={11} color="rgba(255,255,255,0.7)" />
+            <View style={styles.copyChip}>
+              <Ionicons name="copy-outline" size={rs(12)} color={C.emeraldDeep} />
             </View>
           </TouchableOpacity>
-        </View>
 
-        {/* Type + UPI footer chips */}
-        <View style={styles.cardFooterChips}>
-          <View style={styles.cardFooterChip}>
-            <Text style={styles.cardFooterChipText}>{accountType}</Text>
-          </View>
-          {!!account.upiId && (
-            <View style={styles.cardFooterChip}>
-              <Ionicons name="phone-portrait" size={10} color="#fff" />
-              <Text style={styles.cardFooterChipText}>{account.upiId}</Text>
+          <View style={styles.cardBottomRow}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.cardSubLabel}>HOLDER</Text>
+              <Text style={styles.cardSubValue} numberOfLines={1}>
+                {account.accountHolderName || "—"}
+              </Text>
             </View>
-          )}
+            <TouchableOpacity onPress={onCopyIfsc} activeOpacity={0.7} style={styles.cardIfscBlock}>
+              <Text style={styles.cardSubLabel}>IFSC</Text>
+              <View style={styles.cardIfscRow}>
+                <Text style={styles.cardSubValue} numberOfLines={1}>
+                  {account.ifscCode || "—"}
+                </Text>
+                <Ionicons name="copy-outline" size={rs(11)} color={C.muted} />
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Issuer strip — bank identity sits at the foot, like a real card */}
+          <View style={styles.issuerRow}>
+            <View style={styles.cardChip}>
+              <Ionicons name="business" size={rs(14)} color={C.emeraldDeep} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.cardBankName} numberOfLines={1}>{account.bankName}</Text>
+              {!!account.branchName && (
+                <Text style={styles.cardBranchName} numberOfLines={1}>{account.branchName}</Text>
+              )}
+            </View>
+            <View style={styles.cardFooterChips}>
+              <View style={styles.cardFooterChip}>
+                <Text style={styles.cardFooterChipText}>{accountType}</Text>
+              </View>
+              {!!account.upiId && (
+                <View style={styles.cardFooterChip}>
+                  <Ionicons name="phone-portrait" size={rs(9)} color={C.emeraldDeep} />
+                  <Text style={styles.cardFooterChipText} numberOfLines={1}>{account.upiId}</Text>
+                </View>
+              )}
+            </View>
+          </View>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* Action row (below the card tile) */}
       <View style={styles.actionsRow}>
         {!account.isPrimary && (
           <TouchableOpacity
-            style={styles.primaryBtn}
+            style={styles.setPrimaryBtn}
             onPress={onSetPrimary}
             disabled={busy}
             activeOpacity={0.85}
           >
             {busy ? (
-              <ActivityIndicator size="small" color={C.amber} />
+              <ActivityIndicator size="small" color={TONES.amber.ink} />
             ) : (
               <>
-                <Ionicons name="star" size={14} color={C.amber} />
-                <Text style={[styles.actionBtnText, { color: C.amber }]}>Set as primary</Text>
+                <Ionicons name="star" size={rs(14)} color={TONES.amber.ink} />
+                <Text style={[styles.actionBtnText, { color: TONES.amber.ink }]}>
+                  Set as primary
+                </Text>
               </>
             )}
           </TouchableOpacity>
         )}
         <TouchableOpacity
-          style={styles.removeBtn}
+          style={[styles.removeBtn, account.isPrimary && { flex: 1 }]}
           onPress={onDelete}
           disabled={busy}
           activeOpacity={0.85}
         >
-          <Ionicons name="trash" size={14} color={C.red} />
+          <Ionicons name="trash-outline" size={rs(14)} color={C.red} />
           <Text style={[styles.actionBtnText, { color: C.red }]}>Remove</Text>
         </TouchableOpacity>
       </View>
@@ -422,118 +454,251 @@ function BankCard({ account, busy, onSetPrimary, onDelete, onCopyAcc, onCopyIfsc
 
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
-  // Header
-  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 2 },
-
-  // Info / warn banners
-  infoBanner: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    marginHorizontal: 16, marginTop: 14, padding: 11,
-    borderRadius: 12, backgroundColor: C.emerald50,
-    borderWidth: 1, borderColor: "#A7F3D0",
-  },
-  infoIconWrap: { width: 28, height: 28, borderRadius: 9, backgroundColor: "rgba(5,150,105,0.15)", alignItems: "center", justifyContent: "center" },
-  infoText: { color: C.text, fontSize: 12, flex: 1, lineHeight: 17, fontWeight: "500" },
-
-  warnBanner: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    marginHorizontal: 16, marginTop: 8, padding: 11,
-    borderRadius: 12, backgroundColor: C.redLight,
-    borderWidth: 1, borderColor: "#FCA5A5",
-  },
-  warnText: { color: C.red, fontSize: 12, flex: 1, fontWeight: "700", lineHeight: 16 },
-
-  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 8, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: C.red, fontSize: 12.5, flex: 1 },
-  errorRetry: { color: C.red, fontWeight: "800", fontSize: 12.5 },
-
-  loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 13, color: C.subText, fontWeight: "600" },
-
-  listContent: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 100 },
-  emptyWrap: { flexGrow: 1, justifyContent: "center", padding: 16 },
-  empty: { alignItems: "center", padding: 24 },
-  emptyIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  emptyTitle: { fontSize: 17, fontWeight: "800", color: C.ink, marginTop: 6 },
-  emptyBody: { fontSize: 13, color: C.subText, marginTop: 8, textAlign: "center", paddingHorizontal: 16, lineHeight: 19 },
-  emptyCta: { marginTop: 18, borderRadius: 12, overflow: "hidden" },
-  emptyCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11 },
-  emptyCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
-
-  // Card wrapper
-  cardWrap: { marginBottom: 18 },
-
-  // Credit-card style tile
-  cardTile: {
-    borderRadius: 18, padding: 18, paddingBottom: 16,
+  // ── Hero ──
+  hero: {
+    paddingBottom: rs(8),
+    borderBottomLeftRadius: rs(28),
+    borderBottomRightRadius: rs(28),
     overflow: "hidden",
-    shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6,
-    minHeight: 200,
   },
-  // Decorative circles (right side, behind everything)
-  cardCircleA: {
-    position: "absolute", right: -40, top: -40,
-    width: 140, height: 140, borderRadius: 70,
-    backgroundColor: "rgba(255,255,255,0.08)",
-  },
-  cardCircleB: {
-    position: "absolute", right: -60, top: 20,
-    width: 110, height: 110, borderRadius: 55,
+  orbA: {
+    position: "absolute", top: -rs(60), right: -rs(40),
+    width: rs(190), height: rs(190), borderRadius: rs(95),
     backgroundColor: "rgba(255,255,255,0.05)",
   },
-
-  cardHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 18 },
-  cardChip: { width: 34, height: 34, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
-  cardBankName: { fontSize: 16, fontWeight: "900", color: "#fff", letterSpacing: 0.3 },
-  cardBranchName: { fontSize: 11, color: "rgba(255,255,255,0.85)", marginTop: 2, fontWeight: "600" },
-  primaryBadge: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, backgroundColor: "rgba(245,158,11,0.95)" },
-  primaryText: { color: "#fff", fontSize: 9.5, fontWeight: "900", letterSpacing: 0.5 },
-
-  // Account number row
-  cardAccRow: { marginBottom: 16 },
-  cardAccLabel: { fontSize: 9.5, color: "rgba(255,255,255,0.75)", fontWeight: "800", letterSpacing: 1, marginBottom: 4 },
-  cardAccValueRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  cardAccValue: { fontSize: 18, color: "#fff", fontWeight: "900", letterSpacing: 2, flex: 1 },
-
-  // Bottom row
-  cardBottomRow: { flexDirection: "row", gap: 12, alignItems: "flex-end", marginBottom: 12 },
-  cardSubLabel: { fontSize: 9, color: "rgba(255,255,255,0.7)", fontWeight: "800", letterSpacing: 0.8, marginBottom: 3 },
-  cardSubValue: { fontSize: 12.5, color: "#fff", fontWeight: "800" },
-  cardIfscBlock: { alignItems: "flex-end" },
-  cardIfscRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-
-  // Footer chips (type + upi)
-  cardFooterChips: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
-  cardFooterChip: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.18)",
+  orbB: {
+    position: "absolute", bottom: -rs(70), left: -rs(50),
+    width: rs(170), height: rs(170), borderRadius: rs(85),
+    backgroundColor: "rgba(46,158,120,0.16)",
   },
-  cardFooterChipText: { color: "#fff", fontSize: 10, fontWeight: "800", letterSpacing: 0.3 },
+  heroTop: {
+    flexDirection: "row", alignItems: "center",
+    gap: rs(10), paddingTop: rs(8),
+  },
+  circleBtn: {
+    width: rs(38), height: rs(38), borderRadius: rs(19),
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.16)",
+    alignItems: "center", justifyContent: "center",
+  },
+  heroTextBlock: { marginTop: rs(18) },
+  heroTitle: {
+    fontFamily: DISPLAY, fontSize: rf(22), lineHeight: rf(28),
+    color: "#fff", letterSpacing: 0.2,
+  },
+  heroSub: {
+    fontFamily: DISPLAY, fontSize: rf(12), lineHeight: rf(16),
+    color: "rgba(255,255,255,0.72)", fontWeight: "bold", marginTop: rs(4),
+  },
 
-  // Action row (outside the card tile)
-  actionsRow: { flexDirection: "row", gap: 8, marginTop: 10 },
-  primaryBtn: {
+  // ── Banners ──
+  bannerWrap: { marginHorizontal: GUT, marginTop: -BANNER_OVERLAP },
+  infoBanner: {
+    flexDirection: "row", alignItems: "center", gap: rs(10),
+    padding: rs(12), borderRadius: rs(16),
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.glassBorder,
+  },
+  infoIconWrap: {
+    width: rs(30), height: rs(30), borderRadius: rs(10),
+    backgroundColor: C.tintEmerald,
+    alignItems: "center", justifyContent: "center",
+  },
+  infoText: {
+    fontFamily: DISPLAY, color: C.sub, fontSize: rf(11.5),
+    flex: 1, lineHeight: rf(16), fontWeight: "600",
+  },
+  infoStrong: { fontWeight: "bold", color: TONES.amber.ink },
+
+  warnBanner: {
+    flexDirection: "row", alignItems: "center", gap: rs(8),
+    marginHorizontal: GUT, marginTop: rs(10), padding: rs(11),
+    borderRadius: rs(14), backgroundColor: C.redL,
+    borderWidth: 1, borderColor: alpha(C.red, 0.22),
+  },
+  warnText: {
+    fontFamily: DISPLAY, color: C.red, fontSize: rf(11.5),
+    flex: 1, fontWeight: "bold", lineHeight: rf(16),
+  },
+
+  errorBox: {
+    flexDirection: "row", alignItems: "center", gap: rs(8),
+    marginHorizontal: GUT, marginTop: rs(10), padding: rs(11),
+    backgroundColor: C.redL, borderRadius: rs(14),
+    borderWidth: 1, borderColor: alpha(C.red, 0.22),
+  },
+  errorText: {
+    fontFamily: DISPLAY, color: C.red, fontSize: rf(12),
+    flex: 1, fontWeight: "600",
+  },
+  errorRetry: { fontFamily: DISPLAY, color: C.red, fontWeight: "bold", fontSize: rf(12) },
+
+  loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: rs(12) },
+  loadingText: { fontFamily: DISPLAY, fontSize: rf(13), color: C.muted, fontWeight: "600" },
+
+  listContent: { paddingHorizontal: GUT, paddingTop: rs(16), paddingBottom: rs(100) },
+
+  // ── Empty state ──
+  emptyWrap: { flexGrow: 1, justifyContent: "center", paddingHorizontal: GUT, paddingVertical: rs(20) },
+  emptyCard: {
+    alignItems: "center", paddingVertical: rs(32), paddingHorizontal: rs(22),
+    backgroundColor: C.card, borderRadius: rs(20),
+    borderWidth: 1, borderColor: C.glassBorder,
+  },
+  emptyIconWrap: {
+    width: rs(64), height: rs(64), borderRadius: rs(20),
+    backgroundColor: C.tintEmerald,
+    alignItems: "center", justifyContent: "center", marginBottom: rs(14),
+  },
+  emptyTitle: {
+    fontFamily: DISPLAY, fontSize: rf(16), lineHeight: rf(21),
+    fontWeight: "bold", color: C.ink,
+  },
+  emptyBody: {
+    fontFamily: DISPLAY, fontSize: rf(12.5), lineHeight: rf(18),
+    color: C.sub, marginTop: rs(6), textAlign: "center", fontWeight: "600",
+  },
+  emptyCta: { marginTop: rs(18), borderRadius: rs(14), overflow: "hidden" },
+  emptyCtaInner: {
+    flexDirection: "row", alignItems: "center", gap: rs(7),
+    paddingHorizontal: rs(20), paddingVertical: rs(13),
+  },
+  emptyCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: rf(13.5) },
+
+  // ── Card ── white tile, only the top rail carries colour
+  cardWrap: { marginBottom: rs(18) },
+  cardTile: {
+    backgroundColor: C.card, borderRadius: rs(20),
+    borderWidth: 1, borderColor: C.glassBorder,
+    overflow: "hidden",
+  },
+  cardRail: { height: rs(4), width: "100%" },
+  cardWash: {
+    position: "absolute", right: -rs(50), top: -rs(30),
+    width: rs(160), height: rs(160), borderRadius: rs(80),
+    backgroundColor: alpha(C.emeraldDeep, 0.075),
+  },
+  cardWashB: {
+    position: "absolute", left: -rs(45), bottom: -rs(55),
+    width: rs(150), height: rs(150), borderRadius: rs(75),
+    backgroundColor: alpha(C.gold, 0.11),
+  },
+  cardBody: { paddingHorizontal: rs(15), paddingTop: rs(13), paddingBottom: rs(13) },
+
+  // EMV contact plate
+  emvRow: { flexDirection: "row", alignItems: "center", gap: rs(9), marginBottom: rs(12) },
+  emv: {
+    width: rs(34), height: rs(25), borderRadius: rs(5),
+    overflow: "hidden", justifyContent: "center",
+    borderWidth: 0.5, borderColor: alpha("#8A6A1E", 0.5),
+  },
+  emvRowLine: {
+    position: "absolute", left: 0, right: 0, top: "50%",
+    height: 1, backgroundColor: alpha("#6B4A10", 0.45),
+  },
+  emvColLine: {
+    position: "absolute", top: 0, bottom: 0,
+    width: 1, backgroundColor: alpha("#6B4A10", 0.45),
+  },
+
+  primaryBadge: {
+    flexDirection: "row", alignItems: "center", gap: rs(4),
+    paddingHorizontal: rs(8), height: rs(22), borderRadius: 999,
+    backgroundColor: C.tintGold,
+    borderWidth: 1, borderColor: alpha(C.gold, 0.3),
+  },
+  primaryText: {
+    fontFamily: DISPLAY, color: TONES.amber.ink, fontSize: rf(9),
+    lineHeight: rf(12), fontWeight: "bold", letterSpacing: 0.5,
+  },
+
+  cardAccRow: {
+    flexDirection: "row", alignItems: "center",
+    gap: rs(9), marginBottom: rs(12),
+  },
+  cardAccValue: {
+    fontFamily: DISPLAY, fontSize: rf(19), lineHeight: rf(25),
+    color: C.ink, fontWeight: "bold", letterSpacing: 2.4, flex: 1,
+  },
+  copyChip: {
+    width: rs(28), height: rs(28), borderRadius: rs(10),
+    backgroundColor: C.tintEmerald,
+    alignItems: "center", justifyContent: "center", flexShrink: 0,
+  },
+
+  cardBottomRow: {
+    flexDirection: "row", gap: rs(12),
+    alignItems: "flex-end", marginBottom: rs(13),
+  },
+  cardSubLabel: {
+    fontFamily: DISPLAY, fontSize: rf(8), lineHeight: rf(10),
+    color: C.muted, fontWeight: "bold",
+    letterSpacing: 0.8, marginBottom: rs(2),
+  },
+  cardSubValue: {
+    fontFamily: DISPLAY, fontSize: rf(12.5), lineHeight: rf(16),
+    color: C.ink, fontWeight: "bold",
+  },
+  cardIfscBlock: { alignItems: "flex-end", minWidth: 0 },
+  cardIfscRow: { flexDirection: "row", alignItems: "center", gap: rs(5) },
+
+  // Issuer strip at the foot of the card
+  issuerRow: {
+    flexDirection: "row", alignItems: "center", gap: rs(9),
+    paddingTop: rs(11), borderTopWidth: 1, borderTopColor: C.border,
+  },
+  cardChip: {
+    width: rs(30), height: rs(30), borderRadius: rs(10),
+    backgroundColor: C.tintEmerald,
+    alignItems: "center", justifyContent: "center",
+  },
+  cardBankName: {
+    fontFamily: DISPLAY, fontSize: rf(13), lineHeight: rf(17),
+    fontWeight: "bold", color: C.ink, letterSpacing: 0.3,
+  },
+  cardBranchName: {
+    fontFamily: DISPLAY, fontSize: rf(10), lineHeight: rf(13),
+    color: C.muted, marginTop: rs(1), fontWeight: "600",
+  },
+  cardFooterChips: {
+    flexDirection: "row", gap: rs(5), flexWrap: "wrap",
+    justifyContent: "flex-end", maxWidth: "46%",
+  },
+  cardFooterChip: {
+    flexDirection: "row", alignItems: "center", gap: rs(4),
+    paddingHorizontal: rs(8), height: rs(21), borderRadius: 999,
+    backgroundColor: C.tintEmerald,
+    borderWidth: 1, borderColor: "rgba(28,107,82,0.16)",
+  },
+  cardFooterChipText: {
+    fontFamily: DISPLAY, color: C.emeraldDeep, fontSize: rf(9),
+    lineHeight: rf(12), fontWeight: "bold", letterSpacing: 0.3,
+    flexShrink: 1,
+  },
+
+  // ── Actions ──
+  actionsRow: { flexDirection: "row", gap: rs(8), marginTop: rs(11) },
+  setPrimaryBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 6, paddingVertical: 11, borderRadius: 11,
-    backgroundColor: C.amberLight, borderWidth: 1.5, borderColor: C.amber,
+    gap: rs(6), paddingVertical: rs(11), borderRadius: rs(12),
+    backgroundColor: C.tintGold, borderWidth: 1, borderColor: alpha(C.gold, 0.35),
   },
   removeBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 6, paddingVertical: 11, borderRadius: 11,
-    backgroundColor: C.redLight, borderWidth: 1.5, borderColor: "#FCA5A5",
+    gap: rs(6), paddingVertical: rs(11), borderRadius: rs(12),
+    backgroundColor: C.redL, borderWidth: 1, borderColor: alpha(C.red, 0.25),
   },
-  actionBtnText: { fontWeight: "800", fontSize: 12.5 },
+  actionBtnText: {
+    fontFamily: DISPLAY, fontWeight: "bold",
+    fontSize: rf(12.5), lineHeight: rf(17),
+  },
 
-  // FAB
+  // ── FAB ──
   fab: {
-    position: "absolute", right: 18, bottom: 22, width: 60, height: 60, borderRadius: 30,
+    position: "absolute", right: GUT, bottom: rs(24),
+    width: rs(58), height: rs(58), borderRadius: rs(20),
     overflow: "hidden",
-    shadowColor: C.emerald600, shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8,
+    shadowColor: "#0B3327", shadowOpacity: 0.35, shadowRadius: rs(14),
+    shadowOffset: { width: 0, height: rs(8) }, elevation: 9,
   },
   fabInner: { flex: 1, alignItems: "center", justifyContent: "center" },
 });

@@ -1,9 +1,11 @@
 // screens/travel-agent/leads/PipelineScreen.js
-// REDESIGNED — emerald-themed kanban pipeline.
-// Horizontal scroll with 6 stage columns (NEW / CONTACTED / INTERESTED /
+// REDESIGNED — matches the Leads screen design language (warm forest/emerald
+// palette, hero with decorative orbs + glass stat cards, rs/rf scaling).
+// Horizontal kanban with 6 stage columns (NEW / CONTACTED / INTERESTED /
 // QUOTED / NEGOTIATING / BOOKED). Each card has a priority stripe + value
 // pill. Long-press → "Move to…" bottom-sheet.
 //
+// Data & behaviour are UNCHANGED — this is a UI-only redesign.
 // Data: GET /api/travel-agent/leads?limit=100 → active stages only.
 // Move: PATCH /api/travel-agent/leads/[id] { status }.
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -13,6 +15,8 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Animated,
+  Easing,
   ActivityIndicator,
   Modal,
   Alert,
@@ -23,46 +27,48 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
+import { DISPLAY } from "../_shared/typography";
 import {
   listTravelAgentPipelineLeads,
   setTravelAgentLeadStatus,
   PIPELINE_STAGES,
 } from "../../api/travelAgentClient";
+import { SC as C } from "../_shared/theme";
 
-const C = {
-  emerald600: "#059669",
-  emerald700: "#047857",
-  emerald500: "#10B981",
-  emerald50: "#ECFDF5",
-  ink: "#0F172A",
-  text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
-  blue: "#3B82F6",
-  amber: "#F59E0B",
-  red: "#EF4444",
+const { width: W } = Dimensions.get("window");
+
+// ── Responsive scaling (same as Leads / TA dashboard) ────────────────
+const BASE_W = 390;
+const SCALE = Math.min(Math.max(W / BASE_W, 0.86), 1.28);
+const FONT_SCALE = Math.min(Math.max(W / BASE_W, 0.92), 1.12);
+const rs = (n) => Math.round(n * SCALE);
+const rf = (n) => Math.round(n * FONT_SCALE * 2) / 2;
+const GUT = rs(16);
+
+
+const G = {
+  hero:    [C.forestDark, C.forest, C.emeraldDeep],
+  emerald: [C.emerald, C.emeraldDeep],
 };
 
-// Each stage gets a distinct accent + icon so the board reads at a glance.
+// Each stage gets a distinct accent aligned with the Leads status tones,
+// so a stage reads the same colour on both screens.
 const STAGE_META = {
-  NEW:         { color: "#3B82F6", light: "#DBEAFE", icon: "sparkles",      label: "New" },
-  CONTACTED:   { color: "#06B6D4", light: "#CFFAFE", icon: "call",          label: "Contacted" },
-  INTERESTED:  { color: "#10B981", light: "#D1FAE5", icon: "heart",         label: "Interested" },
-  QUOTED:      { color: "#8B5CF6", light: "#EDE9FE", icon: "document-text", label: "Quoted" },
-  NEGOTIATING: { color: "#6366F1", light: "#E0E7FF", icon: "swap-horizontal", label: "Negotiating" },
-  BOOKED:      { color: "#15803D", light: "#DCFCE7", icon: "checkmark-circle", label: "Booked" },
+  NEW:         { color: "#245C7A", light: C.tintOcean, icon: "sparkles",         label: "New" },
+  CONTACTED:   { color: "#0F6B5A", light: "#DDEFEA",   icon: "call",             label: "Contacted" },
+  INTERESTED:  { color: "#9A6B16", light: "#F8F0DC",   icon: "heart",            label: "Interested" },
+  QUOTED:      { color: "#5E43A8", light: "#EFE9FA",   icon: "document-text",    label: "Quoted" },
+  NEGOTIATING: { color: "#3A4E8C", light: "#E4EAF7",   icon: "swap-horizontal",  label: "Negotiating" },
+  BOOKED:      { color: "#B14A64", light: "#FBE9EE",   icon: "checkmark-circle", label: "Booked" },
 };
 const PRIORITY_META = {
-  HOT:  { color: C.red,    icon: "flame",     label: "Hot" },
-  WARM: { color: C.amber,  icon: "sunny",     label: "Warm" },
-  COLD: { color: C.blue,   icon: "snow",      label: "Cold" },
+  HOT:  { color: "#B14A64", light: "#FBE9EE", icon: "flame", label: "Hot" },
+  WARM: { color: "#9A6B16", light: C.tintGold, icon: "sunny", label: "Warm" },
+  COLD: { color: "#245C7A", light: C.tintOcean, icon: "snow", label: "Cold" },
 };
 
-const SCREEN_W = Dimensions.get("window").width;
-// Column ~78% of screen so the next column peeks (discoverability).
-const COLUMN_WIDTH = Math.min(280, Math.round(SCREEN_W * 0.78));
+// Column ~84% of screen so the next column still peeks (discoverability).
+const COLUMN_WIDTH = Math.min(rs(300), Math.round(W * 0.84));
 
 function formatDate(iso) {
   if (!iso) return null;
@@ -78,6 +84,27 @@ const INR = (n) => {
   if (v >= 1000) return `₹${(v / 1000).toFixed(1)}K`;
   return `₹${v}`;
 };
+
+// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
+function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  return (
+    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
+  );
+}
 
 export default function PipelineScreen({ navigation }) {
   const [leads, setLeads] = useState([]);
@@ -115,7 +142,7 @@ export default function PipelineScreen({ navigation }) {
     });
   }, [leads]);
 
-  // Aggregate stats for the floating summary card.
+  // Aggregate stats for the hero glass cards.
   const stats = useMemo(() => {
     const totalValue = leads.reduce(
       (sum, l) => sum + Number(l.quotedAmount || l.estimatedValue || 0), 0
@@ -139,59 +166,60 @@ export default function PipelineScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
+      <StatusBar barStyle="light-content" backgroundColor={C.forestDark} />
 
-      {/* ===== Gradient header ===== */}
-      <LinearGradient
-        colors={["#022C22", "#064E3B", "#047857"]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={styles.headerGrad}
-      >
-        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 28 }}>
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-              <Ionicons name="arrow-back" size={22} color="#fff" />
+      {/* ── Hero ── */}
+      <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: GUT }}>
+          <View style={styles.heroTop}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.circleBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="arrow-back" size={rs(19)} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>Pipeline</Text>
-              <Text style={styles.headerSub}>
-                Tap to view · Long-press to move stage
-              </Text>
-            </View>
-            <TouchableOpacity onPress={load} style={styles.iconBtn}>
-              <Ionicons name="refresh" size={22} color="#fff" />
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity
+              onPress={load}
+              style={styles.circleBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="refresh" size={rs(17)} color="#fff" />
             </TouchableOpacity>
           </View>
+
+          <Text style={styles.heroTitle}>Pipeline</Text>
+          <Text style={styles.heroSub}>Tap to open · long-press to move stage</Text>
+
+          {/* four glass stats */}
+          <View style={styles.statRow}>
+            <HeroStat dot={C.emerald}    label="Leads"    value={String(stats.total)} />
+            <HeroStat dot={C.goldLight}  label="Pipeline" value={INR(stats.totalValue) || "—"} />
+            <HeroStat dot="#E0798F"      label="Hot"      value={String(stats.hot)} />
+            <HeroStat dot={C.oceanLight} label="Booked"   value={String(stats.booked)} />
+          </View>
+
+          <View style={{ height: rs(12) }} />
         </SafeAreaView>
       </LinearGradient>
 
-      {/* ===== Floating stats card ===== */}
-      <View style={styles.statsCard}>
-        <StatCell value={stats.total} label="Leads" icon="people" color={C.emerald600} />
-        <View style={styles.statDivider} />
-        <StatCell
-          value={INR(stats.totalValue) || "—"}
-          label="Pipeline"
-          icon="cash"
-          color={C.amber}
-          isText
-        />
-        <View style={styles.statDivider} />
-        <StatCell value={stats.hot} label="Hot" icon="flame" color={C.red} />
-        <View style={styles.statDivider} />
-        <StatCell value={stats.booked} label="Booked" icon="checkmark-circle" color="#15803D" />
-      </View>
-
       {error && (
         <View style={styles.errorBox}>
-          <Ionicons name="alert-circle-outline" size={16} color={C.red} />
+          <Ionicons name="alert-circle-outline" size={rs(15)} color={C.red} />
           <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={load}>
+            <Text style={styles.errorRetry}>Retry</Text>
+          </TouchableOpacity>
         </View>
       )}
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={C.emerald600} />
+          <ActivityIndicator size="large" color={C.emerald} />
           <Text style={styles.loadingText}>Loading pipeline…</Text>
         </View>
       ) : (
@@ -205,53 +233,43 @@ export default function PipelineScreen({ navigation }) {
             const meta = STAGE_META[col.stage];
             return (
               <View key={col.stage} style={[styles.column, { width: COLUMN_WIDTH }]}>
-                {/* Column gradient header */}
-                <LinearGradient
-                  colors={[meta.color, shade(meta.color, -10)]}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                  style={styles.columnHeaderGrad}
-                >
-                  <View style={styles.columnHeaderIconWrap}>
-                    <Ionicons name={meta.icon} size={14} color="#fff" />
+                {/* Column header */}
+                <View style={styles.columnHeader}>
+                  <View style={[styles.columnIconChip, { backgroundColor: meta.light }]}>
+                    <Ionicons name={meta.icon} size={rs(13)} color={meta.color} />
                   </View>
-                  <Text style={styles.columnHeaderTitle} numberOfLines={1}>
-                    {meta.label}
-                  </Text>
-                  <View style={styles.columnHeaderBadge}>
-                    <Text style={[styles.columnHeaderBadgeText, { color: meta.color }]}>
+                  <Text style={styles.columnTitle} numberOfLines={1}>{meta.label}</Text>
+                  <View style={[styles.columnBadge, { backgroundColor: meta.light }]}>
+                    <Text style={[styles.columnBadgeText, { color: meta.color }]}>
                       {col.items.length}
                     </Text>
                   </View>
-                </LinearGradient>
+                </View>
 
                 {/* Value bar — total quoted/estimated for column */}
-                {col.total > 0 ? (
-                  <View style={[styles.columnValueBar, { backgroundColor: meta.light }]}>
-                    <Ionicons name="trending-up" size={11} color={meta.color} />
+                {col.total > 0 && (
+                  <View style={styles.columnValueBar}>
+                    <Ionicons name="trending-up" size={rs(11)} color={meta.color} />
                     <Text style={[styles.columnValueText, { color: meta.color }]}>
                       {INR(col.total)} pipeline value
                     </Text>
                   </View>
-                ) : (
-                  <View style={styles.columnValueBarEmpty} />
                 )}
 
                 {/* Cards */}
                 <ScrollView
                   style={styles.columnScroll}
-                  contentContainerStyle={{ paddingBottom: 16 }}
+                  contentContainerStyle={{ paddingBottom: rs(16) }}
                   showsVerticalScrollIndicator={false}
                 >
                   {col.items.length === 0 ? (
                     <View style={styles.emptyCol}>
                       <View style={[styles.emptyColIcon, { backgroundColor: meta.light }]}>
-                        <Ionicons name={meta.icon} size={18} color={meta.color} />
+                        <Ionicons name={meta.icon} size={rs(18)} color={meta.color} />
                       </View>
                       <Text style={styles.emptyColText}>No leads here</Text>
                       <Text style={styles.emptyColSub}>
-                        {col.stage === "NEW"
-                          ? "New leads land here"
-                          : "Move leads from other stages"}
+                        {col.stage === "NEW" ? "New leads land here" : "Move leads from other stages"}
                       </Text>
                     </View>
                   ) : (
@@ -277,7 +295,7 @@ export default function PipelineScreen({ navigation }) {
         </ScrollView>
       )}
 
-      {/* ===== Move-to bottom sheet ===== */}
+      {/* ── Move-to bottom sheet ── */}
       <Modal
         visible={!!movingLead}
         animationType="slide"
@@ -286,14 +304,10 @@ export default function PipelineScreen({ navigation }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
-            <LinearGradient
-              colors={["#022C22", "#064E3B", "#047857"]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={styles.modalHeaderGrad}
-            >
+            <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.modalHeaderGrad}>
               <View style={styles.modalHeaderRow}>
                 <View style={styles.modalHeaderIcon}>
-                  <Ionicons name="swap-horizontal" size={20} color="#fff" />
+                  <Ionicons name="swap-horizontal" size={rs(19)} color="#fff" />
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={styles.modalTitle}>Move lead</Text>
@@ -301,16 +315,13 @@ export default function PipelineScreen({ navigation }) {
                     {movingLead?.customerName || "Customer"}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  onPress={() => setMovingLead(null)}
-                  style={styles.modalCloseBtn}
-                >
-                  <Ionicons name="close" size={22} color="#fff" />
+                <TouchableOpacity onPress={() => setMovingLead(null)} style={styles.modalCloseBtn}>
+                  <Ionicons name="close" size={rs(21)} color="#fff" />
                 </TouchableOpacity>
               </View>
             </LinearGradient>
 
-            <View style={{ padding: 14 }}>
+            <View style={{ padding: rs(14) }}>
               {PIPELINE_STAGES.map((stage) => {
                 const active = movingLead?.status === stage;
                 const meta = STAGE_META[stage];
@@ -325,19 +336,17 @@ export default function PipelineScreen({ navigation }) {
                     onPress={() => moveLead(movingLead, stage)}
                     activeOpacity={0.85}
                   >
-                    <View style={[styles.moveItemIconWrap, { backgroundColor: active ? meta.color : `${meta.color}22` }]}>
-                      <Ionicons name={meta.icon} size={16} color={active ? "#fff" : meta.color} />
+                    <View style={[styles.moveItemIconWrap, { backgroundColor: active ? meta.color : meta.light }]}>
+                      <Ionicons name={meta.icon} size={rs(16)} color={active ? "#fff" : meta.color} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.moveItemText, { color: meta.color }]}>{meta.label}</Text>
-                      {active && (
-                        <Text style={styles.moveCurrent}>Current stage</Text>
-                      )}
+                      {active && <Text style={styles.moveCurrent}>Current stage</Text>}
                     </View>
                     {active ? (
-                      <Ionicons name="checkmark-circle" size={20} color={meta.color} />
+                      <Ionicons name="checkmark-circle" size={rs(20)} color={meta.color} />
                     ) : (
-                      <Ionicons name="arrow-forward" size={18} color={C.subText} />
+                      <Ionicons name="arrow-forward" size={rs(18)} color={C.muted} />
                     )}
                   </TouchableOpacity>
                 );
@@ -352,21 +361,16 @@ export default function PipelineScreen({ navigation }) {
 
 /* ───────── Sub-components ───────── */
 
-function StatCell({ value, label, icon, color, isText }) {
+function HeroStat({ dot, label, value }) {
   return (
-    <View style={styles.statCell}>
-      <View style={[styles.statIcon, { backgroundColor: `${color}18` }]}>
-        <Ionicons name={icon} size={14} color={color} />
+    <View style={styles.statCard}>
+      <View style={styles.statTop}>
+        <View style={[styles.statDot, { backgroundColor: dot }]} />
+        <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
       </View>
-      <View style={{ minWidth: 0, flexShrink: 1 }}>
-        <Text
-          style={[styles.statValue, { color, fontSize: isText ? 13 : 15 }]}
-          numberOfLines={1}
-        >
-          {value}
-        </Text>
-        <Text style={styles.statLabel}>{label}</Text>
-      </View>
+      <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+        {value}
+      </Text>
     </View>
   );
 }
@@ -377,7 +381,7 @@ function LeadCard({ lead, stageColor, onPress, onLongPress }) {
   const isQuoted = !!lead.quotedAmount;
   return (
     <TouchableOpacity
-      style={styles.leadCard}
+      style={[styles.leadCard, styles.cardShadow]}
       onPress={onPress}
       onLongPress={onLongPress}
       activeOpacity={0.85}
@@ -388,8 +392,8 @@ function LeadCard({ lead, stageColor, onPress, onLongPress }) {
       <View style={styles.leadBody}>
         {/* Top row: priority pill + name */}
         <View style={styles.leadTopRow}>
-          <View style={[styles.priorityPill, { backgroundColor: `${pMeta.color}1A` }]}>
-            <Ionicons name={pMeta.icon} size={9} color={pMeta.color} />
+          <View style={[styles.priorityPill, { backgroundColor: pMeta.light }]}>
+            <Ionicons name={pMeta.icon} size={rs(9)} color={pMeta.color} />
             <Text style={[styles.priorityText, { color: pMeta.color }]}>{pMeta.label}</Text>
           </View>
           <Text style={styles.leadName} numberOfLines={1}>
@@ -399,14 +403,14 @@ function LeadCard({ lead, stageColor, onPress, onLongPress }) {
 
         {!!lead.destination && (
           <View style={styles.leadMetaRow}>
-            <Ionicons name="location" size={10} color={C.subText} />
+            <Ionicons name="location-outline" size={rs(11)} color={C.muted} />
             <Text style={styles.leadMetaText} numberOfLines={1}>{lead.destination}</Text>
           </View>
         )}
 
         {(lead.travelDate || lead.passengers) && (
           <View style={styles.leadMetaRow}>
-            <Ionicons name="calendar" size={10} color={C.subText} />
+            <Ionicons name="calendar-outline" size={rs(11)} color={C.muted} />
             <Text style={styles.leadMetaText} numberOfLines={1}>
               {formatDate(lead.travelDate)}
               {lead.passengers ? `  ·  ${lead.passengers} pax` : ""}
@@ -423,6 +427,7 @@ function LeadCard({ lead, stageColor, onPress, onLongPress }) {
             )}
             <View style={{ flex: 1 }} />
             <View style={styles.leadValueWrap}>
+              <Ionicons name="cash-outline" size={rs(10)} color={C.emeraldDeep} />
               <Text style={styles.leadValue}>{valLabel}</Text>
             </View>
           </View>
@@ -432,146 +437,162 @@ function LeadCard({ lead, stageColor, onPress, onLongPress }) {
   );
 }
 
-/* ───────── Helpers ───────── */
-
-// Lighten/darken hex shade by `pct` (-100 to 100). Used for column header
-// gradient endpoint.
-function shade(hex, pct) {
-  const f = parseInt(hex.slice(1), 16);
-  const t = pct < 0 ? 0 : 255;
-  const p = Math.abs(pct) / 100;
-  const R = f >> 16;
-  const G = (f >> 8) & 0xff;
-  const B = f & 0xff;
-  return (
-    "#" +
-    (
-      0x1000000 +
-      (Math.round((t - R) * p) + R) * 0x10000 +
-      (Math.round((t - G) * p) + G) * 0x100 +
-      (Math.round((t - B) * p) + B)
-    )
-      .toString(16)
-      .slice(1)
-  );
-}
-
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
-  // Header
-  headerGrad: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 2 },
-
-  // Floating stats
-  statsCard: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-around",
-    backgroundColor: C.card, marginHorizontal: 16, marginTop: -22,
-    borderRadius: 16, paddingVertical: 12, paddingHorizontal: 6,
-    borderWidth: 1, borderColor: C.border,
-    shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3,
+  // ── Hero ──
+  hero: {
+    paddingBottom: rs(8),
+    borderBottomLeftRadius: rs(28),
+    borderBottomRightRadius: rs(28),
+    overflow: "hidden",
   },
-  statCell: { flexDirection: "row", alignItems: "center", gap: 7, flex: 1, justifyContent: "center", minWidth: 0 },
-  statIcon: { width: 26, height: 26, borderRadius: 9, alignItems: "center", justifyContent: "center" },
-  statValue: { fontWeight: "900" },
-  statLabel: { fontSize: 9.5, color: C.subText, fontWeight: "700", marginTop: 1, letterSpacing: 0.2 },
-  statDivider: { width: 1, height: 26, backgroundColor: C.border },
+  orbA: {
+    position: "absolute", top: -rs(60), right: -rs(40),
+    width: rs(190), height: rs(190), borderRadius: rs(95),
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  orbB: {
+    position: "absolute", bottom: -rs(70), left: -rs(50),
+    width: rs(170), height: rs(170), borderRadius: rs(85),
+    backgroundColor: "rgba(46,158,120,0.16)",
+  },
+  heroTop: { flexDirection: "row", alignItems: "center", paddingTop: rs(6) },
+  circleBtn: {
+    width: rs(38), height: rs(38), borderRadius: rs(19),
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.16)",
+    alignItems: "center", justifyContent: "center",
+  },
+  heroTitle: {
+    fontFamily: DISPLAY, fontSize: rf(23), color: "#fff",
+    letterSpacing: 0.2, marginTop: rs(7),
+  },
+  heroSub: {
+    fontFamily: DISPLAY, fontSize: rf(12), color: "rgba(255,255,255,0.7)",
+    fontWeight: "bold", marginTop: rs(2),
+  },
 
-  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: C.red, fontSize: 12.5, flex: 1 },
+  statRow: { flexDirection: "row", gap: rs(8), marginTop: rs(9), alignItems: "stretch" },
+  statCard: {
+    flex: 1, minWidth: 0,
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.14)",
+    borderRadius: rs(14), paddingHorizontal: rs(9), paddingVertical: rs(9),
+    justifyContent: "space-between",
+  },
+  statTop: { flexDirection: "row", alignItems: "center", gap: rs(4), minHeight: rf(13) },
+  statDot: { width: rs(6), height: rs(6), borderRadius: rs(3) },
+  statLabel: {
+    fontFamily: DISPLAY, fontSize: rf(8.5), fontWeight: "bold",
+    color: "rgba(255,255,255,0.6)", letterSpacing: 0.5,
+    textTransform: "uppercase", flexShrink: 1,
+  },
+  statValue: {
+    fontFamily: DISPLAY, fontSize: rf(19), lineHeight: rf(23), color: "#fff",
+    letterSpacing: -0.4, marginTop: rs(4),
+  },
 
-  loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 13, color: C.subText, fontWeight: "600" },
+  // ── Error / loading ──
+  errorBox: {
+    flexDirection: "row", alignItems: "center", gap: rs(8),
+    marginHorizontal: GUT, marginTop: rs(12), padding: rs(11),
+    backgroundColor: "#FBEDEB", borderRadius: rs(12),
+    borderWidth: 1, borderColor: "rgba(192,69,59,0.2)",
+  },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: rf(12.5), flex: 1, fontWeight: "bold" },
+  errorRetry: { fontFamily: DISPLAY, color: C.red, fontSize: rf(12.5), fontWeight: "bold", textDecorationLine: "underline" },
 
-  // Board / column
-  boardContent: { paddingHorizontal: 12, paddingTop: 16, paddingBottom: 8 },
+  loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: rs(12) },
+  loadingText: { fontFamily: DISPLAY, fontSize: rf(13), color: C.sub, fontWeight: "bold" },
+
+  // ── Board / column ──
+  boardContent: { paddingHorizontal: GUT - rs(4), paddingTop: rs(16), paddingBottom: rs(10) },
   column: {
-    marginRight: 10,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 16,
+    marginHorizontal: rs(4),
+    backgroundColor: "#FBFAF6",
+    borderRadius: rs(18),
     overflow: "hidden",
     alignSelf: "stretch",
     borderWidth: 1,
     borderColor: C.border,
   },
 
-  // Column header (gradient)
-  columnHeaderGrad: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    paddingHorizontal: 12, paddingVertical: 11,
+  columnHeader: {
+    flexDirection: "row", alignItems: "center", gap: rs(8),
+    paddingHorizontal: rs(12), paddingVertical: rs(11),
+    backgroundColor: C.card,
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  columnHeaderIconWrap: {
-    width: 26, height: 26, borderRadius: 9,
-    backgroundColor: "rgba(255,255,255,0.2)",
+  columnIconChip: {
+    width: rs(26), height: rs(26), borderRadius: rs(9),
     alignItems: "center", justifyContent: "center",
   },
-  columnHeaderTitle: { flex: 1, fontSize: 14, fontWeight: "900", color: "#fff", letterSpacing: 0.5 },
-  columnHeaderBadge: { minWidth: 26, height: 22, paddingHorizontal: 8, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" },
-  columnHeaderBadgeText: { fontSize: 11.5, fontWeight: "900" },
+  columnTitle: { fontFamily: DISPLAY, flex: 1, fontSize: rf(14), fontWeight: "bold", color: C.ink, letterSpacing: 0.2 },
+  columnBadge: { minWidth: rs(24), height: rs(22), paddingHorizontal: rs(8), borderRadius: rs(11), alignItems: "center", justifyContent: "center" },
+  columnBadgeText: { fontFamily: DISPLAY, fontSize: rf(11.5), fontWeight: "bold" },
 
-  // Value bar under header
-  columnValueBar: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 6 },
-  columnValueText: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.3 },
-  columnValueBarEmpty: { height: 4 },
+  columnValueBar: { flexDirection: "row", alignItems: "center", gap: rs(5), paddingHorizontal: rs(12), paddingVertical: rs(7) },
+  columnValueText: { fontFamily: DISPLAY, fontSize: rf(10.5), fontWeight: "bold", letterSpacing: 0.2 },
 
-  columnScroll: { flex: 1, paddingHorizontal: 8, paddingTop: 8 },
+  columnScroll: { flex: 1, paddingHorizontal: rs(8), paddingTop: rs(6) },
 
-  // Empty column placeholder
-  emptyCol: { padding: 16, alignItems: "center", gap: 6 },
-  emptyColIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  emptyColText: { color: C.text, fontSize: 12, fontWeight: "800", marginTop: 4 },
-  emptyColSub: { color: C.subText, fontSize: 10.5, fontWeight: "600", textAlign: "center" },
+  // ── Empty column placeholder ──
+  emptyCol: { padding: rs(16), alignItems: "center", gap: rs(6) },
+  emptyColIcon: { width: rs(38), height: rs(38), borderRadius: rs(13), alignItems: "center", justifyContent: "center" },
+  emptyColText: { fontFamily: DISPLAY, color: C.text, fontSize: rf(12), fontWeight: "bold", marginTop: rs(4) },
+  emptyColSub: { fontFamily: DISPLAY, color: C.muted, fontSize: rf(10.5), fontWeight: "bold", textAlign: "center" },
 
-  // Lead card
-  leadCard: {
-    backgroundColor: C.card, borderRadius: 12,
-    borderWidth: 1, borderColor: C.border,
-    marginBottom: 8, overflow: "hidden",
-    flexDirection: "row",
-    shadowColor: "#000", shadowOpacity: 0.03, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1,
+  // ── Lead card ──
+  cardShadow: {
+    shadowColor: "#13211C", shadowOpacity: 0.06, shadowRadius: rs(6),
+    shadowOffset: { width: 0, height: rs(2) }, elevation: 2,
   },
-  leadStripe: { width: 3 },
-  leadBody: { flex: 1, padding: 10 },
+  leadCard: {
+    backgroundColor: C.card, borderRadius: rs(14),
+    borderWidth: 1, borderColor: C.border,
+    marginBottom: rs(9), overflow: "hidden",
+    flexDirection: "row",
+  },
+  leadStripe: { width: rs(4) },
+  leadBody: { flex: 1, padding: rs(11) },
 
-  leadTopRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 },
-  priorityPill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 999 },
-  priorityText: { fontSize: 9, fontWeight: "800", letterSpacing: 0.3 },
-  leadName: { flex: 1, fontSize: 13, fontWeight: "800", color: C.ink },
+  leadTopRow: { flexDirection: "row", alignItems: "center", gap: rs(6), marginBottom: rs(6) },
+  priorityPill: { flexDirection: "row", alignItems: "center", gap: rs(3), paddingHorizontal: rs(6), paddingVertical: rs(2), borderRadius: 999 },
+  priorityText: { fontFamily: DISPLAY, fontSize: rf(9), fontWeight: "bold", letterSpacing: 0.3 },
+  leadName: { fontFamily: DISPLAY, flex: 1, fontSize: rf(13), fontWeight: "bold", color: C.ink },
 
-  leadMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
-  leadMetaText: { fontSize: 11, color: C.subText, fontWeight: "600", flex: 1 },
+  leadMetaRow: { flexDirection: "row", alignItems: "center", gap: rs(5), marginTop: rs(3) },
+  leadMetaText: { fontFamily: DISPLAY, fontSize: rf(11), color: C.sub, fontWeight: "bold", flex: 1 },
 
-  leadFooter: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 8 },
-  quotedTag: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 },
-  quotedTagText: { fontSize: 9, fontWeight: "800", letterSpacing: 0.3 },
-  leadValueWrap: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: C.emerald50 },
-  leadValue: { fontSize: 11.5, fontWeight: "900", color: C.emerald700 },
+  leadFooter: { flexDirection: "row", alignItems: "center", gap: rs(4), marginTop: rs(9) },
+  quotedTag: { paddingHorizontal: rs(5), paddingVertical: rs(1), borderRadius: rs(5) },
+  quotedTagText: { fontFamily: DISPLAY, fontSize: rf(9), fontWeight: "bold", letterSpacing: 0.3 },
+  leadValueWrap: { flexDirection: "row", alignItems: "center", gap: rs(3), paddingHorizontal: rs(7), paddingVertical: rs(3), borderRadius: rs(8), backgroundColor: C.tintEmerald },
+  leadValue: { fontFamily: DISPLAY, fontSize: rf(11.5), fontWeight: "bold", color: C.emeraldDeep },
 
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  // ── Modal ──
+  modalOverlay: { flex: 1, backgroundColor: "rgba(15,42,34,0.5)", justifyContent: "flex-end" },
   modalSheet: {
     backgroundColor: C.card,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    paddingBottom: Platform.OS === "ios" ? 24 : 12,
+    borderTopLeftRadius: rs(24), borderTopRightRadius: rs(24),
+    paddingBottom: Platform.OS === "ios" ? rs(24) : rs(12),
     overflow: "hidden",
   },
-  modalHeaderGrad: { paddingHorizontal: 16, paddingVertical: 16 },
-  modalHeaderRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  modalHeaderIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
-  modalTitle: { fontSize: 17, fontWeight: "800", color: "#fff" },
-  modalSub: { fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 1 },
-  modalCloseBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.15)" },
+  modalHeaderGrad: { paddingHorizontal: rs(16), paddingVertical: rs(16) },
+  modalHeaderRow: { flexDirection: "row", alignItems: "center", gap: rs(12) },
+  modalHeaderIcon: { width: rs(40), height: rs(40), borderRadius: rs(13), backgroundColor: "rgba(255,255,255,0.16)", alignItems: "center", justifyContent: "center" },
+  modalTitle: { fontFamily: DISPLAY, fontSize: rf(17), fontWeight: "bold", color: "#fff" },
+  modalSub: { fontFamily: DISPLAY, fontSize: rf(12), color: "rgba(255,255,255,0.8)", fontWeight: "bold", marginTop: rs(1) },
+  modalCloseBtn: { width: rs(36), height: rs(36), borderRadius: rs(11), alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.15)" },
 
   moveItem: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    paddingVertical: 12, paddingHorizontal: 12,
-    borderRadius: 12, marginBottom: 6,
-    backgroundColor: "#FAFBFC",
+    flexDirection: "row", alignItems: "center", gap: rs(12),
+    paddingVertical: rs(12), paddingHorizontal: rs(12),
+    borderRadius: rs(13), marginBottom: rs(6),
+    backgroundColor: "#FBFAF6",
     borderWidth: 1.5, borderColor: C.border,
   },
-  moveItemIconWrap: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  moveItemText: { fontSize: 14, fontWeight: "800", letterSpacing: 0.3 },
-  moveCurrent: { fontSize: 11, color: C.subText, fontWeight: "700", marginTop: 1 },
+  moveItemIconWrap: { width: rs(36), height: rs(36), borderRadius: rs(12), alignItems: "center", justifyContent: "center" },
+  moveItemText: { fontFamily: DISPLAY, fontSize: rf(14), fontWeight: "bold", letterSpacing: 0.2 },
+  moveCurrent: { fontFamily: DISPLAY, fontSize: rf(11), color: C.muted, fontWeight: "bold", marginTop: rs(1) },
 });
