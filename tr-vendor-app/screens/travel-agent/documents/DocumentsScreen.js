@@ -17,6 +17,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Image,
   ActivityIndicator, RefreshControl, Modal, TextInput, Alert, Linking,
   StatusBar, Platform,
+  KeyboardAvoidingView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -26,7 +27,7 @@ import { pick, types as docTypes } from "@react-native-documents/picker";
 import { DISPLAY } from "../_shared/typography";
 import AnimatedOrb from "../_shared/AnimatedOrb";
 import RemoteImage from "../_shared/RemoteImage";
-import { C, G, TONES, rs, rf, GUT, alpha, cardShadow, rowShadow } from "../_shared/theme";
+import { C, G, TONES, rs, rf, GUT, alpha, cardShadow, rowShadow, SHEET_RADIUS } from "../_shared/theme";
 import {
   listTravelAgentDocuments,
   uploadTravelAgentDocument,
@@ -34,6 +35,7 @@ import {
   DOCUMENT_TYPES,
   REQUIRED_DOCUMENT_TYPES,
 } from "../../api/travelAgentClient";
+import SheetHandle from "../_shared/SheetHandle";
 
 // Per-type meta: icon (Ionicons), accent tone, hint text. `required` is the
 // source of truth for which docs the backend enforces.
@@ -680,8 +682,9 @@ function UploadModal({ type, onClose, onUploaded }) {
 
   return (
     <Modal visible={!!type} animationType="slide" transparent onRequestClose={close}>
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
         <View style={styles.modalSheet}>
+          <SheetHandle />
           {/* Gradient header */}
           <LinearGradient
             colors={G.hero}
@@ -794,7 +797,7 @@ function UploadModal({ type, onClose, onUploaded }) {
             </TouchableOpacity>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -1075,10 +1078,10 @@ const styles = StyleSheet.create({
   },
 
   // ── Upload modal ──
-  modalOverlay: { flex: 1, backgroundColor: "rgba(11,51,39,0.55)", justifyContent: "flex-end" },
+  modalOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
   modalSheet: {
     backgroundColor: C.bg,
-    borderTopLeftRadius: rs(26), borderTopRightRadius: rs(26),
+    borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     paddingBottom: Platform.OS === "ios" ? rs(24) : rs(12),
     overflow: "hidden",
     maxHeight: "88%",

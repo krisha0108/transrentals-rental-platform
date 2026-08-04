@@ -10,13 +10,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidStyle, AndroidImportance, EventType } from '@notifee/react-native';
 import axios from 'axios';
-import { debugAuthState, getSessionToken, getVendorNotificationsUnreadCount, saveVendorFcmToken } from './screens/api/client';
+import { debugAuthState, getSessionToken, getVendorNotificationsUnreadCount, saveVendorFcmToken, setOnSessionExpired } from './screens/api/client';
 import { saveTravelAgentFcmToken, getTravelAgentProfile } from './screens/api/travelAgentClient';
 import OfflineBanner from './components/OfflineBanner';
 import GlobalAlert from './components/GlobalAlert';
@@ -569,6 +570,37 @@ async function createNotificationChannels() {
 const navigationRef = React.createRef();
 const isNavigationReadyRef = React.createRef();
 const pendingNavigateDataRef = React.createRef();
+
+// ── Session expiry → back to login ───────────────────────────────────
+// client.js drops the stored token whenever the API answers 401. Until now
+// that left the app on whatever screen it was on with nothing to send: every
+// later request went out unauthenticated and the screens filled with
+// "Unauthorized" errors, which reads as a broken app rather than an expired
+// login (tokens last 30 days, so this lands well after the user last signed
+// in). Send them to the login screen and say why.
+//
+// reset(), not navigate() — the stack behind it belongs to a session that no
+// longer exists, so Back must not lead into it.
+let sessionExpiryNoticeShown = false;
+
+setOnSessionExpired(() => {
+  const nav = navigationRef.current;
+  if (!isNavigationReadyRef.current || !nav) return;
+
+  // A screen usually fires several requests at once, so one dead session
+  // produces a burst of 401s. Only the first should reach the user.
+  const current = nav.getCurrentRoute?.()?.name;
+  if (current === 'VendorLoginScreen' || current === 'Splash' || current === 'Onboarding') return;
+
+  nav.reset({ index: 0, routes: [{ name: 'VendorLoginScreen' }] });
+
+  if (!sessionExpiryNoticeShown) {
+    sessionExpiryNoticeShown = true;
+    Alert.alert('Signed out', 'Your session has expired. Please sign in again.', [
+      { text: 'OK', onPress: () => { sessionExpiryNoticeShown = false; } },
+    ]);
+  }
+});
 
 const QUOTE_SCREEN_MAP = {
   bike: 'BikeQuoteRequestDetail',

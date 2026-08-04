@@ -15,6 +15,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   Linking, TextInput, Alert, ActivityIndicator, StatusBar,
+  KeyboardAvoidingView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -184,10 +185,14 @@ export default function TASupportScreen({ navigation }) {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={C.forestDark} />
 
+      {/* Edge-to-edge means adjustResize never fires, so the keyboard has to
+          be handled here or the ticket fields sit under it. */}
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: rs(40) }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* ── Hero ──
             Lives INSIDE the scroll content for two reasons: the contact cards'
@@ -462,6 +467,7 @@ export default function TASupportScreen({ navigation }) {
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

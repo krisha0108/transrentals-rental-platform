@@ -37,7 +37,9 @@ import {
   BOOKING_STATUS,
   BOOKING_PAYMENT_STATUS,
 } from "../../api/travelAgentClient";
-import { SC as C } from "../_shared/theme";
+import { SC as C, SHEET_RADIUS } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import SheetHandle from "../_shared/SheetHandle";
 
 
 const TYPE_META = {
@@ -184,6 +186,9 @@ export default function AddEditBookingScreen({ navigation, route }) {
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
+        {/* Drifting orbs — this was the one Travel Agent header without them. */}
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
         <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 16 }}>
           <View style={styles.headerRow}>
             <TouchableOpacity
@@ -216,7 +221,7 @@ export default function AddEditBookingScreen({ navigation, route }) {
         </SafeAreaView>
       </LinearGradient>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
           {/* ===== Booking Type (no card behind the tiles) ===== */}
@@ -524,6 +529,7 @@ export default function AddEditBookingScreen({ navigation, route }) {
       <Modal visible={showRefModal} animationType="slide" transparent onRequestClose={() => setShowRefModal(false)}>
         <View style={styles.refModalOverlay}>
           <View style={styles.refModalSheet}>
+            <SheetHandle />
             <View style={styles.refModalHeader}>
               <Text style={styles.refModalTitle}>
                 Select a {form.bookingType === "PROPERTY" ? "property" : "tour"}
@@ -648,6 +654,18 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
     overflow: "hidden",
+  },
+  // Same two orbs as the sibling booking screens, so the header reads as part
+  // of the same set rather than a flatter version of it.
+  orbA: {
+    position: "absolute", top: -50, right: -30,
+    width: 170, height: 170, borderRadius: 85,
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  orbB: {
+    position: "absolute", bottom: -60, left: -40,
+    width: 150, height: 150, borderRadius: 75,
+    backgroundColor: "rgba(46,158,120,0.16)",
   },
   headerRow: { flexDirection: "row", alignItems: "center", paddingTop: 6 },
   backCircle: {
@@ -817,8 +835,8 @@ const styles = StyleSheet.create({
   },
 
   // ── Reference picker modal ──
-  refModalOverlay: { flex: 1, backgroundColor: "rgba(15,23,42,0.5)", justifyContent: "flex-end" },
-  refModalSheet: { backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 24, paddingTop: 16, paddingHorizontal: 16 },
+  refModalOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
+  refModalSheet: { backgroundColor: C.card, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS, paddingBottom: 24, paddingTop: 16, paddingHorizontal: 16 },
   refModalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   refModalTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink },
   refEmpty: { fontFamily: DISPLAY, fontSize: 13, color: C.subText, textAlign: "center", marginVertical: 24, paddingHorizontal: 20, lineHeight: 19 },

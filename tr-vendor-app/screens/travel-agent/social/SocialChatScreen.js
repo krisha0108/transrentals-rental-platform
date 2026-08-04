@@ -21,6 +21,7 @@ import {
 import RemoteImage from "../_shared/RemoteImage";
 import { DISPLAY } from "../_shared/typography";
 import { SC as C, G, TONES } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 // Warm "Elevate" palette — same keys, repainted to match the feed, profile and
 // the rest of the Travel Agent module. The old set was cool slate (#F6F8FB).
@@ -73,26 +74,6 @@ function parsePostCard(content) {
 }
 // Drifting decorative bubble — same motion as the Feed / Profile / Fleet
 // headers. Native-driven, loop stopped on unmount.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
-}
-
 function shade(hex, pct) {
   const f = parseInt(hex.slice(1), 16);
   const t = pct < 0 ? 0 : 255;
@@ -297,7 +278,7 @@ export default function SocialChatScreen({ navigation, route }) {
       )}
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
         keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
         style={{ flex: 1 }}
       >

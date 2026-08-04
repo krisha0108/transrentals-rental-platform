@@ -7,13 +7,14 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl, Alert, Modal, TextInput,
   StatusBar, Platform, Animated, Easing,
+  KeyboardAvoidingView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { DISPLAY } from "../_shared/typography";
-import { SC as C, C as T, G } from "../_shared/theme";
+import { SC as C, C as T, G, SHEET_RADIUS } from "../_shared/theme";
 import {
   listFleetBookings,
   listTravelAgentFleet,
@@ -21,6 +22,7 @@ import {
   updateFleetBooking,
   deleteFleetBooking,
 } from "../../api/travelAgentClient";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 // Booking-type chips for the create/edit form. Customer + Reserved capture a
 // guest; Maintenance + Block just hold the dates.
@@ -38,24 +40,6 @@ const CAPTURES_CUSTOMER = (t) => t === "CUSTOMER" || t === "RESERVED";
 const GOLD = "#E4C066";
 const FILL = "#FBF8F1";
 const HEADER_GRAD = G.hero;
-
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />;
-}
 
 // Per booking-type colour + icon so each row's left stripe / pill is instantly recognisable.
 const TYPE_META = {
@@ -587,7 +571,7 @@ function BookingFormModal({ editor, vehicles, onClose, onSaved }) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={close}>
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
         <View style={[styles.modalSheet, { maxHeight: "90%" }]}>
           {/* Modal gradient header */}
           <LinearGradient
@@ -847,7 +831,7 @@ function BookingFormModal({ editor, vehicles, onClose, onSaved }) {
             </TouchableOpacity>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
       <DateTimePickerModal
         isVisible={!!pickerType}
         mode="date"
@@ -1023,10 +1007,10 @@ const styles = StyleSheet.create({
   fabInner: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   // Modal
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.86)", justifyContent: "flex-end" },
+  modalOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
   modalSheet: {
     backgroundColor: C.card,
-    borderTopLeftRadius: 26, borderTopRightRadius: 26,
+    borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     paddingBottom: Platform.OS === "ios" ? 24 : 12,
     overflow: "hidden",
     shadowColor: "#000", shadowOpacity: 0.45, shadowRadius: 24, shadowOffset: { width: 0, height: -10 }, elevation: 24,

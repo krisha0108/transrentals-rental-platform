@@ -40,7 +40,9 @@ import ImagePickerField from "../_shared/ImagePickerField";
 import RemoteImage from "../_shared/RemoteImage"; // resolves relative /uploads URLs
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DISPLAY } from "../_shared/typography";
-import { SC as C } from "../_shared/theme";
+import { SC as C, SHEET_RADIUS } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import SheetHandle from "../_shared/SheetHandle";
 
 const TOUR_DRAFT_KEY = "ta_tour_draft_v1"; // #6d — only used for new (un-saved) tours
 
@@ -97,27 +99,6 @@ function toArr(v) {
     try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; }
   }
   return [];
-}
-
-// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
 }
 
 export default function AddEditTourScreen({ navigation, route }) {
@@ -567,7 +548,14 @@ export default function AddEditTourScreen({ navigation, route }) {
         </SafeAreaView>
       </LinearGradient>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      {/* behavior on Android too, not just iOS.
+          MainActivity calls enableEdgeToEdge(), and with edge-to-edge the
+          window stops honouring android:windowSoftInputMode="adjustResize" —
+          verified on device: the frame stays [0,0][1080,2400] whether the IME
+          is up or not. Nothing shrinks, so the ScrollView never gains anything
+          to scroll and the focused field stays under the keyboard. Passing
+          undefined here left Android with no keyboard handling at all. */}
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
           {/* Quick-mode banner — switch to detailed anytime */}
@@ -586,7 +574,7 @@ export default function AddEditTourScreen({ navigation, route }) {
           <>
             {/* Category (required) — grid from DB */}
             <SectionToggle icon="pricetags" color={C.emerald600} label="Category *" sub={form.categoryName || "Choose a tour category"} open showChevron={false} onToggle={() => {}} />
-            <Card>
+            <Card attached>
               {categories.length === 0 ? (
                 <Text style={styles.helper}>Loading categories…</Text>
               ) : (
@@ -596,7 +584,7 @@ export default function AddEditTourScreen({ navigation, route }) {
                     return (
                       <TouchableOpacity
                         key={cat.id}
-                        style={[styles.catChip, active && styles.catChipActive]}
+                        style={[styles.catTile, active && styles.catTileActive]}
                         onPress={() => {
                           update("categoryId", cat.id);
                           update("subCategoryId", null);
@@ -604,10 +592,20 @@ export default function AddEditTourScreen({ navigation, route }) {
                         }}
                         activeOpacity={0.85}
                       >
-                        {!!cat.icon && <Text style={styles.catChipIcon}>{cat.icon}</Text>}
-                        <Text style={[styles.catChipText, active && styles.catChipTextActive]} numberOfLines={1}>
+                        <View style={[styles.catTileIcon, active && styles.catTileIconActive]}>
+                          <Text style={styles.catTileEmoji}>{cat.icon || "🏷️"}</Text>
+                        </View>
+                        <Text
+                          style={[styles.catTileText, active && styles.catTileTextActive]}
+                          numberOfLines={2}
+                        >
                           {cat.name}
                         </Text>
+                        {active && (
+                          <View style={styles.catTileCheck}>
+                            <Ionicons name="checkmark" size={11} color="#fff" />
+                          </View>
+                        )}
                       </TouchableOpacity>
                     );
                   })}
@@ -617,7 +615,7 @@ export default function AddEditTourScreen({ navigation, route }) {
 
             {/* Tour details: title, location, duration, price */}
             <SectionToggle icon="information-circle" color={C.emerald600} label="Tour details" sub="Title, location, duration & price" open showChevron={false} onToggle={() => {}} />
-            <Card>
+            <Card attached>
               <Field label="Tour title *">
                 <TextInput
                   style={styles.input}
@@ -727,7 +725,7 @@ export default function AddEditTourScreen({ navigation, route }) {
 
             {/* Description */}
             <SectionToggle icon="document-text" color={C.emerald600} label="Description" sub="Short overview (optional)" open showChevron={false} onToggle={() => {}} />
-            <Card>
+            <Card attached>
               <Field label="Description">
                 {/* Formatting toolbar */}
                 <View style={styles.fmtToolbar}>
@@ -775,7 +773,7 @@ export default function AddEditTourScreen({ navigation, route }) {
 
             {/* Images */}
             <SectionToggle icon="image" color={C.gold} label="Images" sub={`${form.coverImage ? "Cover ✓" : "No cover"} · ${form.galleryImages.length} gallery`} open showChevron={false} onToggle={() => {}} />
-            <Card>
+            <Card attached>
               <ImagePickerField
                 label="Cover image"
                 value={form.coverImage}
@@ -1193,7 +1191,7 @@ export default function AddEditTourScreen({ navigation, route }) {
       {showPreview && (
         <View style={styles.previewOverlay}>
           <View style={styles.previewSheet}>
-            <View style={styles.previewHandle} />
+            <SheetHandle />
             <View style={styles.previewHeader}>
               <View style={styles.previewEyeChip}>
                 <Ionicons name="eye" size={13} color={C.emerald600} />
@@ -1352,7 +1350,7 @@ export default function AddEditTourScreen({ navigation, route }) {
       {showModeChooser && (
         <View style={styles.chooserOverlay}>
           <View style={styles.chooserCard}>
-            <View style={styles.chooserHandle} />
+            <SheetHandle />
             <Text style={styles.chooserTitle}>How do you want to add this tour?</Text>
             <Text style={styles.chooserSub}>You can switch modes anytime.</Text>
 
@@ -1503,7 +1501,12 @@ function PreviewSection({ icon, label }) {
   );
 }
 
-function Card({ children }) { return <View style={styles.card}>{children}</View>; }
+// `attached` = this card sits directly under a SectionToggle and continues it.
+// Six of the ten cards stand on their own (the detailed-mode steps), so the
+// joined look has to be opt-in or those would render with a cut-off top edge.
+function Card({ children, attached }) {
+  return <View style={[styles.card, attached && styles.cardAttached]}>{children}</View>;
+}
 
 function Field({ label, helper, children, style }) {
   return (
@@ -1522,7 +1525,7 @@ function SectionToggle({ icon, color, label, sub, open, onToggle, showChevron = 
         <Ionicons name={icon} size={16} color={color} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={[styles.sectionToggleText, { color: color }]}>{label}</Text>
+        <Text style={styles.sectionToggleText}>{label}</Text>
         {!!sub && <Text style={styles.sectionToggleSub} numberOfLines={1}>{sub}</Text>}
       </View>
       {showChevron ? (
@@ -1921,22 +1924,39 @@ const styles = StyleSheet.create({
   scroll: { paddingTop: 4, paddingBottom: 24 },
 
   // Section toggle (collapsible card header)
+  // Section header + card were two separate bordered, shadowed boxes joined
+  // with marginTop:-1. That overlapped their hairlines into a doubled seam and
+  // let the header cast its shadow onto the card right below it, so a section
+  // read as two stacked boxes with a scar between them, not one panel.
+  //
+  // The header now rounds only its top, keeps its bottom border as the single
+  // divider, and carries no shadow — the card under it lifts the whole block.
   sectionToggle: {
     flexDirection: "row", alignItems: "center", gap: 12,
-    marginHorizontal: 16, marginTop: 12, paddingHorizontal: 14, paddingVertical: 13,
-    backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border,
-    shadowColor: C.shadow, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2,
+    marginHorizontal: 16, marginTop: 14, paddingHorizontal: 15, paddingVertical: 14,
+    backgroundColor: C.card,
+    borderTopLeftRadius: 22, borderTopRightRadius: 22,
+    borderWidth: 1, borderColor: C.border,
   },
-  sectionToggleIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  sectionToggleText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", letterSpacing: 0.3 },
-  sectionToggleSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, marginTop: 2, fontWeight: "600" },
+  sectionToggleIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  // Ink, not the accent colour. The chip already carries the colour; colouring
+  // the title too made every header shout at the same volume as its content.
+  sectionToggleText: { fontFamily: DISPLAY, fontSize: 15, fontWeight: "bold", color: C.ink, letterSpacing: -0.2 },
+  sectionToggleSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, marginTop: 3, fontWeight: "600" },
 
   // Card (form sections)
+  // Standalone card (the detailed-mode steps): rounded all round, own border.
   card: {
-    marginHorizontal: 16, backgroundColor: C.card, borderRadius: 16, padding: 15,
-    borderWidth: 1, borderColor: C.border, marginTop: -1,
-    borderTopLeftRadius: 0, borderTopRightRadius: 0,
+    marginHorizontal: 16, backgroundColor: C.card, borderRadius: 22, padding: 16,
+    borderWidth: 1, borderColor: C.border, marginTop: 14,
     shadowColor: C.shadow, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 2,
+  },
+  // Attached card: continues the header above it, so no top edge of its own
+  // and no gap — the header's bottom border is the divider between them.
+  cardAttached: {
+    marginTop: 0,
+    borderTopWidth: 0,
+    borderTopLeftRadius: 0, borderTopRightRadius: 0,
   },
 
   // Field
@@ -2055,7 +2075,7 @@ const styles = StyleSheet.create({
   tierPrice: { flex: 1, minHeight: 42 },
 
   // Category modal (D1)
-  modalOverlay: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalOverlay: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: C.scrim, justifyContent: "flex-end" },
   modalSheet: { backgroundColor: C.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 24, paddingTop: 16, paddingHorizontal: 16 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   modalTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink },
@@ -2076,16 +2096,50 @@ const styles = StyleSheet.create({
   quickBannerLink: { fontFamily: DISPLAY, fontSize: 13, color: C.emerald700, fontWeight: "bold", lineHeight: 19 },
 
   // #6c — quick-mode category grid
-  catGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  catChip: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12,
-    borderWidth: 1, borderColor: C.border, backgroundColor: "#fff",
+  // Category picker.
+  //
+  // These were inline chips (row + wrap, width driven by the label). Category
+  // names run long — "Adventure & Trekking", "Honeymoon Packages" — so a chip
+  // filled most of the row and the next one wrapped under it: a ragged
+  // one-per-line list that read as a stack, not a set of choices.
+  //
+  // Fixed two-column tiles instead. Percentage widths with space-between, so
+  // the columns stay even on any screen without pixel arithmetic, and a long
+  // name wraps inside its own tile instead of pushing the grid around.
+  catGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  catTile: {
+    width: "48.5%",
+    marginBottom: 10,
+    paddingVertical: 11, paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1, borderColor: C.border, backgroundColor: C.card,
+    alignItems: "center",
+    minHeight: 88,
   },
-  catChipActive: { borderColor: C.emerald500, backgroundColor: C.emerald50 },
-  catChipIcon: { fontFamily: DISPLAY, fontSize: 14 },
-  catChipText: { fontFamily: DISPLAY, fontSize: 13, fontWeight: "bold", color: C.text, maxWidth: 130 },
-  catChipTextActive: { color: C.emerald700 },
+  // 1.5 rather than a colour swap alone — on the tinted fill a 1dp emerald
+  // hairline barely registers as "selected".
+  catTileActive: {
+    borderWidth: 1.5, borderColor: C.emerald500, backgroundColor: C.emerald50,
+  },
+  catTileIcon: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: C.tintSand,
+    alignItems: "center", justifyContent: "center",
+    marginBottom: 7,
+  },
+  catTileIconActive: { backgroundColor: "#fff" },
+  catTileEmoji: { fontSize: 17, includeFontPadding: false },
+  catTileText: {
+    fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", color: C.ink,
+    textAlign: "center", lineHeight: 17,
+  },
+  catTileTextActive: { color: C.emerald700 },
+  catTileCheck: {
+    position: "absolute", top: 8, right: 8,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: C.emerald600,
+    alignItems: "center", justifyContent: "center",
+  },
 
   // #6c — quick-mode duration chips
   durWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -2239,7 +2293,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(15,23,42,0.55)", justifyContent: "flex-end",
   },
   chooserCard: {
-    backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: C.card, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     paddingHorizontal: 18, paddingTop: 10, paddingBottom: 28,
   },
   chooserHandle: { alignSelf: "center", width: 42, height: 5, borderRadius: 3, backgroundColor: C.border, marginBottom: 14 },
@@ -2298,7 +2352,7 @@ const styles = StyleSheet.create({
   // Live preview modal
   previewOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(15,23,42,0.6)", justifyContent: "flex-end" },
   previewSheet: {
-    backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: C.card, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     maxHeight: "92%", overflow: "hidden",
   },
   previewHandle: {

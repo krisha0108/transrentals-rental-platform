@@ -30,6 +30,7 @@ import LinearGradient from "react-native-linear-gradient";
 import { getSelfBookingB2bDetail } from "../../api/travelAgentClient";
 import { DISPLAY } from "../_shared/typography";
 import { SC as C } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 
 // b2b_booking_status is an open-ended enum across deployments; map the known
@@ -90,24 +91,6 @@ const SERVICE_ICON = {
   self_drive: "key-outline",
 };
 const serviceIcon = (s) => SERVICE_ICON[String(s || "").toLowerCase()] || "briefcase-outline";
-
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />;
-}
 
 // TEMP DEMO — sample company self-booking so the screen can be viewed without
 // real data. Remove this block after the warm redesign is approved.
@@ -218,6 +201,10 @@ export default function SelfBookingDetailScreen({ route, navigation }) {
       <SafeAreaView style={styles.safe} edges={["top"]}>
         <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
         <LinearGradient colors={["#0F2A22", "#16382E", "#1C6B52"]} style={styles.heroFlat}>
+          {/* Same orbs as the loaded hero — without them the bar sat flat
+              while the booking loaded and then popped into motion. */}
+          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
           <Header />
         </LinearGradient>
         <View style={styles.center}>
@@ -233,6 +220,10 @@ export default function SelfBookingDetailScreen({ route, navigation }) {
       <SafeAreaView style={styles.safe} edges={["top"]}>
         <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
         <LinearGradient colors={["#0F2A22", "#16382E", "#1C6B52"]} style={styles.heroFlat}>
+          {/* Same orbs as the loaded hero — without them the bar sat flat
+              while the booking loaded and then popped into motion. */}
+          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
           <Header />
         </LinearGradient>
         <View style={styles.center}>
@@ -500,7 +491,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     position: "relative",
   },
-  heroFlat: { paddingBottom: 6 },
+  // overflow, like hero — the orbs sit outside the bar's box and would
+  // otherwise spill over the content below it.
+  heroFlat: { paddingBottom: 6, overflow: "hidden" },
   orbA: {
     position: "absolute", top: -40, right: -26,
     width: 140, height: 140, borderRadius: 70,

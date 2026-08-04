@@ -106,6 +106,23 @@ export async function setSessionToken(token) {
   }
 }
 
+// Called when a 401 forces the session to be dropped. App.js registers a
+// handler that sends the user back to the login screen.
+//
+// Without it, clearSession() left the app sitting on whatever screen it was
+// on with no token: every subsequent request went out unauthenticated, the
+// server answered "Unauthorized - No valid session or token", and the screens
+// just showed errors. Nothing told the user their session had ended or that
+// signing in again was all it took.
+//
+// A callback rather than importing the navigation ref directly — client.js is
+// imported by App.js, so reaching back into it would be a cycle.
+let onSessionExpired = null;
+
+export function setOnSessionExpired(handler) {
+  onSessionExpired = typeof handler === 'function' ? handler : null;
+}
+
 export async function clearSession() {
   sessionToken = null;
   tokenLoadPromise = null;
@@ -114,6 +131,14 @@ export async function clearSession() {
   await AsyncStorage.removeItem("vendor_id");
   await AsyncStorage.removeItem("vendor_email");
   console.log('[Auth] Session cleared');
+
+  if (onSessionExpired) {
+    try {
+      onSessionExpired();
+    } catch (e) {
+      console.log('[Auth] session-expired handler threw:', e?.message);
+    }
+  }
 }
 
 // Debug: Check current auth state

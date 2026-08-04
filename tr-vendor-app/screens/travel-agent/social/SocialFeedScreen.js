@@ -35,7 +35,9 @@ import {
 } from "../../api/travelAgentClient";
 import RemoteImage from "../_shared/RemoteImage";
 import { DISPLAY } from "../_shared/typography";
-import { SC as C, C as T, G, TONES } from "../_shared/theme";
+import { SC as C, C as T, G, TONES, SHEET_RADIUS } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import SheetHandle from "../_shared/SheetHandle";
 
 // Warm "Elevate" palette — same keys as before, repainted to match the rest of
 // the Travel Agent module (dashboard / fleet / tours). The old set was cool
@@ -341,8 +343,8 @@ export default function SocialFeedScreen({ navigation, route }) {
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.headerGrad}
       >
-        <View pointerEvents="none" style={styles.orbA} />
-        <View pointerEvents="none" style={styles.orbB} />
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
         <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn} activeOpacity={0.8}>
@@ -1161,8 +1163,7 @@ function PostMenuSheet({ post, currentAgentId, onClose, onDelete, onShare, onSha
           activeOpacity={1}
         />
         <View style={styles.menuSheet}>
-          {/* Drag handle */}
-          <View style={styles.menuHandle} />
+          <SheetHandle />
 
           {/* Post header */}
           <View style={styles.menuHeader}>
@@ -1328,12 +1329,12 @@ function CommentsSheet({ post, currentAgentId, onClose, onCountChange }) {
           activeOpacity={1}
         />
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior="padding"
           keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
           style={styles.commentsSheet}
         >
           {/* Drag handle */}
-          <View style={styles.menuHandle} />
+          <SheetHandle />
 
           {/* Header */}
           <View style={styles.commentsHeader}>
@@ -1526,6 +1527,7 @@ function ShareInChatModal({ post, onClose }) {
     <Modal visible={!!post} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalSheet}>
+          <SheetHandle />
           {/* Gradient header */}
           <LinearGradient
             colors={HEADER_GRAD}
@@ -1974,10 +1976,10 @@ const styles = StyleSheet.create({
   },
 
   // Post-menu bottom sheet
-  menuBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  menuBackdrop: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
   menuSheet: {
     backgroundColor: C.card,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     paddingBottom: Platform.OS === "ios" ? 24 : 12,
     overflow: "hidden",
   },
@@ -2007,10 +2009,10 @@ const styles = StyleSheet.create({
   menuRowHint: { fontFamily: DISPLAY, fontSize: 11, color: C.subText, fontWeight: "600", marginTop: 2 },
 
   // Comments bottom sheet
-  commentsBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  commentsBackdrop: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
   commentsSheet: {
     backgroundColor: C.card,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     paddingBottom: Platform.OS === "ios" ? 24 : 12,
     maxHeight: "88%",
   },
@@ -2075,10 +2077,10 @@ const styles = StyleSheet.create({
   fabInner: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   // Share-in-Chat modal
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
   modalSheet: {
     backgroundColor: C.card,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     paddingBottom: Platform.OS === "ios" ? 24 : 12,
     overflow: "hidden",
     maxHeight: "85%",

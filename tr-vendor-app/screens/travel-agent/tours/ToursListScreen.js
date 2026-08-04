@@ -25,7 +25,9 @@ import LinearGradient from "react-native-linear-gradient";
 import { listTravelAgentTours, updateTravelAgentTour, deleteTravelAgentTour, TOUR_STATUS } from "../../api/travelAgentClient";
 import RemoteImage from "../_shared/RemoteImage";
 import { DISPLAY } from "../_shared/typography";
-import { SC as C } from "../_shared/theme";
+import { SC as C, SHEET_RADIUS } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import SheetHandle from "../_shared/SheetHandle";
 
 
 const STATUS_COLORS = {
@@ -42,27 +44,6 @@ const INR = (n) => {
   if (v >= 1000) return `₹${(v / 1000).toFixed(1)}K`;
   return `₹${v.toLocaleString("en-IN")}`;
 };
-
-// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
-}
 
 export default function ToursListScreen({ navigation }) {
   const [tours, setTours] = useState([]);
@@ -286,7 +267,7 @@ export default function ToursListScreen({ navigation }) {
       <Modal visible={showCreateChooser} transparent animationType="fade" onRequestClose={() => setShowCreateChooser(false)}>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setShowCreateChooser(false)}>
           <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
+            <SheetHandle />
             <Text style={styles.sheetTitle}>How would you like to add the tour?</Text>
             <Text style={styles.sheetSub}>Pick how much detail you want to add now.</Text>
 
@@ -673,7 +654,7 @@ const styles = StyleSheet.create({
     position: "absolute", top: 9, right: 9,
     width: 25, height: 25, borderRadius: 13,
     alignItems: "center", justifyContent: "center",
-    backgroundColor: "rgba(11,32,25,0.45)",
+    backgroundColor: C.scrim,
     borderWidth: 1, borderColor: "rgba(255,255,255,0.20)",
   },
 
@@ -764,8 +745,8 @@ const styles = StyleSheet.create({
   fabInner: { flex: 1, borderRadius: 28, alignItems: "center", justifyContent: "center" },
 
   // #6c — create chooser bottom sheet
-  sheetOverlay: { flex: 1, backgroundColor: "rgba(15,32,25,0.5)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: "#fff", borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 30 },
+  sheetOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
+  sheet: { backgroundColor: "#fff", borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS, padding: 20, paddingBottom: 30 },
   sheetHandle: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, backgroundColor: "#D8D0C0", marginBottom: 14 },
   sheetTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: "bold", color: C.ink },
   sheetSub: { fontFamily: DISPLAY, fontSize: 12.5, color: C.subText, marginTop: 4, marginBottom: 14 },

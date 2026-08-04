@@ -22,6 +22,7 @@ import {
   Alert,
   Linking,
   StatusBar,
+  KeyboardAvoidingView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -47,7 +48,9 @@ import {
   LEAD_STATUS,
   LEAD_PRIORITY,
 } from "../../api/travelAgentClient";
-import { SC as C } from "../_shared/theme";
+import { SC as C, SHEET_RADIUS } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import SheetHandle from "../_shared/SheetHandle";
 
 
 const STATUS_COLORS = {
@@ -141,27 +144,6 @@ function followUpUrgency(iso) {
   if (diff === 1) return { color: C.blue, bg: C.blueLight, label: "Due tomorrow", icon: "calendar" };
   if (diff <= 7) return { color: C.blue, bg: C.blueLight, label: `In ${diff} days`, icon: "calendar" };
   return { color: C.subText, bg: "#ECEAE3", label: formatDate(iso), icon: "calendar-outline" };
-}
-
-// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
 }
 
 export default function LeadDetailScreen({ navigation, route }) {
@@ -1155,7 +1137,7 @@ export default function LeadDetailScreen({ navigation, route }) {
 
       {/* Convert confirm */}
       <Modal visible={showConvertModal} animationType="fade" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
           <View style={styles.confirmCard}>
             <LinearGradient colors={[C.emerald500, C.emerald600]} style={styles.confirmIcon}>
               <Ionicons name="briefcase" size={28} color="#fff" />
@@ -1173,13 +1155,14 @@ export default function LeadDetailScreen({ navigation, route }) {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* A1 — Quote modal */}
       <Modal visible={showQuoteModal} animationType="slide" transparent onRequestClose={() => setShowQuoteModal(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
+            <SheetHandle />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{lead.quotedAmount != null ? "Update quote" : "Send quote"}</Text>
               <TouchableOpacity onPress={() => setShowQuoteModal(false)}><Ionicons name="close" size={22} color={C.ink} /></TouchableOpacity>
@@ -1263,13 +1246,14 @@ export default function LeadDetailScreen({ navigation, route }) {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* E2 — Lost reason modal */}
       <Modal visible={showLostModal} animationType="slide" transparent onRequestClose={() => setShowLostModal(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
+            <SheetHandle />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Mark lead as Lost</Text>
               <TouchableOpacity onPress={() => setShowLostModal(false)}><Ionicons name="close" size={22} color={C.ink} /></TouchableOpacity>
@@ -1296,13 +1280,14 @@ export default function LeadDetailScreen({ navigation, route }) {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* A2 — Reject payment reason modal */}
       <Modal visible={showRejectModal} animationType="slide" transparent onRequestClose={() => setShowRejectModal(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
+            <SheetHandle />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Reject payment</Text>
               <TouchableOpacity onPress={() => setShowRejectModal(false)}><Ionicons name="close" size={22} color={C.ink} /></TouchableOpacity>
@@ -1329,7 +1314,7 @@ export default function LeadDetailScreen({ navigation, route }) {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* A2 — Full-screen proof viewer */}
@@ -1346,8 +1331,9 @@ export default function LeadDetailScreen({ navigation, route }) {
 
       {/* A3 — Assign vehicle modal */}
       <Modal visible={showAssignModal} animationType="slide" transparent onRequestClose={() => setShowAssignModal(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
+            <SheetHandle />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Assign vehicle</Text>
               <TouchableOpacity onPress={() => setShowAssignModal(false)}><Ionicons name="close" size={22} color={C.ink} /></TouchableOpacity>
@@ -1445,15 +1431,15 @@ export default function LeadDetailScreen({ navigation, route }) {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Bank Gate Modal ── */}
       <Modal visible={showBankGate} transparent animationType="fade" onRequestClose={() => setShowBankGate(false)}>
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
+        <View style={{ flex: 1, backgroundColor: C.scrim, justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
           <View style={{ backgroundColor: "#fff", borderRadius: 24, padding: 28, width: "100%", alignItems: "center" }}>
             {/* Icon */}
-            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: "#FEF3C7", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: C.amberLight, alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
               <Ionicons name="card" size={34} color={C.amber} />
             </View>
 
@@ -1592,8 +1578,9 @@ function ContactBtn({ icon, label, color, onPress, disabled }) {
 function PickerModal({ visible, title, options, selected, onClose, onSelect }) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
         <View style={styles.modalSheet}>
+            <SheetHandle />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{title}</Text>
             <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={C.ink} /></TouchableOpacity>
@@ -1618,7 +1605,7 @@ function PickerModal({ visible, title, options, selected, onClose, onSelect }) {
             })}
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -1903,8 +1890,8 @@ const styles = StyleSheet.create({
   timelineTime: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "600", marginLeft: "auto" },
 
   // Modals
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  modalSheet: { backgroundColor: C.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 24, paddingTop: 16, paddingHorizontal: 16 },
+  modalOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
+  modalSheet: { backgroundColor: C.card, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS, paddingBottom: 24, paddingTop: 16, paddingHorizontal: 16 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   modalTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink },
   modalItem: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, paddingHorizontal: 12, borderRadius: 10, marginBottom: 6, backgroundColor: "#FBFAF6" },

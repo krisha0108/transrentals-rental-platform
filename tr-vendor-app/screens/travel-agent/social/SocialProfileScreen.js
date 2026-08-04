@@ -24,6 +24,7 @@ import {
 import RemoteImage from "../_shared/RemoteImage";
 import { DISPLAY } from "../_shared/typography";
 import { SC as C, G, TONES } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 // Warm "Elevate" palette — same keys, repainted to match the feed and the rest
 // of the Travel Agent module. The old set was cool slate (#F6F8FB ground).
@@ -56,26 +57,6 @@ function fmtRelative(iso) {
 // Slowly drifting/pulsing decorative bubble for the header — same gentle motion
 // as the Fleet, Tours and Agency Profile headers. useNativeDriver keeps it off
 // the JS thread, and the loop is stopped on unmount.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
-}
-
 function shade(hex, pct) {
   const f = parseInt(hex.slice(1), 16);
   const t = pct < 0 ? 0 : 255;
@@ -169,6 +150,10 @@ export default function SocialProfileScreen({ navigation, route }) {
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.headerGradSimple}
         >
+          {/* Same orbs as the loaded header — without them the bar sat flat
+              while the screen loaded and then popped into motion. */}
+          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
           <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12 }}>
             <View style={styles.headerRowSimple}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
@@ -197,6 +182,10 @@ export default function SocialProfileScreen({ navigation, route }) {
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.headerGradSimple}
         >
+          {/* Same orbs as the loaded header — without them the bar sat flat
+              while the screen loaded and then popped into motion. */}
+          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
           <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12 }}>
             <View style={styles.headerRowSimple}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
@@ -597,7 +586,9 @@ const styles = StyleSheet.create({
   // Loading / not-found headers mirror the real hero's top bar exactly (same
   // radius, same 36px glass button, same gold eyebrow) so the header doesn't
   // visibly change shape the moment the profile finishes loading.
-  headerGradSimple: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  // overflow, like headerGrad — the orbs sit outside the bar's box and would
+  // otherwise spill over the content below it.
+  headerGradSimple: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
   headerRowSimple: { flexDirection: "row", alignItems: "center", paddingTop: 4, paddingBottom: 12 },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerTitleSimple: { fontFamily: DISPLAY, flex: 1, fontSize: 18, fontWeight: "bold", color: "#fff", textAlign: "left", marginLeft: 4 },

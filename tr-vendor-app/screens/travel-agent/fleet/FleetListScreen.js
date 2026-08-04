@@ -18,6 +18,7 @@ import { listTravelAgentFleet, updateTravelAgentFleetVehicle, deleteTravelAgentF
 import RemoteImage from "../_shared/RemoteImage";
 import { DISPLAY } from "../_shared/typography";
 import { SC as C, C as T, G } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 // ── Premium warm palette (matches the Add Vehicle form) ──
 // Local key names are kept so no JSX changes are needed — only the VALUES now
@@ -46,24 +47,6 @@ const INR = (n) =>
 // Display helper — prettifies enum-ish values (DIESEL → Diesel). Presentational only.
 const titleCase = (s) =>
   s ? String(s).charAt(0).toUpperCase() + String(s).slice(1).toLowerCase() : s;
-
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />;
-}
 
 export default function FleetListScreen({ navigation }) {
   const [vehicles, setVehicles] = useState([]);
