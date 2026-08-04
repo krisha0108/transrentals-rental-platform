@@ -109,6 +109,18 @@ export async function POST(request: NextRequest) {
 
     logger.info('Manager created vendor profile', { managerId: session.user.id, vendorId: vendor.id });
 
+    prisma.manager_action_logs.create({
+      data: {
+        recordType: 'VENDOR',
+        serviceType: 'vendor',
+        recordId: vendor.id,
+        actionType: 'NOTE_ADDED',
+        newStatus: vendor.status,
+        note: `Vendor created: ${businessName}`,
+        managerId: session.user.id,
+      },
+    }).catch((err) => logger.error('Manager vendor create action log failed', err));
+
     return NextResponse.json({ success: true, vendor }, { status: 201 });
   } catch (error: any) {
     logger.error('Manager create vendor error', error);

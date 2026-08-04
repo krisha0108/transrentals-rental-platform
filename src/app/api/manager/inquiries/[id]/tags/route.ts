@@ -61,6 +61,18 @@ export async function POST(
       update: { assignedById: user.id },
     });
 
+    prisma.manager_action_logs.create({
+      data: {
+        recordType: 'INQUIRY',
+        serviceType,
+        recordId,
+        actionType: 'NOTE_ADDED',
+        newStatus: tag,
+        note: `Tagged: ${tag.replace(/_/g, ' ')}`,
+        managerId: user.id,
+      },
+    }).catch((err) => logger.error('Inquiry tag action log failed', err));
+
     const tags = await prisma.inquiry_tag_assignments.findMany({
       where: { recordId },
       select: { tag: true },
@@ -92,6 +104,19 @@ export async function DELETE(
     await prisma.inquiry_tag_assignments.deleteMany({
       where: { recordId, tag: tag as any },
     });
+
+    const serviceType = await resolveInquiryService(recordId);
+    prisma.manager_action_logs.create({
+      data: {
+        recordType: 'INQUIRY',
+        serviceType: serviceType || 'unknown',
+        recordId,
+        actionType: 'NOTE_ADDED',
+        previousStatus: tag,
+        note: `Removed tag: ${tag.replace(/_/g, ' ')}`,
+        managerId: user.id,
+      },
+    }).catch((err) => logger.error('Inquiry tag remove action log failed', err));
 
     const tags = await prisma.inquiry_tag_assignments.findMany({
       where: { recordId },

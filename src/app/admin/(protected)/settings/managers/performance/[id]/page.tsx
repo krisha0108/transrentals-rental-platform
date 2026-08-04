@@ -9,7 +9,7 @@ import {
   UserPlus, CheckCircle2, XCircle, Check, IndianRupee, Flame, Snowflake, Copy,
   Ban, PhoneOff, UserX, Clock, XOctagon, CalendarX, MapPinOff, ExternalLink,
   FileX, Hourglass, CreditCard, Flag, HelpCircle, Search, X, Target, Inbox,
-  ClipboardList, Zap, ChevronRight, Store, Timer, MousePointerClick, BarChart3,
+  ClipboardList, Zap, ChevronRight, Store, Timer, MousePointerClick, BarChart3, Car, Plane, LifeBuoy,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LabelList,
@@ -55,6 +55,7 @@ const ACTION_ICONS: Record<string, any> = {
   CANCELLED: XCircle,
   DUPLICATE_INQUIRY: Copy,
   OTHER_REASON: HelpCircle,
+  STATUS_CHANGED: RefreshCw,
   // Deprecated values (kept so historical rows still render an icon)
   CONNECTED: Check,
   RESPONDED: Check,
@@ -95,6 +96,7 @@ interface ActionedItem {
   locationName: string;
   submittedAt: string;
   actions: { actionType: string; note: string | null; createdAt: string }[];
+  source?: 'standalone' | 'vendor';
 }
 
 interface VendorItem {
@@ -217,7 +219,37 @@ const TAB_META = {
     active: 'border-orange-600 text-orange-700 bg-orange-50/50',
     badgeActive: 'bg-orange-100 text-orange-700',
   },
+  drivers: {
+    label: 'Drivers', icon: Car,
+    active: 'border-cyan-600 text-cyan-700 bg-cyan-50/50',
+    badgeActive: 'bg-cyan-100 text-cyan-700',
+  },
+  vendors: {
+    label: 'Vendor Actions', icon: Store,
+    active: 'border-indigo-600 text-indigo-700 bg-indigo-50/50',
+    badgeActive: 'bg-indigo-100 text-indigo-700',
+  },
+  travelAgents: {
+    label: 'Travel Agents', icon: Plane,
+    active: 'border-violet-600 text-violet-700 bg-violet-50/50',
+    badgeActive: 'bg-violet-100 text-violet-700',
+  },
+  helpdesk: {
+    label: 'Helpdesk', icon: LifeBuoy,
+    active: 'border-rose-600 text-rose-700 bg-rose-50/50',
+    badgeActive: 'bg-rose-100 text-rose-700',
+  },
 } as const;
+
+// Per-tab styling + optional admin-detail-page link builder — feeds the
+// generic ActionedListPanel so each tab doesn't need its own render block.
+const ACTIONED_TAB_STYLE: Record<string, { chip: string; empty: any; emptyText: string; href?: (item: ActionedItem) => string }> = {
+  contact: { chip: 'text-orange-700 bg-orange-50 ring-1 ring-orange-200', empty: Mail, emptyText: 'No contact-form inquiries handled in this period.' },
+  drivers: { chip: 'text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200', empty: Car, emptyText: 'No driver actions logged in this period.', href: (item) => `/admin/drivers/${item.id}${item.source ? `?source=${item.source}` : ''}` },
+  vendors: { chip: 'text-indigo-700 bg-indigo-50 ring-1 ring-indigo-200', empty: Store, emptyText: 'No vendor actions logged in this period.', href: (item) => `/admin/vendors/${item.id}` },
+  travelAgents: { chip: 'text-violet-700 bg-violet-50 ring-1 ring-violet-200', empty: Plane, emptyText: 'No travel agent actions logged in this period.', href: (item) => `/admin/travel-agents/${item.id}` },
+  helpdesk: { chip: 'text-rose-700 bg-rose-50 ring-1 ring-rose-200', empty: LifeBuoy, emptyText: 'No helpdesk ticket actions logged in this period.' },
+};
 
 export default function ManagerPerformanceDetailPage() {
   const params = useParams();
@@ -234,10 +266,14 @@ export default function ManagerPerformanceDetailPage() {
   const [data, setData] = useState<ManagerDetail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [inquiryTab, setInquiryTab] = useState<'actioned' | 'untouched' | 'contact'>('actioned');
+  const [inquiryTab, setInquiryTab] = useState<'actioned' | 'untouched' | 'contact' | 'drivers' | 'vendors' | 'travelAgents' | 'helpdesk'>('actioned');
   const [actioned, setActioned] = useState<ActionedItem[]>([]);
   const [untouched, setUntouched] = useState<UntouchedItem[]>([]);
   const [contactInquiries, setContactInquiries] = useState<ActionedItem[]>([]);
+  const [driverActions, setDriverActions] = useState<ActionedItem[]>([]);
+  const [vendorActions, setVendorActions] = useState<ActionedItem[]>([]);
+  const [travelAgentActions, setTravelAgentActions] = useState<ActionedItem[]>([]);
+  const [helpdeskActions, setHelpdeskActions] = useState<ActionedItem[]>([]);
   const [vendorsCreatedList, setVendorsCreatedList] = useState<VendorItem[]>([]);
   const [vendorsApprovedList, setVendorsApprovedList] = useState<VendorItem[]>([]);
   const [vendorModal, setVendorModal] = useState<'created' | 'approved' | null>(null);
@@ -275,6 +311,10 @@ export default function ManagerPerformanceDetailPage() {
       if (!actionedJson.error) {
         setActioned(actionedJson.actioned || []);
         setContactInquiries(actionedJson.contactInquiries || []);
+        setDriverActions(actionedJson.driverActions || []);
+        setVendorActions(actionedJson.vendorActions || []);
+        setTravelAgentActions(actionedJson.travelAgentActions || []);
+        setHelpdeskActions(actionedJson.helpdeskActions || []);
       }
       if (!untouchedJson.error) setUntouched(untouchedJson.untouched || []);
       if (!vendorsJson.error) {
@@ -344,6 +384,26 @@ export default function ManagerPerformanceDetailPage() {
     () => (q ? contactInquiries.filter((i) => i.customerName.toLowerCase().includes(q) || i.customerPhone.includes(q)) : contactInquiries),
     [contactInquiries, q]
   );
+  const filteredDrivers = useMemo(
+    () => (q ? driverActions.filter((i) => i.customerName.toLowerCase().includes(q) || i.customerPhone.includes(q)) : driverActions),
+    [driverActions, q]
+  );
+  const filteredVendors = useMemo(
+    () => (q ? vendorActions.filter((i) => i.customerName.toLowerCase().includes(q) || i.customerPhone.includes(q)) : vendorActions),
+    [vendorActions, q]
+  );
+  const filteredTravelAgents = useMemo(
+    () => (q ? travelAgentActions.filter((i) => i.customerName.toLowerCase().includes(q) || i.customerPhone.includes(q)) : travelAgentActions),
+    [travelAgentActions, q]
+  );
+  const filteredHelpdesk = useMemo(
+    () => (q ? helpdeskActions.filter((i) => i.customerName.toLowerCase().includes(q) || i.customerPhone.includes(q)) : helpdeskActions),
+    [helpdeskActions, q]
+  );
+  const TAB_ITEMS: Record<string, ActionedItem[]> = {
+    contact: filteredContact, drivers: filteredDrivers, vendors: filteredVendors,
+    travelAgents: filteredTravelAgents, helpdesk: filteredHelpdesk,
+  };
 
   const sortedActionBreakdown = useMemo(
     () => (data ? Object.entries(data.actionBreakdown).sort((a, b) => b[1] - a[1]) : []),
@@ -712,7 +772,7 @@ export default function ManagerPerformanceDetailPage() {
             {(Object.keys(TAB_META) as (keyof typeof TAB_META)[]).map((key) => {
               const meta = TAB_META[key];
               const Icon = meta.icon;
-              const count = key === 'actioned' ? actioned.length : key === 'untouched' ? untouched.length : contactInquiries.length;
+              const count = key === 'actioned' ? actioned.length : key === 'untouched' ? untouched.length : key === 'contact' ? contactInquiries.length : TAB_ITEMS[key]?.length ?? 0;
               const active = inquiryTab === key;
               return (
                 <button
@@ -823,51 +883,69 @@ export default function ManagerPerformanceDetailPage() {
                 ))}
               </div>
             )
-          ) : filteredContact.length === 0 ? (
-            <div className="text-center py-14 text-slate-400">
-              <Mail className="w-9 h-9 mx-auto mb-2 text-slate-200" />
-              <p className="text-sm">{search ? 'No matches for your search' : 'No contact-form inquiries handled in this period.'}</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-50 max-h-[420px] overflow-y-auto">
-              {filteredContact.map((item) => (
-                <div key={item.id} className="p-4 hover:bg-slate-50/60 transition-colors">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-slate-900 text-sm">{item.customerName}</p>
-                      <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
-                        <Phone className="w-3 h-3" /> {item.customerPhone}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-0.5">Contact Inquiry · {item.locationName} · {item.requestNumber}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 justify-end">
-                      {item.actions.map((a, i) => {
-                        const Icon = ACTION_ICONS[a.actionType] || StickyNote;
-                        return (
-                          <span key={i} className="flex items-center gap-1 text-xs font-medium text-orange-700 bg-orange-50 ring-1 ring-orange-200 rounded-full px-2 py-0.5">
-                            <Icon className="w-3 h-3" />
-                            {a.actionType.replace(/_/g, ' ')}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {item.actions.some((a) => a.note) && (
-                    <div className="mt-2 space-y-1">
-                      {item.actions.filter((a) => a.note).map((a, i) => (
-                        <p key={i} className="text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5">
-                          <span className="font-medium text-slate-500">Reply:</span> "{a.note}"
-                        </p>
-                      ))}
-                    </div>
-                  )}
-
-                  <p className="text-xs text-slate-400 mt-2">Last action: {formatDateTime(item.actions[0].createdAt)}</p>
+          ) : (() => {
+            const style = ACTIONED_TAB_STYLE[inquiryTab];
+            const items = TAB_ITEMS[inquiryTab] || [];
+            const EmptyIcon = style.empty;
+            if (items.length === 0) {
+              return (
+                <div className="text-center py-14 text-slate-400">
+                  <EmptyIcon className="w-9 h-9 mx-auto mb-2 text-slate-200" />
+                  <p className="text-sm">{search ? 'No matches for your search' : style.emptyText}</p>
                 </div>
-              ))}
-            </div>
-          )}
+              );
+            }
+            return (
+              <div className="divide-y divide-slate-50 max-h-[420px] overflow-y-auto">
+                {items.map((item) => (
+                  <div key={item.id} className="p-4 hover:bg-slate-50/60 transition-colors">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div className="min-w-0">
+                        {style.href ? (
+                          <Link
+                            href={style.href(item)}
+                            target="_blank"
+                            className="font-semibold text-slate-900 text-sm hover:underline"
+                          >
+                            {item.customerName}
+                          </Link>
+                        ) : (
+                          <p className="font-semibold text-slate-900 text-sm">{item.customerName}</p>
+                        )}
+                        <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+                          <Phone className="w-3 h-3" /> {item.customerPhone}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-0.5">{item.serviceName} · {item.locationName || '—'} · {item.requestNumber}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 justify-end">
+                        {item.actions.map((a, i) => {
+                          const Icon = ACTION_ICONS[a.actionType] || StickyNote;
+                          return (
+                            <span key={i} className={`flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5 ${style.chip}`}>
+                              <Icon className="w-3 h-3" />
+                              {a.actionType.replace(/_/g, ' ')}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {item.actions.some((a) => a.note) && (
+                      <div className="mt-2 space-y-1">
+                        {item.actions.filter((a) => a.note).map((a, i) => (
+                          <p key={i} className="text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5">
+                            {a.note}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+
+                    <p className="text-xs text-slate-400 mt-2">Last action: {formatDateTime(item.actions[0].createdAt)}</p>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Assigned Locations / Services */}

@@ -35,6 +35,82 @@ async function fetchContactInquirySummary(id: string) {
   };
 }
 
+// Driver action logs store the driver's storage table ('standalone' | 'vendor')
+// in serviceType, exactly like inquiry logs store the service slug there.
+async function fetchDriverSummary(id: string, source: string) {
+  if (source === 'vendor') {
+    const s = await prisma.vendor_staff.findUnique({
+      where: { id },
+      select: { name: true, phone: true, did: true, city: true, createdAt: true },
+    });
+    if (!s) return null;
+    return {
+      requestNumber: s.did || `DRV-${id.slice(-6).toUpperCase()}`,
+      customerName: s.name,
+      customerPhone: s.phone,
+      locationName: s.city,
+      createdAt: s.createdAt,
+    };
+  }
+  const d = await prisma.drivers.findUnique({
+    where: { id },
+    select: { name: true, phone: true, did: true, city: true, createdAt: true },
+  });
+  if (!d) return null;
+  return {
+    requestNumber: d.did || `DRV-${id.slice(-6).toUpperCase()}`,
+    customerName: d.name,
+    customerPhone: d.phone,
+    locationName: d.city,
+    createdAt: d.createdAt,
+  };
+}
+
+async function fetchVendorSummary(id: string) {
+  const v = await prisma.vendors.findUnique({
+    where: { id },
+    select: { vid: true, businessName: true, ownerName: true, phone: true, city: true, createdAt: true },
+  });
+  if (!v) return null;
+  return {
+    requestNumber: v.vid || `VEN-${id.slice(-6).toUpperCase()}`,
+    customerName: v.businessName || v.ownerName,
+    customerPhone: v.phone,
+    locationName: v.city,
+    createdAt: v.createdAt,
+  };
+}
+
+async function fetchTravelAgentSummary(id: string) {
+  const a = await prisma.travel_agents.findUnique({
+    where: { id },
+    select: { tid: true, agencyName: true, ownerName: true, phone: true, city: true, createdAt: true },
+  }).catch(() => null);
+  if (!a) return null;
+  return {
+    requestNumber: a.tid || `TA-${id.slice(-6).toUpperCase()}`,
+    customerName: a.agencyName || a.ownerName,
+    customerPhone: a.phone,
+    locationName: a.city,
+    createdAt: a.createdAt,
+  };
+}
+
+async function fetchHelpdeskSummary(id: string) {
+  const t = await prisma.helpdesk_tickets.findUnique({
+    where: { id },
+    select: { ticketNo: true, heading: true, createdAt: true, customers: { select: { name: true, phone: true } } },
+  });
+  if (!t) return null;
+  return {
+    requestNumber: t.ticketNo,
+    customerName: t.customers?.name || 'Unknown',
+    customerPhone: t.customers?.phone || '',
+    locationName: t.heading,
+    createdAt: t.createdAt,
+  };
+}
+
 // Look up a single quote-request's customer/location details by its known serviceType
 // (stored on the action log itself, so no need to search all 7 tables blindly).
 async function fetchInquirySummary(id: string, serviceType: string) {
@@ -100,7 +176,7 @@ export async function GET(request: NextRequest) {
     const dateFilterObj = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
 
     const logs = await prisma.manager_action_logs.findMany({
-      where: { recordType: { in: ['INQUIRY', 'CONTACT_INQUIRY'] }, managerId, ...dateFilterObj },
+      where: { recordType: { in: ['INQUIRY', 'CONTACT_INQUIRY', 'DRIVER', 'VENDOR', 'TRAVEL_AGENT', 'HELPDESK_TICKET'] }, managerId, ...dateFilterObj },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -115,15 +191,30 @@ export async function GET(request: NextRequest) {
       Array.from(byRecord.entries()).map(async ([id, { recordType, serviceType, actions }]) => {
         const summary = recordType === 'CONTACT_INQUIRY'
           ? await fetchContactInquirySummary(id).catch(() => null)
+          : recordType === 'DRIVER'
+          ? await fetchDriverSummary(id, serviceType).catch(() => null)
+          : recordType === 'VENDOR'
+          ? await fetchVendorSummary(id).catch(() => null)
+          : recordType === 'TRAVEL_AGENT'
+          ? await fetchTravelAgentSummary(id).catch(() => null)
+          : recordType === 'HELPDESK_TICKET'
+          ? await fetchHelpdeskSummary(id).catch(() => null)
           : await fetchInquirySummary(id, serviceType).catch(() => null);
         if (!summary) return null;
+        const SERVICE_LABELS: Record<string, string> = {
+          DRIVER: serviceType === 'vendor' ? 'Vendor Driver' : 'Standalone Driver',
+          VENDOR: 'Vendor',
+          TRAVEL_AGENT: 'Travel Agent',
+          HELPDESK_TICKET: 'Helpdesk Ticket',
+        };
         return {
           id,
           recordType,
+          source: recordType === 'DRIVER' ? serviceType : undefined,
           requestNumber: summary.requestNumber,
           customerName: summary.customerName,
           customerPhone: summary.customerPhone,
-          serviceName: SERVICE_NAMES[serviceType] || serviceType,
+          serviceName: SERVICE_LABELS[recordType] || (SERVICE_NAMES[serviceType] || serviceType),
           locationName: summary.locationName,
           submittedAt: summary.createdAt,
           actions: actions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
@@ -133,14 +224,20 @@ export async function GET(request: NextRequest) {
 
     const sortByLastAction = (a: any, b: any) => new Date(b.actions[0].createdAt).getTime() - new Date(a.actions[0].createdAt).getTime();
 
-    // Contact inquiries are a separate, unscoped queue (see manager-performance.ts) —
+    // Every non-INQUIRY recordType is its own separate, unscoped queue —
     // kept out of `actioned` so its count stays in sync with the `inquiries.actioned`
-    // stat above (which only counts recordType 'INQUIRY'), and get their own list
+    // stat above (which only counts recordType 'INQUIRY'), and gets its own list
     // instead of being invisibly mixed in.
-    const actioned = entries.filter(Boolean).filter((e: any) => e.recordType !== 'CONTACT_INQUIRY').sort(sortByLastAction);
-    const contactInquiries = entries.filter(Boolean).filter((e: any) => e.recordType === 'CONTACT_INQUIRY').sort(sortByLastAction);
+    const nonInquiryTypes = ['CONTACT_INQUIRY', 'DRIVER', 'VENDOR', 'TRAVEL_AGENT', 'HELPDESK_TICKET'];
+    const byType = (t: string) => entries.filter(Boolean).filter((e: any) => e.recordType === t).sort(sortByLastAction);
+    const actioned = entries.filter(Boolean).filter((e: any) => !nonInquiryTypes.includes(e.recordType)).sort(sortByLastAction);
+    const contactInquiries = byType('CONTACT_INQUIRY');
+    const driverActions = byType('DRIVER');
+    const vendorActions = byType('VENDOR');
+    const travelAgentActions = byType('TRAVEL_AGENT');
+    const helpdeskActions = byType('HELPDESK_TICKET');
 
-    return NextResponse.json({ actioned, contactInquiries });
+    return NextResponse.json({ actioned, contactInquiries, driverActions, vendorActions, travelAgentActions, helpdeskActions });
   } catch (error: any) {
     logger.error('Manager actioned-inquiries fetch error', error);
     return NextResponse.json(
