@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import { isVendorServiceActive } from '@/lib/services/vendor-service-status';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,10 @@ export async function GET(request: NextRequest) {
     }
 
     const approvedLocationIds = vendor.vendor_approved_locations.map((l) => l.locationId);
+    // A vendor who's deactivated Bike Rental on /vendor/services must stop
+    // seeing NEW (unclaimed) requests — their own quote history stays
+    // visible below, so this only zeroes out the "open" location list.
+    const openLocationIds = (await isVendorServiceActive(vendorId, 'bike')) ? approvedLocationIds : [];
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // 'open', 'quoted', 'won', 'lost'
@@ -63,7 +68,7 @@ export async function GET(request: NextRequest) {
         ...dateFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
-        locationId: { in: approvedLocationIds },
+        locationId: { in: openLocationIds },
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
           none: { vendorId: vendorId, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } },
         },
@@ -97,7 +102,7 @@ export async function GET(request: NextRequest) {
             ...dateFilter,
             status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
             quotesOpenTill: { gte: new Date() },
-            locationId: { in: approvedLocationIds },
+            locationId: { in: openLocationIds },
           },
           {
             ...dateFilter,

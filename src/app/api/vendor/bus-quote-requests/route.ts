@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import { isVendorServiceActive } from '@/lib/services/vendor-service-status';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,12 @@ export async function GET(request: NextRequest) {
     }
 
     const approvedLocationIds = vendor.vendor_approved_locations.map((l) => l.locationId);
+    // A vendor who's deactivated Bus Rental on /vendor/services must stop
+    // seeing NEW (unclaimed) requests — their own quote history stays
+    // visible below, so this only zeroes out the "open" location match.
+    const openLocationOr = (await isVendorServiceActive(vendorId, 'bus'))
+      ? [{ locationId: { in: approvedLocationIds } }, { locationId: null }]
+      : [{ locationId: { in: [] } }];
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // 'open', 'quoted', 'won', 'lost'
@@ -64,10 +71,7 @@ export async function GET(request: NextRequest) {
       // Open requests - vendor hasn't quoted yet
       whereClause = {
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
-        OR: [
-          { locationId: { in: approvedLocationIds } },
-          { locationId: null }, // Requests without specific location
-        ],
+        OR: openLocationOr,
         bus_quotes_bus_quotes_requestIdTobus_quote_requests: {
           none: { vendorId: vendorId, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } },
         },
@@ -114,10 +118,7 @@ export async function GET(request: NextRequest) {
           // Open requests in vendor's locations
           {
             status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
-            OR: [
-              { locationId: { in: approvedLocationIds } },
-              { locationId: null },
-            ],
+            OR: openLocationOr,
             ...(dateFilter ? { createdAt: dateFilter } : {}),
           },
           // Requests vendor has quoted on

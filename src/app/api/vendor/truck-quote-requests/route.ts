@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import { isVendorServiceActive } from '@/lib/services/vendor-service-status';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -26,6 +27,12 @@ export async function GET(request: NextRequest) {
     }
 
     const approvedLocationIds = vendor.vendor_approved_locations.map((l) => l.locationId);
+    // A vendor who's deactivated Truck Transport on /vendor/services must
+    // stop seeing NEW (unclaimed) requests — their own quote history stays
+    // visible below. Note: this file's location filter is separately
+    // disabled (see TODO below, pre-existing/unrelated) — this kill-switch
+    // is a standalone AND condition so it works regardless of that.
+    const truckActive = await isVendorServiceActive(vendorId, 'truck');
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const page = parseInt(searchParams.get('page') || '1');
@@ -60,6 +67,7 @@ export async function GET(request: NextRequest) {
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
         truck_quotes: { none: { vendorId: vendorId, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } } },
+        ...(truckActive ? {} : { id: { in: [] } }),
       };
     } else if (type === 'quoted') {
       whereClause = {
@@ -98,6 +106,7 @@ export async function GET(request: NextRequest) {
             ...dateFilter,
             status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
             quotesOpenTill: { gte: new Date() },
+            ...(truckActive ? {} : { id: { in: [] } }),
           },
           {
             ...dateFilter,

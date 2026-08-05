@@ -6,6 +6,7 @@
 
 import { prisma } from '@/lib/db/prisma';
 import { sendPushNotification } from '@/lib/services/push-notification-service';
+import { SERVICE_TYPE_SLUGS } from '@/lib/services/vendor-service-status';
 
 function getChannelForType(type: string): { channelId: string; sound: string } {
   if (type === 'payment_received' || type === 'payment' || type === 'advance_paid') {
@@ -46,12 +47,25 @@ export async function sendQuoteRequestNotificationToVendors(
 ): Promise<void> {
   const { requestId, requestNumber, locationId, locationName, customerName, serviceType, serviceDisplayName } = params;
 
+  const serviceSlug = SERVICE_TYPE_SLUGS[serviceType];
+  let serviceId: string | null = null;
+  if (serviceSlug) {
+    const service = await prisma.services.findFirst({ where: { slug: serviceSlug }, select: { id: true } });
+    serviceId = service?.id || null;
+  }
+  if (!serviceId) {
+    console.warn(`[VendorNotify] Could not resolve serviceId for serviceType "${serviceType}" — notifying by location only, without the service-active filter`);
+  }
+  const serviceFilter = serviceId
+    ? { vendor_approved_services: { some: { serviceId, isActive: true } } }
+    : {};
+
   // Resolve locationId — some services pass a city name string instead of a DB cuid.
   // Try the given value first; if no vendors found, look up the location by name/slug.
   let resolvedLocationId = locationId;
 
   let vendors = await prisma.vendors.findMany({
-    where: { vendor_approved_locations: { some: { locationId: resolvedLocationId } } },
+    where: { vendor_approved_locations: { some: { locationId: resolvedLocationId } }, ...serviceFilter },
     select: { id: true, fcmToken: true },
   });
 
@@ -62,7 +76,7 @@ export async function sendQuoteRequestNotificationToVendors(
         OR: [
           { id: locationId },
           { slug: locationId.toLowerCase().replace(/\s+/g, '-') },
-          { name: { equals: locationId, mode: 'insensitive' } },
+          { name: { equals: locationId } },
         ],
         isActive: true,
         type: { in: ['CITY', 'UNION_TERRITORY', 'AREA', 'AIRPORT', 'VILLAGE'] },
@@ -73,14 +87,24 @@ export async function sendQuoteRequestNotificationToVendors(
     if (loc) {
       resolvedLocationId = loc.id;
       vendors = await prisma.vendors.findMany({
-        where: { vendor_approved_locations: { some: { locationId: resolvedLocationId } } },
+        where: { vendor_approved_locations: { some: { locationId: resolvedLocationId } }, ...serviceFilter },
         select: { id: true, fcmToken: true },
       });
     }
   }
 
   if (!vendors.length) {
-    console.log(`[VendorNotify] No vendors found for location "${locationId}" (resolved: "${resolvedLocationId}")`);
+    console.log(`[VendorNotify] No eligible (active-service) vendors found for location "${locationId}" (resolved: "${resolvedLocationId}")`);
+    await prisma.vendor_coverage_gaps.create({
+      data: {
+        serviceType,
+        requestId,
+        requestNumber,
+        locationId: resolvedLocationId || null,
+        locationName,
+        customerName,
+      },
+    }).catch((err) => console.error('[VendorCoverageGap] Failed to log coverage gap', err));
     return;
   }
 

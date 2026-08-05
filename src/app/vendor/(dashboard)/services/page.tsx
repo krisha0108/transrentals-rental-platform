@@ -14,6 +14,9 @@ import {
   Bike,
   Package,
   Crown,
+  Power,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -22,6 +25,8 @@ interface Service {
   name: string;
   slug: string;
   icon?: string;
+  parentId?: string | null;
+  other_services?: Service[];
 }
 
 interface ServiceRequest {
@@ -41,8 +46,11 @@ interface ServiceRequest {
 export default function VendorServicesPage() {
   const [allServices, setAllServices] = useState<Service[]>([]);
   const [approvedServiceIds, setApprovedServiceIds] = useState<string[]>([]);
+  const [activeServiceIds, setActiveServiceIds] = useState<string[]>([]);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchServices = async () => {
     try {
@@ -51,6 +59,7 @@ export default function VendorServicesPage() {
         const data = await res.json();
         setAllServices(data.allServices || []);
         setApprovedServiceIds(data.approvedServiceIds || []);
+        setActiveServiceIds(data.activeServiceIds || []);
         setRequests(data.requests || []);
       }
     } catch (error) {
@@ -60,8 +69,48 @@ export default function VendorServicesPage() {
     }
   };
 
-  // Get approved services with details
-  const approvedServices = allServices.filter(s => approvedServiceIds.includes(s.id));
+  const toggleServiceActive = async (serviceId: string, currentlyActive: boolean) => {
+    setTogglingId(serviceId);
+    setMessage(null);
+    try {
+      const res = currentlyActive
+        ? await fetch(`/api/vendor/services?serviceId=${serviceId}&type=approved`, { method: 'DELETE' })
+        : await fetch('/api/vendor/services', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ serviceId }),
+          });
+      const data = await res.json();
+      if (res.ok) {
+        setActiveServiceIds((prev) =>
+          currentlyActive ? prev.filter((id) => id !== serviceId) : [...prev, serviceId]
+        );
+        setMessage({ type: 'success', text: data.message || 'Updated' });
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to update service' });
+      }
+    } catch (error) {
+      console.error('Failed to toggle service:', error);
+      setMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
+    } finally {
+      setTogglingId(null);
+      setTimeout(() => setMessage(null), 4000);
+    }
+  };
+
+  // Get approved services with details (active AND inactive — a deactivated
+  // service stays visible here with a toggle to switch it back on).
+  // `allServices` only contains top-level categories from the API — a
+  // vendor can also be approved for a specific sub-service/vehicle type
+  // (e.g. "Activa" under Bike Rental) without the parent category itself
+  // being approved, so this flattens in every sub-service too. Without
+  // this, an approved sub-service silently never showed up here at all
+  // (only in the Service Requests history below, with no way to toggle it).
+  const flatServices: (Service & { parentName?: string })[] = allServices.flatMap((s) => [
+    s,
+    ...(s.other_services || []).map((sub) => ({ ...sub, parentName: s.name })),
+  ]);
+  const approvedServices = flatServices.filter(s => approvedServiceIds.includes(s.id));
 
   // Get service icon based on slug
   const getServiceIcon = (slug: string) => {
@@ -260,6 +309,19 @@ export default function VendorServicesPage() {
           </div>
         </div>
 
+        {/* Toggle feedback banner */}
+        {message && (
+          <div
+            className={`flex items-center gap-2.5 rounded-2xl px-4 py-3 text-sm font-medium ${
+              message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'
+            }`}
+            style={{ animation: 'fade-up 0.4s ease-out both' }}
+          >
+            {message.type === 'success' ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
+            {message.text}
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
@@ -363,53 +425,108 @@ export default function VendorServicesPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
-              {approvedServices.map((service, i) => (
-                <div
-                  key={service.id}
-                  className="group relative overflow-hidden p-4 border border-gray-100 rounded-xl transition-all duration-500 hover:-translate-y-1 hover:shadow-lg hover:border-emerald-200"
-                  style={{
-                    animation: `fade-up 0.5s ease-out ${0.6 + i * 0.08}s both`,
-                  }}
-                >
-                  {/* Shimmer on hover */}
-                  <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-50/80 to-transparent" style={{ animation: 'shimmer-sweep 1.5s ease-in-out infinite' }} />
-                  </div>
-                  {/* Emerald glow border on hover */}
-                  <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ boxShadow: '0 0 0 1px rgba(5,150,105,0.2), 0 0 16px rgba(5,150,105,0.08)' }} />
-                  <div className="relative flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center text-white shadow-md transition-all duration-500 group-hover:rotate-12 group-hover:scale-110">
-                      {getServiceIcon(service.slug)}
+              {approvedServices.map((service, i) => {
+                const isActive = activeServiceIds.includes(service.id);
+                const isToggling = togglingId === service.id;
+                return (
+                  <div
+                    key={service.id}
+                    className={`group relative overflow-hidden p-4 border rounded-xl transition-all duration-500 hover:-translate-y-1 hover:shadow-lg ${
+                      isActive ? 'border-gray-100 hover:border-emerald-200' : 'border-gray-100 bg-gray-50/60'
+                    }`}
+                    style={{
+                      animation: `fade-up 0.5s ease-out ${0.6 + i * 0.08}s both`,
+                    }}
+                  >
+                    {/* Shimmer on hover — active services only */}
+                    {isActive && (
+                      <>
+                        <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-50/80 to-transparent" style={{ animation: 'shimmer-sweep 1.5s ease-in-out infinite' }} />
+                        </div>
+                        <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ boxShadow: '0 0 0 1px rgba(5,150,105,0.2), 0 0 16px rgba(5,150,105,0.08)' }} />
+                      </>
+                    )}
+                    <div className="relative flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-md transition-all duration-500 flex-shrink-0 ${
+                            isActive
+                              ? 'bg-gradient-to-br from-emerald-500 to-teal-500 group-hover:rotate-12 group-hover:scale-110'
+                              : 'bg-gradient-to-br from-gray-300 to-gray-400'
+                          }`}
+                        >
+                          {getServiceIcon(service.slug)}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className={`text-sm font-semibold truncate ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                            {service.name}
+                            {service.parentName && (
+                              <span className="ml-1.5 text-[11px] font-normal text-gray-400 align-middle">· {service.parentName}</span>
+                            )}
+                          </h4>
+                          {isActive ? (
+                            <p className="text-xs text-emerald-600 flex items-center gap-1.5 mt-0.5">
+                              <span className="relative flex h-2 w-2">
+                                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                              </span>
+                              Active
+                            </p>
+                          ) : (
+                            <p className="text-xs text-gray-400 flex items-center gap-1.5 mt-0.5">
+                              <span className="inline-flex rounded-full h-2 w-2 bg-gray-300" />
+                              Inactive — no new leads
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Toggle */}
+                      <button
+                        onClick={() => toggleServiceActive(service.id, isActive)}
+                        disabled={isToggling}
+                        title={isActive ? 'Deactivate — stop receiving new leads for this service' : 'Activate — start receiving new leads again'}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+                          isActive ? 'bg-emerald-500' : 'bg-gray-300'
+                        }`}
+                      >
+                        {isToggling ? (
+                          <Loader2 className="w-3.5 h-3.5 text-white animate-spin absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
+                        ) : (
+                          <span
+                            className={`inline-block h-[18px] w-[18px] transform rounded-full bg-white shadow-sm transition-transform duration-300 ${
+                              isActive ? 'translate-x-[22px]' : 'translate-x-1'
+                            }`}
+                          />
+                        )}
+                      </button>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-900">{service.name}</h4>
-                      <p className="text-xs text-emerald-600 flex items-center gap-1.5 mt-0.5">
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                        </span>
-                        Active
-                      </p>
-                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Pending/Rejected Requests */}
-        {requests.length > 0 && (
+        {/* Pending/Rejected Requests — APPROVED requests are deliberately
+            excluded here since they're already shown above in "Approved
+            Services" with live active/inactive status; repeating them here
+            with just a static date was pure duplication and confusing. */}
+        {(() => {
+          const unresolvedRequests = requests.filter((r) => r.status !== 'APPROVED');
+          if (unresolvedRequests.length === 0) return null;
+          return (
           <div
             className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
             style={{ animation: 'fade-up 0.6s ease-out 0.7s both' }}
           >
             <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-              <h3 className="text-base font-bold text-gray-900">Service Requests</h3>
+              <h3 className="text-base font-bold text-gray-900">Pending &amp; Rejected Requests</h3>
             </div>
 
             <div className="divide-y divide-gray-50">
-              {requests.map((request, i) => (
+              {unresolvedRequests.map((request, i) => (
                 <div
                   key={request.id}
                   className="group p-4 sm:px-5 transition-colors duration-300 hover:bg-emerald-50/30"
@@ -446,7 +563,8 @@ export default function VendorServicesPage() {
               ))}
             </div>
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
