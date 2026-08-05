@@ -3967,6 +3967,26 @@ model inquiry_tag_assignments {
   @@index([assignedById], map: "inquiry_tag_assignments_assignedById_fkey")
 }
 
+// Logged once per quote request when zero vendors were eligible to receive
+// it (no active service+location match) — written from the same chokepoint
+// that would otherwise have notified vendors. No hard FK to locations since
+// 5 of the 7 quote-request services resolve location from a free-text city
+// name and can leave it unresolved; locationName is always present.
+model vendor_coverage_gaps {
+  id            String   @id @default(cuid())
+  serviceType   String
+  requestId     String
+  requestNumber String
+  locationId    String?
+  locationName  String
+  customerName  String
+  createdAt     DateTime @default(now())
+
+  @@index([locationName])
+  @@index([serviceType])
+  @@index([createdAt])
+}
+
 enum vendor_tag {
   FOLLOW_UP_REQUIRED
   CONNECTED

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail, UserCog, Bell, MapPinPlus, Layers } from 'lucide-react';
+import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail, UserCog, Bell, MapPinPlus, Layers, MapPinOff } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { ToastProvider } from '@/components/ui/toast';
@@ -16,6 +16,8 @@ const SIDEBAR_LINKS = [
   { href: '/manager/inquiries', label: 'My Inquiries', icon: FileText },
   { href: '/manager/bookings', label: 'My Bookings', icon: Briefcase },
   { href: '/manager/vendors', label: 'Vendors', icon: Store },
+  { href: '/manager/vendors/by-location', label: 'Location Coverage', icon: MapPin },
+  { href: '/manager/vendors/coverage-gaps', label: 'Coverage Gaps', icon: MapPinOff },
   { href: '/manager/drivers', label: 'Drivers', icon: Users },
   { href: '/manager/travel-agents', label: 'Travel Agents', icon: Plane },
   { href: '/manager/b2b', label: 'B2B Bookings', icon: Briefcase },
