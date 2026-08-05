@@ -124,6 +124,19 @@ export async function PUT(
           serviceType: 'general',
         }).catch((err: any) => console.error('[ManagerLocApprove] Vendor notify failed:', err));
 
+        prisma.manager_action_logs.create({
+          data: {
+            recordType: 'VENDOR',
+            serviceType: 'vendor',
+            recordId: locationRequest.vendorId,
+            actionType: 'STATUS_CHANGED',
+            previousStatus: 'PENDING',
+            newStatus: 'LOCATION_APPROVED',
+            note: `Location request approved: ${locationRequest.locations?.name || ''}`,
+            managerId: manager.id,
+          },
+        }).catch((err) => logger.error('Manager location-request approve action log failed', err));
+
         return NextResponse.json({
           success: true,
           message: `Location request approved. ${locationRequest.vendors.businessName} can now operate in ${locationRequest.locations.name}.`,
@@ -147,6 +160,19 @@ export async function PUT(
           type: 'location_rejected',
           serviceType: 'general',
         }).catch((err: any) => console.error('[ManagerLocReject] Vendor notify failed:', err));
+
+        prisma.manager_action_logs.create({
+          data: {
+            recordType: 'VENDOR',
+            serviceType: 'vendor',
+            recordId: locationRequest.vendorId,
+            actionType: 'STATUS_CHANGED',
+            previousStatus: 'PENDING',
+            newStatus: 'LOCATION_REJECTED',
+            note: `Location request rejected: ${locationRequest.locations?.name || ''}${reason ? ` — ${reason}` : ''}`,
+            managerId: manager.id,
+          },
+        }).catch((err) => logger.error('Manager location-request reject action log failed', err));
 
         return NextResponse.json({
           success: true,
@@ -223,6 +249,19 @@ export async function PUT(
           serviceType: 'general',
         }).catch((err: any) => console.error('[ManagerSvcApprove] Vendor notify failed:', err));
 
+        prisma.manager_action_logs.create({
+          data: {
+            recordType: 'VENDOR',
+            serviceType: 'vendor',
+            recordId: serviceRequest.vendorId,
+            actionType: 'STATUS_CHANGED',
+            previousStatus: 'PENDING',
+            newStatus: 'SERVICE_APPROVED',
+            note: `Service request approved: ${serviceRequest.services?.name || ''}`,
+            managerId: manager.id,
+          },
+        }).catch((err) => logger.error('Manager service-request approve action log failed', err));
+
         return NextResponse.json({
           success: true,
           message: `Service request approved. ${serviceRequest.vendors.businessName} can now offer ${serviceRequest.services.name}.`,
@@ -246,6 +285,19 @@ export async function PUT(
           type: 'service_rejected',
           serviceType: 'general',
         }).catch((err: any) => console.error('[ManagerSvcReject] Vendor notify failed:', err));
+
+        prisma.manager_action_logs.create({
+          data: {
+            recordType: 'VENDOR',
+            serviceType: 'vendor',
+            recordId: serviceRequest.vendorId,
+            actionType: 'STATUS_CHANGED',
+            previousStatus: 'PENDING',
+            newStatus: 'SERVICE_REJECTED',
+            note: `Service request rejected: ${serviceRequest.services?.name || ''}${reason ? ` — ${reason}` : ''}`,
+            managerId: manager.id,
+          },
+        }).catch((err) => logger.error('Manager service-request reject action log failed', err));
 
         return NextResponse.json({
           success: true,

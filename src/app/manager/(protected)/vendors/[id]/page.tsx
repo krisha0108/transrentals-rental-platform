@@ -764,7 +764,7 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   };
 
   const handleDeleteApprovedService = async (approvedServiceId: string) => {
-    if (!confirm('Remove this approved service? The vendor will be notified.')) return;
+    if (!confirm('Permanently remove this approved service? This cannot be undone — the vendor would need to submit a fresh request to get it back. They will be notified.')) return;
     setActionLoading(`del-svc-${approvedServiceId}`);
     try {
       const res = await fetch(`/api/admin/vendors/${id}/services?approvedServiceId=${approvedServiceId}`, {
@@ -785,7 +785,7 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
 
   const handleBulkDeleteServices = async (ids: string[]) => {
     if (ids.length === 0) return;
-    if (!confirm(`Remove ${ids.length} selected service(s)? The vendor will be notified.`)) return;
+    if (!confirm(`Permanently remove ${ids.length} selected service(s)? This cannot be undone — the vendor would need to submit fresh requests to get them back. They will be notified.`)) return;
     setActionLoading('bulk-del-svc');
     try {
       const res = await fetch(`/api/admin/vendors/${id}/services`, {
@@ -1895,10 +1895,13 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
             )}
           </div>
 
-          {/* Approved Services */}
+          {/* Approved Services — shows BOTH active and vendor-deactivated
+              services (with an "Inactive" badge), so managers can see when
+              a vendor has switched a service off on their own dashboard. */}
           {(() => {
-            const activeServices = vendor.approvedServices.filter((s: any) => s.isActive !== false);
-            const filteredSvcs = activeServices.filter((s: any) =>
+            const allApprovedSvcs = vendor.approvedServices;
+            const inactiveCount = allApprovedSvcs.filter((s: any) => s.isActive === false).length;
+            const filteredSvcs = allApprovedSvcs.filter((s: any) =>
               !svcSearch || (s.service?.name || '').toLowerCase().includes(svcSearch.toLowerCase())
             );
             const allSvcIds = filteredSvcs.map((s: any) => s.id);
@@ -1916,7 +1919,12 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-green-800 flex items-center gap-2">
                       <CheckCircle className="w-4 h-4" />
-                      Approved Services ({activeServices.length})
+                      Approved Services ({allApprovedSvcs.length})
+                      {inactiveCount > 0 && (
+                        <span className="text-xs font-medium text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">
+                          {inactiveCount} deactivated by vendor
+                        </span>
+                      )}
                     </h3>
                     {selectedSvcIds.size > 0 && (
                       <Button
@@ -1934,7 +1942,7 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                       </Button>
                     )}
                   </div>
-                  {activeServices.length > 0 && (
+                  {allApprovedSvcs.length > 0 && (
                     <div className="relative mt-3">
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
@@ -1947,7 +1955,7 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                     </div>
                   )}
                 </div>
-                {activeServices.length === 0 ? (
+                {allApprovedSvcs.length === 0 ? (
                   <div className="p-8 text-center text-gray-500">No approved services yet</div>
                 ) : filteredSvcs.length === 0 ? (
                   <div className="p-6 text-center text-gray-400 text-sm">No services match your search</div>
@@ -1966,7 +1974,7 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                     </div>
                     <div className="divide-y">
                       {filteredSvcs.map((item: any) => (
-                        <div key={item.id} className={`flex items-center justify-between px-4 py-3 hover:bg-gray-50 ${selectedSvcIds.has(item.id) ? 'bg-blue-50' : ''}`}>
+                        <div key={item.id} className={`flex items-center justify-between px-4 py-3 hover:bg-gray-50 ${selectedSvcIds.has(item.id) ? 'bg-blue-50' : ''} ${item.isActive === false ? 'opacity-70' : ''}`}>
                           <div className="flex items-center gap-3">
                             <input
                               type="checkbox"
@@ -1976,7 +1984,18 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                               })}
                               className="w-4 h-4 rounded cursor-pointer accent-blue-600"
                             />
-                            <span className="font-medium text-gray-900">{item.service?.name}</span>
+                            <span className={`font-medium ${item.isActive === false ? 'text-gray-500' : 'text-gray-900'}`}>{item.service?.name}</span>
+                            {item.isActive === false ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">
+                                <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                                Inactive — vendor turned this off
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                Active
+                              </span>
+                            )}
                           </div>
                           <button
                             onClick={() => handleDeleteApprovedService(item.id)}

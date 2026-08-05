@@ -38,10 +38,12 @@ export async function GET(request: NextRequest) {
       orderBy: { displayOrder: 'asc' },
     });
 
-    // Get vendor's approved services
+    // Get vendor's approved services — ALL of them, active or not, so a
+    // deactivated service still shows on this page (with an "Inactive"
+    // state + a way to switch it back on) instead of disappearing.
     const approvedServices = await prisma.vendor_approved_services.findMany({
-      where: { vendorId: vendorId, isActive: true },
-      select: { serviceId: true },
+      where: { vendorId: vendorId },
+      select: { serviceId: true, isActive: true },
     });
 
     // Get vendor's pending requests
@@ -64,6 +66,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       allServices,
       approvedServiceIds: approvedServices.map((s) => s.serviceId),
+      activeServiceIds: approvedServices.filter((s) => s.isActive).map((s) => s.serviceId),
       requests: pendingRequests,
     });
   } catch (error: any) {
@@ -125,7 +128,7 @@ export async function DELETE(request: NextRequest) {
         where: { vendorId_serviceId: { vendorId, serviceId } },
         data: { isActive: false },
       });
-      return NextResponse.json({ success: true, message: 'Service removed successfully' });
+      return NextResponse.json({ success: true, message: 'Service deactivated — you will stop receiving new leads for it until you switch it back on.' });
     }
 
     return NextResponse.json({ error: 'Invalid type. Use "request" or "approved"' }, { status: 400 });
@@ -133,6 +136,46 @@ export async function DELETE(request: NextRequest) {
     logger.error('Delete service error', error);
     return NextResponse.json(
       { error: 'Failed to process request', details: error?.message },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - Reactivate a previously-deactivated approved service
+export async function PATCH(request: NextRequest) {
+  try {
+    const auth = await getVendorAuth(request);
+    if (!auth.authenticated || !auth.vendorId) {
+      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
+    }
+    const vendorId = auth.vendorId!;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
+
+    const body = await request.json();
+    const { serviceId } = body;
+    if (!serviceId) {
+      return NextResponse.json({ error: 'serviceId is required' }, { status: 400 });
+    }
+
+    const existing = await prisma.vendor_approved_services.findUnique({
+      where: { vendorId_serviceId: { vendorId, serviceId } },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: 'Approved service not found' }, { status: 404 });
+    }
+
+    await prisma.vendor_approved_services.update({
+      where: { vendorId_serviceId: { vendorId, serviceId } },
+      data: { isActive: true },
+    });
+    return NextResponse.json({ success: true, message: 'Service activated — you will start receiving new leads for it again.' });
+  } catch (error: any) {
+    logger.error('Reactivate service error', error);
+    return NextResponse.json(
+      { error: 'Failed to reactivate service', details: error?.message },
       { status: 500 }
     );
   }

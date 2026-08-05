@@ -302,6 +302,19 @@ export async function PUT(request: NextRequest) {
       },
     });
 
+    prisma.manager_action_logs.create({
+      data: {
+        recordType: 'HELPDESK_TICKET',
+        serviceType: 'helpdesk',
+        recordId: ticketId,
+        actionType: 'STATUS_CHANGED',
+        previousStatus: existingTicket.status,
+        newStatus: updateData.status || existingTicket.status,
+        note: resolution || null,
+        managerId: session.user.id,
+      },
+    }).catch((err) => logger.error('Manager helpdesk action log failed', err));
+
     return NextResponse.json({
       success: true,
       message: 'Ticket updated successfully',

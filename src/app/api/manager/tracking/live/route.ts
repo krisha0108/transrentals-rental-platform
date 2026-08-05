@@ -59,13 +59,13 @@ export async function GET(_request: NextRequest) {
     const cityNames = Array.from(cityNameSet);
 
     if (cityNames.length === 0) {
-      return NextResponse.json({ success: true, vendors: [], drivers: [], stats: { vendors: 0, drivers: 0, driversLive: 0 } });
+      return NextResponse.json({ success: true, vendors: [], drivers: [], stateCounts: [], stats: { vendors: 0, drivers: 0, driversLive: 0 } });
     }
 
     // Vendors in scope
     const vendorRows = await prisma.vendors.findMany({
       where: { city: { in: cityNames } },
-      select: { id: true, businessName: true, city: true, status: true, logo: true, slug: true },
+      select: { id: true, businessName: true, city: true, state: true, status: true, logo: true, slug: true },
     });
     const vendorIds = vendorRows.map((v) => v.id);
 
@@ -86,15 +86,17 @@ export async function GET(_request: NextRequest) {
           id: true, name: true, phone: true, profilePhoto: true, vendorId: true,
           isSharingLocation: true, currentLat: true, currentLng: true, currentHeading: true,
           currentSpeed: true, locationUpdatedAt: true,
-          vendors: { select: { businessName: true, city: true } },
+          vendors: { select: { businessName: true, city: true, state: true } },
         },
       }),
-      // Independent drivers aren't tied to a vendor/city — platform-wide,
-      // shown whether GPS is on or off.
+      // Independent drivers aren't tied to a vendor — platform-wide, shown
+      // whether GPS is on or off. They carry their own city/state (not a
+      // vendor's), previously not selected here so they always showed up
+      // with no city — fixed by including it.
       prisma.drivers.findMany({
         where: { status: 'ACTIVE' },
         select: {
-          id: true, name: true, phone: true, profilePhoto: true,
+          id: true, name: true, phone: true, profilePhoto: true, city: true, state: true,
           isSharingLocation: true, currentLat: true, currentLng: true, currentHeading: true,
           currentSpeed: true, locationUpdatedAt: true,
         },
@@ -111,6 +113,7 @@ export async function GET(_request: NextRequest) {
         id: v.id,
         name: v.businessName,
         city: v.city,
+        state: v.state,
         status: v.status,
         logo: v.logo ? resolveAssetUrl(v.logo) : null,
         slug: v.slug,
@@ -126,7 +129,8 @@ export async function GET(_request: NextRequest) {
       phone: d.phone,
       profilePhoto: d.profilePhoto ? resolveAssetUrl(d.profilePhoto) : null,
       vendorName,
-      city: d.vendors?.city ?? null,
+      city: d.vendors?.city ?? d.city ?? null,
+      state: d.vendors?.state ?? d.state ?? null,
       independent,
       status: deriveStatus(d),
       speed: d.currentSpeed != null ? Math.round(d.currentSpeed * 3.6) : 0,
@@ -141,10 +145,33 @@ export async function GET(_request: NextRequest) {
       ...indieRows.map((d) => mapDriver(d, 'Independent', true)),
     ];
 
+    // State-wise counts — lets the manager see "Gujarat: 12" at a glance
+    // instead of having to scan/zoom the map to gauge coverage per state.
+    // `state` is free-text on vendors/drivers (no enum), so "Gujarat" and
+    // "gujarat" are the same state typed differently — group by a
+    // normalized key but display the first nicely-cased spelling seen,
+    // otherwise inconsistent data entry fragments one state into several
+    // near-duplicate rows.
+    const normalizeState = (s: string) => s.trim().toLowerCase();
+    const stateCountMap = new Map<string, { label: string; vendors: number; drivers: number }>();
+    const bump = (rawState: string, kind: 'vendors' | 'drivers') => {
+      const key = normalizeState(rawState);
+      if (!key) return;
+      const entry = stateCountMap.get(key) || { label: rawState.trim(), vendors: 0, drivers: 0 };
+      entry[kind] += 1;
+      stateCountMap.set(key, entry);
+    };
+    for (const v of vendors) { if (v.state) bump(v.state, 'vendors'); }
+    for (const d of drivers) { if (d.state) bump(d.state, 'drivers'); }
+    const stateCounts = Array.from(stateCountMap.values())
+      .map((c) => ({ state: c.label, vendors: c.vendors, drivers: c.drivers, total: c.vendors + c.drivers }))
+      .sort((a, b) => b.total - a.total);
+
     return NextResponse.json({
       success: true,
       vendors,
       drivers,
+      stateCounts,
       stats: {
         vendors: vendors.length,
         drivers: drivers.length,

@@ -80,6 +80,21 @@ export async function POST(
       update: { assignedById: user.id },
     });
 
+    // Mirror into the manager accountability log (same table/pattern as
+    // inquiries/bookings) so this shows up on the admin Manager Performance
+    // pages, same as every other manager action.
+    prisma.manager_action_logs.create({
+      data: {
+        recordType: 'DRIVER',
+        serviceType: source,
+        recordId: driverId,
+        actionType: 'NOTE_ADDED',
+        newStatus: tag,
+        note: `Tagged: ${tag.replace(/_/g, ' ')}`,
+        managerId: user.id,
+      },
+    }).catch((err) => logger.error('Driver tag action log failed', err));
+
     const tags = await (prisma as any).driver_tag_assignments.findMany({
       where: { driverId, source },
       select: { tag: true },
@@ -114,6 +129,18 @@ export async function DELETE(
     await (prisma as any).driver_tag_assignments.deleteMany({
       where: { driverId, source, tag: tag as any },
     });
+
+    prisma.manager_action_logs.create({
+      data: {
+        recordType: 'DRIVER',
+        serviceType: source,
+        recordId: driverId,
+        actionType: 'NOTE_ADDED',
+        previousStatus: tag,
+        note: `Removed tag: ${tag.replace(/_/g, ' ')}`,
+        managerId: user.id,
+      },
+    }).catch((err) => logger.error('Driver tag remove action log failed', err));
 
     const tags = await (prisma as any).driver_tag_assignments.findMany({
       where: { driverId, source },

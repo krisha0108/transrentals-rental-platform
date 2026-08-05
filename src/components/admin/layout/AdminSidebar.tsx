@@ -65,6 +65,7 @@ import {
   Film,
   Sparkles,
   Mail,
+  MapPinOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
@@ -381,6 +382,8 @@ const adminItems: NavItem[] = [
       { name: 'Location Requests', href: '/admin/vendors/location-requests', icon: MapPin },
       { name: 'Vendor Documents', href: '/admin/vendor-documents', icon: Image },
       { name: 'Contact Requests', href: '/admin/vendors/contact-requests', icon: Mail },
+      { name: 'Vendors by Location', href: '/admin/vendors/by-location', icon: MapPin },
+      { name: 'Coverage Gaps', href: '/admin/vendors/coverage-gaps', icon: MapPinOff },
     ],
   },
   {

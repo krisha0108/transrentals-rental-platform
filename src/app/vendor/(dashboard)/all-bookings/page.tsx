@@ -6,7 +6,7 @@ import {
   Bike, Bus, Car, Package, Truck, Compass, Star, BookOpen, Layers,
   Search, X, ChevronRight, Calendar, IndianRupee,
   Clock, CheckCircle2, AlertCircle, Zap, RotateCcw, RefreshCw,
-  Loader2, Filter, ArrowUpDown,
+  Loader2, Filter, ArrowUpDown, ChevronLeft,
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────
@@ -67,6 +67,9 @@ export default function AllBookingsPage() {
   const [counts,     setCounts]     = useState<Counts>({ all: 0, new: 0, active: 0, completed: 0, cancelled: 0 });
   const [services,   setServices]   = useState<ServiceOption[]>([]);
   const [total,      setTotal]      = useState(0);
+  const [page,       setPage]       = useState(1);
+  const [pageSize,   setPageSize]   = useState(10);
+  const [limit,      setLimit]      = useState(10);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab,        setTab]        = useState<typeof TAB_ORDER[number]>('all');
@@ -81,23 +84,31 @@ export default function AllBookingsPage() {
       if (tab !== 'all')  params.set('status',  tab);
       if (svcFilter)      params.set('service', svcFilter);
       if (search)         params.set('q',       search);
+      if (page > 1)       params.set('page',    String(page));
+      params.set('limit', String(pageSize));
       const res  = await fetch(`/api/vendor/all-bookings?${params}`, { credentials: 'include' });
       const data = await res.json();
       setBookings(data.bookings || []);
       setCounts(data.counts   || { all: 0, new: 0, active: 0, completed: 0, cancelled: 0 });
       setServices(data.services || []);
       setTotal(data.total || 0);
+      setLimit(data.limit || pageSize);
     } catch (_) {}
     finally { setLoading(false); setRefreshing(false); }
-  }, [tab, svcFilter, search]);
+  }, [tab, svcFilter, search, page, pageSize]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Any filter or page-size change invalidates the current page
+  useEffect(() => { setPage(1); }, [tab, svcFilter, search, pageSize]);
 
   // Debounce search
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput), 400);
     return () => clearTimeout(t);
   }, [searchInput]);
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
     <div className="space-y-5 pb-10">
@@ -356,11 +367,47 @@ export default function AllBookingsPage() {
                 {/* Footer */}
                 <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50 border-t border-gray-100">
                   <p className="text-xs font-semibold text-gray-500">
-                    Showing {bookings.length} of {total} bookings
+                    Showing {(page - 1) * limit + 1}–{(page - 1) * limit + bookings.length} of {total} bookings
                   </p>
-                  {total > bookings.length && (
-                    <p className="text-xs text-gray-400">Scroll or refine filter to see more</p>
-                  )}
+
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+                      Per page
+                      <select
+                        value={pageSize}
+                        onChange={e => setPageSize(Number(e.target.value))}
+                        className="text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {[10, 20, 50, 100].map(n => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    {totalPages > 1 && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setPage(p => Math.max(1, p - 1))}
+                          disabled={page <= 1}
+                          className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          title="Previous page"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="text-xs font-semibold text-gray-600 px-2">
+                          Page {page} of {totalPages}
+                        </span>
+                        <button
+                          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                          disabled={page >= totalPages}
+                          className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          title="Next page"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </>
             )}

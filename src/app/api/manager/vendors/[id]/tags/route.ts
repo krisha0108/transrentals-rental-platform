@@ -61,6 +61,18 @@ export async function POST(
       update: { assignedById: user.id },
     });
 
+    prisma.manager_action_logs.create({
+      data: {
+        recordType: 'VENDOR',
+        serviceType: 'vendor',
+        recordId: vendorId,
+        actionType: 'NOTE_ADDED',
+        newStatus: tag,
+        note: `Tagged: ${tag.replace(/_/g, ' ')}`,
+        managerId: user.id,
+      },
+    }).catch((err) => logger.error('Vendor tag action log failed', err));
+
     const tags = await (prisma as any).vendor_tag_assignments.findMany({
       where: { vendorId },
       select: { tag: true },
@@ -92,6 +104,18 @@ export async function DELETE(
     await (prisma as any).vendor_tag_assignments.deleteMany({
       where: { vendorId, tag: tag as any },
     });
+
+    prisma.manager_action_logs.create({
+      data: {
+        recordType: 'VENDOR',
+        serviceType: 'vendor',
+        recordId: vendorId,
+        actionType: 'NOTE_ADDED',
+        previousStatus: tag,
+        note: `Removed tag: ${tag.replace(/_/g, ' ')}`,
+        managerId: user.id,
+      },
+    }).catch((err) => logger.error('Vendor tag remove action log failed', err));
 
     const tags = await (prisma as any).vendor_tag_assignments.findMany({
       where: { vendorId },

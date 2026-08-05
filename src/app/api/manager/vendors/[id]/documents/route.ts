@@ -200,6 +200,17 @@ export async function POST(
       documentId: document.id,
     });
 
+    prisma.manager_action_logs.create({
+      data: {
+        recordType: 'VENDOR',
+        serviceType: 'vendor',
+        recordId: vendorId,
+        actionType: 'NOTE_ADDED',
+        note: `Document uploaded on vendor's behalf: ${documentType}`,
+        managerId: session.user.id,
+      },
+    }).catch((err) => logger.error('Manager vendor document upload action log failed', err));
+
     // Update vendor status if all required documents are uploaded
     const requiredTypes = ['ADDRESS_PROOF'];
     const uploadedDocs = await prisma.vendor_documents.findMany({
@@ -215,6 +226,17 @@ export async function POST(
         where: { id: vendorId },
         data: { status: 'UNDER_REVIEW' },
       });
+      prisma.manager_action_logs.create({
+        data: {
+          recordType: 'VENDOR',
+          serviceType: 'vendor',
+          recordId: vendorId,
+          actionType: 'STATUS_CHANGED',
+          newStatus: 'UNDER_REVIEW',
+          note: 'Auto-moved to review after required documents uploaded',
+          managerId: session.user.id,
+        },
+      }).catch((err) => logger.error('Manager vendor status-bump action log failed', err));
     }
 
     return NextResponse.json(document, { status: 201 });
