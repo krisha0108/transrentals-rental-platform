@@ -149,6 +149,7 @@ export async function GET(
           customers: customerInclude,
           locations: locationInclude,
           bike_quote_requests: true,
+          bike_quotes: true,
           vendors_bike_bookings_assignedVendorIdTovendors: { select: { id: true, businessName: true, phone: true, email: true } },
           vendors_bike_bookings_acceptedVendorIdTovendors: { select: { id: true, businessName: true, phone: true, email: true } },
         },
@@ -160,6 +161,7 @@ export async function GET(
         include: {
           customers: customerInclude,
           vendors: { select: { id: true, businessName: true, phone: true, email: true } },
+          bus_quotes: true,
         },
       }).catch(() => null),
 
@@ -170,12 +172,13 @@ export async function GET(
           customers: customerInclude,
           locations: locationInclude,
           self_drive_quote_requests: { select: { numberOfVehicles: true } },
+          self_drive_quotes: true,
           vendors_car_bookings_assignedVendorIdTovendors: { select: { id: true, businessName: true, phone: true, email: true } },
           vendors_car_bookings_acceptedVendorIdTovendors: { select: { id: true, businessName: true, phone: true, email: true } },
         },
       }).catch(() => null),
 
-      // Chauffeur / Car Rental
+      // Chauffeur / Car Rental — direct-broadcast flow, no vendor-quote system
       prisma.chauffeur_bookings.findUnique({
         where: { id: bookingId },
         include: {
@@ -191,6 +194,7 @@ export async function GET(
         include: {
           customers: customerInclude,
           vendors: { select: { id: true, businessName: true, phone: true, email: true } },
+          equipment_quotes: true,
         },
       }).catch(() => null),
 
@@ -201,6 +205,7 @@ export async function GET(
           customers: customerInclude,
           vendors_luxury_bookings_assignedVendorIdTovendors: { select: { id: true, businessName: true, phone: true, email: true } },
           vendors_luxury_bookings_acceptedVendorIdTovendors: { select: { id: true, businessName: true, phone: true, email: true } },
+          luxury_quotes: true,
         },
       }).catch(() => null),
 
@@ -211,6 +216,7 @@ export async function GET(
           customers: customerInclude,
           vendors: { select: { id: true, businessName: true, phone: true, email: true } },
           packers_quote_requests: true,
+          packers_quotes: true,
         },
       }).catch(() => null),
 
@@ -221,6 +227,7 @@ export async function GET(
           customers: customerInclude,
           vendors: { select: { id: true, businessName: true, phone: true, email: true } },
           truck_quote_requests: true,
+          truck_quotes: true,
         },
       }).catch(() => null),
 
@@ -408,6 +415,13 @@ export async function GET(
       self_drive_quote_requests,
       packers_quote_requests,
       truck_quote_requests,
+      bike_quotes,
+      bus_quotes,
+      self_drive_quotes,
+      equipment_quotes,
+      luxury_quotes,
+      packers_quotes,
+      truck_quotes,
       vendors_bike_bookings_assignedVendorIdTovendors,
       vendors_bike_bookings_acceptedVendorIdTovendors,
       vendors_car_bookings_assignedVendorIdTovendors,
@@ -418,6 +432,33 @@ export async function GET(
       vendors_luxury_bookings_acceptedVendorIdTovendors,
       ...rawFields
     } = booking;
+
+    // Normalize the vendor's accepted quote (terms, inclusions, exclusions)
+    // into one shape regardless of service type — every *_quotes model uses
+    // the same field names (inclusions/exclusions/termsConditions as
+    // JSON-stringified arrays), so this is a straight parse-and-map.
+    const acceptedQuoteRow =
+      bike_quotes || bus_quotes || self_drive_quotes || equipment_quotes || luxury_quotes || packers_quotes || truck_quotes || null;
+    const parseJsonArray = (value: unknown): string[] => {
+      if (!value) return [];
+      if (Array.isArray(value)) return value as string[];
+      try {
+        const parsed = JSON.parse(value as string);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    };
+    const quote = acceptedQuoteRow
+      ? {
+          quoteNumber: acceptedQuoteRow.quoteNumber,
+          inclusions: parseJsonArray(acceptedQuoteRow.inclusions),
+          exclusions: parseJsonArray(acceptedQuoteRow.exclusions),
+          termsConditions: parseJsonArray(acceptedQuoteRow.termsConditions),
+          vendorMessage: (acceptedQuoteRow as any).vendorMessage || null,
+          validTill: acceptedQuoteRow.validTill,
+        }
+      : null;
 
     // Pull packers fields from the related quote request when this booking is a packers booking
     const packersFields = packers_quote_requests
@@ -509,6 +550,7 @@ export async function GET(
       ...truckFields,
       serviceName,
       serviceSlug,
+      quote,
       // Normalized customer fields
       customerName: customers?.name || booking.customerName,
       customerEmail: customers?.email || booking.customerEmail,

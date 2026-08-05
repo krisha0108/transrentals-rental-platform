@@ -44,6 +44,14 @@ interface Booking {
   customer: { id: string; name: string; email: string; phone: string } | null;
   assignedVendor: { id: string; businessName: string; phone: string; email: string } | null;
   acceptedVendor: { id: string; businessName: string; phone: string; email: string } | null;
+  quote: {
+    quoteNumber: string;
+    inclusions: string[];
+    exclusions: string[];
+    termsConditions: string[];
+    vendorMessage: string | null;
+    validTill: string;
+  } | null;
   [key: string]: any;
 }
 
@@ -229,7 +237,7 @@ export default function ManagerBookingDetailPage() {
 
   // Render a detail row only when the value exists
   const DetailRow = ({ label, value, className }: { label: string; value: any; className?: string }) => {
-    if (value === null || value === undefined || value === '' || value === 0) return null;
+    if (value === null || value === undefined || value === '') return null;
     return (
       <div>
         <p className="text-sm text-gray-500">{label}</p>
@@ -294,7 +302,7 @@ export default function ManagerBookingDetailPage() {
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-bold text-gray-900">Booking #{booking.bookingNumber}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Booking #{booking.bookingNumber}</h1>
             {booking.serviceName && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
                 {booking.serviceName}
@@ -486,7 +494,7 @@ export default function ManagerBookingDetailPage() {
 
       {/* Customer Details */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <User className="w-5 h-5 text-gray-400" />
           Customer Details
         </h2>
@@ -510,7 +518,7 @@ export default function ManagerBookingDetailPage() {
 
       {/* Booking Details */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <Bike className="w-5 h-5 text-gray-400" />
           Booking Details
         </h2>
@@ -568,7 +576,7 @@ export default function ManagerBookingDetailPage() {
       {/* Location Details */}
       {(booking.pickupAddress || booking.dropAddress || booking.pickupCity || booking.dropCity || booking.deliveryCity || booking.deliveryAddress || booking.airportName || booking.routeDetails || booking.venueName) && (
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Navigation className="w-5 h-5 text-gray-400" />
             Location Details
           </h2>
@@ -593,7 +601,7 @@ export default function ManagerBookingDetailPage() {
       {/* Packers Move Information */}
       {(booking.serviceSlug === 'packers-and-movers' || booking.serviceSlug === 'packers-movers') && (
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Truck className="w-5 h-5 text-gray-400" />
             Move Information
             {booking.shiftingScope && (
@@ -609,7 +617,7 @@ export default function ManagerBookingDetailPage() {
       {/* Truck Trip Information */}
       {(booking.serviceSlug === 'truck-transport' || booking.serviceSlug === 'truck-rental' || booking.serviceSlug === 'truck-tempo-rental' || booking.serviceSlug === 'transporter' || booking.serviceSlug === 'mini-truck') && (
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Truck className="w-5 h-5 text-gray-400" />
             Trip Information
             {booking.truckBodyType && (
@@ -627,9 +635,78 @@ export default function ManagerBookingDetailPage() {
         </div>
       )}
 
+      {/* Quote Details — what the vendor actually committed to when their quote was accepted */}
+      {booking.quote && (
+        (booking.quote.inclusions?.length || booking.quote.exclusions?.length || booking.quote.termsConditions?.length || booking.quote.vendorMessage)
+      ) && (
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-gray-400" />
+            Quote Details
+            {booking.quote.quoteNumber && (
+              <span className="text-xs font-normal text-gray-400">#{booking.quote.quoteNumber}</span>
+            )}
+          </h2>
+
+          {booking.quote.vendorMessage && (
+            <div className="mb-5 p-3 bg-gray-50 rounded-lg border border-gray-100">
+              <p className="text-xs text-gray-500 mb-1">Message from vendor</p>
+              <p className="text-sm text-gray-700">{booking.quote.vendorMessage}</p>
+            </div>
+          )}
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {!!booking.quote.inclusions?.length && (
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                  <CheckCircle className="w-4 h-4 text-green-600" /> Included
+                </p>
+                <ul className="space-y-1.5">
+                  {booking.quote.inclusions.map((item: string, i: number) => (
+                    <li key={i} className="text-sm text-gray-600 flex items-start gap-1.5">
+                      <span className="text-green-500 mt-0.5">•</span> {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {!!booking.quote.exclusions?.length && (
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                  <XCircle className="w-4 h-4 text-red-500" /> Excluded
+                </p>
+                <ul className="space-y-1.5">
+                  {booking.quote.exclusions.map((item: string, i: number) => (
+                    <li key={i} className="text-sm text-gray-600 flex items-start gap-1.5">
+                      <span className="text-red-400 mt-0.5">•</span> {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {!!booking.quote.termsConditions?.length && (
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-gray-400" /> Terms &amp; Conditions
+                </p>
+                <ul className="space-y-1.5">
+                  {booking.quote.termsConditions.map((item: string, i: number) => (
+                    <li key={i} className="text-sm text-gray-600 flex items-start gap-1.5">
+                      <span className="text-gray-400 mt-0.5">•</span> {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Payment Details */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <CreditCard className="w-5 h-5 text-gray-400" />
           Payment Details
         </h2>
@@ -801,7 +878,7 @@ export default function ManagerBookingDetailPage() {
       {/* Vendor & Driver Details */}
       {(booking.acceptedVendor || booking.assignedVendor || booking.driverName || booking.teamLeaderName || booking.operatorName) && (
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Truck className="w-5 h-5 text-gray-400" />
             Vendor & Driver Details
           </h2>
@@ -886,7 +963,7 @@ export default function ManagerBookingDetailPage() {
       {/* Trip Actuals */}
       {(booking.actualKmTravelled || booking.actualHours || booking.odometerStart || booking.odometerEnd) && (
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Flag className="w-5 h-5 text-gray-400" />
             Trip Actuals
           </h2>
@@ -922,7 +999,7 @@ export default function ManagerBookingDetailPage() {
 
         return (
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Clock className="w-5 h-5 text-gray-400" />
               Booking Timeline
             </h2>
@@ -954,7 +1031,7 @@ export default function ManagerBookingDetailPage() {
       {/* Cancellation Details */}
       {booking.cancelledAt && (
         <div className="bg-red-50 rounded-xl border border-red-200 p-6">
-          <h2 className="font-semibold text-red-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-red-900 mb-4 flex items-center gap-2">
             <XCircle className="w-5 h-5 text-red-400" />
             Cancellation Details
           </h2>
@@ -970,7 +1047,7 @@ export default function ManagerBookingDetailPage() {
       {/* Notes */}
       {(booking.customerNotes || booking.vendorNotes || booking.adminNotes) && (
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-gray-400" />
             Notes
           </h2>
@@ -1000,7 +1077,7 @@ export default function ManagerBookingDetailPage() {
       {/* Rating & Review */}
       {(booking.rating || booking.review || booking.driverRating || booking.driverReview) && (
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Star className="w-5 h-5 text-gray-400" />
             Rating & Review
           </h2>
