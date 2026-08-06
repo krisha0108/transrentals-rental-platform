@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
+import { isVendorServiceActive } from '@/lib/services/vendor-service-status';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,9 +47,21 @@ export async function GET(request: NextRequest) {
       locationId: { in: approvedLocationIds },
     };
 
+    // A vendor who's deactivated a service on /vendor/services must see 0
+    // here for it, not a phantom "new opportunity" count.
+    const [bikeActive, selfDriveActive, busActive, truckActive, luxuryActive, packersActive, equipmentActive] = await Promise.all([
+      isVendorServiceActive(vendorId, 'bike'),
+      isVendorServiceActive(vendorId, 'self-drive'),
+      isVendorServiceActive(vendorId, 'bus'),
+      isVendorServiceActive(vendorId, 'truck'),
+      isVendorServiceActive(vendorId, 'luxury'),
+      isVendorServiceActive(vendorId, 'packers'),
+      isVendorServiceActive(vendorId, 'equipment'),
+    ]);
+
     // Batch 1
     const [bikeCount, selfDriveCount, busCount, truckCount] = await Promise.all([
-      prisma.bike_quote_requests.count({
+      !bikeActive ? 0 : prisma.bike_quote_requests.count({
         where: {
           ...base,
           bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
@@ -57,7 +70,7 @@ export async function GET(request: NextRequest) {
         },
       }).catch(() => 0),
 
-      prisma.self_drive_quote_requests.count({
+      !selfDriveActive ? 0 : prisma.self_drive_quote_requests.count({
         where: {
           ...base,
           self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
@@ -66,7 +79,7 @@ export async function GET(request: NextRequest) {
         },
       }).catch(() => 0),
 
-      prisma.bus_quote_requests.count({
+      !busActive ? 0 : prisma.bus_quote_requests.count({
         where: {
           ...base,
           bus_quotes_bus_quotes_requestIdTobus_quote_requests: {
@@ -75,7 +88,7 @@ export async function GET(request: NextRequest) {
         },
       }).catch(() => 0),
 
-      prisma.truck_quote_requests.count({
+      !truckActive ? 0 : prisma.truck_quote_requests.count({
         where: {
           ...base,
           truck_quotes: { none: { vendorId } },
@@ -85,21 +98,21 @@ export async function GET(request: NextRequest) {
 
     // Batch 2
     const [luxuryCount, packersCount, equipmentCount, carCount] = await Promise.all([
-      prisma.luxury_quote_requests.count({
+      !luxuryActive ? 0 : prisma.luxury_quote_requests.count({
         where: {
           ...base,
           luxury_quotes: { none: { vendorId } },
         },
       }).catch(() => 0),
 
-      prisma.packers_quote_requests.count({
+      !packersActive ? 0 : prisma.packers_quote_requests.count({
         where: {
           ...base,
           packers_quotes: { none: { vendorId } },
         },
       }).catch(() => 0),
 
-      prisma.equipment_quote_requests.count({
+      !equipmentActive ? 0 : prisma.equipment_quote_requests.count({
         where: {
           ...base,
           equipment_quotes: { none: { vendorId } },

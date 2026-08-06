@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import { isVendorServiceActive } from '@/lib/services/vendor-service-status';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +39,9 @@ export async function GET(request: NextRequest) {
     const serviceFilter = searchParams.get('service');  // service name string | null
     const search        = searchParams.get('q')?.toLowerCase() || '';
     const page          = parseInt(searchParams.get('page') || '1');
-    const limit         = 50;
+    const ALLOWED_LIMITS = [10, 20, 50, 100];
+    const requestedLimit = parseInt(searchParams.get('limit') || '10');
+    const limit         = ALLOWED_LIMITS.includes(requestedLimit) ? requestedLimit : 10;
 
     type UB = {
       id: string; bookingNumber: string;
@@ -55,8 +58,21 @@ export async function GET(request: NextRequest) {
 
     const all: UB[] = [];
 
+    // A vendor who's deactivated a service on /vendor/services must stop
+    // seeing its bookings here too — same convention as the quote-requests
+    // widget. Car Rental (chauffeur, direct-booking flow), Wander Tours and
+    // Direct Bookings sit outside the vendor_approved_services quote system
+    // entirely, so they're intentionally left ungated.
+    const [bikeActive, busActive, packersActive, truckActive, luxuryActive] = await Promise.all([
+      isVendorServiceActive(vid, 'bike'),
+      isVendorServiceActive(vid, 'bus'),
+      isVendorServiceActive(vid, 'packers'),
+      isVendorServiceActive(vid, 'truck'),
+      isVendorServiceActive(vid, 'luxury'),
+    ]);
+
     // ── 1. Bike Rentals ─────────────────────────────────────────────
-    try {
+    if (bikeActive) try {
       const rows = await prisma.bike_bookings.findMany({
         where: { acceptedVendorId: vid },
         select: {
@@ -79,7 +95,7 @@ export async function GET(request: NextRequest) {
     } catch (_) {}
 
     // ── 2. Bus & Tempo ──────────────────────────────────────────────
-    try {
+    if (busActive) try {
       const rows = await prisma.bus_bookings.findMany({
         where: { vendorId: vid },
         select: {
@@ -105,7 +121,7 @@ export async function GET(request: NextRequest) {
     } catch (_) {}
 
     // ── 3. Packers & Movers ────────────────────────────────────────
-    try {
+    if (packersActive) try {
       const rows = await prisma.packers_bookings.findMany({
         where: { vendorId: vid },
         select: {
@@ -131,7 +147,7 @@ export async function GET(request: NextRequest) {
     } catch (_) {}
 
     // ── 4. Transporter (Truck) ─────────────────────────────────────
-    try {
+    if (truckActive) try {
       const rows = await prisma.truck_bookings.findMany({
         where: { vendorId: vid },
         select: {
@@ -180,7 +196,7 @@ export async function GET(request: NextRequest) {
     } catch (_) {}
 
     // ── 6. Luxury Cars ─────────────────────────────────────────────
-    try {
+    if (luxuryActive) try {
       const rows = await prisma.luxury_bookings.findMany({
         where: { acceptedVendorId: vid },
         select: {

@@ -198,6 +198,19 @@ export async function PUT(
       data: updateData,
     });
 
+    prisma.manager_action_logs.create({
+      data: {
+        recordType: 'TRAVEL_AGENT',
+        serviceType: 'travel-agent',
+        recordId: id,
+        actionType: 'STATUS_CHANGED',
+        previousStatus: agent.status,
+        newStatus: updateData.status,
+        note: `${action}${rejectionReason ? `: ${rejectionReason}` : ''}`,
+        managerId: session.user.id,
+      },
+    }).catch((err) => logger.error('Manager travel agent action log failed', err));
+
     const statusNotice: Record<string, { title: string; body: string; link: string }> = {
       APPROVE:            { title: 'Account approved 🎉',     body: 'Your travel agent account has been approved. You can now start posting tours and accepting leads.',                          link: '/travel-agent/dashboard' },
       REJECT:             { title: 'Account rejected',         body: rejectionReason ? `Reason: ${rejectionReason}` : 'Your account application was rejected. Please contact support.',          link: '/travel-agent/profile'   },

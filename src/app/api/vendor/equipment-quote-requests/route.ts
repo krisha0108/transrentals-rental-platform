@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import { isVendorServiceActive } from '@/lib/services/vendor-service-status';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,17 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
+
+    // A vendor who's deactivated Equipment Rental on /vendor/services must
+    // stop seeing NEW (unclaimed) requests — their own quote history (the
+    // 'quoted' tab) stays visible, so only non-'quoted' types are gated.
+    if (type !== 'quoted' && !(await isVendorServiceActive(vendorId, 'equipment'))) {
+      return NextResponse.json({
+        success: true,
+        requests: [],
+        pagination: { page, limit, total: 0, totalPages: 0 },
+      });
+    }
 
     // DATE FILTER PARAMS
     const startDate = searchParams.get('startDate');

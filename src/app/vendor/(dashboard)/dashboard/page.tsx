@@ -24,6 +24,13 @@ import {
   Eye,
   ExternalLink,
   Loader2,
+  Bike,
+  Key,
+  Bus,
+  Truck,
+  Gem,
+  Package,
+  Wrench,
 } from 'lucide-react';
 import VendorOnboarding from '@/components/vendor/onboarding/VendorOnboarding';
 import VendorLiveLocationCard from '@/components/vendor/VendorLiveLocationCard';
@@ -99,7 +106,8 @@ interface VendorProfile {
 }
 
 interface Stats {
-  monthlyEarnings: number;
+  revenue: number;
+  revenueGrowthPct: number | null;
   totalBookings: number;
   serviceBreakdown: Array<{
     service: string;
@@ -107,6 +115,43 @@ interface Stats {
     bookings: number;
     revenue: number;
   }>;
+}
+
+interface RecentQuoteRequest {
+  id: string;
+  service: string;
+  requestNumber: string;
+  customerName: string;
+  location: string | null;
+  eventDate: string;
+  budgetMin: number | null;
+  budgetMax: number | null;
+  createdAt: string;
+  href: string;
+}
+
+// Quote-based services only — mirrors the set used for recent-quote-requests
+// on the backend. Car Rental is a direct-booking flow, not a quote request,
+// so it's deliberately not part of this map.
+const QUOTE_SERVICE_META: Record<string, { label: string; icon: typeof Bike; color: string }> = {
+  bike:         { label: 'Bike Rental',       icon: Bike,    color: '#3B82F6' },
+  'self-drive': { label: 'Self-Drive',        icon: Key,     color: '#06B6D4' },
+  bus:          { label: 'Bus Rental',        icon: Bus,     color: '#F97316' },
+  truck:        { label: 'Truck Transport',   icon: Truck,   color: '#6366F1' },
+  luxury:       { label: 'Luxury Car',        icon: Gem,     color: '#EC4899' },
+  packers:      { label: 'Packers & Movers',  icon: Package, color: '#F59E0B' },
+  equipment:    { label: 'Equipment Rental',  icon: Wrench,  color: '#14B8A6' },
+};
+
+function timeAgo(dateStr: string): string {
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 // ── Loading Skeleton ──
@@ -209,6 +254,7 @@ export default function VendorDashboard() {
   const [profile, setProfile] = useState<VendorProfile | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recentQuoteRequests, setRecentQuoteRequests] = useState<RecentQuoteRequest[]>([]);
   const [showAllActions, setShowAllActions] = useState(false);
   const [timeFilter, setTimeFilter] = useState<'today'|'week'|'month'|'quarter'|'year'|'all'|'custom'>('month');
   const [customFrom, setCustomFrom] = useState('');
@@ -256,6 +302,18 @@ export default function VendorDashboard() {
     }
   }, [status, timeFilter, customFrom, customTo]);
 
+  // Independent of the time filter — this is always "recent open
+  // opportunities", not a period-scoped stat, so it only needs to load once.
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    fetch('/api/vendor/dashboard/recent-quote-requests')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.success) setRecentQuoteRequests(data.requests);
+      })
+      .catch(() => {});
+  }, [status]);
+
   if (status === 'loading' || loading) {
     return <DashboardSkeleton />;
   }
@@ -296,10 +354,14 @@ export default function VendorDashboard() {
     { slugs: ['packers-and-movers', 'packers-movers', 'relocation', 'home-shifting'], name: 'Packers & Movers', description: 'Relocation Service', icon: '📦', href: '/vendor/packers/requests', color: '#F59E0B', bg: 'bg-amber-500', light: 'bg-amber-50', text: 'text-amber-600' },
     { slugs: ['truck-transport', 'truck', 'goods-transport', 'cargo', 'transporter', 'truck-rental'], name: 'Truck Transport', description: 'Cargo Service', icon: '🚚', href: '/vendor/truck/requests', color: '#6366F1', bg: 'bg-indigo-500', light: 'bg-indigo-50', text: 'text-indigo-600' },
     { slugs: ['equipment-rental', 'equipment', 'construction-equipment', 'machinery'], name: 'Equipment Rental', description: 'Construction Equipment', icon: '⚙️', href: '/vendor/equipment/requests', color: '#14B8A6', bg: 'bg-teal-500', light: 'bg-teal-50', text: 'text-teal-600' },
+    // Wander and Direct Bookings aren't part of the approvable services
+    // catalog (no matching slug ever appears in approvedServiceSlugs), so
+    // they never surface as a Quick Action tile here — these two entries
+    // exist purely so the revenue breakdown/donut/top-performers have a
+    // real color and icon for them instead of falling back to grey.
+    { slugs: ['wander', 'wander-tours', 'group-trip'], name: 'Wander Tours', description: 'Group Trip Bookings', icon: '🗺️', href: '/vendor/wander/bookings', color: '#F43F5E', bg: 'bg-rose-500', light: 'bg-rose-50', text: 'text-rose-600' },
+    { slugs: ['direct-bookings', 'direct-booking', 'direct'], name: 'Direct Bookings', description: 'Personal Client Bookings', icon: '📋', href: '/vendor/direct-bookings', color: '#0EA5E9', bg: 'bg-sky-500', light: 'bg-sky-50', text: 'text-sky-600' },
   ];
-
-  console.log('Approved Service Slugs:', profile?.approvedServiceSlugs);
-  console.log('All Services Slugs:', allServices.map(s => s.slugs));
 
   const approvedServices = profile?.approvedServiceSlugs
     ? allServices.filter((service) => {
@@ -312,8 +374,6 @@ export default function VendorDashboard() {
         );
       })
     : [];
-
-  console.log('Filtered Approved Services:', approvedServices.map(s => s.name));
 
   // Helper to find service color
   const findServiceColor = (serviceName: string) => {
@@ -329,14 +389,18 @@ export default function VendorDashboard() {
     : [];
 
   // Total revenue for donut
-  const totalRevenue = stats?.monthlyEarnings || 0;
+  const totalRevenue = stats?.revenue || 0;
+
+  // Top N only — "Top Performers" should be a curated highlight, not a
+  // second copy of the full breakdown that's already shown as bars.
+  const topPerformers = sortedBreakdown.slice(0, 5);
 
   // Generate smart insights
   const insights: { text: string; type: 'success' | 'warning' | 'info' }[] = [];
   if (sortedBreakdown.length > 0) {
     const top = sortedBreakdown[0];
     const topPct = totalRevenue > 0 ? ((top.revenue / totalRevenue) * 100).toFixed(0) : '0';
-    insights.push({ text: `${top.icon} ${top.service} generated ${topPct}% of your revenue this month`, type: 'success' });
+    insights.push({ text: `${top.icon} ${top.service} generated ${topPct}% of your revenue — ${periodLabel}`, type: 'success' });
 
     if (sortedBreakdown.length > 1) {
       const bottom = sortedBreakdown[sortedBreakdown.length - 1];
@@ -476,7 +540,7 @@ export default function VendorDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* PRIMARY: Revenue */}
         <AnimateIn delay={80}>
-          <RevenueCard earnings={totalRevenue} month={periodLabel} bookings={stats?.totalBookings || 0} />
+          <RevenueCard earnings={totalRevenue} month={periodLabel} growthPct={stats?.revenueGrowthPct ?? null} />
         </AnimateIn>
 
         {/* Bookings */}
@@ -486,7 +550,7 @@ export default function VendorDashboard() {
             <div className="h-10 w-10 bg-emerald-50 rounded-xl flex items-center justify-center group-hover:bg-emerald-100 transition-colors duration-300">
               <ClipboardCheck className="h-5 w-5 text-emerald-500" />
             </div>
-            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">This Month</span>
+            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider truncate max-w-[90px]" title={periodLabel}>{periodLabel}</span>
           </div>
           <AnimatedNumber value={stats?.totalBookings || 0} className="text-2xl font-extrabold text-gray-900" />
           <p className="text-gray-400 text-xs mt-1">Total Bookings</p>
@@ -522,11 +586,81 @@ export default function VendorDashboard() {
         </AnimateIn>
       </div>
 
+      {/* ══════════ Recent Quote Requests (quote-based services only — Car Rental is a direct-booking flow, handled separately) ══════════ */}
+      {recentQuoteRequests.length > 0 && (
+        <AnimateIn delay={100}>
+          <div className="bg-white rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.06)] overflow-hidden">
+            <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-t-2xl" />
+            <div className="p-5 sm:p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">Recent Quote Requests</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Open requests you haven&apos;t quoted on yet</p>
+                </div>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {recentQuoteRequests.map((r) => {
+                  const meta = QUOTE_SERVICE_META[r.service] || { label: r.service, icon: FileText, color: '#94a3b8' };
+                  const Icon = meta.icon;
+                  const budget = r.budgetMin || r.budgetMax
+                    ? `₹${(r.budgetMin ?? 0).toLocaleString('en-IN')}${r.budgetMax ? ` – ₹${r.budgetMax.toLocaleString('en-IN')}` : '+'}`
+                    : null;
+                  return (
+                    <Link
+                      key={`${r.service}-${r.id}`}
+                      href={r.href}
+                      className="flex items-center gap-3.5 py-3.5 -mx-2 px-2 rounded-xl hover:bg-gray-50 transition-colors group"
+                    >
+                      <div
+                        className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: `${meta.color}18` }}
+                      >
+                        <Icon className="h-5 w-5" style={{ color: meta.color }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-gray-900 truncate">{r.customerName}</p>
+                          <span
+                            className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
+                            style={{ backgroundColor: `${meta.color}12`, color: meta.color }}
+                          >
+                            {meta.label}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-gray-400 mt-0.5">
+                          <span className="font-mono">{r.requestNumber}</span>
+                          {r.location && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-2.5 w-2.5" /> {r.location}
+                            </span>
+                          )}
+                          {r.eventDate && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-2.5 w-2.5" />
+                              {new Date(r.eventDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        {budget && <p className="text-xs font-semibold text-gray-700">{budget}</p>}
+                        <p className="text-[10px] text-gray-400 mt-0.5">{timeAgo(r.createdAt)}</p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all duration-200 flex-shrink-0" />
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </AnimateIn>
+      )}
+
       {/* ══════════ ROW 2: Revenue Chart + Top Performers ══════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         {/* Revenue Breakdown — Donut + Bars */}
-        <AnimateIn delay={100} className="lg:col-span-2">
+        <AnimateIn delay={150} className="lg:col-span-2">
         <div className="bg-white rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.06)] overflow-hidden hover:shadow-[0_4px_20px_rgba(5,150,105,0.1)] transition-shadow duration-300">
           <div className="h-1 bg-emerald-600 rounded-t-2xl" />
           <div className="p-5 sm:p-6">
@@ -590,9 +724,9 @@ export default function VendorDashboard() {
             <h3 className="text-base font-bold text-gray-900">Top Performers</h3>
           </div>
 
-          {sortedBreakdown.length > 0 ? (
+          {topPerformers.length > 0 ? (
             <div className="space-y-3">
-              {sortedBreakdown.map((service, idx) => {
+              {topPerformers.map((service, idx) => {
                 const svc = findServiceColor(service.service);
                 const pct = totalRevenue > 0 ? ((service.revenue / totalRevenue) * 100).toFixed(0) : '0';
                 const medals = ['🥇', '🥈', '🥉'];
@@ -784,8 +918,13 @@ export default function VendorDashboard() {
 // ══════════ SUB-COMPONENTS ══════════
 
 // Revenue Card (Primary KPI — Dominant)
-function RevenueCard({ earnings, month, bookings }: { earnings: number; month: string; bookings: number }) {
+function RevenueCard({ earnings, month, growthPct }: { earnings: number; month: string; growthPct: number | null }) {
   const { count } = useCountUp(earnings);
+  // growthPct is null for the "All Time" period (no prior period to compare
+  // against) — the badge is omitted rather than showing a fake/stale number.
+  const hasGrowth = growthPct !== null && Number.isFinite(growthPct);
+  const isPositive = hasGrowth && growthPct >= 0;
+  const displayPct = hasGrowth ? Math.round(Math.abs(growthPct)) : 0;
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-emerald-600 p-5 text-white shadow-[0_2px_12px_rgba(5,150,105,0.2)] hover:shadow-xl hover:shadow-emerald-200/40 transition-all duration-300 hover:-translate-y-1 group">
@@ -797,16 +936,22 @@ function RevenueCard({ earnings, month, bookings }: { earnings: number; month: s
           <div className="h-10 w-10 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
             <Wallet className="h-5 w-5 text-white" />
           </div>
-          <span className="text-[10px] text-white/60 font-medium uppercase tracking-wider">{month}</span>
+          <span className="text-[10px] text-white/60 font-medium uppercase tracking-wider truncate max-w-[110px]" title={month}>{month}</span>
         </div>
         <p className="text-2xl font-extrabold tracking-tight drop-shadow-sm">
           ₹{count.toLocaleString('en-IN')}
         </p>
         <div className="flex items-center gap-2 mt-1">
           <p className="text-white/70 text-xs">Revenue</p>
-          <span className="flex items-center gap-0.5 text-white text-[10px] font-semibold bg-white/15 px-1.5 py-0.5 rounded">
-            <TrendingUp className="h-2.5 w-2.5" /> +12%
-          </span>
+          {hasGrowth && (
+            <span
+              className="flex items-center gap-0.5 text-white text-[10px] font-semibold bg-white/15 px-1.5 py-0.5 rounded"
+              title="vs previous period of equal length"
+            >
+              {isPositive ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
+              {isPositive ? '+' : '-'}{displayPct}%
+            </span>
+          )}
         </div>
       </div>
     </div>

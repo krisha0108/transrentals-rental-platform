@@ -221,13 +221,29 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
           { status: 400 }
         );
       }
-      const existing = await prisma.drivers.findUnique({ where: { id }, select: { id: true } });
+      const existing = await prisma.drivers.findUnique({ where: { id }, select: { id: true, status: true } });
       if (!existing) return NextResponse.json({ error: 'Driver not found' }, { status: 404 });
       const updated = await prisma.drivers.update({
         where: { id },
         data: { status: newStatus as any },
         select: { id: true, status: true, name: true },
       });
+
+      // Manager accountability log — mirrors the contact-inquiry status-change
+      // pattern so this shows up on the admin Manager Performance pages.
+      prisma.manager_action_logs.create({
+        data: {
+          recordType: 'DRIVER',
+          serviceType: 'standalone',
+          recordId: id,
+          actionType: 'STATUS_CHANGED',
+          previousStatus: existing.status,
+          newStatus,
+          note: `Status changed: ${existing.status} → ${newStatus}`,
+          managerId: session.user.id,
+        },
+      }).catch((err) => console.error('[Manager Driver] action log failed', err));
+
       return NextResponse.json({ success: true, source: 'standalone', driver: updated });
     }
 
@@ -239,13 +255,27 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         { status: 400 }
       );
     }
-    const existing = await prisma.vendor_staff.findUnique({ where: { id }, select: { id: true } });
+    const existing = await prisma.vendor_staff.findUnique({ where: { id }, select: { id: true, status: true } });
     if (!existing) return NextResponse.json({ error: 'Driver not found' }, { status: 404 });
     const updated = await prisma.vendor_staff.update({
       where: { id },
       data: { status: mapped as any },
       select: { id: true, status: true, name: true },
     });
+
+    prisma.manager_action_logs.create({
+      data: {
+        recordType: 'DRIVER',
+        serviceType: 'vendor',
+        recordId: id,
+        actionType: 'STATUS_CHANGED',
+        previousStatus: existing.status,
+        newStatus: mapped,
+        note: `Status changed: ${existing.status} → ${mapped}`,
+        managerId: session.user.id,
+      },
+    }).catch((err) => console.error('[Manager Driver] action log failed', err));
+
     return NextResponse.json({ success: true, source: 'vendor', driver: updated });
   } catch (error) {
     console.error('Manager driver status update error:', error);

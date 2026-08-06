@@ -75,6 +75,19 @@ export async function PATCH(
     });
 
     const docLabel = String(doc.documentType || 'Document').replace(/_/g, ' ').toLowerCase();
+
+    prisma.manager_action_logs.create({
+      data: {
+        recordType: 'TRAVEL_AGENT',
+        serviceType: 'travel-agent',
+        recordId: travelAgentId,
+        actionType: 'NOTE_ADDED',
+        previousStatus: doc.status,
+        newStatus: updateData.status,
+        note: `Document ${docLabel} ${action === 'VERIFY' ? 'verified' : 'rejected'}${rejectionReason ? `: ${rejectionReason}` : ''}`,
+        managerId: session.user.id,
+      },
+    }).catch((err) => logger.error('Manager TA document action log failed', err));
     if (action === 'VERIFY') {
       await notifyTravelAgent(travelAgentId, {
         type: 'SYSTEM',
@@ -134,6 +147,18 @@ export async function PATCH(
             travelAgentId,
             verifiedById: session.user.id,
           });
+          prisma.manager_action_logs.create({
+            data: {
+              recordType: 'TRAVEL_AGENT',
+              serviceType: 'travel-agent',
+              recordId: travelAgentId,
+              actionType: 'STATUS_CHANGED',
+              previousStatus: agent.status,
+              newStatus: 'APPROVED',
+              note: 'Auto-approved after all required documents verified',
+              managerId: session.user.id,
+            },
+          }).catch((err) => logger.error('Manager TA auto-approve action log failed', err));
           await notifyTravelAgent(travelAgentId, {
             type: 'SYSTEM',
             title: 'Account approved 🎉',

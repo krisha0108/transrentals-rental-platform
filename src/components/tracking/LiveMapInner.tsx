@@ -2,8 +2,11 @@
 
 import React, { useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Tooltip, useMap } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 export interface LiveMarker {
   id: string;
@@ -113,6 +116,22 @@ function vendorIcon(color: string, selected: boolean): L.DivIcon {
   });
 }
 
+// Cluster bubble shown when zoomed out enough that nearby markers overlap.
+// Size and shade scale with the count so dense clusters read as "bigger"
+// at a glance, without needing to zoom in to find out how many pins hide
+// inside. Clicking a cluster (default MarkerClusterGroup behavior) zooms
+// in and spiderfies/splits it back into individual markers.
+function clusterIcon(count: number): L.DivIcon {
+  const size = count >= 50 ? 56 : count >= 20 ? 48 : count >= 10 ? 42 : 36;
+  const shade = count >= 50 ? '#4338ca' : count >= 20 ? '#4f46e5' : count >= 10 ? '#6366f1' : '#818cf8';
+  return L.divIcon({
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${shade};border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-family:system-ui,-apple-system,sans-serif;font-size:${Math.round(size * 0.34)}px;">${count}</div>`,
+    className: 'tr-cluster-marker',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
+
 // Imperatively keeps the viewport sensible as markers come and go / move.
 function ViewController({ markers, selectedId, autoFit }: { markers: LiveMarker[]; selectedId?: string | null; autoFit: boolean }) {
   const map = useMap();
@@ -163,27 +182,36 @@ export default function LiveMapInner({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {markers.map((m) => (
-        <Marker
-          key={m.id}
-          position={[m.lat, m.lng]}
-          icon={
-            m.icon === 'driver'
-              ? driverIcon(m.color || '#2563eb', m.id === selectedId, m.pulse ?? false, m.photo, (m.label || '?').trim().charAt(0))
-              : m.icon === 'vendor'
-              ? vendorIcon(m.color || '#6366f1', m.id === selectedId)
-              : pinIcon(m.color || '#2563eb', m.heading, m.id === selectedId)
-          }
-          eventHandlers={onMarkerClick ? { click: () => onMarkerClick(m.id) } : undefined}
-        >
-          {(m.label || m.sublabel) && (
-            <Tooltip direction="top" offset={[0, -8]} opacity={1}>
-              <div style={{ fontWeight: 600 }}>{m.label}</div>
-              {m.sublabel && <div style={{ fontSize: 11, color: '#555' }}>{m.sublabel}</div>}
-            </Tooltip>
-          )}
-        </Marker>
-      ))}
+      <MarkerClusterGroup
+        chunkedLoading
+        maxClusterRadius={60}
+        spiderfyOnMaxZoom
+        showCoverageOnHover={false}
+        zoomToBoundsOnClick
+        iconCreateFunction={(cluster: any) => clusterIcon(cluster.getChildCount())}
+      >
+        {markers.map((m) => (
+          <Marker
+            key={m.id}
+            position={[m.lat, m.lng]}
+            icon={
+              m.icon === 'driver'
+                ? driverIcon(m.color || '#2563eb', m.id === selectedId, m.pulse ?? false, m.photo, (m.label || '?').trim().charAt(0))
+                : m.icon === 'vendor'
+                ? vendorIcon(m.color || '#6366f1', m.id === selectedId)
+                : pinIcon(m.color || '#2563eb', m.heading, m.id === selectedId)
+            }
+            eventHandlers={onMarkerClick ? { click: () => onMarkerClick(m.id) } : undefined}
+          >
+            {(m.label || m.sublabel) && (
+              <Tooltip direction="top" offset={[0, -8]} opacity={1}>
+                <div style={{ fontWeight: 600 }}>{m.label}</div>
+                {m.sublabel && <div style={{ fontSize: 11, color: '#555' }}>{m.sublabel}</div>}
+              </Tooltip>
+            )}
+          </Marker>
+        ))}
+      </MarkerClusterGroup>
       <ViewController markers={markers} selectedId={selectedId} autoFit={autoFit} />
     </MapContainer>
   );

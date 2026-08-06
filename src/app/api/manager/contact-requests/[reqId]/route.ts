@@ -61,6 +61,17 @@ export async function POST(
       ]);
 
       logger.info('Vendor contact change approved by manager', { reqId, vendorId: changeReq.vendorId });
+      prisma.manager_action_logs.create({
+        data: {
+          recordType: 'VENDOR',
+          serviceType: 'vendor',
+          recordId: changeReq.vendorId,
+          actionType: 'STATUS_CHANGED',
+          newStatus: 'CONTACT_CHANGE_APPROVED',
+          note: `Contact change approved${changeReq.newEmail ? ` — email → ${changeReq.newEmail}` : ''}${changeReq.newPhone ? ` — phone → ${changeReq.newPhone}` : ''}`,
+          managerId: session.user.id,
+        },
+      }).catch((err) => logger.error('Manager contact-change approve action log failed', err));
       return NextResponse.json({ success: true, action: 'APPROVED' });
     }
 
@@ -71,6 +82,17 @@ export async function POST(
       });
 
       logger.info('Vendor contact change rejected by manager', { reqId, vendorId: changeReq.vendorId });
+      prisma.manager_action_logs.create({
+        data: {
+          recordType: 'VENDOR',
+          serviceType: 'vendor',
+          recordId: changeReq.vendorId,
+          actionType: 'STATUS_CHANGED',
+          newStatus: 'CONTACT_CHANGE_REJECTED',
+          note: `Contact change rejected${changeReq.newEmail ? ` — requested email ${changeReq.newEmail}` : ''}${changeReq.newPhone ? ` — requested phone ${changeReq.newPhone}` : ''}`,
+          managerId: session.user.id,
+        },
+      }).catch((err) => logger.error('Manager contact-change reject action log failed', err));
       return NextResponse.json({ success: true, action: 'REJECTED' });
     }
 

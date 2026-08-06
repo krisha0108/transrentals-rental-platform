@@ -256,7 +256,15 @@ export async function PATCH(
   }
 }
 
-// DELETE - Remove an approved service and notify vendor
+// DELETE - Permanently remove an approved service and notify vendor.
+// This is a real hard delete (unlike the vendor's own Active/Inactive
+// toggle on /vendor/services, which only soft-deactivates and is fully
+// reversible by the vendor themselves). Use this when an approval was
+// granted in error or should be fully revoked — the vendor would need to
+// submit a fresh request (and get re-approved) to get it back. The
+// original vendor_service_requests row is left untouched as a historical
+// record ("this was approved on this date by this reviewer") — deleting
+// the live approval doesn't rewrite that history.
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -295,9 +303,8 @@ export async function DELETE(
       if (services.length === 0) {
         return NextResponse.json({ error: 'No matching services found' }, { status: 404 });
       }
-      await prisma.vendor_approved_services.updateMany({
+      await prisma.vendor_approved_services.deleteMany({
         where: { id: { in: ids }, vendorId },
-        data: { isActive: false },
       });
       sendVendorDirectNotification({
         vendorId,
@@ -306,7 +313,7 @@ export async function DELETE(
         type: 'service_rejected',
         serviceType: 'general',
       }).catch((err: any) => console.error('[SvcBulkDelete] Vendor notify failed:', err));
-      return NextResponse.json({ success: true, message: `Removed ${services.length} services` });
+      return NextResponse.json({ success: true, message: `Permanently removed ${services.length} service(s)` });
     }
 
     if (!approvedServiceId) {
@@ -322,9 +329,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Approved service not found' }, { status: 404 });
     }
 
-    await prisma.vendor_approved_services.update({
+    await prisma.vendor_approved_services.delete({
       where: { id: approvedServiceId },
-      data: { isActive: false },
     });
 
     const serviceName = approvedService.services?.name || 'the service';
@@ -337,7 +343,7 @@ export async function DELETE(
       serviceType: 'general',
     }).catch((err: any) => console.error('[SvcDelete] Vendor notify failed:', err));
 
-    return NextResponse.json({ success: true, message: 'Service removed successfully' });
+    return NextResponse.json({ success: true, message: 'Service permanently removed' });
   } catch (error: any) {
     logger.error('Delete approved service error', error);
     return NextResponse.json(
