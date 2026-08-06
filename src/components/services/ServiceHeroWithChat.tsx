@@ -7,6 +7,7 @@ import {
   Users, Calendar, ArrowRight, BadgeCheck,
   Clock, Headphones, Minus, Plus, Bus, Navigation2,
   Search, ChevronDown, X, Check, ArrowLeft, User, Lock, Home, Flag,
+  HardHat, Wrench, Package,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DynamicChatBookingHero } from '@/components/booking/DynamicChatBookingHero';
@@ -36,6 +37,7 @@ export interface ServiceHeroWithChatProps {
   cityName?: string;
   priceAnchor?: string;
   heroHighlights?: string[];
+  bookingVariant?: 'bus' | 'equipment';
 }
 
 /* ──────────────────────────── CONSTANTS ──────────────────────── */
@@ -147,13 +149,14 @@ function CityPicker({ value, onChange, placeholder, locations, allowCustom, icon
 
 /* ──────────────────────────── PROGRESS BAR ───────────────────── */
 
-function ProgressBar({ step }: { step: number }) {
-  const steps = [
-    { n: 1, label: 'Trip' },
-    { n: 2, label: 'Journey' },
-    { n: 3, label: 'Contact' },
-    { n: 4, label: 'Review' },
-  ];
+const DEFAULT_PROGRESS_STEPS = [
+  { n: 1, label: 'Trip' },
+  { n: 2, label: 'Journey' },
+  { n: 3, label: 'Contact' },
+  { n: 4, label: 'Review' },
+];
+
+function ProgressBar({ step, steps = DEFAULT_PROGRESS_STEPS }: { step: number; steps?: { n: number; label: string }[] }) {
   return (
     <div className="flex items-center gap-1 mb-4">
       {steps.map((s, i) => (
@@ -708,10 +711,466 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
   );
 }
 
+/* ──────────────────────────── EQUIPMENT BOOKING WIDGET ────────── */
+/* Field set mirrors what "Shivi" (the AI booking assistant) already
+ * asks for equipment-rental — see askForEquipmentType / askForJobDuration /
+ * askForNumberOfEquipment / askForLocation / askForPickupDateTime /
+ * askForContactInfo / askForAdditionalDetails in ChatBookingHero.tsx. */
+
+const EQUIPMENT_TYPES: { value: string; label: string; category: string }[] = [
+  { value: '1',  label: 'Grove Crane',          category: 'crane' },
+  { value: '2',  label: 'Truck Mounted Crane',  category: 'crane' },
+  { value: '3',  label: 'Tower Crane',          category: 'crane' },
+  { value: '4',  label: 'Telescopic Crane',     category: 'crane' },
+  { value: '5',  label: 'Rough Terrain Crane',  category: 'crane' },
+  { value: '6',  label: 'Overhead Crane',       category: 'crane' },
+  { value: '7',  label: 'Bulldozer',            category: 'jcb' },
+  { value: '8',  label: 'Dumper',               category: 'jcb' },
+  { value: '9',  label: 'Loader',               category: 'jcb' },
+  { value: '10', label: 'Excavator',            category: 'excavator' },
+  { value: '11', label: 'Backhoe Loader',       category: 'jcb' },
+];
+
+const EQUIPMENT_DURATIONS: { value: string; label: string; rentalDuration: string; days: number }[] = [
+  { value: '1', label: '1 to 5 Days',    rentalDuration: 'daily',   days: 3  },
+  { value: '2', label: '6 to 15 Days',   rentalDuration: 'weekly',  days: 10 },
+  { value: '3', label: '16 to 30 Days',  rentalDuration: 'monthly', days: 20 },
+  { value: '4', label: 'More than 30 Days', rentalDuration: 'custom', days: 45 },
+];
+
+const EQUIPMENT_PROGRESS_STEPS = [
+  { n: 1, label: 'Equipment' },
+  { n: 2, label: 'Schedule' },
+  { n: 3, label: 'Contact' },
+  { n: 4, label: 'Review' },
+];
+
+function EquipmentBookingWidget({ cityName, serviceType }: { cityName: string; serviceType?: string }) {
+  const [step, setStep] = useState<FormStep>(1);
+
+  const [locations, setLocations] = useState<{ name: string }[]>([]);
+  useEffect(() => {
+    fetch('/api/locations?serviceSlug=equipment-rental&type=CITY')
+      .then(r => r.json())
+      .then(d => { if (d.locations) setLocations(d.locations); })
+      .catch(() => {});
+  }, []);
+
+  const { customer, isAuthenticated } = useCustomerAuth();
+
+  // Step 1 – Equipment details
+  const [equipmentTypeValue, setEquipmentTypeValue] = useState('');
+  const [city,               setCity]               = useState(cityName);
+  const [address,            setAddress]            = useState('');
+  const [err1,                setErr1]              = useState('');
+
+  // Step 2 – Duration & schedule
+  const [durationValue, setDurationValue] = useState('1');
+  const [startDate,     setStartDate]     = useState('');
+  const [quantity,      setQuantity]      = useState(1);
+  const [qtyRaw,        setQtyRaw]        = useState('1');
+  const [err2,          setErr2]          = useState('');
+
+  // Step 3 – Contact + notes
+  const [name,          setName]          = useState('');
+  const [phone,         setPhone]         = useState('');
+  const [guestOverride, setGuestOverride] = useState(false);
+  const [notes,         setNotes]         = useState('');
+  const [err3,          setErr3]          = useState('');
+
+  // Submit
+  const [loading, setLoading] = useState(false);
+  const [submitErr, setSubmitErr] = useState('');
+
+  const today = new Date().toISOString().split('T')[0];
+  const showAutoFill = isAuthenticated && !!customer && !guestOverride;
+
+  useEffect(() => {
+    if (isAuthenticated && customer) {
+      setName(customer.name || '');
+      setPhone(customer.phone || '');
+    }
+  }, [isAuthenticated, customer]);
+
+  const selectedType     = EQUIPMENT_TYPES.find(t => t.value === equipmentTypeValue);
+  const selectedDuration = EQUIPMENT_DURATIONS.find(d => d.value === durationValue) || EQUIPMENT_DURATIONS[0];
+
+  const onStep1 = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!equipmentTypeValue) { setErr1('Please select equipment type'); return; }
+    if (!city.trim())        { setErr1('Please select a pickup city'); return; }
+    if (!address.trim())     { setErr1('Please enter a pickup address'); return; }
+    setErr1(''); setStep(2);
+  };
+
+  const onStep2 = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!startDate) { setErr2('Please select a start date'); return; }
+    setErr2(''); setStep(3);
+  };
+
+  const onStep3 = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) { setErr3('Please enter your name'); return; }
+    if (phone.replace(/\D/g, '').length < 10) { setErr3('Please enter a valid 10-digit mobile number'); return; }
+    setErr3(''); setStep(4);
+  };
+
+  const onSubmit = async () => {
+    setLoading(true); setSubmitErr('');
+    try {
+      const start = new Date(startDate);
+      const end = new Date(start);
+      end.setDate(end.getDate() + selectedDuration.days - 1);
+
+      const res = await fetch('/api/equipment-quote-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName:      name.trim(),
+          customerEmail:     `${phone.trim()}@transrentals.in`,
+          customerPhone:     phone.trim(),
+          equipmentCategory: selectedType?.category,
+          equipmentType:     selectedType?.label,
+          quantity,
+          rentalDuration:    selectedDuration.rentalDuration,
+          rentalDays:        selectedDuration.days,
+          deliveryCity:      city.trim(),
+          deliveryAddress:   address.trim(),
+          startDate:         start.toISOString(),
+          endDate:           end.toISOString(),
+          requirements:      notes.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong');
+      setStep(5);
+    } catch (err: unknown) {
+      setSubmitErr(err instanceof Error ? err.message : 'Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setStep(1); setEquipmentTypeValue(''); setAddress(''); setNotes('');
+    setDurationValue('1'); setStartDate(''); setQuantity(1); setQtyRaw('1');
+    setGuestOverride(false);
+    if (!isAuthenticated) { setName(''); setPhone(''); }
+  };
+
+  /* shared styles — matches BusBookingWidget's visual language */
+  const inputCls = "w-full h-[46px] pl-10 pr-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all";
+  const iconCls  = "absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none [&>svg]:w-4 [&>svg]:h-4";
+  const lblCls   = "block text-xs font-semibold text-gray-800 mb-1.5";
+  const backBtn  = "flex-none w-[88px] h-12 border border-gray-200 bg-white text-gray-400 font-bold rounded-2xl flex items-center justify-center gap-1.5 hover:bg-gray-50 hover:text-gray-700 transition-all text-sm";
+  const nextBtn  = "flex-1 h-12 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-100 text-sm";
+
+  /* ── SUCCESS ── */
+  if (step === 5) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-center px-2">
+        <motion.div
+          initial={{ scale: 0 }} animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+          className="w-20 h-20 mb-4"
+        >
+          <svg viewBox="0 0 52 52" className="w-20 h-20">
+            <circle cx="26" cy="26" r="24" fill="none" stroke="#16C47F" strokeWidth="2.5" />
+            <path fill="none" stroke="#16C47F" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" d="M14 27l8 8 16-16" />
+          </svg>
+        </motion.div>
+        <h2 className="text-[21px] font-black text-gray-900 mb-2">You&apos;re all set</h2>
+        <p className="text-sm text-gray-500 mb-4">Our operators are preparing your quotes.</p>
+        <div className="inline-flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 mb-5">
+          <Clock className="w-5 h-5 text-emerald-600 shrink-0" />
+          <div className="text-left">
+            <small className="block text-[11px] text-gray-400">Expected callback</small>
+            <b className="text-sm text-emerald-700">within 15 minutes</b>
+          </div>
+        </div>
+        <button onClick={resetForm} className="text-sm text-gray-400 hover:text-gray-600 transition-colors font-medium">
+          New Request
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <ProgressBar step={step} steps={EQUIPMENT_PROGRESS_STEPS} />
+
+      <AnimatePresence mode="wait">
+
+        {/* ── STEP 1: Equipment Details ── */}
+        {step === 1 && (
+          <motion.form key="s1" onSubmit={onStep1}
+            initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
+            transition={{ duration: 0.28 }}>
+
+            <div className="mb-4">
+              <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Equipment Details</h2>
+              <p className="text-[12.5px] text-gray-400 mt-0.5">What do you need &amp; where.</p>
+            </div>
+
+            <label className={lblCls}>Equipment Type</label>
+            <div className="relative mb-3.5">
+              <span className={iconCls}><Wrench /></span>
+              <select required value={equipmentTypeValue} onChange={e => setEquipmentTypeValue(e.target.value)}
+                className={`${inputCls} pr-9 appearance-none`}>
+                <option value="" disabled>Select equipment type</option>
+                {EQUIPMENT_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+
+            <label className={lblCls}>Pickup City</label>
+            <div className="mb-3.5">
+              <CityPicker value={city} onChange={setCity}
+                placeholder="Select pickup city" locations={locations} icon={<MapPin />} />
+            </div>
+
+            <label className={lblCls}>Pickup Address</label>
+            <div className="relative">
+              <span className={iconCls}><Home /></span>
+              <input required type="text" placeholder="Enter pickup address or landmark"
+                value={address} onChange={e => setAddress(e.target.value)}
+                className={inputCls} />
+            </div>
+
+            {err1 && <p className="text-xs text-red-500 font-semibold mt-2">{err1}</p>}
+
+            <button type="submit" className={`${nextBtn} w-full mt-5`}>
+              Continue <ChevronRight className="w-4 h-4" />
+            </button>
+          </motion.form>
+        )}
+
+        {/* ── STEP 2: Schedule & Quantity ── */}
+        {step === 2 && (
+          <motion.form key="s2" onSubmit={onStep2}
+            initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
+            transition={{ duration: 0.28 }}>
+
+            <div className="mb-4">
+              <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Schedule &amp; Quantity</h2>
+              <p className="text-[12.5px] text-gray-400 mt-0.5">How long &amp; how many units.</p>
+            </div>
+
+            <label className={lblCls}>Rental Duration</label>
+            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+              {EQUIPMENT_DURATIONS.map(d => (
+                <button key={d.value} type="button" onClick={() => setDurationValue(d.value)}
+                  className={`relative flex items-center gap-2 p-3 rounded-2xl border text-left transition-all ${
+                    durationValue === d.value
+                      ? 'border-emerald-500 bg-emerald-50'
+                      : 'border-gray-200 bg-white hover:border-gray-300 hover:-translate-y-px'
+                  }`}>
+                  <span className={`w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 ${durationValue === d.value ? 'bg-white' : 'bg-gray-50'}`}>
+                    <Clock className={`w-4 h-4 ${durationValue === d.value ? 'text-emerald-600' : 'text-gray-400'}`} />
+                  </span>
+                  <b className="text-[12px] font-bold text-gray-800 leading-tight">{d.label}</b>
+                  <span className={`absolute top-2 right-2 w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                    durationValue === d.value ? 'border-emerald-500 bg-emerald-500' : 'border-gray-200 bg-white'
+                  }`}>
+                    {durationValue === d.value && <Check className="w-2.5 h-2.5 text-white" />}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <label className={lblCls}>Start Date</label>
+            <div className="relative mb-3.5">
+              <span className={iconCls}><Calendar /></span>
+              <input required type="date" min={today} value={startDate}
+                onChange={e => setStartDate(e.target.value)} className={inputCls} />
+            </div>
+
+            <label className={lblCls}>Number of Equipment</label>
+            <div className="flex items-center justify-between border border-gray-200 rounded-xl p-2.5 bg-white mb-3.5">
+              <div className="flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-[10px] bg-emerald-50 flex items-center justify-center shrink-0">
+                  <Package className="w-4 h-4 text-emerald-600" />
+                </span>
+                <span className="flex flex-col leading-tight">
+                  <b className="text-[13px] font-bold text-gray-800">{quantity} {quantity === 1 ? 'Unit' : 'Units'}</b>
+                  <small className="text-[10.5px] text-gray-400">Equipment needed</small>
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button type="button"
+                  onClick={() => { const n = Math.max(1, quantity - 1); setQuantity(n); setQtyRaw(String(n)); }}
+                  className="w-8 h-8 rounded-[9px] border border-gray-200 bg-white text-emerald-700 text-[18px] font-semibold flex items-center justify-center hover:bg-emerald-50 hover:border-emerald-400 active:scale-90 transition-all">
+                  −
+                </button>
+                <input
+                  type="number" min={1} max={20}
+                  value={qtyRaw}
+                  onChange={e => setQtyRaw(e.target.value)}
+                  onBlur={() => {
+                    const v = parseInt(qtyRaw, 10);
+                    const clamped = isNaN(v) ? 1 : Math.min(20, Math.max(1, v));
+                    setQuantity(clamped);
+                    setQtyRaw(String(clamped));
+                  }}
+                  className="w-12 text-center text-[15px] font-black text-gray-900 bg-transparent border-none outline-none focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                />
+                <button type="button"
+                  onClick={() => { const n = Math.min(20, quantity + 1); setQuantity(n); setQtyRaw(String(n)); }}
+                  className="w-8 h-8 rounded-[9px] border border-gray-200 bg-white text-emerald-700 text-[18px] font-semibold flex items-center justify-center hover:bg-emerald-50 hover:border-emerald-400 active:scale-90 transition-all">
+                  +
+                </button>
+              </div>
+            </div>
+
+            {err2 && <p className="text-xs text-red-500 font-semibold mb-2">{err2}</p>}
+
+            <div className="flex gap-2.5">
+              <button type="button" onClick={() => setStep(1)} className={backBtn}>
+                <ArrowLeft className="w-3.5 h-3.5" /> Back
+              </button>
+              <button type="submit" className={nextBtn}>
+                Continue <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.form>
+        )}
+
+        {/* ── STEP 3: Contact Details ── */}
+        {step === 3 && (
+          <motion.form key="s3" onSubmit={onStep3}
+            initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
+            transition={{ duration: 0.28 }}>
+
+            <div className="mb-4">
+              <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Contact Details</h2>
+              <p className="text-[12.5px] text-gray-400 mt-0.5">We&apos;ll send your quotes here.</p>
+            </div>
+
+            {showAutoFill ? (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 mb-3.5">
+                <p className="text-xs text-emerald-600 font-semibold mb-2">Booking as</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-emerald-200 flex items-center justify-center text-emerald-700 font-black text-sm shrink-0">
+                    {(customer!.name || 'U')[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-800">{customer!.name}</p>
+                    <p className="text-xs text-gray-500">{customer!.phone}</p>
+                  </div>
+                  <button type="button"
+                    onClick={() => { setGuestOverride(true); setName(''); setPhone(''); }}
+                    className="ml-auto text-xs text-gray-400 hover:text-gray-600 underline">
+                    Not you?
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <label className={lblCls}>Name <span className="text-red-500">*</span></label>
+                <div className="relative mb-3.5">
+                  <span className={iconCls}><User /></span>
+                  <input required type="text" placeholder="Your full name" value={name}
+                    onChange={e => { setName(e.target.value); setErr3(''); }}
+                    className={inputCls} />
+                </div>
+
+                <label className={lblCls}>Mobile <span className="text-red-500">*</span></label>
+                <div className="relative mb-3.5">
+                  <span className={iconCls}><Phone /></span>
+                  <input required type="tel" maxLength={10} placeholder="10-digit mobile number"
+                    value={phone} onChange={e => { setPhone(e.target.value); setErr3(''); }}
+                    className={inputCls} />
+                </div>
+              </>
+            )}
+
+            <label className={lblCls}>
+              Additional details <small className="text-[11px] text-gray-400 font-normal ml-1">(optional)</small>
+            </label>
+            <textarea placeholder="e.g. site access, operator hours, specific model preference…"
+              value={notes} onChange={e => setNotes(e.target.value)}
+              rows={3} maxLength={250}
+              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all resize-none mb-1" />
+
+            {err3 && <p className="text-xs text-red-500 font-semibold mb-2">{err3}</p>}
+
+            <div className="flex gap-2.5 mt-4">
+              <button type="button" onClick={() => setStep(2)} className={backBtn}>
+                <ArrowLeft className="w-3.5 h-3.5" /> Back
+              </button>
+              <button type="submit" className={nextBtn}>
+                Continue <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.form>
+        )}
+
+        {/* ── STEP 4: Review & Confirm ── */}
+        {step === 4 && (
+          <motion.div key="s4"
+            initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
+            transition={{ duration: 0.28 }}>
+
+            <div className="mb-4">
+              <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Review &amp; Confirm</h2>
+              <p className="text-[12.5px] text-gray-400 mt-0.5">Please review before requesting quotes.</p>
+            </div>
+
+            <ReviewSection title="Equipment Details" icon={<Wrench />} onEdit={() => setStep(1)}>
+              <RV label="Equipment Type" value={selectedType?.label || ''} full />
+              <RV label="Pickup City" value={city} />
+              <RV label="Pickup Address" value={address} full />
+            </ReviewSection>
+
+            <ReviewSection title="Schedule" icon={<Calendar />} onEdit={() => setStep(2)}>
+              <RV label="Duration" value={selectedDuration.label} />
+              <RV label="Start Date" value={startDate} />
+              <RV label="Quantity" value={`${quantity} ${quantity === 1 ? 'unit' : 'units'}`} />
+            </ReviewSection>
+
+            <ReviewSection title="Contact Details" icon={<User />} onEdit={() => setStep(3)}>
+              <RV label="Name" value={name} />
+              <RV label="Mobile" value={phone} />
+            </ReviewSection>
+
+            {notes.trim() && (
+              <ReviewSection title="Additional Details" icon={<MessageCircle />} onEdit={() => setStep(3)}>
+                <RV label="Notes" value={notes} full />
+              </ReviewSection>
+            )}
+
+            {submitErr && (
+              <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5 mb-3">{submitErr}</p>
+            )}
+
+            <div className="flex gap-2.5 mb-3">
+              <button type="button" onClick={() => setStep(3)} className={backBtn}>
+                <ArrowLeft className="w-3.5 h-3.5" /> Back
+              </button>
+              <button type="button" onClick={onSubmit} disabled={loading}
+                className="flex-1 h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-60 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-xl shadow-emerald-100 text-sm">
+                {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</> : 'Get Instant Quotes'}
+              </button>
+            </div>
+            <p className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
+              <Lock className="w-3 h-3" /> No advance payment · Best price guaranteed
+            </p>
+          </motion.div>
+        )}
+
+      </AnimatePresence>
+    </div>
+  );
+}
+
 /* ──────────────────────────── BOOKING CARD ───────────────────── */
 
-function BookingCard({ cityName, serviceType }: { cityName: string; serviceType?: string }) {
+function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityName: string; serviceType?: string; variant?: 'bus' | 'equipment' }) {
   const [showChat, setShowChat] = useState(false);
+  const isEquipment = variant === 'equipment';
 
   return (
     <div className="w-full lg:w-[500px] shrink-0 order-1 lg:order-2">
@@ -721,12 +1180,16 @@ function BookingCard({ cityName, serviceType }: { cityName: string; serviceType?
         <div className="flex items-center justify-between px-[18px] h-[72px] border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="relative w-[42px] h-[42px] rounded-[13px] bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-200/60">
-              <Bus className="w-[22px] h-[22px] text-white" />
+              {isEquipment
+                ? <HardHat className="w-[22px] h-[22px] text-white" />
+                : <Bus className="w-[22px] h-[22px] text-white" />}
               {/* online dot */}
               <span className="absolute bottom-[-1px] right-[-1px] w-[11px] h-[11px] rounded-full bg-emerald-400 border-2 border-white" />
             </div>
             <div>
-              <p className="text-[17px] font-black text-gray-900 leading-tight tracking-tight">Book Your Bus</p>
+              <p className="text-[17px] font-black text-gray-900 leading-tight tracking-tight">
+                {isEquipment ? 'Book Your Equipment' : 'Book Your Bus'}
+              </p>
               <p className="text-[11.5px] text-gray-400 mt-0.5">Free quote · No advance payment</p>
             </div>
           </div>
@@ -751,7 +1214,9 @@ function BookingCard({ cityName, serviceType }: { cityName: string; serviceType?
           [&::-webkit-scrollbar-thumb]:rounded-full">
           {showChat
             ? <DynamicChatBookingHero hideHeader serviceType={serviceType} />
-            : <BusBookingWidget cityName={cityName} serviceType={serviceType} />
+            : isEquipment
+              ? <EquipmentBookingWidget cityName={cityName} serviceType={serviceType} />
+              : <BusBookingWidget cityName={cityName} serviceType={serviceType} />
           }
         </div>
 
@@ -800,6 +1265,7 @@ export function ServiceHeroWithChat({
   cityName      = '',
   priceAnchor   = '',
   heroHighlights = [],
+  bookingVariant = 'bus',
 }: ServiceHeroWithChatProps) {
 
   /* ── PREMIUM HERO (showQuickForm = true) ── */
@@ -888,7 +1354,7 @@ export function ServiceHeroWithChat({
             </div>
 
             {/* ── RIGHT: booking card ── */}
-            <BookingCard cityName={cityName} serviceType={serviceType} />
+            <BookingCard cityName={cityName} serviceType={serviceType} variant={bookingVariant} />
           </div>
         </div>
       </section>
