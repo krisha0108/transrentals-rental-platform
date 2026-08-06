@@ -8,9 +8,14 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StatusBar,
+  Platform, ActivityIndicator, Alert, StatusBar,
   Animated, Easing,
 } from "react-native";
+// From react-native-keyboard-controller, not react-native — see the note in
+// chats/ChatThreadScreen.js. RN's Android KeyboardAvoidingView double-counts
+// the `adjustResize` shift and pushes the composer off-screen; the controller
+// version pads only for the overlap it actually measures.
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
@@ -277,11 +282,9 @@ export default function SocialChatScreen({ navigation, route }) {
         </View>
       )}
 
-      <KeyboardAvoidingView
-        behavior="padding"
-        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
-        style={{ flex: 1 }}
-      >
+      {/* No keyboardVerticalOffset — the view is measured where it sits, so
+          the header above it is already accounted for. */}
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         {loading ? (
           <View style={styles.loadingWrap}>
             <ActivityIndicator size="large" color={C.emerald600} />
@@ -320,6 +323,12 @@ export default function SocialChatScreen({ navigation, route }) {
               </View>
             }
             onContentSizeChange={() => {
+              try { listRef.current?.scrollToEnd({ animated: false }); } catch {}
+            }}
+            // The list shrinks (not its content) when the keyboard lifts the
+            // composer, so onContentSizeChange never fires — without this the
+            // newest message scrolls out of view behind the composer.
+            onLayout={() => {
               try { listRef.current?.scrollToEnd({ animated: false }); } catch {}
             }}
           />

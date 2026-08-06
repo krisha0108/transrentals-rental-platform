@@ -52,13 +52,64 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
+    // `isAvailable` on the fleet row is a MANUAL flag — the agent toggles it by
+    // hand. Booking a vehicle from the Fleet Calendar writes a row to
+    // travel_agent_fleet_bookings and never touches that flag, so a vehicle
+    // booked for today still listed itself as "Available". Derive the live
+    // state here so both the app and the web page read the same truth.
+    //
+    // CONFIRMED + TENTATIVE are the two states that actually hold a vehicle;
+    // COMPLETED and CANCELLED do not. (The calendar's own overlap check uses
+    // `status <> 'CANCELLED'` because it also has to protect against
+    // double-booking a slot that is already logged as completed.)
+    //
+    // The window is "has not ended yet" (endDate >= now), NOT "covers now".
+    // Restricting it to bookings running right this minute left a vehicle
+    // booked for next week still reading "Available", which is not what the
+    // agent means when they say they just booked it. `isBookedNow` still
+    // distinguishes the two cases for any caller that needs it.
+    //
+    // Raw SQL to match the rest of this module — the fleet-bookings routes all
+    // use $queryRawUnsafe rather than the Prisma delegate.
+    const now = new Date();
+    const liveBookings: any[] = await (prisma as any).$queryRawUnsafe(
+      `SELECT id, fleetId, startDate, endDate, bookingType, status, customerName
+         FROM travel_agent_fleet_bookings
+        WHERE travelAgentId = ?
+          AND status IN ('CONFIRMED', 'TENTATIVE')
+          AND endDate >= ?
+        ORDER BY startDate ASC`,
+      auth.travelAgentId,
+      now,
+    );
+
+    // Ordered by startDate, so the first hit per vehicle is the one in progress
+    // if there is one, otherwise the soonest upcoming booking.
+    const bookingByFleet = new Map<string, any>();
+    for (const b of liveBookings) {
+      if (!bookingByFleet.has(b.fleetId)) bookingByFleet.set(b.fleetId, b);
+    }
+
+    const fleetsWithBooking = fleets.map((f: any) => {
+      const currentBooking = bookingByFleet.get(f.id) ?? null;
+      return {
+        ...f,
+        currentBooking,
+        // Drives the Booked/Available control in the app + web fleet list.
+        isBooked: !!currentBooking,
+        // Narrower: a booking is actually running at this moment.
+        isBookedNow: !!currentBooking && new Date(currentBooking.startDate) <= now,
+      };
+    });
+
     const stats = {
       total: fleets.length,
       active: fleets.filter((f: any) => f.isActive).length,
-      available: fleets.filter((f: any) => f.isAvailable).length,
+      // "Free" = manually available AND not held by a calendar booking.
+      available: fleetsWithBooking.filter((f: any) => f.isAvailable && !f.isBooked).length,
     };
 
-    return NextResponse.json({ fleets, stats });
+    return NextResponse.json({ fleets: fleetsWithBooking, stats });
   } catch (error: any) {
     logger.error('List travel agent fleet error', error);
     return NextResponse.json(

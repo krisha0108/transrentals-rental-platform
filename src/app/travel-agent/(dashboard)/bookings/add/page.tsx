@@ -265,9 +265,17 @@ export default function AddBookingPage() {
             </select>
           </Field>
           <Field label="Initial Status">
+            {/* All six of VALID_STATUS (api/travel-agent/bookings/route.ts) —
+                the edit page and the mobile form already offer the full set, so
+                a booking could be created only as Draft/Confirmed and then
+                immediately edited into any other state. */}
             <select value={form.status} onChange={(e) => update('status', e.target.value)} className={inputCls}>
               <option value="DRAFT">Draft</option>
+              <option value="PENDING_CUSTOMER">Pending Customer</option>
               <option value="CONFIRMED">Confirmed</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
           </Field>
           <div className="sm:col-span-2">

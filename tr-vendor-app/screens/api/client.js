@@ -19,7 +19,14 @@ function inferLocalBase() {
 }
 
 let cachedBaseURL = null;
-const FORCE_PROD = true; // TEMP: testing against live API — flip back to false for local dev
+// true  → always the live API, even in a debug build. This is the normal
+//          working mode: you log in with your real account and see real data.
+// false → __DEV__ builds hit the local Next.js server. Only useful while
+//          testing a backend change, and it needs BOTH the dev server running
+//          on :3000 and `adb reverse tcp:3000 tcp:3000`. Without the reverse
+//          every request fails as a network error while the JS still loads
+//          fine over Metro's own tunnel — which reads as "login is broken".
+const FORCE_PROD = false;
 
 export async function getBaseURL() {
   if (cachedBaseURL) return cachedBaseURL;

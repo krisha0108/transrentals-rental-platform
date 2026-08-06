@@ -187,28 +187,22 @@ export default function TASupportScreen({ navigation }) {
 
       {/* Edge-to-edge means adjustResize never fires, so the keyboard has to
           be handled here or the ticket fields sit under it. */}
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: rs(40) }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+      {/* ── Hero (fixed) ──
+          It used to sit inside the scroll content so the contact cards could
+          tuck into its curve, and to free the screen for the FAQ / form. The
+          header is short (title shares the button row), so pinning it costs
+          little and keeps Back reachable from anywhere in a long FAQ. The
+          cards' negative margin is paid back by the scroll's paddingTop, and
+          the tail is shortened to match — same gap as before. */}
+      <LinearGradient
+        colors={G.hero}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.hero}
       >
-        {/* ── Hero ──
-            Lives INSIDE the scroll content for two reasons: the contact cards'
-            negative margin would otherwise be clipped by the ScrollView's own
-            bounds, and letting the hero scroll away frees the whole screen for
-            the FAQ / form / ticket content. Title sits on the button row to
-            keep the header short. */}
-        <LinearGradient
-          colors={G.hero}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.hero}
-        >
-          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
-          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
 
-          <SafeAreaView edges={["top"]} style={{ paddingHorizontal: GUT }}>
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: GUT }}>
             <View style={styles.heroTop}>
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
@@ -232,11 +226,22 @@ export default function TASupportScreen({ navigation }) {
               We're here — usually within 24 hours
             </Text>
 
-            <View style={{ height: HERO_TAIL }} />
-          </SafeAreaView>
-        </LinearGradient>
+            {/* Short by CARDS_OVERLAP — the cards can no longer climb into the
+                tail from a different scroll parent, so the tail gives it back. */}
+            <View style={{ height: HERO_TAIL - CARDS_OVERLAP }} />
+        </SafeAreaView>
+      </LinearGradient>
 
-        {/* ── Contact cards, tucked into the hero curve ── */}
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        // paddingTop cancels contactRow's -CARDS_OVERLAP so the cards aren't
+        // clipped against the scroll edge.
+        contentContainerStyle={{ paddingTop: CARDS_OVERLAP, paddingBottom: rs(40) }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* ── Contact cards ── */}
         <View style={styles.contactRow}>
           <ContactCard
             tone="ocean"

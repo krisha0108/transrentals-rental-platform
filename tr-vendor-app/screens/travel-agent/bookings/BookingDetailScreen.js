@@ -40,6 +40,11 @@ import AnimatedOrb from "../_shared/AnimatedOrb";
 import SheetHandle from "../_shared/SheetHandle";
 
 
+// How far the contact bar rides up over the hero's bottom edge. The hero is
+// fixed and the bar scrolls, so this is subtracted from the hero's tail and
+// added back as scroll padding to keep the gap the same.
+const CONTACT_OVERLAP = 28;
+
 const STATUS_COLORS = {
   DRAFT:            { bg: "rgba(255,255,255,0.22)", fg: "#fff", icon: "create" },
   PENDING_CUSTOMER: { bg: "rgba(255,255,255,0.22)", fg: "#F6EEDB", icon: "hourglass" },
@@ -214,21 +219,21 @@ export default function BookingDetailScreen({ navigation, route }) {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.emerald600} />}
+      {/* ===== Gradient hero (fixed) =====
+          Outside the ScrollView so back / edit / delete stay reachable while
+          the booking detail scrolls. paddingBottom is short by
+          CONTACT_OVERLAP because the contact bar can no longer climb into the
+          hero from a different scroll parent — the scroll's paddingTop gives
+          that space back, so the gap is unchanged. */}
+      <LinearGradient
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroWrap}
       >
-        {/* ===== Gradient hero ===== */}
-        <LinearGradient
-          colors={["#0F2A22", "#16382E", "#1C6B52"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroWrap}
-        >
-          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
-          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
-          <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 40 }}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 40 - CONTACT_OVERLAP }}>
             <View style={styles.headerRow}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
                 <Ionicons name="arrow-back" size={22} color="#fff" />
@@ -275,10 +280,18 @@ export default function BookingDetailScreen({ navigation, route }) {
                 </View>
               )}
             </View>
-          </SafeAreaView>
-        </LinearGradient>
+        </SafeAreaView>
+      </LinearGradient>
 
-        {/* ===== Floating contact bar ===== */}
+      <ScrollView
+        style={{ flex: 1 }}
+        // paddingTop cancels contactRowWrap's -CONTACT_OVERLAP, which would
+        // otherwise clip the bar's top against the scroll edge now that the
+        // hero is no longer its sibling.
+        contentContainerStyle={{ paddingTop: CONTACT_OVERLAP, paddingBottom: 100 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.emerald600} />}
+      >
+        {/* ===== Contact bar ===== */}
         <View style={styles.contactRowWrap}>
           <View style={styles.contactRow}>
             <ContactBtn
@@ -705,7 +718,7 @@ const styles = StyleSheet.create({
   sharedBadgeText: { fontFamily: DISPLAY, color: "#fff", fontSize: 11, fontWeight: "bold" },
 
   // Floating contact bar
-  contactRowWrap: { marginHorizontal: 16, marginTop: -28 },
+  contactRowWrap: { marginHorizontal: 16, marginTop: -CONTACT_OVERLAP },
   contactRow: { flexDirection: "row", backgroundColor: C.card, borderRadius: 16, padding: 6, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 5 },
   contactBtn: { flex: 1, alignItems: "center", paddingVertical: 12, gap: 4 },
   contactBtnText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold" },

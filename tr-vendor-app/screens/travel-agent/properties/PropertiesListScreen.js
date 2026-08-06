@@ -257,9 +257,14 @@ export default function PropertiesListScreen({ navigation }) {
           renderItem={({ item }) => (
             <PropertyCard
               property={item}
+              // Tapping a card opens the read-only detail, which is where Edit
+              // now lives (the card's own actions are only Active / Publish /
+              // Delete). It used to drop straight into the 950-line form, so
+              // there was no way to just look at a property.
               onPress={() =>
-                navigation.navigate("TAAddEditProperty", { property: item })
+                navigation.navigate("TAPropertyDetail", { id: item.id, property: item })
               }
+              onEdit={() => navigation.navigate("TAAddEditProperty", { property: item })}
               onToggleActive={() => onToggleActive(item)}
               onTogglePublish={() => onTogglePublish(item)}
               onDelete={() => onDelete(item)}
@@ -377,7 +382,7 @@ function TypeChip({ label, icon, count, active, onPress, color }) {
   );
 }
 
-function PropertyCard({ property, onPress, onToggleActive, onTogglePublish, onDelete }) {
+function PropertyCard({ property, onPress, onEdit, onToggleActive, onTogglePublish, onDelete }) {
   const isActive = property.isActive !== false;
   const isPublic = !!property.isPublic;
   const priceLabel = INR(property.startingPrice);
@@ -578,7 +583,12 @@ function PropertyCard({ property, onPress, onToggleActive, onTogglePublish, onDe
             onPress={onTogglePublish} activeOpacity={0.85}
           >
             <Ionicons name={isPublic ? "globe" : "globe-outline"} size={14} color={isPublic ? C.purple : C.subText} />
-            <Text style={[styles.propActText, { color: isPublic ? C.purple : C.subText }]}>{isPublic ? "Public" : "Publish"}</Text>
+            {/* Label names the ACTION, not the state — matches the tours list. */}
+            <Text style={[styles.propActText, { color: isPublic ? C.purple : C.subText }]}>{isPublic ? "Unpublish" : "Publish"}</Text>
+          </TouchableOpacity>
+          {/* Icon-only so the two labelled toggles keep their width. */}
+          <TouchableOpacity style={styles.propActEdit} onPress={onEdit} activeOpacity={0.85}>
+            <Ionicons name="create-outline" size={14} color={C.emerald600} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.propActDel} onPress={onDelete} activeOpacity={0.85}>
             <Ionicons name="trash-outline" size={14} color={C.red} />
@@ -847,6 +857,11 @@ const styles = StyleSheet.create({
   propActBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 5, height: 33, borderRadius: 10, borderWidth: 1,
+  },
+  propActEdit: {
+    alignItems: "center", justifyContent: "center",
+    height: 33, paddingHorizontal: 14, borderRadius: 10,
+    backgroundColor: C.emerald50, borderWidth: 1, borderColor: `${C.emerald600}30`,
   },
   propActDel: {
     alignItems: "center", justifyContent: "center",

@@ -31,7 +31,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
-import { createTravelAgentBankAccount, BANK_ACCOUNT_TYPES } from "../../api/travelAgentClient";
+import {
+  createTravelAgentBankAccount,
+  updateTravelAgentBankAccount,
+  BANK_ACCOUNT_TYPES,
+} from "../../api/travelAgentClient";
 import { DISPLAY } from "../_shared/typography";
 import AnimatedOrb from "../_shared/AnimatedOrb";
 import { C, G, TONES, rs, rf, GUT, alpha, cardShadow } from "../_shared/theme";
@@ -131,17 +135,25 @@ function IconInput({ tone, icon, iconColor, iconBg, invalid, valid, children }) 
 
 export default function AddBankAccountScreen({ navigation, route }) {
   const hasPrimary = !!route?.params?.hasPrimary;
+  // The list passes the whole account row when the user taps Edit; its absence
+  // is what makes this the Add screen. Same form either way — only the initial
+  // values, the two labels and which API call fires differ.
+  const editing = route?.params?.account || null;
 
   const [form, setForm] = useState({
-    bankName: "",
-    accountHolderName: "",
-    accountNumber: "",
-    confirmAccountNumber: "",
-    ifscCode: "",
-    accountType: "SAVINGS",
-    branchName: "",
-    upiId: "",
-    isPrimary: !hasPrimary, // First account → default to primary
+    bankName: editing?.bankName || "",
+    accountHolderName: editing?.accountHolderName || "",
+    accountNumber: editing?.accountNumber || "",
+    // Pre-filled to match: the confirm field guards against a typo while
+    // entering a new number, and re-typing it to edit the branch name would be
+    // busywork. Clearing the account number still forces a re-confirm.
+    confirmAccountNumber: editing?.accountNumber || "",
+    ifscCode: editing?.ifscCode || "",
+    accountType: editing?.accountType || "SAVINGS",
+    branchName: editing?.branchName || "",
+    upiId: editing?.upiId || "",
+    // Editing keeps the account's own flag; a first account defaults to primary.
+    isPrimary: editing ? !!editing.isPrimary : !hasPrimary,
   });
   const [saving, setSaving] = useState(false);
   const [showAcc, setShowAcc] = useState(false);
@@ -184,7 +196,7 @@ export default function AddBankAccountScreen({ navigation, route }) {
 
     try {
       setSaving(true);
-      await createTravelAgentBankAccount({
+      const payload = {
         bankName: form.bankName.trim(),
         accountHolderName: form.accountHolderName.trim(),
         accountNumber: form.accountNumber.trim(),
@@ -193,7 +205,12 @@ export default function AddBankAccountScreen({ navigation, route }) {
         branchName: form.branchName.trim() || null,
         upiId: form.upiId.trim() || null,
         isPrimary: form.isPrimary,
-      });
+      };
+      if (editing) {
+        await updateTravelAgentBankAccount(editing.id, payload);
+      } else {
+        await createTravelAgentBankAccount(payload);
+      }
       navigation.goBack();
     } catch (e) {
       Alert.alert("Error", e?.response?.data?.error || e?.message || "Failed to save");
@@ -214,18 +231,19 @@ export default function AddBankAccountScreen({ navigation, route }) {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={C.forestDark} />
 
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* ── Hero ── */}
-          <LinearGradient
-            colors={G.hero}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={styles.hero}
-          >
+      {/* ── Hero (fixed) ──
+          Outside the ScrollView so the close button, the Save pill and the
+          progress nodes stay reachable while the form scrolls — the progress
+          nodes are the whole point of the header here, and they were scrolling
+          away exactly when you started filling the fields they track.
+
+          It also sits outside the KeyboardAvoidingView, so opening the keyboard
+          only shrinks the scrolling form, never the header. */}
+      <LinearGradient
+        colors={G.hero}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.hero}
+      >
             <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
             <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
 
@@ -256,7 +274,9 @@ export default function AddBankAccountScreen({ navigation, route }) {
               </View>
 
               <View style={styles.heroTextBlock}>
-                <Text style={styles.heroTitle} numberOfLines={1}>Add Bank Account</Text>
+                <Text style={styles.heroTitle} numberOfLines={1}>
+                  {editing ? "Edit Bank Account" : "Add Bank Account"}
+                </Text>
                 <Text style={styles.heroSub} numberOfLines={1}>
                   {completedSections}/4 sections complete
                 </Text>
@@ -289,10 +309,20 @@ export default function AddBankAccountScreen({ navigation, route }) {
                 })}
               </View>
 
-              <View style={{ height: HERO_TAIL }} />
+              {/* Short by PREVIEW_OVERLAP: the preview card used to climb that
+                  far back up into the tail via its negative margin. It can't
+                  any more (different scroll parent), so the tail gives the
+                  same space back and the visible gap stays what it was. */}
+              <View style={{ height: HERO_TAIL - PREVIEW_OVERLAP }} />
             </SafeAreaView>
-          </LinearGradient>
+      </LinearGradient>
 
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* ── Live credit-card preview ──
               A plain white card, matching the form cards below it. */}
           <View style={styles.previewWrap}>
@@ -629,7 +659,9 @@ export default function AddBankAccountScreen({ navigation, route }) {
             {saving ? <ActivityIndicator size="small" color="#fff" /> : (
               <>
                 <Ionicons name="checkmark-circle" size={rs(18)} color="#fff" />
-                <Text style={styles.saveBtnText}>Save Account</Text>
+                <Text style={styles.saveBtnText}>
+                  {editing ? "Update Account" : "Save Account"}
+                </Text>
               </>
             )}
           </LinearGradient>
@@ -641,7 +673,11 @@ export default function AddBankAccountScreen({ navigation, route }) {
 
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
-  scroll: { flexGrow: 1 },
+  // paddingTop cancels previewWrap's -PREVIEW_OVERLAP. That negative margin
+  // used to pull the preview card up over the hero's rounded bottom while both
+  // lived in the ScrollView; now the hero is fixed above it, so without this
+  // the card's top 20dp would simply be cut off at the scroll edge.
+  scroll: { flexGrow: 1, paddingTop: PREVIEW_OVERLAP },
 
   // ── Hero ──
   hero: {

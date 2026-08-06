@@ -891,6 +891,17 @@ export async function createTravelAgentBankAccount(payload) {
 }
 
 /**
+ * Edit an existing bank account. PUT (not PATCH — PATCH on this endpoint only
+ * flips the primary flag). The backend requires the full set of core fields on
+ * every call, checks the account belongs to this agent, and demotes the other
+ * primary itself when isPrimary is true.
+ */
+export async function updateTravelAgentBankAccount(id, payload) {
+  const res = await apiPut("/travel-agent/bank-details", { id, ...payload });
+  return res.data; // { account }
+}
+
+/**
  * Make a bank account the primary one. Backend semantics: a new POST with
  * isPrimary=true demotes the previous primary. We do the same here.
  */

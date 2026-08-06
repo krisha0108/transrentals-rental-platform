@@ -32,6 +32,8 @@ export async function GET(request: NextRequest) {
       activeTours,
       totalProperties,
       activeProperties,
+      totalFleet,
+      activeFleet,
       totalBookings,
       confirmedBookings,
       thisMonthBookings,
@@ -58,6 +60,10 @@ export async function GET(request: NextRequest) {
       prisma.travel_agent_tours.count({ where: { travelAgentId, isActive: true } }),
       prisma.travel_agent_properties.count({ where: { travelAgentId } }),
       prisma.travel_agent_properties.count({ where: { travelAgentId, isActive: true } }),
+      // The app's "Your listings" grid reads dash.fleet — without these the
+      // Fleet tile always said "0 total" no matter how many vehicles existed.
+      (prisma as any).travel_agent_fleets.count({ where: { travelAgentId } }),
+      (prisma as any).travel_agent_fleets.count({ where: { travelAgentId, isActive: true } }),
       prisma.travel_agent_bookings.count({ where: { travelAgentId } }),
       prisma.travel_agent_bookings.count({ where: { travelAgentId, status: 'CONFIRMED' } }),
       prisma.travel_agent_bookings.count({
@@ -92,6 +98,10 @@ export async function GET(request: NextRequest) {
       properties: {
         total: totalProperties,
         active: activeProperties,
+      },
+      fleet: {
+        total: totalFleet,
+        active: activeFleet,
       },
       bookings: {
         total: totalBookings,

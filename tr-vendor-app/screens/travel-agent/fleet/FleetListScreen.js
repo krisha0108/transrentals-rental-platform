@@ -90,6 +90,27 @@ export default function FleetListScreen({ navigation }) {
 
   // E4 — list-level availability toggle + delete
   const onToggleAvailable = async (v) => {
+    // A vehicle held by a Fleet Calendar booking can't be talked out of it with
+    // the manual flag — the API derives `isBooked` from the booking and would
+    // keep reporting it as booked. Say so instead of a silent no-op.
+    if (v.isBooked) {
+      const b = v.currentBooking || {};
+      const until = b.endDate
+        ? new Date(b.endDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })
+        : null;
+      Alert.alert(
+        "Booked in calendar",
+        `${b.customerName || "This vehicle"} has it${until ? ` until ${until}` : ""}. ` +
+          "Change or cancel the booking in Fleet Calendar to free it up.",
+        [
+          { text: "Cancel", style: "cancel" },
+          // No fleetId param — FleetCalendarScreen doesn't read route params,
+          // it always opens on the full fleet.
+          { text: "Open calendar", onPress: () => navigation.navigate("TAFleetCalendar") },
+        ]
+      );
+      return;
+    }
     const next = !(v.isAvailable !== false);
     setVehicles((prev) => prev.map((x) => (x.id === v.id ? { ...x, isAvailable: next } : x)));
     try {
@@ -271,7 +292,11 @@ export default function FleetListScreen({ navigation }) {
           renderItem={({ item }) => (
             <VehicleCard
               vehicle={item}
-              onPress={() => navigation.navigate("TAAddEditFleet", { vehicle: item })}
+              // Tapping a card opens the read-only detail; Edit is the pencil
+              // on the card and on that screen. It used to drop straight into
+              // the form, so there was no way to just look at a vehicle.
+              onPress={() => navigation.navigate("TAFleetVehicleDetail", { id: item.id, vehicle: item })}
+              onEdit={() => navigation.navigate("TAAddEditFleet", { vehicle: item })}
               onToggleAvailable={() => onToggleAvailable(item)}
               onToggleActive={() => onToggleActive(item)}
               onDelete={() => onDelete(item)}
@@ -404,10 +429,14 @@ function Spec({ label, value, color }) {
   );
 }
 
-function VehicleCard({ vehicle, onPress, onToggleAvailable, onToggleActive, onDelete }) {
+function VehicleCard({ vehicle, onPress, onEdit, onToggleAvailable, onToggleActive, onDelete }) {
   const isActive = vehicle.isActive !== false;
   const meta = TYPE_META[vehicle.vehicleType] || TYPE_META.OTHER;
-  const isAvail = vehicle.isAvailable !== false;
+  // Two ways a vehicle is unavailable: the agent flipped the manual flag, or
+  // the Fleet Calendar holds a booking that hasn't ended yet (`isBooked`,
+  // derived server-side). Either one shows as Booked.
+  const bookedNow = vehicle.isBooked === true;
+  const isAvail = !bookedNow && vehicle.isAvailable !== false;
   const insuranceExpiry = vehicle.insuranceValidity
     ? new Date(vehicle.insuranceValidity)
     : null;
@@ -448,7 +477,7 @@ function VehicleCard({ vehicle, onPress, onToggleAvailable, onToggleActive, onDe
         </View>
 
         {/* Top-right: booked only — insurance warnings moved to the body strip */}
-        {vehicle.isAvailable === false && (
+        {!isAvail && (
           <View style={styles.bookedBadge}>
             <Ionicons name="lock-closed" size={10} color="#fff" />
             <Text style={styles.bookedBadgeText}>BOOKED</Text>
@@ -538,6 +567,10 @@ function VehicleCard({ vehicle, onPress, onToggleAvailable, onToggleActive, onDe
             activeOpacity={0.85}
           >
             <Ionicons name={isActive ? "power" : "pause"} size={14} color={isActive ? C.emerald600 : C.amber} />
+          </TouchableOpacity>
+          {/* Icon-only so the labelled Available toggle keeps its width. */}
+          <TouchableOpacity style={styles.fleetActEdit} onPress={onEdit} activeOpacity={0.85}>
+            <Ionicons name="create-outline" size={14} color={C.emerald600} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.fleetActDel} onPress={onDelete} activeOpacity={0.85}>
             <Ionicons name="trash-outline" size={14} color={C.red} />
@@ -767,6 +800,7 @@ const styles = StyleSheet.create({
   fleetActions: { flexDirection: "row", gap: 8, marginTop: 12 },
   fleetActBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 8, borderRadius: 10 },
   fleetActToggle: { alignItems: "center", justifyContent: "center", paddingVertical: 8, paddingHorizontal: 18, borderRadius: 10 },
+  fleetActEdit: { alignItems: "center", justifyContent: "center", paddingVertical: 9, paddingHorizontal: 18, borderRadius: 10, backgroundColor: C.emerald50 },
   fleetActDel: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 9, paddingHorizontal: 18, borderRadius: 10, backgroundColor: C.redLight },
   fleetActText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold" },
 

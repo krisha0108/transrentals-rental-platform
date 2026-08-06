@@ -22,6 +22,16 @@ export interface NotifyTravelAgentInput {
   body: string;
   link?: string;
   metadata?: Record<string, any>;
+  /**
+   * Send the phone push as well. Defaults to true.
+   *
+   * Set false for events the agent caused themselves — booking created, status
+   * changed, payment marked paid. Those belong in the inbox as a record of what
+   * happened, but pushing them buzzes the phone in the agent's hand for a
+   * button they just pressed. Everything driven by someone else (customer,
+   * admin, a scheduled job) should keep the push.
+   */
+  push?: boolean;
 }
 
 /** Build the FCM data payload (string-only values) from a notification input. */
@@ -56,6 +66,8 @@ export async function notifyTravelAgent(
       error,
     });
   }
+
+  if (input.push === false) return;
 
   // Fire the phone push separately so a push failure never voids the saved
   // in-app notification (and vice-versa). sendTravelAgentPush swallows its

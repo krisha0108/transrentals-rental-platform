@@ -290,7 +290,10 @@ export default function FleetInsuranceScreen({ navigation }) {
                 key={f.id}
                 style={styles.vCard}
                 activeOpacity={0.85}
-                onPress={() => navigation.navigate("TAAddEditFleet", { vehicle: f })}
+                // focusSection lands the form on its Documents section. Someone
+                // tapping an expiring-policy card came to fix that policy — the
+                // form opening at "Vehicle name" made them hunt for it.
+                onPress={() => navigation.navigate("TAAddEditFleet", { vehicle: f, focusSection: "documents" })}
                 accessibilityRole="button"
                 accessibilityLabel={`${f.vehicleName}. ${wm.label}. Manage documents`}
               >

@@ -54,6 +54,12 @@ const rf = (n) => Math.round(n * FONT_SCALE * 2) / 2; // half-px precision for t
 // Gradient presets
 const G = {
   hero:    [C.forestDark, C.forest, C.emeraldDeep],
+  // The hero ramp split into two adjacent slices. The pinned top bar and the
+  // scrolling revenue panel are separate views, so each would otherwise restart
+  // the full three-stop ramp and meet as a visible band; handing them
+  // neighbouring slices makes them join on C.forest instead.
+  heroTopSlice: [C.forestDark, C.forest],
+  heroRevSlice: [C.forest, C.emeraldDeep],
   emerald: [C.emerald, C.emeraldDeep],
   gold:    [C.goldLight, C.gold],
   ocean:   [C.oceanLight, "#245C7A"],
@@ -357,6 +363,59 @@ export default function TravelAgentDashboardScreen({ navigation }) {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={C.forestDark} />
 
+      {/* ══════════════════ FIXED TOP BAR ══════════════════
+          Outside the ScrollView, so the agency name, ID and the notification
+          bell stay put while the page scrolls — the way every other Travel
+          Agent screen (Fleet, Follow-ups, Chat) already behaves.
+
+          Only the top bar is pinned. The revenue card used to live up here too,
+          but pinning it as well cost about a quarter of the screen for good;
+          it now scrolls with the content, on its own panel of the same
+          gradient so it keeps the glass-on-dark treatment it was drawn for.
+
+          The bottom corners round off here only when there is no revenue panel
+          continuing below — otherwise the two would show a seam mid-header. */}
+      <LinearGradient
+        colors={showEarnings ? G.heroTopSlice : G.hero}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={[s.heroTop, !showEarnings && s.heroTopRounded]}
+      >
+        <AnimatedOrb style={s.orb1} delay={0} dx={16} dy={14} />
+        {/* The gold orb belongs to whichever block ends the header, so the pair
+            sits the way it did when hero was one view: white top-left, gold
+            bottom-right. With a revenue panel below, that block owns it. */}
+        {!showEarnings && <AnimatedOrb style={s.orb2} delay={900} dx={-14} dy={10} />}
+
+        <SafeAreaView edges={["top"]}>
+          {/* Top bar — agency name + ID on the left, notification bell on the right */}
+          <View style={s.topBar}>
+            {/* Name + ID chip pinned to the top-left */}
+            <View style={s.headline}>
+              <Text style={s.headName} numberOfLines={2}>{agencyName}</Text>
+              {!!agentId && (
+                <View style={s.idChip}>
+                  <Ionicons name="finger-print" size={12} color="rgba(255,255,255,0.85)" />
+                  <Text style={s.idChipTxt}>{String(agentId).toUpperCase()}</Text>
+                </View>
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={s.iconChip}
+              onPress={() => navigation.navigate("TANotifications")}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="notifications-outline" size={17} color="rgba(255,255,255,0.92)" />
+              {unread > 0 && (
+                <View style={s.bellDot}>
+                  <Text style={s.bellDotTxt}>{unread > 9 ? "9+" : unread}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: rs(140) }}
@@ -369,68 +428,46 @@ export default function TravelAgentDashboardScreen({ navigation }) {
           />
         }
       >
-        {/* ══════════════════ HERO ══════════════════ */}
-        <LinearGradient
-          colors={G.hero}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={[s.hero, showEarnings && { paddingBottom: rs(24) }]}
-        >
-          {/* floating orbs */}
-          <AnimatedOrb style={s.orb1} delay={0} dx={16} dy={14} />
-          <AnimatedOrb style={s.orb2} delay={900} dx={-14} dy={10} />
+        {/* ══════════════════ REVENUE PANEL (scrolls) ══════════════════
+            Continues the fixed bar's gradient so the two read as one header
+            until you scroll. Carries the gold orb and the rounded bottom the
+            hero used to own. */}
+        {showEarnings && (
+          <LinearGradient
+            colors={G.heroRevSlice}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={s.heroRevPanel}
+          >
+            <AnimatedOrb style={s.orb2} delay={900} dx={-14} dy={10} />
 
-          <SafeAreaView edges={["top"]}>
-            {/* Top bar — agency name + ID on the left, notification bell on the right */}
-            <View style={s.topBar}>
-              {/* Name + ID chip pinned to the top-left */}
-              <View style={s.headline}>
-                <Text style={s.headName} numberOfLines={2}>{agencyName}</Text>
-                {!!agentId && (
-                  <View style={s.idChip}>
-                    <Ionicons name="finger-print" size={12} color="rgba(255,255,255,0.85)" />
-                    <Text style={s.idChipTxt}>{String(agentId).toUpperCase()}</Text>
-                  </View>
-                )}
-              </View>
-
-              <TouchableOpacity
-                style={s.iconChip}
-                onPress={() => navigation.navigate("TANotifications")}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="notifications-outline" size={17} color="rgba(255,255,255,0.92)" />
-                {unread > 0 && (
-                  <View style={s.bellDot}>
-                    <Text style={s.bellDotTxt}>{unread > 9 ? "9+" : unread}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* Revenue — integrated into the header itself */}
-            {showEarnings && (
-              <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate("TAEarnings")} style={s.heroRev}>
-                <View style={s.heroRevTop}>
-                  <View style={s.heroRevIcon}>
-                    <Ionicons name="wallet" size={17} color="#fff" />
-                  </View>
-                  {trend ? (
-                    <View style={s.heroRevDelta}>
-                      <Ionicons name={positive ? "trending-up" : "trending-down"} size={12} color="#fff" />
-                      <Text style={s.heroRevDeltaTxt}>{`${positive ? "+" : "-"}${growth}%`}</Text>
-                    </View>
-                  ) : null}
+            <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate("TAEarnings")} style={s.heroRev}>
+              <View style={s.heroRevTop}>
+                <View style={s.heroRevIcon}>
+                  <Ionicons name="wallet" size={17} color="#fff" />
                 </View>
-                <Text style={s.heroRevLbl}>REVENUE THIS MONTH</Text>
-                <Text style={s.heroRevAmt} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{fmt(monthRevenue)}</Text>
-                <View style={s.heroRevSpark}><Sparkline color="rgba(255,255,255,0.9)" data={revenueTrend} /></View>
-              </TouchableOpacity>
-            )}
-          </SafeAreaView>
-        </LinearGradient>
+                {trend ? (
+                  <View style={s.heroRevDelta}>
+                    <Ionicons name={positive ? "trending-up" : "trending-down"} size={12} color="#fff" />
+                    <Text style={s.heroRevDeltaTxt}>{`${positive ? "+" : "-"}${growth}%`}</Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text style={s.heroRevLbl}>REVENUE THIS MONTH</Text>
+              <Text style={s.heroRevAmt} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{fmt(monthRevenue)}</Text>
+              <View style={s.heroRevSpark}><Sparkline color="rgba(255,255,255,0.9)" data={revenueTrend} /></View>
+            </TouchableOpacity>
+          </LinearGradient>
+        )}
 
-        {/* ══════════════════ BODY (overlaps hero) ══════════════════ */}
-        <View style={s.body}>
+        {/* ══════════════════ BODY (overlaps hero) ══════════════════
+            The -22 margin tucks the body under the rounded bottom above it.
+            With a revenue panel that still works as before. Without one the
+            body is the ScrollView's first child and the margin eats its top
+            22dp instead — harmless for an approved agent, whose first child is
+            the 40dp spacer (that is where the original overlap went), but it
+            would clip the onboarding ring card of an agent who is not approved
+            yet. Drop it only in that one case. */}
+        <View style={[s.body, !showEarnings && !isApproved && { marginTop: 0 }]}>
 
           {/* ── Dynamic hero card: earnings / KPIs / onboarding ring ── */}
 
@@ -1211,6 +1248,19 @@ const s = StyleSheet.create({
   },
 
   // ── Hero ──
+  // Split in two: `heroTop` is the pinned bar, `heroRevPanel` the scrolling
+  // revenue block. Same gradient and gutter, so together they still read as
+  // the single block `hero` used to be.
+  // No bottom padding: the revenue card below carries its own marginTop, so the
+  // gap between bar and card stays exactly what it was before the split.
+  heroTop: { paddingHorizontal: GUT, overflow: "hidden" },
+  // Only when nothing follows below — otherwise the curve would cut across the
+  // middle of the header.
+  heroTopRounded: { paddingBottom: rs(46), borderBottomLeftRadius: 22, borderBottomRightRadius: 22 },
+  heroRevPanel: {
+    paddingHorizontal: GUT, paddingBottom: rs(24),
+    borderBottomLeftRadius: 22, borderBottomRightRadius: 22, overflow: "hidden",
+  },
   hero: { paddingHorizontal: GUT, paddingBottom: rs(46), borderBottomLeftRadius: 22, borderBottomRightRadius: 22, overflow: "hidden" },
   orb1: { position: "absolute", top: -60, left: -30, width: rs(170), height: rs(170), borderRadius: rs(85), backgroundColor: "rgba(255,255,255,0.08)" },
   orb2: { position: "absolute", bottom: -55, right: -10, width: rs(150), height: rs(150), borderRadius: rs(75), backgroundColor: "rgba(221,163,63,0.16)" },

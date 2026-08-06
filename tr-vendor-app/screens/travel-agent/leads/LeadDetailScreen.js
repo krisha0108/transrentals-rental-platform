@@ -53,6 +53,11 @@ import AnimatedOrb from "../_shared/AnimatedOrb";
 import SheetHandle from "../_shared/SheetHandle";
 
 
+// How far the quick-contact row rides up over the hero's bottom edge. The hero
+// is fixed and the row scrolls, so this is subtracted from the hero's tail and
+// added back as scroll padding to keep the gap the same.
+const CONTACT_OVERLAP = 28;
+
 const STATUS_COLORS = {
   NEW:         { bg: "#E6EFF4", fg: "#245C7A" },
   CONTACTED:   { bg: "#DDEFEA", fg: "#0F6B5A" },
@@ -597,21 +602,21 @@ export default function LeadDetailScreen({ navigation, route }) {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 32 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.emerald600} />}
+      {/* ===== Gradient hero (fixed) =====
+          Outside the ScrollView so the back button and the lead's name stay
+          put while the detail scrolls. paddingBottom is short by
+          CONTACT_OVERLAP because the contact row can no longer climb into the
+          hero from a different scroll parent — the scroll's paddingTop gives
+          that space back, so the gap is unchanged. */}
+      <LinearGradient
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroWrap}
       >
-        {/* ===== Gradient hero ===== */}
-        <LinearGradient
-          colors={["#0F2A22", "#16382E", "#1C6B52"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroWrap}
-        >
-          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
-          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
-          <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 40 }}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 40 - CONTACT_OVERLAP }}>
             <View style={styles.headerRow}>
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
@@ -692,10 +697,18 @@ export default function LeadDetailScreen({ navigation, route }) {
                 </View>
               )}
             </View>
-          </SafeAreaView>
-        </LinearGradient>
+        </SafeAreaView>
+      </LinearGradient>
 
-        {/* ===== Quick contact row (floating over gradient bottom) ===== */}
+      <ScrollView
+        style={{ flex: 1 }}
+        // paddingTop cancels contactRowWrap's -CONTACT_OVERLAP, which would
+        // otherwise clip the row's top against the scroll edge now that the
+        // hero is no longer its sibling.
+        contentContainerStyle={{ paddingTop: CONTACT_OVERLAP, paddingBottom: 32 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.emerald600} />}
+      >
+        {/* ===== Quick contact row ===== */}
         <View style={styles.contactRowWrap}>
           <View style={styles.contactRow}>
             <ContactBtn icon="call" label="Call" color={C.emerald600} onPress={() => openTel(lead.customerPhone)} disabled={!lead.customerPhone} />
@@ -1137,7 +1150,7 @@ export default function LeadDetailScreen({ navigation, route }) {
 
       {/* Convert confirm */}
       <Modal visible={showConvertModal} animationType="fade" transparent>
-        <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
+        <KeyboardAvoidingView behavior="padding" style={styles.confirmOverlay}>
           <View style={styles.confirmCard}>
             <LinearGradient colors={[C.emerald500, C.emerald600]} style={styles.confirmIcon}>
               <Ionicons name="briefcase" size={28} color="#fff" />
@@ -1660,7 +1673,7 @@ const styles = StyleSheet.create({
   // Floating contact row — pulls up 28px to visually overlap the gradient
   // edge. Combined with SafeAreaView paddingBottom:40, that leaves 12px clear
   // gap between the status/priority pill row and the contact bar (no cramp).
-  contactRowWrap: { marginHorizontal: 16, marginTop: -28 },
+  contactRowWrap: { marginHorizontal: 16, marginTop: -CONTACT_OVERLAP },
   contactRow: { flexDirection: "row", backgroundColor: C.card, borderRadius: 16, padding: 6, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 5 },
   contactBtn: { flex: 1, alignItems: "center", paddingVertical: 12, gap: 4 },
   contactBtnText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold" },
@@ -1899,6 +1912,10 @@ const styles = StyleSheet.create({
   modalItemText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", flex: 1 },
 
   // Confirm convert
+  // Own overlay rather than `modalOverlay`: the shared scrim is a warm forest
+  // (C.scrim), which reads as a green wash behind this card. The other sheets
+  // keep it — only this confirm sits on neutral black.
+  confirmOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" },
   confirmCard: { margin: 24, backgroundColor: C.card, borderRadius: 22, padding: 22, alignItems: "center", alignSelf: "center" },
   confirmIcon: { width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center", marginBottom: 12 },
   confirmTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, marginTop: 4 },

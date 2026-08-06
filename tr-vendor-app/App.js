@@ -13,6 +13,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidStyle, AndroidImportance, EventType } from '@notifee/react-native';
@@ -59,8 +60,10 @@ import TATourPreviewScreen from './screens/travel-agent/tours/TourPreviewScreen'
 import TATourQuoteRequestsScreen from './screens/travel-agent/tours/TourQuoteRequestsScreen';
 import TAPropertiesListScreen from './screens/travel-agent/properties/PropertiesListScreen';
 import TAAddEditPropertyScreen from './screens/travel-agent/properties/AddEditPropertyScreen';
+import TAPropertyDetailScreen from './screens/travel-agent/properties/PropertyDetailScreen';
 import TAFleetListScreen from './screens/travel-agent/fleet/FleetListScreen';
 import TAAddEditFleetScreen from './screens/travel-agent/fleet/AddEditFleetScreen';
+import TAFleetVehicleDetailScreen from './screens/travel-agent/fleet/FleetVehicleDetailScreen';
 import TAFleetCalendarScreen from './screens/travel-agent/fleet/FleetCalendarScreen';
 import TAFleetInsuranceScreen from './screens/travel-agent/fleet/FleetInsuranceScreen';
 
@@ -898,6 +901,10 @@ export default function App() {
 
   return (
     <NotifBadgeContext.Provider value={{ unreadCount, refreshBadge }}>
+    {/* KeyboardProvider feeds keyboard position/height to the
+        KeyboardAwareScrollViews in the forms. It has to sit above the
+        navigator so every screen is inside it. */}
+    <KeyboardProvider>
     <SafeAreaProvider>
       <NavigationContainer
         ref={navigationRef}
@@ -1138,8 +1145,10 @@ export default function App() {
             <Stack.Screen name="TAAddEditTour" component={TAAddEditTourScreen} />
             <Stack.Screen name="TATourPreview" component={TATourPreviewScreen} />
             <Stack.Screen name="TAProperties" component={TAPropertiesListScreen} />
+            <Stack.Screen name="TAPropertyDetail" component={TAPropertyDetailScreen} />
             <Stack.Screen name="TAAddEditProperty" component={TAAddEditPropertyScreen} />
             <Stack.Screen name="TAFleet" component={TAFleetListScreen} />
+            <Stack.Screen name="TAFleetVehicleDetail" component={TAFleetVehicleDetailScreen} />
             <Stack.Screen name="TAAddEditFleet" component={TAAddEditFleetScreen} />
             <Stack.Screen name="TAFleetCalendar" component={TAFleetCalendarScreen} />
             <Stack.Screen name="TAFleetInsurance" component={TAFleetInsuranceScreen} />
@@ -1191,6 +1200,7 @@ export default function App() {
       <OfflineBanner />
       <GlobalAlert />
     </SafeAreaProvider>
+    </KeyboardProvider>
     </NotifBadgeContext.Provider>
   );
 }

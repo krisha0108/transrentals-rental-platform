@@ -463,8 +463,11 @@ const TourCard = React.memo(function TourCard({
               size={14}
               color={tour.isPublic ? "#2E6E7C" : C.subText}
             />
+            {/* The label names the ACTION, not the state — "Public" read as a
+                status badge next to two other buttons that are all verbs. The
+                LIVE pill on the cover already carries the state. */}
             <Text style={[styles.actBtnText, { color: tour.isPublic ? "#2E6E7C" : C.subText }]}>
-              {tour.isPublic ? "Public" : "Publish"}
+              {tour.isPublic ? "Unpublish" : "Publish"}
             </Text>
           </TouchableOpacity>
 

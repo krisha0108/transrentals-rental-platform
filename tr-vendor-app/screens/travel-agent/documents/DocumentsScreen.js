@@ -26,12 +26,13 @@ import { launchImageLibrary } from "react-native-image-picker";
 import { pick, types as docTypes } from "@react-native-documents/picker";
 import { DISPLAY } from "../_shared/typography";
 import AnimatedOrb from "../_shared/AnimatedOrb";
-import RemoteImage from "../_shared/RemoteImage";
+import RemoteImage, { buildImageUri } from "../_shared/RemoteImage";
 import { C, G, TONES, rs, rf, GUT, alpha, cardShadow, rowShadow, SHEET_RADIUS } from "../_shared/theme";
 import {
   listTravelAgentDocuments,
   uploadTravelAgentDocument,
   deleteTravelAgentDocument,
+  getBaseURL,
   DOCUMENT_TYPES,
   REQUIRED_DOCUMENT_TYPES,
 } from "../../api/travelAgentClient";
@@ -152,11 +153,24 @@ export default function DocumentsScreen({ navigation, route }) {
     ]);
   };
 
-  const onView = (doc) => {
-    if (!doc?.documentUrl) return;
-    Linking.openURL(doc.documentUrl).catch(() => {
-      Alert.alert("Cannot open", "Document URL could not be opened.");
-    });
+  // Two things had to be true for this to work and neither was:
+  //   1. The stored documentUrl is a relative path (/api/private-files/...).
+  //      Linking has no idea what to do with that — it needs a scheme.
+  //   2. That endpoint is private. It answers to a session cookie or a signed
+  //      ?token=, and the browser we hand the URL to has neither. The list
+  //      endpoint now returns `viewUrl` with a short-lived token attached.
+  const onView = async (doc) => {
+    const raw = doc?.viewUrl || doc?.documentUrl;
+    if (!raw) return;
+    try {
+      const url = buildImageUri(raw, await getBaseURL());
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(
+        "Cannot open",
+        "Could not open this document. The link may have expired — pull down to refresh and try again."
+      );
+    }
   };
 
   const onSkipToDashboard = () => {
@@ -517,8 +531,10 @@ function DocCard({ type, doc, onUpload, onView, onDelete }) {
               </View>
             ) : (
               <View style={styles.thumb}>
+                {/* viewUrl, not documentUrl — the raw path is behind auth, so
+                    the thumbnail was silently 401ing and rendering blank. */}
                 <RemoteImage
-                  source={{ uri: doc.documentUrl }}
+                  source={{ uri: doc.viewUrl || doc.documentUrl }}
                   style={styles.thumbImg}
                   resizeMode="cover"
                 />

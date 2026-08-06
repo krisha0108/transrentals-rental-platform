@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getTravelAgentAuth } from '@/lib/auth/travel-agent-auth';
+import { notifyTravelAgent } from '@/lib/notifications/travel-agent-notify';
 import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
@@ -133,6 +134,17 @@ export async function POST(
       });
 
       return booking;
+    });
+
+    // Outside the transaction: a notification failure must never roll back the
+    // conversion. Inbox record only — the agent pressed Convert themselves.
+    await notifyTravelAgent(auth.travelAgentId, {
+      type: 'BOOKING',
+      title: 'Lead converted to booking',
+      body: `${result.customerName} — ${result.bookingNumber}.`,
+      link: `/travel-agent/bookings/${result.id}`,
+      metadata: { bookingId: result.id, leadId: id, bookingNumber: result.bookingNumber },
+      push: false,
     });
 
     return NextResponse.json({ booking: result }, { status: 201 });
