@@ -122,11 +122,13 @@ export default function TravelAgentRegisterPage() {
   };
 
   const validateStep2 = () => {
-    if (!formData.address.trim()) { setError('Agency address is required'); return false; }
-    if (!formData.city.trim()) { setError('City is required'); return false; }
-    if (!formData.state) { setError('Please select your state'); return false; }
-    if (!formData.pincode.trim()) { setError('Pincode is required'); return false; }
-    if (!/^\d{6}$/.test(formData.pincode)) { setError('Please enter a valid 6-digit pincode'); return false; }
+    // Address details are optional here — the backend never required them
+    // and the mobile app lets agents skip straight to account creation, so
+    // only validate the pincode's shape if one was actually entered.
+    if (formData.pincode.trim() && !/^\d{6}$/.test(formData.pincode)) {
+      setError('Please enter a valid 6-digit pincode');
+      return false;
+    }
     return true;
   };
 
@@ -614,7 +616,7 @@ export default function TravelAgentRegisterPage() {
                     <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
                       <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
                       <span>
-                        We need your agency address for verification and to display on customer-facing booking pages.
+                        Optional, but recommended — your agency address helps with verification and shows on customer-facing booking pages. You can also add it later from your profile.
                       </span>
                     </div>
 
@@ -662,7 +664,8 @@ export default function TravelAgentRegisterPage() {
                       {/* Address */}
                       <div className="sm:col-span-2">
                         <label className="block text-sm font-semibold text-gray-700 mb-1">
-                          Agency Address <span className="text-red-500">*</span>
+                          Agency Address
+                          <span className="ml-1 text-xs font-normal text-gray-400">(optional)</span>
                         </label>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
@@ -673,7 +676,6 @@ export default function TravelAgentRegisterPage() {
                             placeholder="Office no., Street name, Landmark"
                             rows={2}
                             className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm resize-none"
-                            required
                           />
                         </div>
                       </div>
@@ -681,7 +683,8 @@ export default function TravelAgentRegisterPage() {
                       {/* City */}
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-1">
-                          City <span className="text-red-500">*</span>
+                          City
+                          <span className="ml-1 text-xs font-normal text-gray-400">(optional)</span>
                         </label>
                         <input
                           type="text"
@@ -690,21 +693,20 @@ export default function TravelAgentRegisterPage() {
                           onChange={handleChange}
                           placeholder="e.g. Mumbai"
                           className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-                          required
                         />
                       </div>
 
                       {/* State */}
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-1">
-                          State <span className="text-red-500">*</span>
+                          State
+                          <span className="ml-1 text-xs font-normal text-gray-400">(optional)</span>
                         </label>
                         <select
                           name="state"
                           value={formData.state}
                           onChange={handleChange}
                           className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm text-gray-700"
-                          required
                         >
                           <option value="">Select State</option>
                           {states.map((state) => (
@@ -718,7 +720,8 @@ export default function TravelAgentRegisterPage() {
                       {/* Pincode */}
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-1">
-                          Pincode <span className="text-red-500">*</span>
+                          Pincode
+                          <span className="ml-1 text-xs font-normal text-gray-400">(optional)</span>
                         </label>
                         <input
                           type="text"
@@ -728,7 +731,6 @@ export default function TravelAgentRegisterPage() {
                           placeholder="400001"
                           maxLength={6}
                           className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-                          required
                         />
                       </div>
                     </div>

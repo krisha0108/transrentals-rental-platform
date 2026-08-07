@@ -454,8 +454,10 @@ export default function LeadDetailScreen({ navigation, route }) {
       setQAdvMode("PERCENT");
       setQAdvValue(String(lead.quoteAdvancePercent));
     } else {
+      // Default to a 30% advance — mirrors the web quote form's default
+      // instead of leaving agents to type it in from a blank field.
       setQAdvMode("PERCENT");
-      setQAdvValue("");
+      setQAdvValue("30");
     }
     // Derive remaining validity days from quoteValidUntil, default 7
     if (lead.quoteValidUntil) {
@@ -489,6 +491,24 @@ export default function LeadDetailScreen({ navigation, route }) {
     };
     // Move the lead to QUOTED unless it's already further along.
     if (!["BOOKED", "NEGOTIATING"].includes(lead.status)) payload.status = "QUOTED";
+
+    // Mirror web's activity-timeline entry so re-quoting an already-QUOTED
+    // lead still leaves a record — this used to be silently dropped on app.
+    const advance =
+      qAdvMode === "FIXED"
+        ? advNum > 0 ? Math.min(advNum, amount) : 0
+        : advNum > 0 ? Math.round((amount * Math.min(100, advNum)) / 100) : 0;
+    const balance = amount - advance;
+    const noteLines = [
+      `Quote sent: ₹${amount.toLocaleString("en-IN")}`,
+      advance > 0
+        ? `Advance: ₹${advance.toLocaleString("en-IN")}${
+            qAdvMode === "PERCENT" ? ` (${advNum}%)` : ""
+          } • Balance: ₹${balance.toLocaleString("en-IN")}`
+        : null,
+      `Valid till ${validUntil.toLocaleDateString("en-IN")}`,
+    ].filter(Boolean);
+    payload.addNote = noteLines.join("\n");
 
     try {
       setSavingQuote(true);
@@ -1216,6 +1236,21 @@ export default function LeadDetailScreen({ navigation, route }) {
                 placeholder={qAdvMode === "PERCENT" ? "e.g. 30  (30% advance)" : "e.g. 15000"}
                 placeholderTextColor="#A3B3C2"
               />
+              {/* Quick-select percent chips — mirrors the web quote form */}
+              {qAdvMode === "PERCENT" && (
+                <View style={styles.quickChipRow}>
+                  {["10", "20", "30", "50", "100"].map((p) => (
+                    <TouchableOpacity
+                      key={p}
+                      style={[styles.quickChip, qAdvValue === p && styles.quickChipActive]}
+                      onPress={() => setQAdvValue(p)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.quickChipText, qAdvValue === p && styles.quickChipTextActive]}>{p}%</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
               {/* Live advance/balance preview */}
               {!!Number(qAmount) && (
                 <Text style={styles.quoteMeta}>
@@ -1840,6 +1875,11 @@ const styles = StyleSheet.create({
   segBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: C.border, alignItems: "center", backgroundColor: "#FBFAF6" },
   segBtnActive: { borderColor: C.emerald600, backgroundColor: C.emerald50 },
   segText: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", color: C.subText },
+  quickChipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
+  quickChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, borderColor: C.border, backgroundColor: "#FBFAF6" },
+  quickChipActive: { borderColor: C.emerald600, backgroundColor: C.emerald50 },
+  quickChipText: { fontFamily: DISPLAY, fontSize: 11, fontWeight: "bold", color: C.subText },
+  quickChipTextActive: { color: C.emerald700 },
   segTextActive: { color: C.emerald700 },
   modalPrimaryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: C.emerald600, paddingVertical: 14, borderRadius: 12, marginTop: 16 },
   modalPrimaryBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 14 },

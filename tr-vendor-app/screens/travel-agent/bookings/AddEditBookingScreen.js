@@ -231,10 +231,12 @@ export default function AddEditBookingScreen({ navigation, route }) {
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.sectionCardTitle}>Booking Type</Text>
-              <Text style={styles.sectionCardSub}>Choose booking category</Text>
+              <Text style={styles.sectionCardSub}>
+                {isEdit ? "Type can't be changed after creation" : "Choose booking category"}
+              </Text>
             </View>
           </View>
-          <View style={styles.typeGridBare}>
+          <View style={[styles.typeGridBare, isEdit && { opacity: 0.55 }]}>
               {BOOKING_TYPE.map((t) => {
                 const meta = TYPE_META[t] || TYPE_META.CUSTOM;
                 const active = form.bookingType === t;
@@ -259,6 +261,7 @@ export default function AddEditBookingScreen({ navigation, route }) {
                     key={t}
                     style={styles.typeTileWrap}
                     onPress={() => update("bookingType", t)}
+                    disabled={isEdit}
                     activeOpacity={0.85}
                   >
                     <View style={[styles.typeTile, active ? { backgroundColor: meta.light, borderWidth: 1.5, borderColor: meta.color } : styles.typeTileUnsel]}>

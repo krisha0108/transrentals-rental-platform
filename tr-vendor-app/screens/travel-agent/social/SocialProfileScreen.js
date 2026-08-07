@@ -16,15 +16,24 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
+import Clipboard from "@react-native-clipboard/clipboard";
 import {
   getSocialProfile,
   getOrCreateSocialConversation,
   getCurrentTravelAgent,
+  toggleSocialPostLike,
+  toggleSocialPostSave,
+  deleteSocialPost,
+  listTravelAgentTours,
 } from "../../api/travelAgentClient";
 import RemoteImage from "../_shared/RemoteImage";
 import { DISPLAY } from "../_shared/typography";
 import { SC as C, G, TONES } from "../_shared/theme";
 import AnimatedOrb from "../_shared/AnimatedOrb";
+// Reusing the feed's own post card + its menu/comments/share sheets — own-
+// profile posts get the exact same like/save/delete affordances the feed
+// has, instead of a plain read-only thumbnail grid with nowhere to tap into.
+import { PostCard, PostMenuSheet, CommentsSheet, ShareInChatModal } from "./SocialFeedScreen";
 
 // Warm "Elevate" palette — same keys, repainted to match the feed and the rest
 // of the Travel Agent module. The old set was cool slate (#F6F8FB ground).
@@ -82,6 +91,92 @@ export default function SocialProfileScreen({ navigation, route }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [openingChat, setOpeningChat] = useState(false);
+
+  // Post-card actions on the own-profile full-card list (viewer's own agent
+  // id — distinct from `id` above, which is whichever profile is being
+  // viewed and may belong to someone else).
+  const [viewerAgentId, setViewerAgentId] = useState(null);
+  const [sharePost, setSharePost] = useState(null);
+  const [menuPost, setMenuPost] = useState(null);
+  const [commentsPost, setCommentsPost] = useState(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const ta = await getCurrentTravelAgent();
+        if (ta?.id) setViewerAgentId(ta.id);
+      } catch {}
+    })();
+  }, []);
+
+  // Own-profile Posts/Tours tabs — mirrors web's minimal Tours tab (a stat +
+  // CTA into the real Tours section, not a duplicate listing here).
+  const [activeTab, setActiveTab] = useState("posts");
+  const [toursCount, setToursCount] = useState(0);
+  useEffect(() => {
+    if (!viewerAgentId) return;
+    (async () => {
+      try {
+        const data = await listTravelAgentTours({});
+        setToursCount(Array.isArray(data?.tours) ? data.tours.length : 0);
+      } catch {}
+    })();
+  }, [viewerAgentId]);
+
+  const onToggleLike = async (post) => {
+    const wasLiked = !!post.likedByMe;
+    setPosts((prev) => prev.map((p) =>
+      p.id === post.id
+        ? { ...p, likedByMe: !wasLiked, likesCount: (p.likesCount || 0) + (wasLiked ? -1 : 1) }
+        : p
+    ));
+    try { await toggleSocialPostLike(post.id); }
+    catch {
+      setPosts((prev) => prev.map((p) =>
+        p.id === post.id
+          ? { ...p, likedByMe: wasLiked, likesCount: (p.likesCount || 0) + (wasLiked ? 1 : -1) }
+          : p
+      ));
+    }
+  };
+
+  const onToggleSave = async (post) => {
+    const wasSaved = !!post.savedByMe;
+    setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, savedByMe: !wasSaved } : p)));
+    try { await toggleSocialPostSave(post.id); }
+    catch {
+      setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, savedByMe: wasSaved } : p)));
+    }
+  };
+
+  const onDeletePost = (post) => {
+    setMenuPost(null);
+    Alert.alert(
+      "Delete post?",
+      "This will permanently remove the post and all its comments. This can't be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete", style: "destructive",
+          onPress: async () => {
+            const snapshot = posts;
+            setPosts((prev) => prev.filter((p) => p.id !== post.id));
+            try { await deleteSocialPost(post.id); }
+            catch (e) {
+              setPosts(snapshot);
+              Alert.alert("Error", e?.response?.data?.error || e?.message || "Could not delete post");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const onCopyLink = (post) => {
+    setMenuPost(null);
+    const url = `https://transrentals.in/travel-agent/social/post/${post.id}`;
+    Clipboard.setString(url);
+    Alert.alert("Copied", "Post link copied to clipboard.");
+  };
 
   // Resolve me → (agent, agentId)
   useEffect(() => {
@@ -229,9 +324,13 @@ export default function SocialProfileScreen({ navigation, route }) {
       <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
 
       <FlatList
-        data={posts}
+        // RN's FlatList can't change numColumns on a live instance — the key
+        // forces a remount when switching between the own-profile full-card
+        // list (1 col) and another agent's read-only thumbnail grid (3 col).
+        key={isMe ? "cards" : "grid"}
+        data={isMe && activeTab === "tours" ? [] : posts}
         keyExtractor={(p) => p.id}
-        numColumns={3}
+        numColumns={isMe ? 1 : 3}
         ListHeaderComponent={
           <ProfileHeader
             profile={profile}
@@ -241,19 +340,39 @@ export default function SocialProfileScreen({ navigation, route }) {
             onBack={() => navigation.goBack()}
             onMessage={onMessage}
             onEdit={() => navigation.navigate("TAProfile")}
+            postsCount={posts.length}
+            toursCount={toursCount}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onGoToTours={() => navigation.navigate("TATours")}
           />
         }
-        renderItem={({ item, index }) => (
-          <PostThumb
-            post={item}
-            index={index}
-            onPress={() => navigation.navigate("TASocialFeed")}
-          />
-        )}
+        renderItem={({ item, index }) =>
+          isMe ? (
+            <PostCard
+              post={item}
+              currentAgentId={viewerAgentId}
+              onAuthorPress={() => {}}
+              onLike={() => onToggleLike(item)}
+              onSave={() => onToggleSave(item)}
+              onShare={() => setSharePost(item)}
+              onComments={() => setCommentsPost(item)}
+              onMenu={() => setMenuPost(item)}
+            />
+          ) : (
+            <PostThumb
+              post={item}
+              index={index}
+              onPress={() => navigation.navigate("TASocialFeed")}
+            />
+          )
+        }
         contentContainerStyle={
           posts.length === 0
             ? { flexGrow: 1, paddingBottom: 24 }
-            : { paddingBottom: 24 }
+            : isMe
+              ? { paddingHorizontal: 12, paddingBottom: 24 }
+              : { paddingBottom: 24 }
         }
         refreshControl={
           <RefreshControl
@@ -264,6 +383,7 @@ export default function SocialProfileScreen({ navigation, route }) {
           />
         }
         ListEmptyComponent={
+          isMe && activeTab === "tours" ? null : (
           <View style={styles.emptyPosts}>
             <View style={styles.emptyPostsIcon}>
               <Ionicons name="images-outline" size={32} color={C.emerald600} />
@@ -291,15 +411,47 @@ export default function SocialProfileScreen({ navigation, route }) {
               </TouchableOpacity>
             )}
           </View>
+          )
         }
       />
+
+      {isMe && (
+        <>
+          <ShareInChatModal post={sharePost} onClose={() => setSharePost(null)} />
+          <PostMenuSheet
+            post={menuPost}
+            currentAgentId={viewerAgentId}
+            onClose={() => setMenuPost(null)}
+            onDelete={onDeletePost}
+            onShare={(post) => setSharePost(post)}
+            onShareImage={(post) => setSharePost(post)}
+            onSave={onToggleSave}
+            onCopyLink={onCopyLink}
+          />
+          <CommentsSheet
+            post={commentsPost}
+            currentAgentId={viewerAgentId}
+            onClose={() => setCommentsPost(null)}
+            onCountChange={(postId, delta) => {
+              setPosts((prev) => prev.map((p) =>
+                p.id === postId
+                  ? { ...p, commentsCount: Math.max(0, (p.commentsCount || 0) + delta) }
+                  : p
+              ));
+            }}
+          />
+        </>
+      )}
     </View>
   );
 }
 
 /* ───────── Profile header ───────── */
 
-function ProfileHeader({ profile, typeMeta, isMe, openingChat, onBack, onMessage, onEdit }) {
+function ProfileHeader({
+  profile, typeMeta, isMe, openingChat, onBack, onMessage, onEdit,
+  postsCount = 0, toursCount = 0, activeTab = "posts", onTabChange, onGoToTours,
+}) {
   const memberSince = profile.createdAt ? fmtRelative(profile.createdAt) : null;
 
   return (
@@ -411,6 +563,12 @@ function ProfileHeader({ profile, typeMeta, isMe, openingChat, onBack, onMessage
           color={typeMeta.color}
           isText
         />
+        {isMe && (
+          <>
+            <View style={styles.statDivider} />
+            <StatCell value={toursCount} label="Tours" icon="compass" color={C.amber} />
+          </>
+        )}
       </View>
 
       {/* ===== About / description ===== */}
@@ -462,18 +620,66 @@ function ProfileHeader({ profile, typeMeta, isMe, openingChat, onBack, onMessage
         )}
       </View>
 
-      {/* ===== Posts grid header ===== */}
-      <View style={styles.gridHeader}>
-        <View style={styles.gridHeaderIcon}>
-          <Ionicons name="grid" size={13} color={C.emerald600} />
+      {/* ===== Posts / Tours tabs (own profile only) ===== */}
+      {isMe && (
+        <View style={styles.tabsCard}>
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === "posts" && styles.tabBtnActive]}
+            onPress={() => onTabChange && onTabChange("posts")}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.tabBtnText, activeTab === "posts" && styles.tabBtnTextActive]}>
+              Posts ({postsCount})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === "tours" && styles.tabBtnActive]}
+            onPress={() => onTabChange && onTabChange("tours")}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.tabBtnText, activeTab === "tours" && styles.tabBtnTextActive]}>
+              Tours ({toursCount})
+            </Text>
+          </TouchableOpacity>
         </View>
-        <Text style={styles.gridTitle}>POSTS</Text>
-        {(profile.postsCount > 0) && (
-          <View style={styles.gridCountBadge}>
-            <Text style={styles.gridCountText}>{profile.postsCount}</Text>
+      )}
+
+      {/* ===== Tours tab — minimal stat + CTA into the real Tours section,
+          not a duplicate listing here (mirrors web's own-profile page). ===== */}
+      {isMe && activeTab === "tours" ? (
+        <View style={styles.toursCard}>
+          <View style={styles.toursIconWrap}>
+            <Ionicons name="compass" size={26} color={C.emerald600} />
           </View>
-        )}
-      </View>
+          <Text style={styles.toursTitle}>
+            {toursCount > 0 ? `${toursCount} tour${toursCount > 1 ? "s" : ""} listed` : "No tours yet"}
+          </Text>
+          <Text style={styles.toursSub}>Manage your tour listings from the Tours section.</Text>
+          <TouchableOpacity style={styles.toursCta} onPress={onGoToTours} activeOpacity={0.9}>
+            <LinearGradient
+              colors={[C.emerald600, C.emerald700]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.toursCtaInner}
+            >
+              <Ionicons name="compass" size={16} color="#fff" />
+              <Text style={styles.toursCtaText}>Go to My Tours</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        /* ===== Posts grid header ===== */
+        <View style={styles.gridHeader}>
+          <View style={styles.gridHeaderIcon}>
+            <Ionicons name="grid" size={13} color={C.emerald600} />
+          </View>
+          <Text style={styles.gridTitle}>POSTS</Text>
+          {(profile.postsCount > 0) && (
+            <View style={styles.gridCountBadge}>
+              <Text style={styles.gridCountText}>{profile.postsCount}</Text>
+            </View>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -701,6 +907,31 @@ const styles = StyleSheet.create({
   },
   messageBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14 },
   messageBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 14 },
+
+  // Posts / Tours tabs
+  tabsCard: {
+    flexDirection: "row", gap: 6,
+    marginHorizontal: 16, marginTop: 16,
+    backgroundColor: C.card, borderRadius: 14, padding: 5,
+    borderWidth: 1, borderColor: C.border,
+  },
+  tabBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: "center" },
+  tabBtnActive: { backgroundColor: C.emerald600 },
+  tabBtnText: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", color: C.subText },
+  tabBtnTextActive: { color: "#fff" },
+
+  // Tours tab — minimal stat + CTA card
+  toursCard: {
+    marginHorizontal: 16, marginTop: 14, marginBottom: 4,
+    backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border,
+    alignItems: "center", paddingVertical: 30, paddingHorizontal: 20,
+  },
+  toursIconWrap: { width: 56, height: 56, borderRadius: 28, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  toursTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: "bold", color: C.ink },
+  toursSub: { fontFamily: DISPLAY, fontSize: 12.5, color: C.subText, marginTop: 6, textAlign: "center", lineHeight: 18 },
+  toursCta: { marginTop: 16, borderRadius: 12, overflow: "hidden" },
+  toursCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11 },
+  toursCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
 
   // Grid header
   gridHeader: {

@@ -68,11 +68,23 @@ const faqs: FAQ[] = [
   },
 ];
 
+// All FIVE helpdesk statuses (prisma enum: OPEN | PENDING | IN_PROGRESS |
+// RESOLVED | CLOSED). PENDING was previously missing here, so a pending
+// ticket fell through to the OPEN styling and was mislabelled "Open".
 const STATUS_STYLE: Record<string, string> = {
   OPEN: 'bg-blue-50 text-blue-700 border-blue-200',
+  PENDING: 'bg-amber-50 text-amber-700 border-amber-200',
   IN_PROGRESS: 'bg-yellow-50 text-yellow-700 border-yellow-200',
   RESOLVED: 'bg-green-50 text-green-700 border-green-200',
   CLOSED: 'bg-gray-50 text-gray-600 border-gray-200',
+};
+
+// `priority` is a free-text column (default "NORMAL"). Only non-default
+// values get a chip — a "NORMAL" badge on every ticket would just be noise.
+const PRIORITY_STYLE: Record<string, string> = {
+  URGENT: 'bg-rose-50 text-rose-700 border-rose-200',
+  HIGH: 'bg-amber-50 text-amber-700 border-amber-200',
+  LOW: 'bg-sky-50 text-sky-700 border-sky-200',
 };
 
 function formatDate(iso: string) {
@@ -346,6 +358,11 @@ export default function TravelAgentSupportPage() {
                             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLE[t.status] || STATUS_STYLE.OPEN}`}>
                               {t.status.replace('_', ' ')}
                             </span>
+                            {PRIORITY_STYLE[t.priority?.toUpperCase()] && (
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${PRIORITY_STYLE[t.priority.toUpperCase()]}`}>
+                                {t.priority.charAt(0).toUpperCase() + t.priority.slice(1).toLowerCase()}
+                              </span>
+                            )}
                           </div>
                           <p className="text-sm font-medium text-gray-900 mt-1 truncate">{t.heading}</p>
                           <p className="text-xs text-gray-400 mt-0.5">Raised on {formatDate(t.createdAt)}</p>

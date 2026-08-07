@@ -118,21 +118,23 @@ export default function TourQuoteRequestsScreen({ navigation }) {
   };
 
   // Compute counts + filter result.
+  // "Expired" = a quote was sent (quoteValidUntil set) and its validity
+  // window has passed without the customer accepting/booking.
   const { filteredItems, counts } = useMemo(() => {
     const counts = { all: items.length, new: 0, expired: 0, today: 0 };
     const now = Date.now();
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
     items.forEach((it) => {
-      const expired = it.expiresAt && new Date(it.expiresAt).getTime() < now;
+      const expired = it.quoteValidUntil && new Date(it.quoteValidUntil).getTime() < now;
       if (expired) counts.expired++;
       else counts.new++;
       if (it.createdAt && new Date(it.createdAt).getTime() >= todayStart.getTime()) counts.today++;
     });
     let f = items;
     if (filter === "new") {
-      f = items.filter((it) => !it.expiresAt || new Date(it.expiresAt).getTime() >= now);
+      f = items.filter((it) => !it.quoteValidUntil || new Date(it.quoteValidUntil).getTime() >= now);
     } else if (filter === "expired") {
-      f = items.filter((it) => it.expiresAt && new Date(it.expiresAt).getTime() < now);
+      f = items.filter((it) => it.quoteValidUntil && new Date(it.quoteValidUntil).getTime() < now);
     }
     // priority + search are applied SERVER-SIDE (passed to the API); only the
     // lifecycle filter (all/new/expired) is computed client-side here.
@@ -392,7 +394,7 @@ function RequestCard({ request, onPress }) {
   const tripType = request.tripType;
   const dates = request.travelDate ? fmtDate(request.travelDate) : null;
   const passengers = request.passengers || request.numberOfPassengers;
-  const isExpired = request.expiresAt && new Date(request.expiresAt).getTime() < Date.now();
+  const isExpired = request.quoteValidUntil && new Date(request.quoteValidUntil).getTime() < Date.now();
   const isNew = !isExpired &&
     request.createdAt &&
     (Date.now() - new Date(request.createdAt).getTime()) < 24 * 60 * 60 * 1000;
@@ -509,12 +511,12 @@ function RequestCard({ request, onPress }) {
           </View>
         )}
 
-        {/* Expired pill */}
+        {/* Expired pill — quote was sent but its validity window has passed */}
         {isExpired && (
           <View style={styles.expiredPill}>
             <Ionicons name="time" size={11} color={C.red} />
             <Text style={styles.expiredText}>
-              EXPIRED · {fmtDate(request.expiresAt)}
+              QUOTE EXPIRED · {fmtDate(request.quoteValidUntil)}
             </Text>
           </View>
         )}

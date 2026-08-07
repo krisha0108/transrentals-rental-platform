@@ -92,38 +92,6 @@ const SERVICE_ICON = {
 };
 const serviceIcon = (s) => SERVICE_ICON[String(s || "").toLowerCase()] || "briefcase-outline";
 
-// TEMP DEMO — sample company self-booking so the screen can be viewed without
-// real data. Remove this block after the warm redesign is approved.
-const DEMO_SELF_ID = "__DEMO_SELF__";
-const DEMO_BOOKING = {
-  bookingNumber: "TA-DEMO-0001",
-  bookingMode: "COMPANY",
-  serviceType: "car",
-  status: "CONFIRMED",
-  finalAmount: 24500,
-  customerName: "Rahul Sharma",
-  customerPhone: "9876500000",
-  customerEmail: "rahul@example.com",
-  companyName: "Sharma Travels",
-  tripType: "Round trip",
-  pickupLocation: "Delhi Airport (T3)",
-  dropLocation: "Jaipur",
-  vehiclesRequired: 2,
-  vehicleCategory: "SUV",
-  passengerCount: 6,
-  scheduledDate: "2026-07-25T00:00:00.000Z",
-  scheduledTime: "09:30 AM",
-  returnDate: "2026-07-28T00:00:00.000Z",
-  returnTime: "06:00 PM",
-  specialNotes: "Airport pickup, English-speaking driver.",
-  vendorCostTotal: 18000,
-  companyMargin: 4500,
-  gstAmount: 2000,
-  vendorQuotes: [{ status: "ACCEPTED" }, { status: "PENDING" }],
-  superQuotes: [{}],
-  trips: [{ id: "t1", status: "CONFIRMED", vendor: { businessName: "Rajasthan Cabs" } }],
-};
-
 export default function SelfBookingDetailScreen({ route, navigation }) {
   const { id, bookingNumber: passedNumber } = route.params || {};
   const [loading, setLoading] = useState(true);
@@ -135,14 +103,6 @@ export default function SelfBookingDetailScreen({ route, navigation }) {
   const load = useCallback(async () => {
     if (!id) {
       setError("Missing booking id");
-      setLoading(false);
-      return;
-    }
-    // TEMP DEMO — show sample booking for the demo id (remove after redesign)
-    if (id === DEMO_SELF_ID) {
-      setBooking(DEMO_BOOKING);
-      setTripStats(null);
-      setError(null);
       setLoading(false);
       return;
     }

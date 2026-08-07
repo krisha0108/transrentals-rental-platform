@@ -31,6 +31,11 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
+// Strips an existing 91/+91 country-code prefix before re-adding it, so a
+// number already saved as "+919876543210" doesn't become "919919876543210".
+const waLink = (phone: string, text?: string) =>
+  `https://wa.me/91${phone.replace(/^\+?91/, '')}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
+
 interface Booking {
   id: string;
   bookingNumber: string;
@@ -315,7 +320,7 @@ export default function BookingDetailPage({ params }: { params: { id: string } }
                   <Phone className="w-4 h-4" /> Call
                 </a>
                 <a
-                  href={`https://wa.me/91${booking.customerPhone}?text=${encodeURIComponent(`Hi ${booking.customerName}, regarding your booking #${booking.bookingNumber}...`)}`}
+                  href={waLink(booking.customerPhone, `Hi ${booking.customerName}, regarding your booking #${booking.bookingNumber}...`)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 py-3 text-sm font-semibold text-[#25D366] hover:bg-green-50 transition"
@@ -541,7 +546,7 @@ export default function BookingDetailPage({ params }: { params: { id: string } }
 
                   <div className="flex gap-2">
                     <a
-                      href={`https://wa.me/91${booking.customerPhone}?text=${encodeURIComponent(`Hi ${booking.customerName}, please complete your booking details: ${shareUrl}`)}`}
+                      href={waLink(booking.customerPhone, `Hi ${booking.customerName}, please complete your booking details: ${shareUrl}`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 text-center bg-green-600 hover:bg-green-700 text-white text-xs font-semibold py-2 rounded-lg transition"

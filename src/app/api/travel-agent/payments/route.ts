@@ -112,11 +112,14 @@ export async function GET(request: NextRequest) {
         const arr = l.paymentProofImages ? JSON.parse(l.paymentProofImages) : [];
         if (Array.isArray(arr)) images = arr;
       } catch {}
-      const advance =
-        (l.quoteAdvanceAmount && Number(l.quoteAdvanceAmount)) ||
-        (l.quoteAdvancePercent && l.quotedAmount
-          ? Math.round((Number(l.quotedAmount) * Number(l.quoteAdvancePercent)) / 100)
-          : 0);
+      const hasQuote = l.quotedAmount != null;
+      const advance = !hasQuote
+        ? 0
+        : l.quoteAdvanceAmount != null
+          ? Number(l.quoteAdvanceAmount)
+          : l.quoteAdvancePercent != null
+            ? Math.round((Number(l.quotedAmount) * Number(l.quoteAdvancePercent)) / 100)
+            : 0;
       return {
         id: l.id,
         customerName: l.customerName,
@@ -126,9 +129,9 @@ export async function GET(request: NextRequest) {
         destination: l.destination,
         travelDate: l.travelDate,
         quotedAmount: l.quotedAmount,
-        advanceAmount: advance || null,
+        advanceAmount: hasQuote ? advance : null,
         balanceAmount:
-          l.quotedAmount && advance ? Math.max(0, Number(l.quotedAmount) - advance) : null,
+          hasQuote ? Math.max(0, Number(l.quotedAmount) - advance) : null,
         leadStatus: l.status,
         paymentStatus: l.paymentStatus,
         paymentTxnId: l.paymentTxnId,
@@ -164,10 +167,11 @@ export async function GET(request: NextRequest) {
     });
 
     const calcAdv = (l: any) =>
-      (l.quoteAdvanceAmount && Number(l.quoteAdvanceAmount)) ||
-      (l.quoteAdvancePercent && l.quotedAmount
-        ? Math.round((Number(l.quotedAmount) * Number(l.quoteAdvancePercent)) / 100)
-        : 0);
+      l.quoteAdvanceAmount != null
+        ? Number(l.quoteAdvanceAmount)
+        : l.quoteAdvancePercent != null && l.quotedAmount != null
+          ? Math.round((Number(l.quotedAmount) * Number(l.quoteAdvancePercent)) / 100)
+          : 0;
 
     const verifiedLeads = allForStats.filter((l: any) => l.paymentStatus === 'VERIFIED');
     const advancePaidLeads = verifiedLeads.filter(

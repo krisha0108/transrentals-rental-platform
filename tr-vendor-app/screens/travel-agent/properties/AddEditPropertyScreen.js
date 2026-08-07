@@ -177,6 +177,8 @@ export default function AddEditPropertyScreen({ navigation, route }) {
     state:              existing?.state || "",
     pincode:            existing?.pincode || "",
     landmark:           existing?.landmark || "",
+    latitude:           existing?.latitude != null ? String(existing.latitude) : "",
+    longitude:          existing?.longitude != null ? String(existing.longitude) : "",
     totalRooms:         existing?.totalRooms ? String(existing.totalRooms) : "",
     bedroomsCount:      existing?.bedroomsCount ? String(existing.bedroomsCount) : "",
     bathroomsCount:     existing?.bathroomsCount ? String(existing.bathroomsCount) : "",
@@ -264,6 +266,8 @@ export default function AddEditPropertyScreen({ navigation, route }) {
       state:              form.state.trim() || null,
       pincode:            form.pincode.trim() || null,
       landmark:           form.landmark.trim() || null,
+      latitude:           form.latitude ? Number(form.latitude) : null,
+      longitude:          form.longitude ? Number(form.longitude) : null,
       totalRooms:         form.totalRooms ? Number(form.totalRooms) : 1,
       bedroomsCount:      form.bedroomsCount ? Number(form.bedroomsCount) : null,
       bathroomsCount:     form.bathroomsCount ? Number(form.bathroomsCount) : null,
@@ -359,7 +363,7 @@ export default function AddEditPropertyScreen({ navigation, route }) {
             <ImagePickerField label="Cover photo" value={form.coverImage}
               onChange={(v) => update("coverImage", v)} folder="properties"
               helperText="Main photo shown on property cards." />
-            <ImagePickerField label="Gallery (up to 8)" multi max={8}
+            <ImagePickerField label="Gallery (up to 20)" multi max={20}
               value={form.galleryImages} onChange={(v) => update("galleryImages", v)} folder="properties" />
           </Section>
 
@@ -444,6 +448,18 @@ export default function AddEditPropertyScreen({ navigation, route }) {
                 <TextInput style={styles.input} placeholder="e.g. Near Baga Beach"
                   placeholderTextColor="#A99F8D" value={form.landmark}
                   onChangeText={(v) => update("landmark", v)} />
+              </Field>
+            </View>
+            <View style={styles.row2}>
+              <Field label="Latitude (optional)" style={{ flex: 1 }}>
+                <TextInput style={styles.input} placeholder="e.g. 15.5527"
+                  placeholderTextColor="#A99F8D" keyboardType="numbers-and-punctuation"
+                  value={form.latitude} onChangeText={(v) => update("latitude", v.replace(/[^0-9.\-]/g, ""))} />
+              </Field>
+              <Field label="Longitude (optional)" style={{ flex: 1 }}>
+                <TextInput style={styles.input} placeholder="e.g. 73.7771"
+                  placeholderTextColor="#A99F8D" keyboardType="numbers-and-punctuation"
+                  value={form.longitude} onChangeText={(v) => update("longitude", v.replace(/[^0-9.\-]/g, ""))} />
               </Field>
             </View>
           </Section>

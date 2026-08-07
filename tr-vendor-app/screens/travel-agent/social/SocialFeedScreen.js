@@ -79,7 +79,7 @@ function initials(name) {
 // Normalize post author across backend shapes:
 //   - post.author = already-projected SocialActor
 //   - post.vendor / post.agent  = relation include
-function getAuthor(post) {
+export function getAuthor(post) {
   let raw = null;
   if (post.author) raw = { ...post.author };
   else if (post.vendor) raw = { type: "vendor", ...post.vendor };
@@ -892,7 +892,51 @@ function isPostMine(post, currentAgentId) {
   return author.type === "agent" && author.id === currentAgentId;
 }
 
-function PostCard({ post, currentAgentId, onAuthorPress, onLike, onSave, onShare, onComments, onMenu }) {
+// Auto-rotating image slideshow for post cards — mirrors the web
+// PostImageSlideshow behaviour (2s interval, cross-fade, dot indicators)
+// instead of a "+N" badge with no way to see the other images.
+function ImageSlideshow({ images, containerStyle }) {
+  const valid = useMemo(
+    () => (Array.isArray(images) ? images : []).filter(Boolean).slice(0, 4),
+    [images],
+  );
+  const [idx, setIdx] = useState(0);
+  const opacities = useRef(valid.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))).current;
+
+  useEffect(() => {
+    if (valid.length <= 1) return undefined;
+    const t = setInterval(() => {
+      setIdx((prev) => {
+        const next = (prev + 1) % valid.length;
+        Animated.timing(opacities[prev], { toValue: 0, duration: 500, useNativeDriver: true }).start();
+        Animated.timing(opacities[next], { toValue: 1, duration: 500, useNativeDriver: true }).start();
+        return next;
+      });
+    }, 2000);
+    return () => clearInterval(t);
+  }, [valid.length, opacities]);
+
+  if (valid.length === 0) return null;
+
+  return (
+    <View style={containerStyle}>
+      {valid.map((uri, i) => (
+        <Animated.View key={i} style={[StyleSheet.absoluteFill, { opacity: opacities[i] }]}>
+          <RemoteImage source={{ uri }} style={styles.slideshowImage} resizeMode="cover" />
+        </Animated.View>
+      ))}
+      {valid.length > 1 && (
+        <View style={styles.slideshowDots}>
+          {valid.map((_, i) => (
+            <View key={i} style={[styles.slideshowDot, i === idx && styles.slideshowDotActive]} />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+export function PostCard({ post, currentAgentId, onAuthorPress, onLike, onSave, onShare, onComments, onMenu }) {
   const author = getAuthor(post) || {};
   const typeMeta = TYPE_META[author.type] || TYPE_META.agent;
   const liked = !!post.likedByMe;
@@ -1005,13 +1049,7 @@ function PostCard({ post, currentAgentId, onAuthorPress, onLike, onSave, onShare
             keeps the corners clean. */}
         {images.length > 0 && (
           <View style={[styles.imageWrap, isSOS && styles.imageWrapSOS]}>
-            <RemoteImage source={{ uri: images[0] }} style={styles.contentImage} resizeMode="cover" />
-            {images.length > 1 && (
-              <View style={styles.imageCountBadge}>
-                <Ionicons name="images" size={11} color="#fff" />
-                <Text style={styles.imageCountText}>+{images.length - 1}</Text>
-              </View>
-            )}
+            <ImageSlideshow images={images} containerStyle={styles.contentImage} />
           </View>
         )}
 
@@ -1100,7 +1138,7 @@ function ActionBtn({ icon, count, color, onPress, a11y }) {
  *  - Other post → Share / Save / Copy link
  * (Report removed for now — backend has no report endpoint yet.)
  */
-function PostMenuSheet({ post, currentAgentId, onClose, onDelete, onShare, onShareImage, onSave, onCopyLink }) {
+export function PostMenuSheet({ post, currentAgentId, onClose, onDelete, onShare, onShareImage, onSave, onCopyLink }) {
   if (!post) return null;
   const isMine = isPostMine(post, currentAgentId);
   const saved = !!post.savedByMe;
@@ -1224,7 +1262,7 @@ function PostMenuSheet({ post, currentAgentId, onClose, onDelete, onShare, onSha
  * post a new comment (optimistic) and delete their own comments. Updates the
  * parent's `commentsCount` via `onCountChange` so the feed card stays in sync.
  */
-function CommentsSheet({ post, currentAgentId, onClose, onCountChange }) {
+export function CommentsSheet({ post, currentAgentId, onClose, onCountChange }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState("");
@@ -1480,7 +1518,7 @@ function CommentsSheet({ post, currentAgentId, onClose, onCountChange }) {
  * Lists user's social conversations; tap one to forward post as
  * `post_card` JSON message.
  */
-function ShareInChatModal({ post, onClose }) {
+export function ShareInChatModal({ post, onClose }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sendingId, setSendingId] = useState(null);
@@ -1945,8 +1983,13 @@ const styles = StyleSheet.create({
   // that moves the total meaningfully. 150 ≈ 2.4:1 against the ~360px full-bleed
   // width. (Was 260 ≈ 4:3, then 200 ≈ 16:9, then 180 ≈ 2:1.)
   contentImage: { width: "100%", height: 150, backgroundColor: FILL },
-  imageCountBadge: { position: "absolute", top: 10, right: 10, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 4.5, borderRadius: 999, backgroundColor: "rgba(4,20,15,0.62)", borderWidth: 1, borderColor: "rgba(255,255,255,0.22)" },
-  imageCountText: { fontFamily: DISPLAY, color: "#fff", fontSize: 10.5, fontWeight: "bold", includeFontPadding: false, fontVariant: ["tabular-nums"] },
+  slideshowImage: { width: "100%", height: "100%", backgroundColor: FILL },
+  slideshowDots: {
+    position: "absolute", bottom: 9, left: 0, right: 0,
+    flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 5,
+  },
+  slideshowDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.6)" },
+  slideshowDotActive: { width: 12, backgroundColor: "#fff" },
 
   // Actions — icon-forward with inline counts. Like/comment/save group at the
   // left, share pushed right by a spacer. Hairline rule separates them from the

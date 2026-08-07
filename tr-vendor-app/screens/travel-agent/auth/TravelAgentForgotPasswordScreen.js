@@ -147,7 +147,7 @@ export default function TravelAgentForgotPasswordScreen({ navigation }) {
   const resetPassword = async () => {
     const e = {};
     if (!password) e.password = "Enter a new password";
-    if (password && strength(password) < 3) e.password = "Use 8+ chars with mix of case/number/symbol";
+    if (password && password.length < 6) e.password = "Password must be at least 6 characters";
     if (!confirmPassword) e.confirmPassword = "Confirm your password";
     if (password && confirmPassword && password !== confirmPassword) e.confirmPassword = "Passwords do not match";
     setErrors(e); if (Object.keys(e).length) return;

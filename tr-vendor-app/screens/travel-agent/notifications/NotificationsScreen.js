@@ -225,6 +225,11 @@ export default function NotificationsScreen({ navigation }) {
         navigation.navigate(isSocial ? "TASocialChat" : "TAChatThread", { id: chatMatch[1] });
         return;
       }
+      // SYSTEM notifications (account approved/rejected, KYC doc verified/
+      // rejected) link to plain top-level pages, not detail records.
+      if (item.link.startsWith("/travel-agent/documents")) { navigation.navigate("TADocuments"); return; }
+      if (item.link.startsWith("/travel-agent/profile")) { navigation.navigate("TAProfile"); return; }
+      if (item.link.startsWith("/travel-agent/dashboard")) { navigation.navigate("TravelAgentDashboard"); return; }
     }
   };
 

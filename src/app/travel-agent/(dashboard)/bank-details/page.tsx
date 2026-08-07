@@ -28,12 +28,15 @@ export default function TravelAgentBankDetailsPage() {
     bankName: '',
     accountHolderName: '',
     accountNumber: '',
+    confirmAccountNumber: '',
     ifscCode: '',
     accountType: 'SAVINGS',
     branchName: '',
     upiId: '',
     isPrimary: false,
   });
+
+  const IFSC_RE = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 
   const load = async () => {
     setLoading(true);
@@ -57,6 +60,7 @@ export default function TravelAgentBankDetailsPage() {
       bankName: '',
       accountHolderName: '',
       accountNumber: '',
+      confirmAccountNumber: '',
       ifscCode: '',
       accountType: 'SAVINGS',
       branchName: '',
@@ -71,6 +75,7 @@ export default function TravelAgentBankDetailsPage() {
       bankName: acc.bankName,
       accountHolderName: acc.accountHolderName,
       accountNumber: acc.accountNumber,
+      confirmAccountNumber: acc.accountNumber,
       ifscCode: acc.ifscCode,
       accountType: acc.accountType || 'SAVINGS',
       branchName: acc.branchName || '',
@@ -83,13 +88,22 @@ export default function TravelAgentBankDetailsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.accountNumber !== form.confirmAccountNumber) {
+      showToast({ type: 'error', title: 'Account numbers do not match' });
+      return;
+    }
+    if (!IFSC_RE.test(form.ifscCode)) {
+      showToast({ type: 'error', title: 'Enter a valid IFSC code (e.g. HDFC0001234)' });
+      return;
+    }
     setSubmitting(true);
     const isEdit = !!editingId;
     try {
+      const { confirmAccountNumber, ...payload } = form;
       const res = await fetch('/api/travel-agent/bank-details', {
         method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(isEdit ? { ...form, id: editingId } : form),
+        body: JSON.stringify(isEdit ? { ...payload, id: editingId } : payload),
       });
       if (res.ok) {
         showToast({ type: 'success', title: isEdit ? 'Bank account updated' : 'Bank account added' });
@@ -183,6 +197,12 @@ export default function TravelAgentBankDetailsPage() {
               label="Account Number *"
               value={form.accountNumber}
               onChange={(v) => setForm({ ...form, accountNumber: v })}
+              required
+            />
+            <Field
+              label="Confirm Account Number *"
+              value={form.confirmAccountNumber}
+              onChange={(v) => setForm({ ...form, confirmAccountNumber: v })}
               required
             />
             <Field

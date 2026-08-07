@@ -81,6 +81,7 @@ import TAAddEditCaptureLinkScreen from './screens/travel-agent/capture-links/Add
 
 // Travel Agent — Phase 7 (Help & Support)
 import TASupportScreen from './screens/travel-agent/support/TASupportScreen';
+import TAHelpAssistantScreen from './screens/travel-agent/support/HelpAssistantScreen';
 
 // Travel Agent — Phase 6 (Social Network: Feed / Create / Messages / Chat / Profile)
 import TASocialFeedScreen from './screens/travel-agent/social/SocialFeedScreen';
@@ -1193,6 +1194,7 @@ export default function App() {
             <Stack.Screen name="TAProfile" component={TAAgencyProfileScreen} />
             <Stack.Screen name="TAGetStarted" component={TAGetStartedScreen} />
             <Stack.Screen name="TASupport" component={TASupportScreen} />
+            <Stack.Screen name="TAHelpAssistant" component={TAHelpAssistantScreen} />
 
           </Stack.Group>
         </Stack.Navigator>

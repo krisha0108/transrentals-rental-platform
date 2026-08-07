@@ -99,18 +99,6 @@ const SERVICE_META = {
   B2B_SELF_DRIVE: { label: "TA · Self-Drive (Mgr)", icon: "briefcase", lib: "ion", bg: "#E4EAF7", fg: "#3A4E8C" },
 };
 
-// TEMP DEMO — sample company self-booking card so the "My Self-Bookings"
-// section renders without real data. Tapping it opens SelfBookingDetail with
-// the demo id. Remove after the Self-Booking redesign is approved.
-const DEMO_SELF_BOOKING = {
-  id: "__DEMO_SELF__",
-  service: "B2B_CAR",
-  bookingNumber: "TA-DEMO-0001",
-  bookingDate: "2026-07-20T00:00:00.000Z",
-  amount: 24500,
-  status: "CONFIRMED (COMPANY)",
-};
-
 function ServiceIco({ lib, name, size, color }) {
   if (lib === "mci") return <MaterialCommunityIcons name={name} size={size} color={color} />;
   return <Ionicons name={name} size={size} color={color} />;
@@ -244,9 +232,7 @@ export default function BookingsListScreen({ navigation }) {
         });
         setBookings((prev) => (append ? [...prev, ...(data.bookings || [])] : data.bookings || []));
         // Self-bookings are not paginated server-side — only refresh on page 1.
-        // TEMP DEMO — prepend a sample company self-booking so the section is
-        // visible without real data (remove after Self-Booking redesign).
-        if (!append) setSelfBookings([DEMO_SELF_BOOKING, ...(data.selfBookings || [])]);
+        if (!append) setSelfBookings(data.selfBookings || []);
         if (data.stats) setStats(data.stats);
         if (data.totals) setTotals(data.totals);
         if (data.pagination) setPagination(data.pagination);

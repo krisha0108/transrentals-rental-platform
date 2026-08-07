@@ -266,6 +266,29 @@ export default function TASupportScreen({ navigation }) {
           />
         </View>
 
+        {/* ── AI Help Assistant — instant "how do I..." answers, app parity
+            with the web's floating HelpBotWidget. ── */}
+        <TouchableOpacity
+          style={styles.aiCard}
+          onPress={() => navigation.navigate("TAHelpAssistant")}
+          activeOpacity={0.9}
+        >
+          <LinearGradient
+            colors={G.hero}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.aiCardInner}
+          >
+            <View style={styles.aiCardIcon}>
+              <Ionicons name="sparkles" size={18} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.aiCardTitle}>Ask our Help Assistant</Text>
+              <Text style={styles.aiCardSub}>Instant "how do I…" answers, in English/Hindi/Hinglish</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
+          </LinearGradient>
+        </TouchableOpacity>
+
         {/* ── Segmented tabs ── */}
         <View style={styles.segRow}>
           {TABS.map((t) => {
@@ -691,6 +714,22 @@ const styles = StyleSheet.create({
     flexDirection: "row", gap: rs(12),
     marginHorizontal: GUT + rs(6), marginTop: -CARDS_OVERLAP,
   },
+  aiCard: {
+    marginHorizontal: GUT + rs(6), marginTop: rs(12),
+    borderRadius: rs(16), overflow: "hidden",
+    shadowColor: C.emeraldDeep, shadowOpacity: 0.3, shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }, elevation: 4,
+  },
+  aiCardInner: {
+    flexDirection: "row", alignItems: "center", gap: rs(10),
+    paddingVertical: rs(13), paddingHorizontal: rs(14),
+  },
+  aiCardIcon: {
+    width: rs(34), height: rs(34), borderRadius: rs(11),
+    backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center",
+  },
+  aiCardTitle: { fontFamily: DISPLAY, fontSize: rf(13.5), fontWeight: "bold", color: "#fff" },
+  aiCardSub: { fontFamily: DISPLAY, fontSize: rf(10.5), color: "rgba(255,255,255,0.8)", fontWeight: "600", marginTop: 2 },
   contactCard: {
     flex: 1, minWidth: 0,
     backgroundColor: C.card, borderRadius: rs(14),

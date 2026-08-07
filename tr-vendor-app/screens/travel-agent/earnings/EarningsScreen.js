@@ -35,6 +35,7 @@ const TYPE_META = {
   CUSTOM:     { color: C.purple,     bg: C.purpleLight,  icon: "construct",     label: "Custom" },
   FLEET:      { color: C.indigo,     bg: C.indigoLight,  icon: "car-sport",     label: "Fleet" },
   LEAD_QUOTE: { color: C.red,        bg: C.redLight,     icon: "document-text", label: "Lead quote" },
+  OTHER:      { color: C.subText,    bg: C.border,       icon: "wallet",        label: "Other" },
 };
 const KIND_META = {
   BOOKING: { color: C.blue,    icon: "receipt" },
@@ -365,7 +366,7 @@ export default function EarningsScreen({ navigation }) {
               <SectionLabel icon="pie-chart" color={C.purple} label="Breakdown by type" />
               <View style={styles.card}>
                 {breakdown.map((b, i) => {
-                  const meta = TYPE_META[b.type] || TYPE_META.CUSTOM;
+                  const meta = TYPE_META[b.type] || TYPE_META.OTHER;
                   const pct = breakdownTotal > 0
                     ? Math.round((Number(b.amount) / breakdownTotal) * 100)
                     : 0;
@@ -446,7 +447,10 @@ export default function EarningsScreen({ navigation }) {
                             {fmtDate(r.date)}
                           </Text>
                         </View>
-                        {!!r.status && (
+                        {/* LEAD-kind rows carry their status in paymentStatus
+                            instead of status (API returns status:null for
+                            them) — fall back the same way web does. */}
+                        {!!(r.paymentStatus || r.status) && (
                           <View
                             style={[
                               styles.recentStatusPill,
@@ -454,7 +458,7 @@ export default function EarningsScreen({ navigation }) {
                             ]}
                           >
                             <Text style={[styles.recentStatusText, { color: km.color }]}>
-                              {r.status}
+                              {r.paymentStatus || r.status}
                             </Text>
                           </View>
                         )}

@@ -69,6 +69,7 @@ function getCustomer(conv) {
 }
 
 const STATUS_META = {
+  ALL:      { icon: "apps",                label: "All",      color: C.subText },
   ACTIVE:   { icon: "chatbubble-ellipses", label: "Active",   color: C.emerald600 },
   ARCHIVED: { icon: "archive",             label: "Archived", color: C.amber },
   BLOCKED:  { icon: "ban",                 label: "Blocked",  color: C.red },
@@ -402,6 +403,7 @@ function EmptyState({ filter, hasSearch }) {
     );
   }
   const map = {
+    ALL:      { icon: "chatbubbles-outline", title: "No conversations",  body: "Customer enquiries will land here when they message you." },
     ACTIVE:   { icon: "chatbubbles-outline", title: "No active chats",   body: "Customer enquiries will land here when they message you." },
     ARCHIVED: { icon: "archive-outline",     title: "No archived chats", body: "Conversations you've archived appear here." },
     BLOCKED:  { icon: "ban",                  title: "No blocked chats",  body: "Conversations you've blocked appear here." },

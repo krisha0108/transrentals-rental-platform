@@ -29,6 +29,7 @@ import {
   deleteTravelAgentTour,
   getTravelAgentProfile, // for the KYC-document gate before creating tours
   generateTourDescription, // AI: short description from title
+  getTourAiStatus, // proactive DeepSeek-availability check (web parity)
   listTravelAgentCategories,
   searchTravelAgentLocations,
   listTravelAgentFleet,
@@ -45,6 +46,85 @@ import AnimatedOrb from "../_shared/AnimatedOrb";
 import SheetHandle from "../_shared/SheetHandle";
 
 const TOUR_DRAFT_KEY = "ta_tour_draft_v1"; // #6d — only used for new (un-saved) tours
+
+// Web's tour description is authored in a TipTap WYSIWYG and stored as real
+// HTML (<strong>, <ul><li>, <ol><li>, <p>...). A plain RN TextInput can't host
+// a WYSIWYG, so the app field instead uses lightweight markdown-ish syntax
+// (**bold**, "- item" bullets, "1. item" numbered) that a toolbar inserts,
+// and these two converters translate it to/from that same HTML shape — so a
+// description written on the app renders with real bold/bullets everywhere,
+// not just on the device that created it.
+function editableDescToHtml(text) {
+  if (!text || !text.trim()) return "";
+  const inlineBold = (s) => s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  const lines = text.split("\n");
+  const out = [];
+  let buf = [];
+  let listType = null; // 'ul' | 'ol'
+  const flush = () => {
+    if (buf.length) {
+      out.push(`<${listType}>${buf.map((li) => `<li>${li}</li>`).join("")}</${listType}>`);
+      buf = [];
+      listType = null;
+    }
+  };
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { flush(); continue; }
+    const bullet = line.match(/^-\s+(.*)/);
+    const numbered = line.match(/^\d+\.\s+(.*)/);
+    if (bullet) {
+      if (listType !== "ul") { flush(); listType = "ul"; }
+      buf.push(inlineBold(bullet[1]));
+    } else if (numbered) {
+      if (listType !== "ol") { flush(); listType = "ol"; }
+      buf.push(inlineBold(numbered[1]));
+    } else {
+      flush();
+      out.push(`<p>${inlineBold(line)}</p>`);
+    }
+  }
+  flush();
+  return out.join("");
+}
+
+// Detects web-authored formatting this editor can't round-trip (headings,
+// italic, underline, strikethrough, code, highlight, quotes, hr, links) —
+// used to warn before silently flattening it to plain text on save.
+function hasUnsupportedFormatting(html) {
+  if (!html) return false;
+  return /<h[1-6]|<em|<i[\s>]|<u[\s>]|<s[\s>]|<strike|<code|<mark|<blockquote|<hr|<a\s/i.test(html);
+}
+
+function htmlDescToEditable(html) {
+  if (!html) return "";
+  let text = html;
+  text = text.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (_, inner) =>
+    inner.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m, li) => `- ${li.trim()}\n`)
+  );
+  text = text.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (_, inner) => {
+    let i = 0;
+    return inner.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m, li) => `${++i}. ${li.trim()}\n`);
+  });
+  text = text.replace(/<(strong|b)[^>]*>([\s\S]*?)<\/\1>/gi, "**$2**");
+  text = text.replace(/<\/h[1-6]>/gi, "\n\n");
+  text = text.replace(/<\/p>\s*<p[^>]*>/gi, "\n\n");
+  text = text.replace(/<p[^>]*>/gi, "");
+  text = text.replace(/<\/p>/gi, "\n\n");
+  text = text.replace(/<br\s*\/?>/gi, "\n");
+  // Anything else (headings, italics, links, quotes, alignment) degrades to
+  // plain text rather than round-tripping — acceptable since the app only
+  // ever authors bold/bullets/numbers itself.
+  text = text.replace(/<[^>]+>/g, "");
+  text = text
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  return text.replace(/\n{3,}/g, "\n\n").trim();
+}
 
 
 const PRICE_TYPE_META = {
@@ -104,12 +184,16 @@ function toArr(v) {
 export default function AddEditTourScreen({ navigation, route }) {
   const existing = route?.params?.tour || null;
   const isEdit = !!existing?.id;
+  // If the web-authored description used formatting this editor can't
+  // round-trip, saving from here would silently flatten it — warn up front
+  // rather than let it happen invisibly.
+  const [descHadRichFormatting] = useState(() => hasUnsupportedFormatting(existing?.description));
 
   const [form, setForm] = useState(() => ({
     title: existing?.title || "",
     destination: existing?.destination || "",
     shortDescription: existing?.shortDescription || "",
-    description: existing?.description || "",
+    description: htmlDescToEditable(existing?.description) || "",
     durationDays: existing?.durationDays ? String(existing.durationDays) : "",
     durationNights: existing?.durationNights ? String(existing.durationNights) : "",
     priceType: existing?.priceType || "PER_PERSON",
@@ -162,7 +246,18 @@ export default function AddEditTourScreen({ navigation, route }) {
   const [detailStep, setDetailStep] = useState(1); // detailed-mode wizard step (1-6)
   const [aiLoading, setAiLoading] = useState(false); // AI short-description generation
   const [aiQuickLoading, setAiQuickLoading] = useState(false); // AI quick-tour description
+  // null = still checking, true/false once known — mirrors web, which
+  // proactively disables the AI button instead of only failing after a tap.
+  const [aiAvailable, setAiAvailable] = useState(null);
   const [descSelection, setDescSelection] = useState({ start: 0, end: 0 });
+
+  useEffect(() => {
+    let cancelled = false;
+    getTourAiStatus()
+      .then((d) => { if (!cancelled) setAiAvailable(d?.available !== false); })
+      .catch(() => { if (!cancelled) setAiAvailable(true); }); // network error — don't block the button
+    return () => { cancelled = true; };
+  }, []);
   const isQuick = mode === "QUICK";
 
   const [saving, setSaving] = useState(false);
@@ -280,13 +375,22 @@ export default function AddEditTourScreen({ navigation, route }) {
     }
   };
 
-  // Quick tour: insert bullet/list prefix at cursor position
+  // Insert bullet/list prefix at cursor position (starts a new line for it).
   const insertDescFormat = (prefix) => {
     const text = form.description;
     const { start, end } = descSelection;
     const isLineStart = start === 0 || text[start - 1] === "\n";
     const toInsert = isLineStart ? prefix : "\n" + prefix;
     update("description", text.slice(0, start) + toInsert + text.slice(end));
+  };
+
+  // Wraps the current selection in **bold** markers (or drops an empty pair
+  // at the cursor to type into) — converted to real <strong> HTML on save.
+  const insertBoldFormat = () => {
+    const text = form.description;
+    const { start, end } = descSelection;
+    const selected = text.slice(start, end);
+    update("description", text.slice(0, start) + `**${selected}**` + text.slice(end));
   };
 
   // AI: write the quick-tour description from title + destination + duration + price
@@ -355,7 +459,7 @@ export default function AddEditTourScreen({ navigation, route }) {
         mainLocationId: form.mainLocationId || null,
         destination: form.destination?.trim() || null,
         duration: finalDuration || null,
-        description: form.description.trim() || null,
+        description: editableDescToHtml(form.description) || null,
         basePrice: form.basePrice ? Number(form.basePrice) : null,
         startingPrice: form.basePrice ? Number(form.basePrice) : null,
         priceType: form.basePrice ? "PER_PERSON" : "ON_REQUEST",
@@ -402,7 +506,7 @@ export default function AddEditTourScreen({ navigation, route }) {
       title: form.title.trim(),
       destination: form.destination.trim() || null,
       shortDescription: form.shortDescription.trim() || null,
-      description: form.description.trim() || null,
+      description: editableDescToHtml(form.description) || null,
       duration: durationLabel,
       durationDays: days,
       durationNights: nights,
@@ -727,10 +831,16 @@ export default function AddEditTourScreen({ navigation, route }) {
             <SectionToggle icon="document-text" color={C.emerald600} label="Description" sub="Short overview (optional)" open showChevron={false} onToggle={() => {}} />
             <Card attached>
               <Field label="Description">
-                {/* Formatting toolbar */}
+                {descHadRichFormatting && <RichFormatWarning />}
+                {/* Formatting toolbar — bold/bullets/numbers become real HTML on
+                    save, so descriptions written here render formatted
+                    wherever they're shown (web parity, not just app-local). */}
                 <View style={styles.fmtToolbar}>
+                  <TouchableOpacity style={styles.fmtBtn} onPress={insertBoldFormat} activeOpacity={0.7}>
+                    <Text style={[styles.fmtBtnText, { fontWeight: "900" }]}>B  Bold</Text>
+                  </TouchableOpacity>
                   {[
-                    { label: "•  Bullet", insert: "• " },
+                    { label: "•  Bullet", insert: "- " },
                     { label: "1.  List", insert: "1. " },
                     { label: "✓  Check", insert: "✓ " },
                     { label: "—  Dash", insert: "— " },
@@ -755,18 +865,25 @@ export default function AddEditTourScreen({ navigation, route }) {
                   />
                   <TouchableOpacity
                     onPress={handleQuickAiDescription}
-                    disabled={aiQuickLoading}
+                    disabled={aiAvailable === false || aiQuickLoading}
                     style={[styles.aiInlineBtn, { top: 8, bottom: "auto" }]}
                     activeOpacity={0.85}
                   >
                     {aiQuickLoading
                       ? <ActivityIndicator size="small" color={C.emerald600} />
-                      : <Ionicons name="sparkles" size={18} color={C.emerald600} />}
+                      : <Ionicons name="sparkles" size={18} color={aiAvailable === false ? C.subText : C.emerald600} />}
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={handleQuickAiDescription} disabled={aiQuickLoading} style={styles.aiHintRow} activeOpacity={0.7}>
-                  <Ionicons name="sparkles" size={12} color={C.emerald600} />
-                  <Text style={styles.aiHintText}>{aiQuickLoading ? "Writing…" : "Write with AI from the title"}</Text>
+                <TouchableOpacity
+                  onPress={handleQuickAiDescription}
+                  disabled={aiAvailable === false || aiQuickLoading}
+                  style={styles.aiHintRow}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="sparkles" size={12} color={aiAvailable === false ? C.subText : C.emerald600} />
+                  <Text style={[styles.aiHintText, aiAvailable === false && { color: C.subText }]}>
+                    {aiAvailable === false ? "AI unavailable right now" : aiQuickLoading ? "Writing…" : "Write with AI from the title"}
+                  </Text>
                 </TouchableOpacity>
               </Field>
             </Card>
@@ -858,18 +975,25 @@ export default function AddEditTourScreen({ navigation, route }) {
                   />
                   <TouchableOpacity
                     onPress={handleAiDescription}
-                    disabled={aiLoading}
+                    disabled={aiAvailable === false || aiLoading}
                     style={styles.aiInlineBtn}
                     activeOpacity={0.85}
                   >
                     {aiLoading
                       ? <ActivityIndicator size="small" color={C.purple} />
-                      : <Ionicons name="sparkles" size={18} color={C.purple} />}
+                      : <Ionicons name="sparkles" size={18} color={aiAvailable === false ? C.subText : C.purple} />}
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={handleAiDescription} disabled={aiLoading} style={styles.aiHintRow} activeOpacity={0.7}>
-                  <Ionicons name="sparkles" size={12} color={C.purple} />
-                  <Text style={styles.aiHintText}>{aiLoading ? "Writing…" : "Write with AI from the title"}</Text>
+                <TouchableOpacity
+                  onPress={handleAiDescription}
+                  disabled={aiAvailable === false || aiLoading}
+                  style={styles.aiHintRow}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="sparkles" size={12} color={aiAvailable === false ? C.subText : C.purple} />
+                  <Text style={[styles.aiHintText, aiAvailable === false && { color: C.subText }]}>
+                    {aiAvailable === false ? "AI unavailable right now" : aiLoading ? "Writing…" : "Write with AI from the title"}
+                  </Text>
                 </TouchableOpacity>
               </Field>
             </Card>
@@ -925,7 +1049,34 @@ export default function AddEditTourScreen({ navigation, route }) {
           {detailStep === 3 && (
             <Card>
               <Field label="Full description">
-                <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Detailed tour description…" placeholderTextColor="#9AA79E" value={form.description} onChangeText={(v) => update("description", v)} multiline numberOfLines={4} textAlignVertical="top" />
+                {descHadRichFormatting && <RichFormatWarning />}
+                {/* Formatting toolbar — same markdown-ish → HTML conversion as
+                    the quick-tour description, so bold/bullets/numbers survive
+                    and render wherever this tour is shown (web parity). */}
+                <View style={styles.fmtToolbar}>
+                  <TouchableOpacity style={styles.fmtBtn} onPress={insertBoldFormat} activeOpacity={0.7}>
+                    <Text style={[styles.fmtBtnText, { fontWeight: "900" }]}>B  Bold</Text>
+                  </TouchableOpacity>
+                  {[
+                    { label: "•  Bullet", insert: "- " },
+                    { label: "1.  List", insert: "1. " },
+                  ].map(({ label, insert }) => (
+                    <TouchableOpacity key={label} style={styles.fmtBtn} onPress={() => insertDescFormat(insert)} activeOpacity={0.7}>
+                      <Text style={styles.fmtBtnText}>{label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TextInput
+                  style={[styles.input, styles.inputMultiline]}
+                  placeholder="Detailed tour description…"
+                  placeholderTextColor="#9AA79E"
+                  value={form.description}
+                  onChangeText={(v) => update("description", v)}
+                  onSelectionChange={(e) => setDescSelection(e.nativeEvent.selection)}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
               </Field>
               {/* Duration — preset dropdown (web parity) */}
               <Field label="Duration">
@@ -1506,6 +1657,20 @@ function PreviewSection({ icon, label }) {
 // joined look has to be opt-in or those would render with a cut-off top edge.
 function Card({ children, attached }) {
   return <View style={[styles.card, attached && styles.cardAttached]}>{children}</View>;
+}
+
+// Shown when the tour's description was authored on web with formatting
+// (headings, italics, links, quotes…) this editor can't represent — saving
+// from here would otherwise silently flatten it to plain text.
+function RichFormatWarning() {
+  return (
+    <View style={styles.richFormatWarn}>
+      <Ionicons name="warning" size={14} color={C.amber} />
+      <Text style={styles.richFormatWarnText}>
+        This description uses formatting (headings, links, italics…) that isn't supported here. Saving from the app will simplify it to plain text.
+      </Text>
+    </View>
+  );
 }
 
 function Field({ label, helper, children, style }) {
@@ -2224,6 +2389,12 @@ const styles = StyleSheet.create({
   stepHeadSub: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, marginTop: 2, fontWeight: "500" },
 
   // Quick tour description formatting toolbar
+  richFormatWarn: {
+    flexDirection: "row", alignItems: "flex-start", gap: 7,
+    backgroundColor: C.amberLight, borderWidth: 1, borderColor: "#E4CE97",
+    borderRadius: 10, padding: 10, marginBottom: 10,
+  },
+  richFormatWarnText: { flex: 1, fontFamily: DISPLAY, fontSize: 11.5, color: "#8A6420", lineHeight: 16, fontWeight: "600" },
   fmtToolbar: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10 },
   fmtBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: C.border, backgroundColor: "#F1F2EF" },
   fmtBtnText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.ink },
