@@ -7,7 +7,7 @@ import {
   Users, Calendar, ArrowRight, BadgeCheck,
   Clock, Headphones, Minus, Plus, Bus, Navigation2,
   Search, ChevronDown, X, Check, ArrowLeft, User, Lock, Home, Flag,
-  HardHat, Wrench, Package,
+  HardHat, Wrench, Package, Mail,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DynamicChatBookingHero } from '@/components/booking/DynamicChatBookingHero';
@@ -253,6 +253,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
   // Step 3 – Contact + requirements
   const [name,          setName]          = useState('');
   const [phone,         setPhone]         = useState('');
+  const [email,         setEmail]         = useState('');
   const [guestOverride, setGuestOverride] = useState(false);
   const [selectedChips, setSelectedChips] = useState<string[]>([]);
   const [notes,         setNotes]         = useState('');
@@ -270,6 +271,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
     if (isAuthenticated && customer) {
       setName(customer.name || '');
       setPhone(customer.phone || '');
+      setEmail(customer.email || '');
     }
   }, [isAuthenticated, customer]);
 
@@ -295,6 +297,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
     e.preventDefault();
     if (!name.trim()) { setErr3('Please enter your name'); return; }
     if (phone.replace(/\D/g, '').length < 10) { setErr3('Please enter a valid 10-digit mobile number'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setErr3('Please enter a valid email address'); return; }
     setErr3(''); setStep(4);
   };
 
@@ -311,7 +314,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerName:  name.trim(),
-          customerEmail: `${phone.trim()}@transrentals.in`,
+          customerEmail: email.trim(),
           customerPhone: phone.trim(),
           pickupCity:    fromCity.trim(),
           pickupAddress: pickupAddress.trim() || undefined,
@@ -340,7 +343,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
     setStep(1); setTravelDate(''); setReturnDate(''); setToCity('');
     setPickupAddress(''); setDropAddress(''); setNotes(''); setSelectedChips([]);
     setGuestOverride(false);
-    if (!isAuthenticated) { setName(''); setPhone(''); }
+    if (!isAuthenticated) { setName(''); setPhone(''); setEmail(''); }
   };
 
   /* shared styles */
@@ -581,7 +584,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
                     <p className="text-xs text-gray-500">{customer!.phone}</p>
                   </div>
                   <button type="button"
-                    onClick={() => { setGuestOverride(true); setName(''); setPhone(''); }}
+                    onClick={() => { setGuestOverride(true); setName(''); setPhone(''); setEmail(''); }}
                     className="ml-auto text-xs text-gray-400 hover:text-gray-600 underline">
                     Not you?
                   </button>
@@ -602,6 +605,14 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
                   <span className={iconCls}><Phone /></span>
                   <input required type="tel" maxLength={10} placeholder="10-digit mobile number"
                     value={phone} onChange={e => { setPhone(e.target.value); setErr3(''); }}
+                    className={inputCls} />
+                </div>
+
+                <label className={lblCls}>Email <span className="text-red-500">*</span></label>
+                <div className="relative mb-3.5">
+                  <span className={iconCls}><Mail /></span>
+                  <input required type="email" placeholder="you@example.com"
+                    value={email} onChange={e => { setEmail(e.target.value); setErr3(''); }}
                     className={inputCls} />
                 </div>
               </>
@@ -669,6 +680,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
             <ReviewSection title="Contact Details" icon={<User />} onEdit={() => setStep(3)}>
               <RV label="Name" value={name} />
               <RV label="Mobile" value={phone} />
+              <RV label="Email" value={email} />
             </ReviewSection>
 
             {(selectedChips.length > 0 || notes.trim()) && (
