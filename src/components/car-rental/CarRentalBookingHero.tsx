@@ -1425,7 +1425,15 @@ export function CarRentalBookingHero({
                               ))}
                             </div>
                           ) : (
-                            <div className="grid grid-cols-3 gap-2">
+                            <div
+                              className={`grid gap-2 ${
+                                uniquePackages.length >= 3
+                                  ? 'grid-cols-3'
+                                  : uniquePackages.length === 2
+                                  ? 'grid-cols-2'
+                                  : 'grid-cols-1'
+                              }`}
+                            >
                               {uniquePackages.slice(0, 3).map((pkg) => (
                                 <button
                                   key={pkg.id}

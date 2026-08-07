@@ -332,6 +332,15 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
         ]}
         gradientFrom="yellow-50"
         gradientTo="orange-50"
+        showQuickForm
+        cityName={locationName}
+        bookingVariant="equipment"
+        priceAnchor="JCB Backhoe from ₹2,999/day"
+        heroHighlights={[
+          `Certified operator included on all equipment in ${locationName}`,
+          'JCB, Crane, Excavator, Generator, Hydra & more',
+          '500+ verified operators, instant quote',
+        ]}
       />
 
       <VehicleGrid

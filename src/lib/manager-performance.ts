@@ -1,4 +1,7 @@
 import { prisma } from '@/lib/db/prisma';
+import { getPresenceStatus, type PresenceStatus } from '@/lib/presence';
+
+export { getPresenceStatus, type PresenceStatus };
 
 // Shared by /api/admin/managers/performance (list) and .../performance/detail
 // (single manager) — keeps the inquiry/booking/vendor counting logic in one
@@ -211,18 +214,3 @@ export function getDateRange(filter: string, customFrom?: string | null, customT
   }
 }
 
-// A manager's heartbeat (see /api/manager/heartbeat) pings every ~60s while
-// their tab is open. A gap past this means the tab was closed / they went
-// fully offline — matches the session-continuity threshold on the write side.
-const PRESENCE_ONLINE_THRESHOLD_MS = 150 * 1000;
-
-export type PresenceStatus = 'active' | 'idle' | 'offline';
-
-export function getPresenceStatus(
-  lastPingAt: Date | null | undefined,
-  isIdle: boolean | null | undefined
-): PresenceStatus {
-  if (!lastPingAt) return 'offline';
-  if (Date.now() - lastPingAt.getTime() > PRESENCE_ONLINE_THRESHOLD_MS) return 'offline';
-  return isIdle ? 'idle' : 'active';
-}

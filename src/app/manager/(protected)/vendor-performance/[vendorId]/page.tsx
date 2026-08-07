@@ -71,6 +71,32 @@ interface QuoteStats {
     draft: number;
 }
 
+type PresenceStatus = 'active' | 'idle' | 'offline';
+
+interface TodayActivity {
+    activeSeconds: number;
+    idleSeconds: number;
+    presence: { status: PresenceStatus; lastSeenAt: string | null };
+}
+
+const PRESENCE_META: Record<PresenceStatus, { label: string; dot: string; text: string }> = {
+    active: { label: 'Active now', dot: 'bg-emerald-500 animate-pulse', text: 'text-emerald-700' },
+    idle: { label: 'Idle', dot: 'bg-amber-500', text: 'text-amber-700' },
+    offline: { label: 'Offline', dot: 'bg-gray-300', text: 'text-gray-500' },
+};
+
+function presenceTimeAgo(iso: string | null): string {
+    if (!iso) return 'never logged in';
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+}
+
 // ── Config ───────────────────────────────────────────────────────────────────
 
 const QUOTE_STATUS_COLORS: Record<string, string> = {
@@ -144,6 +170,24 @@ export default function VendorPerformanceDetailPage() {
     const [bookingsRefreshing, setBookingsRefreshing] = useState(false);
     const [vendorName, setVendorName] = useState('');
     const [stats, setStats] = useState<VendorStats | null>(null);
+
+    // Today's idle/active time + live presence — same mechanism as the
+    // manager/admin vendor detail pages (see /api/vendor/heartbeat,
+    // /api/admin/vendors/[id]/activity), scoped to "today" here rather than
+    // the full multi-day breakdown shown elsewhere.
+    const [todayActivity, setTodayActivity] = useState<TodayActivity | null>(null);
+    useEffect(() => {
+        if (!vendorId) return;
+        const fetchIdle = () => {
+            fetch(`/api/admin/vendors/${vendorId}/activity?filter=today`)
+                .then((r) => r.json())
+                .then((json) => { if (!json.error) setTodayActivity(json); })
+                .catch(() => {});
+        };
+        fetchIdle();
+        const interval = setInterval(fetchIdle, 30000);
+        return () => clearInterval(interval);
+    }, [vendorId]);
     const [bSearchTerm, setBSearchTerm] = useState('');
     const [bStatusFilter, setBStatusFilter] = useState('all');
     const [bServiceFilter, setBServiceFilter] = useState('all');
@@ -167,6 +211,13 @@ export default function VendorPerformanceDetailPage() {
         new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
     const formatCurrency = (n: number) =>
         new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+    const formatIdleDuration = (totalSeconds: number) => {
+        const hrs = Math.floor(totalSeconds / 3600);
+        const mins = Math.floor((totalSeconds % 3600) / 60);
+        if (hrs === 0 && mins === 0) return '0m';
+        if (hrs === 0) return `${mins}m`;
+        return `${hrs}h ${mins}m`;
+    };
 
     // ── Fetch bookings ──
     const fetchBookings = async () => {
@@ -381,6 +432,62 @@ export default function VendorPerformanceDetailPage() {
                     <RefreshCw className={`w-4 h-4 ${(bookingsRefreshing || quotesRefreshing) ? 'animate-spin' : ''}`} />
                     Refresh
                 </button>
+            </div>
+
+            {/* Today's Activity — idle/active time + live presence, tracked
+                silently while the vendor's dashboard tab is open */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                {!todayActivity ? (
+                    <div className="flex items-center gap-2 text-gray-400 text-sm py-1">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading today&apos;s activity...
+                    </div>
+                ) : (() => {
+                    const { activeSeconds, idleSeconds, presence } = todayActivity;
+                    const total = activeSeconds + idleSeconds;
+                    const idlePct = total > 0 ? (idleSeconds / total) * 100 : 0;
+                    const meta = PRESENCE_META[presence.status];
+                    return (
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+                            <div className="flex items-center gap-3 shrink-0">
+                                <div className="w-11 h-11 bg-amber-50 rounded-lg flex items-center justify-center shrink-0">
+                                    <Clock className="w-5 h-5 text-amber-600" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Idle Today</p>
+                                    <p className="text-xl font-bold text-gray-900">{formatIdleDuration(idleSeconds)}</p>
+                                </div>
+                            </div>
+
+                            <div className="hidden sm:block w-px h-10 bg-gray-100" />
+
+                            <div className="flex-1 min-w-[180px]">
+                                <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
+                                    <span>Active <span className="font-semibold text-emerald-700">{formatIdleDuration(activeSeconds)}</span></span>
+                                    <span>Idle <span className="font-semibold text-amber-700">{formatIdleDuration(idleSeconds)}</span></span>
+                                </div>
+                                {total > 0 ? (
+                                    <div className="flex h-2 rounded-full overflow-hidden bg-gray-100">
+                                        <div className="bg-emerald-500" style={{ width: `${100 - idlePct}%` }} />
+                                        <div className="bg-amber-400" style={{ width: `${idlePct}%` }} />
+                                    </div>
+                                ) : (
+                                    <div className="h-2 rounded-full bg-gray-100" />
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0 sm:pl-2">
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${meta.text} bg-gray-50`}>
+                                    <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+                                    {meta.label}
+                                </span>
+                                {presence.status !== 'active' && (
+                                    <span className="text-xs text-gray-400">{presenceTimeAgo(presence.lastSeenAt)}</span>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* Tabs */}
