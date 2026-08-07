@@ -45,6 +45,7 @@ interface QuoteRequest {
   pickupDate: string;
   returnDate?: string;
   pickupTime?: string;
+  returnTime?: string;
   routeDetails?: string;
   customerName: string;
   customerPhone: string;
@@ -74,9 +75,25 @@ function getDateRange(key: DateFilterKey, customStart?: string, customEnd?: stri
   return {};
 }
 
+// pickupDate/returnDate come back as date-only (midnight UTC) with the
+// actual clock time held separately in pickupTime/returnTime ("HH:mm") —
+// diffing the dates alone silently drops that time and over/under-counts
+// urgency and trip length. This folds the time back in (in UTC, so it
+// doesn't depend on the browser's local timezone) before any diff.
+function combineDateAndTime(dateInput: string | Date, time?: string | null): number {
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return NaN;
+  let hours = 0;
+  let minutes = 0;
+  if (time && /^\d{1,2}:\d{2}$/.test(time)) {
+    [hours, minutes] = time.split(':').map(Number);
+  }
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hours, minutes, 0, 0);
+}
+
 /* ── Urgency helper ── */
-function getUrgency(pickupDate: string): { label: string; color: string; urgent: boolean } {
-  const diff = new Date(pickupDate).getTime() - Date.now();
+function getUrgency(pickupDate: string, pickupTime?: string): { label: string; color: string; urgent: boolean } {
+  const diff = combineDateAndTime(pickupDate, pickupTime) - Date.now();
   const hours = diff / 3600000;
   if (hours < 0) return { label: 'Started', color: 'text-gray-400', urgent: false };
   if (hours < 3) return { label: `In ${Math.ceil(hours)}h`, color: 'text-red-600', urgent: true };
@@ -88,13 +105,15 @@ function getUrgency(pickupDate: string): { label: string; color: string; urgent:
 
 function getTripDuration(req: QuoteRequest): string {
   if (!req.returnDate) return 'One way';
-  const days = Math.max(1, Math.ceil((new Date(req.returnDate).getTime() - new Date(req.pickupDate).getTime()) / 86400000));
+  const days = Math.max(1, Math.ceil(
+    (combineDateAndTime(req.returnDate, req.returnTime) - combineDateAndTime(req.pickupDate, req.pickupTime)) / 86400000
+  ));
   return `${days} day${days !== 1 ? 's' : ''}`;
 }
 
 function getTripExactHours(req: QuoteRequest): string | null {
   if (!req.returnDate) return null;
-  const diffMs = new Date(req.returnDate).getTime() - new Date(req.pickupDate).getTime();
+  const diffMs = combineDateAndTime(req.returnDate, req.returnTime) - combineDateAndTime(req.pickupDate, req.pickupTime);
   if (diffMs <= 0) return null;
   const totalHours = Math.floor(diffMs / 3600000);
   const mins = Math.floor((diffMs % 3600000) / 60000);
@@ -377,7 +396,7 @@ export default function VendorBusRequestsPage() {
           ) : (
             filteredRequests.map((req) => {
               const isSelected = selectedId === req.id;
-              const urgency = getUrgency(req.pickupDate);
+              const urgency = getUrgency(req.pickupDate, req.pickupTime);
               const catName = req.vehicleCategoryName || getCategoryName(req.chauffeur_vehicle_categories);
               const route = req.pickupCity + (req.dropCity ? ` → ${req.dropCity}` : '');
               return (
@@ -514,7 +533,7 @@ export default function VendorBusRequestsPage() {
                         </span>
                       )}
                       {(() => {
-                        const u = getUrgency(selected.pickupDate);
+                        const u = getUrgency(selected.pickupDate, selected.pickupTime);
                         return u.urgent ? (
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-0.5 bg-red-50 border border-red-200 ${u.color}`}>
                             <Zap className="w-3 h-3" /> {u.label}
@@ -572,7 +591,7 @@ export default function VendorBusRequestsPage() {
 
               {/* Urgency banner */}
               {(() => {
-                const urgency = getUrgency(selected.pickupDate);
+                const urgency = getUrgency(selected.pickupDate, selected.pickupTime);
                 if (urgency.urgent) {
                   return (
                     <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
