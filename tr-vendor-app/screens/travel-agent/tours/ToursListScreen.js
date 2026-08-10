@@ -22,7 +22,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
-import { listTravelAgentTours, updateTravelAgentTour, deleteTravelAgentTour, TOUR_STATUS } from "../../api/travelAgentClient";
+import { listTravelAgentTours, updateTravelAgentTour, deleteTravelAgentTour, getCurrentTravelAgent, TOUR_STATUS } from "../../api/travelAgentClient";
 import RemoteImage from "../_shared/RemoteImage";
 import { DISPLAY } from "../_shared/typography";
 import { SC as C, SHEET_RADIUS } from "../_shared/theme";
@@ -55,6 +55,7 @@ export default function ToursListScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [showCreateChooser, setShowCreateChooser] = useState(false); // #6c
+  const [isApproved, setIsApproved] = useState(false);
 
   const startCreate = (createMode) => {
     setShowCreateChooser(false);
@@ -69,9 +70,13 @@ export default function ToursListScreen({ navigation }) {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const data = await listTravelAgentTours({ search: debouncedSearch, status: statusFilter });
+      const [data, agent] = await Promise.all([
+        listTravelAgentTours({ search: debouncedSearch, status: statusFilter }),
+        getCurrentTravelAgent(),
+      ]);
       setTours(data.tours || []);
       setStats(data.stats || null);
+      setIsApproved(agent?.status === "APPROVED");
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || "Failed to load tours");
     } finally {
@@ -89,8 +94,18 @@ export default function ToursListScreen({ navigation }) {
   const onRefresh = async () => { setRefreshing(true); await load(); };
 
   // E4 — list-level publish toggle + delete
+  // Gate publish proactively (mirrors web's disabled-checkbox + lock badge —
+  // src/app/travel-agent/(dashboard)/tours/page.tsx:129-133) instead of
+  // firing the request and only finding out from the backend's rejection.
   const onTogglePublish = async (tour) => {
     const next = !tour.isPublic;
+    if (next && !isApproved) {
+      Alert.alert(
+        "Approval required",
+        "Your account must be approved before a tour can go public. Complete your KYC documents to get verified."
+      );
+      return;
+    }
     setTours((prev) => prev.map((t) => (t.id === tour.id ? { ...t, isPublic: next, status: next ? "ACTIVE" : t.status } : t)));
     try {
       await updateTravelAgentTour(tour.id, { isPublic: next, status: next ? "ACTIVE" : "DRAFT" });

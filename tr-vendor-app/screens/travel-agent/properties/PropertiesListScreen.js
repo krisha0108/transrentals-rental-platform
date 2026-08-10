@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
-import { listTravelAgentProperties, updateTravelAgentProperty, deleteTravelAgentProperty, PROPERTY_TYPE } from "../../api/travelAgentClient";
+import { listTravelAgentProperties, updateTravelAgentProperty, deleteTravelAgentProperty, getCurrentTravelAgent, PROPERTY_TYPE } from "../../api/travelAgentClient";
 import RemoteImage from "../_shared/RemoteImage";
 import { DISPLAY } from "../_shared/typography";
 import { SC as C } from "../_shared/theme";
@@ -68,6 +68,7 @@ export default function PropertiesListScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [isApproved, setIsApproved] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
@@ -77,12 +78,13 @@ export default function PropertiesListScreen({ navigation }) {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const data = await listTravelAgentProperties({
-        search: debouncedSearch,
-        propertyType: typeFilter,
-      });
+      const [data, agent] = await Promise.all([
+        listTravelAgentProperties({ search: debouncedSearch, propertyType: typeFilter }),
+        getCurrentTravelAgent(),
+      ]);
       setProperties(data.properties || []);
       setStats(data.stats || null);
+      setIsApproved(agent?.status === "APPROVED");
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || "Failed to load properties");
     } finally {
@@ -110,8 +112,18 @@ export default function PropertiesListScreen({ navigation }) {
       Alert.alert("Error", e?.response?.data?.error || e?.message || "Failed to update");
     }
   };
+  // Gate publish proactively (mirrors web's disabled-checkbox + lock badge —
+  // src/app/travel-agent/(dashboard)/properties/page.tsx:114-125) instead of
+  // firing the request and only finding out from the backend's rejection.
   const onTogglePublish = async (p) => {
     const next = !p.isPublic;
+    if (next && !isApproved) {
+      Alert.alert(
+        "Approval required",
+        "Your account must be approved before a listing can go public. Complete your KYC documents to get verified."
+      );
+      return;
+    }
     setProperties((prev) => prev.map((x) => (x.id === p.id ? { ...x, isPublic: next } : x)));
     try {
       await updateTravelAgentProperty(p.id, { isPublic: next });

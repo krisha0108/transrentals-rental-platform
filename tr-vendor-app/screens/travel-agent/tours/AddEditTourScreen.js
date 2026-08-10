@@ -27,6 +27,7 @@ import {
   createTravelAgentTour,
   replaceTravelAgentTour, // PUT — auto-flips isPublic based on status
   deleteTravelAgentTour,
+  getCurrentTravelAgent, // for the publish-approval gate
   getTravelAgentProfile, // for the KYC-document gate before creating tours
   generateTourDescription, // AI: short description from title
   getTourAiStatus, // proactive DeepSeek-availability check (web parity)
@@ -242,6 +243,18 @@ export default function AddEditTourScreen({ navigation, route }) {
   const [mode, setMode] = useState(isEdit ? "DETAILED" : initialMode);
   const [showModeChooser, setShowModeChooser] = useState(!isEdit && initialMode === null);
   const [showDocGate, setShowDocGate] = useState(false); // KYC gate modal
+  // Web disables Publish with a lock badge until the agent is approved
+  // (tours/page.tsx:129-133, tours/add/page.tsx:656-659) — mirror that here
+  // instead of firing the save and only finding out from the backend's
+  // rejection.
+  const [isApproved, setIsApproved] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentTravelAgent()
+      .then((a) => { if (!cancelled) setIsApproved(a?.status === "APPROVED"); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   const [showPreview, setShowPreview] = useState(false); // live tour preview modal
   const [detailStep, setDetailStep] = useState(1); // detailed-mode wizard step (1-6)
   const [aiLoading, setAiLoading] = useState(false); // AI short-description generation
@@ -419,6 +432,13 @@ export default function AddEditTourScreen({ navigation, route }) {
   const save = async ({ publish = false } = {}) => {
     if (saving) return;
     if (!form.title.trim()) return Alert.alert("Required", "Title is required.");
+
+    if (publish && !isApproved) {
+      return Alert.alert(
+        "Approval required",
+        "Your account must be approved before a tour can go public. Complete your KYC documents to get verified."
+      );
+    }
 
     // KYC gate (new tours only): a travel agent must SUBMIT their documents before
     // they can add tours. We check the live status — DOCUMENTS_PENDING / PENDING means
@@ -1306,8 +1326,8 @@ export default function AddEditTourScreen({ navigation, route }) {
             <LinearGradient colors={[C.emerald600, C.emerald700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.publishBtnInner}>
               {saving ? <ActivityIndicator size="small" color="#fff" /> : (
                 <>
-                  <Ionicons name="checkmark-circle" size={16} color="#fff" />
-                  <Text style={styles.publishBtnText}>Publish Tour</Text>
+                  <Ionicons name={isApproved ? "checkmark-circle" : "lock-closed"} size={16} color="#fff" />
+                  <Text style={styles.publishBtnText}>{isApproved ? "Publish Tour" : "Publish (Requires Approval)"}</Text>
                 </>
               )}
             </LinearGradient>

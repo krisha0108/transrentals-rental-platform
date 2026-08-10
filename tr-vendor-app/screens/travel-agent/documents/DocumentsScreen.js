@@ -414,6 +414,7 @@ export default function DocumentsScreen({ navigation, route }) {
 
       <UploadModal
         type={uploadFor}
+        existingDoc={byType[uploadFor]}
         onClose={() => setUploadFor(null)}
         onUploaded={() => { setUploadFor(null); load(); }}
       />
@@ -634,7 +635,7 @@ function DocCard({ type, doc, onUpload, onView, onDelete }) {
 
 /* ───────── Upload modal ───────── */
 
-function UploadModal({ type, onClose, onUploaded }) {
+function UploadModal({ type, existingDoc, onClose, onUploaded }) {
   const [file, setFile] = useState(null);
   const [docNumber, setDocNumber] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -675,13 +676,17 @@ function UploadModal({ type, onClose, onUploaded }) {
     }
   };
 
-  const upload = async () => {
-    if (!file) return Alert.alert("Required", "Pick a file first.");
-    if (file.size && file.size > 10 * 1024 * 1024) {
-      return Alert.alert("Too large", "Max file size is 10 MB.");
-    }
+  // The backend rejects a second non-rejected doc of the same type (one
+  // PENDING/VERIFIED record per type), so a pending doc has to be deleted
+  // first to allow replacement — matches web's handleUpload in
+  // documents/page.tsx. Without this, upload() below 400s and the user has
+  // to manually delete before retrying.
+  const doUpload = async () => {
     try {
       setUploading(true);
+      if (existingDoc && existingDoc.status === "PENDING") {
+        await deleteTravelAgentDocument(existingDoc.id);
+      }
       await uploadTravelAgentDocument(file, type, docNumber.trim() || undefined);
       reset();
       onUploaded();
@@ -690,6 +695,29 @@ function UploadModal({ type, onClose, onUploaded }) {
     } finally {
       setUploading(false);
     }
+  };
+
+  const upload = () => {
+    if (!file) return Alert.alert("Required", "Pick a file first.");
+    if (file.size && file.size > 10 * 1024 * 1024) {
+      return Alert.alert("Too large", "Max file size is 10 MB.");
+    }
+
+    if (existingDoc && existingDoc.status !== "REJECTED") {
+      if (existingDoc.status === "VERIFIED") {
+        return Alert.alert("Cannot replace", "Verified documents cannot be replaced. Contact support.");
+      }
+      return Alert.alert(
+        "Replace document?",
+        "A pending document already exists for this type. Replace it?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Replace", style: "destructive", onPress: doUpload },
+        ]
+      );
+    }
+
+    doUpload();
   };
 
   const close = () => { reset(); onClose(); };

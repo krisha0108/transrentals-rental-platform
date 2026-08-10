@@ -4,7 +4,7 @@
 // with completion badges, unified pill inputs.
 // NOTE: UI-only redesign — all form state, handlers, payload shape and API
 // calls are unchanged from the previous version.
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -18,6 +18,7 @@ import {
   createTravelAgentProperty,
   updateTravelAgentProperty,
   deleteTravelAgentProperty,
+  getCurrentTravelAgent,
   PROPERTY_TYPE,
 } from "../../api/travelAgentClient";
 import ImagePickerField from "../_shared/ImagePickerField";
@@ -206,6 +207,19 @@ export default function AddEditPropertyScreen({ navigation, route }) {
     images: true, basics: true, location: false,
     capacity: false, amenities: false, content: false, policies: false,
   });
+
+  // Web disables the Publish checkbox with a lock badge until the agent is
+  // approved (properties/[id]/edit/page.tsx:477-483) — mirror that here so
+  // the toggle blocks proactively instead of firing a save that the backend
+  // then rejects.
+  const [isApproved, setIsApproved] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentTravelAgent()
+      .then((a) => { if (!cancelled) setIsApproved(a?.status === "APPROVED"); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const update = (k, v) => setForm((p) => ({ ...p, [k]: v }));
   const toggleAmenity = (id) =>
@@ -670,16 +684,29 @@ export default function AddEditPropertyScreen({ navigation, route }) {
 
             <TouchableOpacity
               style={[styles.toggleCard, form.isPublic && { borderColor: C.purple, backgroundColor: C.purpleLight }]}
-              onPress={() => update("isPublic", !form.isPublic)} activeOpacity={0.85}
+              onPress={() => {
+                if (!form.isPublic && !isApproved) {
+                  Alert.alert(
+                    "Approval required",
+                    "Your account must be approved before this listing can go public. Complete your KYC documents to get verified."
+                  );
+                  return;
+                }
+                update("isPublic", !form.isPublic);
+              }}
+              activeOpacity={0.85}
             >
               <View style={[styles.toggleIconWrap, { backgroundColor: form.isPublic ? C.purple : C.border }]}>
-                <Ionicons name={form.isPublic ? "globe" : "globe-outline"} size={16} color="#fff" />
+                <Ionicons
+                  name={!isApproved && !form.isPublic ? "lock-closed" : form.isPublic ? "globe" : "globe-outline"}
+                  size={16} color="#fff"
+                />
               </View>
               <Text style={[styles.toggleTitle, form.isPublic && { color: C.purple }]}>
                 {form.isPublic ? "Published" : "Unpublished"}
               </Text>
               <Text style={styles.toggleSub}>
-                {form.isPublic ? "Visible publicly" : "Draft only"}
+                {form.isPublic ? "Visible publicly" : !isApproved ? "Requires approval" : "Draft only"}
               </Text>
             </TouchableOpacity>
           </View>
