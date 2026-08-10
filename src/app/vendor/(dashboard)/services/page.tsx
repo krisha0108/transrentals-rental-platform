@@ -85,6 +85,20 @@ export default function VendorServicesPage() {
         setActiveServiceIds((prev) =>
           currentlyActive ? prev.filter((id) => id !== serviceId) : [...prev, serviceId]
         );
+        // VendorLayout caches approvedServiceIds in sessionStorage for 5min
+        // and only re-fetches on [status, session] change — a service toggle
+        // on this page doesn't touch either, so without this the sidebar
+        // keeps showing pre-toggle service links for up to 5 minutes.
+        // Clearing the cache + firing this event makes VendorLayout refetch
+        // immediately (see its vendor-approved-services-changed listener).
+        try {
+          Object.keys(sessionStorage)
+            .filter((k) => k.startsWith('vendor_profile_cache_'))
+            .forEach((k) => sessionStorage.removeItem(k));
+        } catch {
+          // sessionStorage unavailable — non-fatal, the event below still fires
+        }
+        window.dispatchEvent(new Event('vendor-approved-services-changed'));
         setMessage({ type: 'success', text: data.message || 'Updated' });
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to update service' });
