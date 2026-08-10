@@ -29,7 +29,7 @@ export function useVendorActivityHeartbeat(enabled: boolean) {
       fetch('/api/vendor/heartbeat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isIdle }),
+        body: JSON.stringify({ isIdle, platform: 'web' }),
         keepalive: true,
       }).catch(() => {
         // best-effort; a missed ping just closes the current session early

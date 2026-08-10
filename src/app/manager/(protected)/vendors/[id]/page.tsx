@@ -44,6 +44,8 @@ import {
   RefreshCw,
   Tag,
   Activity,
+  Globe,
+  Smartphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -57,6 +59,14 @@ const PRESENCE_META: Record<PresenceStatus, { label: string; dot: string; text: 
   active: { label: 'Active now', dot: 'bg-emerald-500 animate-pulse', text: 'text-emerald-700' },
   idle: { label: 'Idle', dot: 'bg-amber-500', text: 'text-amber-700' },
   offline: { label: 'Offline', dot: 'bg-gray-300', text: 'text-gray-500' },
+};
+
+// Which client sent the vendor's last heartbeat — shown next to the presence
+// dot so a manager can tell a web-dashboard login from an app login at a
+// glance, not just that the vendor is online somewhere.
+const PLATFORM_META: Record<'web' | 'app', { label: string; icon: typeof Globe }> = {
+  web: { label: 'Web', icon: Globe },
+  app: { label: 'App', icon: Smartphone },
 };
 
 function presenceTimeAgo(iso: string | null): string {
@@ -89,7 +99,13 @@ interface VendorActivity {
   activeSeconds: number;
   idleSeconds: number;
   byDay: ActivityDay[];
-  presence: { status: PresenceStatus; lastSeenAt: string | null };
+  presence: {
+    status: PresenceStatus;
+    lastSeenAt: string | null;
+    // Every platform (web/app) currently active or idle — populated for
+    // both at once when the vendor is logged into both simultaneously.
+    platforms: { platform: 'web' | 'app'; status: PresenceStatus; lastSeenAt: string }[];
+  };
 }
 
 const ACTIVITY_FILTERS = [
@@ -355,7 +371,17 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   useEffect(() => {
     fetchActivity(activityFilter);
     const interval = setInterval(() => fetchActivity(activityFilter), 30000);
-    return () => clearInterval(interval);
+
+    // Browsers throttle setInterval in a backgrounded tab, so a manager who
+    // tabs away and back was seeing a stale presence badge until the
+    // throttled timer next fired. Refetch immediately on refocus.
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchActivity(activityFilter); };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [activityFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -1063,11 +1089,23 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
             </span>
             {activity && (() => {
               const meta = PRESENCE_META[activity.presence.status];
+              const livePlatforms = activity.presence.platforms;
               return (
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-gray-50 ${meta.text}`}>
                   <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
                   {meta.label}
                   {activity.presence.status !== 'active' && ` · ${presenceTimeAgo(activity.presence.lastSeenAt)}`}
+                  {livePlatforms.map((lp) => {
+                    const platformMeta = PLATFORM_META[lp.platform];
+                    const PlatformIcon = platformMeta.icon;
+                    return (
+                      <React.Fragment key={lp.platform}>
+                        <span className="text-gray-300">·</span>
+                        <PlatformIcon className="w-3.5 h-3.5" />
+                        {platformMeta.label}
+                      </React.Fragment>
+                    );
+                  })}
                 </span>
               );
             })()}

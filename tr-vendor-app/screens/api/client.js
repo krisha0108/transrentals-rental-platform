@@ -495,6 +495,15 @@ export async function logoutVendor() {
     console.log('Logout API error (non-critical):', e);
   }
 
+  // Clear presence while the token is still valid so the manager side
+  // shows "Offline" immediately instead of waiting for the heartbeat to
+  // go stale (matches web's sign-out — see DELETE /api/vendor/heartbeat).
+  try {
+    await apiDelete('/vendor/heartbeat?platform=app');
+  } catch (e) {
+    console.log('[Logout] Presence clear failed (non-critical):', e);
+  }
+
   // Clear local storage
   await setSessionToken(null);
   await AsyncStorage.multiRemove([

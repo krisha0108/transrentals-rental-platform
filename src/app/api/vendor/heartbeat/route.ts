@@ -1,10 +1,14 @@
-// Silent activity heartbeat pinged from the vendor dashboard every ~60s while
-// the tab is open and visible (see useVendorActivityHeartbeat, mounted in
-// VendorLayout). Body: { isIdle: boolean } — isIdle is computed client-side
-// from mouse/keyboard/scroll inactivity, not from tab visibility.
+// Silent activity heartbeat pinged from the vendor dashboard (web) or the
+// vendor app every ~60s while the tab/app is open and foregrounded (see
+// useVendorActivityHeartbeat — web version mounted in VendorLayout, app
+// version mounted in tr-vendor-app/App.js). Body: { isIdle: boolean,
+// platform: 'web' | 'app' } — isIdle is computed client-side from mouse/
+// keyboard/scroll (web) or touch (app) inactivity, not from tab/app
+// visibility. platform defaults to 'web' if omitted/invalid.
 //
 // Same mechanism as /api/manager/heartbeat — powers the admin-side
-// "active vs idle" tracking on the vendors list.
+// "active vs idle" tracking on the vendors list, plus which client the
+// vendor is currently using.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
@@ -41,13 +45,14 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}));
     const isIdle = body?.isIdle === true;
+    const platform = body?.platform === 'app' ? 'app' : 'web';
     const now = new Date();
     const today = startOfDay(now);
 
     await prisma.vendor_presence.upsert({
-      where: { vendorId },
+      where: { vendorId_platform: { vendorId, platform } },
       update: { lastPingAt: now, isIdle },
-      create: { vendorId, lastPingAt: now, isIdle },
+      create: { vendorId, platform, lastPingAt: now, isIdle },
     });
 
     const lastSession = await prisma.vendor_activity_sessions.findFirst({
@@ -81,5 +86,31 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     logger.error('POST /api/vendor/heartbeat', error);
     return NextResponse.json({ error: 'Failed to record heartbeat' }, { status: 500 });
+  }
+}
+
+// Called on explicit logout (web sidebar sign-out, app logout) so the
+// manager side shows "Offline" immediately instead of waiting out
+// PRESENCE_ONLINE_THRESHOLD_MS (~2.5min) for the last heartbeat to go
+// stale — that lag was showing a just-logged-out vendor as still online
+// across the manager's next couple of polls/reloads.
+//
+// ?platform=web|app clears only that platform's row — logging out of the
+// web dashboard must not wipe the app's presence if the vendor is still
+// active there, and vice versa. Defaults to 'web' for older clients.
+export async function DELETE(request: NextRequest) {
+  try {
+    const auth = await getVendorAuth(request);
+    if (!auth.authenticated || !auth.vendorId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const platform = request.nextUrl.searchParams.get('platform') === 'app' ? 'app' : 'web';
+    await prisma.vendor_presence.deleteMany({ where: { vendorId: auth.vendorId, platform } });
+
+    return NextResponse.json({ ok: true });
+  } catch (error: any) {
+    logger.error('DELETE /api/vendor/heartbeat', error);
+    return NextResponse.json({ error: 'Failed to clear presence' }, { status: 500 });
   }
 }

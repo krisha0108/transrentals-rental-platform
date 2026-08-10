@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import VendorActivityTracker from './hooks/VendorActivityTracker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidStyle, AndroidImportance, EventType } from '@notifee/react-native';
@@ -907,6 +908,7 @@ export default function App() {
         navigator so every screen is inside it. */}
     <KeyboardProvider>
     <SafeAreaProvider>
+    <VendorActivityTracker>
       <NavigationContainer
         ref={navigationRef}
         onReady={() => {
@@ -1201,6 +1203,7 @@ export default function App() {
       </NavigationContainer>
       <OfflineBanner />
       <GlobalAlert />
+    </VendorActivityTracker>
     </SafeAreaProvider>
     </KeyboardProvider>
     </NotifBadgeContext.Provider>
