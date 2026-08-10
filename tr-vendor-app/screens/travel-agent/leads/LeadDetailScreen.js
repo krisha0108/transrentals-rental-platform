@@ -22,6 +22,7 @@ import {
   Alert,
   Linking,
   StatusBar,
+  KeyboardAvoidingView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -47,8 +48,15 @@ import {
   LEAD_STATUS,
   LEAD_PRIORITY,
 } from "../../api/travelAgentClient";
-import { SC as C } from "../_shared/theme";
+import { SC as C, SHEET_RADIUS } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import SheetHandle from "../_shared/SheetHandle";
 
+
+// How far the quick-contact row rides up over the hero's bottom edge. The hero
+// is fixed and the row scrolls, so this is subtracted from the hero's tail and
+// added back as scroll padding to keep the gap the same.
+const CONTACT_OVERLAP = 28;
 
 const STATUS_COLORS = {
   NEW:         { bg: "#E6EFF4", fg: "#245C7A" },
@@ -141,27 +149,6 @@ function followUpUrgency(iso) {
   if (diff === 1) return { color: C.blue, bg: C.blueLight, label: "Due tomorrow", icon: "calendar" };
   if (diff <= 7) return { color: C.blue, bg: C.blueLight, label: `In ${diff} days`, icon: "calendar" };
   return { color: C.subText, bg: "#ECEAE3", label: formatDate(iso), icon: "calendar-outline" };
-}
-
-// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
 }
 
 export default function LeadDetailScreen({ navigation, route }) {
@@ -467,8 +454,10 @@ export default function LeadDetailScreen({ navigation, route }) {
       setQAdvMode("PERCENT");
       setQAdvValue(String(lead.quoteAdvancePercent));
     } else {
+      // Default to a 30% advance — mirrors the web quote form's default
+      // instead of leaving agents to type it in from a blank field.
       setQAdvMode("PERCENT");
-      setQAdvValue("");
+      setQAdvValue("30");
     }
     // Derive remaining validity days from quoteValidUntil, default 7
     if (lead.quoteValidUntil) {
@@ -502,6 +491,24 @@ export default function LeadDetailScreen({ navigation, route }) {
     };
     // Move the lead to QUOTED unless it's already further along.
     if (!["BOOKED", "NEGOTIATING"].includes(lead.status)) payload.status = "QUOTED";
+
+    // Mirror web's activity-timeline entry so re-quoting an already-QUOTED
+    // lead still leaves a record — this used to be silently dropped on app.
+    const advance =
+      qAdvMode === "FIXED"
+        ? advNum > 0 ? Math.min(advNum, amount) : 0
+        : advNum > 0 ? Math.round((amount * Math.min(100, advNum)) / 100) : 0;
+    const balance = amount - advance;
+    const noteLines = [
+      `Quote sent: ₹${amount.toLocaleString("en-IN")}`,
+      advance > 0
+        ? `Advance: ₹${advance.toLocaleString("en-IN")}${
+            qAdvMode === "PERCENT" ? ` (${advNum}%)` : ""
+          } • Balance: ₹${balance.toLocaleString("en-IN")}`
+        : null,
+      `Valid till ${validUntil.toLocaleDateString("en-IN")}`,
+    ].filter(Boolean);
+    payload.addNote = noteLines.join("\n");
 
     try {
       setSavingQuote(true);
@@ -615,21 +622,21 @@ export default function LeadDetailScreen({ navigation, route }) {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 32 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.emerald600} />}
+      {/* ===== Gradient hero (fixed) =====
+          Outside the ScrollView so the back button and the lead's name stay
+          put while the detail scrolls. paddingBottom is short by
+          CONTACT_OVERLAP because the contact row can no longer climb into the
+          hero from a different scroll parent — the scroll's paddingTop gives
+          that space back, so the gap is unchanged. */}
+      <LinearGradient
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroWrap}
       >
-        {/* ===== Gradient hero ===== */}
-        <LinearGradient
-          colors={["#0F2A22", "#16382E", "#1C6B52"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroWrap}
-        >
-          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
-          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
-          <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 40 }}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 40 - CONTACT_OVERLAP }}>
             <View style={styles.headerRow}>
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
@@ -710,10 +717,18 @@ export default function LeadDetailScreen({ navigation, route }) {
                 </View>
               )}
             </View>
-          </SafeAreaView>
-        </LinearGradient>
+        </SafeAreaView>
+      </LinearGradient>
 
-        {/* ===== Quick contact row (floating over gradient bottom) ===== */}
+      <ScrollView
+        style={{ flex: 1 }}
+        // paddingTop cancels contactRowWrap's -CONTACT_OVERLAP, which would
+        // otherwise clip the row's top against the scroll edge now that the
+        // hero is no longer its sibling.
+        contentContainerStyle={{ paddingTop: CONTACT_OVERLAP, paddingBottom: 32 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.emerald600} />}
+      >
+        {/* ===== Quick contact row ===== */}
         <View style={styles.contactRowWrap}>
           <View style={styles.contactRow}>
             <ContactBtn icon="call" label="Call" color={C.emerald600} onPress={() => openTel(lead.customerPhone)} disabled={!lead.customerPhone} />
@@ -1155,7 +1170,7 @@ export default function LeadDetailScreen({ navigation, route }) {
 
       {/* Convert confirm */}
       <Modal visible={showConvertModal} animationType="fade" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView behavior="padding" style={styles.confirmOverlay}>
           <View style={styles.confirmCard}>
             <LinearGradient colors={[C.emerald500, C.emerald600]} style={styles.confirmIcon}>
               <Ionicons name="briefcase" size={28} color="#fff" />
@@ -1173,13 +1188,14 @@ export default function LeadDetailScreen({ navigation, route }) {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* A1 — Quote modal */}
       <Modal visible={showQuoteModal} animationType="slide" transparent onRequestClose={() => setShowQuoteModal(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
+            <SheetHandle />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{lead.quotedAmount != null ? "Update quote" : "Send quote"}</Text>
               <TouchableOpacity onPress={() => setShowQuoteModal(false)}><Ionicons name="close" size={22} color={C.ink} /></TouchableOpacity>
@@ -1220,6 +1236,21 @@ export default function LeadDetailScreen({ navigation, route }) {
                 placeholder={qAdvMode === "PERCENT" ? "e.g. 30  (30% advance)" : "e.g. 15000"}
                 placeholderTextColor="#A3B3C2"
               />
+              {/* Quick-select percent chips — mirrors the web quote form */}
+              {qAdvMode === "PERCENT" && (
+                <View style={styles.quickChipRow}>
+                  {["10", "20", "30", "50", "100"].map((p) => (
+                    <TouchableOpacity
+                      key={p}
+                      style={[styles.quickChip, qAdvValue === p && styles.quickChipActive]}
+                      onPress={() => setQAdvValue(p)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.quickChipText, qAdvValue === p && styles.quickChipTextActive]}>{p}%</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
               {/* Live advance/balance preview */}
               {!!Number(qAmount) && (
                 <Text style={styles.quoteMeta}>
@@ -1263,13 +1294,14 @@ export default function LeadDetailScreen({ navigation, route }) {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* E2 — Lost reason modal */}
       <Modal visible={showLostModal} animationType="slide" transparent onRequestClose={() => setShowLostModal(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
+            <SheetHandle />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Mark lead as Lost</Text>
               <TouchableOpacity onPress={() => setShowLostModal(false)}><Ionicons name="close" size={22} color={C.ink} /></TouchableOpacity>
@@ -1296,13 +1328,14 @@ export default function LeadDetailScreen({ navigation, route }) {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* A2 — Reject payment reason modal */}
       <Modal visible={showRejectModal} animationType="slide" transparent onRequestClose={() => setShowRejectModal(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
+            <SheetHandle />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Reject payment</Text>
               <TouchableOpacity onPress={() => setShowRejectModal(false)}><Ionicons name="close" size={22} color={C.ink} /></TouchableOpacity>
@@ -1329,7 +1362,7 @@ export default function LeadDetailScreen({ navigation, route }) {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* A2 — Full-screen proof viewer */}
@@ -1346,8 +1379,9 @@ export default function LeadDetailScreen({ navigation, route }) {
 
       {/* A3 — Assign vehicle modal */}
       <Modal visible={showAssignModal} animationType="slide" transparent onRequestClose={() => setShowAssignModal(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
+            <SheetHandle />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Assign vehicle</Text>
               <TouchableOpacity onPress={() => setShowAssignModal(false)}><Ionicons name="close" size={22} color={C.ink} /></TouchableOpacity>
@@ -1445,15 +1479,15 @@ export default function LeadDetailScreen({ navigation, route }) {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Bank Gate Modal ── */}
       <Modal visible={showBankGate} transparent animationType="fade" onRequestClose={() => setShowBankGate(false)}>
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
+        <View style={{ flex: 1, backgroundColor: C.scrim, justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
           <View style={{ backgroundColor: "#fff", borderRadius: 24, padding: 28, width: "100%", alignItems: "center" }}>
             {/* Icon */}
-            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: "#FEF3C7", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: C.amberLight, alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
               <Ionicons name="card" size={34} color={C.amber} />
             </View>
 
@@ -1592,8 +1626,9 @@ function ContactBtn({ icon, label, color, onPress, disabled }) {
 function PickerModal({ visible, title, options, selected, onClose, onSelect }) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
         <View style={styles.modalSheet}>
+            <SheetHandle />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{title}</Text>
             <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={C.ink} /></TouchableOpacity>
@@ -1618,7 +1653,7 @@ function PickerModal({ visible, title, options, selected, onClose, onSelect }) {
             })}
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -1673,7 +1708,7 @@ const styles = StyleSheet.create({
   // Floating contact row — pulls up 28px to visually overlap the gradient
   // edge. Combined with SafeAreaView paddingBottom:40, that leaves 12px clear
   // gap between the status/priority pill row and the contact bar (no cramp).
-  contactRowWrap: { marginHorizontal: 16, marginTop: -28 },
+  contactRowWrap: { marginHorizontal: 16, marginTop: -CONTACT_OVERLAP },
   contactRow: { flexDirection: "row", backgroundColor: C.card, borderRadius: 16, padding: 6, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 5 },
   contactBtn: { flex: 1, alignItems: "center", paddingVertical: 12, gap: 4 },
   contactBtnText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold" },
@@ -1840,6 +1875,11 @@ const styles = StyleSheet.create({
   segBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: C.border, alignItems: "center", backgroundColor: "#FBFAF6" },
   segBtnActive: { borderColor: C.emerald600, backgroundColor: C.emerald50 },
   segText: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", color: C.subText },
+  quickChipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
+  quickChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, borderColor: C.border, backgroundColor: "#FBFAF6" },
+  quickChipActive: { borderColor: C.emerald600, backgroundColor: C.emerald50 },
+  quickChipText: { fontFamily: DISPLAY, fontSize: 11, fontWeight: "bold", color: C.subText },
+  quickChipTextActive: { color: C.emerald700 },
   segTextActive: { color: C.emerald700 },
   modalPrimaryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: C.emerald600, paddingVertical: 14, borderRadius: 12, marginTop: 16 },
   modalPrimaryBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 14 },
@@ -1903,8 +1943,8 @@ const styles = StyleSheet.create({
   timelineTime: { fontFamily: DISPLAY, fontSize: 10.5, color: C.subText, fontWeight: "600", marginLeft: "auto" },
 
   // Modals
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  modalSheet: { backgroundColor: C.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 24, paddingTop: 16, paddingHorizontal: 16 },
+  modalOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
+  modalSheet: { backgroundColor: C.card, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS, paddingBottom: 24, paddingTop: 16, paddingHorizontal: 16 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   modalTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink },
   modalItem: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, paddingHorizontal: 12, borderRadius: 10, marginBottom: 6, backgroundColor: "#FBFAF6" },
@@ -1912,6 +1952,10 @@ const styles = StyleSheet.create({
   modalItemText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", flex: 1 },
 
   // Confirm convert
+  // Own overlay rather than `modalOverlay`: the shared scrim is a warm forest
+  // (C.scrim), which reads as a green wash behind this card. The other sheets
+  // keep it — only this confirm sits on neutral black.
+  confirmOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" },
   confirmCard: { margin: 24, backgroundColor: C.card, borderRadius: 22, padding: 22, alignItems: "center", alignSelf: "center" },
   confirmIcon: { width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center", marginBottom: 12 },
   confirmTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: "bold", color: C.ink, marginTop: 4 },

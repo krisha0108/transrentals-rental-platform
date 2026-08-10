@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, Inbox, Phone, MapPin, Calendar, Flame, Plus } from 'lucide-react';
+import { Loader2, Inbox, Phone, MapPin, Calendar, Flame, Plus, Users, Wallet, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
 interface Lead {
@@ -80,6 +80,13 @@ export default function PipelinePage() {
     }
   };
 
+  const stats = useMemo(() => {
+    const totalValue = leads.reduce((sum, l) => sum + (l.quotedAmount || l.estimatedValue || 0), 0);
+    const hot = leads.filter((l) => l.priority === 'HOT').length;
+    const booked = leads.filter((l) => l.status === 'BOOKED').length;
+    return { total: leads.length, totalValue, hot, booked };
+  }, [leads]);
+
   const onDragStart = (id: string) => setDraggingId(id);
   const onDragEnd = () => setDraggingId(null);
   const onDragOver = (e: React.DragEvent) => e.preventDefault();
@@ -105,6 +112,15 @@ export default function PipelinePage() {
           <Plus className="w-4 h-4" /> Add Lead
         </Link>
       </div>
+
+      {!loading && leads.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <PipelineStat icon={Users} label="Leads" value={String(stats.total)} color="text-emerald-600 bg-emerald-50" />
+          <PipelineStat icon={Wallet} label="Pipeline value" value={stats.totalValue > 0 ? `₹${stats.totalValue.toLocaleString('en-IN')}` : '—'} color="text-amber-600 bg-amber-50" />
+          <PipelineStat icon={Flame} label="Hot" value={String(stats.hot)} color="text-red-600 bg-red-50" />
+          <PipelineStat icon={CheckCircle2} label="Booked" value={String(stats.booked)} color="text-green-600 bg-green-50" />
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -195,6 +211,30 @@ export default function PipelinePage() {
           <p className="text-sm text-gray-400">Add leads to see them here</p>
         </div>
       )}
+    </div>
+  );
+}
+
+function PipelineStat({
+  icon: Icon,
+  label,
+  value,
+  color,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  color: string;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-4 flex items-center gap-3">
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
+        <Icon className="w-4 h-4" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-lg font-bold text-gray-900 truncate">{value}</p>
+        <p className="text-[11px] text-gray-500 font-medium uppercase tracking-wide">{label}</p>
+      </div>
     </div>
   );
 }

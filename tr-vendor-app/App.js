@@ -10,13 +10,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
+import VendorActivityTracker from './hooks/VendorActivityTracker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidStyle, AndroidImportance, EventType } from '@notifee/react-native';
 import axios from 'axios';
-import { debugAuthState, getSessionToken, getVendorNotificationsUnreadCount, saveVendorFcmToken } from './screens/api/client';
+import { debugAuthState, getSessionToken, getVendorNotificationsUnreadCount, saveVendorFcmToken, setOnSessionExpired } from './screens/api/client';
 import { saveTravelAgentFcmToken, getTravelAgentProfile } from './screens/api/travelAgentClient';
 import OfflineBanner from './components/OfflineBanner';
 import GlobalAlert from './components/GlobalAlert';
@@ -58,8 +61,10 @@ import TATourPreviewScreen from './screens/travel-agent/tours/TourPreviewScreen'
 import TATourQuoteRequestsScreen from './screens/travel-agent/tours/TourQuoteRequestsScreen';
 import TAPropertiesListScreen from './screens/travel-agent/properties/PropertiesListScreen';
 import TAAddEditPropertyScreen from './screens/travel-agent/properties/AddEditPropertyScreen';
+import TAPropertyDetailScreen from './screens/travel-agent/properties/PropertyDetailScreen';
 import TAFleetListScreen from './screens/travel-agent/fleet/FleetListScreen';
 import TAAddEditFleetScreen from './screens/travel-agent/fleet/AddEditFleetScreen';
+import TAFleetVehicleDetailScreen from './screens/travel-agent/fleet/FleetVehicleDetailScreen';
 import TAFleetCalendarScreen from './screens/travel-agent/fleet/FleetCalendarScreen';
 import TAFleetInsuranceScreen from './screens/travel-agent/fleet/FleetInsuranceScreen';
 
@@ -77,6 +82,7 @@ import TAAddEditCaptureLinkScreen from './screens/travel-agent/capture-links/Add
 
 // Travel Agent — Phase 7 (Help & Support)
 import TASupportScreen from './screens/travel-agent/support/TASupportScreen';
+import TAHelpAssistantScreen from './screens/travel-agent/support/HelpAssistantScreen';
 
 // Travel Agent — Phase 6 (Social Network: Feed / Create / Messages / Chat / Profile)
 import TASocialFeedScreen from './screens/travel-agent/social/SocialFeedScreen';
@@ -570,6 +576,37 @@ const navigationRef = React.createRef();
 const isNavigationReadyRef = React.createRef();
 const pendingNavigateDataRef = React.createRef();
 
+// ── Session expiry → back to login ───────────────────────────────────
+// client.js drops the stored token whenever the API answers 401. Until now
+// that left the app on whatever screen it was on with nothing to send: every
+// later request went out unauthenticated and the screens filled with
+// "Unauthorized" errors, which reads as a broken app rather than an expired
+// login (tokens last 30 days, so this lands well after the user last signed
+// in). Send them to the login screen and say why.
+//
+// reset(), not navigate() — the stack behind it belongs to a session that no
+// longer exists, so Back must not lead into it.
+let sessionExpiryNoticeShown = false;
+
+setOnSessionExpired(() => {
+  const nav = navigationRef.current;
+  if (!isNavigationReadyRef.current || !nav) return;
+
+  // A screen usually fires several requests at once, so one dead session
+  // produces a burst of 401s. Only the first should reach the user.
+  const current = nav.getCurrentRoute?.()?.name;
+  if (current === 'VendorLoginScreen' || current === 'Splash' || current === 'Onboarding') return;
+
+  nav.reset({ index: 0, routes: [{ name: 'VendorLoginScreen' }] });
+
+  if (!sessionExpiryNoticeShown) {
+    sessionExpiryNoticeShown = true;
+    Alert.alert('Signed out', 'Your session has expired. Please sign in again.', [
+      { text: 'OK', onPress: () => { sessionExpiryNoticeShown = false; } },
+    ]);
+  }
+});
+
 const QUOTE_SCREEN_MAP = {
   bike: 'BikeQuoteRequestDetail',
   bus: 'BusQuoteRequestDetail',
@@ -866,7 +903,12 @@ export default function App() {
 
   return (
     <NotifBadgeContext.Provider value={{ unreadCount, refreshBadge }}>
+    {/* KeyboardProvider feeds keyboard position/height to the
+        KeyboardAwareScrollViews in the forms. It has to sit above the
+        navigator so every screen is inside it. */}
+    <KeyboardProvider>
     <SafeAreaProvider>
+    <VendorActivityTracker>
       <NavigationContainer
         ref={navigationRef}
         onReady={() => {
@@ -1106,8 +1148,10 @@ export default function App() {
             <Stack.Screen name="TAAddEditTour" component={TAAddEditTourScreen} />
             <Stack.Screen name="TATourPreview" component={TATourPreviewScreen} />
             <Stack.Screen name="TAProperties" component={TAPropertiesListScreen} />
+            <Stack.Screen name="TAPropertyDetail" component={TAPropertyDetailScreen} />
             <Stack.Screen name="TAAddEditProperty" component={TAAddEditPropertyScreen} />
             <Stack.Screen name="TAFleet" component={TAFleetListScreen} />
+            <Stack.Screen name="TAFleetVehicleDetail" component={TAFleetVehicleDetailScreen} />
             <Stack.Screen name="TAAddEditFleet" component={TAAddEditFleetScreen} />
             <Stack.Screen name="TAFleetCalendar" component={TAFleetCalendarScreen} />
             <Stack.Screen name="TAFleetInsurance" component={TAFleetInsuranceScreen} />
@@ -1152,13 +1196,16 @@ export default function App() {
             <Stack.Screen name="TAProfile" component={TAAgencyProfileScreen} />
             <Stack.Screen name="TAGetStarted" component={TAGetStartedScreen} />
             <Stack.Screen name="TASupport" component={TASupportScreen} />
+            <Stack.Screen name="TAHelpAssistant" component={TAHelpAssistantScreen} />
 
           </Stack.Group>
         </Stack.Navigator>
       </NavigationContainer>
       <OfflineBanner />
       <GlobalAlert />
+    </VendorActivityTracker>
     </SafeAreaProvider>
+    </KeyboardProvider>
     </NotifBadgeContext.Provider>
   );
 }

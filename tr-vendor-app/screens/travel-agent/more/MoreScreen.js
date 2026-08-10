@@ -21,6 +21,7 @@ import {
   logoutTravelAgent,
 } from "../../api/travelAgentClient";
 import { SC as C } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 
 // Warm Elevate tones (was the bright set: #059669, #3B82F6, #EC4899 …).
@@ -49,6 +50,11 @@ function shade(hex, pct) {
     ).toString(16).slice(1)
   );
 }
+
+// How far the floating stats card rides up over the hero's bottom edge. The
+// hero is fixed and the card scrolls, so this value has to be subtracted from
+// the hero's tail and added back as scroll padding to keep the gap the same.
+const STATS_OVERLAP = 10;
 
 const STATUS_PILL = {
   APPROVED:          { icon: "checkmark-circle", label: "Verified" },
@@ -114,27 +120,6 @@ const SECTIONS = [
     ],
   },
 ];
-
-// Slowly drifting/pulsing decorative orb for the hero — gentle ambient motion.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
-}
 
 export default function MoreScreen({ navigation }) {
   const [agent, setAgent] = useState(null);
@@ -208,23 +193,20 @@ export default function MoreScreen({ navigation }) {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.emerald600} colors={[C.emerald600]} />
-        }
+      {/* ===== Compact gradient hero (fixed) =====
+          Outside the ScrollView so the account name, status and the Edit pill
+          stay put while the sections scroll — same as the other Travel Agent
+          screens. paddingBottom is short by STATS_OVERLAP because the stats
+          card can no longer climb into the tail from a different scroll
+          parent; the tail gives that space back so the gap is unchanged. */}
+      <LinearGradient
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.heroGrad}
       >
-        {/* ===== Compact gradient hero (horizontal) ===== */}
-        <LinearGradient
-          colors={["#0F2A22", "#16382E", "#1C6B52"]}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.heroGrad}
-        >
-          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
-          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
-          <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 16, paddingTop: 2, paddingBottom: 26 }}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 16, paddingTop: 2, paddingBottom: 26 - STATS_OVERLAP }}>
             {/* Top row: kicker label + labelled Edit pill */}
             <View style={styles.heroTopRow}>
               <Text style={styles.heroKicker}>MY ACCOUNT</Text>
@@ -260,9 +242,20 @@ export default function MoreScreen({ navigation }) {
                 </View>
               </View>
             </View>
-          </SafeAreaView>
-        </LinearGradient>
+        </SafeAreaView>
+      </LinearGradient>
 
+      <ScrollView
+        style={{ flex: 1 }}
+        // paddingTop cancels statsCard's -STATS_OVERLAP margin, which would
+        // otherwise clip the card's top against the scroll edge now that the
+        // hero is no longer its sibling.
+        contentContainerStyle={{ paddingTop: STATS_OVERLAP, paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.emerald600} colors={[C.emerald600]} />
+        }
+      >
         {/* ===== Floating stats card ===== */}
         <View style={styles.statsCard}>
           <StatBlock
@@ -508,7 +501,7 @@ const styles = StyleSheet.create({
   // Floating stats card (pulled up -22)
   statsCard: {
     flexDirection: "row", alignItems: "center",
-    marginHorizontal: 14, marginTop: -10,
+    marginHorizontal: 14, marginTop: -STATS_OVERLAP,
     backgroundColor: C.card, borderRadius: 16, paddingVertical: 14,
     borderWidth: 1, borderColor: C.border,
     shadowColor: C.shadow, shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 4,

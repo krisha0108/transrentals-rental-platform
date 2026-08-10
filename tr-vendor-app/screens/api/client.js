@@ -19,7 +19,14 @@ function inferLocalBase() {
 }
 
 let cachedBaseURL = null;
-const FORCE_PROD = true; // TEMP: testing against live API — flip back to false for local dev
+// true  → always the live API, even in a debug build. This is the normal
+//          working mode: you log in with your real account and see real data.
+// false → __DEV__ builds hit the local Next.js server. Only useful while
+//          testing a backend change, and it needs BOTH the dev server running
+//          on :3000 and `adb reverse tcp:3000 tcp:3000`. Without the reverse
+//          every request fails as a network error while the JS still loads
+//          fine over Metro's own tunnel — which reads as "login is broken".
+const FORCE_PROD = false;
 
 export async function getBaseURL() {
   if (cachedBaseURL) return cachedBaseURL;
@@ -106,6 +113,23 @@ export async function setSessionToken(token) {
   }
 }
 
+// Called when a 401 forces the session to be dropped. App.js registers a
+// handler that sends the user back to the login screen.
+//
+// Without it, clearSession() left the app sitting on whatever screen it was
+// on with no token: every subsequent request went out unauthenticated, the
+// server answered "Unauthorized - No valid session or token", and the screens
+// just showed errors. Nothing told the user their session had ended or that
+// signing in again was all it took.
+//
+// A callback rather than importing the navigation ref directly — client.js is
+// imported by App.js, so reaching back into it would be a cycle.
+let onSessionExpired = null;
+
+export function setOnSessionExpired(handler) {
+  onSessionExpired = typeof handler === 'function' ? handler : null;
+}
+
 export async function clearSession() {
   sessionToken = null;
   tokenLoadPromise = null;
@@ -114,6 +138,14 @@ export async function clearSession() {
   await AsyncStorage.removeItem("vendor_id");
   await AsyncStorage.removeItem("vendor_email");
   console.log('[Auth] Session cleared');
+
+  if (onSessionExpired) {
+    try {
+      onSessionExpired();
+    } catch (e) {
+      console.log('[Auth] session-expired handler threw:', e?.message);
+    }
+  }
 }
 
 // Debug: Check current auth state
@@ -461,6 +493,15 @@ export async function logoutVendor() {
     await axios.post(`${baseURL}/api/vendor/auth/signout`, {}, { withCredentials: true });
   } catch (e) {
     console.log('Logout API error (non-critical):', e);
+  }
+
+  // Clear presence while the token is still valid so the manager side
+  // shows "Offline" immediately instead of waiting for the heartbeat to
+  // go stale (matches web's sign-out — see DELETE /api/vendor/heartbeat).
+  try {
+    await apiDelete('/vendor/heartbeat?platform=app');
+  } catch (e) {
+    console.log('[Logout] Presence clear failed (non-critical):', e);
   }
 
   // Clear local storage

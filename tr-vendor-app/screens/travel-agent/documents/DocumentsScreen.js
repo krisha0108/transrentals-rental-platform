@@ -17,6 +17,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Image,
   ActivityIndicator, RefreshControl, Modal, TextInput, Alert, Linking,
   StatusBar, Platform,
+  KeyboardAvoidingView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -25,15 +26,17 @@ import { launchImageLibrary } from "react-native-image-picker";
 import { pick, types as docTypes } from "@react-native-documents/picker";
 import { DISPLAY } from "../_shared/typography";
 import AnimatedOrb from "../_shared/AnimatedOrb";
-import RemoteImage from "../_shared/RemoteImage";
-import { C, G, TONES, rs, rf, GUT, alpha, cardShadow, rowShadow } from "../_shared/theme";
+import RemoteImage, { buildImageUri } from "../_shared/RemoteImage";
+import { C, G, TONES, rs, rf, GUT, alpha, cardShadow, rowShadow, SHEET_RADIUS } from "../_shared/theme";
 import {
   listTravelAgentDocuments,
   uploadTravelAgentDocument,
   deleteTravelAgentDocument,
+  getBaseURL,
   DOCUMENT_TYPES,
   REQUIRED_DOCUMENT_TYPES,
 } from "../../api/travelAgentClient";
+import SheetHandle from "../_shared/SheetHandle";
 
 // Per-type meta: icon (Ionicons), accent tone, hint text. `required` is the
 // source of truth for which docs the backend enforces.
@@ -150,11 +153,24 @@ export default function DocumentsScreen({ navigation, route }) {
     ]);
   };
 
-  const onView = (doc) => {
-    if (!doc?.documentUrl) return;
-    Linking.openURL(doc.documentUrl).catch(() => {
-      Alert.alert("Cannot open", "Document URL could not be opened.");
-    });
+  // Two things had to be true for this to work and neither was:
+  //   1. The stored documentUrl is a relative path (/api/private-files/...).
+  //      Linking has no idea what to do with that — it needs a scheme.
+  //   2. That endpoint is private. It answers to a session cookie or a signed
+  //      ?token=, and the browser we hand the URL to has neither. The list
+  //      endpoint now returns `viewUrl` with a short-lived token attached.
+  const onView = async (doc) => {
+    const raw = doc?.viewUrl || doc?.documentUrl;
+    if (!raw) return;
+    try {
+      const url = buildImageUri(raw, await getBaseURL());
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(
+        "Cannot open",
+        "Could not open this document. The link may have expired — pull down to refresh and try again."
+      );
+    }
   };
 
   const onSkipToDashboard = () => {
@@ -398,6 +414,7 @@ export default function DocumentsScreen({ navigation, route }) {
 
       <UploadModal
         type={uploadFor}
+        existingDoc={byType[uploadFor]}
         onClose={() => setUploadFor(null)}
         onUploaded={() => { setUploadFor(null); load(); }}
       />
@@ -515,8 +532,10 @@ function DocCard({ type, doc, onUpload, onView, onDelete }) {
               </View>
             ) : (
               <View style={styles.thumb}>
+                {/* viewUrl, not documentUrl — the raw path is behind auth, so
+                    the thumbnail was silently 401ing and rendering blank. */}
                 <RemoteImage
-                  source={{ uri: doc.documentUrl }}
+                  source={{ uri: doc.viewUrl || doc.documentUrl }}
                   style={styles.thumbImg}
                   resizeMode="cover"
                 />
@@ -616,7 +635,7 @@ function DocCard({ type, doc, onUpload, onView, onDelete }) {
 
 /* ───────── Upload modal ───────── */
 
-function UploadModal({ type, onClose, onUploaded }) {
+function UploadModal({ type, existingDoc, onClose, onUploaded }) {
   const [file, setFile] = useState(null);
   const [docNumber, setDocNumber] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -657,13 +676,17 @@ function UploadModal({ type, onClose, onUploaded }) {
     }
   };
 
-  const upload = async () => {
-    if (!file) return Alert.alert("Required", "Pick a file first.");
-    if (file.size && file.size > 10 * 1024 * 1024) {
-      return Alert.alert("Too large", "Max file size is 10 MB.");
-    }
+  // The backend rejects a second non-rejected doc of the same type (one
+  // PENDING/VERIFIED record per type), so a pending doc has to be deleted
+  // first to allow replacement — matches web's handleUpload in
+  // documents/page.tsx. Without this, upload() below 400s and the user has
+  // to manually delete before retrying.
+  const doUpload = async () => {
     try {
       setUploading(true);
+      if (existingDoc && existingDoc.status === "PENDING") {
+        await deleteTravelAgentDocument(existingDoc.id);
+      }
       await uploadTravelAgentDocument(file, type, docNumber.trim() || undefined);
       reset();
       onUploaded();
@@ -674,14 +697,38 @@ function UploadModal({ type, onClose, onUploaded }) {
     }
   };
 
+  const upload = () => {
+    if (!file) return Alert.alert("Required", "Pick a file first.");
+    if (file.size && file.size > 10 * 1024 * 1024) {
+      return Alert.alert("Too large", "Max file size is 10 MB.");
+    }
+
+    if (existingDoc && existingDoc.status !== "REJECTED") {
+      if (existingDoc.status === "VERIFIED") {
+        return Alert.alert("Cannot replace", "Verified documents cannot be replaced. Contact support.");
+      }
+      return Alert.alert(
+        "Replace document?",
+        "A pending document already exists for this type. Replace it?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Replace", style: "destructive", onPress: doUpload },
+        ]
+      );
+    }
+
+    doUpload();
+  };
+
   const close = () => { reset(); onClose(); };
 
   if (!type) return null;
 
   return (
     <Modal visible={!!type} animationType="slide" transparent onRequestClose={close}>
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
         <View style={styles.modalSheet}>
+          <SheetHandle />
           {/* Gradient header */}
           <LinearGradient
             colors={G.hero}
@@ -794,7 +841,7 @@ function UploadModal({ type, onClose, onUploaded }) {
             </TouchableOpacity>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -1075,10 +1122,10 @@ const styles = StyleSheet.create({
   },
 
   // ── Upload modal ──
-  modalOverlay: { flex: 1, backgroundColor: "rgba(11,51,39,0.55)", justifyContent: "flex-end" },
+  modalOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
   modalSheet: {
     backgroundColor: C.bg,
-    borderTopLeftRadius: rs(26), borderTopRightRadius: rs(26),
+    borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     paddingBottom: Platform.OS === "ios" ? rs(24) : rs(12),
     overflow: "hidden",
     maxHeight: "88%",

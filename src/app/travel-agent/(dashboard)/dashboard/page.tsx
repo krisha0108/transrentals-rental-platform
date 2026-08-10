@@ -15,6 +15,12 @@ import {
   Plus,
   ArrowRight,
   Sparkles,
+  Car,
+  Link2,
+  Send,
+  CalendarPlus,
+  Newspaper,
+  MessagesSquare,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import TravelAgentOnboarding from '@/components/travel-agent/onboarding/TravelAgentOnboarding';
@@ -42,6 +48,7 @@ interface DashboardStats {
   followUps: { today: number; thisWeek: number };
   tours: { total: number; active: number };
   properties: { total: number; active: number };
+  fleet: { total: number; active: number };
   bookings: {
     total: number;
     confirmed: number;
@@ -137,16 +144,26 @@ export default function TravelAgentDashboardPage() {
   const { data: session } = useSession();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [profile, setProfile] = useState<TravelAgentProfile | null>(null);
+  const [socialUnread, setSocialUnread] = useState(0);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const load = async () => {
       try {
-        const [statsRes, profileRes] = await Promise.all([
+        const [statsRes, profileRes, socialRes] = await Promise.all([
           fetch('/api/travel-agent/dashboard'),
           fetch('/api/travel-agent/profile'),
+          fetch('/api/social/chat/conversations').catch(() => null),
         ]);
         if (statsRes.ok) setStats(await statsRes.json());
         if (profileRes.ok) setProfile(await profileRes.json());
+        if (socialRes?.ok) {
+          const j = await socialRes.json();
+          const total = (j.conversations || []).reduce(
+            (sum: number, c: any) => sum + (c.unreadCount || 0),
+            0,
+          );
+          setSocialUnread(total);
+        }
       } finally {
         setLoading(false);
       }
@@ -309,10 +326,69 @@ export default function TravelAgentDashboardPage() {
         {/* Listings */}
         <AnimateIn delay={160}>
           <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">My Listings</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <ListingCard title="Tours" total={stats?.tours.total ?? 0} active={stats?.tours.active ?? 0} icon={Compass} color="blue" href="/travel-agent/tours" />
             <ListingCard title="Properties" total={stats?.properties.total ?? 0} active={stats?.properties.active ?? 0} icon={Building2} color="purple" href="/travel-agent/properties" />
+            <ListingCard title="Fleet" total={stats?.fleet.total ?? 0} active={stats?.fleet.active ?? 0} icon={Car} color="amber" href="/travel-agent/fleet" />
             <ListingCard title="Bookings" total={stats?.bookings.total ?? 0} active={stats?.bookings.thisMonth ?? 0} activeLabel="this month" icon={BookOpen} color="emerald" href="/travel-agent/bookings" />
+          </div>
+        </AnimateIn>
+
+        {/* Quick Actions */}
+        <AnimateIn delay={180}>
+          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Quick Actions</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <QuickActionTile label="Add Lead" icon={Plus} color="emerald" href="/travel-agent/leads/add" />
+            <QuickActionTile label="New Booking" icon={CalendarPlus} color="blue" href="/travel-agent/bookings/add" />
+            <QuickActionTile label="Add Tour" icon={Compass} color="purple" href="/travel-agent/tours/add" />
+            <QuickActionTile label="Add Property" icon={Building2} color="amber" href="/travel-agent/properties/add" />
+            <QuickActionTile label="Add Vehicle" icon={Car} color="blue" href="/travel-agent/fleet/add" />
+            <QuickActionTile label="Capture Link" icon={Link2} color="amber" href="/travel-agent/capture-links" />
+            <QuickActionTile label="New Post" icon={Send} color="emerald" href="/travel-agent/social/create" />
+          </div>
+        </AnimateIn>
+
+        {/* Community */}
+        <AnimateIn delay={200}>
+          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Community</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Link
+              href="/travel-agent/social"
+              className="bg-white rounded-2xl border border-gray-200/80 p-5 hover:shadow-[0_16px_40px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 group flex items-center gap-3"
+            >
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <Newspaper className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-gray-900">Social Feed</p>
+                <p className="text-xs text-gray-500 mt-0.5">Community posts & updates</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all duration-200" />
+            </Link>
+            <Link
+              href="/travel-agent/social/messages"
+              className="bg-white rounded-2xl border border-gray-200/80 p-5 hover:shadow-[0_16px_40px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 group flex items-center gap-3"
+            >
+              <div className="relative shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <MessagesSquare className="w-5 h-5" />
+                </div>
+                {socialUnread > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
+                    {socialUnread > 99 ? '99+' : socialUnread}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-gray-900">Messages</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {socialUnread > 0
+                    ? `${socialUnread} unread message${socialUnread > 1 ? 's' : ''}`
+                    : 'Chat with vendors & partners'}
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all duration-200" />
+            </Link>
           </div>
         </AnimateIn>
 
@@ -401,13 +477,14 @@ function ListingCard({
   active: number;
   activeLabel?: string;
   icon: any;
-  color: 'blue' | 'purple' | 'emerald';
+  color: 'blue' | 'purple' | 'emerald' | 'amber';
   href: string;
 }) {
   const colors: Record<string, string> = {
     blue: 'bg-blue-50 text-blue-600',
     purple: 'bg-purple-50 text-purple-600',
     emerald: 'bg-emerald-50 text-emerald-600',
+    amber: 'bg-amber-50 text-amber-600',
   };
   return (
     <Link
@@ -429,6 +506,36 @@ function ListingCard({
         </div>
         <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all duration-200" />
       </div>
+    </Link>
+  );
+}
+
+function QuickActionTile({
+  label,
+  icon: Icon,
+  color,
+  href,
+}: {
+  label: string;
+  icon: any;
+  color: 'emerald' | 'blue' | 'purple' | 'amber';
+  href: string;
+}) {
+  const colors: Record<string, string> = {
+    emerald: 'bg-emerald-50 text-emerald-600',
+    blue: 'bg-blue-50 text-blue-600',
+    purple: 'bg-purple-50 text-purple-600',
+    amber: 'bg-amber-50 text-amber-600',
+  };
+  return (
+    <Link
+      href={href}
+      className="bg-white rounded-2xl border border-gray-200/80 p-4 hover:shadow-[0_16px_40px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col items-center text-center gap-2"
+    >
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors[color]}`}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <p className="text-xs font-semibold text-gray-700">{label}</p>
     </Link>
   );
 }

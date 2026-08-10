@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { PostImageSlideshow } from '@/components/social/PostImageSlideshow';
 import {
   ArrowLeft, MapPin, FileText, Compass, Heart, MessageCircle,
-  Bookmark, BookmarkCheck, Trash2, Settings, Zap, Loader2,
+  Bookmark, BookmarkCheck, Trash2, Settings, Zap, Loader2, X, Send,
 } from 'lucide-react';
 
 interface Agent {
@@ -40,6 +40,15 @@ interface Post {
   savedByMe: boolean;
   likesCount: number;
   commentsCount: number;
+}
+
+interface CommentAuthor { businessName: string; ownerName: string; logo?: string; }
+interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  vendor: CommentAuthor;
+  author?: { type: 'vendor' | 'agent'; id: string };
 }
 
 function timeAgo(d: string) {
@@ -73,6 +82,111 @@ function AgentAvatar({ agent, size = 76 }: { agent: Agent; size?: number }) {
   );
 }
 
+function CommentAuthorAvatar({ author, size = 34 }: { author: CommentAuthor; size?: number }) {
+  const [err, setErr] = useState(false);
+  const colors = ['bg-emerald-600', 'bg-teal-500', 'bg-emerald-700', 'bg-green-700', 'bg-teal-600'];
+  const color = colors[author.businessName.charCodeAt(0) % colors.length];
+  if (author.logo && !err) {
+    return (
+      <img src={author.logo} alt={author.businessName} onError={() => setErr(true)}
+        className="rounded-full object-cover flex-shrink-0 ring-2 ring-white"
+        style={{ width: size, height: size }} />
+    );
+  }
+  return (
+    <div className={`${color} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 select-none ring-2 ring-white`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}>
+      {author.businessName.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
+function CommentModal({ post, currentAgentId, onClose }: { post: Post; currentAgentId?: string; onClose: () => void }) {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [text, setText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/social/posts/${post.id}/comment`).then(r => r.json())
+      .then(d => { setComments(d.comments || []); setLoading(false); });
+  }, [post.id]);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!text.trim()) return;
+    setSubmitting(true);
+    const res = await fetch(`/api/social/posts/${post.id}/comment`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: text }),
+    });
+    const data = await res.json();
+    if (res.ok) { setComments(p => [...p, data.comment]); setText(''); }
+    setSubmitting(false);
+  };
+
+  const deleteComment = async (cid: string) => {
+    await fetch(`/api/social/posts/${post.id}/comment/${cid}`, { method: 'DELETE' });
+    setComments(p => p.filter(c => c.id !== cid));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/30 backdrop-blur-md">
+      <div className="bg-white w-full sm:rounded-2xl sm:max-w-lg max-h-[85vh] flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div>
+            <p className="font-bold text-gray-900">Comments</p>
+            <p className="text-xs text-gray-400 mt-0.5">{post.vendor.businessName}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors"><X className="h-5 w-5 text-gray-400" /></button>
+        </div>
+        <div className="px-5 py-3 bg-gray-50/80 border-b border-gray-100">
+          <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed italic">&quot;{post.content}&quot;</p>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {loading ? (
+            <div className="flex justify-center py-10"><div className="animate-spin h-6 w-6 border-2 border-emerald-600 border-t-transparent rounded-full" /></div>
+          ) : comments.length === 0 ? (
+            <div className="text-center py-10">
+              <MessageCircle className="h-10 w-10 text-gray-200 mx-auto mb-2" strokeWidth={1.5} />
+              <p className="text-gray-400 text-sm font-medium">No comments yet</p>
+              <p className="text-gray-300 text-xs mt-1">Be the first to comment!</p>
+            </div>
+          ) : comments.map(c => {
+            const isMine = c.author?.type === 'agent' && c.author?.id === currentAgentId;
+            return (
+              <div key={c.id} className="flex gap-3">
+                <CommentAuthorAvatar author={c.vendor} size={34} />
+                <div className="flex-1 bg-gray-50 rounded-2xl px-3.5 py-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-gray-900">{c.vendor.businessName}</span>
+                    <span className="text-[10px] text-gray-400">{timeAgo(c.createdAt)}</span>
+                  </div>
+                  <p className="text-sm text-gray-700 mt-1 leading-relaxed">{c.content}</p>
+                </div>
+                {isMine && (
+                  <button onClick={() => deleteComment(c.id)} className="text-gray-300 hover:text-red-400 self-start pt-2 transition-colors flex-shrink-0">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+          <form onSubmit={submit} className="flex gap-2">
+            <input value={text} onChange={e => setText(e.target.value)} placeholder="Add a comment..."
+              className="flex-1 bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent shadow-sm" />
+            <button type="submit" disabled={submitting || !text.trim()}
+              className="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center hover:bg-emerald-700 disabled:opacity-40 transition-colors flex-shrink-0">
+              <Send className="h-4 w-4" />
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AgentSocialProfileMePage() {
   const [agent, setAgent] = useState<Agent | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -80,6 +194,7 @@ export default function AgentSocialProfileMePage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'posts' | 'tours'>('posts');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [commentPost, setCommentPost] = useState<Post | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -374,7 +489,8 @@ export default function AgentSocialProfileMePage() {
                             <Heart className={`h-3.5 w-3.5 transition-transform ${post.likedByMe ? 'fill-red-500 text-red-500 animate-heart-pop' : ''}`} />
                             {post.likesCount > 0 && post.likesCount}
                           </button>
-                          <button className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold text-gray-500 hover:bg-gray-100 transition-all">
+                          <button onClick={() => setCommentPost(post)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold text-gray-500 hover:bg-gray-100 transition-all">
                             <MessageCircle className="h-3.5 w-3.5" />
                             {post.commentsCount > 0 && post.commentsCount}
                           </button>
@@ -414,6 +530,10 @@ export default function AgentSocialProfileMePage() {
           </div>
         )}
       </div>
+
+      {commentPost && (
+        <CommentModal post={commentPost} currentAgentId={agent?.id} onClose={() => setCommentPost(null)} />
+      )}
     </div>
   );
 }

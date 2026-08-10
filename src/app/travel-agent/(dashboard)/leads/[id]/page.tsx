@@ -28,6 +28,10 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
+// Strips an existing 91/+91 country-code prefix before re-adding it, so a
+// number already saved as "+919876543210" doesn't become "919919876543210".
+const waLink = (phone: string) => `https://wa.me/91${phone.replace(/^\+?91/, '')}`;
+
 interface Note {
   id: string;
   note: string;
@@ -144,6 +148,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReasonText, setRejectReasonText] = useState('');
+
+  // ── Priority + next-follow-up (editable, mirrors the app) ──
+  const [updatingPriority, setUpdatingPriority] = useState(false);
+  const [showFollowUpPicker, setShowFollowUpPicker] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState('');
+  const [updatingFollowUp, setUpdatingFollowUp] = useState(false);
 
   // ── Vehicle assignment state ──
   const [assignments, setAssignments] = useState<VehicleAssignment[]>([]);
@@ -325,6 +335,46 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  const changePriority = async (newPriority: string) => {
+    if (!lead || newPriority === lead.priority) return;
+    setUpdatingPriority(true);
+    try {
+      const res = await fetch(`/api/travel-agent/leads/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priority: newPriority }),
+      });
+      if (res.ok) {
+        showToast({ type: 'success', title: `Priority set to ${newPriority}` });
+        await load();
+      } else {
+        showToast({ type: 'error', title: 'Failed to update priority' });
+      }
+    } finally {
+      setUpdatingPriority(false);
+    }
+  };
+
+  const saveNextFollowUp = async () => {
+    setUpdatingFollowUp(true);
+    try {
+      const res = await fetch(`/api/travel-agent/leads/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nextFollowUp: followUpDate || null }),
+      });
+      if (res.ok) {
+        showToast({ type: 'success', title: followUpDate ? 'Follow-up date set' : 'Follow-up date cleared' });
+        setShowFollowUpPicker(false);
+        await load();
+      } else {
+        showToast({ type: 'error', title: 'Failed to update follow-up date' });
+      }
+    } finally {
+      setUpdatingFollowUp(false);
     }
   };
 
@@ -625,7 +675,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <Phone className="w-3.5 h-3.5 text-gray-400" /> {lead.customerPhone}
               </a>
               <a
-                href={`https://wa.me/91${lead.customerPhone}`}
+                href={waLink(lead.customerPhone)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700"
@@ -783,12 +833,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               })}
             </InfoRow>
             <InfoRow label="Priority">
-              <span className={`font-semibold ${
-                lead.priority === 'HOT' ? 'text-red-600' :
-                lead.priority === 'WARM' ? 'text-amber-600' : 'text-blue-600'
-              }`}>
-                {lead.priority}
-              </span>
+              <select
+                value={lead.priority}
+                onChange={(e) => changePriority(e.target.value)}
+                disabled={updatingPriority}
+                className={`text-xs font-semibold border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-60 ${
+                  lead.priority === 'HOT' ? 'text-red-600 border-red-200 bg-red-50' :
+                  lead.priority === 'WARM' ? 'text-amber-600 border-amber-200 bg-amber-50' :
+                  'text-blue-600 border-blue-200 bg-blue-50'
+                }`}
+              >
+                <option value="HOT">HOT</option>
+                <option value="WARM">WARM</option>
+                <option value="COLD">COLD</option>
+              </select>
             </InfoRow>
             {lead.lastContactAt && (
               <InfoRow label="Last contact">
@@ -800,16 +858,49 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </span>
               </InfoRow>
             )}
-            {lead.nextFollowUp && (
-              <InfoRow label="Next follow-up">
-                <span className="inline-flex items-center gap-1 text-amber-700 font-semibold">
-                  <Calendar className="w-3 h-3" />
-                  {new Date(lead.nextFollowUp).toLocaleDateString('en-IN', {
-                    day: '2-digit', month: 'short',
-                  })}
+            <InfoRow label="Next follow-up">
+              {showFollowUpPicker ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <input
+                    type="date"
+                    value={followUpDate}
+                    onChange={(e) => setFollowUpDate(e.target.value)}
+                    className="text-xs border border-gray-300 rounded-lg px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={saveNextFollowUp}
+                    disabled={updatingFollowUp}
+                    className="text-emerald-600 hover:text-emerald-700 disabled:opacity-60"
+                    title="Save"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowFollowUpPicker(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                    title="Cancel"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </span>
-              </InfoRow>
-            )}
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFollowUpDate(lead.nextFollowUp ? new Date(lead.nextFollowUp).toISOString().slice(0, 10) : '');
+                    setShowFollowUpPicker(true);
+                  }}
+                  className="inline-flex items-center gap-1 text-amber-700 font-semibold hover:underline"
+                >
+                  <Calendar className="w-3 h-3" />
+                  {lead.nextFollowUp
+                    ? new Date(lead.nextFollowUp).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+                    : 'Set date'}
+                </button>
+              )}
+            </InfoRow>
             {lead.captureLink && (
               <InfoRow label="Capture link">
                 <span className="text-xs text-gray-700 truncate">{lead.captureLink.title}</span>

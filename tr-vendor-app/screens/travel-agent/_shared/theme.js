@@ -71,6 +71,10 @@ export const C = {
   // Shadow ink. Screens were hand-writing `shadowColor: "#1F2A24"` inline while
   // cardShadow/rowShadow below used "#0B3327"; this is the one value.
   shadow:      "#0B3327",
+  // Modal backdrop. Warm forest rather than flat black — black behind a cream
+  // sheet reads as a different app. Screens had five of these between them
+  // (rgba(0,0,0,0.5), rgba(15,42,34,0.5), rgba(15,23,42,0.5), rgba(11,32,25,0.45)).
+  scrim:       "rgba(11,51,39,0.55)",
   // Soft accent tints — light card fills for visual variety.
   tintEmerald: "#E7F1EC",
   tintGold:    "#F8F0DC",
@@ -255,4 +259,10 @@ export const SC = {
   wa: C.whatsapp,
 
   shadow: C.shadow,
+  scrim: C.scrim,
 };
+
+// ── Bottom-sheet geometry ────────────────────────────────────────────
+// The sheets were rounded to 22, 24, 26, rs(24) and rs(26) depending on which
+// screen you opened; one value so they all rise the same way.
+export const SHEET_RADIUS = rs(26);

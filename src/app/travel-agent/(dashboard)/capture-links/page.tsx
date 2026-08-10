@@ -11,6 +11,7 @@ import {
   Trash2,
   PowerOff,
   Power,
+  Pencil,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useTravelAgentVerification } from '@/contexts/TravelAgentVerificationContext';
@@ -41,6 +42,7 @@ export default function CaptureLinksPage() {
   const [links, setLinks] = useState<CaptureLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [origin, setOrigin] = useState('');
@@ -80,23 +82,44 @@ export default function CaptureLinksPage() {
     }
     setSubmitting(true);
     try {
-      const res = await fetch('/api/travel-agent/capture-links', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
+      const res = editingId
+        ? await fetch(`/api/travel-agent/capture-links/${editingId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(form),
+          })
+        : await fetch('/api/travel-agent/capture-links', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(form),
+          });
       if (res.ok) {
-        showToast({ type: 'success', title: 'Capture link created' });
+        showToast({ type: 'success', title: editingId ? 'Capture link updated' : 'Capture link created' });
         setForm({ title: '', description: '', defaultTripType: '' });
+        setEditingId(null);
         setShowForm(false);
         await load();
       } else {
         const j = await res.json();
-        showToast({ type: 'error', title: j.error || 'Failed to create link' });
+        showToast({ type: 'error', title: j.error || (editingId ? 'Failed to update link' : 'Failed to create link') });
       }
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const startEdit = (link: CaptureLink) => {
+    if (!isApproved) {
+      openVerificationModal();
+      return;
+    }
+    setForm({
+      title: link.title,
+      description: link.description || '',
+      defaultTripType: link.defaultTripType || '',
+    });
+    setEditingId(link.id);
+    setShowForm(true);
   };
 
   const toggleActive = async (link: CaptureLink) => {
@@ -151,6 +174,8 @@ export default function CaptureLinksPage() {
               openVerificationModal();
               return;
             }
+            setEditingId(null);
+            setForm({ title: '', description: '', defaultTripType: '' });
             setShowForm((v) => !v);
           }}
           className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors"
@@ -167,7 +192,9 @@ export default function CaptureLinksPage() {
 
       {showForm && (
         <form onSubmit={submit} className="bg-white rounded-2xl border border-gray-200 p-6">
-          <h2 className="text-base font-bold text-gray-900 mb-4">New Capture Link</h2>
+          <h2 className="text-base font-bold text-gray-900 mb-4">
+            {editingId ? 'Edit Capture Link' : 'New Capture Link'}
+          </h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Form Title *</label>
@@ -210,7 +237,10 @@ export default function CaptureLinksPage() {
           <div className="flex justify-end gap-2 mt-5">
             <button
               type="button"
-              onClick={() => setShowForm(false)}
+              onClick={() => {
+                setShowForm(false);
+                setEditingId(null);
+              }}
               className="text-sm font-semibold text-gray-600 hover:text-gray-900 px-4 py-2.5"
             >
               Cancel
@@ -220,7 +250,7 @@ export default function CaptureLinksPage() {
               disabled={submitting}
               className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white font-semibold text-sm px-5 py-2.5 rounded-xl flex items-center gap-2"
             >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Link'}
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editingId ? 'Save Changes' : 'Create Link'}
             </button>
           </div>
         </form>
@@ -284,7 +314,7 @@ export default function CaptureLinksPage() {
                   <span>{link.leadsGenerated} leads generated</span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mb-2">
                   <a
                     href={url}
                     target="_blank"
@@ -293,6 +323,14 @@ export default function CaptureLinksPage() {
                   >
                     <ExternalLink className="w-3.5 h-3.5" /> Preview
                   </a>
+                  <button
+                    onClick={() => startEdit(link)}
+                    className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-gray-200 hover:border-blue-300 hover:text-blue-700 text-gray-700 font-semibold text-xs py-2 rounded-lg"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => toggleActive(link)}
                     className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-gray-200 hover:border-amber-300 hover:text-amber-700 text-gray-700 font-semibold text-xs py-2 rounded-lg"

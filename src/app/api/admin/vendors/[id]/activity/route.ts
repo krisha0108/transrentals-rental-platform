@@ -9,7 +9,7 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
 import { getDateRange } from '@/lib/manager-performance';
-import { getPresenceStatus } from '@/lib/presence';
+import { aggregateVendorPresence } from '@/lib/presence';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,13 +43,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     if (range.lte) dateWhere.lte = startOfDay(range.lte);
     else if (range.lt) dateWhere.lte = startOfDay(new Date(range.lt.getTime() - 1));
 
-    const [sessions, presenceRow] = await Promise.all([
+    const [sessions, presenceRows] = await Promise.all([
       prisma.vendor_activity_sessions.findMany({
         where: { vendorId, ...(Object.keys(dateWhere).length > 0 ? { date: dateWhere } : {}) },
         orderBy: { date: 'desc' },
         select: { date: true, startAt: true, endAt: true, activeSeconds: true, idleSeconds: true },
       }),
-      prisma.vendor_presence.findUnique({ where: { vendorId } }),
+      prisma.vendor_presence.findMany({ where: { vendorId } }),
     ]);
 
     const totals = { activeSeconds: 0, idleSeconds: 0 };
@@ -72,10 +72,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       activeSeconds: totals.activeSeconds,
       idleSeconds: totals.idleSeconds,
       byDay,
-      presence: {
-        status: getPresenceStatus(presenceRow?.lastPingAt, presenceRow?.isIdle),
-        lastSeenAt: presenceRow?.lastPingAt ? presenceRow.lastPingAt.toISOString() : null,
-      },
+      presence: aggregateVendorPresence(presenceRows),
     });
   } catch (error: any) {
     logger.error('Vendor activity fetch error', error);

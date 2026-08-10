@@ -14,8 +14,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   Linking,
   Alert,
@@ -25,6 +23,20 @@ import {
   Easing,
 } from "react-native";
 import Clipboard from "@react-native-clipboard/clipboard";
+// KeyboardAvoidingView comes from react-native-keyboard-controller, NOT from
+// react-native. RN's Android implementation reads the keyboard frame from the
+// JS `Keyboard` events and compares it against its own measured frame, which
+// double-counts the shift the window already made under `adjustResize` — the
+// composer ended up pushed below the visible area, hidden behind the keyboard.
+//
+// The controller version measures how much of *this view* the keyboard
+// actually covers (`frame.bottom - keyboardTop`, clamped at 0), so it adds
+// padding only for the real overlap. That is correct whether or not the window
+// resized — which matters on targetSdk 35, where Android 15 enforces
+// edge-to-edge and stops honouring `adjustResize` altogether.
+//
+// KeyboardProvider is already mounted at the root in App.js.
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
@@ -34,6 +46,7 @@ import {
   sendTravelAgentChatMessage,
 } from "../../api/travelAgentClient";
 import { SC as C } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 
 const POLL_INTERVAL_MS = 5000;
@@ -81,27 +94,6 @@ function fmtDay(iso) {
     day: "2-digit", month: "short",
     year: d.getFullYear() === today.getFullYear() ? undefined : "numeric",
   });
-}
-
-// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
 }
 
 export default function ChatThreadScreen({ navigation, route }) {
@@ -331,11 +323,11 @@ export default function ChatThreadScreen({ navigation, route }) {
         </View>
       )}
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
-        style={{ flex: 1 }}
-      >
+      {/* No keyboardVerticalOffset: this view is measured where it actually
+          sits on screen (below the header + subject bar), so the header height
+          is already accounted for. The old iOS value of 80 was compensating
+          for RN's broken measurement and now just under-lifts the composer. */}
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         {loading ? (
           <View style={styles.loadingWrap}><ActivityIndicator size="large" color={C.emerald600} /></View>
         ) : (
@@ -365,6 +357,10 @@ export default function ChatThreadScreen({ navigation, route }) {
               </View>
             }
             onContentSizeChange={() => { try { listRef.current?.scrollToEnd({ animated: false }); } catch {} }}
+            // The list shrinks (not its content) when the keyboard lifts the
+            // composer, so onContentSizeChange never fires — without this the
+            // newest message scrolls out of view behind the composer.
+            onLayout={() => { try { listRef.current?.scrollToEnd({ animated: false }); } catch {} }}
           />
         )}
 

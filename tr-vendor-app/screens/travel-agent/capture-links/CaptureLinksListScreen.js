@@ -25,6 +25,7 @@ import {
   getCurrentTravelAgent,
 } from "../../api/travelAgentClient";
 import { SC as C } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 
 // Trip-type chip colour mapping for the form-default badge.
@@ -34,24 +35,6 @@ const TRIP_TYPE_COLORS = {
   TRANSPORT:    { color: C.amber,     icon: "car" },
   CUSTOM:       { color: C.emerald600, icon: "compass" },
 };
-
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />;
-}
 
 export default function CaptureLinksListScreen({ navigation }) {
   const [links, setLinks] = useState([]);
@@ -88,8 +71,9 @@ export default function CaptureLinksListScreen({ navigation }) {
 
   const isApproved = agent?.status === "APPROVED";
 
-  // Gate creation behind approval (mirrors web — capture links are public, so
-  // unapproved agents can't create them). Editing existing links stays allowed.
+  // Gate both create and edit behind approval (mirrors web's startEdit —
+  // capture-links/page.tsx:111-115 — which gates identically; capture links
+  // are public, so unapproved agents can't create OR edit them).
   const goCreate = () => {
     if (!isApproved) {
       Alert.alert(
@@ -99,6 +83,17 @@ export default function CaptureLinksListScreen({ navigation }) {
       return;
     }
     navigation.navigate("TAAddEditCaptureLink");
+  };
+
+  const goEdit = (link) => {
+    if (!isApproved) {
+      Alert.alert(
+        "Approval required",
+        "Your account must be approved before you can edit public capture links. Complete your KYC documents to get verified.",
+      );
+      return;
+    }
+    navigation.navigate("TAAddEditCaptureLink", { link });
   };
 
   // Aggregated stats for floating card.
@@ -240,7 +235,7 @@ export default function CaptureLinksListScreen({ navigation }) {
             <LinkCard
               link={item}
               busy={busyId === item.id}
-              onEdit={() => navigation.navigate("TAAddEditCaptureLink", { link: item })}
+              onEdit={() => goEdit(item)}
               onToggle={() => onToggleActive(item)}
               onShare={() => onShare(item)}
               onCopy={() => onCopy(item)}

@@ -7,13 +7,15 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl, Alert, Modal, TextInput,
   StatusBar, Platform, Animated, Easing,
+  KeyboardAvoidingView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { Calendar } from "react-native-calendars";
 import { DISPLAY } from "../_shared/typography";
-import { SC as C, C as T, G } from "../_shared/theme";
+import { SC as C, C as T, G, SHEET_RADIUS } from "../_shared/theme";
 import {
   listFleetBookings,
   listTravelAgentFleet,
@@ -21,6 +23,7 @@ import {
   updateFleetBooking,
   deleteFleetBooking,
 } from "../../api/travelAgentClient";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 // Booking-type chips for the create/edit form. Customer + Reserved capture a
 // guest; Maintenance + Block just hold the dates.
@@ -38,24 +41,6 @@ const CAPTURES_CUSTOMER = (t) => t === "CUSTOMER" || t === "RESERVED";
 const GOLD = "#E4C066";
 const FILL = "#FBF8F1";
 const HEADER_GRAD = G.hero;
-
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />;
-}
 
 // Per booking-type colour + icon so each row's left stripe / pill is instantly recognisable.
 const TYPE_META = {
@@ -82,6 +67,10 @@ function fmtShort(iso) {
 function daysBetween(a, b) {
   return Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000) + 1);
 }
+function localDateKey(d) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 function dayDelta(iso) {
   const d = new Date(iso); const today = new Date(); today.setHours(0, 0, 0, 0);
   return Math.round((d - today) / 86400000);
@@ -97,6 +86,13 @@ export default function FleetCalendarScreen({ navigation }) {
   const [editor, setEditor] = useState(null);
   const openCreate = () => setEditor({ mode: "create" });
   const openEdit = (booking) => setEditor({ mode: "edit", booking });
+
+  // "List" keeps the original ongoing/upcoming/past grouping; "Month" is a
+  // real calendar grid with prev/next navigation — mirrors the web's month
+  // view, which the app never had (only ever had the list/timeline).
+  const [viewMode, setViewMode] = useState("list"); // 'list' | 'month'
+  const todayKey = localDateKey(new Date());
+  const [selectedDate, setSelectedDate] = useState(todayKey);
 
   const load = useCallback(async () => {
     setError(null);
@@ -139,6 +135,45 @@ export default function FleetCalendarScreen({ navigation }) {
     past.sort((a, b) => new Date(b.endDate) - new Date(a.endDate));
     return { ongoing, upcoming, past };
   }, [bookings]);
+
+  // One dot per booking-type present that day, colour-matched to TYPE_META —
+  // simple multi-dot marking (not a lane-stacked bar like web) but a real
+  // day-by-day picture with month navigation, which is what was missing.
+  //
+  // Date keys are built from local Y/M/D components, never `toISOString()`
+  // — that serializes to UTC and silently shifts the day backward for any
+  // timezone ahead of UTC (e.g. IST), which is exactly how this first
+  // shipped broken: a booking starting Aug 6 09:00 UTC showed as Aug 5.
+  const markedDates = useMemo(() => {
+    const marks = {};
+    for (const b of bookings) {
+      const color = (TYPE_META[b.bookingType] || TYPE_META.CUSTOMER).color;
+      let cur = new Date(b.startDate);
+      cur.setHours(0, 0, 0, 0);
+      const last = new Date(b.endDate);
+      last.setHours(0, 0, 0, 0);
+      let guard = 0;
+      while (cur <= last && guard < 366) {
+        const key = localDateKey(cur);
+        const entry = marks[key] || { dots: [] };
+        if (!entry.dots.some((d) => d.color === color)) entry.dots.push({ key: color, color });
+        marks[key] = entry;
+        cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1);
+        guard += 1;
+      }
+    }
+    marks[selectedDate] = { ...(marks[selectedDate] || {}), selected: true, selectedColor: C.emerald600 };
+    return marks;
+  }, [bookings, selectedDate]);
+
+  const selectedDayBookings = useMemo(() => {
+    const [y, m, d] = selectedDate.split("-").map(Number);
+    const dayStart = new Date(y, m - 1, d, 0, 0, 0, 0);
+    const dayEnd = new Date(y, m - 1, d, 23, 59, 59, 999);
+    return bookings
+      .filter((b) => new Date(b.startDate) <= dayEnd && new Date(b.endDate) >= dayStart)
+      .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+  }, [bookings, selectedDate]);
 
   // Stats for the floating card.
   const stats = useMemo(() => {
@@ -191,6 +226,27 @@ export default function FleetCalendarScreen({ navigation }) {
               <Ionicons name="add" size={22} color={C.emerald700} />
             </TouchableOpacity>
           </View>
+
+          {/* List / Month view toggle */}
+          <View style={styles.viewToggle}>
+            {[
+              { key: "list", label: "List", icon: "list" },
+              { key: "month", label: "Month", icon: "calendar" },
+            ].map((v) => {
+              const active = viewMode === v.key;
+              return (
+                <TouchableOpacity
+                  key={v.key}
+                  style={[styles.viewToggleBtn, active && styles.viewToggleBtnActive]}
+                  onPress={() => setViewMode(v.key)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name={v.icon} size={13} color={active ? C.emerald700 : "rgba(255,255,255,0.85)"} />
+                  <Text style={[styles.viewToggleText, active && styles.viewToggleTextActive]}>{v.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </SafeAreaView>
       </LinearGradient>
 
@@ -227,7 +283,17 @@ export default function FleetCalendarScreen({ navigation }) {
             />
           }
         >
-          {bookings.length === 0 ? (
+          {viewMode === "month" ? (
+            <MonthView
+              markedDates={markedDates}
+              selectedDate={selectedDate}
+              onDayPress={(day) => setSelectedDate(day.dateString)}
+              dayBookings={selectedDayBookings}
+              onRefresh={load}
+              onEdit={openEdit}
+              onAdd={openCreate}
+            />
+          ) : bookings.length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyIconWrap}>
                 <Ionicons name="calendar-clear-outline" size={42} color={C.emerald600} />
@@ -351,6 +417,65 @@ function Group({ title, color, icon, items, onRefresh, onEdit, muted }) {
       {items.map((b) => (
         <BookingRow key={b.id} booking={b} onRefresh={onRefresh} onEdit={onEdit} muted={muted} />
       ))}
+    </View>
+  );
+}
+
+// Real month grid — react-native-calendars gives prev/next navigation for
+// free; each day gets a coloured dot per booking-type present, tapping a day
+// lists that day's bookings below (reusing BookingRow so entries look and
+// behave identically to the List view).
+function MonthView({ markedDates, selectedDate, onDayPress, dayBookings, onRefresh, onEdit, onAdd }) {
+  return (
+    <View>
+      <View style={styles.monthCalWrap}>
+        <Calendar
+          current={selectedDate}
+          onDayPress={onDayPress}
+          markedDates={markedDates}
+          markingType="multi-dot"
+          enableSwipeMonths
+          theme={{
+            backgroundColor: C.card,
+            calendarBackground: C.card,
+            textSectionTitleColor: C.subText,
+            selectedDayBackgroundColor: C.emerald600,
+            selectedDayTextColor: "#fff",
+            todayTextColor: C.emerald600,
+            dayTextColor: C.ink,
+            textDisabledColor: "#D6D0C2",
+            arrowColor: C.emerald600,
+            monthTextColor: C.ink,
+            textDayFontFamily: DISPLAY,
+            textMonthFontFamily: DISPLAY,
+            textDayHeaderFontFamily: DISPLAY,
+            textMonthFontWeight: "bold",
+            textDayFontWeight: "600",
+          }}
+          style={styles.monthCal}
+        />
+      </View>
+
+      <View style={styles.monthDayHeader}>
+        <Text style={styles.monthDayTitle}>
+          {new Date(selectedDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}
+        </Text>
+        <TouchableOpacity style={styles.monthDayAddBtn} onPress={onAdd} activeOpacity={0.85}>
+          <Ionicons name="add" size={14} color={C.emerald700} />
+          <Text style={styles.monthDayAddText}>Add</Text>
+        </TouchableOpacity>
+      </View>
+
+      {dayBookings.length === 0 ? (
+        <View style={styles.monthEmptyDay}>
+          <Ionicons name="calendar-clear-outline" size={24} color={C.subText} />
+          <Text style={styles.monthEmptyDayText}>No bookings on this day</Text>
+        </View>
+      ) : (
+        dayBookings.map((b) => (
+          <BookingRow key={b.id} booking={b} onRefresh={onRefresh} onEdit={onEdit} />
+        ))
+      )}
     </View>
   );
 }
@@ -587,7 +712,7 @@ function BookingFormModal({ editor, vehicles, onClose, onSaved }) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={close}>
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
         <View style={[styles.modalSheet, { maxHeight: "90%" }]}>
           {/* Modal gradient header */}
           <LinearGradient
@@ -847,7 +972,7 @@ function BookingFormModal({ editor, vehicles, onClose, onSaved }) {
             </TouchableOpacity>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
       <DateTimePickerModal
         isVisible={!!pickerType}
         mode="date"
@@ -898,6 +1023,18 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "rgba(255,255,255,0.14)",
   },
   headerBadgeText: { fontFamily: DISPLAY, color: "#fff", fontSize: 10, fontWeight: "bold", letterSpacing: 0.2 },
+  viewToggle: {
+    flexDirection: "row", gap: 6, marginTop: 14,
+    backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 11, padding: 3, alignSelf: "flex-start",
+  },
+  viewToggleBtn: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9,
+  },
+  viewToggleBtnActive: { backgroundColor: "#fff" },
+  viewToggleText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold", color: "rgba(255,255,255,0.85)" },
+  viewToggleTextActive: { color: C.emerald700 },
+
   headerAddBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: "#fff",
@@ -957,6 +1094,26 @@ const styles = StyleSheet.create({
   emptyCta: { marginTop: 16, borderRadius: 12, overflow: "hidden" },
   emptyCtaInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11 },
   emptyCtaText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13 },
+
+  // Month view
+  monthCalWrap: {
+    borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: C.border,
+    marginBottom: 16, backgroundColor: C.card,
+  },
+  monthCal: { borderRadius: 16 },
+  monthDayHeader: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+  monthDayTitle: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: "bold", color: C.ink, flex: 1 },
+  monthDayAddBtn: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
+    backgroundColor: C.emerald50, borderWidth: 1, borderColor: `${C.emerald600}3D`,
+  },
+  monthDayAddText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold", color: C.emerald700 },
+  monthEmptyDay: {
+    alignItems: "center", gap: 8, paddingVertical: 28,
+    backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border,
+  },
+  monthEmptyDayText: { fontFamily: DISPLAY, fontSize: 12.5, color: C.subText, fontWeight: "600" },
 
   // Group section
   groupBlock: { marginBottom: 18 },
@@ -1023,10 +1180,10 @@ const styles = StyleSheet.create({
   fabInner: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   // Modal
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.86)", justifyContent: "flex-end" },
+  modalOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
   modalSheet: {
     backgroundColor: C.card,
-    borderTopLeftRadius: 26, borderTopRightRadius: 26,
+    borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     paddingBottom: Platform.OS === "ios" ? 24 : 12,
     overflow: "hidden",
     shadowColor: "#000", shadowOpacity: 0.45, shadowRadius: 24, shadowOffset: { width: 0, height: -10 }, elevation: 24,

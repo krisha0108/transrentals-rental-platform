@@ -36,7 +36,7 @@ const FILL = "#FBF8F1";                 // warm cream input fill
 const HEADER_GRAD = G.hero;
 const SOS_GRAD = ["#B3261E", "#7A0F12"];
 
-const MAX_CHARS = 2000;
+const MAX_CHARS = 1000;
 const WARN_AT = MAX_CHARS - 200;
 
 function initials(name) {
@@ -231,7 +231,7 @@ export default function CreatePostScreen({ navigation, route }) {
       </LinearGradient>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
         style={{ flex: 1 }}
       >
         <ScrollView

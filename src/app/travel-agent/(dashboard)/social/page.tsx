@@ -793,6 +793,7 @@ function SocialFeedContent() {
   const [showGibberish, setShowGibberish] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [oldSOSCollapsed, setOldSOSCollapsed] = useState(true);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   // Resolve the current agent's id + agency name for ownership + Account card.
   useEffect(() => {
@@ -806,6 +807,19 @@ function SocialFeedContent() {
         }
       } catch {}
     })();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchUnread = () => {
+      fetch('/api/travel-agent/notifications/unread-count')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (!cancelled && d) setUnreadNotifCount(d.count || 0); })
+        .catch(() => {});
+    };
+    fetchUnread();
+    const t = setInterval(fetchUnread, 30000);
+    return () => { cancelled = true; clearInterval(t); };
   }, []);
 
   const filteredPosts = posts
@@ -944,9 +958,14 @@ function SocialFeedContent() {
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <button className="group relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors" title="Notifications">
+            <Link href="/travel-agent/notifications" className="group relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors" title="Notifications">
               <Bell className="w-[18px] h-[18px] group-hover:animate-wiggle" />
-            </button>
+              {unreadNotifCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] px-[3px] flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold leading-none">
+                  {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+                </span>
+              )}
+            </Link>
             <Link href="/travel-agent/social/messages" className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors" title="Messages">
               <MessageCircle className="w-[18px] h-[18px]" />
             </Link>

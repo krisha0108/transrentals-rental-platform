@@ -629,6 +629,14 @@ export async function generateTourDescription({ title, destination, duration, ba
   return res.data; // { description }
 }
 
+// Web checks this before letting an agent tap "Generate with AI" so the
+// button can show "AI Unavailable" proactively instead of only failing
+// after a tap; the app never called it (this is that fix).
+export async function getTourAiStatus() {
+  const res = await apiGet("/travel-agent/tours/ai-status");
+  return res.data; // { available, reason? }
+}
+
 export const TOUR_PRICE_TYPE = ["PER_PERSON", "PER_GROUP", "ON_REQUEST"];
 export const TOUR_CANCELLATION_POLICY = ["FLEXIBLE", "MODERATE", "STRICT"];
 export const TOUR_CREATE_MODE = ["QUICK", "DETAILED"];
@@ -891,6 +899,17 @@ export async function createTravelAgentBankAccount(payload) {
 }
 
 /**
+ * Edit an existing bank account. PUT (not PATCH — PATCH on this endpoint only
+ * flips the primary flag). The backend requires the full set of core fields on
+ * every call, checks the account belongs to this agent, and demotes the other
+ * primary itself when isPrimary is true.
+ */
+export async function updateTravelAgentBankAccount(id, payload) {
+  const res = await apiPut("/travel-agent/bank-details", { id, ...payload });
+  return res.data; // { account }
+}
+
+/**
  * Make a bank account the primary one. Backend semantics: a new POST with
  * isPrimary=true demotes the previous primary. We do the same here.
  */
@@ -970,7 +989,7 @@ export async function deleteTravelAgentDocument(id) {
 //
 // Polling cadence (matches web): 15s for the list, 5s for an open thread.
 
-export const CHAT_STATUS = ["ACTIVE", "ARCHIVED", "BLOCKED"];
+export const CHAT_STATUS = ["ALL", "ACTIVE", "ARCHIVED", "BLOCKED"];
 
 export async function listTravelAgentConversations({ status = "ACTIVE" } = {}) {
   const qs = buildQs({ status });
@@ -1171,4 +1190,11 @@ export async function submitSupportTicket({ subject, category, message }) {
 export async function getMySupportTickets() {
   const res = await apiGet("/travel-agent/support/tickets");
   return res.data; // { tickets }
+}
+
+// AI Help Assistant — same public, unauthenticated FAQ endpoint the web
+// widget (HelpBotWidget.tsx) uses. No travel-agent auth required.
+export async function sendTravelAgentHelpChat(messages, language = "auto") {
+  const res = await apiPost("/travel-agent/help-chat", { messages, language });
+  return res.data; // { reply } | { error }
 }

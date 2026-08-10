@@ -13,6 +13,10 @@ import {
 } from 'lucide-react';
 import TravelAgentChat from '@/components/travel-agent/chat/TravelAgentChat';
 
+// Strips an existing 91/+91 country-code prefix before re-adding it, so a
+// number already saved as "+919876543210" doesn't become "919919876543210".
+const waLink = (phone: string) => `https://wa.me/91${phone.replace(/^\+?91/, '')}`;
+
 interface ConversationMeta {
   id: string;
   subject: string | null;
@@ -113,7 +117,7 @@ export default function ChatDetailPage({ params }: { params: { id: string } }) {
             <Phone className="w-3 h-3" /> Call
           </a>
           <a
-            href={`https://wa.me/91${conv.customerPhone}`}
+            href={waLink(conv.customerPhone)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg"
