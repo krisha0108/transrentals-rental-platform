@@ -15,7 +15,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  ActivityIndicator, RefreshControl, StatusBar,
+  ActivityIndicator, RefreshControl, StatusBar, Linking, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -379,6 +379,7 @@ export default function GetStartedScreen({ navigation }) {
           <FeatureTile
             icon="link" tone="rose" label="Capture Links" sub="Auto-collect leads"
             onPress={() => navigation.navigate("TACaptureLinks")}
+            locked={!isApproved}
           />
           <FeatureTile
             icon="globe" tone="ocean" label="Social" sub="Vendor network"
@@ -387,7 +388,10 @@ export default function GetStartedScreen({ navigation }) {
         </View>
 
         {/* ===== Help card ===== */}
-        <View style={styles.helpCard}>
+        {/* Matches web's "Need help getting started?" card — actionable
+            links to Notifications + Email Support, not static text
+            (get-started/page.tsx:401-426). */}
+        <View style={[styles.helpCard, { alignItems: "flex-start" }]}>
           <View style={styles.helpIcon}>
             <Ionicons name="help-buoy" size={rs(18)} color={C.emeraldDeep} />
           </View>
@@ -396,6 +400,27 @@ export default function GetStartedScreen({ navigation }) {
             <Text style={styles.helpBody}>
               Our team is here to get you onboarded fast. Reach out anytime.
             </Text>
+            <View style={styles.helpActionsRow}>
+              <TouchableOpacity
+                style={styles.helpActionBtn}
+                onPress={() => navigation.navigate("TANotifications")}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="time-outline" size={rs(12)} color={C.blue} />
+                <Text style={[styles.helpActionText, { color: C.blue }]}>View Notifications</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.helpActionBtn, { backgroundColor: C.card }]}
+                onPress={() =>
+                  Linking.openURL("mailto:support@transrentals.in").catch(() =>
+                    Alert.alert("Error", "Could not open your mail app.")
+                  )
+                }
+                activeOpacity={0.85}
+              >
+                <Text style={styles.helpActionText}>✉️ Email Support</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -548,7 +573,12 @@ function StatTile({ icon, tone, value, label }) {
   );
 }
 
-function FeatureTile({ icon, tone, label, sub, onPress }) {
+// `locked` mirrors web's KYC badge on the Capture Links tile
+// (get-started/page.tsx:370-374) — a visual hint that the feature itself is
+// still reachable, but the action inside it (creating/editing a public link)
+// is gated until the agent is approved (see CaptureLinksListScreen's
+// goCreate/goEdit).
+function FeatureTile({ icon, tone, label, sub, onPress, locked }) {
   const t = TONES[tone] || TONES.emerald;
   return (
     <TouchableOpacity
@@ -556,15 +586,22 @@ function FeatureTile({ icon, tone, label, sub, onPress }) {
       onPress={onPress}
       activeOpacity={0.85}
     >
-      <LinearGradient
-        colors={t.grad}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={styles.featureIcon}
-      >
-        <Ionicons name={icon} size={rs(19)} color="#fff" />
-      </LinearGradient>
+      <View>
+        <LinearGradient
+          colors={t.grad}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={styles.featureIcon}
+        >
+          <Ionicons name={icon} size={rs(19)} color="#fff" />
+        </LinearGradient>
+        {locked && (
+          <View style={styles.featureLockBadge}>
+            <Ionicons name="lock-closed" size={rs(9)} color={TONES.amber.ink} />
+          </View>
+        )}
+      </View>
       <Text style={styles.featureLabel} numberOfLines={1}>{label}</Text>
-      <Text style={styles.featureSub} numberOfLines={1}>{sub}</Text>
+      <Text style={styles.featureSub} numberOfLines={1}>{locked ? "Requires KYC" : sub}</Text>
     </TouchableOpacity>
   );
 }
@@ -806,6 +843,12 @@ const styles = StyleSheet.create({
     width: rs(42), height: rs(42), borderRadius: rs(14),
     alignItems: "center", justifyContent: "center", marginBottom: rs(4),
   },
+  featureLockBadge: {
+    position: "absolute", top: -rs(2), right: -rs(2),
+    width: rs(17), height: rs(17), borderRadius: rs(9),
+    backgroundColor: TONES.amber.tint, borderWidth: rs(1.5), borderColor: C.card,
+    alignItems: "center", justifyContent: "center",
+  },
   featureLabel: { fontFamily: DISPLAY, fontSize: rf(12), fontWeight: "bold", color: C.ink },
   featureSub: {
     fontFamily: DISPLAY, fontSize: rf(9.5), color: C.muted,
@@ -828,6 +871,13 @@ const styles = StyleSheet.create({
     fontFamily: DISPLAY, fontSize: rf(11.5), color: C.sub,
     marginTop: rs(2), fontWeight: "600", lineHeight: rf(16),
   },
+  helpActionsRow: { flexDirection: "row", flexWrap: "wrap", gap: rs(8), marginTop: rs(10) },
+  helpActionBtn: {
+    flexDirection: "row", alignItems: "center", gap: rs(5),
+    paddingHorizontal: rs(10), paddingVertical: rs(6), borderRadius: rs(9),
+    backgroundColor: "rgba(28,107,82,0.08)", borderWidth: 1, borderColor: C.border,
+  },
+  helpActionText: { fontFamily: DISPLAY, fontSize: rf(10.5), fontWeight: "bold", color: C.ink },
 
   errorBox: {
     flexDirection: "row", alignItems: "center", gap: rs(8),

@@ -50,6 +50,33 @@ interface Pagination {
   pages: number;
 }
 
+// Presence — "is this vendor online right now" — same mechanism as the admin
+// managers list (see /api/vendor/heartbeat, /api/admin/vendors/presence).
+type PresenceStatus = 'active' | 'idle' | 'offline';
+
+interface PresenceInfo {
+  status: PresenceStatus;
+  lastSeenAt: string | null;
+}
+
+const PRESENCE_META: Record<PresenceStatus, { label: string; dot: string; text: string }> = {
+  active: { label: 'Active now', dot: 'bg-emerald-500 animate-pulse', text: 'text-emerald-700' },
+  idle: { label: 'Idle', dot: 'bg-amber-500', text: 'text-amber-700' },
+  offline: { label: 'Offline', dot: 'bg-gray-300', text: 'text-gray-500' },
+};
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return 'never';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
 const statusConfig: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
   PENDING: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   DOCUMENTS_PENDING: { label: 'Documents Pending', color: 'bg-orange-100 text-orange-800', icon: FileText },
@@ -249,6 +276,24 @@ export default function VendorsPage() {
   // Status change state
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<Vendor | null>(null);
+
+  const [presence, setPresence] = useState<Record<string, PresenceInfo>>({});
+
+  const fetchPresence = async () => {
+    try {
+      const res = await fetch('/api/admin/vendors/presence');
+      const data = await res.json();
+      if (data.presence) setPresence(data.presence);
+    } catch (error) {
+      console.error('Failed to fetch vendor presence:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPresence();
+    const interval = setInterval(fetchPresence, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchVendors = async () => {
     setLoading(true);
@@ -466,6 +511,7 @@ export default function VendorsPage() {
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Vendor</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Contact</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Status</th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Online</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Stats</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Registered</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Actions</th>
@@ -502,6 +548,25 @@ export default function VendorsPage() {
                             {statusInfo.label}
                           </span>
                         )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {(() => {
+                          const p = presence[vendor.id];
+                          const meta = PRESENCE_META[p?.status || 'offline'];
+                          return (
+                            <div>
+                              <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${meta.text}`}>
+                                <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+                                {meta.label}
+                              </span>
+                              {p?.status !== 'active' && (
+                                <p className="text-[11px] text-gray-400 mt-0.5">
+                                  {p ? `Last seen ${timeAgo(p.lastSeenAt)}` : 'Never logged in'}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4 text-sm text-gray-600">

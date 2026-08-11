@@ -40,6 +40,8 @@ interface Fleet {
   coverImage: string | null;
   isActive: boolean;
   isAvailable: boolean;
+  isBooked?: boolean;
+  currentBooking?: { startDate: string; endDate: string } | null;
   totalTrips: number;
   rating: number | null;
   totalRatings: number;
@@ -231,13 +233,21 @@ export default function FleetListPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {fleets.map((f) => (
+          {fleets.map((f) => {
+            // A vehicle is unavailable either because the agent flipped the
+            // manual flag, or because the Fleet Calendar holds a booking that
+            // hasn't ended yet (`isBooked`, derived server-side) — mirrors the
+            // app's VehicleCard logic, which the web list used to ignore.
+            const bookedNow = f.isBooked === true;
+            const isAvail = !bookedNow && f.isAvailable;
+            return (
             <div
               key={f.id}
               className={`bg-white rounded-2xl border overflow-hidden ${
                 f.isActive ? 'border-gray-200' : 'border-gray-200 opacity-60'
               }`}
             >
+              <Link href={`/travel-agent/fleet/${f.id}`}>
               <div className="aspect-[16/9] bg-gradient-to-br from-emerald-100 to-teal-100 relative">
                 {f.coverImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -251,9 +261,13 @@ export default function FleetListPage() {
                   <span className="inline-flex bg-white/90 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
                     {TYPE_LABELS[f.vehicleType]}
                   </span>
-                  {f.isAvailable ? (
+                  {isAvail ? (
                     <span className="inline-flex items-center gap-1 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                       <CalendarCheck className="w-2.5 h-2.5" /> AVAILABLE
+                    </span>
+                  ) : bookedNow ? (
+                    <span className="inline-flex items-center gap-1 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      <CalendarOff className="w-2.5 h-2.5" /> BOOKED
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
@@ -304,8 +318,10 @@ export default function FleetListPage() {
                     </span>
                   )}
                 </div>
+              </div>
+              </Link>
 
-                <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-between gap-2 mx-4 pb-4 pt-3 border-t border-gray-100">
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => toggleAvailable(f)}
@@ -343,10 +359,10 @@ export default function FleetListPage() {
                   >
                     <Edit2 className="w-3.5 h-3.5" /> Edit
                   </Link>
-                </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

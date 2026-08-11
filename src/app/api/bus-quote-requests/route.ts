@@ -33,6 +33,22 @@ function generateB2BBookingNumber(): string {
   return `B2B-${year}-${random}`;
 }
 
+// pickupDate/returnDate arrive as date-only strings (midnight UTC once
+// parsed) with the actual clock time held separately in pickupTime/
+// returnTime ("HH:mm") — diffing the dates alone silently drops that time
+// and over/under-counts trip days. This folds the time back in (in UTC, so
+// it doesn't depend on the server's local timezone) before any diff.
+function combineDateAndTime(dateInput: string | Date, time?: string | null): number {
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return NaN;
+  let hours = 0;
+  let minutes = 0;
+  if (time && /^\d{1,2}:\d{2}$/.test(time)) {
+    [hours, minutes] = time.split(':').map(Number);
+  }
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hours, minutes, 0, 0);
+}
+
 // POST - Customer creates a Bus Quote Request
 export async function POST(request: NextRequest) {
   try {
@@ -329,7 +345,7 @@ export async function POST(request: NextRequest) {
       // Calculate trip days
       let calculatedTripDays = tripDays || 1;
       if (returnDate && pickupDate && !tripDays) {
-        const diff = new Date(returnDate).getTime() - new Date(pickupDate).getTime();
+        const diff = combineDateAndTime(returnDate, returnTime) - combineDateAndTime(pickupDate, pickupTime);
         calculatedTripDays = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
       }
 
@@ -416,7 +432,7 @@ export async function POST(request: NextRequest) {
     // Calculate trip days if not provided
     let calculatedTripDays = tripDays || 1;
     if (returnDate && pickupDate && !tripDays) {
-      const diff = new Date(returnDate).getTime() - new Date(pickupDate).getTime();
+      const diff = combineDateAndTime(returnDate, returnTime) - combineDateAndTime(pickupDate, pickupTime);
       calculatedTripDays = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
     }
 

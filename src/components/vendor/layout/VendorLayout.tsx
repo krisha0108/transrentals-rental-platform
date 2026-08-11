@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { ToastProvider } from '@/components/ui/toast';
 import { useVendorWebNotifications } from '@/hooks/useVendorWebNotifications';
+import { useVendorActivityHeartbeat } from '@/hooks/useVendorActivityHeartbeat';
 import Link from 'next/link';
 import { VendorVerificationContext } from '@/contexts/VendorVerificationContext';
 
@@ -227,6 +228,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
   const pathname = usePathname();
 
   useVendorWebNotifications();
+  useVendorActivityHeartbeat(status === 'authenticated');
 
   useEffect(() => {
     const vendorId = (session?.user as any)?.id || (session?.user as any)?.email || 'unknown';

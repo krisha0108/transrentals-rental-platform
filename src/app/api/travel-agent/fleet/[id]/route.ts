@@ -38,7 +38,29 @@ export async function GET(
       return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 });
     }
 
-    return NextResponse.json(fleet);
+    // Same live-booking derivation as the list route, so a vehicle's detail
+    // page and its list card never disagree about whether it's booked.
+    const now = new Date();
+    const liveBookings: any[] = await (prisma as any).$queryRawUnsafe(
+      `SELECT id, fleetId, startDate, endDate, bookingType, status, customerName
+         FROM travel_agent_fleet_bookings
+        WHERE travelAgentId = ? AND fleetId = ?
+          AND status IN ('CONFIRMED', 'TENTATIVE')
+          AND endDate >= ?
+        ORDER BY startDate ASC
+        LIMIT 1`,
+      auth.travelAgentId,
+      params.id,
+      now,
+    );
+    const currentBooking = liveBookings[0] ?? null;
+
+    return NextResponse.json({
+      ...fleet,
+      currentBooking,
+      isBooked: !!currentBooking,
+      isBookedNow: !!currentBooking && new Date(currentBooking.startDate) <= now,
+    });
   } catch (error: any) {
     logger.error('Get fleet error', error);
     return NextResponse.json(

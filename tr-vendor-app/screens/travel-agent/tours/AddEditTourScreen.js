@@ -27,8 +27,10 @@ import {
   createTravelAgentTour,
   replaceTravelAgentTour, // PUT — auto-flips isPublic based on status
   deleteTravelAgentTour,
+  getCurrentTravelAgent, // for the publish-approval gate
   getTravelAgentProfile, // for the KYC-document gate before creating tours
   generateTourDescription, // AI: short description from title
+  getTourAiStatus, // proactive DeepSeek-availability check (web parity)
   listTravelAgentCategories,
   searchTravelAgentLocations,
   listTravelAgentFleet,
@@ -40,9 +42,90 @@ import ImagePickerField from "../_shared/ImagePickerField";
 import RemoteImage from "../_shared/RemoteImage"; // resolves relative /uploads URLs
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DISPLAY } from "../_shared/typography";
-import { SC as C } from "../_shared/theme";
+import { SC as C, SHEET_RADIUS } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import SheetHandle from "../_shared/SheetHandle";
 
 const TOUR_DRAFT_KEY = "ta_tour_draft_v1"; // #6d — only used for new (un-saved) tours
+
+// Web's tour description is authored in a TipTap WYSIWYG and stored as real
+// HTML (<strong>, <ul><li>, <ol><li>, <p>...). A plain RN TextInput can't host
+// a WYSIWYG, so the app field instead uses lightweight markdown-ish syntax
+// (**bold**, "- item" bullets, "1. item" numbered) that a toolbar inserts,
+// and these two converters translate it to/from that same HTML shape — so a
+// description written on the app renders with real bold/bullets everywhere,
+// not just on the device that created it.
+function editableDescToHtml(text) {
+  if (!text || !text.trim()) return "";
+  const inlineBold = (s) => s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  const lines = text.split("\n");
+  const out = [];
+  let buf = [];
+  let listType = null; // 'ul' | 'ol'
+  const flush = () => {
+    if (buf.length) {
+      out.push(`<${listType}>${buf.map((li) => `<li>${li}</li>`).join("")}</${listType}>`);
+      buf = [];
+      listType = null;
+    }
+  };
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { flush(); continue; }
+    const bullet = line.match(/^-\s+(.*)/);
+    const numbered = line.match(/^\d+\.\s+(.*)/);
+    if (bullet) {
+      if (listType !== "ul") { flush(); listType = "ul"; }
+      buf.push(inlineBold(bullet[1]));
+    } else if (numbered) {
+      if (listType !== "ol") { flush(); listType = "ol"; }
+      buf.push(inlineBold(numbered[1]));
+    } else {
+      flush();
+      out.push(`<p>${inlineBold(line)}</p>`);
+    }
+  }
+  flush();
+  return out.join("");
+}
+
+// Detects web-authored formatting this editor can't round-trip (headings,
+// italic, underline, strikethrough, code, highlight, quotes, hr, links) —
+// used to warn before silently flattening it to plain text on save.
+function hasUnsupportedFormatting(html) {
+  if (!html) return false;
+  return /<h[1-6]|<em|<i[\s>]|<u[\s>]|<s[\s>]|<strike|<code|<mark|<blockquote|<hr|<a\s/i.test(html);
+}
+
+function htmlDescToEditable(html) {
+  if (!html) return "";
+  let text = html;
+  text = text.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (_, inner) =>
+    inner.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m, li) => `- ${li.trim()}\n`)
+  );
+  text = text.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (_, inner) => {
+    let i = 0;
+    return inner.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m, li) => `${++i}. ${li.trim()}\n`);
+  });
+  text = text.replace(/<(strong|b)[^>]*>([\s\S]*?)<\/\1>/gi, "**$2**");
+  text = text.replace(/<\/h[1-6]>/gi, "\n\n");
+  text = text.replace(/<\/p>\s*<p[^>]*>/gi, "\n\n");
+  text = text.replace(/<p[^>]*>/gi, "");
+  text = text.replace(/<\/p>/gi, "\n\n");
+  text = text.replace(/<br\s*\/?>/gi, "\n");
+  // Anything else (headings, italics, links, quotes, alignment) degrades to
+  // plain text rather than round-tripping — acceptable since the app only
+  // ever authors bold/bullets/numbers itself.
+  text = text.replace(/<[^>]+>/g, "");
+  text = text
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  return text.replace(/\n{3,}/g, "\n\n").trim();
+}
 
 
 const PRICE_TYPE_META = {
@@ -99,36 +182,19 @@ function toArr(v) {
   return [];
 }
 
-// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
-}
-
 export default function AddEditTourScreen({ navigation, route }) {
   const existing = route?.params?.tour || null;
   const isEdit = !!existing?.id;
+  // If the web-authored description used formatting this editor can't
+  // round-trip, saving from here would silently flatten it — warn up front
+  // rather than let it happen invisibly.
+  const [descHadRichFormatting] = useState(() => hasUnsupportedFormatting(existing?.description));
 
   const [form, setForm] = useState(() => ({
     title: existing?.title || "",
     destination: existing?.destination || "",
     shortDescription: existing?.shortDescription || "",
-    description: existing?.description || "",
+    description: htmlDescToEditable(existing?.description) || "",
     durationDays: existing?.durationDays ? String(existing.durationDays) : "",
     durationNights: existing?.durationNights ? String(existing.durationNights) : "",
     priceType: existing?.priceType || "PER_PERSON",
@@ -177,11 +243,34 @@ export default function AddEditTourScreen({ navigation, route }) {
   const [mode, setMode] = useState(isEdit ? "DETAILED" : initialMode);
   const [showModeChooser, setShowModeChooser] = useState(!isEdit && initialMode === null);
   const [showDocGate, setShowDocGate] = useState(false); // KYC gate modal
+  // Web disables Publish with a lock badge until the agent is approved
+  // (tours/page.tsx:129-133, tours/add/page.tsx:656-659) — mirror that here
+  // instead of firing the save and only finding out from the backend's
+  // rejection.
+  const [isApproved, setIsApproved] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentTravelAgent()
+      .then((a) => { if (!cancelled) setIsApproved(a?.status === "APPROVED"); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   const [showPreview, setShowPreview] = useState(false); // live tour preview modal
   const [detailStep, setDetailStep] = useState(1); // detailed-mode wizard step (1-6)
   const [aiLoading, setAiLoading] = useState(false); // AI short-description generation
   const [aiQuickLoading, setAiQuickLoading] = useState(false); // AI quick-tour description
+  // null = still checking, true/false once known — mirrors web, which
+  // proactively disables the AI button instead of only failing after a tap.
+  const [aiAvailable, setAiAvailable] = useState(null);
   const [descSelection, setDescSelection] = useState({ start: 0, end: 0 });
+
+  useEffect(() => {
+    let cancelled = false;
+    getTourAiStatus()
+      .then((d) => { if (!cancelled) setAiAvailable(d?.available !== false); })
+      .catch(() => { if (!cancelled) setAiAvailable(true); }); // network error — don't block the button
+    return () => { cancelled = true; };
+  }, []);
   const isQuick = mode === "QUICK";
 
   const [saving, setSaving] = useState(false);
@@ -299,13 +388,22 @@ export default function AddEditTourScreen({ navigation, route }) {
     }
   };
 
-  // Quick tour: insert bullet/list prefix at cursor position
+  // Insert bullet/list prefix at cursor position (starts a new line for it).
   const insertDescFormat = (prefix) => {
     const text = form.description;
     const { start, end } = descSelection;
     const isLineStart = start === 0 || text[start - 1] === "\n";
     const toInsert = isLineStart ? prefix : "\n" + prefix;
     update("description", text.slice(0, start) + toInsert + text.slice(end));
+  };
+
+  // Wraps the current selection in **bold** markers (or drops an empty pair
+  // at the cursor to type into) — converted to real <strong> HTML on save.
+  const insertBoldFormat = () => {
+    const text = form.description;
+    const { start, end } = descSelection;
+    const selected = text.slice(start, end);
+    update("description", text.slice(0, start) + `**${selected}**` + text.slice(end));
   };
 
   // AI: write the quick-tour description from title + destination + duration + price
@@ -334,6 +432,13 @@ export default function AddEditTourScreen({ navigation, route }) {
   const save = async ({ publish = false } = {}) => {
     if (saving) return;
     if (!form.title.trim()) return Alert.alert("Required", "Title is required.");
+
+    if (publish && !isApproved) {
+      return Alert.alert(
+        "Approval required",
+        "Your account must be approved before a tour can go public. Complete your KYC documents to get verified."
+      );
+    }
 
     // KYC gate (new tours only): a travel agent must SUBMIT their documents before
     // they can add tours. We check the live status — DOCUMENTS_PENDING / PENDING means
@@ -374,7 +479,7 @@ export default function AddEditTourScreen({ navigation, route }) {
         mainLocationId: form.mainLocationId || null,
         destination: form.destination?.trim() || null,
         duration: finalDuration || null,
-        description: form.description.trim() || null,
+        description: editableDescToHtml(form.description) || null,
         basePrice: form.basePrice ? Number(form.basePrice) : null,
         startingPrice: form.basePrice ? Number(form.basePrice) : null,
         priceType: form.basePrice ? "PER_PERSON" : "ON_REQUEST",
@@ -421,7 +526,7 @@ export default function AddEditTourScreen({ navigation, route }) {
       title: form.title.trim(),
       destination: form.destination.trim() || null,
       shortDescription: form.shortDescription.trim() || null,
-      description: form.description.trim() || null,
+      description: editableDescToHtml(form.description) || null,
       duration: durationLabel,
       durationDays: days,
       durationNights: nights,
@@ -567,7 +672,14 @@ export default function AddEditTourScreen({ navigation, route }) {
         </SafeAreaView>
       </LinearGradient>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      {/* behavior on Android too, not just iOS.
+          MainActivity calls enableEdgeToEdge(), and with edge-to-edge the
+          window stops honouring android:windowSoftInputMode="adjustResize" —
+          verified on device: the frame stays [0,0][1080,2400] whether the IME
+          is up or not. Nothing shrinks, so the ScrollView never gains anything
+          to scroll and the focused field stays under the keyboard. Passing
+          undefined here left Android with no keyboard handling at all. */}
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
           {/* Quick-mode banner — switch to detailed anytime */}
@@ -586,7 +698,7 @@ export default function AddEditTourScreen({ navigation, route }) {
           <>
             {/* Category (required) — grid from DB */}
             <SectionToggle icon="pricetags" color={C.emerald600} label="Category *" sub={form.categoryName || "Choose a tour category"} open showChevron={false} onToggle={() => {}} />
-            <Card>
+            <Card attached>
               {categories.length === 0 ? (
                 <Text style={styles.helper}>Loading categories…</Text>
               ) : (
@@ -596,7 +708,7 @@ export default function AddEditTourScreen({ navigation, route }) {
                     return (
                       <TouchableOpacity
                         key={cat.id}
-                        style={[styles.catChip, active && styles.catChipActive]}
+                        style={[styles.catTile, active && styles.catTileActive]}
                         onPress={() => {
                           update("categoryId", cat.id);
                           update("subCategoryId", null);
@@ -604,10 +716,20 @@ export default function AddEditTourScreen({ navigation, route }) {
                         }}
                         activeOpacity={0.85}
                       >
-                        {!!cat.icon && <Text style={styles.catChipIcon}>{cat.icon}</Text>}
-                        <Text style={[styles.catChipText, active && styles.catChipTextActive]} numberOfLines={1}>
+                        <View style={[styles.catTileIcon, active && styles.catTileIconActive]}>
+                          <Text style={styles.catTileEmoji}>{cat.icon || "🏷️"}</Text>
+                        </View>
+                        <Text
+                          style={[styles.catTileText, active && styles.catTileTextActive]}
+                          numberOfLines={2}
+                        >
                           {cat.name}
                         </Text>
+                        {active && (
+                          <View style={styles.catTileCheck}>
+                            <Ionicons name="checkmark" size={11} color="#fff" />
+                          </View>
+                        )}
                       </TouchableOpacity>
                     );
                   })}
@@ -617,7 +739,7 @@ export default function AddEditTourScreen({ navigation, route }) {
 
             {/* Tour details: title, location, duration, price */}
             <SectionToggle icon="information-circle" color={C.emerald600} label="Tour details" sub="Title, location, duration & price" open showChevron={false} onToggle={() => {}} />
-            <Card>
+            <Card attached>
               <Field label="Tour title *">
                 <TextInput
                   style={styles.input}
@@ -727,12 +849,18 @@ export default function AddEditTourScreen({ navigation, route }) {
 
             {/* Description */}
             <SectionToggle icon="document-text" color={C.emerald600} label="Description" sub="Short overview (optional)" open showChevron={false} onToggle={() => {}} />
-            <Card>
+            <Card attached>
               <Field label="Description">
-                {/* Formatting toolbar */}
+                {descHadRichFormatting && <RichFormatWarning />}
+                {/* Formatting toolbar — bold/bullets/numbers become real HTML on
+                    save, so descriptions written here render formatted
+                    wherever they're shown (web parity, not just app-local). */}
                 <View style={styles.fmtToolbar}>
+                  <TouchableOpacity style={styles.fmtBtn} onPress={insertBoldFormat} activeOpacity={0.7}>
+                    <Text style={[styles.fmtBtnText, { fontWeight: "900" }]}>B  Bold</Text>
+                  </TouchableOpacity>
                   {[
-                    { label: "•  Bullet", insert: "• " },
+                    { label: "•  Bullet", insert: "- " },
                     { label: "1.  List", insert: "1. " },
                     { label: "✓  Check", insert: "✓ " },
                     { label: "—  Dash", insert: "— " },
@@ -757,25 +885,32 @@ export default function AddEditTourScreen({ navigation, route }) {
                   />
                   <TouchableOpacity
                     onPress={handleQuickAiDescription}
-                    disabled={aiQuickLoading}
+                    disabled={aiAvailable === false || aiQuickLoading}
                     style={[styles.aiInlineBtn, { top: 8, bottom: "auto" }]}
                     activeOpacity={0.85}
                   >
                     {aiQuickLoading
                       ? <ActivityIndicator size="small" color={C.emerald600} />
-                      : <Ionicons name="sparkles" size={18} color={C.emerald600} />}
+                      : <Ionicons name="sparkles" size={18} color={aiAvailable === false ? C.subText : C.emerald600} />}
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={handleQuickAiDescription} disabled={aiQuickLoading} style={styles.aiHintRow} activeOpacity={0.7}>
-                  <Ionicons name="sparkles" size={12} color={C.emerald600} />
-                  <Text style={styles.aiHintText}>{aiQuickLoading ? "Writing…" : "Write with AI from the title"}</Text>
+                <TouchableOpacity
+                  onPress={handleQuickAiDescription}
+                  disabled={aiAvailable === false || aiQuickLoading}
+                  style={styles.aiHintRow}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="sparkles" size={12} color={aiAvailable === false ? C.subText : C.emerald600} />
+                  <Text style={[styles.aiHintText, aiAvailable === false && { color: C.subText }]}>
+                    {aiAvailable === false ? "AI unavailable right now" : aiQuickLoading ? "Writing…" : "Write with AI from the title"}
+                  </Text>
                 </TouchableOpacity>
               </Field>
             </Card>
 
             {/* Images */}
             <SectionToggle icon="image" color={C.gold} label="Images" sub={`${form.coverImage ? "Cover ✓" : "No cover"} · ${form.galleryImages.length} gallery`} open showChevron={false} onToggle={() => {}} />
-            <Card>
+            <Card attached>
               <ImagePickerField
                 label="Cover image"
                 value={form.coverImage}
@@ -860,18 +995,25 @@ export default function AddEditTourScreen({ navigation, route }) {
                   />
                   <TouchableOpacity
                     onPress={handleAiDescription}
-                    disabled={aiLoading}
+                    disabled={aiAvailable === false || aiLoading}
                     style={styles.aiInlineBtn}
                     activeOpacity={0.85}
                   >
                     {aiLoading
                       ? <ActivityIndicator size="small" color={C.purple} />
-                      : <Ionicons name="sparkles" size={18} color={C.purple} />}
+                      : <Ionicons name="sparkles" size={18} color={aiAvailable === false ? C.subText : C.purple} />}
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={handleAiDescription} disabled={aiLoading} style={styles.aiHintRow} activeOpacity={0.7}>
-                  <Ionicons name="sparkles" size={12} color={C.purple} />
-                  <Text style={styles.aiHintText}>{aiLoading ? "Writing…" : "Write with AI from the title"}</Text>
+                <TouchableOpacity
+                  onPress={handleAiDescription}
+                  disabled={aiAvailable === false || aiLoading}
+                  style={styles.aiHintRow}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="sparkles" size={12} color={aiAvailable === false ? C.subText : C.purple} />
+                  <Text style={[styles.aiHintText, aiAvailable === false && { color: C.subText }]}>
+                    {aiAvailable === false ? "AI unavailable right now" : aiLoading ? "Writing…" : "Write with AI from the title"}
+                  </Text>
                 </TouchableOpacity>
               </Field>
             </Card>
@@ -927,7 +1069,34 @@ export default function AddEditTourScreen({ navigation, route }) {
           {detailStep === 3 && (
             <Card>
               <Field label="Full description">
-                <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Detailed tour description…" placeholderTextColor="#9AA79E" value={form.description} onChangeText={(v) => update("description", v)} multiline numberOfLines={4} textAlignVertical="top" />
+                {descHadRichFormatting && <RichFormatWarning />}
+                {/* Formatting toolbar — same markdown-ish → HTML conversion as
+                    the quick-tour description, so bold/bullets/numbers survive
+                    and render wherever this tour is shown (web parity). */}
+                <View style={styles.fmtToolbar}>
+                  <TouchableOpacity style={styles.fmtBtn} onPress={insertBoldFormat} activeOpacity={0.7}>
+                    <Text style={[styles.fmtBtnText, { fontWeight: "900" }]}>B  Bold</Text>
+                  </TouchableOpacity>
+                  {[
+                    { label: "•  Bullet", insert: "- " },
+                    { label: "1.  List", insert: "1. " },
+                  ].map(({ label, insert }) => (
+                    <TouchableOpacity key={label} style={styles.fmtBtn} onPress={() => insertDescFormat(insert)} activeOpacity={0.7}>
+                      <Text style={styles.fmtBtnText}>{label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TextInput
+                  style={[styles.input, styles.inputMultiline]}
+                  placeholder="Detailed tour description…"
+                  placeholderTextColor="#9AA79E"
+                  value={form.description}
+                  onChangeText={(v) => update("description", v)}
+                  onSelectionChange={(e) => setDescSelection(e.nativeEvent.selection)}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
               </Field>
               {/* Duration — preset dropdown (web parity) */}
               <Field label="Duration">
@@ -1157,8 +1326,8 @@ export default function AddEditTourScreen({ navigation, route }) {
             <LinearGradient colors={[C.emerald600, C.emerald700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.publishBtnInner}>
               {saving ? <ActivityIndicator size="small" color="#fff" /> : (
                 <>
-                  <Ionicons name="checkmark-circle" size={16} color="#fff" />
-                  <Text style={styles.publishBtnText}>Publish Tour</Text>
+                  <Ionicons name={isApproved ? "checkmark-circle" : "lock-closed"} size={16} color="#fff" />
+                  <Text style={styles.publishBtnText}>{isApproved ? "Publish Tour" : "Publish (Requires Approval)"}</Text>
                 </>
               )}
             </LinearGradient>
@@ -1193,7 +1362,7 @@ export default function AddEditTourScreen({ navigation, route }) {
       {showPreview && (
         <View style={styles.previewOverlay}>
           <View style={styles.previewSheet}>
-            <View style={styles.previewHandle} />
+            <SheetHandle />
             <View style={styles.previewHeader}>
               <View style={styles.previewEyeChip}>
                 <Ionicons name="eye" size={13} color={C.emerald600} />
@@ -1352,7 +1521,7 @@ export default function AddEditTourScreen({ navigation, route }) {
       {showModeChooser && (
         <View style={styles.chooserOverlay}>
           <View style={styles.chooserCard}>
-            <View style={styles.chooserHandle} />
+            <SheetHandle />
             <Text style={styles.chooserTitle}>How do you want to add this tour?</Text>
             <Text style={styles.chooserSub}>You can switch modes anytime.</Text>
 
@@ -1503,7 +1672,26 @@ function PreviewSection({ icon, label }) {
   );
 }
 
-function Card({ children }) { return <View style={styles.card}>{children}</View>; }
+// `attached` = this card sits directly under a SectionToggle and continues it.
+// Six of the ten cards stand on their own (the detailed-mode steps), so the
+// joined look has to be opt-in or those would render with a cut-off top edge.
+function Card({ children, attached }) {
+  return <View style={[styles.card, attached && styles.cardAttached]}>{children}</View>;
+}
+
+// Shown when the tour's description was authored on web with formatting
+// (headings, italics, links, quotes…) this editor can't represent — saving
+// from here would otherwise silently flatten it to plain text.
+function RichFormatWarning() {
+  return (
+    <View style={styles.richFormatWarn}>
+      <Ionicons name="warning" size={14} color={C.amber} />
+      <Text style={styles.richFormatWarnText}>
+        This description uses formatting (headings, links, italics…) that isn't supported here. Saving from the app will simplify it to plain text.
+      </Text>
+    </View>
+  );
+}
 
 function Field({ label, helper, children, style }) {
   return (
@@ -1522,7 +1710,7 @@ function SectionToggle({ icon, color, label, sub, open, onToggle, showChevron = 
         <Ionicons name={icon} size={16} color={color} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={[styles.sectionToggleText, { color: color }]}>{label}</Text>
+        <Text style={styles.sectionToggleText}>{label}</Text>
         {!!sub && <Text style={styles.sectionToggleSub} numberOfLines={1}>{sub}</Text>}
       </View>
       {showChevron ? (
@@ -1921,22 +2109,39 @@ const styles = StyleSheet.create({
   scroll: { paddingTop: 4, paddingBottom: 24 },
 
   // Section toggle (collapsible card header)
+  // Section header + card were two separate bordered, shadowed boxes joined
+  // with marginTop:-1. That overlapped their hairlines into a doubled seam and
+  // let the header cast its shadow onto the card right below it, so a section
+  // read as two stacked boxes with a scar between them, not one panel.
+  //
+  // The header now rounds only its top, keeps its bottom border as the single
+  // divider, and carries no shadow — the card under it lifts the whole block.
   sectionToggle: {
     flexDirection: "row", alignItems: "center", gap: 12,
-    marginHorizontal: 16, marginTop: 12, paddingHorizontal: 14, paddingVertical: 13,
-    backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border,
-    shadowColor: C.shadow, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2,
+    marginHorizontal: 16, marginTop: 14, paddingHorizontal: 15, paddingVertical: 14,
+    backgroundColor: C.card,
+    borderTopLeftRadius: 22, borderTopRightRadius: 22,
+    borderWidth: 1, borderColor: C.border,
   },
-  sectionToggleIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  sectionToggleText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: "bold", letterSpacing: 0.3 },
-  sectionToggleSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, marginTop: 2, fontWeight: "600" },
+  sectionToggleIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  // Ink, not the accent colour. The chip already carries the colour; colouring
+  // the title too made every header shout at the same volume as its content.
+  sectionToggleText: { fontFamily: DISPLAY, fontSize: 15, fontWeight: "bold", color: C.ink, letterSpacing: -0.2 },
+  sectionToggleSub: { fontFamily: DISPLAY, fontSize: 11.5, color: C.subText, marginTop: 3, fontWeight: "600" },
 
   // Card (form sections)
+  // Standalone card (the detailed-mode steps): rounded all round, own border.
   card: {
-    marginHorizontal: 16, backgroundColor: C.card, borderRadius: 16, padding: 15,
-    borderWidth: 1, borderColor: C.border, marginTop: -1,
-    borderTopLeftRadius: 0, borderTopRightRadius: 0,
+    marginHorizontal: 16, backgroundColor: C.card, borderRadius: 22, padding: 16,
+    borderWidth: 1, borderColor: C.border, marginTop: 14,
     shadowColor: C.shadow, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 2,
+  },
+  // Attached card: continues the header above it, so no top edge of its own
+  // and no gap — the header's bottom border is the divider between them.
+  cardAttached: {
+    marginTop: 0,
+    borderTopWidth: 0,
+    borderTopLeftRadius: 0, borderTopRightRadius: 0,
   },
 
   // Field
@@ -2055,7 +2260,7 @@ const styles = StyleSheet.create({
   tierPrice: { flex: 1, minHeight: 42 },
 
   // Category modal (D1)
-  modalOverlay: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalOverlay: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: C.scrim, justifyContent: "flex-end" },
   modalSheet: { backgroundColor: C.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 24, paddingTop: 16, paddingHorizontal: 16 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   modalTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink },
@@ -2076,16 +2281,50 @@ const styles = StyleSheet.create({
   quickBannerLink: { fontFamily: DISPLAY, fontSize: 13, color: C.emerald700, fontWeight: "bold", lineHeight: 19 },
 
   // #6c — quick-mode category grid
-  catGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  catChip: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12,
-    borderWidth: 1, borderColor: C.border, backgroundColor: "#fff",
+  // Category picker.
+  //
+  // These were inline chips (row + wrap, width driven by the label). Category
+  // names run long — "Adventure & Trekking", "Honeymoon Packages" — so a chip
+  // filled most of the row and the next one wrapped under it: a ragged
+  // one-per-line list that read as a stack, not a set of choices.
+  //
+  // Fixed two-column tiles instead. Percentage widths with space-between, so
+  // the columns stay even on any screen without pixel arithmetic, and a long
+  // name wraps inside its own tile instead of pushing the grid around.
+  catGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  catTile: {
+    width: "48.5%",
+    marginBottom: 10,
+    paddingVertical: 11, paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1, borderColor: C.border, backgroundColor: C.card,
+    alignItems: "center",
+    minHeight: 88,
   },
-  catChipActive: { borderColor: C.emerald500, backgroundColor: C.emerald50 },
-  catChipIcon: { fontFamily: DISPLAY, fontSize: 14 },
-  catChipText: { fontFamily: DISPLAY, fontSize: 13, fontWeight: "bold", color: C.text, maxWidth: 130 },
-  catChipTextActive: { color: C.emerald700 },
+  // 1.5 rather than a colour swap alone — on the tinted fill a 1dp emerald
+  // hairline barely registers as "selected".
+  catTileActive: {
+    borderWidth: 1.5, borderColor: C.emerald500, backgroundColor: C.emerald50,
+  },
+  catTileIcon: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: C.tintSand,
+    alignItems: "center", justifyContent: "center",
+    marginBottom: 7,
+  },
+  catTileIconActive: { backgroundColor: "#fff" },
+  catTileEmoji: { fontSize: 17, includeFontPadding: false },
+  catTileText: {
+    fontFamily: DISPLAY, fontSize: 12.5, fontWeight: "bold", color: C.ink,
+    textAlign: "center", lineHeight: 17,
+  },
+  catTileTextActive: { color: C.emerald700 },
+  catTileCheck: {
+    position: "absolute", top: 8, right: 8,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: C.emerald600,
+    alignItems: "center", justifyContent: "center",
+  },
 
   // #6c — quick-mode duration chips
   durWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -2170,6 +2409,12 @@ const styles = StyleSheet.create({
   stepHeadSub: { fontFamily: DISPLAY, fontSize: 12, color: C.subText, marginTop: 2, fontWeight: "500" },
 
   // Quick tour description formatting toolbar
+  richFormatWarn: {
+    flexDirection: "row", alignItems: "flex-start", gap: 7,
+    backgroundColor: C.amberLight, borderWidth: 1, borderColor: "#E4CE97",
+    borderRadius: 10, padding: 10, marginBottom: 10,
+  },
+  richFormatWarnText: { flex: 1, fontFamily: DISPLAY, fontSize: 11.5, color: "#8A6420", lineHeight: 16, fontWeight: "600" },
   fmtToolbar: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10 },
   fmtBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: C.border, backgroundColor: "#F1F2EF" },
   fmtBtnText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: "bold", color: C.ink },
@@ -2239,7 +2484,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(15,23,42,0.55)", justifyContent: "flex-end",
   },
   chooserCard: {
-    backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: C.card, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     paddingHorizontal: 18, paddingTop: 10, paddingBottom: 28,
   },
   chooserHandle: { alignSelf: "center", width: 42, height: 5, borderRadius: 3, backgroundColor: C.border, marginBottom: 14 },
@@ -2298,7 +2543,7 @@ const styles = StyleSheet.create({
   // Live preview modal
   previewOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(15,23,42,0.6)", justifyContent: "flex-end" },
   previewSheet: {
-    backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: C.card, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     maxHeight: "92%", overflow: "hidden",
   },
   previewHandle: {

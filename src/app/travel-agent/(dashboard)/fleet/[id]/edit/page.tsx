@@ -33,6 +33,21 @@ const VEHICLE_TYPES = [
 const FUEL_TYPES = ['PETROL', 'DIESEL', 'CNG', 'LPG', 'EV', 'HYBRID', 'OTHER'];
 const TRANSMISSIONS = ['MANUAL', 'AUTOMATIC'];
 
+const COMMON_AMENITIES = [
+  'Air Conditioning',
+  'Bluetooth',
+  'GPS Navigation',
+  'Charging Port',
+  'Bottled Water',
+  'First Aid Kit',
+  'Music System',
+  'Reclining Seats',
+  'Sunroof',
+  'Leather Seats',
+  'WiFi Hotspot',
+  'Refrigerator',
+];
+
 const toDateInput = (v: string | null) => (v ? new Date(v).toISOString().slice(0, 10) : '');
 
 export default function EditFleetPage({ params }: { params: { id: string } }) {
@@ -65,6 +80,7 @@ export default function EditFleetPage({ params }: { params: { id: string } }) {
     chauffeurPhone: '',
     chauffeurLanguages: '',
     amenities: [] as string[],
+    customAmenity: '',
     baseLocation: '',
     ratePerDay: '',
     ratePerKm: '',
@@ -115,6 +131,7 @@ export default function EditFleetPage({ params }: { params: { id: string } }) {
             chauffeurPhone: f.chauffeurPhone || '',
             chauffeurLanguages: f.chauffeurLanguages || '',
             amenities,
+            customAmenity: '',
             baseLocation: f.baseLocation || '',
             ratePerDay: f.ratePerDay ? String(f.ratePerDay) : '',
             ratePerKm: f.ratePerKm ? String(f.ratePerKm) : '',
@@ -142,6 +159,25 @@ export default function EditFleetPage({ params }: { params: { id: string } }) {
   }, [id]);
 
   const update = (k: keyof typeof form, v: any) => setForm((p) => ({ ...p, [k]: v }));
+
+  const toggleAmenity = (a: string) => {
+    update(
+      'amenities',
+      form.amenities.includes(a)
+        ? form.amenities.filter((x) => x !== a)
+        : [...form.amenities, a],
+    );
+  };
+
+  const addCustomAmenity = () => {
+    const v = form.customAmenity.trim();
+    if (!v || form.amenities.includes(v)) {
+      setForm((p) => ({ ...p, customAmenity: '' }));
+      return;
+    }
+    update('amenities', [...form.amenities, v]);
+    setForm((p) => ({ ...p, customAmenity: '' }));
+  };
 
   const uploadFile = async (file: File, folder: string): Promise<string | null> => {
     if (!file.type.startsWith('image/')) {
@@ -189,6 +225,16 @@ export default function EditFleetPage({ params }: { params: { id: string } }) {
       showToast({ type: 'error', title: j.error || 'Upload failed' });
     }
     setGalleryUploading(false);
+  };
+
+  const uploadDoc = async (
+    file: File,
+    docKey: 'rcImage' | 'insuranceImage' | 'fitnessImage' | 'permitImage',
+  ) => {
+    setDocUploading(docKey);
+    const url = await uploadFile(file, 'fleet-docs');
+    if (url) update(docKey, url);
+    setDocUploading(null);
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -386,6 +432,54 @@ export default function EditFleetPage({ params }: { params: { id: string } }) {
           </div>
         </Section>
 
+        <Section title="Amenities">
+          <div className="sm:col-span-2">
+            <label className={labelCls}>What this vehicle offers</label>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {COMMON_AMENITIES.map((a) => {
+                const active = form.amenities.includes(a);
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() => toggleAmenity(a)}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-full border-2 transition ${
+                      active
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                        : 'border-gray-200 text-gray-600 hover:border-emerald-200'
+                    }`}
+                  >
+                    {active && '✓ '}
+                    {a}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={form.customAmenity}
+                onChange={(e) => setForm((p) => ({ ...p, customAmenity: e.target.value }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addCustomAmenity();
+                  }
+                }}
+                placeholder="Add custom amenity…"
+                className={inputCls}
+              />
+              <button
+                type="button"
+                onClick={addCustomAmenity}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 rounded-xl"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </Section>
+
         <Section title="Visibility">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -551,6 +645,62 @@ export default function EditFleetPage({ params }: { params: { id: string } }) {
           </div>
         </Section>
 
+        <Section title="Vehicle Documents">
+          <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {(
+              [
+                { key: 'rcImage', label: 'RC Document', validityKey: null },
+                { key: 'insuranceImage', label: 'Insurance', validityKey: 'insuranceValidity' },
+                { key: 'fitnessImage', label: 'Fitness Certificate', validityKey: 'fitnessValidity' },
+                { key: 'permitImage', label: 'Permit', validityKey: null },
+              ] as const
+            ).map((d) => (
+              <DocUploadCard
+                key={d.key}
+                label={d.label}
+                imageUrl={form[d.key as 'rcImage'] as string}
+                uploading={docUploading === d.key}
+                onUpload={(file) => uploadDoc(file, d.key as any)}
+                onRemove={() => update(d.key as any, '')}
+              />
+            ))}
+          </div>
+          <Field label="Insurance Provider">
+            <input
+              type="text"
+              value={form.insuranceProvider}
+              onChange={(e) => update('insuranceProvider', e.target.value)}
+              placeholder="e.g. ICICI Lombard"
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Insurance Valid Till">
+            <input
+              type="date"
+              value={form.insuranceValidity}
+              onChange={(e) => update('insuranceValidity', e.target.value)}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Fitness Valid Till">
+            <input
+              type="date"
+              value={form.fitnessValidity}
+              onChange={(e) => update('fitnessValidity', e.target.value)}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Permit Type">
+            <input
+              type="text"
+              value={form.permitType}
+              onChange={(e) => update('permitType', e.target.value)}
+              placeholder="e.g. All India Tourist Permit"
+              className={inputCls}
+            />
+          </Field>
+        </Section>
+
         <div className="flex justify-end gap-2">
           <Link
             href="/travel-agent/fleet"
@@ -608,6 +758,83 @@ function Field({
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       {children}
+    </div>
+  );
+}
+
+function DocUploadCard({
+  label,
+  imageUrl,
+  uploading,
+  onUpload,
+  onRemove,
+}: {
+  label: string;
+  imageUrl: string;
+  uploading: boolean;
+  onUpload: (file: File) => void;
+  onRemove: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div className="border border-gray-200 rounded-xl p-3">
+      <p className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1">
+        <FileText className="w-3 h-3 text-gray-400" /> {label}
+      </p>
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*,application/pdf"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onUpload(f);
+          if (ref.current) ref.current.value = '';
+        }}
+      />
+      {imageUrl ? (
+        <div className="flex items-center gap-2">
+          <a
+            href={imageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 text-xs text-emerald-700 hover:underline truncate bg-emerald-50 rounded px-2 py-1.5"
+          >
+            ✓ Uploaded
+          </a>
+          <button
+            type="button"
+            onClick={() => ref.current?.click()}
+            className="text-xs text-gray-500 hover:text-emerald-600 px-1.5"
+          >
+            Replace
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="text-xs text-gray-400 hover:text-red-600 px-1.5"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => ref.current?.click()}
+          disabled={uploading}
+          className="w-full border border-dashed border-gray-300 hover:border-emerald-300 rounded-lg py-3 text-xs font-semibold text-gray-500 hover:text-emerald-600 flex items-center justify-center gap-1.5"
+        >
+          {uploading ? (
+            <>
+              <Loader2 className="w-3 h-3 animate-spin" /> Uploading…
+            </>
+          ) : (
+            <>
+              <UploadCloud className="w-3 h-3" /> Upload {label}
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }

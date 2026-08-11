@@ -22,10 +22,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
-import { listTravelAgentTours, updateTravelAgentTour, deleteTravelAgentTour, TOUR_STATUS } from "../../api/travelAgentClient";
+import { listTravelAgentTours, updateTravelAgentTour, deleteTravelAgentTour, getCurrentTravelAgent, TOUR_STATUS } from "../../api/travelAgentClient";
 import RemoteImage from "../_shared/RemoteImage";
 import { DISPLAY } from "../_shared/typography";
-import { SC as C } from "../_shared/theme";
+import { SC as C, SHEET_RADIUS } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import SheetHandle from "../_shared/SheetHandle";
 
 
 const STATUS_COLORS = {
@@ -43,27 +45,6 @@ const INR = (n) => {
   return `₹${v.toLocaleString("en-IN")}`;
 };
 
-// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
-}
-
 export default function ToursListScreen({ navigation }) {
   const [tours, setTours] = useState([]);
   const [stats, setStats] = useState(null);
@@ -74,6 +55,7 @@ export default function ToursListScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [showCreateChooser, setShowCreateChooser] = useState(false); // #6c
+  const [isApproved, setIsApproved] = useState(false);
 
   const startCreate = (createMode) => {
     setShowCreateChooser(false);
@@ -88,9 +70,13 @@ export default function ToursListScreen({ navigation }) {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const data = await listTravelAgentTours({ search: debouncedSearch, status: statusFilter });
+      const [data, agent] = await Promise.all([
+        listTravelAgentTours({ search: debouncedSearch, status: statusFilter }),
+        getCurrentTravelAgent(),
+      ]);
       setTours(data.tours || []);
       setStats(data.stats || null);
+      setIsApproved(agent?.status === "APPROVED");
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || "Failed to load tours");
     } finally {
@@ -108,8 +94,18 @@ export default function ToursListScreen({ navigation }) {
   const onRefresh = async () => { setRefreshing(true); await load(); };
 
   // E4 — list-level publish toggle + delete
+  // Gate publish proactively (mirrors web's disabled-checkbox + lock badge —
+  // src/app/travel-agent/(dashboard)/tours/page.tsx:129-133) instead of
+  // firing the request and only finding out from the backend's rejection.
   const onTogglePublish = async (tour) => {
     const next = !tour.isPublic;
+    if (next && !isApproved) {
+      Alert.alert(
+        "Approval required",
+        "Your account must be approved before a tour can go public. Complete your KYC documents to get verified."
+      );
+      return;
+    }
     setTours((prev) => prev.map((t) => (t.id === tour.id ? { ...t, isPublic: next, status: next ? "ACTIVE" : t.status } : t)));
     try {
       await updateTravelAgentTour(tour.id, { isPublic: next, status: next ? "ACTIVE" : "DRAFT" });
@@ -286,7 +282,7 @@ export default function ToursListScreen({ navigation }) {
       <Modal visible={showCreateChooser} transparent animationType="fade" onRequestClose={() => setShowCreateChooser(false)}>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setShowCreateChooser(false)}>
           <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
+            <SheetHandle />
             <Text style={styles.sheetTitle}>How would you like to add the tour?</Text>
             <Text style={styles.sheetSub}>Pick how much detail you want to add now.</Text>
 
@@ -482,8 +478,11 @@ const TourCard = React.memo(function TourCard({
               size={14}
               color={tour.isPublic ? "#2E6E7C" : C.subText}
             />
+            {/* The label names the ACTION, not the state — "Public" read as a
+                status badge next to two other buttons that are all verbs. The
+                LIVE pill on the cover already carries the state. */}
             <Text style={[styles.actBtnText, { color: tour.isPublic ? "#2E6E7C" : C.subText }]}>
-              {tour.isPublic ? "Public" : "Publish"}
+              {tour.isPublic ? "Unpublish" : "Publish"}
             </Text>
           </TouchableOpacity>
 
@@ -673,7 +672,7 @@ const styles = StyleSheet.create({
     position: "absolute", top: 9, right: 9,
     width: 25, height: 25, borderRadius: 13,
     alignItems: "center", justifyContent: "center",
-    backgroundColor: "rgba(11,32,25,0.45)",
+    backgroundColor: C.scrim,
     borderWidth: 1, borderColor: "rgba(255,255,255,0.20)",
   },
 
@@ -764,8 +763,8 @@ const styles = StyleSheet.create({
   fabInner: { flex: 1, borderRadius: 28, alignItems: "center", justifyContent: "center" },
 
   // #6c — create chooser bottom sheet
-  sheetOverlay: { flex: 1, backgroundColor: "rgba(15,32,25,0.5)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: "#fff", borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 30 },
+  sheetOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
+  sheet: { backgroundColor: "#fff", borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS, padding: 20, paddingBottom: 30 },
   sheetHandle: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, backgroundColor: "#D8D0C0", marginBottom: 14 },
   sheetTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: "bold", color: C.ink },
   sheetSub: { fontFamily: DISPLAY, fontSize: 12.5, color: C.subText, marginTop: 4, marginBottom: 14 },

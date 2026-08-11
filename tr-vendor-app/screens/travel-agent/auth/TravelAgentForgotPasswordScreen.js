@@ -147,7 +147,7 @@ export default function TravelAgentForgotPasswordScreen({ navigation }) {
   const resetPassword = async () => {
     const e = {};
     if (!password) e.password = "Enter a new password";
-    if (password && strength(password) < 3) e.password = "Use 8+ chars with mix of case/number/symbol";
+    if (password && password.length < 6) e.password = "Password must be at least 6 characters";
     if (!confirmPassword) e.confirmPassword = "Confirm your password";
     if (password && confirmPassword && password !== confirmPassword) e.confirmPassword = "Passwords do not match";
     setErrors(e); if (Object.keys(e).length) return;
@@ -236,21 +236,16 @@ export default function TravelAgentForgotPasswordScreen({ navigation }) {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={C.forestDark} />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      {/* ── Hero (fixed) ──
+          Outside the scroll (and the KeyboardAvoidingView) so the back button
+          and the step indicator stay visible while the form scrolls and the
+          keyboard is open. The card's negative margin is paid back by the
+          scroll's paddingTop and the tail is shortened to match. */}
+      <LinearGradient
+        colors={G.hero}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.hero}
       >
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* ── Hero ── */}
-          <LinearGradient
-            colors={G.hero}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={styles.hero}
-          >
             <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
             <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
 
@@ -289,11 +284,22 @@ export default function TravelAgentForgotPasswordScreen({ navigation }) {
                 <Stepper step={step} />
               </Animated.View>
 
-              <View style={{ height: HERO_TAIL }} />
+              {/* Short by CARD_OVERLAP — the card can no longer climb into the
+                  tail from a different scroll parent, so the tail gives it back. */}
+              <View style={{ height: HERO_TAIL - CARD_OVERLAP }} />
             </SafeAreaView>
           </LinearGradient>
 
-          {/* ── Card, tucked into the hero curve ── */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior="padding"
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ── Card ── */}
           <View style={styles.cardWrap}>
             <Animated.View
               style={[
@@ -673,7 +679,9 @@ function LinkRow({ onPress }) {
 
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
-  scroll: { flexGrow: 1, paddingBottom: rs(30) },
+  // paddingTop cancels cardWrap's -CARD_OVERLAP so the card isn't clipped
+  // against the scroll edge now that the hero is fixed above it.
+  scroll: { flexGrow: 1, paddingTop: CARD_OVERLAP, paddingBottom: rs(30) },
 
   // ── Hero ──
   hero: {

@@ -49,8 +49,60 @@ import {
   RefreshCw,
   Plus,
   Upload,
+  Activity,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+// Presence + activity — same mechanism as the admin/manager vendors lists
+// and the Manager Performance detail page (see /api/vendor/heartbeat,
+// /api/admin/vendors/[id]/activity).
+type PresenceStatus = 'active' | 'idle' | 'offline';
+
+const PRESENCE_META: Record<PresenceStatus, { label: string; dot: string; text: string }> = {
+  active: { label: 'Active now', dot: 'bg-emerald-500 animate-pulse', text: 'text-emerald-700' },
+  idle: { label: 'Idle', dot: 'bg-amber-500', text: 'text-amber-700' },
+  offline: { label: 'Offline', dot: 'bg-gray-300', text: 'text-gray-500' },
+};
+
+function presenceTimeAgo(iso: string | null): string {
+  if (!iso) return 'never';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function formatActivityDuration(totalSeconds: number): string {
+  const hrs = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  if (hrs === 0 && mins === 0) return '0m';
+  if (hrs === 0) return `${mins}m`;
+  return `${hrs}h ${mins}m`;
+}
+
+interface ActivityDay {
+  date: string;
+  activeSeconds: number;
+  idleSeconds: number;
+}
+
+interface VendorActivity {
+  activeSeconds: number;
+  idleSeconds: number;
+  byDay: ActivityDay[];
+  presence: { status: PresenceStatus; lastSeenAt: string | null };
+}
+
+const ACTIVITY_FILTERS = [
+  { key: 'today', label: 'Today' },
+  { key: 'thisWeek', label: 'This Week' },
+  { key: 'thisMonth', label: 'This Month' },
+  { key: 'all', label: 'All Time' },
+] as const;
 
 interface VendorDocument {
   id: string;
@@ -281,6 +333,26 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   // Search / select state for approved services
   const [svcSearch, setSvcSearch] = useState('');
   const [selectedSvcIds, setSelectedSvcIds] = useState<Set<string>>(new Set());
+
+  // Online presence + day-by-day active/idle time (see /api/vendor/heartbeat)
+  const [activity, setActivity] = useState<VendorActivity | null>(null);
+  const [activityFilter, setActivityFilter] = useState<(typeof ACTIVITY_FILTERS)[number]['key']>('thisWeek');
+
+  const fetchActivity = async (filter: string) => {
+    try {
+      const res = await fetch(`/api/admin/vendors/${params.id}/activity?filter=${filter}`);
+      const json = await res.json();
+      if (!json.error) setActivity(json);
+    } catch (error) {
+      console.error('Failed to fetch vendor activity:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchActivity(activityFilter);
+    const interval = setInterval(() => fetchActivity(activityFilter), 30000);
+    return () => clearInterval(interval);
+  }, [activityFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check if document URL is accessible
   useEffect(() => {
@@ -924,6 +996,16 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusInfo.bgColor} ${statusInfo.color}`}>
               {hasNoLocationOrServiceActivity ? 'Documents Reviewed' : statusInfo.label}
             </span>
+            {activity && (() => {
+              const meta = PRESENCE_META[activity.presence.status];
+              return (
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-gray-50 ${meta.text}`}>
+                  <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+                  {meta.label}
+                  {activity.presence.status !== 'active' && ` · ${presenceTimeAgo(activity.presence.lastSeenAt)}`}
+                </span>
+              );
+            })()}
           </div>
           {hasNoLocationOrServiceActivity && (
             <p className="text-xs text-amber-600 mt-0.5">Locations/Services not requested yet</p>
@@ -1057,6 +1139,82 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
             </Button>
           )}
         </div>
+      </div>
+
+      {/* Online time — active/idle time tracked silently while the vendor's
+          dashboard tab is open (see /api/vendor/heartbeat) */}
+      <div className="bg-white rounded-xl border shadow-sm p-5">
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <p className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <Activity className="w-4 h-4 text-blue-600" />
+            Vendor Timing
+          </p>
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            {ACTIVITY_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setActivityFilter(f.key)}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  activityFilter === f.key ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {!activity ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-6 mb-4 pb-4 border-b">
+              <div>
+                <p className="text-xs text-gray-500">Active time</p>
+                <p className="text-lg font-bold text-emerald-600">{formatActivityDuration(activity.activeSeconds)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Idle time</p>
+                <p className="text-lg font-bold text-amber-600">{formatActivityDuration(activity.idleSeconds)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Total online</p>
+                <p className="text-lg font-bold text-gray-900">
+                  {formatActivityDuration(activity.activeSeconds + activity.idleSeconds)}
+                </p>
+              </div>
+            </div>
+
+            {activity.byDay.length === 0 ? (
+              <p className="text-sm text-gray-400 py-4 text-center">No activity tracked in this period yet.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {activity.byDay.map((d) => {
+                  const total = d.activeSeconds + d.idleSeconds;
+                  const activePct = total > 0 ? (d.activeSeconds / total) * 100 : 0;
+                  return (
+                    <div key={d.date} className="flex items-center gap-3 text-sm">
+                      <span className="w-24 shrink-0 text-gray-600">
+                        {new Date(d.date + 'T00:00:00Z').toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                      </span>
+                      <div className="flex-1 h-2 rounded-full bg-amber-100 overflow-hidden">
+                        <div className="h-full bg-emerald-500" style={{ width: `${activePct}%` }} />
+                      </div>
+                      <span className="w-20 shrink-0 text-right text-emerald-700 font-medium">
+                        {formatActivityDuration(d.activeSeconds)}
+                      </span>
+                      <span className="w-20 shrink-0 text-right text-amber-600">
+                        {formatActivityDuration(d.idleSeconds)} idle
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Tabs */}

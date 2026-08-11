@@ -7202,6 +7202,39 @@ model manager_activity_sessions {
   @@index([managerId, date])
 }
 
+// Same presence/activity-session pattern as manager_presence /
+// manager_activity_sessions above (see /api/vendor/heartbeat), just keyed by
+// vendorId instead of managerId — tracks how long a vendor is online/active
+// vs idle in their dashboard, for the admin-side vendors list.
+//
+// One row per (vendorId, platform) — a vendor logged into both the web
+// dashboard and the app at once gets two independent rows, each written by
+// its own heartbeat, instead of the two clients overwriting a shared row.
+model vendor_presence {
+  vendorId  String
+  platform  String   @default("web") // "web" | "app" — which client this row tracks
+  lastPingAt DateTime
+  isIdle    Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@id([vendorId, platform])
+  @@index([vendorId])
+}
+
+model vendor_activity_sessions {
+  id            String   @id @default(cuid())
+  vendorId      String
+  date          DateTime @db.Date
+  startAt       DateTime
+  endAt         DateTime
+  activeSeconds Int      @default(0)
+  idleSeconds   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([vendorId, date])
+}
+
 model manager_action_logs {
   id             String              @id @default(cuid())
   recordType     String // 'INQUIRY' | 'BOOKING'

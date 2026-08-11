@@ -139,7 +139,7 @@ export default function TravelAgentLoginPage() {
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
               <div className="px-7 pt-7 pb-5 border-b border-gray-100">
                 <h1 className="text-xl font-bold text-gray-900">Sign in to your account</h1>
-                <p className="text-sm text-gray-500 mt-1">Enter your registered email and password</p>
+                <p className="text-sm text-gray-500 mt-1">Enter your email, Agent ID (ta-0001), and password</p>
               </div>
 
               <div className="px-7 py-6">
@@ -153,17 +153,17 @@ export default function TravelAgentLoginPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                      Email address
+                      Email or Agent ID
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                       <input
-                        type="email"
+                        type="text"
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        placeholder="you@agency.com"
-                        autoComplete="email"
+                        placeholder="you@agency.com or ta-0001"
+                        autoComplete="username"
                         required
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
                       />

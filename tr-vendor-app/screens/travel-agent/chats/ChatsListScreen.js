@@ -18,6 +18,7 @@ import LinearGradient from "react-native-linear-gradient";
 import { listTravelAgentConversations, CHAT_STATUS } from "../../api/travelAgentClient";
 import { DISPLAY } from "../_shared/typography";
 import { SC as C } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 
 const POLL_INTERVAL_MS = 15000;
@@ -68,31 +69,11 @@ function getCustomer(conv) {
 }
 
 const STATUS_META = {
+  ALL:      { icon: "apps",                label: "All",      color: C.subText },
   ACTIVE:   { icon: "chatbubble-ellipses", label: "Active",   color: C.emerald600 },
   ARCHIVED: { icon: "archive",             label: "Archived", color: C.amber },
   BLOCKED:  { icon: "ban",                 label: "Blocked",  color: C.red },
 };
-
-// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
-}
 
 export default function ChatsListScreen({ navigation }) {
   const [conversations, setConversations] = useState([]);
@@ -422,6 +403,7 @@ function EmptyState({ filter, hasSearch }) {
     );
   }
   const map = {
+    ALL:      { icon: "chatbubbles-outline", title: "No conversations",  body: "Customer enquiries will land here when they message you." },
     ACTIVE:   { icon: "chatbubbles-outline", title: "No active chats",   body: "Customer enquiries will land here when they message you." },
     ARCHIVED: { icon: "archive-outline",     title: "No archived chats", body: "Conversations you've archived appear here." },
     BLOCKED:  { icon: "ban",                  title: "No blocked chats",  body: "Conversations you've blocked appear here." },

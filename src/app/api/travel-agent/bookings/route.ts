@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getTravelAgentAuth } from '@/lib/auth/travel-agent-auth';
+import { notifyTravelAgent } from '@/lib/notifications/travel-agent-notify';
 import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
@@ -373,6 +374,16 @@ export async function POST(request: NextRequest) {
         notes: notes || null,
         status: VALID_STATUS.includes(status) ? status : 'DRAFT',
       },
+    });
+
+    // Inbox record only — the agent just pressed Save, so no push.
+    await notifyTravelAgent(auth.travelAgentId, {
+      type: 'BOOKING',
+      title: 'Booking created',
+      body: `${booking.bookingNumber} for ${booking.customerName}.`,
+      link: `/travel-agent/bookings/${booking.id}`,
+      metadata: { bookingId: booking.id, bookingNumber: booking.bookingNumber },
+      push: false,
     });
 
     return NextResponse.json({ booking }, { status: 201 });

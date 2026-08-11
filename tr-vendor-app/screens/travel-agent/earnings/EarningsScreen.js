@@ -25,6 +25,7 @@ import { BarChart } from "react-native-chart-kit";
 import { getTravelAgentEarnings, EARNINGS_PERIODS } from "../../api/travelAgentClient";
 import { DISPLAY } from "../_shared/typography";
 import { SC as C } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 
 const TYPE_META = {
@@ -34,6 +35,7 @@ const TYPE_META = {
   CUSTOM:     { color: C.purple,     bg: C.purpleLight,  icon: "construct",     label: "Custom" },
   FLEET:      { color: C.indigo,     bg: C.indigoLight,  icon: "car-sport",     label: "Fleet" },
   LEAD_QUOTE: { color: C.red,        bg: C.redLight,     icon: "document-text", label: "Lead quote" },
+  OTHER:      { color: C.subText,    bg: C.border,       icon: "wallet",        label: "Other" },
 };
 const KIND_META = {
   BOOKING: { color: C.blue,    icon: "receipt" },
@@ -71,27 +73,6 @@ const fmtDate = (iso) => {
     return new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
   } catch { return "—"; }
 };
-
-// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
-}
 
 export default function EarningsScreen({ navigation }) {
   const [period, setPeriod] = useState("month");
@@ -385,7 +366,7 @@ export default function EarningsScreen({ navigation }) {
               <SectionLabel icon="pie-chart" color={C.purple} label="Breakdown by type" />
               <View style={styles.card}>
                 {breakdown.map((b, i) => {
-                  const meta = TYPE_META[b.type] || TYPE_META.CUSTOM;
+                  const meta = TYPE_META[b.type] || TYPE_META.OTHER;
                   const pct = breakdownTotal > 0
                     ? Math.round((Number(b.amount) / breakdownTotal) * 100)
                     : 0;
@@ -466,7 +447,10 @@ export default function EarningsScreen({ navigation }) {
                             {fmtDate(r.date)}
                           </Text>
                         </View>
-                        {!!r.status && (
+                        {/* LEAD-kind rows carry their status in paymentStatus
+                            instead of status (API returns status:null for
+                            them) — fall back the same way web does. */}
+                        {!!(r.paymentStatus || r.status) && (
                           <View
                             style={[
                               styles.recentStatusPill,
@@ -474,7 +458,7 @@ export default function EarningsScreen({ navigation }) {
                             ]}
                           >
                             <Text style={[styles.recentStatusText, { color: km.color }]}>
-                              {r.status}
+                              {r.paymentStatus || r.status}
                             </Text>
                           </View>
                         )}

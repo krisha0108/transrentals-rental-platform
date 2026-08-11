@@ -190,6 +190,7 @@ export async function GET(request: NextRequest) {
         pickupDate: r.pickupDate,
         pickupTime: r.pickupTime,
         returnDate: r.returnDate,
+        returnTime: r.returnTime,
         tripDays: r.tripDays,
         requirements: r.requirements,
         needAC: r.needAC,

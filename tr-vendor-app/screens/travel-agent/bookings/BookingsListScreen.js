@@ -37,6 +37,7 @@ import {
   BOOKING_TYPE,
 } from "../../api/travelAgentClient";
 import { SC as C, TONES } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 const { width: W } = Dimensions.get("window");
 
@@ -96,18 +97,6 @@ const SERVICE_META = {
   B2B_CHAUFFEUR:  { label: "TA · Chauffeur (Mgr)", icon: "briefcase", lib: "ion", bg: "#E4EAF7", fg: "#3A4E8C" },
   B2B_TRUCK:      { label: "TA · Truck (Mgr)",     icon: "briefcase", lib: "ion", bg: "#E4EAF7", fg: "#3A4E8C" },
   B2B_SELF_DRIVE: { label: "TA · Self-Drive (Mgr)", icon: "briefcase", lib: "ion", bg: "#E4EAF7", fg: "#3A4E8C" },
-};
-
-// TEMP DEMO — sample company self-booking card so the "My Self-Bookings"
-// section renders without real data. Tapping it opens SelfBookingDetail with
-// the demo id. Remove after the Self-Booking redesign is approved.
-const DEMO_SELF_BOOKING = {
-  id: "__DEMO_SELF__",
-  service: "B2B_CAR",
-  bookingNumber: "TA-DEMO-0001",
-  bookingDate: "2026-07-20T00:00:00.000Z",
-  amount: 24500,
-  status: "CONFIRMED (COMPANY)",
 };
 
 function ServiceIco({ lib, name, size, color }) {
@@ -207,27 +196,6 @@ function StatCard({ w, tone, icon, value, label, sub, data, gid }) {
   );
 }
 
-// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
-}
-
 export default function BookingsListScreen({ navigation }) {
   const [bookings, setBookings] = useState([]);
   // Self-bookings = customer-side bookings made by this TA (Personal + Company).
@@ -264,9 +232,7 @@ export default function BookingsListScreen({ navigation }) {
         });
         setBookings((prev) => (append ? [...prev, ...(data.bookings || [])] : data.bookings || []));
         // Self-bookings are not paginated server-side — only refresh on page 1.
-        // TEMP DEMO — prepend a sample company self-booking so the section is
-        // visible without real data (remove after Self-Booking redesign).
-        if (!append) setSelfBookings([DEMO_SELF_BOOKING, ...(data.selfBookings || [])]);
+        if (!append) setSelfBookings(data.selfBookings || []);
         if (data.stats) setStats(data.stats);
         if (data.totals) setTotals(data.totals);
         if (data.pagination) setPagination(data.pagination);

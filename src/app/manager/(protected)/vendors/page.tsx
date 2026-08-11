@@ -8,6 +8,7 @@ import {
   ChevronRight, ChevronDown, RefreshCw, AlertCircle, CheckCircle, Clock,
   XCircle, FileText, Car, Star, TrendingUp, TrendingDown,
   Calendar, X, Tag, Plus, CalendarDays, MapPinPlus, Bell,
+  Globe, Smartphone,
 } from 'lucide-react';
 
 type DatePreset = 'all' | 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'custom';
@@ -115,6 +116,46 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; i
   SUSPENDED:         { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Suspended',    icon: AlertCircle },
   BLOCKED:           { bg: 'bg-gray-100',   text: 'text-gray-700',   label: 'Blocked',      icon: XCircle },
 };
+
+// Presence — "is this vendor online right now" — same mechanism as the admin
+// managers list (see /api/vendor/heartbeat, /api/admin/vendors/presence,
+// reused as-is here since it has no admin-only role gate).
+type PresenceStatus = 'active' | 'idle' | 'offline';
+
+interface PresenceInfo {
+  status: PresenceStatus;
+  lastSeenAt: string | null;
+  // Every platform (web/app) currently active or idle — a vendor logged
+  // into both at once shows an entry for each, so the badge can render an
+  // icon per live client instead of picking just one.
+  platforms: { platform: 'web' | 'app'; status: PresenceStatus; lastSeenAt: string }[];
+}
+
+const PRESENCE_META: Record<PresenceStatus, { label: string; dot: string; text: string }> = {
+  active: { label: 'Active now', dot: 'bg-emerald-500 animate-pulse', text: 'text-emerald-700' },
+  idle: { label: 'Idle', dot: 'bg-amber-500', text: 'text-amber-700' },
+  offline: { label: 'Offline', dot: 'bg-gray-300', text: 'text-gray-500' },
+};
+
+// Which client sent the vendor's last heartbeat — shown next to the presence
+// dot so a manager can tell a web-dashboard login from an app login at a
+// glance, not just that the vendor is online somewhere.
+const PLATFORM_META: Record<'web' | 'app', { label: string; icon: typeof Globe }> = {
+  web: { label: 'Web', icon: Globe },
+  app: { label: 'App', icon: Smartphone },
+};
+
+function presenceTimeAgo(iso: string | null): string {
+  if (!iso) return 'never';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
 
 // A vendor needs manager attention (and gets pinned to the top + highlighted)
 // when they have a pending location/service request, or just uploaded docs
@@ -247,6 +288,35 @@ export default function ManagerVendorsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+
+  const [presence, setPresence] = useState<Record<string, PresenceInfo>>({});
+
+  useEffect(() => {
+    const fetchPresence = async () => {
+      try {
+        const res = await fetch('/api/admin/vendors/presence');
+        const data = await res.json();
+        if (data.presence) setPresence(data.presence);
+      } catch (error) {
+        console.error('Failed to fetch vendor presence:', error);
+      }
+    };
+    fetchPresence();
+    const interval = setInterval(fetchPresence, 30000);
+
+    // Browsers throttle setInterval in a backgrounded tab (Chrome can drop
+    // it to once a minute or slower), so a manager who tabs away and back
+    // was seeing a stale "Active" badge until the throttled timer next
+    // fired — sometimes minutes later. Refetch immediately on refocus so
+    // the moment they're actually looking at the page, it's current.
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchPresence(); };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
 
   const fetchVendors = async () => {
     try {
@@ -697,6 +767,34 @@ export default function ManagerVendorsPage() {
                           <StatusIcon className="w-3 h-3" />
                           {statusConfig.label}
                         </span>
+                        {(() => {
+                          const p = presence[vendor.id];
+                          const meta = PRESENCE_META[p?.status || 'offline'];
+                          const livePlatforms = p?.platforms || [];
+                          const title = livePlatforms.length > 0
+                            ? `Active on ${livePlatforms.map((lp) => PLATFORM_META[lp.platform].label).join(' + ')}`
+                            : p ? `Last seen ${presenceTimeAgo(p.lastSeenAt)}` : 'Never logged in';
+                          return (
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${meta.text}`}
+                              title={title}
+                            >
+                              <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+                              {meta.label}
+                              {livePlatforms.map((lp) => {
+                                const platformMeta = PLATFORM_META[lp.platform];
+                                const PlatformIcon = platformMeta.icon;
+                                return (
+                                  <React.Fragment key={lp.platform}>
+                                    <span className="text-gray-300">·</span>
+                                    <PlatformIcon className="w-3 h-3" />
+                                    {platformMeta.label}
+                                  </React.Fragment>
+                                );
+                              })}
+                            </span>
+                          );
+                        })()}
                         {vendor.rating > 0 && (
                           <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
                             <Star className="w-3 h-3 fill-amber-400 text-amber-400" />

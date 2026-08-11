@@ -35,8 +35,15 @@ import {
   BOOKING_STATUS,
   BOOKING_PAYMENT_STATUS,
 } from "../../api/travelAgentClient";
-import { SC as C, TONES } from "../_shared/theme";
+import { SC as C, TONES, SHEET_RADIUS } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import SheetHandle from "../_shared/SheetHandle";
 
+
+// How far the contact bar rides up over the hero's bottom edge. The hero is
+// fixed and the bar scrolls, so this is subtracted from the hero's tail and
+// added back as scroll padding to keep the gap the same.
+const CONTACT_OVERLAP = 28;
 
 const STATUS_COLORS = {
   DRAFT:            { bg: "rgba(255,255,255,0.22)", fg: "#fff", icon: "create" },
@@ -58,26 +65,6 @@ const PAYMENT_META = {
   PAID:     { bg: C.greenLight, fg: C.emerald700, icon: "checkmark-circle" },
   REFUNDED: { bg: C.redLight,   fg: "#9E362E", icon: "return-up-back" },
 };
-
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
-}
 
 const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 const formatRelative = (iso) => {
@@ -232,21 +219,21 @@ export default function BookingDetailScreen({ navigation, route }) {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.emerald600} />}
+      {/* ===== Gradient hero (fixed) =====
+          Outside the ScrollView so back / edit / delete stay reachable while
+          the booking detail scrolls. paddingBottom is short by
+          CONTACT_OVERLAP because the contact bar can no longer climb into the
+          hero from a different scroll parent — the scroll's paddingTop gives
+          that space back, so the gap is unchanged. */}
+      <LinearGradient
+        colors={["#0F2A22", "#16382E", "#1C6B52"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroWrap}
       >
-        {/* ===== Gradient hero ===== */}
-        <LinearGradient
-          colors={["#0F2A22", "#16382E", "#1C6B52"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroWrap}
-        >
-          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
-          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
-          <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 40 }}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12, paddingBottom: 40 - CONTACT_OVERLAP }}>
             <View style={styles.headerRow}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
                 <Ionicons name="arrow-back" size={22} color="#fff" />
@@ -293,10 +280,18 @@ export default function BookingDetailScreen({ navigation, route }) {
                 </View>
               )}
             </View>
-          </SafeAreaView>
-        </LinearGradient>
+        </SafeAreaView>
+      </LinearGradient>
 
-        {/* ===== Floating contact bar ===== */}
+      <ScrollView
+        style={{ flex: 1 }}
+        // paddingTop cancels contactRowWrap's -CONTACT_OVERLAP, which would
+        // otherwise clip the bar's top against the scroll edge now that the
+        // hero is no longer its sibling.
+        contentContainerStyle={{ paddingTop: CONTACT_OVERLAP, paddingBottom: 100 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.emerald600} />}
+      >
+        {/* ===== Contact bar ===== */}
         <View style={styles.contactRowWrap}>
           <View style={styles.contactRow}>
             <ContactBtn
@@ -656,7 +651,7 @@ function PickerModal({ visible, title, options, selected, onClose, onSelect }) {
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalSheet}>
-          <View style={styles.modalHandle} />
+          <SheetHandle />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{title}</Text>
             <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={C.ink} /></TouchableOpacity>
@@ -723,7 +718,7 @@ const styles = StyleSheet.create({
   sharedBadgeText: { fontFamily: DISPLAY, color: "#fff", fontSize: 11, fontWeight: "bold" },
 
   // Floating contact bar
-  contactRowWrap: { marginHorizontal: 16, marginTop: -28 },
+  contactRowWrap: { marginHorizontal: 16, marginTop: -CONTACT_OVERLAP },
   contactRow: { flexDirection: "row", backgroundColor: C.card, borderRadius: 16, padding: 6, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 5 },
   contactBtn: { flex: 1, alignItems: "center", paddingVertical: 12, gap: 4 },
   contactBtnText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: "bold" },
@@ -832,8 +827,8 @@ const styles = StyleSheet.create({
   editBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 15 },
 
   // Modal
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  modalSheet: { backgroundColor: C.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 24, paddingTop: 8, paddingHorizontal: 16 },
+  modalOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
+  modalSheet: { backgroundColor: C.card, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS, paddingBottom: 24, paddingTop: 8, paddingHorizontal: 16 },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: "center", marginBottom: 12 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   modalTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: "bold", color: C.ink },

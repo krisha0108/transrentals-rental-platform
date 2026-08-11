@@ -4,7 +4,7 @@
 // with completion badges, unified pill inputs.
 // NOTE: UI-only redesign — all form state, handlers, payload shape and API
 // calls are unchanged from the previous version.
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -18,11 +18,13 @@ import {
   createTravelAgentProperty,
   updateTravelAgentProperty,
   deleteTravelAgentProperty,
+  getCurrentTravelAgent,
   PROPERTY_TYPE,
 } from "../../api/travelAgentClient";
 import ImagePickerField from "../_shared/ImagePickerField";
 import { DISPLAY } from "../_shared/typography";
 import { SC as C } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -139,24 +141,6 @@ function toArr(v) {
   return [];
 }
 
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />;
-}
-
 // Circular completion ring for the header (SVG). Purely presentational.
 function ProgressRing({ pct }) {
   const size = 54, stroke = 5;
@@ -194,6 +178,8 @@ export default function AddEditPropertyScreen({ navigation, route }) {
     state:              existing?.state || "",
     pincode:            existing?.pincode || "",
     landmark:           existing?.landmark || "",
+    latitude:           existing?.latitude != null ? String(existing.latitude) : "",
+    longitude:          existing?.longitude != null ? String(existing.longitude) : "",
     totalRooms:         existing?.totalRooms ? String(existing.totalRooms) : "",
     bedroomsCount:      existing?.bedroomsCount ? String(existing.bedroomsCount) : "",
     bathroomsCount:     existing?.bathroomsCount ? String(existing.bathroomsCount) : "",
@@ -221,6 +207,19 @@ export default function AddEditPropertyScreen({ navigation, route }) {
     images: true, basics: true, location: false,
     capacity: false, amenities: false, content: false, policies: false,
   });
+
+  // Web disables the Publish checkbox with a lock badge until the agent is
+  // approved (properties/[id]/edit/page.tsx:477-483) — mirror that here so
+  // the toggle blocks proactively instead of firing a save that the backend
+  // then rejects.
+  const [isApproved, setIsApproved] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentTravelAgent()
+      .then((a) => { if (!cancelled) setIsApproved(a?.status === "APPROVED"); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const update = (k, v) => setForm((p) => ({ ...p, [k]: v }));
   const toggleAmenity = (id) =>
@@ -281,6 +280,8 @@ export default function AddEditPropertyScreen({ navigation, route }) {
       state:              form.state.trim() || null,
       pincode:            form.pincode.trim() || null,
       landmark:           form.landmark.trim() || null,
+      latitude:           form.latitude ? Number(form.latitude) : null,
+      longitude:          form.longitude ? Number(form.longitude) : null,
       totalRooms:         form.totalRooms ? Number(form.totalRooms) : 1,
       bedroomsCount:      form.bedroomsCount ? Number(form.bedroomsCount) : null,
       bathroomsCount:     form.bathroomsCount ? Number(form.bathroomsCount) : null,
@@ -366,7 +367,7 @@ export default function AddEditPropertyScreen({ navigation, route }) {
         </SafeAreaView>
       </LinearGradient>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
           {/* ── PHOTOS ── */}
@@ -376,7 +377,7 @@ export default function AddEditPropertyScreen({ navigation, route }) {
             <ImagePickerField label="Cover photo" value={form.coverImage}
               onChange={(v) => update("coverImage", v)} folder="properties"
               helperText="Main photo shown on property cards." />
-            <ImagePickerField label="Gallery (up to 8)" multi max={8}
+            <ImagePickerField label="Gallery (up to 20)" multi max={20}
               value={form.galleryImages} onChange={(v) => update("galleryImages", v)} folder="properties" />
           </Section>
 
@@ -461,6 +462,18 @@ export default function AddEditPropertyScreen({ navigation, route }) {
                 <TextInput style={styles.input} placeholder="e.g. Near Baga Beach"
                   placeholderTextColor="#A99F8D" value={form.landmark}
                   onChangeText={(v) => update("landmark", v)} />
+              </Field>
+            </View>
+            <View style={styles.row2}>
+              <Field label="Latitude (optional)" style={{ flex: 1 }}>
+                <TextInput style={styles.input} placeholder="e.g. 15.5527"
+                  placeholderTextColor="#A99F8D" keyboardType="numbers-and-punctuation"
+                  value={form.latitude} onChangeText={(v) => update("latitude", v.replace(/[^0-9.\-]/g, ""))} />
+              </Field>
+              <Field label="Longitude (optional)" style={{ flex: 1 }}>
+                <TextInput style={styles.input} placeholder="e.g. 73.7771"
+                  placeholderTextColor="#A99F8D" keyboardType="numbers-and-punctuation"
+                  value={form.longitude} onChangeText={(v) => update("longitude", v.replace(/[^0-9.\-]/g, ""))} />
               </Field>
             </View>
           </Section>
@@ -671,16 +684,29 @@ export default function AddEditPropertyScreen({ navigation, route }) {
 
             <TouchableOpacity
               style={[styles.toggleCard, form.isPublic && { borderColor: C.purple, backgroundColor: C.purpleLight }]}
-              onPress={() => update("isPublic", !form.isPublic)} activeOpacity={0.85}
+              onPress={() => {
+                if (!form.isPublic && !isApproved) {
+                  Alert.alert(
+                    "Approval required",
+                    "Your account must be approved before this listing can go public. Complete your KYC documents to get verified."
+                  );
+                  return;
+                }
+                update("isPublic", !form.isPublic);
+              }}
+              activeOpacity={0.85}
             >
               <View style={[styles.toggleIconWrap, { backgroundColor: form.isPublic ? C.purple : C.border }]}>
-                <Ionicons name={form.isPublic ? "globe" : "globe-outline"} size={16} color="#fff" />
+                <Ionicons
+                  name={!isApproved && !form.isPublic ? "lock-closed" : form.isPublic ? "globe" : "globe-outline"}
+                  size={16} color="#fff"
+                />
               </View>
               <Text style={[styles.toggleTitle, form.isPublic && { color: C.purple }]}>
                 {form.isPublic ? "Published" : "Unpublished"}
               </Text>
               <Text style={styles.toggleSub}>
-                {form.isPublic ? "Visible publicly" : "Draft only"}
+                {form.isPublic ? "Visible publicly" : !isApproved ? "Requires approval" : "Draft only"}
               </Text>
             </TouchableOpacity>
           </View>
