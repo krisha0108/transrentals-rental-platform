@@ -106,6 +106,8 @@ interface Booking {
   quotations?: Quotation[];
   is_quote_request?: boolean;
   all_quotes_expired?: boolean;
+  quote_count?: number;
+  lowest_quote_amount?: number | null;
   passengers?: number;
   trip_type?: string;
   total_amount?: number;
@@ -903,6 +905,9 @@ export default function CustomerDashboardPage() {
     }
   }, [currentPage, totalPages]);
 
+  // The API returns raw upper-case statuses (PENDING, QUOTES_RECEIVED, …); the
+  // Open/Confirmed/… keys are the bucket names used by the filter tabs. Both are
+  // listed so a badge never silently falls back to the wrong colour.
   const getStatusConfig = (status: string) => {
     const configs: Record<string, { bg: string; text: string; dot: string }> = {
       Open: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500' },
@@ -910,8 +915,39 @@ export default function CustomerDashboardPage() {
       Ongoing: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
       Completed: { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' },
       Dropped: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+
+      PENDING: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500' },
+      QUOTES_RECEIVED: { bg: 'bg-[#09B368]/10', text: 'text-[#067F4A]', dot: 'bg-[#09B368]' },
+      QUOTES_EXPIRED: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+      PENDING_PAYMENT: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
+      PAYMENT_SUBMITTED: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
+      CONFIRMED: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+      IN_PROGRESS: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
+      COMPLETED: { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' },
+      CANCELLED: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+      EXPIRED: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+      REFUNDED: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+      DROPPED: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
     };
     return configs[status] || configs.Open;
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      PENDING: 'Pending',
+      QUOTES_RECEIVED: 'Quotes Received',
+      QUOTES_EXPIRED: 'Quotes Expired',
+      PENDING_PAYMENT: 'Payment Pending',
+      PAYMENT_SUBMITTED: 'Payment Submitted',
+      CONFIRMED: 'Confirmed',
+      IN_PROGRESS: 'Ongoing',
+      COMPLETED: 'Completed',
+      CANCELLED: 'Cancelled',
+      EXPIRED: 'Expired',
+      REFUNDED: 'Refunded',
+      DROPPED: 'Dropped',
+    };
+    return labels[status] || status;
   };
 
   const getServiceIcon = (serviceName: string, serviceType?: string) => {
@@ -1473,13 +1509,26 @@ export default function CustomerDashboardPage() {
                       </thead>
                       <tbody>
                         {paginatedBookings.map((booking) => {
-                          const statusConfig = getStatusConfig(booking.status);
                           const serviceBadge = getServiceBadge(booking.service_type, booking.service_name);
-                          const quoteCount = booking.quotations?.length || 0;
-                          const lowestQuote = booking.quotations?.reduce((min, q) => {
-                            const price = q.price || q.amount || 0;
-                            return price < min ? price : min;
-                          }, Infinity) ?? Infinity;
+                          // The API sends the live quote count and cheapest price directly;
+                          // `quotations` is only populated for legacy payloads, so fall back to it.
+                          const quoteCount = booking.quote_count
+                            ?? booking.quotations?.length
+                            ?? 0;
+                          const lowestQuote = booking.lowest_quote_amount
+                            ?? booking.quotations?.reduce((min, q) => {
+                              const price = q.price || q.amount || 0;
+                              return price < min ? price : min;
+                            }, Infinity)
+                            ?? Infinity;
+                          // The request stays QUOTES_RECEIVED once a vendor has quoted, even
+                          // after every quote lapsed — say "expired" rather than showing a
+                          // green "Quotes Received" badge with nothing left to act on.
+                          const displayStatus =
+                            booking.status === 'QUOTES_RECEIVED' && quoteCount === 0
+                              ? 'QUOTES_EXPIRED'
+                              : booking.status;
+                          const statusConfig = getStatusConfig(displayStatus);
                           return (
                             <tr key={booking.id}
                               className="border-b border-gray-50 last:border-0 hover:bg-[#09B368]/[0.02] transition-colors cursor-pointer group"
@@ -1522,10 +1571,18 @@ export default function CustomerDashboardPage() {
                               <td className="px-5 py-3.5">
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${statusConfig.bg} ${statusConfig.text}`}>
                                   <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`} />
-                                  {booking.status}
+                                  {getStatusLabel(displayStatus)}
                                 </span>
                                 {booking.is_quote_request && (
-                                  <p className="text-[9px] text-amber-600 font-medium mt-0.5">Awaiting quotes</p>
+                                  quoteCount > 0 ? (
+                                    <p className="text-[9px] text-[#09B368] font-medium mt-0.5">
+                                      {quoteCount} quote{quoteCount !== 1 ? 's' : ''} received
+                                    </p>
+                                  ) : booking.all_quotes_expired ? (
+                                    <p className="text-[9px] text-red-600 font-medium mt-0.5">Quotes expired</p>
+                                  ) : (
+                                    <p className="text-[9px] text-amber-600 font-medium mt-0.5">Awaiting quotes</p>
+                                  )
                                 )}
                               </td>
                               <td className="px-5 py-3.5 text-right hidden sm:table-cell">

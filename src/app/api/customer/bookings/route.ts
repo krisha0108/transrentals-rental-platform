@@ -268,7 +268,7 @@ export async function GET(request: NextRequest) {
           },
           include: {
             vehicle_models: { select: { sideImage: true } },
-            bike_quotes_bike_quotes_requestIdTobike_quote_requests: { select: { status: true, validTill: true } },
+            bike_quotes_bike_quotes_requestIdTobike_quote_requests: { select: { status: true, validTill: true, grandTotal: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 500,
@@ -315,7 +315,7 @@ export async function GET(request: NextRequest) {
           },
           include: {
             vehicle_models: { select: { sideImage: true } },
-            self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: { select: { status: true, validTill: true } },
+            self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: { select: { status: true, validTill: true, grandTotal: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 500,
@@ -344,7 +344,7 @@ export async function GET(request: NextRequest) {
             ...(busQuoteRequestStatusArray ? { status: { in: busQuoteRequestStatusArray as any } } : {}),
           },
           include: {
-            bus_quotes_bus_quotes_requestIdTobus_quote_requests: { select: { status: true, validTill: true } },
+            bus_quotes_bus_quotes_requestIdTobus_quote_requests: { select: { status: true, validTill: true, totalAmount: true, negotiatedAmount: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 500,
@@ -374,7 +374,7 @@ export async function GET(request: NextRequest) {
             ...(truckQuoteRequestStatusArray ? { status: { in: truckQuoteRequestStatusArray as any } } : {}),
           },
           include: {
-            truck_quotes: { select: { status: true, validTill: true } },
+            truck_quotes: { select: { status: true, validTill: true, totalAmount: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 500,
@@ -404,7 +404,7 @@ export async function GET(request: NextRequest) {
             ...(packersQuoteRequestStatusArray ? { status: { in: packersQuoteRequestStatusArray as any } } : {}),
           },
           include: {
-            packers_quotes: { select: { status: true, validTill: true } },
+            packers_quotes: { select: { status: true, validTill: true, totalAmount: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 500,
@@ -435,7 +435,7 @@ export async function GET(request: NextRequest) {
           },
           include: {
             locations: { select: { name: true } },
-            equipment_quotes: { select: { status: true, validTill: true } },
+            equipment_quotes: { select: { status: true, validTill: true, totalAmount: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 500,
@@ -465,7 +465,7 @@ export async function GET(request: NextRequest) {
             ...(luxuryQuoteRequestStatusArray ? { status: { in: luxuryQuoteRequestStatusArray as any } } : {}),
           },
           include: {
-            luxury_quotes: { select: { status: true, validTill: true } },
+            luxury_quotes: { select: { status: true, validTill: true, totalAmount: true, negotiatedAmount: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 500,
@@ -587,6 +587,41 @@ export async function GET(request: NextRequest) {
       });
     };
 
+    // A quote is "live" once the vendor has actually sent it and it has neither
+    // been taken back nor run out of validity. DRAFT never reached the customer;
+    // REJECTED/WITHDRAWN/EXPIRED are no longer actionable.
+    const LIVE_QUOTE_STATUSES = ['SENT', 'VIEWED', 'ACCEPTED'];
+    const liveQuotes = <T extends { status: string; validTill: Date | null }>(
+      quotes: T[] | null | undefined
+    ): T[] => {
+      if (!quotes || quotes.length === 0) return [];
+      return quotes.filter(q => {
+        if (!LIVE_QUOTE_STATUSES.includes(q.status)) return false;
+        if (q.validTill && new Date(q.validTill).getTime() < Date.now()) return false;
+        return true;
+      });
+    };
+
+    // Cheapest live quote, so the dashboard can show a price next to the count.
+    // `amountOf` differs per service (grandTotal vs totalAmount/negotiatedAmount).
+    const computeLowestQuoteAmount = <T extends { status: string; validTill: Date | null }>(
+      quotes: T[] | null | undefined,
+      amountOf: (q: T) => number | null | undefined
+    ): number | null => {
+      const amounts = liveQuotes(quotes)
+        .map(amountOf)
+        .filter((n): n is number => typeof n === 'number' && Number.isFinite(n));
+      return amounts.length > 0 ? Math.min(...amounts) : null;
+    };
+
+    // Prefer the live-quote count over the stored counter: `totalQuotesReceived`
+    // only ever increments, so it keeps counting quotes the vendor withdrew or
+    // that have since expired — which would show "2 quotes" next to no price.
+    const computeQuoteCount = (
+      quotes: Array<{ status: string; validTill: Date | null }> | null | undefined,
+      storedCount: number | null | undefined
+    ): number => (quotes ? liveQuotes(quotes).length : (storedCount || 0));
+
     // Transform to common format
     const transformedBookings = [
       // Bike quote requests
@@ -614,7 +649,8 @@ export async function GET(request: NextRequest) {
         vendor: null,
         quotations: [],
         is_quote_request: true,
-        quote_count: b.totalQuotesReceived || 0,
+        quote_count: computeQuoteCount(b.bike_quotes_bike_quotes_requestIdTobike_quote_requests, b.totalQuotesReceived),
+        lowest_quote_amount: computeLowestQuoteAmount(b.bike_quotes_bike_quotes_requestIdTobike_quote_requests, q => q.grandTotal),
         all_quotes_expired: computeAllQuotesExpired(b.bike_quotes_bike_quotes_requestIdTobike_quote_requests),
       };
       }),
@@ -713,7 +749,8 @@ export async function GET(request: NextRequest) {
         vendor: null,
         quotations: [],
         is_quote_request: true,
-        quote_count: b.totalQuotesReceived || 0,
+        quote_count: computeQuoteCount(b.self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests, b.totalQuotesReceived),
+        lowest_quote_amount: computeLowestQuoteAmount(b.self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests, q => q.grandTotal),
         all_quotes_expired: computeAllQuotesExpired(b.self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests),
       };
       }),
@@ -760,7 +797,8 @@ export async function GET(request: NextRequest) {
         vendor: null,
         quotations: [],
         is_quote_request: true,
-        quote_count: b.totalQuotesReceived || 0,
+        quote_count: computeQuoteCount(b.bus_quotes_bus_quotes_requestIdTobus_quote_requests, b.totalQuotesReceived),
+        lowest_quote_amount: computeLowestQuoteAmount(b.bus_quotes_bus_quotes_requestIdTobus_quote_requests, q => q.negotiatedAmount ?? q.totalAmount),
         all_quotes_expired: computeAllQuotesExpired(b.bus_quotes_bus_quotes_requestIdTobus_quote_requests),
       })),
       // Bus bookings (confirmed bookings)
@@ -808,7 +846,8 @@ export async function GET(request: NextRequest) {
         vendor: null,
         quotations: [],
         is_quote_request: true,
-        quote_count: b.totalQuotesReceived || 0,
+        quote_count: computeQuoteCount(b.truck_quotes, b.totalQuotesReceived),
+        lowest_quote_amount: computeLowestQuoteAmount(b.truck_quotes, q => q.totalAmount),
         all_quotes_expired: computeAllQuotesExpired(b.truck_quotes),
       })),
       // Truck bookings
@@ -854,7 +893,8 @@ export async function GET(request: NextRequest) {
         vendor: null,
         quotations: [],
         is_quote_request: true,
-        quote_count: b.totalQuotesReceived || 0,
+        quote_count: computeQuoteCount(b.packers_quotes, b.totalQuotesReceived),
+        lowest_quote_amount: computeLowestQuoteAmount(b.packers_quotes, q => q.totalAmount),
         all_quotes_expired: computeAllQuotesExpired(b.packers_quotes),
       })),
       // Packers bookings
@@ -899,7 +939,8 @@ export async function GET(request: NextRequest) {
         vendor: null,
         quotations: [],
         is_quote_request: true,
-        quote_count: b.totalQuotesReceived || 0,
+        quote_count: computeQuoteCount(b.equipment_quotes, b.totalQuotesReceived),
+        lowest_quote_amount: computeLowestQuoteAmount(b.equipment_quotes, q => q.totalAmount),
         all_quotes_expired: computeAllQuotesExpired(b.equipment_quotes),
       })),
       // Equipment bookings
@@ -946,7 +987,8 @@ export async function GET(request: NextRequest) {
         vendor: null,
         quotations: [],
         is_quote_request: true,
-        quote_count: b.totalQuotesReceived || 0,
+        quote_count: computeQuoteCount(b.luxury_quotes, b.totalQuotesReceived),
+        lowest_quote_amount: computeLowestQuoteAmount(b.luxury_quotes, q => q.negotiatedAmount ?? q.totalAmount),
         all_quotes_expired: computeAllQuotesExpired(b.luxury_quotes),
       })),
       // Luxury bookings
@@ -1112,7 +1154,7 @@ function mapStatusToDisplay(status: string): string {
 function mapBikeQuoteRequestStatus(status: string): string {
   const displayMap: Record<string, string> = {
     PENDING: 'PENDING',
-    QUOTES_RECEIVED: 'PENDING',
+    QUOTES_RECEIVED: 'QUOTES_RECEIVED',
     QUOTE_ACCEPTED: 'CONFIRMED',
     BOOKING_CONFIRMED: 'CONFIRMED',
     CANCELLED: 'CANCELLED',
@@ -1126,7 +1168,7 @@ function mapBikeQuoteRequestStatus(status: string): string {
 function mapBusQuoteRequestStatus(status: string): string {
   const displayMap: Record<string, string> = {
     PENDING: 'PENDING',
-    QUOTES_RECEIVED: 'PENDING',
+    QUOTES_RECEIVED: 'QUOTES_RECEIVED',
     QUOTE_ACCEPTED: 'CONFIRMED',
     BOOKING_CONFIRMED: 'CONFIRMED',
     CANCELLED: 'CANCELLED',
@@ -1140,7 +1182,7 @@ function mapBusQuoteRequestStatus(status: string): string {
 function mapSelfDriveQuoteRequestStatus(status: string): string {
   const displayMap: Record<string, string> = {
     PENDING: 'PENDING',
-    QUOTES_RECEIVED: 'PENDING',
+    QUOTES_RECEIVED: 'QUOTES_RECEIVED',
     QUOTE_ACCEPTED: 'CONFIRMED',
     BOOKING_CONFIRMED: 'CONFIRMED',
     CANCELLED: 'CANCELLED',
@@ -1170,7 +1212,7 @@ function mapBusBookingStatus(status: string): string {
 function mapQuoteRequestStatus(status: string): string {
   const displayMap: Record<string, string> = {
     PENDING: 'PENDING',
-    QUOTES_RECEIVED: 'PENDING',
+    QUOTES_RECEIVED: 'QUOTES_RECEIVED',
     QUOTE_ACCEPTED: 'CONFIRMED',
     BOOKING_CONFIRMED: 'CONFIRMED',
     CANCELLED: 'CANCELLED',
