@@ -92,7 +92,7 @@ function getDefaultContent(
     case 'seo_content':
       return seoData?.intro
         ? `<p>${seoData.intro}</p>${seoData.tips?.length ? `<ul>${seoData.tips.map((t: string) => `<li>${t}</li>`).join('')}</ul>` : ''}`
-        : `<p>${cityName} is a key city in ${cityState} with growing demand for vehicle rentals. TransRentals connects you with 500+ verified vendors offering cars, bikes, buses, and commercial vehicles at competitive prices.</p>`;
+        : `<p>Looking for reliable vehicle rentals in ${cityName}? TransRentals connects you with verified vendors offering everything from self-drive cars and bikes to chauffeur-driven cabs, tempo travellers, and full-size buses. Whether you need a car for a quick errand, a bike to explore at your own pace, or a bus for a large group outing, our platform makes it easy to compare prices and book instantly — no hidden charges and no advance payment required.</p><p>Every vendor listed on TransRentals in ${cityName} goes through a strict verification process — registration certificates, insurance papers, and driving licenses are checked before a vehicle is added to our marketplace. This means you can book with confidence, knowing the vehicle and driver meet our safety standards.</p><p>Prices are transparent and start as low as ₹299/day for two-wheelers and ₹999/day for cars, with instant quotes from multiple operators so you can pick the best deal for your trip. Ready to book? Choose a service above and get matched with verified vendors in minutes.</p>`;
 
     case 'faq':
       return JSON.stringify([
@@ -601,7 +601,7 @@ function SectionsPanel({ sections, onChange, cityName, cityState, seoData }: {
   seoData: any;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [addingSection, setAddingSection] = useState(false);
+  const [addMode, setAddMode] = useState<'closed' | 'choose' | 'new'>('closed');
   const [newSectionName, setNewSectionName] = useState('');
 
   const move = (idx: number, dir: -1 | 1) => {
@@ -640,7 +640,12 @@ function SectionsPanel({ sections, onChange, cityName, cityState, seoData }: {
     };
     onChange([...sections, newSection]);
     setNewSectionName('');
-    setAddingSection(false);
+    setAddMode('closed');
+    setExpandedId(id);
+  };
+
+  const addToExisting = (id: string) => {
+    setAddMode('closed');
     setExpandedId(id);
   };
 
@@ -650,7 +655,7 @@ function SectionsPanel({ sections, onChange, cityName, cityState, seoData }: {
         const isExpanded = expandedId === section.id;
         const hasContent = !!(section.content && section.content.trim() && section.content !== '<p></p>');
         const hint = SECTION_CONTENT_HINTS[section.id as keyof typeof SECTION_CONTENT_HINTS]
-          ?? `Write custom HTML content for the "${section.label}" section. This will appear on the city page.`;
+          ?? `Write custom HTML content for the "${section.label}" section. Shown in a collapsible "Read more" block on the page.`;
 
         return (
           <div
@@ -757,7 +762,39 @@ function SectionsPanel({ sections, onChange, cityName, cityState, seoData }: {
       })}
 
       {/* Add new section */}
-      {addingSection ? (
+      {addMode === 'choose' ? (
+        <div className="border-2 border-dashed border-violet-300 rounded-xl p-4 bg-violet-50/40 space-y-3">
+          <p className="text-xs font-semibold text-violet-700">Where does this content go?</p>
+          <div className="grid sm:grid-cols-2 gap-2">
+            <button
+              onClick={() => setAddMode('new')}
+              className="text-left px-3 py-2.5 bg-white border border-gray-200 rounded-lg hover:border-violet-400 hover:bg-violet-50/60 transition"
+            >
+              <p className="text-sm font-semibold text-gray-800">Create a new section</p>
+              <p className="text-xs text-gray-500 mt-0.5">Adds a fresh block with its own heading, further down the page.</p>
+            </button>
+            <div className="px-3 py-2.5 bg-white border border-gray-200 rounded-lg">
+              <p className="text-sm font-semibold text-gray-800 mb-1.5">Add to an existing section</p>
+              <select
+                defaultValue=""
+                onChange={e => { if (e.target.value) addToExisting(e.target.value); }}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              >
+                <option value="" disabled>Choose a section…</option>
+                {sections.map(s => (
+                  <option key={s.id} value={s.id}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <button
+            onClick={() => setAddMode('closed')}
+            className="text-xs text-gray-500 hover:text-gray-700 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : addMode === 'new' ? (
         <div className="border-2 border-dashed border-violet-300 rounded-xl p-4 bg-violet-50/40 space-y-3">
           <p className="text-xs font-semibold text-violet-700">New Custom Section</p>
           <div className="flex gap-2">
@@ -765,7 +802,7 @@ function SectionsPanel({ sections, onChange, cityName, cityState, seoData }: {
               autoFocus
               value={newSectionName}
               onChange={e => setNewSectionName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') addCustomSection(); if (e.key === 'Escape') { setAddingSection(false); setNewSectionName(''); } }}
+              onKeyDown={e => { if (e.key === 'Enter') addCustomSection(); if (e.key === 'Escape') { setAddMode('closed'); setNewSectionName(''); } }}
               placeholder="Section name, e.g. Why Choose Us"
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
@@ -777,7 +814,7 @@ function SectionsPanel({ sections, onChange, cityName, cityState, seoData }: {
               Add
             </button>
             <button
-              onClick={() => { setAddingSection(false); setNewSectionName(''); }}
+              onClick={() => { setAddMode('closed'); setNewSectionName(''); }}
               className="px-3 py-2 text-gray-500 hover:text-gray-700 text-sm transition"
             >
               Cancel
@@ -786,7 +823,7 @@ function SectionsPanel({ sections, onChange, cityName, cityState, seoData }: {
         </div>
       ) : (
         <button
-          onClick={() => setAddingSection(true)}
+          onClick={() => setAddMode('choose')}
           className="w-full py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-sm font-semibold text-gray-400 hover:border-violet-400 hover:text-violet-600 hover:bg-violet-50/40 transition flex items-center justify-center gap-2"
         >
           <Plus className="w-4 h-4" />
