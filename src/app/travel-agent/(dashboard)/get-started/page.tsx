@@ -19,6 +19,7 @@ import {
   Globe,
   ShieldCheck,
   HelpCircle,
+  Car,
 } from 'lucide-react';
 
 interface AgentInfo {
@@ -148,6 +149,20 @@ export default function TravelAgentGetStartedPage() {
       desc: 'Share a public form link — customer fills it, lead lands in your dashboard.',
       href: '/travel-agent/capture-links',
       requiresApproval: true,
+    },
+    {
+      icon: Car,
+      color: 'bg-teal-50 text-teal-700 border-teal-200',
+      title: 'Fleet',
+      desc: 'List your vehicles and cabs for hire, with rates and availability.',
+      href: '/travel-agent/fleet',
+    },
+    {
+      icon: Globe,
+      color: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      title: 'Social',
+      desc: 'Connect with other agents and vendors in the travel network.',
+      href: '/travel-agent/social',
     },
   ];
 

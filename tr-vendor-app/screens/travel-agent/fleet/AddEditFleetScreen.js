@@ -5,7 +5,7 @@
 // validity dates. Maps to POST /api/travel-agent/fleet or PATCH .../[id].
 // NOTE: This is a UI-only redesign — all form state, handlers, payload shape and
 // API calls are unchanged from the previous version.
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -180,9 +180,40 @@ export default function AddEditFleetScreen({ navigation, route }) {
   const [saving, setSaving] = useState(false);
   const [pickerType, setPickerType] = useState(null);
   const [customAmenity, setCustomAmenity] = useState("");
+  // Callers can land the form on a specific section. The Fleet Insurance
+  // screen sends focusSection="documents": someone tapping an expiring-policy
+  // card came to fix that policy, not to read the vehicle name, so opening at
+  // the top of a 7-section form makes them hunt for the thing they asked for.
+  const focusSection = route?.params?.focusSection || null;
+
   const [expanded, setExpanded] = useState({
     images: true, vehicle: true, specs: false, chauffeur: false, pricing: false, extras: false, documents: false,
+    // Requested section starts open; the two normally-open ones collapse so it
+    // is a short scroll away rather than buried under them.
+    ...(focusSection
+      ? { images: false, vehicle: false, [focusSection]: true }
+      : null),
   });
+
+  // Scroll the requested section into view once its layout has settled.
+  const scrollRef = useRef(null);
+  const focusY = useRef(null);
+  const focusTimer = useRef(null);
+  const didFocusScroll = useRef(false);
+  const onFocusSectionLayout = useCallback((e) => {
+    if (didFocusScroll.current || !focusSection) return;
+    focusY.current = e.nativeEvent.layout.y;
+    // onLayout fires more than once: the sections above this one collapse just
+    // after mount, which moves it up the page. Scrolling to the first reading
+    // overshot to the bottom of the section. Debounce so we use the position it
+    // finally settled at. -12 leaves a sliver of the section above it visible.
+    clearTimeout(focusTimer.current);
+    focusTimer.current = setTimeout(() => {
+      didFocusScroll.current = true;
+      scrollRef.current?.scrollTo({ y: Math.max(0, focusY.current - 12), animated: true });
+    }, 300);
+  }, [focusSection]);
+  useEffect(() => () => clearTimeout(focusTimer.current), []);
 
   // Gentle looping float for the header's decorative bubbles (presentational).
   const blobA = useRef(new Animated.Value(0)).current;
@@ -371,8 +402,8 @@ export default function AddEditFleetScreen({ navigation, route }) {
         </SafeAreaView>
       </LinearGradient>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
           {/* ===== Cover image ===== */}
           <Section
@@ -834,6 +865,7 @@ export default function AddEditFleetScreen({ navigation, route }) {
           </Section>
 
           {/* ===== Documents ===== */}
+          <View onLayout={focusSection === "documents" ? onFocusSectionLayout : undefined}>
           <Section
             icon="document-attach" color={C.purple}
             label="Documents"
@@ -919,6 +951,7 @@ export default function AddEditFleetScreen({ navigation, route }) {
               </Field>
             </DocCard>
           </Section>
+          </View>
 
           {/* ===== Active toggle ===== */}
           <TouchableOpacity

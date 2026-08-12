@@ -45,11 +45,12 @@ import CustomAlert from "../../CustomAlertmahek";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DISPLAY } from "../_shared/typography";
 import AnimatedOrb from "../_shared/AnimatedOrb";
-import { C, G, rs, rf, GUT, cardShadow } from "../_shared/theme";
+import { C, G, rs, rf, GUT, cardShadow, SHEET_RADIUS } from "../_shared/theme";
 import {
   registerTravelAgent,
   loginTravelAgentDirect,
 } from "../../api/travelAgentClient";
+import SheetHandle from "../_shared/SheetHandle";
 
 // Agency types — mirror web register options
 const AGENCY_TYPES = [
@@ -578,7 +579,7 @@ export default function TravelAgentRegisterScreen({ navigation }) {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -1032,6 +1033,7 @@ export default function TravelAgentRegisterScreen({ navigation }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <SheetHandle />
             <LinearGradient
               colors={G.hero}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -1076,6 +1078,7 @@ export default function TravelAgentRegisterScreen({ navigation }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <SheetHandle />
             <LinearGradient
               colors={G.hero}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -1336,9 +1339,9 @@ const styles = StyleSheet.create({
   stepText: { fontFamily: DISPLAY, fontSize: rf(13.5), color: C.sub, flex: 1, fontWeight: "600" },
 
   // ===== Modal =====
-  modalOverlay: { flex: 1, backgroundColor: "rgba(11,51,39,0.55)", justifyContent: "flex-end" },
+  modalOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
   modalContent: {
-    backgroundColor: C.bg, borderTopLeftRadius: rs(26), borderTopRightRadius: rs(26),
+    backgroundColor: C.bg, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     paddingBottom: rs(28), maxHeight: "72%", overflow: "hidden",
   },
   modalHeaderGrad: { paddingHorizontal: rs(18), paddingVertical: rs(16) },

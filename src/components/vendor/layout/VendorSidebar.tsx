@@ -735,6 +735,12 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
 
   const handleSignOut = async () => {
     try { sessionStorage.removeItem('vendor_profile_cache'); } catch { /* ignore */ }
+    // Clear presence before the session cookie goes away so the manager
+    // side shows "Offline" right away instead of waiting ~2.5min for the
+    // last heartbeat to go stale (see DELETE /api/vendor/heartbeat).
+    try {
+      await fetch('/api/vendor/heartbeat?platform=web', { method: 'DELETE', keepalive: true });
+    } catch { /* best-effort; logout must proceed either way */ }
     await signOut({ callbackUrl: '/vendor/login' });
   };
 

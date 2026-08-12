@@ -47,7 +47,6 @@ export default function ChatsListPage() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'ARCHIVED' | 'BLOCKED'>('ALL');
 
   const filtered = conversations.filter((c) => {
-    if (statusFilter !== 'ALL' && (c.status || 'ACTIVE').toUpperCase() !== statusFilter) return false;
     const q = search.trim().toLowerCase();
     if (q) {
       const hay = [c.participant?.name, c.participant?.phone, c.participant?.email, c.subject]
@@ -58,9 +57,10 @@ export default function ChatsListPage() {
   });
 
   useEffect(() => {
+    setLoading(true);
     const load = async () => {
       try {
-        const res = await fetch('/api/travel-agent-chat/conversations');
+        const res = await fetch(`/api/travel-agent-chat/conversations?status=${statusFilter}`);
         if (res.ok) {
           const json = await res.json();
           setConversations(json.conversations || []);
@@ -73,7 +73,7 @@ export default function ChatsListPage() {
     load();
     const t = setInterval(load, 15000); // refresh every 15s for new messages
     return () => clearInterval(t);
-  }, []);
+  }, [statusFilter]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -90,7 +90,7 @@ export default function ChatsListPage() {
         </div>
       </div>
 
-      {conversations.length > 0 && (
+      {!loading && (conversations.length > 0 || statusFilter !== 'ALL') && (
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -126,7 +126,7 @@ export default function ChatsListPage() {
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
         </div>
-      ) : conversations.length === 0 ? (
+      ) : conversations.length === 0 && statusFilter === 'ALL' ? (
         <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
           <Inbox className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-600 font-medium mb-1">No conversations yet</p>

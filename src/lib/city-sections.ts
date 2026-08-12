@@ -26,7 +26,7 @@ export const SECTION_CONTENT_HINTS: Record<SectionId, string> = {
   routes:       'Intro text shown above the popular routes list. Describe key destinations from this city.',
   things_to_do: 'Intro text shown above the attractions list. Leave blank to use the default curated list for this city.',
   locations:    'Intro text shown above the nearby locations grid. Describe coverage in the state.',
-  seo_content:  'Replaces the auto-generated SEO intro paragraph. Write city-specific SEO content here.',
+  seo_content:  'Replaces the auto-generated SEO intro paragraph. Leave blank to keep the default guide text. Shown in a collapsible "Read more" block on the page.',
   faq:          'Add or edit FAQ items. Each item has a Question and an Answer. These replace the default FAQs on the page.',
 };
 

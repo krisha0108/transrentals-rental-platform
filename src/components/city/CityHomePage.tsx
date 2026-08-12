@@ -57,7 +57,7 @@ const CATEGORY_ORDER: Array<ServiceConfig['category']> = ['car', 'bike', 'bus', 
 // Optional per-city hero background photo. Drop the file in /public/images/cities/
 // (recommended: 2400×1000px, ~21:9, JPG/WebP under 400KB, main subject weighted
 // to the right two-thirds of the frame since hero text sits on the left).
-const CITY_HERO_IMAGES: Record<string, string> = {
+export const CITY_HERO_IMAGES: Record<string, string> = {
   ahmedabad: '/images/cities/ahmedabad-hero.jpg',
   bangalore: '/images/cities/bangalore-hero.webp',
   ghaziabad: '/images/cities/ghaziabad-hero.webp',

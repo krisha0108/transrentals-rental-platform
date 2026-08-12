@@ -7,7 +7,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
-  RefreshControl, ActivityIndicator, ScrollView, StatusBar, Animated, Easing, Alert,
+  RefreshControl, ActivityIndicator, ScrollView, StatusBar, Animated, Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -15,6 +15,7 @@ import LinearGradient from "react-native-linear-gradient";
 import { getTravelAgentPayments } from "../../api/travelAgentClient";
 import { DISPLAY } from "../_shared/typography";
 import { SC as C } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 
 // Status meta: stripe color + bg/fg pill tint + icon + human label.
@@ -85,44 +86,6 @@ function tintFor(name) {
   return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
 }
 
-// Slowly drifting/pulsing decorative orb for the hero — gentle ambient motion.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
-}
-
-// TEMP DEMO — sample payment card for previewing the card design without real
-// data. Tapping it shows an info alert instead of navigating (its id is fake).
-// Remove this block, its use in `load`, and the demo guard in onPress later.
-const DEMO_PAY_ID = "__DEMO_PAY__";
-const DEMO_PAYMENT = {
-  id: DEMO_PAY_ID,
-  paymentStatus: "SUBMITTED",
-  customerName: "Priya Nair",
-  customerPhone: "9876500000",
-  tourTitle: "Goa Beach Getaway",
-  destination: "Goa",
-  quotedAmount: 25000,
-  advanceAmount: 10000,
-  balanceAmount: 15000,
-  paymentSubmittedAt: "2026-07-23T09:00:00.000Z",
-};
-
 export default function PaymentsScreen({ navigation }) {
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState(null);
@@ -145,8 +108,7 @@ export default function PaymentsScreen({ navigation }) {
       if (tab !== "ALL") params.status = tab;
       if (debouncedSearch) params.q = debouncedSearch;
       const data = await getTravelAgentPayments(params);
-      // TEMP DEMO — prepend a sample payment card (remove after preview)
-      setItems([DEMO_PAYMENT, ...(data.items || [])]);
+      setItems(data.items || []);
       setStats(data.stats || null);
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || "Failed to load payments");
@@ -342,14 +304,6 @@ export default function PaymentsScreen({ navigation }) {
             <PaymentCard
               payment={item}
               onPress={() => {
-                // TEMP DEMO — fake id has no real lead; show info instead of 404
-                if (item.id === DEMO_PAY_ID) {
-                  Alert.alert(
-                    "Demo card",
-                    "This is a sample card. A real payment card opens the customer's Lead Detail screen (to review & verify the payment)."
-                  );
-                  return;
-                }
                 navigation.navigate("TALeadDetail", {
                   id: item.id,
                   customerName: item.customerName,

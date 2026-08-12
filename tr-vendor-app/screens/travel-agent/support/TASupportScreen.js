@@ -15,6 +15,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   Linking, TextInput, Alert, ActivityIndicator, StatusBar,
+  KeyboardAvoidingView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -184,26 +185,24 @@ export default function TASupportScreen({ navigation }) {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={C.forestDark} />
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: rs(40) }}
-        showsVerticalScrollIndicator={false}
+      {/* Edge-to-edge means adjustResize never fires, so the keyboard has to
+          be handled here or the ticket fields sit under it. */}
+      {/* ── Hero (fixed) ──
+          It used to sit inside the scroll content so the contact cards could
+          tuck into its curve, and to free the screen for the FAQ / form. The
+          header is short (title shares the button row), so pinning it costs
+          little and keeps Back reachable from anywhere in a long FAQ. The
+          cards' negative margin is paid back by the scroll's paddingTop, and
+          the tail is shortened to match — same gap as before. */}
+      <LinearGradient
+        colors={G.hero}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.hero}
       >
-        {/* ── Hero ──
-            Lives INSIDE the scroll content for two reasons: the contact cards'
-            negative margin would otherwise be clipped by the ScrollView's own
-            bounds, and letting the hero scroll away frees the whole screen for
-            the FAQ / form / ticket content. Title sits on the button row to
-            keep the header short. */}
-        <LinearGradient
-          colors={G.hero}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.hero}
-        >
-          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
-          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
 
-          <SafeAreaView edges={["top"]} style={{ paddingHorizontal: GUT }}>
+        <SafeAreaView edges={["top"]} style={{ paddingHorizontal: GUT }}>
             <View style={styles.heroTop}>
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
@@ -227,11 +226,22 @@ export default function TASupportScreen({ navigation }) {
               We're here — usually within 24 hours
             </Text>
 
-            <View style={{ height: HERO_TAIL }} />
-          </SafeAreaView>
-        </LinearGradient>
+            {/* Short by CARDS_OVERLAP — the cards can no longer climb into the
+                tail from a different scroll parent, so the tail gives it back. */}
+            <View style={{ height: HERO_TAIL - CARDS_OVERLAP }} />
+        </SafeAreaView>
+      </LinearGradient>
 
-        {/* ── Contact cards, tucked into the hero curve ── */}
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        // paddingTop cancels contactRow's -CARDS_OVERLAP so the cards aren't
+        // clipped against the scroll edge.
+        contentContainerStyle={{ paddingTop: CARDS_OVERLAP, paddingBottom: rs(40) }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* ── Contact cards ── */}
         <View style={styles.contactRow}>
           <ContactCard
             tone="ocean"
@@ -255,6 +265,29 @@ export default function TASupportScreen({ navigation }) {
             onPress={() => Linking.openURL(`mailto:${contactEmail}`)}
           />
         </View>
+
+        {/* ── AI Help Assistant — instant "how do I..." answers, app parity
+            with the web's floating HelpBotWidget. ── */}
+        <TouchableOpacity
+          style={styles.aiCard}
+          onPress={() => navigation.navigate("TAHelpAssistant")}
+          activeOpacity={0.9}
+        >
+          <LinearGradient
+            colors={G.hero}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.aiCardInner}
+          >
+            <View style={styles.aiCardIcon}>
+              <Ionicons name="sparkles" size={18} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.aiCardTitle}>Ask our Help Assistant</Text>
+              <Text style={styles.aiCardSub}>Instant "how do I…" answers, in English/Hindi/Hinglish</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
+          </LinearGradient>
+        </TouchableOpacity>
 
         {/* ── Segmented tabs ── */}
         <View style={styles.segRow}>
@@ -462,6 +495,7 @@ export default function TASupportScreen({ navigation }) {
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -680,6 +714,22 @@ const styles = StyleSheet.create({
     flexDirection: "row", gap: rs(12),
     marginHorizontal: GUT + rs(6), marginTop: -CARDS_OVERLAP,
   },
+  aiCard: {
+    marginHorizontal: GUT + rs(6), marginTop: rs(12),
+    borderRadius: rs(16), overflow: "hidden",
+    shadowColor: C.emeraldDeep, shadowOpacity: 0.3, shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }, elevation: 4,
+  },
+  aiCardInner: {
+    flexDirection: "row", alignItems: "center", gap: rs(10),
+    paddingVertical: rs(13), paddingHorizontal: rs(14),
+  },
+  aiCardIcon: {
+    width: rs(34), height: rs(34), borderRadius: rs(11),
+    backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center",
+  },
+  aiCardTitle: { fontFamily: DISPLAY, fontSize: rf(13.5), fontWeight: "bold", color: "#fff" },
+  aiCardSub: { fontFamily: DISPLAY, fontSize: rf(10.5), color: "rgba(255,255,255,0.8)", fontWeight: "600", marginTop: 2 },
   contactCard: {
     flex: 1, minWidth: 0,
     backgroundColor: C.card, borderRadius: rs(14),

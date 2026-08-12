@@ -33,7 +33,9 @@ import {
   setTravelAgentLeadStatus,
   PIPELINE_STAGES,
 } from "../../api/travelAgentClient";
-import { SC as C } from "../_shared/theme";
+import { SC as C, SHEET_RADIUS } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import SheetHandle from "../_shared/SheetHandle";
 
 const { width: W } = Dimensions.get("window");
 
@@ -84,27 +86,6 @@ const INR = (n) => {
   if (v >= 1000) return `₹${(v / 1000).toFixed(1)}K`;
   return `₹${v}`;
 };
-
-// Slowly drifting/pulsing decorative orb for the header — gentle ambient motion.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
-}
 
 export default function PipelineScreen({ navigation }) {
   const [leads, setLeads] = useState([]);
@@ -304,6 +285,7 @@ export default function PipelineScreen({ navigation }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
+            <SheetHandle />
             <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.modalHeaderGrad}>
               <View style={styles.modalHeaderRow}>
                 <View style={styles.modalHeaderIcon}>
@@ -571,10 +553,10 @@ const styles = StyleSheet.create({
   leadValue: { fontFamily: DISPLAY, fontSize: rf(11.5), fontWeight: "bold", color: C.emeraldDeep },
 
   // ── Modal ──
-  modalOverlay: { flex: 1, backgroundColor: "rgba(15,42,34,0.5)", justifyContent: "flex-end" },
+  modalOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
   modalSheet: {
     backgroundColor: C.card,
-    borderTopLeftRadius: rs(24), borderTopRightRadius: rs(24),
+    borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     paddingBottom: Platform.OS === "ios" ? rs(24) : rs(12),
     overflow: "hidden",
   },

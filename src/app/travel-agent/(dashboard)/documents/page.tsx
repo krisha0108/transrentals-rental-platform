@@ -111,6 +111,14 @@ const DOC_TYPES: DocTypeMeta[] = [
     icon: '🏦',
     hint: 'Recent bank statement showing your business name',
   },
+  {
+    type: 'OTHER',
+    name: 'Other Document',
+    required: false,
+    description: 'Any additional supporting document',
+    icon: '📎',
+    hint: 'Anything not covered by the categories above',
+  },
 ];
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];

@@ -98,13 +98,16 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const phone = searchParams.get('phone');
-    const status = searchParams.get('status') || 'ACTIVE';
+    const statusParam = searchParams.get('status') || 'ACTIVE';
+    // 'ALL' means don't filter by status at all — every other value is an
+    // exact match against the status column.
+    const statusWhere = statusParam === 'ALL' ? {} : { status: statusParam };
 
     // Try agent auth first
     const auth = await getTravelAgentAuth(request);
     if (auth.authenticated && auth.travelAgentId) {
       const conversations = await prisma.travel_agent_chat_conversations.findMany({
-        where: { travelAgentId: auth.travelAgentId, status },
+        where: { travelAgentId: auth.travelAgentId, ...statusWhere },
         orderBy: { lastMessageAt: 'desc' },
         include: {
           travel_agent_chat_messages: {
@@ -155,7 +158,7 @@ export async function GET(request: NextRequest) {
     }
 
     const conversations = await prisma.travel_agent_chat_conversations.findMany({
-      where: { customerPhone: phoneClean, status },
+      where: { customerPhone: phoneClean, ...statusWhere },
       orderBy: { lastMessageAt: 'desc' },
       include: {
         travel_agents: {

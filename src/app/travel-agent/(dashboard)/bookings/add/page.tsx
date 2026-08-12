@@ -374,9 +374,20 @@ export default function AddBookingPage() {
                   <div>
                     <label className={lbl}>Initial Status</label>
                     <div className="grid grid-cols-2 gap-2">
+                      {/* All six of VALID_STATUS (api/travel-agent/bookings/route.ts).
+                          The edit page and the mobile form already offer the full
+                          set, so a booking could only be created as Draft or
+                          Confirmed and then immediately edited into any other
+                          state. Colours follow the status meaning: amber while
+                          waiting on someone, sky while running, emerald done,
+                          red cancelled. */}
                       {[
                         { value: 'DRAFT', label: 'Draft', cls: 'bg-gray-100 border-gray-300 text-gray-700' },
+                        { value: 'PENDING_CUSTOMER', label: 'Pending Customer', cls: 'bg-amber-50 border-amber-300 text-amber-700' },
                         { value: 'CONFIRMED', label: 'Confirmed', cls: 'bg-emerald-50 border-emerald-300 text-emerald-700' },
+                        { value: 'IN_PROGRESS', label: 'In Progress', cls: 'bg-sky-50 border-sky-300 text-sky-700' },
+                        { value: 'COMPLETED', label: 'Completed', cls: 'bg-violet-50 border-violet-300 text-violet-700' },
+                        { value: 'CANCELLED', label: 'Cancelled', cls: 'bg-red-50 border-red-300 text-red-700' },
                       ].map((opt) => (
                         <button
                           key={opt.value}

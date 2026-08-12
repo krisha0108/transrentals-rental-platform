@@ -14,10 +14,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
-import { listTravelAgentProperties, updateTravelAgentProperty, deleteTravelAgentProperty, PROPERTY_TYPE } from "../../api/travelAgentClient";
+import { listTravelAgentProperties, updateTravelAgentProperty, deleteTravelAgentProperty, getCurrentTravelAgent, PROPERTY_TYPE } from "../../api/travelAgentClient";
 import RemoteImage from "../_shared/RemoteImage";
 import { DISPLAY } from "../_shared/typography";
 import { SC as C } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 const GOLD = C.gold;
 const FILL = "#FBF8F1";
@@ -58,24 +59,6 @@ function completenessScore(p) {
   return Math.round((checks.filter(Boolean).length / checks.length) * 100);
 }
 
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />;
-}
-
 export default function PropertiesListScreen({ navigation }) {
   const [properties, setProperties] = useState([]);
   const [stats, setStats] = useState(null);
@@ -85,6 +68,7 @@ export default function PropertiesListScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [isApproved, setIsApproved] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
@@ -94,12 +78,13 @@ export default function PropertiesListScreen({ navigation }) {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const data = await listTravelAgentProperties({
-        search: debouncedSearch,
-        propertyType: typeFilter,
-      });
+      const [data, agent] = await Promise.all([
+        listTravelAgentProperties({ search: debouncedSearch, propertyType: typeFilter }),
+        getCurrentTravelAgent(),
+      ]);
       setProperties(data.properties || []);
       setStats(data.stats || null);
+      setIsApproved(agent?.status === "APPROVED");
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || "Failed to load properties");
     } finally {
@@ -127,8 +112,18 @@ export default function PropertiesListScreen({ navigation }) {
       Alert.alert("Error", e?.response?.data?.error || e?.message || "Failed to update");
     }
   };
+  // Gate publish proactively (mirrors web's disabled-checkbox + lock badge —
+  // src/app/travel-agent/(dashboard)/properties/page.tsx:114-125) instead of
+  // firing the request and only finding out from the backend's rejection.
   const onTogglePublish = async (p) => {
     const next = !p.isPublic;
+    if (next && !isApproved) {
+      Alert.alert(
+        "Approval required",
+        "Your account must be approved before a listing can go public. Complete your KYC documents to get verified."
+      );
+      return;
+    }
     setProperties((prev) => prev.map((x) => (x.id === p.id ? { ...x, isPublic: next } : x)));
     try {
       await updateTravelAgentProperty(p.id, { isPublic: next });
@@ -274,9 +269,14 @@ export default function PropertiesListScreen({ navigation }) {
           renderItem={({ item }) => (
             <PropertyCard
               property={item}
+              // Tapping a card opens the read-only detail, which is where Edit
+              // now lives (the card's own actions are only Active / Publish /
+              // Delete). It used to drop straight into the 950-line form, so
+              // there was no way to just look at a property.
               onPress={() =>
-                navigation.navigate("TAAddEditProperty", { property: item })
+                navigation.navigate("TAPropertyDetail", { id: item.id, property: item })
               }
+              onEdit={() => navigation.navigate("TAAddEditProperty", { property: item })}
               onToggleActive={() => onToggleActive(item)}
               onTogglePublish={() => onTogglePublish(item)}
               onDelete={() => onDelete(item)}
@@ -394,7 +394,7 @@ function TypeChip({ label, icon, count, active, onPress, color }) {
   );
 }
 
-function PropertyCard({ property, onPress, onToggleActive, onTogglePublish, onDelete }) {
+function PropertyCard({ property, onPress, onEdit, onToggleActive, onTogglePublish, onDelete }) {
   const isActive = property.isActive !== false;
   const isPublic = !!property.isPublic;
   const priceLabel = INR(property.startingPrice);
@@ -595,7 +595,12 @@ function PropertyCard({ property, onPress, onToggleActive, onTogglePublish, onDe
             onPress={onTogglePublish} activeOpacity={0.85}
           >
             <Ionicons name={isPublic ? "globe" : "globe-outline"} size={14} color={isPublic ? C.purple : C.subText} />
-            <Text style={[styles.propActText, { color: isPublic ? C.purple : C.subText }]}>{isPublic ? "Public" : "Publish"}</Text>
+            {/* Label names the ACTION, not the state — matches the tours list. */}
+            <Text style={[styles.propActText, { color: isPublic ? C.purple : C.subText }]}>{isPublic ? "Unpublish" : "Publish"}</Text>
+          </TouchableOpacity>
+          {/* Icon-only so the two labelled toggles keep their width. */}
+          <TouchableOpacity style={styles.propActEdit} onPress={onEdit} activeOpacity={0.85}>
+            <Ionicons name="create-outline" size={14} color={C.emerald600} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.propActDel} onPress={onDelete} activeOpacity={0.85}>
             <Ionicons name="trash-outline" size={14} color={C.red} />
@@ -864,6 +869,11 @@ const styles = StyleSheet.create({
   propActBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 5, height: 33, borderRadius: 10, borderWidth: 1,
+  },
+  propActEdit: {
+    alignItems: "center", justifyContent: "center",
+    height: 33, paddingHorizontal: 14, borderRadius: 10,
+    backgroundColor: C.emerald50, borderWidth: 1, borderColor: `${C.emerald600}30`,
   },
   propActDel: {
     alignItems: "center", justifyContent: "center",

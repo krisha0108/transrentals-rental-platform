@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getTravelAgentAuth } from '@/lib/auth/travel-agent-auth';
+import { notifyTravelAgent } from '@/lib/notifications/travel-agent-notify';
 import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
@@ -106,6 +107,31 @@ export async function PATCH(
       where: { id },
       data: updateData,
     });
+
+    // Only on a real transition — this endpoint is also hit by ordinary field
+    // edits, and firing on every save would bury the inbox. Inbox record only:
+    // the agent made the change themselves, so no push.
+    if (updated.status !== existing.status) {
+      await notifyTravelAgent(auth.travelAgentId, {
+        type: 'BOOKING',
+        title: `Booking ${String(updated.status).replace(/_/g, ' ').toLowerCase()}`,
+        body: `${updated.bookingNumber} for ${updated.customerName} moved from ${existing.status} to ${updated.status}.`,
+        link: `/travel-agent/bookings/${updated.id}`,
+        metadata: { bookingId: updated.id, from: existing.status, to: updated.status },
+        push: false,
+      });
+    }
+
+    if (updated.paymentStatus !== existing.paymentStatus && updated.paymentStatus === 'PAID') {
+      await notifyTravelAgent(auth.travelAgentId, {
+        type: 'BOOKING',
+        title: 'Booking fully paid',
+        body: `${updated.bookingNumber} for ${updated.customerName} is marked paid.`,
+        link: `/travel-agent/bookings/${updated.id}`,
+        metadata: { bookingId: updated.id, paidAmount: updated.paidAmount },
+        push: false,
+      });
+    }
 
     return NextResponse.json({ booking: updated });
   } catch (error: any) {

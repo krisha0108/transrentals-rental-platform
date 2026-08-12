@@ -24,7 +24,9 @@ import {
   getBaseURL,
   updateCachedTravelAgent,
 } from "../../api/travelAgentClient";
-import { SC as C } from "../_shared/theme";
+import { SC as C, SHEET_RADIUS } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import SheetHandle from "../_shared/SheetHandle";
 
 
 const AGENCY_TYPES = [
@@ -58,27 +60,6 @@ const STATUS_META = {
 function initials(name) {
   if (!name) return "?";
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
-}
-
-// Slowly drifting/pulsing decorative orb for the hero — gentle ambient motion.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
 }
 
 export default function AgencyProfileScreen({ navigation }) {
@@ -212,6 +193,10 @@ export default function AgencyProfileScreen({ navigation }) {
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.headerGradSimple}
         >
+          {/* Same orbs as the loaded header — without them the bar sat flat
+              while the screen loaded and then popped into motion. */}
+          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
           <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12 }}>
             <View style={styles.headerRowSimple}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
@@ -239,6 +224,10 @@ export default function AgencyProfileScreen({ navigation }) {
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.headerGradSimple}
         >
+          {/* Same orbs as the loaded header — without them the bar sat flat
+              while the screen loaded and then popped into motion. */}
+          <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
           <SafeAreaView edges={["top"]} style={{ paddingHorizontal: 12 }}>
             <View style={styles.headerRowSimple}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
@@ -416,7 +405,7 @@ export default function AgencyProfileScreen({ navigation }) {
         </View>
       )}
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
@@ -823,6 +812,7 @@ function PickerModal({ visible, title, subtitle, options, selected, onClose, onS
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalSheet}>
+          <SheetHandle />
           {/* Gradient header */}
           <LinearGradient
             colors={["#0F2A22", "#16382E", "#1C6B52"]}
@@ -880,7 +870,9 @@ function PickerModal({ visible, title, subtitle, options, selected, onClose, onS
 /* ───────── Styles ───────── */
 const styles = StyleSheet.create({
   // Simple header (loading / error)
-  headerGradSimple: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
+  // overflow, like headerGrad — the orbs sit outside the bar's box and would
+  // otherwise spill over the content below it.
+  headerGradSimple: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20, overflow: "hidden" },
   headerRowSimple: { flexDirection: "row", alignItems: "center", paddingTop: 4, paddingBottom: 12 },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerTitleSimple: { fontFamily: DISPLAY, flex: 1, fontSize: 18, fontWeight: "bold", color: "#fff", textAlign: "left", marginLeft: 4 },
@@ -1058,10 +1050,10 @@ const styles = StyleSheet.create({
   publishBtnText: { fontFamily: DISPLAY, color: "#fff", fontWeight: "bold", fontSize: 13.5 },
 
   // Picker modal (gradient header)
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
   modalSheet: {
     backgroundColor: C.card,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     paddingBottom: Platform.OS === "ios" ? 24 : 12,
     overflow: "hidden", maxHeight: "85%",
   },

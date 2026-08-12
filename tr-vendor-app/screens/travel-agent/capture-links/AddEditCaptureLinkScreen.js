@@ -23,6 +23,7 @@ import {
   CAPTURE_TRIP_TYPES,
 } from "../../api/travelAgentClient";
 import { SC as C } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
 
 
 // Each trip-type tile gets an icon, color, and a customer-friendly label.
@@ -33,24 +34,6 @@ const TRIP_TYPE_META = {
   ACCOMMODATION: { icon: "bed",           color: C.amber,      label: "Stay only",    hint: "Hotel/villa booking" },
   MULTI_CITY:    { icon: "compass",       color: "#B0567A",    label: "Multi-city",   hint: "Multiple destinations" },
 };
-
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />;
-}
 
 export default function AddEditCaptureLinkScreen({ navigation, route }) {
   const existing = route?.params?.link || null;
@@ -163,7 +146,7 @@ export default function AddEditCaptureLinkScreen({ navigation, route }) {
         </SafeAreaView>
       </LinearGradient>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
           {/* ===== How-it-works intro card ===== */}

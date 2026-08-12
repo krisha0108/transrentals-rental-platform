@@ -10,6 +10,7 @@ import {
   deleteTravelAgentDocument,
   generateSecureFilename,
   initializeStorage,
+  generateFileAccessToken,
 } from '@/lib/storage/private-storage';
 
 export const dynamic = 'force-dynamic';
@@ -46,7 +47,22 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ documents: docs });
+    // documentUrl points at /api/private-files/..., which only answers to a
+    // NextAuth session cookie or a signed ?token=. The mobile app authenticates
+    // with a Bearer header, and neither an <Image> fetch nor handing the URL to
+    // the system browser carries that header — so the file came back 401 (and
+    // before that, the raw relative path could not be opened at all).
+    //
+    // Hand out a short-lived signed URL the client can use as-is. The route
+    // already validates these tokens and checks they match this exact file.
+    const withViewUrl = docs.map((d: any) => {
+      if (!d.documentUrl) return { ...d, viewUrl: null };
+      const filename = String(d.documentUrl).split('/').pop() || '';
+      const token = generateFileAccessToken(auth.travelAgentId!, filename, 60);
+      return { ...d, viewUrl: `${d.documentUrl}?token=${encodeURIComponent(token)}` };
+    });
+
+    return NextResponse.json({ documents: withViewUrl });
   } catch (error: any) {
     logger.error('List travel agent documents error', error);
     return NextResponse.json(

@@ -8,6 +8,7 @@ import {
   View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
   RefreshControl, ActivityIndicator, StatusBar, Modal,
   Animated, Easing,
+  KeyboardAvoidingView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -19,7 +20,9 @@ import {
 } from "../../api/travelAgentClient";
 import RemoteImage from "../_shared/RemoteImage";
 import { DISPLAY } from "../_shared/typography";
-import { SC as C, G, TONES } from "../_shared/theme";
+import { SC as C, G, TONES, SHEET_RADIUS } from "../_shared/theme";
+import AnimatedOrb from "../_shared/AnimatedOrb";
+import SheetHandle from "../_shared/SheetHandle";
 
 // Warm "Elevate" palette — same keys, repainted to match the rest of the
 // Travel Agent module. The old set was cool slate (#F6F8FB ground).
@@ -87,27 +90,6 @@ function previewText(conv) {
     } catch {}
   }
   return raw;
-}
-
-// Drifting decorative bubble — same motion as the Feed / Profile / Chat headers.
-function AnimatedOrb({ style, delay = 0, dx = 14, dy = 12 }) {
-  const a = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 5200, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  return (
-    <Animated.View pointerEvents="none" style={[style, { transform: [{ translateX }, { translateY }, { scale }] }]} />
-  );
 }
 
 function shade(hex, pct) {
@@ -420,8 +402,9 @@ export default function SocialMessagesListScreen({ navigation }) {
 
       {/* ===== New message — directory search ===== */}
       <Modal visible={showNewChat} animationType="slide" transparent onRequestClose={() => setShowNewChat(false)}>
-        <View style={styles.ncOverlay}>
+        <KeyboardAvoidingView behavior="padding" style={styles.ncOverlay}>
           <View style={styles.ncSheet}>
+            <SheetHandle />
             <LinearGradient
               colors={HEADER_GRAD}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -508,7 +491,7 @@ export default function SocialMessagesListScreen({ navigation }) {
               }
             />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -633,8 +616,8 @@ const styles = StyleSheet.create({
   composeBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", marginLeft: 8 },
 
   // New-message directory modal
-  ncOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  ncSheet: { backgroundColor: C.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22, overflow: "hidden", height: "82%" },
+  ncOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: "flex-end" },
+  ncSheet: { backgroundColor: C.bg, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS, overflow: "hidden", height: "82%" },
   ncHeader: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 16 },
   ncHeaderRow: { flexDirection: "row", alignItems: "center" },
   ncTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: "bold", color: "#fff" },

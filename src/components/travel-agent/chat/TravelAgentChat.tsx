@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Loader2, Send, MessageSquare, AlertCircle } from 'lucide-react';
+import { Loader2, Send, MessageSquare, AlertCircle, Check, CheckCheck } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -271,12 +271,25 @@ export default function TravelAgentChat(props: TravelAgentChatProps) {
                     }`}
                   >
                     <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                    <p className={`text-[10px] mt-1 ${isMe ? 'text-emerald-200' : 'text-gray-300'}`}>
+                    <p
+                      className={`text-[10px] mt-1 flex items-center gap-1 ${
+                        isMe ? 'text-emerald-200 justify-end' : 'text-gray-300'
+                      }`}
+                    >
                       {new Date(msg.createdAt).toLocaleTimeString('en-IN', {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
                       {msg.status === 'SENDING' && ' · sending…'}
+                      {/* Read receipt — WhatsApp-style ticks, shown only on my
+                          own sent messages (mirrors the app's Bubble component). */}
+                      {isMe && msg.status !== 'SENDING' && (
+                        msg.status === 'READ' ? (
+                          <CheckCheck className="w-3 h-3 text-sky-300" aria-label="Read" />
+                        ) : (
+                          <Check className="w-3 h-3 text-emerald-200" aria-label="Sent" />
+                        )
+                      )}
                     </p>
                   </div>
                 </div>

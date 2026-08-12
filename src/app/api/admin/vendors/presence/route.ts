@@ -6,7 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
-import { getPresenceStatus } from '@/lib/presence';
+import { aggregateVendorPresence, type AggregatedPresence } from '@/lib/presence';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,12 +18,16 @@ export async function GET(request: NextRequest) {
     }
 
     const rows = await prisma.vendor_presence.findMany();
-    const presence: Record<string, { status: string; lastSeenAt: string | null }> = {};
+    const byVendor = new Map<string, typeof rows>();
     for (const row of rows) {
-      presence[row.vendorId] = {
-        status: getPresenceStatus(row.lastPingAt, row.isIdle),
-        lastSeenAt: row.lastPingAt.toISOString(),
-      };
+      const bucket = byVendor.get(row.vendorId);
+      if (bucket) bucket.push(row);
+      else byVendor.set(row.vendorId, [row]);
+    }
+
+    const presence: Record<string, AggregatedPresence> = {};
+    for (const [vendorId, vendorRows] of byVendor) {
+      presence[vendorId] = aggregateVendorPresence(vendorRows);
     }
 
     return NextResponse.json({ presence });

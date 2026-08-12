@@ -261,6 +261,8 @@ export default function BankDetailsListScreen({ navigation }) {
               account={item}
               busy={busyId === item.id}
               onSetPrimary={() => onSetPrimary(item)}
+              // Same screen as Add — passing the row puts it in edit mode.
+              onEdit={() => navigation.navigate("TAAddBankAccount", { account: item, hasPrimary })}
               onDelete={() => onDelete(item)}
               onCopyAcc={() => onCopyAcc(item)}
               onCopyIfsc={() => onCopyIfsc(item)}
@@ -327,7 +329,7 @@ export default function BankDetailsListScreen({ navigation }) {
 
 /* ───────── Sub-components ───────── */
 
-function BankCard({ account, busy, onSetPrimary, onDelete, onCopyAcc, onCopyIfsc }) {
+function BankCard({ account, busy, onSetPrimary, onEdit, onDelete, onCopyAcc, onCopyIfsc }) {
   const accountType = (account.accountType || "SAVINGS").replace("_", " ");
   const isPrimary = !!account.isPrimary;
 
@@ -439,7 +441,16 @@ function BankCard({ account, busy, onSetPrimary, onDelete, onCopyAcc, onCopyIfsc
           </TouchableOpacity>
         )}
         <TouchableOpacity
-          style={[styles.removeBtn, account.isPrimary && { flex: 1 }]}
+          style={styles.editBtn}
+          onPress={onEdit}
+          disabled={busy}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="create-outline" size={rs(14)} color={C.emeraldDeep} />
+          <Text style={[styles.actionBtnText, { color: C.emeraldDeep }]}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.removeBtn}
           onPress={onDelete}
           disabled={busy}
           activeOpacity={0.85}
@@ -681,6 +692,11 @@ const styles = StyleSheet.create({
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: rs(6), paddingVertical: rs(11), borderRadius: rs(12),
     backgroundColor: C.tintGold, borderWidth: 1, borderColor: alpha(C.gold, 0.35),
+  },
+  editBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: rs(6), paddingVertical: rs(11), borderRadius: rs(12),
+    backgroundColor: C.tintEmerald, borderWidth: 1, borderColor: alpha(C.emeraldDeep, 0.25),
   },
   removeBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
