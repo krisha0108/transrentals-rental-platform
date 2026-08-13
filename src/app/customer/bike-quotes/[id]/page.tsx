@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import { formatBookingDuration } from '@/lib/utils/duration';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 import QuotePaymentSafetyNotice from '@/components/customer/QuotePaymentSafetyNotice';
 
@@ -309,7 +310,10 @@ export default function CustomerBikeQuoteDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
+    // pt-16 clears the fixed CustomerHeader
+    <div className="min-h-screen bg-gray-50 pb-32 pt-16">
+      <CustomerHeader showBackButton />
+
       {/* Header */}
       <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-6">
         <div className="container mx-auto px-4">

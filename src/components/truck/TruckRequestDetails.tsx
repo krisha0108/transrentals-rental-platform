@@ -33,7 +33,8 @@ import {
 
 interface TruckRequestDetailsProps {
   data: TruckDetailFields;
-  variant?: 'default' | 'compact';
+  /** 'rows' renders a flat spec sheet for narrow side rails. */
+  variant?: 'default' | 'compact' | 'rows';
   hideVehicle?: boolean;
 }
 
@@ -51,12 +52,17 @@ interface SectionDef {
   fields: FieldDef[];
 }
 
+// One brand treatment for every section — the five separate hues read as a
+// rainbow next to the rest of the customer area. Section identity comes from
+// the icon and the label, not from a different background colour each time.
+const BRAND_TINT = { bg: 'bg-[#FCFDFC]', iconBg: 'bg-[#E9FAF2]', iconText: 'text-[#056B3E]', ring: 'ring-[#C8F1DF]' };
+
 const TINTS: Record<string, { bg: string; iconBg: string; iconText: string; ring: string }> = {
-  emerald: { bg: 'bg-emerald-50/40', iconBg: 'bg-emerald-100', iconText: 'text-emerald-700', ring: 'ring-emerald-100' },
-  sky: { bg: 'bg-sky-50/40', iconBg: 'bg-sky-100', iconText: 'text-sky-700', ring: 'ring-sky-100' },
-  amber: { bg: 'bg-amber-50/40', iconBg: 'bg-amber-100', iconText: 'text-amber-700', ring: 'ring-amber-100' },
-  violet: { bg: 'bg-violet-50/40', iconBg: 'bg-violet-100', iconText: 'text-violet-700', ring: 'ring-violet-100' },
-  rose: { bg: 'bg-rose-50/40', iconBg: 'bg-rose-100', iconText: 'text-rose-700', ring: 'ring-rose-100' },
+  emerald: BRAND_TINT,
+  sky: BRAND_TINT,
+  amber: BRAND_TINT,
+  violet: BRAND_TINT,
+  rose: BRAND_TINT,
 };
 
 const FieldRow = ({ icon: Icon, label, value, highlight }: FieldDef) => {
@@ -64,17 +70,17 @@ const FieldRow = ({ icon: Icon, label, value, highlight }: FieldDef) => {
   return (
     <div
       className={`flex items-start gap-2.5 ${
-        highlight ? 'bg-white border border-emerald-200 shadow-sm' : 'bg-white/70'
-      } rounded-xl p-2.5 transition-shadow hover:shadow-sm`}
+        highlight ? 'bg-white border border-[#C8F1DF]' : 'bg-white border border-gray-100'
+      } rounded-xl p-2.5 transition hover:border-[#96E4C2]`}
     >
       {Icon && (
-        <div className="shrink-0 w-8 h-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center mt-0.5">
+        <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-gray-100 bg-[#F4F8F6] text-gray-500">
           <Icon className="w-4 h-4" />
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] uppercase tracking-widest font-bold text-gray-500">{label}</p>
-        <p className={`text-sm ${highlight ? 'font-extrabold text-emerald-700' : 'font-semibold text-gray-900'} mt-0.5 break-words`}>
+        <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-gray-400">{label}</p>
+        <p className={`mt-0.5 break-words text-[13px] ${highlight ? 'font-extrabold text-[#056B3E]' : 'font-bold text-gray-900'}`}>
           {value}
         </p>
       </div>
@@ -87,12 +93,12 @@ const SectionCard = ({ title, icon: Icon, tint, fields }: SectionDef) => {
   if (!visible.length) return null;
   const t = TINTS[tint];
   return (
-    <div className={`rounded-2xl border border-gray-200 ${t.bg} p-4 sm:p-5`}>
+    <div className={`rounded-2xl border border-gray-100 ${t.bg} p-4 sm:p-5`}>
       <div className="flex items-center gap-2 mb-3">
         <div className={`w-8 h-8 rounded-lg ${t.iconBg} ${t.iconText} flex items-center justify-center ring-2 ${t.ring}`}>
           <Icon className="w-4 h-4" />
         </div>
-        <h4 className="text-sm font-extrabold text-gray-900 tracking-tight">{title}</h4>
+        <h4 className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gray-400">{title}</h4>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
         {visible.map((f, i) => (
@@ -106,6 +112,7 @@ const SectionCard = ({ title, icon: Icon, tint, fields }: SectionDef) => {
 export default function TruckRequestDetails({
   data,
   hideVehicle,
+  variant,
 }: TruckRequestDetailsProps) {
   const bodyTypeLabel = formatTruckBodyType(data.truckBodyType);
   const tripDirLabel = formatTripDirection(data.tripDirection);
@@ -149,7 +156,7 @@ export default function TruckRequestDetails({
               Floor {data.pickupFloor}{' '}
               <span
                 className={`ml-1 inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                  data.hasPickupLift ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                  data.hasPickupLift ? 'bg-[#E9FAF2] text-[#056B3E]' : 'bg-red-50 text-red-600'
                 }`}
               >
                 {data.hasPickupLift ? '✓ Lift' : '✗ No lift'}
@@ -167,7 +174,7 @@ export default function TruckRequestDetails({
               Floor {data.dropFloor}{' '}
               <span
                 className={`ml-1 inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                  data.hasDropLift ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                  data.hasDropLift ? 'bg-[#E9FAF2] text-[#056B3E]' : 'bg-red-50 text-red-600'
                 }`}
               >
                 {data.hasDropLift ? '✓ Lift' : '✗ No lift'}
@@ -219,6 +226,67 @@ export default function TruckRequestDetails({
 
   if (allEmpty) return null;
 
+  // Flat spec-sheet layout for narrow side rails. Same fields, same filtering —
+  // only the presentation differs, so callers that don't ask for it are
+  // unaffected.
+  if (variant === 'rows') {
+    const allFields: FieldDef[] = [
+      ...tripFields,
+      ...cargoFields,
+      ...accessFields,
+      ...servicesFields,
+      ...receiverFields,
+    ];
+    return (
+      <div className="flex flex-col gap-3">
+        {allFields.length > 0 && (
+          <div className="flex flex-col gap-px overflow-hidden rounded-xl bg-gray-50">
+            {allFields.map((f, i) => (
+              <div key={i} className="flex items-start justify-between gap-3 bg-white px-3.5 py-2.5">
+                <span className="flex-none text-xs text-gray-500">{f.label}</span>
+                <span className={`break-words text-right text-[12.5px] font-bold ${f.highlight ? 'text-[#056B3E]' : 'text-gray-900'}`}>
+                  {f.value}
+                </span>
+              </div>
+            ))}
+            {/* Lift state rides along inside the floor rows when a floor is
+                known; these standalone rows only fill the gap when it isn't. */}
+            {(data.pickupFloor === null || data.pickupFloor === undefined) && (
+              <div className="flex items-start justify-between gap-3 bg-white px-3.5 py-2.5">
+                <span className="flex-none text-xs text-gray-500">Pickup Lift</span>
+                <span className={`text-right text-[12.5px] font-bold ${data.hasPickupLift ? 'text-[#056B3E]' : 'text-gray-400'}`}>
+                  {data.hasPickupLift ? 'Yes' : 'No'}
+                </span>
+              </div>
+            )}
+            {(data.dropFloor === null || data.dropFloor === undefined) && (
+              <div className="flex items-start justify-between gap-3 bg-white px-3.5 py-2.5">
+                <span className="flex-none text-xs text-gray-500">Drop Lift</span>
+                <span className={`text-right text-[12.5px] font-bold ${data.hasDropLift ? 'text-[#056B3E]' : 'text-gray-400'}`}>
+                  {data.hasDropLift ? 'Yes' : 'No'}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {hasGoodsDescription && (
+          <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-blue-700">Material Details</p>
+            <p className="mt-1 whitespace-pre-wrap text-[12.5px] leading-relaxed text-blue-900">{data.goodsDescription}</p>
+          </div>
+        )}
+
+        {hasRequirements && (
+          <div className="rounded-xl border border-gray-100 bg-[#FCFDFC] px-4 py-3">
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-gray-400">Notes</p>
+            <p className="mt-1 whitespace-pre-wrap text-[12.5px] leading-relaxed text-gray-700">{data.requirements}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {tripFields.length > 0 && (
@@ -226,19 +294,19 @@ export default function TruckRequestDetails({
       )}
 
       {(cargoFields.length > 0 || hasGoodsDescription) && (
-        <div className="rounded-2xl border border-gray-200 bg-amber-50/40 p-4 sm:p-5">
+        <div className="rounded-2xl border border-gray-100 bg-[#FCFDFC] p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center ring-2 ring-amber-100">
+            <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#E9FAF2] text-[#056B3E] ring-2 ring-[#C8F1DF]">
               <PackageIcon className="w-4 h-4" />
             </div>
-            <h4 className="text-sm font-extrabold text-gray-900 tracking-tight">Cargo</h4>
+            <h4 className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gray-400">Cargo</h4>
           </div>
           {hasGoodsDescription && (
-            <div className="bg-white rounded-xl border border-amber-200 p-3 mb-3">
-              <p className="text-[10px] uppercase tracking-widest font-bold text-amber-700 mb-1 inline-flex items-center gap-1">
+            <div className="mb-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
+              <p className="mb-1 inline-flex items-center gap-1 text-[9.5px] font-bold uppercase tracking-[0.1em] text-blue-700">
                 <StickyNote className="w-3 h-3" /> Material Details
               </p>
-              <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">{data.goodsDescription}</p>
+              <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-blue-900">{data.goodsDescription}</p>
             </div>
           )}
           {cargoFields.length > 0 && (
@@ -262,15 +330,15 @@ export default function TruckRequestDetails({
       )}
 
       {hasRequirements && (
-        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
+        <div className="rounded-2xl border border-gray-100 bg-[#FCFDFC] p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-gray-200 text-gray-700 flex items-center justify-center ring-2 ring-gray-100">
+            <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#E9FAF2] text-[#056B3E] ring-2 ring-[#C8F1DF]">
               <StickyNote className="w-4 h-4" />
             </div>
-            <h4 className="text-sm font-extrabold text-gray-900 tracking-tight">Notes</h4>
+            <h4 className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gray-400">Notes</h4>
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-3">
-            <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{data.requirements}</p>
+          <div className="rounded-xl border border-gray-100 bg-white p-3">
+            <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-gray-700">{data.requirements}</p>
           </div>
         </div>
       )}

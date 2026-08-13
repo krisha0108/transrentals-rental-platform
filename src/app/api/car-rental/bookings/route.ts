@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
       chargeableKm,
       kmCharges,
       driverBatta,
+      nightCharges,
       gstAmount,
       platformFee,
       grandTotal,
@@ -372,6 +373,9 @@ export async function POST(request: NextRequest) {
         chargeableKm:        chargeableKm ? parseInt(chargeableKm) : null,
         kmCharges:           kmCharges || 0,
         driverBatta:         driverBatta || 0,
+        // Pricing already folds the night charge into grandTotal; store it too so
+        // the fare breakdown adds up instead of showing a silent gap.
+        nightCharges:        nightCharges || 0,
         gstAmount,
         platformFee:         platformFee || 99,
         grandTotal,

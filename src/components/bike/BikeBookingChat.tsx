@@ -221,7 +221,7 @@ export function BikeBookingChat({
       {/* Chat Button */}
       <Button
         onClick={openChat}
-        className="flex-1 flex items-center justify-center gap-2 bg-purple-600 text-white py-3 rounded-xl font-medium hover:bg-purple-700 transition"
+        className="flex-1 flex items-center justify-center gap-2 bg-[#09B368] text-white py-3 rounded-xl font-medium hover:bg-[#078F53] transition"
       >
         <MessageCircle className="w-5 h-5" />
         Chat with Vendor
@@ -232,14 +232,14 @@ export function BikeBookingChat({
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
           <div className="bg-white w-full max-w-lg h-[80vh] sm:h-[600px] sm:rounded-2xl flex flex-col shadow-2xl">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-purple-600 text-white sm:rounded-t-2xl">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-[#09B368] text-white sm:rounded-t-2xl">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="font-semibold">{vendorName}</h3>
-                  <p className="text-xs text-purple-200">Vendor</p>
+                  <p className="text-xs text-[#C8F1DF]">Vendor</p>
                 </div>
               </div>
               <button
@@ -254,7 +254,7 @@ export function BikeBookingChat({
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
               {isLoading ? (
                 <div className="flex items-center justify-center h-full">
-                  <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                  <Loader2 className="w-8 h-8 animate-spin text-[#09B368]" />
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-500">
@@ -284,7 +284,7 @@ export function BikeBookingChat({
                           className={cn(
                             'max-w-[80%] rounded-2xl px-4 py-2',
                             msg.sender_type === 'customer'
-                              ? 'bg-purple-600 text-white rounded-br-md'
+                              ? 'bg-[#09B368] text-white rounded-br-md'
                               : 'bg-white text-gray-900 shadow-sm rounded-bl-md'
                           )}
                         >
@@ -292,7 +292,7 @@ export function BikeBookingChat({
                           <div
                             className={cn(
                               'flex items-center justify-end gap-1 mt-1',
-                              msg.sender_type === 'customer' ? 'text-purple-200' : 'text-gray-400'
+                              msg.sender_type === 'customer' ? 'text-[#C8F1DF]' : 'text-gray-400'
                             )}
                           >
                             <span className="text-xs">{formatTime(msg.created_at)}</span>
@@ -330,7 +330,7 @@ export function BikeBookingChat({
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type a message..."
-                  className="flex-1 px-4 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="flex-1 px-4 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-[#09B368]"
                   disabled={isSending}
                 />
                 <button
@@ -339,7 +339,7 @@ export function BikeBookingChat({
                   className={cn(
                     'w-12 h-12 rounded-full flex items-center justify-center transition',
                     newMessage.trim() && !isSending
-                      ? 'bg-purple-600 text-white hover:bg-purple-700'
+                      ? 'bg-[#09B368] text-white hover:bg-[#078F53]'
                       : 'bg-gray-200 text-gray-400'
                   )}
                 >
