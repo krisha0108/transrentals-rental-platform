@@ -6,8 +6,15 @@ import {
   CONTACT_ADDRESS_LINK,
   WHATSAPP_LINK,
 } from '@/lib/contact';
-import { Phone, Mail, MapPin, MessageCircle, Clock } from 'lucide-react';
+import { Phone, Mail, MapPin, MessageCircle, Clock, Zap, ShieldCheck, Globe2, HelpCircle, ArrowRight } from 'lucide-react';
 import { WebPageSchema } from '@/components/seo/schemas';
+
+const QUICK_INFO = [
+  { icon: Zap, label: 'Quick Response' },
+  { icon: Clock, label: '24/7 Support' },
+  { icon: ShieldCheck, label: 'Trusted by 10K+ Customers' },
+  { icon: Globe2, label: '150+ Cities Coverage' },
+];
 
 export const metadata: Metadata = {
   title: 'Contact Us - Get in Touch | TransRentals',
@@ -81,33 +88,59 @@ export default function ContactPage() {
       <Header />
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 text-white py-16 md:py-24">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">Contact Us</h1>
-            <p className="text-xl md:text-2xl opacity-90">
-              We're here to help! Reach out to us anytime
+      <section className="relative bg-gradient-to-b from-sky-50 via-white to-white overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div
+            className="absolute inset-0 bg-no-repeat bg-right bg-cover"
+            style={{ backgroundImage: "url('/images/sections/contact-hero-bg.png')" }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/70 to-transparent md:via-white/30" />
+          <div className="absolute -bottom-24 -left-24 w-[420px] h-[420px] bg-emerald-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative container-custom pt-24 md:pt-28 pb-14">
+          <div className="max-w-2xl">
+            <h1 className="text-4xl md:text-6xl font-black text-gray-900 mb-4 leading-tight tracking-tight">
+              CONTACT US
+            </h1>
+            <p className="text-xl md:text-2xl font-bold text-gray-900 mb-4">
+              We&apos;re here to <span className="text-emerald-600">help!</span> Reach out to us anytime
             </p>
+            <p className="text-gray-500 mb-8 max-w-md">
+              Have questions about our vehicle rental services? Our team is ready to assist you.
+            </p>
+
+            {/* Quick info badges */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl">
+              {QUICK_INFO.map(({ icon: Icon, label }) => (
+                <div key={label} className="bg-white/90 backdrop-blur-sm border border-gray-100 shadow-sm rounded-xl px-3 py-4 text-center">
+                  <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+                    <Icon className="w-4.5 h-4.5 text-emerald-600" />
+                  </div>
+                  <span className="text-xs font-bold text-gray-800 leading-tight">{label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* Contact Form + Methods */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-gray-50">
         <div className="container-custom">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             {/* Left: Contact Form (50%) */}
             <ContactForm />
 
             {/* Right: Contact Methods (50%) */}
-            <div className="space-y-6">
+            <div className="space-y-5">
               {contactMethods.map((method, index) => (
                 <div
                   key={index}
-                  className="flex items-start gap-4 bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow"
+                  className="flex items-start gap-4 bg-white rounded-2xl border-l-4 border-emerald-500 shadow-sm p-6 hover:shadow-md transition-shadow"
                 >
-                  <div className="flex-shrink-0 inline-flex items-center justify-center w-14 h-14 bg-primary/10 rounded-full">
-                    <method.icon className="w-7 h-7 text-primary" />
+                  <div className="flex-shrink-0 inline-flex items-center justify-center w-14 h-14 bg-emerald-50 rounded-full">
+                    <method.icon className="w-7 h-7 text-emerald-600" />
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 mb-1">
@@ -116,35 +149,41 @@ export default function ContactPage() {
                     {method.link ? (
                       <a
                         href={method.link}
-                        className="text-primary font-semibold hover:underline block mb-1"
+                        className="text-emerald-700 font-semibold hover:underline block mb-1"
                       >
                         {method.value}
                       </a>
                     ) : (
-                      <p className="text-primary font-semibold mb-1">{method.value}</p>
+                      <p className="text-emerald-700 font-semibold mb-1">{method.value}</p>
                     )}
-                    <p className="text-sm text-gray-600">{method.description}</p>
+                    <p className="text-sm text-gray-500">{method.description}</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* FAQ Link */}
-      <section className="py-16 bg-white">
-        <div className="container-custom text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Have Questions?</h2>
-          <p className="text-gray-600 mb-6">
-            Check out our frequently asked questions for quick answers
-          </p>
-          <a
-            href="/faq"
-            className="inline-block bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
-          >
-            View FAQ
-          </a>
+          {/* FAQ CTA */}
+          <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 md:p-7 flex flex-col md:flex-row items-center justify-between gap-5">
+            <div className="flex items-center gap-4 text-center md:text-left">
+              <div className="hidden sm:flex w-14 h-14 rounded-full bg-emerald-50 items-center justify-center shrink-0">
+                <HelpCircle className="w-7 h-7 text-emerald-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Have Questions?</h2>
+                <p className="text-gray-500 text-sm">
+                  Check out our frequently asked questions for quick answers
+                </p>
+              </div>
+            </div>
+            <a
+              href="/faq"
+              className="inline-flex items-center gap-2 border-2 border-emerald-600 text-emerald-700 px-6 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shrink-0"
+            >
+              View FAQ
+              <ArrowRight className="w-4 h-4" />
+            </a>
+          </div>
         </div>
       </section>
     </>

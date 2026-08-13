@@ -2,6 +2,7 @@
 
 import { FormEvent, useState, useRef, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { User, Phone as PhoneIcon, Mail as MailIcon, Tag, PenLine, Send } from 'lucide-react';
 import { trackFormSubmission } from '@/components/analytics/VisitorTracker';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import ContactSuccessModal from './ContactSuccessModal';
@@ -14,6 +15,7 @@ type ContactFormField = {
   required?: boolean;
   rows?: number;
   gridClass?: string;
+  icon?: typeof User;
 };
 
 const contactFormFields: ContactFormField[] = [
@@ -21,25 +23,28 @@ const contactFormFields: ContactFormField[] = [
     name: 'name',
     label: 'Full Name',
     type: 'text',
-    placeholder: 'Enter your name',
+    placeholder: 'Enter your full name',
     required: true,
     gridClass: 'md:col-span-1',
+    icon: User,
   },
   {
     name: 'phone',
     label: 'Phone Number',
     type: 'tel',
-    placeholder: 'Enter your phone',
+    placeholder: 'Enter your phone number',
     required: true,
     gridClass: 'md:col-span-1',
+    icon: PhoneIcon,
   },
   {
     name: 'email',
     label: 'Email Address',
     type: 'email',
-    placeholder: 'Enter your email',
+    placeholder: 'Enter your email address',
     required: true,
     gridClass: 'md:col-span-2',
+    icon: MailIcon,
   },
   {
     name: 'subject',
@@ -48,15 +53,17 @@ const contactFormFields: ContactFormField[] = [
     placeholder: "What's this about?",
     required: true,
     gridClass: 'md:col-span-2',
+    icon: Tag,
   },
   {
     name: 'message',
     label: 'Message',
     type: 'textarea',
-    placeholder: 'Tell us more...',
+    placeholder: 'Tell us more about your query...',
     required: true,
     rows: 5,
     gridClass: 'md:col-span-2',
+    icon: PenLine,
   },
 ];
 
@@ -178,59 +185,74 @@ export function ContactForm() {
 
   return (
     <div className="w-full">
-      <div className="bg-gray-50 rounded-lg p-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          Send Us a Message
-        </h2>
-        <form className="space-y-6" onSubmit={handleContactFormSubmit}>
-          <div className="grid md:grid-cols-2 gap-6">
-            {contactFormFields.map((field) => (
-              <div
-                key={field.name}
-                className={`${field.gridClass ?? 'md:col-span-1'} space-y-2`}
-              >
-                <label
-                  htmlFor={field.name}
-                  className="block text-sm font-medium text-gray-700"
+      <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+            <Send className="w-5 h-5 text-emerald-600" />
+          </div>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900">
+            Send Us a Message
+          </h2>
+        </div>
+        <form className="space-y-5" onSubmit={handleContactFormSubmit}>
+          <div className="grid md:grid-cols-2 gap-5">
+            {contactFormFields.map((field) => {
+              const Icon = field.icon;
+              return (
+                <div
+                  key={field.name}
+                  className={`${field.gridClass ?? 'md:col-span-1'} space-y-1.5`}
                 >
-                  {field.label}
-                </label>
-                {field.type === 'textarea' ? (
-                  <textarea
-                    id={field.name}
-                    name={field.name}
-                    rows={field.rows ?? 4}
-                    value={formData[field.name]}
-                    onChange={(event) =>
-                      handleFormChange(field.name, event.target.value)
-                    }
-                    placeholder={field.placeholder}
-                    required={field.required}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
-                  />
-                ) : (
-                  <input
-                    id={field.name}
-                    name={field.name}
-                    type={field.type ?? 'text'}
-                    value={formData[field.name]}
-                    onChange={(event) =>
-                      handleFormChange(field.name, event.target.value)
-                    }
-                    placeholder={field.placeholder}
-                    required={field.required}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                  />
-                )}
-              </div>
-            ))}
+                  <label
+                    htmlFor={field.name}
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    {field.label}
+                  </label>
+                  {field.type === 'textarea' ? (
+                    <div className="relative">
+                      {Icon && <Icon className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" />}
+                      <textarea
+                        id={field.name}
+                        name={field.name}
+                        rows={field.rows ?? 4}
+                        value={formData[field.name]}
+                        onChange={(event) =>
+                          handleFormChange(field.name, event.target.value)
+                        }
+                        placeholder={field.placeholder}
+                        required={field.required}
+                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white resize-none text-sm transition-colors"
+                      />
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />}
+                      <input
+                        id={field.name}
+                        name={field.name}
+                        type={field.type ?? 'text'}
+                        value={formData[field.name]}
+                        onChange={(event) =>
+                          handleFormChange(field.name, event.target.value)
+                        }
+                        placeholder={field.placeholder}
+                        required={field.required}
+                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white text-sm transition-colors"
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <button
             type="submit"
             disabled={formStatus === 'submitting'}
-            className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-70"
+            className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white py-3.5 rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-70"
           >
+            <Send className="w-4 h-4" />
             {formStatus === 'submitting' ? 'Sending...' : 'Send Message'}
           </button>
           {formMessage && (
