@@ -222,6 +222,7 @@ export async function POST(request: NextRequest) {
       fuelCharges,
       deliveryCharges,
       pickupCharges,
+      installationCharges,
       securityDeposit,
       gstAmount,
       totalAmount: providedTotal,
@@ -298,6 +299,7 @@ export async function POST(request: NextRequest) {
       (fuelCharges || 0) +
       (deliveryCharges || 0) +
       (pickupCharges || 0) +
+      (installationCharges || 0) +
       (gstAmount || 0);
 
     const totalAmount = providedTotal || calculatedTotal;
@@ -399,8 +401,12 @@ export async function POST(request: NextRequest) {
       fuelCharges: fuelCharges || 0,
       deliveryCharges: deliveryCharges || 0,
       pickupCharges: pickupCharges || 0,
+      installationCharges: installationCharges || 0,
       securityDeposit: securityDeposit || 0,
       gstAmount: gstAmount || 0,
+      // Rental before add-ons. It was never written, so the stored breakdown
+      // could not be reconciled against totalAmount.
+      baseAmount: rentalAmount,
       totalAmount,
       advanceAmount: customAdvanceAmount > 0
         ? Math.round(customAdvanceAmount)
