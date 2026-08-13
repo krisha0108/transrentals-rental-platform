@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Building2,
@@ -31,10 +31,110 @@ import {
   Gem,
   Package,
   Wrench,
+  PartyPopper,
+  CheckCircle2,
+  X,
+  Wrench as WrenchIcon,
 } from 'lucide-react';
 import VendorOnboarding from '@/components/vendor/onboarding/VendorOnboarding';
 import VendorLiveLocationCard from '@/components/vendor/VendorLiveLocationCard';
 import BackrCard from '@/components/backr/BackrCard';
+
+// ── Post-registration welcome popup — explains what's already done
+// (location request, submitted automatically at signup) and what's left
+// (documents + services) to get fully verified. ──
+function VendorWelcomeModal({
+  businessName,
+  onClose,
+}: {
+  businessName: string;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-[fadeUp_0.35s_ease-out]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <style jsx>{`
+          @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
+        `}</style>
+
+        {/* Header */}
+        <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 px-6 pt-7 pb-9 text-white overflow-hidden">
+          <div className="absolute -top-6 -right-6 w-28 h-28 bg-white/10 rounded-full blur-2xl" />
+          <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="relative w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center mb-3 backdrop-blur-sm">
+            <PartyPopper className="w-7 h-7 text-white" />
+          </div>
+          <h2 className="relative text-xl font-extrabold leading-tight">Welcome aboard, {businessName}! 🎉</h2>
+          <p className="relative text-sm text-blue-100 mt-1.5">Your vendor account is live. Just 2 quick steps left.</p>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 pt-5 pb-6">
+          {/* Already done */}
+          <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3 mb-4">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-emerald-900">Your service location request is already in</p>
+              <p className="text-xs text-emerald-700 mt-0.5">No extra step needed — our team will review it along with your account.</p>
+            </div>
+          </div>
+
+          {/* What's left */}
+          <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2.5">To get fully verified</p>
+          <div className="space-y-2.5 mb-5">
+            <div className="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-3">
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                <FileText className="w-4 h-4 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Upload documents</p>
+                <p className="text-xs text-gray-500">Business license &amp; vehicle RC</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-3">
+              <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center shrink-0">
+                <WrenchIcon className="w-4 h-4 text-violet-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Request your services</p>
+                <p className="text-xs text-gray-500">Car, bike, bus, truck &amp; more</p>
+              </div>
+            </div>
+          </div>
+
+          <Link
+            href="/vendor/documents"
+            onClick={onClose}
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-3.5 rounded-xl transition-colors shadow-md shadow-blue-200"
+          >
+            Start with Documents <ArrowRight className="w-4 h-4" />
+          </Link>
+          <button
+            onClick={onClose}
+            className="w-full text-center text-xs text-gray-400 hover:text-gray-600 mt-3 transition-colors"
+          >
+            I'll do this later
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Fade-up on scroll/mount ──
 function AnimateIn({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -251,6 +351,7 @@ function DashboardSkeleton() {
 export default function VendorDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [profile, setProfile] = useState<VendorProfile | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -259,6 +360,15 @@ export default function VendorDashboard() {
   const [timeFilter, setTimeFilter] = useState<'today'|'week'|'month'|'quarter'|'year'|'all'|'custom'>('month');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('welcome') === '1') {
+      setShowWelcome(true);
+      router.replace('/vendor/dashboard');
+    }
+  }, [searchParams, router]);
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/vendor/login');
@@ -320,12 +430,19 @@ export default function VendorDashboard() {
 
   if (profile && profile.status !== 'APPROVED') {
     return (
-      <VendorOnboarding
-        vendorStatus={profile.status}
-        documentsCount={profile.documentsCount || 0}
-        locationRequestsCount={profile.locationRequestsCount || 0}
-        serviceRequestsCount={profile.serviceRequestsCount || 0}
-      />
+      <>
+        {showWelcome && (
+          <VendorWelcomeModal
+            businessName={profile.businessName}
+            onClose={() => setShowWelcome(false)}
+          />
+        )}
+        <VendorOnboarding
+          vendorStatus={profile.status}
+          documentsCount={profile.documentsCount || 0}
+          serviceRequestsCount={profile.serviceRequestsCount || 0}
+        />
+      </>
     );
   }
 

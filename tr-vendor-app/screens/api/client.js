@@ -26,7 +26,7 @@ let cachedBaseURL = null;
 //          on :3000 and `adb reverse tcp:3000 tcp:3000`. Without the reverse
 //          every request fails as a network error while the JS still loads
 //          fine over Metro's own tunnel — which reads as "login is broken".
-const FORCE_PROD = false;
+const FORCE_PROD = true;
 
 export async function getBaseURL() {
   if (cachedBaseURL) return cachedBaseURL;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
@@ -23,7 +23,22 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
+  Plus,
+  X,
 } from 'lucide-react';
+
+interface LocationOption {
+  id: string;
+  name: string;
+  state?: string;
+}
+
+interface SelectedLocation {
+  locationId: string | null; // null when isCustom
+  name: string;
+  state?: string;
+  isCustom: boolean;
+}
 
 const BENEFITS = [
   { icon: IndianRupee, text: 'Earn ₹50,000+ per month', color: 'text-green-600 bg-green-50' },
@@ -61,6 +76,63 @@ export default function VendorRegisterPage() {
     state: '',
     pincode: '',
   });
+
+  // ── Service Location(s) — searchable multi-select with a custom-add
+  // fallback. Selecting these creates the vendor's first location
+  // request(s) automatically on submit, so there's no separate post-
+  // registration "request a location" step anymore.
+  const [allCities, setAllCities] = useState<LocationOption[]>([]);
+  const [citiesLoading, setCitiesLoading] = useState(false);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
+  const [serviceLocations, setServiceLocations] = useState<SelectedLocation[]>([]);
+  const locationBoxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCitiesLoading(true);
+    fetch('/api/locations')
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        const list = (data.locations || []).map((l: any) => ({
+          id: l.id,
+          name: l.name,
+          state: l.locations?.name,
+        }));
+        setAllCities(list);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setCitiesLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (locationBoxRef.current && !locationBoxRef.current.contains(e.target as Node)) {
+        setLocationDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  const locationMatches = locationQuery.trim()
+    ? allCities
+        .filter((c) => c.name.toLowerCase().includes(locationQuery.trim().toLowerCase()))
+        .filter((c) => !serviceLocations.some((s) => s.locationId === c.id))
+        .slice(0, 8)
+    : [];
+
+  const addServiceLocation = (loc: SelectedLocation) => {
+    setServiceLocations((prev) => [...prev, loc]);
+    setLocationQuery('');
+    setLocationDropdownOpen(false);
+  };
+
+  const removeServiceLocation = (idx: number) => {
+    setServiceLocations((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   const businessTypes = [
     'Sole Proprietor',
@@ -114,6 +186,7 @@ export default function VendorRegisterPage() {
     if (!formData.city.trim()) { setError('City is required'); return false; }
     if (!formData.state) { setError('Please select your state'); return false; }
     if (formData.pincode.trim() && !/^\d{6}$/.test(formData.pincode)) { setError('Please enter a valid 6-digit pincode'); return false; }
+    if (serviceLocations.length === 0) { setError('Add at least one service location — where you want to operate'); return false; }
     return true;
   };
 
@@ -142,6 +215,11 @@ export default function VendorRegisterPage() {
           city: formData.city,
           state: formData.state,
           pincode: formData.pincode || null,
+          serviceLocations: serviceLocations.map((l) => ({
+            locationId: l.locationId,
+            name: l.name,
+            isCustom: l.isCustom,
+          })),
         }),
       });
       const data = await res.json();
@@ -152,7 +230,7 @@ export default function VendorRegisterPage() {
           redirect: false,
         });
         if (result?.ok) {
-          router.push('/vendor/dashboard');
+          router.push('/vendor/dashboard?welcome=1');
           router.refresh();
         } else {
           // Fallback — account was created but auto-login didn't go through
@@ -614,6 +692,70 @@ export default function VendorRegisterPage() {
                           className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                         />
                       </div>
+                    </div>
+
+                    {/* Service Location(s) */}
+                    <div ref={locationBoxRef} className="relative">
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">
+                        Service Location(s) <span className="text-red-500">*</span>
+                        <span className="ml-1 text-xs font-normal text-gray-400">(where you want to operate — add at least 1)</span>
+                      </label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={locationQuery}
+                          onChange={(e) => { setLocationQuery(e.target.value); setLocationDropdownOpen(true); }}
+                          onFocus={() => setLocationDropdownOpen(true)}
+                          placeholder={citiesLoading ? 'Loading cities…' : 'Search your city…'}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        />
+                      </div>
+
+                      {locationDropdownOpen && locationQuery.trim() && (
+                        <div className="absolute left-0 right-0 top-full z-20 mt-1.5 max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                          {locationMatches.map((loc) => (
+                            <button
+                              key={loc.id}
+                              type="button"
+                              onClick={() => addServiceLocation({ locationId: loc.id, name: loc.name, state: loc.state, isCustom: false })}
+                              className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-sm text-gray-700 hover:bg-blue-50"
+                            >
+                              <MapPin className="w-3.5 h-3.5 shrink-0 text-gray-300" />
+                              <span className="truncate">{loc.name}{loc.state ? `, ${loc.state}` : ''}</span>
+                            </button>
+                          ))}
+                          {!citiesLoading && locationMatches.length === 0 && (
+                            <button
+                              type="button"
+                              onClick={() => addServiceLocation({ locationId: null, name: locationQuery.trim(), isCustom: true })}
+                              className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-sm font-semibold text-blue-600 hover:bg-blue-50 border-t border-gray-100"
+                            >
+                              <Plus className="w-3.5 h-3.5 shrink-0" />
+                              Add &quot;{locationQuery.trim()}&quot; — not in the list
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {serviceLocations.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2.5">
+                          {serviceLocations.map((loc, idx) => (
+                            <span
+                              key={`${loc.locationId ?? loc.name}-${idx}`}
+                              className={`inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full text-xs font-semibold ${
+                                loc.isCustom ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
+                              }`}
+                            >
+                              {loc.name}{loc.state ? `, ${loc.state}` : ''}
+                              {loc.isCustom && <span className="text-[10px] font-bold uppercase tracking-wide opacity-70">custom</span>}
+                              <button type="button" onClick={() => removeServiceLocation(idx)} className="hover:opacity-70">
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex gap-3 pt-1">

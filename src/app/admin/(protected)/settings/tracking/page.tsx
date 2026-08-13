@@ -54,6 +54,11 @@ const defaultSettings: TrackingSettings = {
   customBodyScripts: '',
 };
 
+// These are meant to hold short script tags/snippets, not files or images —
+// a single field this big is almost certainly an accidental paste (e.g. a
+// base64 image), and would otherwise blow past the server's payload limit.
+const MAX_SCRIPT_CHARS = 20_000;
+
 export default function TrackingSettingsPage() {
   const [settings, setSettings] = useState<TrackingSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,9 +100,19 @@ export default function TrackingSettingsPage() {
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
     setError('');
     setSaveSuccess(false);
+
+    if (settings.customHeadScripts.length > MAX_SCRIPT_CHARS) {
+      setError(`Custom Head Scripts is ${settings.customHeadScripts.length.toLocaleString()} characters — that's way more than a script tag needs (limit ${MAX_SCRIPT_CHARS.toLocaleString()}). Check for an accidentally pasted image or large block of content.`);
+      return;
+    }
+    if (settings.customBodyScripts.length > MAX_SCRIPT_CHARS) {
+      setError(`Custom Body Scripts is ${settings.customBodyScripts.length.toLocaleString()} characters — that's way more than a script tag needs (limit ${MAX_SCRIPT_CHARS.toLocaleString()}). Check for an accidentally pasted image or large block of content.`);
+      return;
+    }
+
+    setIsSaving(true);
 
     try {
       const response = await fetch('/api/admin/settings', {
@@ -107,7 +122,8 @@ export default function TrackingSettingsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save settings');
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.detail || data?.error || 'Failed to save settings');
       }
 
       setSaveSuccess(true);
@@ -479,9 +495,14 @@ export default function TrackingSettingsPage() {
               placeholder="<!-- Paste your script tags here -->"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
             />
-            <p className="mt-1 text-xs text-gray-500">
-              Scripts added here will be injected into the &lt;head&gt; tag
-            </p>
+            <div className="mt-1 flex items-center justify-between">
+              <p className="text-xs text-gray-500">
+                Scripts added here will be injected into the &lt;head&gt; tag
+              </p>
+              <p className={`text-xs font-mono ${settings.customHeadScripts.length > MAX_SCRIPT_CHARS ? 'text-red-600 font-bold' : 'text-gray-400'}`}>
+                {settings.customHeadScripts.length.toLocaleString()} / {MAX_SCRIPT_CHARS.toLocaleString()}
+              </p>
+            </div>
           </div>
 
           {/* Body Scripts */}
@@ -496,9 +517,14 @@ export default function TrackingSettingsPage() {
               placeholder="<!-- Paste your script tags here -->"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
             />
-            <p className="mt-1 text-xs text-gray-500">
-              Scripts added here will be injected before the closing &lt;/body&gt; tag
-            </p>
+            <div className="mt-1 flex items-center justify-between">
+              <p className="text-xs text-gray-500">
+                Scripts added here will be injected before the closing &lt;/body&gt; tag
+              </p>
+              <p className={`text-xs font-mono ${settings.customBodyScripts.length > MAX_SCRIPT_CHARS ? 'text-red-600 font-bold' : 'text-gray-400'}`}>
+                {settings.customBodyScripts.length.toLocaleString()} / {MAX_SCRIPT_CHARS.toLocaleString()}
+              </p>
+            </div>
           </div>
         </div>
       </div>
