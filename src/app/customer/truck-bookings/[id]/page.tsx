@@ -118,6 +118,24 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
   CANCELLED: { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100', icon: AlertCircle },
 };
 
+// Presentation only — maps the existing booking status onto the hero progress
+// rail. Adds no state, no data and changes no behaviour.
+const BOOKING_STEPS = ['Booked', 'Advance Payment', 'Confirmed', 'Vehicle Assigned', 'Loading', 'In Transit', 'Completed'];
+
+const STEP_INDEX_BY_STATUS: Record<string, number> = {
+  PENDING_PAYMENT: 1,
+  PAYMENT_SUBMITTED: 1,
+  ADVANCE_PAID: 2,
+  CONFIRMED: 2,
+  VEHICLE_ASSIGNED: 3,
+  LOADING: 4,
+  IN_TRANSIT: 5,
+  UNLOADING: 5,
+  COMPLETED: 6,
+};
+
+const RAIL_HIDDEN_STATUSES = ['CANCELLED'];
+
 const CANCEL_REASONS = [
   'Plans changed / Trip cancelled',
   'Found a better deal',
@@ -366,152 +384,200 @@ export default function CustomerTruckBookingDetailPage() {
     <div className="min-h-screen bg-gray-50 pt-16">
       <CustomerHeader showBackButton />
       {/* Hero Header */}
-      <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">
-        <div className="max-w-4xl mx-auto px-4 pt-5 pb-8">
-          <Link href="/customer/dashboard" className="inline-flex items-center gap-1.5 text-white/70 hover:text-white text-sm mb-5 transition">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Link>
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/20">
-                <Truck className="w-7 h-7" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold leading-tight">{booking.vehicleName}</h1>
-                <p className="text-white/70 text-sm mt-0.5">#{booking.bookingNumber}</p>
-                {booking.pickupCity && (
-                  <p className="text-white/60 text-xs mt-1 flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />{booking.pickupCity} → {booking.dropCity}
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className={`px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0 whitespace-nowrap ${statusConfig.bgColor} ${statusConfig.color}`}>
+      <div className="relative overflow-hidden bg-[#012314] text-white">
+        <div className="absolute inset-0 bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)]" />
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{
+            backgroundImage:
+              'radial-gradient(680px 300px at 92% -30%, rgba(42,210,145,.34), transparent 60%),' +
+              'radial-gradient(460px 240px at 2% 130%, rgba(1,20,11,.7), transparent 58%),' +
+              'repeating-linear-gradient(115deg, rgba(255,255,255,.045) 0 1px, transparent 1px 46px)',
+          }}
+        />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-6">
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href="/customer/dashboard"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.16] bg-white/[0.07] py-1 pl-2 pr-3 text-xs font-semibold text-white/[0.74] transition hover:-translate-x-0.5 hover:bg-white/[0.17] hover:text-white"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Back to Dashboard
+            </Link>
+            <div className={`px-3 py-1.5 rounded-full text-[11.5px] font-extrabold flex-shrink-0 whitespace-nowrap shadow-lg shadow-black/20 ${statusConfig.bgColor} ${statusConfig.color}`}>
               {statusConfig.label}
             </div>
           </div>
-          {/* Quick stats row */}
-          <div className="mt-6 grid grid-cols-3 gap-3">
-            <div className="bg-white/10 rounded-xl px-3 py-2.5 border border-white/15">
-              <p className="text-white/60 text-xs">Service Type</p>
-              <p className="text-white font-bold text-sm mt-0.5">{booking.serviceType?.replace('_', ' ')}</p>
+
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-5">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-14 h-14 bg-white/[0.14] rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/[0.24] shadow-[inset_0_1px_0_rgba(255,255,255,.3)]">
+                <Truck className="w-7 h-7" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-[28px] font-extrabold leading-tight tracking-tight">{booking.vehicleName}</h1>
+                <div className="mt-2 flex flex-wrap items-center gap-2.5">
+                  <span className="rounded-md border border-white/[0.14] bg-white/10 px-2.5 py-1 text-xs font-bold tabular-nums text-white/80">
+                    {booking.bookingNumber}
+                  </span>
+                  {booking.pickupCity && (
+                    <span className="flex items-center gap-1.5 text-xs text-white/[0.62]">
+                      <MapPin className="w-3.5 h-3.5" />{booking.pickupCity} → {booking.dropCity}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="bg-white/10 rounded-xl px-3 py-2.5 border border-white/15">
-              <p className="text-white/60 text-xs">Total Amount</p>
-              <p className="text-white font-bold text-sm mt-0.5">₹{(booking.baseAmount + (booking.additionalCharges || 0))?.toLocaleString('en-IN')}</p>
-            </div>
-            <div className="bg-white/10 rounded-xl px-3 py-2.5 border border-white/15">
-              <p className="text-white/60 text-xs">Advance Paid</p>
-              <p className="text-white font-bold text-sm mt-0.5">{booking.advancePaid ? `₹${booking.advancePaid.toLocaleString('en-IN')}` : '—'}</p>
+
+            {/* Quick stats row */}
+            <div className="grid w-full grid-cols-1 overflow-hidden rounded-2xl border border-white/[0.16] bg-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,.12)] sm:grid-cols-3 lg:w-auto">
+              <div className="px-5 py-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/[0.56] whitespace-nowrap">Service Type</p>
+                <p className="mt-1 text-[17px] font-extrabold capitalize whitespace-nowrap">{booking.serviceType?.replace('_', ' ')}</p>
+              </div>
+              <div className="border-t border-white/[0.12] px-5 py-3 sm:border-t-0 sm:border-l">
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/[0.56] whitespace-nowrap">Total Amount</p>
+                <p className="mt-1 text-[17px] font-extrabold tabular-nums whitespace-nowrap">₹{(booking.baseAmount + (booking.additionalCharges || 0))?.toLocaleString('en-IN')}</p>
+              </div>
+              <div className="border-t border-white/[0.12] px-5 py-3 sm:border-t-0 sm:border-l">
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/[0.56] whitespace-nowrap">Advance Paid</p>
+                <p className="mt-1 text-[17px] font-extrabold tabular-nums whitespace-nowrap">{booking.advancePaid ? `₹${booking.advancePaid.toLocaleString('en-IN')}` : '—'}</p>
+              </div>
             </div>
           </div>
+
+          {/* Progress rail — derived from booking.status, no new data */}
+          {!RAIL_HIDDEN_STATUSES.includes(booking.status) && (
+            <div className="mt-6 border-t border-white/[0.13] pt-5">
+              <div className="flex items-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(90deg,#000_84%,transparent)] lg:[mask-image:none]">
+                {BOOKING_STEPS.map((step, i) => {
+                  const currentIdx = STEP_INDEX_BY_STATUS[booking.status] ?? 0;
+                  const isDone = i < currentIdx;
+                  const isNow = i === currentIdx;
+                  return (
+                    <div key={step} className="relative min-w-[100px] flex-1 text-center">
+                      {i > 0 && (
+                        <span className="absolute top-[10px] left-[calc(-50%+12px)] right-[calc(50%+12px)] h-0.5 overflow-hidden rounded-sm bg-white/20">
+                          <span className={`block h-full rounded-sm bg-white transition-[width] duration-700 ${i <= currentIdx ? 'w-full' : 'w-0'}`} />
+                        </span>
+                      )}
+                      <span
+                        className={`relative z-10 mx-auto flex h-[22px] w-[22px] items-center justify-center rounded-full border-2 transition ${
+                          isNow
+                            ? 'border-amber-100 bg-amber-100 text-amber-800 shadow-[0_0_0_5px_rgba(254,243,199,.2)]'
+                            : isDone
+                              ? 'border-white bg-white text-[#056B3E]'
+                              : 'border-white/30 bg-white/[0.16] text-white/50'
+                        }`}
+                      >
+                        {isDone && <CheckCircle className="h-3 w-3" strokeWidth={3.5} />}
+                        {isNow && <Clock className="h-3 w-3" strokeWidth={3} />}
+                      </span>
+                      <span className={`mt-2.5 block whitespace-nowrap text-[11px] ${isNow ? 'font-bold text-white' : isDone ? 'font-semibold text-white/90' : 'font-semibold text-white/[0.55]'}`}>
+                        {step}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-5 space-y-4">
-        {/* Trip Details */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-4 py-3 border-b bg-gray-50">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Trip Details</p>
-          </div>
-          <div className="p-4 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              {/* Pickup */}
-              <div className="bg-green-50 border border-green-100 rounded-xl p-3">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-3 h-3 text-white" />
-                  </div>
-                  <p className="text-xs font-bold text-green-700 uppercase tracking-wide">Pickup</p>
-                </div>
-                <p className="text-sm font-bold text-gray-900">{booking.pickupCity}</p>
-                {booking.pickupAddress && <p className="text-xs text-gray-500 mt-0.5">{booking.pickupAddress}</p>}
-                <p className="text-xs text-gray-600 mt-1">{booking.pickupDate ? new Date(booking.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</p>
-                <p className="text-xs text-gray-500">{formatRawTime(booking.pickupTime)}</p>
-              </div>
-              {/* Drop */}
-              <div className="bg-red-50 border border-red-100 rounded-xl p-3">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-3 h-3 text-white" />
-                  </div>
-                  <p className="text-xs font-bold text-red-600 uppercase tracking-wide">Delivery</p>
-                </div>
-                <p className="text-sm font-bold text-gray-900">{booking.dropCity}</p>
-                {booking.dropAddress && <p className="text-xs text-gray-500 mt-0.5">{booking.dropAddress}</p>}
-              </div>
-            </div>
-            {/* Goods info row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Goods Type</p>
-                <p className="text-sm font-bold text-gray-800">{booking.goodsType}</p>
-              </div>
-              <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Weight</p>
-                <p className="text-sm font-bold text-gray-800">{booking.weight ? `${booking.weight} kg` : '—'}</p>
-              </div>
-            </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_372px] lg:gap-5">
 
-            {/* Extended truck quotation details */}
-            <div className="mt-4">
-              <TruckRequestDetails data={booking as any} hideVehicle />
-            </div>
-          </div>
-        </div>
-
-        {/* Vehicle & Driver */}
-        {(booking.vehicleNumber || booking.driverName) && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-4 py-3 border-b bg-gray-50">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Vehicle & Driver</p>
-            </div>
-            <div className="p-4 space-y-3">
-              {booking.vehicleNumber && (
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <TruckIcon className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Vehicle</p>
-                    <p className="font-bold text-gray-900">{booking.vehicleNumber}</p>
-                    {booking.vehicle_model && <p className="text-xs text-gray-500">{booking.vehicle_model}</p>}
-                  </div>
-                </div>
-              )}
-              {booking.driverName && (
-                <div className={`flex items-center justify-between ${booking.vehicleNumber ? 'pt-3 border-t border-gray-100' : ''}`}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Phone className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Driver</p>
-                      <p className="font-bold text-gray-900">{booking.driverName}</p>
-                    </div>
-                  </div>
-                  {booking.driverPhone && (
-                    <a href={`tel:${booking.driverPhone}`} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition text-sm font-semibold shadow-sm">
-                      <Phone className="w-4 h-4" />
-                      Call
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Payment Required */}
+        {/* ══ Left column ══ */}
+        <div className="flex min-w-0 flex-col gap-4">
+        {/* Payment Required — split card: amount stub beside the actions. When
+            the taller UPI / bank-transfer panel is showing, the `:has()` rule
+            drops it to one column so the stub becomes a band rather than a
+            half-empty green column. */}
         {booking.status === 'PENDING_PAYMENT' && booking.advanceAmount && (
-          <BookingPayment
-            bookingId={booking.id}
-            bookingType="truck"
-            amount={booking.advanceAmount}
-            bookingNumber={booking.bookingNumber}
-            onSuccess={() => window.location.reload()}
-          />
+          <section className="grid grid-cols-1 overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-[0_20px_52px_-22px_rgba(1,35,20,.45)] lg:grid-cols-[1.08fr_0.92fr] lg:has-[[data-manual-payment]]:grid-cols-1">
+            {/* Amount stub */}
+            <div className="relative overflow-hidden bg-[linear-gradient(155deg,#01301B_0%,#056B3E_58%,#078F53_100%)] px-5 py-5 text-white">
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  backgroundImage:
+                    'radial-gradient(520px 240px at 100% -30%, rgba(42,210,145,.42), transparent 62%),' +
+                    'repeating-linear-gradient(128deg, rgba(255,255,255,.045) 0 1px, transparent 1px 38px)',
+                }}
+              />
+              <div className="relative z-10 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[9px] border border-white/[0.22] bg-white/[0.16]">
+                      <Package className="h-4 w-4" />
+                    </span>
+                    <span>
+                      <span className="block text-[13px] font-extrabold">Complete Your Booking</span>
+                      <span className="mt-px block text-[11px] text-white/[0.66]">Pay advance to confirm</span>
+                    </span>
+                  </div>
+                  <p className="mt-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">Advance Payment</p>
+                  <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="text-[38px] font-extrabold leading-none tracking-[-0.035em] tabular-nums sm:text-[44px]">
+                      ₹{booking.advanceAmount?.toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-xs tabular-nums text-white/[0.68]">
+                      of ₹{(booking.baseAmount + (booking.additionalCharges || 0))?.toLocaleString('en-IN')} total
+                    </span>
+                  </div>
+                </div>
+
+                <div className="w-full min-w-0 sm:w-[300px]">
+                  <div className="h-[5px] overflow-hidden rounded bg-white/[0.16]">
+                    <span
+                      className="block h-full rounded bg-[linear-gradient(90deg,#2AD291,#fff)]"
+                      style={{ width: `${Math.min(100, Math.round((booking.advanceAmount / ((booking.baseAmount + (booking.additionalCharges || 0)) || 1)) * 100))}%` }}
+                    />
+                  </div>
+                  <div className="mt-1.5 flex justify-between gap-2.5 text-[10.5px] tabular-nums text-white/60">
+                    <span>Paying now ₹{booking.advanceAmount?.toLocaleString('en-IN')}</span>
+                    {booking.balanceAmount != null && <span>Balance ₹{booking.balanceAmount.toLocaleString('en-IN')}</span>}
+                  </div>
+                  <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/[0.18] bg-white/[0.12] px-3 py-1.5 text-xs font-semibold">
+                    <Truck className="h-3.5 w-3.5" />
+                    {booking.vehicleName}{booking.vehicleNumber ? ` · ${booking.vehicleNumber}` : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action panel */}
+            <div className="flex flex-col justify-center px-4 py-5 sm:px-5">
+              <div className="mx-auto w-full max-w-4xl">
+                <div className="mb-4 flex items-center justify-between gap-2.5">
+                  <p className="text-[15px] font-extrabold text-gray-900">Choose how to pay</p>
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#C8F1DF] bg-[#E9FAF2] px-3 py-1 text-[11.5px] font-bold text-[#056B3E]">
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    Secure
+                  </span>
+                </div>
+                {/* Scale the shared widget's compact sizing up to match the card */}
+                <div
+                  className="
+                    [&>div>button]:rounded-2xl [&>div>button]:py-4 [&>div>button]:text-[15px]
+                    [&>div>div]:mt-4 [&>div>div]:gap-2
+                    [&_span]:text-[11.5px]
+                    [&>button]:mt-5 [&>button]:border-t [&>button]:border-gray-100 [&>button]:pt-4
+                    [&>button]:text-[12.5px] [&>button]:text-gray-500 [&>button]:hover:text-[#056B3E]
+                  "
+                >
+                  <BookingPayment
+                    bookingId={booking.id}
+                    bookingType="truck"
+                    amount={booking.advanceAmount}
+                    bookingNumber={booking.bookingNumber}
+                    onSuccess={() => window.location.reload()}
+                    embedded
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
         )}
 
         {/* Payment Submitted - Under Review */}
@@ -532,18 +598,69 @@ export default function CustomerTruckBookingDetailPage() {
           </div>
         )}
 
+        {/* Trip Details */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
+            <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Trip Details</p>
+          </div>
+          <div className="p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              {/* Pickup */}
+              <div className="rounded-2xl border border-[#C8F1DF] bg-[#E9FAF2] p-3.5 transition hover:-translate-y-0.5">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="w-[22px] h-[22px] bg-[#09B368] rounded-full flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-3 h-3 text-white" />
+                  </div>
+                  <p className="text-[10.5px] font-extrabold text-[#056B3E] uppercase tracking-[0.09em]">Pickup</p>
+                </div>
+                <p className="text-sm font-bold text-gray-900">{booking.pickupCity}</p>
+                {booking.pickupAddress && <p className="text-xs text-gray-500 mt-0.5">{booking.pickupAddress}</p>}
+                <p className="text-xs text-gray-600 mt-1">{booking.pickupDate ? new Date(booking.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</p>
+                <p className="text-xs text-gray-500">{formatRawTime(booking.pickupTime)}</p>
+              </div>
+              {/* Drop */}
+              <div className="rounded-2xl border border-red-100 bg-red-50 p-3.5 transition hover:-translate-y-0.5">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="w-[22px] h-[22px] bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-3 h-3 text-white" />
+                  </div>
+                  <p className="text-[10.5px] font-extrabold text-red-700 uppercase tracking-[0.09em]">Delivery</p>
+                </div>
+                <p className="text-sm font-bold text-gray-900">{booking.dropCity}</p>
+                {booking.dropAddress && <p className="text-xs text-gray-500 mt-0.5">{booking.dropAddress}</p>}
+              </div>
+            </div>
+            {/* Goods info row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-gray-100 bg-[#FCFDFC] px-3.5 py-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-gray-400">Goods Type</p>
+                <p className="mt-0.5 text-sm font-extrabold text-gray-900">{booking.goodsType}</p>
+              </div>
+              <div className="rounded-xl border border-gray-100 bg-[#FCFDFC] px-3.5 py-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-gray-400">Weight</p>
+                <p className="mt-0.5 text-sm font-extrabold tabular-nums text-gray-900">{booking.weight ? `${booking.weight} kg` : '—'}</p>
+              </div>
+            </div>
+
+            {/* Extended truck quotation details */}
+            <div className="mt-4">
+              <TruckRequestDetails data={booking as any} hideVehicle variant="rows" />
+            </div>
+          </div>
+        </div>
+
         {/* Loading OTP */}
         {booking.loadingOtp && booking.status === 'VEHICLE_ASSIGNED' && (
-          <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-5 text-white shadow-lg">
-            <div className="flex items-center justify-between">
+          <div className="relative overflow-hidden rounded-2xl bg-[linear-gradient(125deg,#056B3E,#09B368)] p-5 text-white shadow-[0_18px_44px_-14px_rgba(9,179,104,.5)]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-white/80 text-sm">Loading OTP</p>
-                <p className="text-3xl font-bold tracking-wider">{booking.loadingOtp}</p>
-                <p className="text-white/80 text-sm mt-1">Share this with the driver to start loading</p>
+                <p className="text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-white/[0.72]">Loading OTP</p>
+                <p className="mt-2 flex gap-2">{String(booking.loadingOtp).split('').map((d, i) => (<span key={i} className="flex h-[52px] w-11 items-center justify-center rounded-xl border border-white/[0.28] bg-white/[0.16] text-2xl font-extrabold tabular-nums">{d}</span>))}</p>
+                <p className="text-white/[0.72] text-[11.5px] mt-3">Share this with the driver to start loading</p>
               </div>
               <button
                 onClick={() => copyOtp(booking.loadingOtp!)}
-                className="p-3 bg-white/20 rounded-xl hover:bg-white/30 transition"
+                className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/20 px-4 py-2.5 text-[12.5px] font-bold transition hover:bg-white/[0.32]"
               >
                 <Copy className="w-5 h-5" />
               </button>
@@ -554,16 +671,16 @@ export default function CustomerTruckBookingDetailPage() {
 
         {/* Delivery OTP */}
         {booking.deliveryOtp && ['IN_TRANSIT', 'UNLOADING'].includes(booking.status) && (
-          <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-5 text-white shadow-lg">
-            <div className="flex items-center justify-between">
+          <div className="relative overflow-hidden rounded-2xl bg-[linear-gradient(125deg,#056B3E,#09B368)] p-5 text-white shadow-[0_18px_44px_-14px_rgba(9,179,104,.5)]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-white/80 text-sm">Delivery OTP</p>
-                <p className="text-3xl font-bold tracking-wider">{booking.deliveryOtp}</p>
-                <p className="text-white/80 text-sm mt-1">Share this with the driver at delivery location</p>
+                <p className="text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-white/[0.72]">Delivery OTP</p>
+                <p className="mt-2 flex gap-2">{String(booking.deliveryOtp).split('').map((d, i) => (<span key={i} className="flex h-[52px] w-11 items-center justify-center rounded-xl border border-white/[0.28] bg-white/[0.16] text-2xl font-extrabold tabular-nums">{d}</span>))}</p>
+                <p className="text-white/[0.72] text-[11.5px] mt-3">Share this with the driver at delivery location</p>
               </div>
               <button
                 onClick={() => copyOtp(booking.deliveryOtp!)}
-                className="p-3 bg-white/20 rounded-xl hover:bg-white/30 transition"
+                className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/20 px-4 py-2.5 text-[12.5px] font-bold transition hover:bg-white/[0.32]"
               >
                 <Copy className="w-5 h-5" />
               </button>
@@ -572,96 +689,22 @@ export default function CustomerTruckBookingDetailPage() {
           </div>
         )}
 
-        {/* Vendor Details */}
-        {booking.vendor && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-4 py-3 border-b bg-gray-50">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Vendor Details</p>
-            </div>
-            <div className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Truck className="w-5 h-5 text-green-700" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900 text-sm">{booking.vendor.name}</p>
-                    {booking.vendor.rating > 0 && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        {[1,2,3,4,5].map(s => (
-                          <Star key={s} className={`w-3 h-3 ${s <= Math.round(booking.vendor!.rating) ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}`} />
-                        ))}
-                        <span className="text-xs text-gray-500 ml-1">{booking.vendor.rating.toFixed(1)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <a href={`tel:${booking.vendor.phone}`} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition text-sm font-semibold shadow-sm">
-                  <Phone className="w-4 h-4" />
-                  Call
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Payment Summary */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-4 py-3 border-b bg-gray-50">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Payment Summary</p>
-          </div>
-          <div className="p-4 space-y-2.5">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-500">Base Fare</span>
-              <span className="font-medium text-gray-800">₹{booking.baseAmount?.toLocaleString('en-IN')}</span>
-            </div>
-            {booking.additionalCharges > 0 && (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Additional Charges</span>
-                <span className="font-medium text-gray-800">₹{booking.additionalCharges?.toLocaleString('en-IN')}</span>
-              </div>
-            )}
-            {booking.gstAmount > 0 && (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">GST</span>
-                <span className="font-medium text-gray-800">₹{booking.gstAmount?.toLocaleString('en-IN')}</span>
-              </div>
-            )}
-            <div className="flex justify-between items-center pt-2.5 border-t border-gray-100">
-              <span className="font-bold text-gray-900">Total Amount</span>
-              <span className="font-bold text-green-700 text-lg">₹{(booking.baseAmount + (booking.additionalCharges || 0))?.toLocaleString('en-IN')}</span>
-            </div>
-            {booking.advancePaid && booking.advancePaid > 0 && (
-              <div className="mt-1 bg-green-50 border border-green-100 rounded-xl p-3 space-y-2">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-green-700 font-medium">Advance Paid</span>
-                  <span className="font-bold text-green-700">₹{booking.advancePaid?.toLocaleString('en-IN')}</span>
-                </div>
-                {booking.balanceAmount && booking.balanceAmount > 0 && (
-                  <div className="flex justify-between items-center text-sm border-t border-green-100 pt-2">
-                    <span className="text-gray-600">Balance Due</span>
-                    <span className="font-bold text-orange-600">₹{booking.balanceAmount?.toLocaleString('en-IN')}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Cancel Booking */}
         {['PENDING_PAYMENT', 'ADVANCE_PAID', 'CONFIRMED', 'VEHICLE_ASSIGNED'].includes(booking.status) && (
-          <div className="bg-white rounded-xl border border-red-100 p-4">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Cancel Booking</h3>
-            <p className="text-sm text-gray-500 mb-3">
+          <div className="overflow-hidden rounded-2xl border border-red-100 bg-white">
+            <div className="border-b border-red-100 bg-red-50 px-4 py-3"><h3 className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-red-700">Cancel Booking</h3></div>
+            <div className="p-4">
+            <p className="text-[12.5px] leading-relaxed text-gray-500 mb-3">
               Once cancelled, refund will be processed as per vendor's cancellation policy.
             </p>
             <button
               onClick={() => { setShowCancelModal(true); setCancelError(null); setSelectedCancelReason(''); setOtherCancelReason(''); }}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition text-sm font-medium"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-red-50 text-red-600 border border-red-200 rounded-xl hover:bg-red-100 transition text-[13.5px] font-bold"
             >
               <XCircle className="w-4 h-4" />
               Cancel This Booking
             </button>
+            </div>
           </div>
         )}
 
@@ -718,8 +761,137 @@ export default function CustomerTruckBookingDetailPage() {
           </div>
         )}
 
+        </div>
+        {/* /Left column */}
+
+        {/* Right rail */}
+        <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-20">
+        {/* Vehicle & Driver */}
+        {(booking.vehicleNumber || booking.driverName) && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
+              <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Vehicle & Driver</p>
+            </div>
+            <div className="p-4">
+              {booking.vehicleNumber && (
+                <div className="flex items-center gap-3">
+                  <div className="grid h-11 w-11 flex-none place-items-center rounded-xl border border-[#C8F1DF] bg-gradient-to-br from-[#E9FAF2] to-[#C8F1DF] text-[#056B3E]">
+                    <TruckIcon className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-gray-400">Vehicle</p>
+                    <p className="mt-0.5 text-[14.5px] font-extrabold text-gray-900">{booking.vehicleNumber}</p>
+                    {booking.vehicle_model && <p className="text-xs text-gray-500">{booking.vehicle_model}</p>}
+                  </div>
+                </div>
+              )}
+              {booking.driverName && (
+                <div className={booking.vehicleNumber ? 'mt-3.5 border-t border-gray-50 pt-3.5' : ''}>
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-11 w-11 flex-none place-items-center rounded-xl border border-[#C8F1DF] bg-gradient-to-br from-[#E9FAF2] to-[#C8F1DF] text-[#056B3E]">
+                      <Phone className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-gray-400">Driver</p>
+                      <p className="mt-0.5 text-[14.5px] font-extrabold text-gray-900">{booking.driverName}</p>
+                    </div>
+                  </div>
+                  {booking.driverPhone && (
+                    <a href={`tel:${booking.driverPhone}`} className="mt-3 flex items-center justify-center gap-2 px-4 py-3 bg-[#09B368] text-white rounded-xl hover:bg-[#078F53] transition text-[13.5px] font-bold shadow-lg shadow-[#09B368]/25">
+                      <Phone className="w-4 h-4" />
+                      Call Driver
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Payment Summary */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
+            <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Payment Summary</p>
+          </div>
+          <div className="p-4">
+            <div className="flex flex-col gap-px overflow-hidden rounded-xl bg-gray-50">
+              <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-2.5">
+                <span className="text-[12.5px] text-gray-500">Base Fare</span>
+                <span className="text-[13px] font-bold tabular-nums text-gray-800">₹{booking.baseAmount?.toLocaleString('en-IN')}</span>
+              </div>
+              {booking.additionalCharges > 0 && (
+                <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-2.5">
+                  <span className="text-[12.5px] text-gray-500">Additional Charges</span>
+                  <span className="text-[13px] font-bold tabular-nums text-gray-800">₹{booking.additionalCharges?.toLocaleString('en-IN')}</span>
+                </div>
+              )}
+              {booking.gstAmount > 0 && (
+                <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-2.5">
+                  <span className="text-[12.5px] text-gray-500">GST</span>
+                  <span className="text-[13px] font-bold tabular-nums text-gray-800">₹{booking.gstAmount?.toLocaleString('en-IN')}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-3.5">
+                <span className="text-sm font-extrabold text-gray-900">Total Amount</span>
+                <span className="text-xl font-extrabold tabular-nums text-[#056B3E]">₹{(booking.baseAmount + (booking.additionalCharges || 0))?.toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+            {booking.advancePaid && booking.advancePaid > 0 && (
+              <div className="mt-3 overflow-hidden rounded-xl border border-[#C8F1DF] bg-[#E9FAF2]">
+                <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+                  <span className="text-[12.5px] font-semibold text-[#056B3E]">Advance Paid</span>
+                  <span className="text-[13px] font-extrabold tabular-nums text-[#056B3E]">₹{booking.advancePaid?.toLocaleString('en-IN')}</span>
+                </div>
+                {booking.balanceAmount && booking.balanceAmount > 0 && (
+                  <div className="flex items-center justify-between gap-3 border-t border-[#C8F1DF] px-3.5 py-2.5">
+                    <span className="text-[12.5px] font-semibold text-[#056B3E]">Balance Due</span>
+                    <span className="text-[13px] font-bold tabular-nums text-amber-700">₹{booking.balanceAmount?.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Vendor Details */}
+        {booking.vendor && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
+              <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Vendor Details</p>
+            </div>
+            <div className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-[46px] w-[46px] flex-none place-items-center rounded-2xl border border-[#C8F1DF] bg-gradient-to-br from-[#E9FAF2] to-[#C8F1DF] text-[#056B3E]">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-[15px] font-extrabold leading-tight text-gray-900">{booking.vendor.name}</p>
+                    {booking.vendor.rating > 0 && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        {[1,2,3,4,5].map(s => (
+                          <Star key={s} className={`w-3 h-3 ${s <= Math.round(booking.vendor!.rating) ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}`} />
+                        ))}
+                        <span className="text-xs text-gray-500 ml-1">{booking.vendor.rating.toFixed(1)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <a href={`tel:${booking.vendor.phone}`} className="mt-3.5 flex items-center justify-center gap-2 px-4 py-3 bg-[#09B368] text-white rounded-xl hover:bg-[#078F53] transition text-[13.5px] font-bold shadow-lg shadow-[#09B368]/25">
+                <Phone className="w-4 h-4" />
+                Call Vendor
+              </a>
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
-        <div className="space-y-3">
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <div className="border-b border-gray-50 bg-[#FCFDFC] px-4 py-3">
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gray-400">Need a hand</p>
+          </div>
+          <div className="flex flex-col gap-2.5 p-4">
           {booking.vendor && (
             <button
               onClick={() => setShowChat(true)}
@@ -738,7 +910,7 @@ export default function CustomerTruckBookingDetailPage() {
               Rate Your Experience
             </button>
           )}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-2.5">
             <Link
               href="/customer/helpdesk"
               className="flex items-center justify-center gap-2 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition text-sm shadow-sm"
@@ -748,12 +920,15 @@ export default function CustomerTruckBookingDetailPage() {
             </Link>
             <Link
               href="/customer/dashboard"
-              className="flex items-center justify-center gap-2 py-3 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition text-sm"
+              className="flex items-center justify-center gap-2 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 hover:border-[#96E4C2] hover:text-[#056B3E] transition text-[13.5px]"
             >
-              Dashboard
+              Back to Dashboard
             </Link>
           </div>
+          </div>
         </div>
+        </aside>
+        {/* /Right rail */}
       </div>
 
       {/* Cancel Booking Modal */}

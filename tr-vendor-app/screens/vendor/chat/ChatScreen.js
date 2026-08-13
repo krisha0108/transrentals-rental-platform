@@ -6,8 +6,6 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   Keyboard,
   StatusBar,
@@ -21,6 +19,20 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getChatMessages, sendChatMessage } from '../../api/client';
+// KeyboardAvoidingView comes from react-native-keyboard-controller, NOT from
+// react-native. RN's Android implementation reads the keyboard frame from the
+// JS `Keyboard` events and compares it against its own measured frame, which
+// double-counts the shift the window already made under `adjustResize` — the
+// composer ended up pushed below the visible area, hidden behind the keyboard.
+//
+// The controller version measures how much of *this view* the keyboard
+// actually covers (`frame.bottom - keyboardTop`, clamped at 0), so it adds
+// padding only for the real overlap. That is correct whether or not the window
+// resized — which matters on targetSdk 36, where Android enforces edge-to-edge
+// and stops honouring `adjustResize` altogether.
+//
+// KeyboardProvider is already mounted at the root in App.js.
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 const C = {
   g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
@@ -437,11 +449,10 @@ export default function ChatScreen({ route, navigation }) {
       <Header />
       {renderBookingSwitcher()}
 
-      <KeyboardAvoidingView
-        style={st.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? (insets.top + 54) : 0}
-      >
+      {/* No keyboardVerticalOffset: this view is measured where it actually
+          sits on screen (below Header + booking switcher), so that height is
+          already accounted for. */}
+      <KeyboardAvoidingView style={st.flex} behavior="padding">
         {/* Chat background tinted area */}
         <View style={st.chatBg}>
           <FlatList

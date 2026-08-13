@@ -450,6 +450,9 @@ export function CarRentalBookingConfirmModal({
         chargeableKm: pricing.totalKm || null,
         kmCharges: pricing.baseKmCharge || 0,
         driverBatta: pricing.driverAllowance || 0,
+        // pricing.grandTotal already includes this, so it has to be stored too —
+        // otherwise the saved breakdown is short by the night charge.
+        nightCharges: pricing.nightCharge || 0,
         gstAmount: pricing.gst,
         platformFee: 99,
         grandTotal: pricing.grandTotal,

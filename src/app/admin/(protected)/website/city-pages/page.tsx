@@ -76,15 +76,14 @@ function getDefaultContent(
         ALL_SERVICES.map(s => ({ slug: s.slug, visible: true }))
       );
 
-    case 'routes': {
-      if (seoData?.routes?.length) {
-        const items = seoData.routes
-          .map((r: any) => `<li><strong>${cityName} → ${r.to}</strong> — ${r.distance} · ${r.duration}${r.via ? ` via ${r.via}` : ''}</li>`)
-          .join('');
-        return `<p>Planning an outstation trip from ${cityName}? Here are the most popular routes:</p><ul>${items}</ul>`;
-      }
-      return `<p>Plan your outstation trips from ${cityName} with ease. TransRentals offers outstation cabs, self-drive cars, and tempo travellers for all major routes.</p>`;
-    }
+    case 'routes':
+      // Intro text only — the route list itself is already rendered as a
+      // styled card grid by RoutesSection directly from seoData.routes.
+      // Repeating it here as a plain <ul> would just duplicate the same
+      // routes in a different style right above the grid.
+      return seoData?.routes?.length
+        ? `<p>Planning an outstation trip from ${cityName}? Here are the most popular routes:</p>`
+        : `<p>Plan your outstation trips from ${cityName} with ease. TransRentals offers outstation cabs, self-drive cars, and tempo travellers for all major routes.</p>`;
 
     case 'locations':
       return `<p>TransRentals operates across all major cities and towns in ${cityState}. Whether you're in ${cityName} or travelling to a nearby city, our network of verified vendors ensures the best vehicle rental service across ${cityState}.</p>`;

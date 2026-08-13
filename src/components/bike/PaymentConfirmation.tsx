@@ -10,6 +10,7 @@ import {
   QrCode,
   Upload,
   Building2,
+  ChevronDown,
   Phone,
   AlertCircle,
   Loader2,
@@ -55,6 +56,12 @@ interface PaymentConfirmationProps {
   amount: number;
   serviceSlug?: string;
   onPaymentConfirmed?: () => void;
+  /**
+   * Optional secondary control rendered in the same row as "I Have Made
+   * Payment" (e.g. "Back to online payment"). Without it the primary button
+   * spans the row on its own, so existing callers are unaffected.
+   */
+  secondaryAction?: React.ReactNode;
 }
 
 export function PaymentConfirmation({
@@ -63,6 +70,7 @@ export function PaymentConfirmation({
   amount,
   serviceSlug = 'bike-rental',
   onPaymentConfirmed,
+  secondaryAction,
 }: PaymentConfirmationProps) {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [primaryAccount, setPrimaryAccount] = useState<BankAccount | null>(null);
@@ -183,30 +191,25 @@ export function PaymentConfirmation({
   const account = primaryAccount || bankAccounts[0];
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-white">
-        <div className="flex items-center gap-3 mb-2">
-          <CreditCard className="w-6 h-6" />
-          <h2 className="text-xl font-bold">Complete Your Payment</h2>
-        </div>
-        <p className="text-emerald-100">
-          Make the advance payment to confirm your booking #{bookingNumber}
-        </p>
-      </div>
-
-      <div className="p-6 space-y-6">
+    // No header or card chrome of its own — every caller (BookingPayment,
+    // embedded or not) already wraps this panel in a bordered card, and a
+    // second border here just draws a box inside a box.
+    //
+    // data-manual-payment lets a parent restyle itself when this (much taller)
+    // panel is on screen, via CSS :has() — no extra state anywhere.
+    <div className="overflow-hidden" data-manual-payment>
+      <div className="p-4 space-y-3.5">
         {/* Amount to Pay */}
-        <div className="bg-emerald-50 rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Amount to Pay</span>
-            <div className="flex items-center text-2xl font-bold text-emerald-600">
-              <IndianRupee className="w-6 h-6" />
-              {amount.toLocaleString()}
-            </div>
-          </div>
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-[#C8F1DF] bg-[#E9FAF2] px-5 py-3">
+          <span className="text-[13.5px] font-semibold text-[#056B3E]">Amount to Pay</span>
+          <span className="flex items-center text-xl font-extrabold tabular-nums text-[#056B3E]">
+            <IndianRupee className="w-[18px] h-[18px]" />
+            {amount.toLocaleString()}
+          </span>
         </div>
 
+        {/* UPI and bank details sit side by side so the panel stays short */}
+        <div className="grid items-start gap-3.5 lg:grid-cols-2">
         {/* UPI Section */}
         {account.upiId && (
           <UpiPaymentSection
@@ -220,12 +223,12 @@ export function PaymentConfirmation({
         )}
 
         {/* Bank Details Section */}
-        <div className="border rounded-xl p-4">
-          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-blue-600" />
+        <div className="h-full rounded-xl border border-gray-100 bg-[#FCFDFC] p-5">
+          <h3 className="mb-2 flex items-center gap-2 text-[15px] font-extrabold text-gray-900">
+            <Building2 className="w-[18px] h-[18px] text-[#056B3E]" />
             Bank Transfer Details
           </h3>
-          <div className="space-y-3">
+          <div>
             <DetailRow
               label="Bank Name"
               value={account.bankName}
@@ -269,27 +272,36 @@ export function PaymentConfirmation({
           </div>
         </div>
 
-        {/* Instructions */}
-        <div className="bg-amber-50 rounded-xl p-4">
-          <h4 className="font-semibold text-amber-800 mb-2">Important Instructions:</h4>
-          <ul className="text-sm text-amber-700 space-y-1">
+        </div>
+
+        {/* Instructions — reference material, not something to re-read before
+            every transfer, so it starts collapsed. */}
+        <details className="group rounded-xl border border-amber-200 bg-amber-50">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-5 py-3 text-[13.5px] font-bold text-amber-800">
+            Important Instructions
+            <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+          </summary>
+          <ul className="space-y-1.5 px-5 pb-4 text-[13px] leading-relaxed text-amber-700">
             <li>1. Transfer exactly {amount.toLocaleString()} to the above account</li>
             <li>2. Use booking number <strong>#{bookingNumber}</strong> as payment reference</li>
             <li>3. After payment, click &quot;I Have Made Payment&quot; below</li>
             <li>4. Enter your transaction reference/UTR number</li>
             <li>5. Our team will verify and confirm your booking</li>
           </ul>
-        </div>
+        </details>
 
         {/* Confirm Payment Button */}
         {!showConfirmForm ? (
-          <Button
-            onClick={() => setShowConfirmForm(true)}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 text-lg font-bold"
-          >
-            <CheckCircle className="w-5 h-5 mr-2" />
-            I Have Made Payment
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {secondaryAction}
+            <Button
+              onClick={() => setShowConfirmForm(true)}
+              className="flex-1 rounded-xl bg-[#09B368] py-3.5 text-[14px] font-bold text-white hover:bg-[#078F53]"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              I Have Made Payment
+            </Button>
+          </div>
         ) : (
           <motion.form
             initial={{ opacity: 0, y: 10 }}
@@ -398,16 +410,18 @@ function DetailRow({
   mono?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-      <span className="text-sm text-gray-500">{label}</span>
-      <div className="flex items-center gap-2">
-        <span className={`font-medium text-gray-900 ${mono ? 'font-mono' : ''}`}>{value}</span>
+    <div className="flex items-start justify-between gap-3 border-b border-gray-100 py-2.5 last:border-0">
+      <span className="flex-shrink-0 pt-px text-[13px] text-gray-500">{label}</span>
+      <div className="flex min-w-0 items-start gap-1.5">
+        {/* break-all rather than truncate: account numbers and IFSC codes are
+            useless if the customer can only see half of them. */}
+        <span className={`break-all text-right text-[14px] font-bold leading-snug text-gray-900 ${mono ? 'font-mono' : ''}`}>{value}</span>
         <button
           onClick={onCopy}
-          className="p-1 hover:bg-gray-100 rounded transition"
+          className="flex-shrink-0 rounded p-1 transition hover:bg-gray-100"
         >
           {copied ? (
-            <CheckCircle className="w-4 h-4 text-green-600" />
+            <CheckCircle className="w-4 h-4 text-[#09B368]" />
           ) : (
             <Copy className="w-4 h-4 text-gray-400" />
           )}
@@ -443,39 +457,41 @@ function UpiPaymentSection({
   }, [upiId, upiQrCode, amount, accountHolderName]);
 
   return (
-    <div className="border rounded-xl p-4">
-      <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-        <QrCode className="w-5 h-5 text-purple-600" />
+    <div className="h-full rounded-xl border border-gray-100 bg-[#FCFDFC] p-5">
+      <h3 className="mb-3.5 flex items-center gap-2 text-[15px] font-extrabold text-gray-900">
+        <QrCode className="w-[18px] h-[18px] text-[#056B3E]" />
         Pay via UPI
       </h3>
-      <div className="flex flex-col md:flex-row gap-4 items-center">
-        <div className="bg-white p-3 rounded-lg border shadow-sm">
+      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+        <div className="flex-shrink-0 rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm">
           {/* Using img tag instead of next/image for external QR API */}
           <img
             src={qrCodeUrl}
             alt="UPI QR Code"
-            width={180}
-            height={180}
+            width={152}
+            height={152}
             className="rounded"
           />
         </div>
-        <div className="flex-1 text-center md:text-left">
-          <p className="text-sm text-gray-500 mb-2">Scan QR code or use UPI ID:</p>
-          <div className="flex items-center justify-center md:justify-start gap-2 bg-gray-100 rounded-lg px-4 py-3">
-            <span className="font-mono font-semibold text-gray-900">{upiId}</span>
+        <div className="min-w-0 flex-1 self-stretch">
+          <p className="mb-2 text-[13px] text-gray-500">Scan the QR or use this UPI ID</p>
+          {/* break-all, not truncate — a UPI ID the customer cannot read in
+              full is worse than one that wraps onto two lines. */}
+          <div className="flex items-start gap-2 rounded-lg border border-gray-100 bg-white px-3 py-2.5">
+            <span className="min-w-0 flex-1 break-all font-mono text-[14px] font-bold leading-snug text-gray-900">{upiId}</span>
             <button
               onClick={() => onCopy(upiId, 'upi')}
-              className="p-1 hover:bg-gray-200 rounded transition"
+              className="mt-px flex-shrink-0 rounded p-1 transition hover:bg-gray-100"
             >
               {copied === 'upi' ? (
-                <CheckCircle className="w-4 h-4 text-green-600" />
+                <CheckCircle className="w-[18px] h-[18px] text-[#09B368]" />
               ) : (
-                <Copy className="w-4 h-4 text-gray-500" />
+                <Copy className="w-[18px] h-[18px] text-gray-400" />
               )}
             </button>
           </div>
-          <p className="text-xs text-gray-400 mt-2">
-            Amount: ₹{amount.toLocaleString()} • Payee: {accountHolderName}
+          <p className="mt-2 text-[12.5px] leading-relaxed text-gray-500">
+            ₹{amount.toLocaleString()} to {accountHolderName}
           </p>
         </div>
       </div>

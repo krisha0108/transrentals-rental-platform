@@ -9,6 +9,91 @@ import {
   logger,
 } from '@/lib/security';
 import { generateVid } from '@/lib/utils/generate-vid';
+import { getManagersForLocation, notifyManagers } from '@/lib/notifications/manager-notify';
+
+function generateLocationRequestId(): string {
+  return 'vlr' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 21);
+}
+
+interface ServiceLocationInput {
+  locationId: string | null; // null when isCustom — resolved server-side from `state`
+  name: string;
+  isCustom: boolean;
+}
+
+// Creates the vendor's first vendor_location_requests row(s) at registration
+// time, reusing the exact same shape/notify flow as the existing
+// POST /api/vendor/locations/bulk endpoint — so these show up identically
+// in the manager/admin location-request queues. Never throws: registration
+// must succeed even if location-request creation has a problem.
+async function createInitialLocationRequests(
+  vendorId: string,
+  businessName: string,
+  serviceLocations: ServiceLocationInput[],
+  stateName: string | null,
+) {
+  try {
+    if (!serviceLocations?.length) return;
+
+    // Resolve custom entries to their state's locationId (best-effort).
+    let fallbackStateId: string | null = null;
+    const hasCustom = serviceLocations.some((l) => l.isCustom);
+    if (hasCustom && stateName) {
+      const stateLoc = await prisma.locations.findFirst({
+        where: { name: stateName, type: { in: ['STATE', 'UNION_TERRITORY'] } },
+        select: { id: true },
+      });
+      fallbackStateId = stateLoc?.id ?? null;
+    }
+
+    const rows = serviceLocations
+      .map((loc) => {
+        const locationId = loc.isCustom ? fallbackStateId : loc.locationId;
+        if (!locationId) return null; // couldn't resolve — skip, don't block registration
+        return {
+          locationId,
+          localAddress: loc.isCustom ? `Requested area not in list: "${loc.name}"` : null,
+        };
+      })
+      .filter((r): r is { locationId: string; localAddress: string | null } => r !== null);
+
+    if (!rows.length) return;
+
+    const created = await prisma.$transaction(
+      rows.map((r) =>
+        prisma.vendor_location_requests.upsert({
+          where: { vendorId_locationId: { vendorId, locationId: r.locationId } },
+          update: {},
+          create: {
+            id: generateLocationRequestId(),
+            vendorId,
+            locationId: r.locationId,
+            localAddress: r.localAddress,
+            status: 'PENDING',
+          },
+        })
+      )
+    );
+
+    // Notify managers scoped to each location — best-effort, never blocks.
+    await Promise.all(
+      created.map((req) =>
+        getManagersForLocation(req.locationId).then((managerIds) =>
+          notifyManagers(managerIds, {
+            type: 'NEW_LOCATION_REQUEST',
+            title: 'New vendor wants to operate here',
+            body: `${businessName} has requested this as their first location.`,
+            link: `/manager/vendors/${vendorId}?tab=locations`,
+            metadata: { vendorId, locationId: req.locationId, requestId: req.id, isNewVendor: true },
+            dedupeKey: req.id,
+          })
+        )
+      )
+    );
+  } catch (error) {
+    logger.error('Failed to create initial location requests at registration', error);
+  }
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -51,12 +136,20 @@ export async function POST(request: NextRequest) {
       city,
       state,
       pincode,
+      serviceLocations,
     } = body;
 
     // Validation
     if (!email || !password || !phone || !businessName || !ownerName) {
       return NextResponse.json(
         { error: 'Email, password, phone, business name, and owner name are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!Array.isArray(serviceLocations) || serviceLocations.length === 0) {
+      return NextResponse.json(
+        { error: 'At least one service location is required' },
         { status: 400 }
       );
     }
@@ -152,6 +245,11 @@ export async function POST(request: NextRequest) {
     });
 
     logger.info('Vendor registered successfully', { vendorId: vendor.id });
+
+    // Vendor's chosen service location(s) become their first location
+    // request(s) — same record type/queue managers already review, so no
+    // separate "request a location" step is needed after registration.
+    await createInitialLocationRequests(vendor.id, businessName, serviceLocations, state || null);
 
     return NextResponse.json({
       message: 'Registration successful! Please upload your business documents.',

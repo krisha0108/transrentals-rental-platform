@@ -115,11 +115,11 @@ export function BackrTokenSection() {
               <span className="text-sm font-semibold text-amber-900">Loyalty Rewards Program</span>
             </div>
 
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+            <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-6">
               Earn <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-600">Backr Tokens</span> on Every Booking
             </h2>
 
-            <p className="text-xl text-gray-700 mb-8">
+            <p className="text-sm md:text-base text-gray-700 mb-8">
               Complete bookings, spin the daily wheel, and earn cryptocurrency rewards that you can redeem for real value!
             </p>
 
@@ -157,8 +157,8 @@ export function BackrTokenSection() {
                     {feature.icon}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 mb-1">{feature.title}</h3>
-                    <p className="text-sm text-gray-600">{feature.description}</p>
+                    <h3 className="text-sm font-bold text-gray-900 mb-1">{feature.title}</h3>
+                    <p className="text-xs text-gray-600">{feature.description}</p>
                   </div>
                 </motion.div>
               ))}

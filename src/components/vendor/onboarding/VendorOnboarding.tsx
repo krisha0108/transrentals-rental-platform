@@ -11,7 +11,6 @@ import Link from 'next/link';
 interface VendorOnboardingProps {
   vendorStatus: string;
   documentsCount: number;
-  locationRequestsCount: number;
   serviceRequestsCount: number;
 }
 
@@ -100,11 +99,13 @@ function LockPopup({ steps, onClose }: { steps: any[]; onClose: () => void }) {
 export default function VendorOnboarding({
   vendorStatus,
   documentsCount,
-  locationRequestsCount,
   serviceRequestsCount,
 }: VendorOnboardingProps) {
   const [showLockPopup, setShowLockPopup] = useState(false);
 
+  // Location is no longer a separate onboarding step — vendors now pick
+  // their service location(s) during registration itself, which creates
+  // their first location request automatically.
   const steps = [
     {
       id: 'documents',
@@ -116,22 +117,13 @@ export default function VendorOnboarding({
       status: (documentsCount > 0 ? 'done' : 'active') as 'done' | 'active' | 'locked',
     },
     {
-      id: 'locations',
-      step: 2,
-      icon: MapPin,
-      title: 'Request Locations',
-      shortTitle: 'Locations',
-      action: { label: locationRequestsCount > 0 ? 'View Requests' : 'Request Now', href: '/vendor/locations' },
-      status: (locationRequestsCount > 0 ? 'done' : documentsCount > 0 ? 'active' : 'locked') as 'done' | 'active' | 'locked',
-    },
-    {
       id: 'services',
-      step: 3,
+      step: 2,
       icon: Wrench,
       title: 'Request Services',
       shortTitle: 'Services',
       action: { label: serviceRequestsCount > 0 ? 'View Requests' : 'Request Now', href: '/vendor/services' },
-      status: (serviceRequestsCount > 0 ? 'done' : locationRequestsCount > 0 ? 'active' : 'locked') as 'done' | 'active' | 'locked',
+      status: (serviceRequestsCount > 0 ? 'done' : documentsCount > 0 ? 'active' : 'locked') as 'done' | 'active' | 'locked',
     },
   ];
 
@@ -159,11 +151,11 @@ export default function VendorOnboarding({
                 {allDone ? 'All steps done — account is under review' : 'Complete verification to unlock full access'}
               </span>
             </div>
-            <span className="text-xs font-bold text-white/70 shrink-0">{completedCount}/3 done</span>
+            <span className="text-xs font-bold text-white/70 shrink-0">{completedCount}/2 done</span>
           </div>
           {!allDone && (
             <p className="text-xs text-blue-100/90 mt-1 pl-6">
-              Finish all 3 steps — Documents, Locations &amp; Services — to become an <span className="font-semibold text-white">official TransRentals vendor</span>.
+              Finish both steps — Documents &amp; Services — to become an <span className="font-semibold text-white">official TransRentals vendor</span>.
             </p>
           )}
         </div>
@@ -415,10 +407,10 @@ export default function VendorOnboarding({
           <div>
             <p className="text-sm font-bold text-amber-900">Account is under review — we'll notify you by email</p>
             <p className="text-sm text-amber-700 mt-1 leading-relaxed">
-              Our team is reviewing your documents, locations, and service requests. Approval usually takes 1–2 business days.
+              Our team is reviewing your documents and service requests. Approval usually takes 1–2 business days.
             </p>
             <div className="flex flex-wrap gap-2 mt-3">
-              {['Documents submitted', 'Locations requested', 'Services requested'].map(item => (
+              {['Documents submitted', 'Services requested'].map(item => (
                 <span key={item} className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-full">
                   <CheckCircle2 className="w-3 h-3 text-amber-600" /> {item}
                 </span>
