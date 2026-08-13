@@ -16,7 +16,7 @@ interface Document {
   documentName: string;
   documentUrl: string;
   documentNumber: string | null;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'RESUBMIT_REQUIRED';
   rejectionReason: string | null;
   createdAt: string;
   uploadedBy?: { id: string; name: string; role: string } | null;
@@ -112,6 +112,15 @@ const STATUS_CONFIG = {
     iconColor: 'text-red-500',
     dot: 'bg-red-500',
   },
+  RESUBMIT_REQUIRED: {
+    label: 'Resubmit Required',
+    badge: 'bg-orange-100 text-orange-700',
+    border: 'border-orange-300',
+    bg: 'bg-orange-50',
+    icon: AlertTriangle,
+    iconColor: 'text-orange-500',
+    dot: 'bg-orange-500',
+  },
 };
 
 export default function VendorDocumentsPage() {
@@ -122,6 +131,8 @@ export default function VendorDocumentsPage() {
   const [uploadModal, setUploadModal] = useState<{ open: boolean; docType: string | null }>({ open: false, docType: null });
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [previewError, setPreviewError] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [documentNumber, setDocumentNumber] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -184,11 +195,15 @@ export default function VendorDocumentsPage() {
     finally { setUploading(false); }
   };
 
-  const handleDelete = async (docId: string) => {
-    if (!confirm('Delete this document?')) return;
-    const res = await fetch(`/api/vendor/documents/${docId}`, { method: 'DELETE' });
-    if (res.ok) fetchDocuments();
-    else alert('Delete failed');
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/vendor/documents/${deleteTarget.id}`, { method: 'DELETE' });
+      if (res.ok) { setDeleteTarget(null); fetchDocuments(); }
+      else { const e = await res.json(); alert(e.error || 'Delete failed'); }
+    } catch { alert('Delete failed. Please try again.'); }
+    finally { setDeleting(false); }
   };
 
   const totalUploaded = documents.length;
@@ -318,7 +333,7 @@ export default function VendorDocumentsPage() {
                     {doc.documentNumber && (
                       <p className="text-[9px] text-gray-400 mt-1">No. {doc.documentNumber}</p>
                     )}
-                    {doc.status === 'REJECTED' && doc.rejectionReason && (
+                    {(doc.status === 'REJECTED' || doc.status === 'RESUBMIT_REQUIRED') && doc.rejectionReason && (
                       <p className="text-[9px] text-red-700 mt-1 leading-relaxed">
                         <strong>Reason: </strong>{doc.rejectionReason}
                       </p>
@@ -367,7 +382,7 @@ export default function VendorDocumentsPage() {
                             {doc.status === 'REJECTED' ? 'Re-upload' : 'Replace'}
                           </button>
                           <button
-                            onClick={() => handleDelete(doc.id)}
+                            onClick={() => setDeleteTarget(doc)}
                             className="w-11 flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 rounded-xl transition-colors shrink-0"
                             title="Delete"
                           >
@@ -609,6 +624,50 @@ export default function VendorDocumentsPage() {
                 className="text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 px-5 py-2.5 rounded-xl transition-colors"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════
+          DELETE CONFIRMATION MODAL
+      ══════════════════════════════════════ */}
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => !deleting && setDeleteTarget(null)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 mx-auto rounded-full bg-red-50 flex items-center justify-center mb-4">
+                <Trash2 className="w-6 h-6 text-red-500" />
+              </div>
+              <h3 className="text-base font-bold text-gray-900">Delete this document?</h3>
+              <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">
+                <span className="font-semibold text-gray-700">{deleteTarget.documentName}</span> will be permanently removed. This can't be undone.
+              </p>
+            </div>
+            <div className="flex gap-3 px-6 pb-6">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="flex-1 py-2.5 text-sm font-semibold text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-colors shadow-sm"
+              >
+                {deleting
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</>
+                  : <><Trash2 className="w-4 h-4" /> Delete</>
+                }
               </button>
             </div>
           </div>

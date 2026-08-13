@@ -68,7 +68,8 @@ export default function SettingsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save settings');
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.detail || data?.error || 'Failed to save settings');
       }
 
       setSaveSuccess(true);

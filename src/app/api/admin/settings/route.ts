@@ -7,6 +7,13 @@ import { authOptions } from '@/lib/auth/auth-options';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
+// Settings values are meant to be short strings/IDs and the occasional small
+// script snippet — never files or images. Reject anything that got too big
+// (e.g. a base64 image accidentally pasted into a "Custom Scripts" textarea)
+// with a clear error here, well below the infra-level (nginx) body size cap,
+// so the admin gets an actionable message instead of an opaque 413.
+const MAX_SETTINGS_BODY_BYTES = 512 * 1024; // 512KB
+
 // GET all settings
 export async function GET() {
   try {
@@ -38,7 +45,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const contentLength = Number(request.headers.get('content-length') || 0);
+    if (contentLength > MAX_SETTINGS_BODY_BYTES) {
+      return NextResponse.json(
+        {
+          error: 'Payload too large',
+          detail: `Settings payload is ${(contentLength / 1024).toFixed(0)}KB, which is over the ${MAX_SETTINGS_BODY_BYTES / 1024}KB limit. Settings should only contain short IDs/snippets — check for an accidentally pasted image or huge script block.`,
+        },
+        { status: 413 },
+      );
+    }
+
     const body = await request.json();
+
+    // Belt-and-suspenders: content-length can be absent/wrong on some proxies,
+    // so also check the actual parsed size.
+    const actualBytes = Buffer.byteLength(JSON.stringify(body), 'utf8');
+    if (actualBytes > MAX_SETTINGS_BODY_BYTES) {
+      return NextResponse.json(
+        {
+          error: 'Payload too large',
+          detail: `Settings payload is ${(actualBytes / 1024).toFixed(0)}KB, which is over the ${MAX_SETTINGS_BODY_BYTES / 1024}KB limit. Settings should only contain short IDs/snippets — check for an accidentally pasted image or huge script block.`,
+        },
+        { status: 413 },
+      );
+    }
 
     // Update each setting
     const updates = Object.entries(body).map(([key, value]) => {

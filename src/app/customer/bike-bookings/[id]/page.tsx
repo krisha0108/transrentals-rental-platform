@@ -18,6 +18,7 @@ import {
   User,
   Loader2,
   Shield,
+  CreditCard,
   Copy,
   KeyRound,
   Play,
@@ -103,6 +104,27 @@ const MOCK_BOOKING = {
   cancellationPolicy: 'Free cancellation up to 24 hours before pickup. 50% refund for cancellations within 24 hours.',
   termsAccepted: true,
 };
+
+// Presentation only — maps the existing booking status onto the hero progress
+// rail. Adds no state and changes no behaviour.
+const BOOKING_STEPS = ['Booked', 'Advance Payment', 'Vendor Confirms', 'Ready for Pickup', 'Trip Ongoing', 'Completed'];
+
+const STEP_INDEX_BY_STATUS: Partial<Record<BikeBookingStatus, number>> = {
+  PENDING: 0,
+  PENDING_PAYMENT: 1,
+  PAYMENT_SUBMITTED: 1,
+  PAYMENT_VERIFIED: 2,
+  PENDING_VENDOR: 2,
+  BROADCASTED: 2,
+  ACCEPTED: 3,
+  READY_FOR_PICKUP: 3,
+  IN_PROGRESS: 4,
+  COMPLETED: 5,
+};
+
+// The rail describes a booking moving forward — it says nothing useful once a
+// booking is cancelled, expired or refunded, so it is hidden for those.
+const RAIL_HIDDEN_STATUSES: BikeBookingStatus[] = ['CANCELLED', 'EXPIRED', 'REFUNDED'];
 
 const CANCEL_REASONS = [
   'Plans changed / Trip cancelled',
@@ -498,54 +520,116 @@ export default function BikeBookingDetailPage() {
       <CustomerHeader showBackButton />
 
       {/* Hero Header */}
-      <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">
-        <div className="max-w-4xl mx-auto px-4 pt-5 pb-8">
-          <Link href="/customer/dashboard" className="inline-flex items-center gap-1.5 text-white/70 hover:text-white text-sm mb-5 transition">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Link>
-
-          <div className="flex items-start justify-between gap-4">
-            {/* Left: icon + name */}
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/20">
-                <Bike className="w-7 h-7" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold leading-tight">{booking.vehicleName}</h1>
-                <p className="text-white/70 text-sm mt-0.5">#{booking.bookingNumber}</p>
-                {booking.location && (
-                  <p className="text-white/60 text-xs mt-1 flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />{booking.location}
-                  </p>
-                )}
-              </div>
-            </div>
-            {/* Right: status badge */}
-            <div className={`px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0 whitespace-nowrap ${statusConfig.bg} ${statusConfig.text}`}>
+      <div className="relative overflow-hidden bg-[#012314] text-white">
+        <div className="absolute inset-0 bg-[linear-gradient(118deg,#056B3E_0%,#078F53_42%,#09B368_100%)]" />
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{
+            backgroundImage:
+              'radial-gradient(680px 300px at 90% -30%, rgba(255,255,255,.24), transparent 60%),' +
+              'radial-gradient(460px 240px at 4% 130%, rgba(1,35,20,.6), transparent 58%),' +
+              'repeating-linear-gradient(115deg, rgba(255,255,255,.05) 0 1px, transparent 1px 46px)',
+          }}
+        />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-6">
+          {/* Back link + status on one line */}
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href="/customer/dashboard"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.16] bg-white/[0.07] py-1 pl-2 pr-3 text-xs font-semibold text-white/[0.74] transition hover:-translate-x-0.5 hover:bg-white/[0.17] hover:text-white"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Back to Dashboard
+            </Link>
+            <div className={`px-3 py-1.5 rounded-full text-[11.5px] font-extrabold flex-shrink-0 whitespace-nowrap shadow-lg shadow-black/20 ${statusConfig.bg} ${statusConfig.text}`}>
               {statusConfig.label}
             </div>
           </div>
 
-          {/* Quick stats row */}
-          <div className="mt-6 grid grid-cols-3 gap-3">
-            <div className="bg-white/10 rounded-xl px-3 py-2.5 border border-white/15">
-              <p className="text-white/60 text-xs">Duration</p>
-              <p className="text-white font-bold text-sm mt-0.5">{booking.totalDays} Day{booking.totalDays > 1 ? 's' : ''}</p>
+          {/* Title + stat strip */}
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-5">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-14 h-14 bg-white/[0.14] rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/[0.24] shadow-[inset_0_1px_0_rgba(255,255,255,.3)]">
+                <Bike className="w-7 h-7" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-[28px] font-extrabold leading-tight tracking-tight">{booking.vehicleName}</h1>
+                <div className="mt-2 flex flex-wrap items-center gap-2.5">
+                  <span className="rounded-md border border-white/[0.14] bg-white/10 px-2.5 py-1 text-xs font-bold tabular-nums text-white/80">
+                    {booking.bookingNumber}
+                  </span>
+                  {booking.location && (
+                    <span className="flex items-center gap-1.5 text-xs text-white/[0.62]">
+                      <MapPin className="w-3.5 h-3.5" />{booking.location}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="bg-white/10 rounded-xl px-3 py-2.5 border border-white/15">
-              <p className="text-white/60 text-xs">Grand Total</p>
-              <p className="text-white font-bold text-sm mt-0.5">₹{(booking.grandTotal || booking.totalAmount)?.toLocaleString('en-IN')}</p>
-            </div>
-            <div className="bg-white/10 rounded-xl px-3 py-2.5 border border-white/15">
-              <p className="text-white/60 text-xs">Advance</p>
-              <p className="text-white font-bold text-sm mt-0.5">₹{booking.advanceAmount?.toLocaleString('en-IN') || '—'}</p>
+
+            <div className="grid w-full grid-cols-2 overflow-hidden rounded-2xl border border-white/[0.16] bg-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,.12)] sm:grid-cols-4 lg:w-auto">
+              <div className="px-5 py-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/[0.58] whitespace-nowrap">Duration</p>
+                <p className="mt-1 text-[17px] font-extrabold tabular-nums whitespace-nowrap">{booking.totalDays} Day{booking.totalDays > 1 ? 's' : ''}</p>
+              </div>
+              <div className="border-l border-white/[0.12] px-5 py-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/[0.58] whitespace-nowrap">Grand Total</p>
+                <p className="mt-1 text-[17px] font-extrabold tabular-nums whitespace-nowrap">₹{(booking.grandTotal || booking.totalAmount)?.toLocaleString('en-IN')}</p>
+              </div>
+              <div className="border-t border-white/[0.12] px-5 py-3 sm:border-t-0 sm:border-l">
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/[0.58] whitespace-nowrap">Advance {booking.advancePercentage}%</p>
+                <p className="mt-1 text-[17px] font-extrabold tabular-nums whitespace-nowrap">₹{booking.advanceAmount?.toLocaleString('en-IN') || '—'}</p>
+              </div>
+              <div className="border-l border-t border-white/[0.12] px-5 py-3 sm:border-t-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/[0.58] whitespace-nowrap">Daily Rate</p>
+                <p className="mt-1 text-[17px] font-extrabold tabular-nums whitespace-nowrap">₹{booking.dailyRate?.toLocaleString('en-IN') || '—'}</p>
+              </div>
             </div>
           </div>
+
+          {/* Progress rail — reflects booking.status, no new state */}
+          {!RAIL_HIDDEN_STATUSES.includes(booking.status) && (
+          <div className="mt-6 border-t border-white/[0.13] pt-5">
+            <div className="flex items-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(90deg,#000_82%,transparent)] md:[mask-image:none]">
+              {BOOKING_STEPS.map((step, i) => {
+                const currentIdx = STEP_INDEX_BY_STATUS[booking.status] ?? 0;
+                const isDone = i < currentIdx;
+                const isNow = i === currentIdx;
+                return (
+                  <div key={step} className="relative min-w-[104px] flex-1 text-center">
+                    {i > 0 && (
+                      <span className="absolute top-[10px] left-[calc(-50%+12px)] right-[calc(50%+12px)] h-0.5 overflow-hidden rounded-sm bg-white/20">
+                        <span className={`block h-full rounded-sm bg-white transition-[width] duration-700 ${i <= currentIdx ? 'w-full' : 'w-0'}`} />
+                      </span>
+                    )}
+                    <span
+                      className={`relative z-10 mx-auto flex h-[22px] w-[22px] items-center justify-center rounded-full border-2 transition ${
+                        isNow
+                          ? 'border-amber-100 bg-amber-100 text-amber-800 shadow-[0_0_0_5px_rgba(254,243,199,.2)]'
+                          : isDone
+                            ? 'border-white bg-white text-[#056B3E]'
+                            : 'border-white/30 bg-white/[0.16] text-white/50'
+                      }`}
+                    >
+                      {isDone && <CheckCircle className="h-3 w-3" strokeWidth={3.5} />}
+                      {isNow && <Clock className="h-3 w-3" strokeWidth={3} />}
+                    </span>
+                    <span className={`mt-2.5 block whitespace-nowrap text-[11px] ${isNow ? 'font-bold text-white' : isDone ? 'font-semibold text-white/90' : 'font-semibold text-white/[0.55]'}`}>
+                      {step}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          )}
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-5 space-y-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_372px] lg:gap-5">
+
+        {/* ══ Left column ══ */}
+        <div className="flex min-w-0 flex-col gap-4">
 
         {/* Live update toast */}
         {statusUpdateMessage && (
@@ -566,15 +650,111 @@ export default function BikeBookingDetailPage() {
           </div>
         )}
 
-        {/* Payment Required */}
+        {/* Payment Required — split card: amount stub on the left, the existing
+            BookingPayment widget (embedded, so it keeps its own Razorpay and
+            manual-UPI flows) on the right. When the much taller UPI / bank
+            transfer panel is showing, the `:has()` rule below drops the card
+            back to a single column, so the stub becomes a band across the top
+            instead of a half-empty green column. */}
         {showPaymentConfirmation && (
-          <BookingPayment
-            bookingId={booking.id}
-            bookingType="bike"
-            amount={booking.advanceAmount}
-            bookingNumber={booking.bookingNumber}
-            onSuccess={() => window.location.reload()}
-          />
+          <section className="grid grid-cols-1 overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-[0_20px_52px_-22px_rgba(1,35,20,.45)] lg:grid-cols-[1.08fr_0.92fr] lg:has-[[data-manual-payment]]:grid-cols-1">
+            {/* Amount stub. Its two blocks sit side by side when the card is
+                full width and stack when it is a narrow column — no mode-specific
+                classes needed. */}
+            <div className="relative overflow-hidden bg-[linear-gradient(155deg,#01301B_0%,#056B3E_58%,#078F53_100%)] px-5 py-5 text-white">
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  backgroundImage:
+                    'radial-gradient(520px 240px at 100% -30%, rgba(42,210,145,.42), transparent 62%),' +
+                    'repeating-linear-gradient(128deg, rgba(255,255,255,.045) 0 1px, transparent 1px 38px)',
+                }}
+              />
+              <div className="relative z-10 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+                {/* amount */}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[9px] border border-white/[0.22] bg-white/[0.16]">
+                      <CreditCard className="h-4 w-4" />
+                    </span>
+                    <span>
+                      <span className="block text-[13px] font-extrabold">Complete Your Booking</span>
+                      <span className="mt-px block text-[11px] text-white/[0.66]">Pay advance to confirm</span>
+                    </span>
+                  </div>
+                  <p className="mt-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">Advance Payment</p>
+                  <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="text-[38px] font-extrabold leading-none tracking-[-0.035em] tabular-nums sm:text-[44px]">
+                      ₹{booking.advanceAmount?.toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-xs tabular-nums text-white/[0.68]">
+                      of ₹{(booking.grandTotal || booking.totalAmount)?.toLocaleString('en-IN')} total ·{' '}
+                      <span className="font-bold text-white">{booking.advancePercentage}% advance</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* split + vehicle */}
+                <div className="w-full min-w-0 sm:w-[300px]">
+                  <div className="h-[5px] overflow-hidden rounded bg-white/[0.16]">
+                    <span
+                      className="block h-full rounded bg-[linear-gradient(90deg,#2AD291,#fff)]"
+                      style={{ width: `${Math.min(100, Math.round((booking.advanceAmount / (booking.grandTotal || booking.totalAmount || 1)) * 100))}%` }}
+                    />
+                  </div>
+                  <div className="mt-1.5 flex justify-between gap-2.5 text-[10.5px] tabular-nums text-white/60">
+                    <span>Paying now ₹{booking.advanceAmount?.toLocaleString('en-IN')}</span>
+                    <span>Balance ₹{(booking.totalAmount - booking.advanceAmount)?.toLocaleString('en-IN')}</span>
+                  </div>
+                  <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/[0.18] bg-white/[0.12] px-3 py-1.5 text-xs font-semibold">
+                    <Bike className="h-3.5 w-3.5" />
+                    {booking.vehicleName}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment panel — full width, centred. Holds both the Razorpay view
+                and the taller UPI / bank-transfer view without reflowing. */}
+            <div className="flex flex-col justify-center px-4 py-5 sm:px-5">
+              <div className="mx-auto w-full max-w-4xl">
+                <div className="mb-4 flex items-center justify-between gap-2.5">
+                  <p className="text-[15px] font-extrabold text-gray-900">Choose how to pay</p>
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#C8F1DF] bg-[#E9FAF2] px-3 py-1 text-[11.5px] font-bold text-[#056B3E]">
+                    <Shield className="h-3.5 w-3.5" />
+                    Secure
+                  </span>
+                </div>
+                {/* The embedded widget ships at "compact" sizing — a small
+                    button with 8px gaps — which reads as cramped next to the
+                    amount panel. Scale the button and open up the spacing from
+                    here, so the shared component keeps its compact defaults for
+                    every other caller.
+                      [&>div]        → RazorpayPayment root
+                      [&>div>button] → Pay Securely
+                      [&>div>div]    → the method pills and the Razorpay line
+                      [&>button]     → "Having trouble?" fallback link */}
+                <div
+                  className="
+                    [&>div>button]:rounded-2xl [&>div>button]:py-4 [&>div>button]:text-[15px]
+                    [&>div>div]:mt-4 [&>div>div]:gap-2
+                    [&_span]:text-[11.5px]
+                    [&>button]:mt-5 [&>button]:border-t [&>button]:border-gray-100 [&>button]:pt-4
+                    [&>button]:text-[12.5px] [&>button]:text-gray-500 [&>button]:hover:text-[#056B3E]
+                  "
+                >
+                  <BookingPayment
+                    bookingId={booking.id}
+                    bookingType="bike"
+                    amount={booking.advanceAmount}
+                    bookingNumber={booking.bookingNumber}
+                    onSuccess={() => window.location.reload()}
+                    embedded
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
         )}
 
         {/* Payment Submitted */}
@@ -592,19 +772,34 @@ export default function BikeBookingDetailPage() {
 
         {/* Trip OTP */}
         {booking.status === 'READY_FOR_PICKUP' && tripOtp && (
-          <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-5 text-white shadow-lg">
-            <p className="text-white/70 text-xs font-semibold uppercase tracking-widest mb-2">Trip Start OTP</p>
-            <div className="flex items-center justify-between">
-              <p className="text-4xl font-bold tracking-[0.5em] font-mono">{tripOtp}</p>
-              <button
-                onClick={() => { navigator.clipboard.writeText(tripOtp); setOtpCopied(true); setTimeout(() => setOtpCopied(false), 2000); }}
-                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl transition text-sm font-medium"
-              >
-                {otpCopied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {otpCopied ? 'Copied' : 'Copy'}
-              </button>
+          <div className="relative overflow-hidden rounded-2xl bg-[linear-gradient(125deg,#056B3E,#09B368)] p-5 text-white shadow-[0_18px_44px_-14px_rgba(9,179,104,.5)]">
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{ backgroundImage: 'radial-gradient(420px 180px at 90% -20%, rgba(255,255,255,.25), transparent 60%)' }}
+            />
+            <div className="relative z-10">
+              <p className="text-white/[0.72] text-[10.5px] font-extrabold uppercase tracking-[0.12em]">Trip Start OTP</p>
+              <div className="mt-2.5 flex flex-wrap items-center justify-between gap-3.5">
+                <span className="flex gap-2">
+                  {tripOtp.split('').map((d, i) => (
+                    <span
+                      key={i}
+                      className="flex h-[52px] w-11 items-center justify-center rounded-xl border border-white/[0.28] bg-white/[0.16] text-2xl font-extrabold tabular-nums"
+                    >
+                      {d}
+                    </span>
+                  ))}
+                </span>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(tripOtp); setOtpCopied(true); setTimeout(() => setOtpCopied(false), 2000); }}
+                  className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/20 px-4 py-2.5 text-[12.5px] font-bold transition hover:bg-white/[0.32]"
+                >
+                  {otpCopied ? <CheckCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {otpCopied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              <p className="text-white/[0.72] text-[11.5px] mt-3">Share this OTP with the vendor at pickup to start your trip</p>
             </div>
-            <p className="text-white/60 text-xs mt-3">Share this OTP with the vendor at pickup to start your trip</p>
           </div>
         )}
 
@@ -622,25 +817,30 @@ export default function BikeBookingDetailPage() {
         )}
 
         {/* ── Vehicle Card ── */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Vehicle Details</p>
+        <div className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC] flex items-center justify-between">
+            <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Vehicle Details</p>
+            {booking.helmetIncluded && (
+              <span className="rounded-full border border-[#C8F1DF] bg-[#E9FAF2] px-2.5 py-0.5 text-[11px] font-bold text-[#056B3E]">
+                Helmet included
+              </span>
+            )}
           </div>
           <div className="p-4 flex gap-4 items-center">
-            <div className="relative w-28 h-20 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
+            <div className="relative w-32 h-[92px] rounded-2xl overflow-hidden bg-gradient-to-br from-[#E9FAF2] to-[#DCFCE7] flex-shrink-0 border border-gray-100">
               <Image src={booking.vehicleImage} alt={booking.vehicleName} fill className="object-cover" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-gray-900 text-base">{booking.vehicleName}</p>
-              <p className="text-sm text-gray-500">{booking.vehicleType}</p>
+              <p className="font-extrabold text-gray-900 text-[17px] tracking-tight">{booking.vehicleName}</p>
+              <p className="text-[12.5px] text-gray-500 mt-0.5">{booking.vehicleType}</p>
               <div className="flex flex-wrap gap-1.5 mt-2.5">
                 {booking.helmetIncluded && (
-                  <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#C8F1DF] bg-[#E9FAF2] px-2.5 py-1 text-[11px] font-bold text-[#056B3E]">
                     <CheckCircle className="w-3 h-3" /> Helmet Included
                   </span>
                 )}
                 {booking.extras?.map((extra) => (
-                  <span key={extra} className="bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full text-xs font-medium">{extra}</span>
+                  <span key={extra} className="rounded-full border border-gray-100 bg-gray-50 px-2.5 py-1 text-[11px] font-bold text-gray-600">{extra}</span>
                 ))}
               </div>
             </div>
@@ -648,133 +848,101 @@ export default function BikeBookingDetailPage() {
         </div>
 
         {/* ── Trip Details ── */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-4 py-3 border-b bg-gray-50">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Trip Details</p>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
+            <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Trip Details</p>
           </div>
           <div className="p-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
               {/* Pickup */}
-              <div className="bg-green-50 border border-green-100 rounded-xl p-3">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="rounded-2xl border border-[#C8F1DF] bg-[#E9FAF2] p-3.5 transition hover:-translate-y-0.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-[22px] h-[22px] bg-[#09B368] rounded-full flex items-center justify-center flex-shrink-0">
                     <MapPin className="w-3 h-3 text-white" />
                   </div>
-                  <p className="text-xs font-bold text-green-700 uppercase tracking-wide">Pickup</p>
+                  <p className="text-[10.5px] font-extrabold text-[#056B3E] uppercase tracking-[0.09em]">Pickup</p>
                 </div>
-                <p className="text-sm font-bold text-gray-900">{formatDate(booking.pickupDate)}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{formatTime(booking.pickupTime)}</p>
+                <p className="mt-2.5 text-[15px] font-extrabold text-gray-900">{formatDate(booking.pickupDate)}</p>
+                <p className="text-xs text-gray-500 mt-0.5 tabular-nums">
+                  {formatTime(booking.pickupTime)}{booking.location ? ` · ${booking.location}` : ''}
+                </p>
+              </div>
+              {/* Duration */}
+              <div className="flex flex-col items-center gap-1.5 px-1">
+                <span className="hidden h-0.5 w-full min-w-[34px] rounded-sm bg-[repeating-linear-gradient(90deg,#E4EBE7_0_5px,transparent_5px_10px)] sm:block" />
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#0F1A15] px-3 py-1.5 text-[11.5px] font-bold text-white">
+                  <Clock className="w-3 h-3" />
+                  {booking.totalDays} Day{booking.totalDays > 1 ? 's' : ''}
+                </span>
+                <span className="hidden h-0.5 w-full min-w-[34px] rounded-sm bg-[repeating-linear-gradient(90deg,#E4EBE7_0_5px,transparent_5px_10px)] sm:block" />
               </div>
               {/* Drop */}
-              <div className="bg-red-50 border border-red-100 rounded-xl p-3">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="rounded-2xl border border-red-100 bg-red-50 p-3.5 transition hover:-translate-y-0.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-[22px] h-[22px] bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
                     <MapPin className="w-3 h-3 text-white" />
                   </div>
-                  <p className="text-xs font-bold text-red-600 uppercase tracking-wide">Drop-off</p>
+                  <p className="text-[10.5px] font-extrabold text-red-700 uppercase tracking-[0.09em]">Drop-off</p>
                 </div>
-                <p className="text-sm font-bold text-gray-900">{formatDate(booking.dropDate)}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{formatTime(booking.dropTime)}</p>
+                <p className="mt-2.5 text-[15px] font-extrabold text-gray-900">{formatDate(booking.dropDate)}</p>
+                <p className="text-xs text-gray-500 mt-0.5 tabular-nums">
+                  {formatTime(booking.dropTime)}{booking.location ? ` · ${booking.location}` : ''}
+                </p>
               </div>
             </div>
-            {/* Duration pill */}
-            <div className="mt-3 flex items-center justify-center gap-2 bg-gray-50 border border-gray-100 rounded-lg py-2">
-              <Clock className="w-3.5 h-3.5 text-gray-400" />
-              <p className="text-sm font-semibold text-gray-700">{booking.totalDays} Day{booking.totalDays > 1 ? 's' : ''} Rental</p>
-            </div>
+            {booking.pickupAddress && (
+              <div className="mt-3.5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+                <p className="text-[10.5px] font-extrabold uppercase tracking-[0.08em] text-blue-700">Pickup Address</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-blue-900">{booking.pickupAddress}</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ── Vendor Details ── */}
-        {booking.vendorName && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-4 py-3 border-b bg-gray-50">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Vendor Details</p>
-            </div>
-            <div className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-5 h-5 text-green-700" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900 text-sm">{booking.vendorName}</p>
-                    {booking.vendorRating > 0 && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        {[1,2,3,4,5].map(s => (
-                          <Star key={s} className={`w-3 h-3 ${s <= Math.round(booking.vendorRating) ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}`} />
-                        ))}
-                        <span className="text-xs text-gray-500 ml-1">{booking.vendorRating}</span>
-                        {booking.vendorReviewCount > 0 && <span className="text-xs text-gray-400">· {booking.vendorReviewCount} reviews</span>}
-                      </div>
-                    )}
-                    {booking.vendorAddress && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{booking.vendorAddress}</p>}
-                  </div>
-                </div>
-                {booking.vendorPhone && (
-                  <a href={`tel:${booking.vendorPhone}`} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition text-sm font-semibold shadow-sm">
-                    <Phone className="w-4 h-4" />
-                    Call
-                  </a>
-                )}
+        {/* ── Payment Summary ── */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
+            <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Payment Summary</p>
+          </div>
+          <div className="p-4">
+            <div className="flex flex-col gap-px overflow-hidden rounded-xl bg-gray-50">
+              <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-2.5">
+                <span className="text-[12.5px] text-gray-500">Daily Rate × {booking.totalDays} day{booking.totalDays > 1 ? 's' : ''}</span>
+                <span className="text-[13px] font-bold tabular-nums text-gray-800">₹{booking.totalAmount?.toLocaleString('en-IN')}</span>
               </div>
-              {customer && booking.vendorId && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <BikeBookingChat
-                    bookingId={booking.id}
-                    vendorId={booking.vendorId}
-                    vendorName={booking.vendorName || 'Vendor'}
-                    customerId={customer?.id?.toString() || booking.customerId || `guest-${booking.id}`}
-                    customerName={customer?.name || 'Customer'}
-                  />
+              {booking.gstAmount > 0 && (
+                <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-2.5">
+                  <span className="text-[12.5px] text-gray-500">GST (18%)</span>
+                  <span className="text-[13px] font-bold tabular-nums text-gray-800">₹{booking.gstAmount?.toLocaleString('en-IN')}</span>
                 </div>
               )}
-            </div>
-          </div>
-        )}
-
-        {/* ── Payment Summary ── */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-4 py-3 border-b bg-gray-50">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Payment Summary</p>
-          </div>
-          <div className="p-4 space-y-2.5">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-500">Daily Rate × {booking.totalDays} day{booking.totalDays > 1 ? 's' : ''}</span>
-              <span className="font-medium text-gray-800">₹{booking.totalAmount?.toLocaleString('en-IN')}</span>
-            </div>
-            {booking.gstAmount > 0 && (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">GST (18%)</span>
-                <span className="font-medium text-gray-800">₹{booking.gstAmount?.toLocaleString('en-IN')}</span>
+              <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-3.5">
+                <span className="text-sm font-extrabold text-gray-900">Grand Total</span>
+                <span className="text-xl font-extrabold tabular-nums text-[#056B3E]">₹{(booking.grandTotal || booking.totalAmount)?.toLocaleString('en-IN')}</span>
               </div>
-            )}
-            <div className="flex justify-between items-center pt-2.5 border-t border-gray-100">
-              <span className="font-bold text-gray-900">Grand Total</span>
-              <span className="font-bold text-green-700 text-lg">₹{(booking.grandTotal || booking.totalAmount)?.toLocaleString('en-IN')}</span>
             </div>
 
             {booking.advanceAmount > 0 && (
-              <div className="mt-1 bg-green-50 border border-green-100 rounded-xl p-3 space-y-2">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-green-700 font-medium">Advance ({booking.advancePercentage}%)</span>
-                  <span className="font-bold text-green-700">₹{booking.advanceAmount?.toLocaleString('en-IN')}</span>
+              <div className="mt-3 overflow-hidden rounded-xl border border-[#C8F1DF] bg-[#E9FAF2]">
+                <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+                  <span className="text-[12.5px] font-semibold text-[#056B3E]">Advance ({booking.advancePercentage}%)</span>
+                  <span className="text-[13px] font-extrabold tabular-nums text-[#056B3E]">₹{booking.advanceAmount?.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between items-center text-sm border-t border-green-100 pt-2">
-                  <span className="text-gray-500">Balance at Pickup</span>
-                  <span className="font-medium text-gray-700">₹{(booking.totalAmount - booking.advanceAmount)?.toLocaleString('en-IN')}</span>
+                <div className="flex items-center justify-between gap-3 border-t border-[#C8F1DF] px-3.5 py-2.5">
+                  <span className="text-[12.5px] font-semibold text-[#056B3E]">Balance at Pickup</span>
+                  <span className="text-[13px] font-bold tabular-nums text-gray-700">₹{(booking.totalAmount - booking.advanceAmount)?.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             )}
 
             {booking.securityDeposit > 0 && (
-              <div className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm text-amber-800 font-medium">Security Deposit</span>
-                  <span className="text-xs text-amber-600">(Refundable)</span>
-                </div>
-                <span className="font-bold text-amber-800">₹{booking.securityDeposit?.toLocaleString('en-IN')}</span>
+              <div className="mt-2.5 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5">
+                <span className="flex items-center gap-2 text-[12.5px] font-semibold text-amber-800">
+                  <Shield className="w-4 h-4" />
+                  Security Deposit
+                  <span className="text-[11px] font-medium text-amber-700">(Refundable)</span>
+                </span>
+                <span className="text-sm font-extrabold tabular-nums text-amber-900">₹{booking.securityDeposit?.toLocaleString('en-IN')}</span>
               </div>
             )}
           </div>
@@ -794,15 +962,18 @@ export default function BikeBookingDetailPage() {
 
         {/* ── Cancel Booking ── */}
         {isActive && (
-          <div className="bg-white rounded-xl border border-red-100 overflow-hidden">
-            <div className="px-4 py-3 border-b bg-red-50">
-              <p className="text-xs font-bold text-red-400 uppercase tracking-wider">Cancel Booking</p>
+          <div className="bg-white rounded-2xl border border-red-100 overflow-hidden">
+            <div className="px-4 py-3 border-b border-red-100 bg-red-50">
+              <p className="text-[11px] font-extrabold text-red-700 uppercase tracking-[0.1em]">Cancel Booking</p>
             </div>
             <div className="p-4">
-              <p className="text-sm text-gray-500 mb-3">Once cancelled, refund will be processed as per vendor's cancellation policy.</p>
+              <p className="text-[12.5px] leading-relaxed text-gray-500 mb-3">
+                Once cancelled, refund will be processed as per vendor&apos;s cancellation policy.
+                {booking.cancellationPolicy ? ` ${booking.cancellationPolicy}` : ''}
+              </p>
               <button
                 onClick={() => { setShowCancelModal(true); setCancelError(null); setSelectedCancelReason(''); setOtherCancelReason(''); }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition text-sm font-semibold"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-red-50 text-red-600 border border-red-200 rounded-xl hover:bg-red-100 transition text-[13.5px] font-bold"
               >
                 <XCircle className="w-4 h-4" />
                 Cancel This Booking
@@ -810,34 +981,133 @@ export default function BikeBookingDetailPage() {
             </div>
           </div>
         )}
-
-        {/* ── Actions ── */}
-        <div className="space-y-3 pb-6">
-          {booking.status === 'COMPLETED' && !booking.rating && (
-            <button
-              onClick={() => setShowRatingModal(true)}
-              className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-md transition"
-            >
-              <Star className="w-5 h-5 fill-white" />
-              Rate Your Experience
-            </button>
-          )}
-          <div className="grid grid-cols-2 gap-3">
-            <Link
-              href="/customer/helpdesk"
-              className="py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-sm shadow-sm transition"
-            >
-              <MessageCircle className="w-4 h-4" />
-              Need Help?
-            </Link>
-            <Link
-              href="/customer/dashboard"
-              className="py-3 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl flex items-center justify-center text-sm hover:bg-gray-50 transition shadow-sm"
-            >
-              Dashboard
-            </Link>
-          </div>
         </div>
+        {/* ══ /Left column ══ */}
+
+        {/* ══ Right rail ══ */}
+        <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-20">
+
+          {/* ── Vendor Details ── */}
+          {booking.vendorName && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
+                <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Vendor Details</p>
+              </div>
+              <div className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-[46px] h-[46px] bg-gradient-to-br from-[#E9FAF2] to-[#C8F1DF] border border-[#C8F1DF] rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <User className="w-5 h-5 text-[#056B3E]" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-extrabold text-gray-900 text-[15px] leading-tight">{booking.vendorName}</p>
+                    {booking.vendorRating > 0 && (
+                      <div className="flex items-center gap-0.5 mt-1">
+                        {[1,2,3,4,5].map(s => (
+                          <Star key={s} className={`w-3 h-3 ${s <= Math.round(booking.vendorRating) ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}`} />
+                        ))}
+                        <span className="text-[11.5px] font-semibold text-gray-500 ml-1.5">{booking.vendorRating}</span>
+                        {booking.vendorReviewCount > 0 && <span className="text-[11.5px] text-gray-400">· {booking.vendorReviewCount} reviews</span>}
+                      </div>
+                    )}
+                    {booking.vendorPhone && <p className="text-xs text-gray-500 mt-1 tabular-nums">{booking.vendorPhone}</p>}
+                    {booking.vendorAddress && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{booking.vendorAddress}</p>}
+                  </div>
+                </div>
+                {booking.vendorPhone && (
+                  <a
+                    href={`tel:${booking.vendorPhone}`}
+                    className="mt-3.5 flex items-center justify-center gap-2 px-4 py-3 bg-[#09B368] text-white rounded-xl hover:bg-[#078F53] transition text-[13.5px] font-bold shadow-lg shadow-[#09B368]/25"
+                  >
+                    <Phone className="w-4 h-4" />
+                    Call Vendor
+                  </a>
+                )}
+                {customer && booking.vendorId && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <BikeBookingChat
+                      bookingId={booking.id}
+                      vendorId={booking.vendorId}
+                      vendorName={booking.vendorName || 'Vendor'}
+                      customerId={customer?.id?.toString() || booking.customerId || `guest-${booking.id}`}
+                      customerName={customer?.name || 'Customer'}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Booking Info ── */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
+              <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Booking Info</p>
+            </div>
+            <div className="p-4">
+              <div className="flex flex-col gap-px overflow-hidden rounded-xl bg-gray-50">
+                <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-2.5">
+                  <span className="text-[12.5px] text-gray-500">Booking No.</span>
+                  <span className="text-[13px] font-bold tabular-nums text-gray-900">{booking.bookingNumber}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-2.5">
+                  <span className="text-[12.5px] text-gray-500">Booked On</span>
+                  <span className="text-[13px] font-bold text-gray-900">{formatDate(booking.createdAt)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-2.5">
+                  <span className="text-[12.5px] text-gray-500">Payment Status</span>
+                  <span className="text-[13px] font-bold text-gray-900">{booking.paymentStatus}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-2.5">
+                  <span className="text-[12.5px] text-gray-500">Amount Paid</span>
+                  <span className="text-[13px] font-bold tabular-nums text-gray-900">₹{booking.amountPaid?.toLocaleString('en-IN')}</span>
+                </div>
+                {booking.paymentMethod && (
+                  <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-2.5">
+                    <span className="text-[12.5px] text-gray-500">Payment Method</span>
+                    <span className="text-[13px] font-bold text-gray-900">{booking.paymentMethod}</span>
+                  </div>
+                )}
+                {booking.transactionId && (
+                  <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-2.5">
+                    <span className="text-[12.5px] text-gray-500">Transaction ID</span>
+                    <span className="text-[13px] font-bold tabular-nums text-gray-900">{booking.transactionId}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Actions ── */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
+              <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Need a hand</p>
+            </div>
+            <div className="p-4 flex flex-col gap-2.5">
+              {booking.status === 'COMPLETED' && !booking.rating && (
+                <button
+                  onClick={() => setShowRatingModal(true)}
+                  className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 text-[13.5px] shadow-md transition"
+                >
+                  <Star className="w-4 h-4 fill-white" />
+                  Rate Your Experience
+                </button>
+              )}
+              <Link
+                href="/customer/helpdesk"
+                className="py-3 bg-[#09B368] hover:bg-[#078F53] text-white font-bold rounded-xl flex items-center justify-center gap-2 text-[13.5px] shadow-lg shadow-[#09B368]/25 transition"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Need Help?
+              </Link>
+              <Link
+                href="/customer/dashboard"
+                className="py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl flex items-center justify-center text-[13.5px] hover:bg-gray-50 hover:border-[#96E4C2] hover:text-[#056B3E] transition"
+              >
+                Back to Dashboard
+              </Link>
+            </div>
+          </div>
+        </aside>
+        {/* ══ /Right rail ══ */}
       </div>
 
       {/* ── Cancel Modal ── */}

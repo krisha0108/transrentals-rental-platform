@@ -122,17 +122,17 @@ export default function VehicleImageGallery({ vehicleImages, vehicleName }: Vehi
     <>
       {/* Image Slider */}
       <div>
-        <h4 className="font-medium text-gray-900 mb-3">Vehicle Images</h4>
+        <h4 className="mb-2.5 text-[10.5px] font-extrabold uppercase tracking-[0.09em] text-gray-400">Vehicle Images</h4>
 
         <div className="relative">
           {/* Prev Button */}
           {canScrollPrev && (
             <button
               onClick={handlePrev}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition"
+              className="absolute left-0 top-1/2 z-10 grid h-9 w-9 -translate-x-3.5 -translate-y-1/2 place-items-center rounded-full border border-gray-100 bg-white text-gray-500 shadow-[0_6px_18px_-6px_rgba(15,26,21,.35)] transition hover:border-[#96E4C2] hover:text-[#056B3E]"
               aria-label="Previous"
             >
-              <ChevronLeft className="w-5 h-5 text-gray-700" />
+              <ChevronLeft className="w-[18px] h-[18px]" />
             </button>
           )}
 
@@ -153,7 +153,7 @@ export default function VehicleImageGallery({ vehicleImages, vehicleName }: Vehi
               return (
                 <div
                   key={actualIndex}
-                  className="relative aspect-square rounded-lg overflow-hidden hover:opacity-90 transition bg-gray-100 border border-gray-200"
+                  className="group relative aspect-square overflow-hidden rounded-xl border border-gray-100 bg-[#F4F8F6] transition hover:-translate-y-0.5 hover:border-[#96E4C2] hover:shadow-[0_12px_26px_-12px_rgba(9,179,104,.45)]"
                   onClick={(e) => {
                     // Only open lightbox if not dragging
                     if (!isDragging) {
@@ -166,7 +166,7 @@ export default function VehicleImageGallery({ vehicleImages, vehicleName }: Vehi
                     src={imageUrl}
                     alt={`${vehicleName} - Image ${actualIndex + 1}`}
                     fill
-                    className="object-cover pointer-events-none"
+                    className="pointer-events-none object-cover transition duration-300 group-hover:scale-[1.04]"
                     sizes="(max-width: 768px) 33vw, 250px"
                     draggable={false}
                   />
@@ -179,16 +179,16 @@ export default function VehicleImageGallery({ vehicleImages, vehicleName }: Vehi
           {canScrollNext && (
             <button
               onClick={handleNext}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition"
+              className="absolute right-0 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 translate-x-3.5 place-items-center rounded-full border border-gray-100 bg-white text-gray-500 shadow-[0_6px_18px_-6px_rgba(15,26,21,.35)] transition hover:border-[#96E4C2] hover:text-[#056B3E]"
               aria-label="Next"
             >
-              <ChevronRight className="w-5 h-5 text-gray-700" />
+              <ChevronRight className="w-[18px] h-[18px]" />
             </button>
           )}
         </div>
 
         {/* Image Counter */}
-        <p className="text-xs text-gray-500 text-center mt-2">
+        <p className="mt-2.5 text-center text-[11.5px] text-gray-400">
           Showing {startIndex + 1}-{Math.min(startIndex + itemsToShow, images.length)} of {images.length} images
         </p>
       </div>
@@ -196,15 +196,15 @@ export default function VehicleImageGallery({ vehicleImages, vehicleName }: Vehi
       {/* Lightbox Modal */}
       {lightboxIndex !== null && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(1,20,11,.94)] backdrop-blur-[2px]"
           onClick={() => setLightboxIndex(null)}
         >
           <button
             onClick={() => setLightboxIndex(null)}
-            className="absolute top-4 right-4 text-white hover:text-gray-300 transition z-10"
+            className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-xl border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
             aria-label="Close"
           >
-            <X className="w-8 h-8" />
+            <X className="w-5 h-5" />
           </button>
 
           {/* Previous Button */}
@@ -213,10 +213,10 @@ export default function VehicleImageGallery({ vehicleImages, vehicleName }: Vehi
               e.stopPropagation();
               setLightboxIndex(lightboxIndex > 0 ? lightboxIndex - 1 : images.length - 1);
             }}
-            className="absolute left-4 text-white hover:text-gray-300 transition z-10"
+            className="absolute left-4 z-10 grid h-12 w-12 place-items-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
             aria-label="Previous image"
           >
-            <ChevronLeft className="w-12 h-12" />
+            <ChevronLeft className="w-6 h-6" />
           </button>
 
           {/* Image */}
@@ -240,14 +240,14 @@ export default function VehicleImageGallery({ vehicleImages, vehicleName }: Vehi
               e.stopPropagation();
               setLightboxIndex(lightboxIndex < images.length - 1 ? lightboxIndex + 1 : 0);
             }}
-            className="absolute right-4 text-white hover:text-gray-300 transition z-10"
+            className="absolute right-4 z-10 grid h-12 w-12 place-items-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
             aria-label="Next image"
           >
-            <ChevronRight className="w-12 h-12" />
+            <ChevronRight className="w-6 h-6" />
           </button>
 
           {/* Image Counter */}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 px-4 py-2 rounded-full text-white text-sm">
+          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[12.5px] font-semibold tabular-nums text-white backdrop-blur-sm">
             {lightboxIndex + 1} / {images.length}
           </div>
         </div>

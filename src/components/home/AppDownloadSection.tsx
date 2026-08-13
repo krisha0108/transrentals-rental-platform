@@ -1,11 +1,23 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import QRCode from 'qrcode';
 import { Smartphone, Star, Zap, Shield, Download } from 'lucide-react';
 
 export function AppDownloadSection() {
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const playStoreUrl =
+    process.env.NEXT_PUBLIC_CUSTOMER_APP_ANDROID ||
+    'https://play.google.com/store/apps/details?id=com.transrentals.customer';
+
+  useEffect(() => {
+    QRCode.toDataURL(playStoreUrl, { margin: 1, width: 160, errorCorrectionLevel: 'M' })
+      .then(setQrDataUrl)
+      .catch(() => {});
+  }, [playStoreUrl]);
+
   return (
     <section className="py-12 md:py-16 bg-gradient-to-br from-purple-600 via-blue-600 to-green-600 text-white relative overflow-hidden">
       {/* Background Pattern */}
@@ -28,11 +40,11 @@ export function AppDownloadSection() {
               <span>Download Our Mobile App</span>
             </div>
 
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
+            <h2 className="text-xl md:text-2xl lg:text-3xl font-bold mb-4">
               Experience Seamless Rentals On-The-Go
             </h2>
 
-            <p className="text-lg text-white/90 mb-6">
+            <p className="text-sm md:text-base text-white/90 mb-6">
               Download the TransRentals app for a faster, easier booking experience.
               Track bookings, chat with vendors, and get instant notifications.
             </p>
@@ -62,9 +74,9 @@ export function AppDownloadSection() {
             </div>
 
             {/* App Store Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-start">
               <a
-                href={process.env.NEXT_PUBLIC_CUSTOMER_APP_ANDROID || '#'}
+                href={playStoreUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group flex items-center gap-3 bg-white text-gray-900 px-6 py-4 rounded-xl hover:bg-gray-100 transition font-semibold shadow-xl hover:shadow-2xl hover:scale-105 transform duration-300"
@@ -77,6 +89,22 @@ export function AppDownloadSection() {
                   <div className="text-lg font-bold">Google Play</div>
                 </div>
               </a>
+
+              {qrDataUrl && (
+                <a
+                  href={playStoreUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-3 rounded-xl hover:bg-white/15 transition"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={qrDataUrl} alt="Scan to download the TransRentals app" className="w-16 h-16 rounded-md bg-white p-1" />
+                  <div className="text-left">
+                    <div className="text-sm font-semibold">Scan to download</div>
+                    <div className="text-xs text-white/70">Opens on Google Play</div>
+                  </div>
+                </a>
+              )}
 
               {/* <a
                 href={process.env.NEXT_PUBLIC_CUSTOMER_APP_IOS || '#'}

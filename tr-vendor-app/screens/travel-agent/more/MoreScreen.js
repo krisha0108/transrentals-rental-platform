@@ -22,6 +22,7 @@ import {
 } from "../../api/travelAgentClient";
 import { SC as C } from "../_shared/theme";
 import AnimatedOrb from "../_shared/AnimatedOrb";
+import CustomAlert from "../../../components/CustomAlert";
 
 
 // Warm Elevate tones (was the bright set: #059669, #3B82F6, #EC4899 …).
@@ -126,6 +127,19 @@ export default function MoreScreen({ navigation }) {
   const [stats, setStats] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Custom alert state
+  const [alert, setAlert] = useState({ visible: false, type: "info", title: "", message: "", actions: null });
+  const hideAlert = () => setAlert((p) => ({ ...p, visible: false }));
+  const showConfirm = (type, title, message, confirmLabel, onConfirm, destructive = false) => {
+    setAlert({
+      visible: true, type, title, message,
+      actions: [
+        { label: "Cancel", onPress: hideAlert, variant: "ghost" },
+        { label: confirmLabel, onPress: () => { hideAlert(); onConfirm(); }, variant: "primary", destructive },
+      ],
+    });
+  };
+
   const load = useCallback(async () => {
     const [ta, dash] = await Promise.all([
       getCurrentTravelAgent(),
@@ -148,17 +162,17 @@ export default function MoreScreen({ navigation }) {
   };
 
   const handleLogout = () => {
-    Alert.alert("Logout?", "You'll need to log in again to access your account.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: async () => {
-          await logoutTravelAgent();
-          navigation.reset({ index: 0, routes: [{ name: "VendorLoginScreen" }] });
-        },
+    showConfirm(
+      "warning",
+      "Logout?",
+      "You'll need to log in again to access your account.",
+      "Logout",
+      async () => {
+        await logoutTravelAgent();
+        navigation.reset({ index: 0, routes: [{ name: "VendorLoginScreen" }] });
       },
-    ]);
+      true
+    );
   };
 
   const isApproved = agent?.status === "APPROVED";
@@ -438,6 +452,15 @@ export default function MoreScreen({ navigation }) {
         {/* App version footer */}
         <Text style={styles.versionText}>TransRentals · Travel Agent · v1.0</Text>
       </ScrollView>
+
+      <CustomAlert
+        visible={alert.visible}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onClose={hideAlert}
+        actions={alert.actions}
+      />
     </View>
   );
 }
