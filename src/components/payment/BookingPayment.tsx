@@ -36,21 +36,25 @@ export function BookingPayment({
   if (paymentMethod === 'manual') {
     if (embedded) {
       return (
-        <>
-          <PaymentConfirmation
-            bookingId={bookingId}
-            bookingNumber={bookingNumber}
-            amount={amount}
-            serviceSlug={serviceSlug}
-            onPaymentConfirmed={onSuccess}
-          />
-          <button
-            onClick={() => setPaymentMethod('razorpay')}
-            className="w-full text-xs text-emerald-600 hover:text-emerald-700 font-semibold text-center pt-3 transition"
-          >
-            ← Back to online payment
-          </button>
-        </>
+        // The "back" control is handed to PaymentConfirmation so it sits in the
+        // same row as "I Have Made Payment" instead of stacking below it as a
+        // second full-width button.
+        <PaymentConfirmation
+          bookingId={bookingId}
+          bookingNumber={bookingNumber}
+          amount={amount}
+          serviceSlug={serviceSlug}
+          onPaymentConfirmed={onSuccess}
+          secondaryAction={
+            <button
+              type="button"
+              onClick={() => setPaymentMethod('razorpay')}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3.5 text-[14px] font-bold text-gray-600 transition hover:border-[#96E4C2] hover:bg-gray-50 hover:text-[#056B3E]"
+            >
+              ← Back to online payment
+            </button>
+          }
+        />
       );
     }
     return (
