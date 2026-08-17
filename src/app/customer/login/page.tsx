@@ -663,10 +663,10 @@ function CustomerLoginPageContent() {
         </div>
 
         {/* Left — brand messaging overlay, desktop only */}
-        <div className="hidden lg:flex relative z-10 w-[55%] flex-col justify-center gap-7 p-12 xl:p-16">
+        <div className="hidden lg:flex relative z-10 w-[55%] flex-col pt-12 xl:pt-16 px-12 xl:px-16 pb-4">
 
-          {/* Headline */}
-          <div>
+          {/* Headline — centered in the available space */}
+          <div className="flex-1 flex flex-col justify-center">
             <h1 className="text-4xl xl:text-5xl font-black text-gray-900 leading-tight">
               On Time.<br />Every Time.<br /><span className="text-[#09B368]">Everywhere.</span>
             </h1>
@@ -675,7 +675,7 @@ function CustomerLoginPageContent() {
             </p>
           </div>
 
-          {/* Trust badge */}
+          {/* Trust badge — pinned to the bottom */}
           <div className="inline-flex items-center gap-3 bg-white/85 backdrop-blur-md border border-white/60 rounded-2xl px-4 py-3 w-fit shadow-sm">
             <div className="w-9 h-9 rounded-xl bg-[#09B368] flex items-center justify-center shrink-0">
               <ShieldCheck className="w-5 h-5 text-white" />
