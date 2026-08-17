@@ -1,6 +1,7 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
+import { VendorHelpBotWidget } from '@/components/vendor/VendorHelpBotWidget';
 
 export default function VendorAuthLayout({
   children,
@@ -10,6 +11,7 @@ export default function VendorAuthLayout({
   return (
     <SessionProvider>
       {children}
+      <VendorHelpBotWidget />
     </SessionProvider>
   );
 }

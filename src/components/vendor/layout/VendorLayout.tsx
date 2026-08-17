@@ -10,6 +10,7 @@ import { useVendorWebNotifications } from '@/hooks/useVendorWebNotifications';
 import { useVendorActivityHeartbeat } from '@/hooks/useVendorActivityHeartbeat';
 import Link from 'next/link';
 import { VendorVerificationContext } from '@/contexts/VendorVerificationContext';
+import { VendorHelpBotWidget } from '../VendorHelpBotWidget';
 
 interface VendorLayoutProps {
   children: React.ReactNode;
@@ -456,6 +457,8 @@ export function VendorLayout({ children }: VendorLayoutProps) {
               hasAddress={hasAddress}
             />
           )}
+
+          <VendorHelpBotWidget />
         </div>
       </ToastProvider>
     </VendorVerificationContext.Provider>

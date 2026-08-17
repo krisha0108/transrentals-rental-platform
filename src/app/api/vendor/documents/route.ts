@@ -149,32 +149,28 @@ export async function POST(request: NextRequest) {
       logger.debug('ClamAV not available, skipping antivirus scan');
     }
 
-    // Check if document of this type already exists (allow re-upload if REJECTED or RESUBMIT_REQUIRED)
+    // Check if a document of this type already exists. Vendors can freely
+    // replace their own document as long as it hasn't been approved yet
+    // (PENDING / REJECTED / RESUBMIT_REQUIRED are all still editable) —
+    // only an APPROVED document is locked.
     const existingDoc = await prisma.vendor_documents.findFirst({
-      where: {
-        vendorId: vendorId,
-        documentType: documentType as any,
-        status: { notIn: ['REJECTED', 'RESUBMIT_REQUIRED'] },
-      },
+      where: { vendorId: vendorId, documentType: documentType as any },
     });
 
     if (existingDoc) {
-      return NextResponse.json(
-        { error: 'Document of this type already uploaded. Delete the existing one first.' },
-        { status: 400 }
-      );
-    }
+      if (existingDoc.status === 'APPROVED') {
+        return NextResponse.json(
+          { error: 'This document has already been approved and cannot be changed.' },
+          { status: 400 }
+        );
+      }
 
-    // If there's a RESUBMIT_REQUIRED doc of this type, delete it so the new one replaces it
-    const resubmitDoc = await prisma.vendor_documents.findFirst({
-      where: { vendorId, documentType: documentType as any, status: 'RESUBMIT_REQUIRED' },
-    });
-    if (resubmitDoc) {
+      // Not yet approved — delete the old file/record so the new upload replaces it.
       const { deleteVendorDocument } = await import('@/lib/storage/private-storage');
-      const urlParts = resubmitDoc.documentUrl.split('/');
+      const urlParts = existingDoc.documentUrl.split('/');
       const oldFilename = urlParts[urlParts.length - 1];
       await deleteVendorDocument(vendorId, oldFilename).catch(() => {});
-      await prisma.vendor_documents.delete({ where: { id: resubmitDoc.id } });
+      await prisma.vendor_documents.delete({ where: { id: existingDoc.id } });
     }
 
     // Initialize private storage if needed
