@@ -55,6 +55,16 @@ export function ChatBookingHero({
     pickupLocation: defaultLocation || '',
     fleet: vehicleName || '',
   });
+  // `defaultLocation` starts as the LocationContext's synchronous fallback
+  // (Mumbai) and is replaced once async GPS/IP city detection resolves —
+  // often after this component has already mounted and baked the stale
+  // value into bookingData.pickupLocation above. Re-sync when it changes,
+  // but only until the user actually confirms/picks a city themselves.
+  const userPickedLocationRef = useRef(false);
+  useEffect(() => {
+    if (userPickedLocationRef.current) return;
+    if (defaultLocation) setBookingData((prev: any) => ({ ...prev, pickupLocation: defaultLocation }));
+  }, [defaultLocation]);
   const [currentStep, setCurrentStep] = useState('');
   const [vehicleConfirmed, setVehicleConfirmed] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -1713,10 +1723,11 @@ export function ChatBookingHero({
     }, 800);
   };
 
-  const askForPickupFullAddress = () => {
+  const askForPickupFullAddress = (cityOverride?: string) => {
     setIsTyping(true);
     setTimeout(() => {
-      const cityHint = bookingData.pickupLocation ? ` in ${bookingData.pickupLocation}` : '';
+      const city = cityOverride ?? bookingData.pickupLocation;
+      const cityHint = city ? ` in ${city}` : '';
       addShiviMessage(
         `📍 Please share the full pickup address${cityHint}\n(Building, Street, Area, Landmark)`,
         undefined,
@@ -1728,10 +1739,11 @@ export function ChatBookingHero({
     }, 800);
   };
 
-  const askForDestinationFullAddress = () => {
+  const askForDestinationFullAddress = (cityOverride?: string) => {
     setIsTyping(true);
     setTimeout(() => {
-      const cityHint = bookingData.destination ? ` in ${bookingData.destination}` : '';
+      const city = cityOverride ?? bookingData.destination;
+      const cityHint = city ? ` in ${city}` : '';
       addShiviMessage(
         `📍 Please share the full destination address${cityHint}\n(Building, Street, Area, Landmark)`,
         undefined,
@@ -3565,6 +3577,7 @@ export function ChatBookingHero({
       askForPassengers();
     } else if (action === 'select-location' || action === 'confirm-location') {
       addUserMessage(value || '');
+      userPickedLocationRef.current = true;
       setBookingData((prev: any) => ({ ...prev, pickupLocation: value }));
       // If vehicle name exists (from fleet page) and not yet confirmed, ask for vehicle confirmation
       if (vehicleName && !vehicleConfirmed) {
@@ -3577,7 +3590,7 @@ export function ChatBookingHero({
         // For bus/transporter/packers/equipment, capture a full pickup address before
         // proceeding so vendors get an actionable location.
         if (isEquipmentService || isBusService || isTruckService || isPackersService) {
-          askForPickupFullAddress();
+          askForPickupFullAddress(value);
         } else {
           askForDestination();
         }
@@ -4177,7 +4190,7 @@ export function ChatBookingHero({
       const isPackersService = serviceType.includes('packers') || serviceType.includes('movers');
       // For bus/transporter/packers — split destination into city/area + full address
       if (isBusService || isTruckService || isPackersService) {
-        askForDestinationFullAddress();
+        askForDestinationFullAddress(inputValue);
         setInputValue('');
         return;
       }

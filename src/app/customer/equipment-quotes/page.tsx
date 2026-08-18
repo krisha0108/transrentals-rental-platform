@@ -98,8 +98,44 @@ export default function CustomerEquipmentQuotesPage() {
       return;
     }
 
-    fetchRequests();
+    submitPendingQuoteThenLoad();
   }, [authLoading, isAuthenticated, customer]);
+
+  // If the customer filled the marketplace Equipment form while logged out,
+  // their trip was stashed in sessionStorage (see handleEquipmentSubmit in
+  // src/app/marketplace/page.tsx) instead of being lost. Submit it now that
+  // we have a real logged-in customer, then jump straight to its detail
+  // page instead of showing this list with no sign the request happened —
+  // same pattern as the Bus/Truck/Packers tabs' quotes pages.
+  const submitPendingQuoteThenLoad = async () => {
+    const pendingRaw = sessionStorage.getItem('pendingEquipmentQuote');
+    if (!pendingRaw) {
+      fetchRequests();
+      return;
+    }
+    sessionStorage.removeItem('pendingEquipmentQuote');
+    try {
+      const pending = JSON.parse(pendingRaw);
+      const res = await fetch('/api/equipment-quote-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...pending,
+          customerName: customer!.name,
+          customerEmail: customer!.email,
+          customerPhone: customer!.phone,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        router.replace(`/customer/equipment-quotes/${data.quoteRequest.id}`);
+        return;
+      }
+    } catch {
+      // fall through to the normal list on any failure
+    }
+    fetchRequests();
+  };
 
   const fetchRequests = async () => {
     try {
