@@ -1949,6 +1949,13 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
   const [equipmentStep, setEquipmentStep] = useState<1 | 2>(1);
   const [rentalDuration, setRentalDuration] = useState('1');
   const [equipmentQty, setEquipmentQty] = useState(1);
+  // Vendors price operator/delivery/installation separately and only show the
+  // matching charge field on their quote form when the request asks for it —
+  // same three flags the real EquipmentBookingWidget collects.
+  const [needOperator, setNeedOperator] = useState(false);
+  const [needDelivery, setNeedDelivery] = useState(true);
+  const [needInstallation, setNeedInstallation] = useState(false);
+  const [equipmentSubmitting, setEquipmentSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   // Car "Get Quotes Now" opens package/vehicle pricing in a modal (same
   // results screen as /car-rental/[city]) instead of navigating away.
@@ -2342,8 +2349,81 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
   const handleEquipmentStep1Continue = () => {
     if (!equipmentType) { setFormError('Please select equipment type'); return; }
     if (!fromCity) { setFormError('Please select a pickup city'); return; }
+    if (!pickupAddress) { setFormError('Please enter the pickup address'); return; }
     setFormError('');
     setEquipmentStep(2);
+  };
+
+  // Duration presets → {rentalDuration, days} — identical to EQUIPMENT_DURATIONS
+  // in ServiceHeroWithChat.tsx's EquipmentBookingWidget, so quote requests from
+  // this tab price out the same way as the real equipment-rental page.
+  const EQUIPMENT_DURATION_DAYS: Record<string, { rentalDuration: string; days: number }> = {
+    '1': { rentalDuration: 'daily', days: 3 },
+    '2': { rentalDuration: 'weekly', days: 10 },
+    '3': { rentalDuration: 'monthly', days: 20 },
+    '4': { rentalDuration: 'custom', days: 45 },
+  };
+
+  // Same pattern as handleBusSubmit/handleTruckSubmit/handlePackersSubmit:
+  // submits a real quote request (POST /api/equipment-quote-requests, the
+  // same API EquipmentBookingWidget uses) instead of navigating to
+  // /equipment-rental/{city}, and sends the customer to their dashboard.
+  const handleEquipmentSubmit = async () => {
+    if (!equipmentType) { setFormError('Please select equipment type'); return; }
+    if (!fromCity) { setFormError('Please select a pickup city'); return; }
+    if (!pickupAddress) { setFormError('Please enter the pickup address'); return; }
+    if (!date) { setFormError('Please select a start date'); return; }
+    setFormError('');
+
+    const duration = EQUIPMENT_DURATION_DAYS[rentalDuration] || EQUIPMENT_DURATION_DAYS['1'];
+    const start = new Date(date);
+    const end = new Date(start);
+    end.setDate(end.getDate() + duration.days - 1);
+
+    const tripFields = {
+      equipmentCategory: equipmentType,
+      equipmentType,
+      quantity: equipmentQty,
+      rentalDuration: duration.rentalDuration,
+      rentalDays: duration.days,
+      deliveryCity: fromCity.name,
+      deliveryAddress: pickupAddress,
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+      needOperator,
+      needDelivery,
+      needInstallation,
+    };
+
+    if (!isAuthenticated || !customer) {
+      sessionStorage.setItem('pendingEquipmentQuote', JSON.stringify(tripFields));
+      router.push(`/customer/login?redirect=${encodeURIComponent('/customer/equipment-quotes')}`);
+      return;
+    }
+
+    setEquipmentSubmitting(true);
+    try {
+      const res = await fetch('/api/equipment-quote-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...tripFields,
+          customerName: customer.name,
+          customerEmail: customer.email,
+          customerPhone: customer.phone,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        router.push(`/customer/equipment-quotes/${data.quoteRequest.id}`);
+      } else {
+        setFormError(data.error || 'Could not submit your request. Please try again.');
+        setEquipmentSubmitting(false);
+      }
+    } catch {
+      setFormError('Network error. Please try again.');
+      setEquipmentSubmitting(false);
+    }
   };
 
   const HERO_AVATARS = [
@@ -3449,7 +3529,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         placeholder="Enter pickup address or landmark"
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
+                      <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Delivery address</span>
                     </div>
 
                     <div className="flex shrink-0 flex-col items-end justify-end gap-1.5">
@@ -3497,7 +3577,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         onChange={(e) => setDate(e.target.value)}
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
+                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Rental start</span>
                     </div>
                     <div className="min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
@@ -3511,7 +3591,21 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         >
                           −
                         </button>
-                        <span className="min-w-[46px] text-center text-[16px] font-bold text-slate-900">{equipmentQty} {equipmentQty === 1 ? 'Unit' : 'Units'}</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={20}
+                          value={equipmentQty}
+                          onChange={(e) => {
+                            const n = parseInt(e.target.value, 10);
+                            if (!Number.isNaN(n) && n >= 0) setEquipmentQty(n);
+                          }}
+                          onBlur={() => setEquipmentQty((q) => Math.min(20, Math.max(1, q || 1)))}
+                          aria-label="Number of equipment units"
+                          className="w-16 shrink-0 border-none bg-transparent p-0 text-center text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        />
+                        <span className="text-[13px] font-semibold text-slate-500">{equipmentQty === 1 ? 'Unit' : 'Units'}</span>
                         <button
                           type="button"
                           onClick={() => setEquipmentQty((q) => Math.min(20, q + 1))}
@@ -3521,22 +3615,49 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         </button>
                       </div>
                     </div>
+                    <div className="min-w-[260px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1.5 block text-[13px] font-bold text-slate-500">What do you need?</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {([
+                          { v: 'operator', label: 'Operator', on: needOperator, set: setNeedOperator },
+                          { v: 'delivery', label: 'Delivery', on: needDelivery, set: setNeedDelivery },
+                          { v: 'installation', label: 'Installation', on: needInstallation, set: setNeedInstallation },
+                        ] as const).map((opt) => (
+                          <button
+                            key={opt.v}
+                            type="button"
+                            onClick={() => opt.set((v) => !v)}
+                            className={`rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                              opt.on ? 'border-primary bg-primary-50 text-primary-700' : 'border-slate-200 text-slate-500'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                    <div className="flex shrink-0 items-end justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setEquipmentStep(1)}
-                        className="flex shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-[13px] font-bold text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900"
-                      >
-                        <ArrowLeft className="h-3.5 w-3.5" /> Back
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSearch}
-                        className="flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-[13px] font-bold text-white transition-colors hover:bg-primary-600"
-                      >
-                        Get Quotes Now <ArrowRight className="h-3.5 w-3.5" />
-                      </button>
+                    <div className="flex w-full shrink-0 flex-col items-end justify-end gap-1.5">
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEquipmentStep(1)}
+                          className="flex shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-[13px] font-bold text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900"
+                        >
+                          <ArrowLeft className="h-3.5 w-3.5" /> Back
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleEquipmentSubmit}
+                          disabled={equipmentSubmitting}
+                          className="flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-[13px] font-bold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {equipmentSubmitting ? 'Submitting…' : 'Get Quotes Now'} <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <span className="whitespace-nowrap text-[12.5px] text-slate-400">
+                        {isAuthenticated ? "It’s free & hassle-free" : 'Log in to submit & track your request'}
+                      </span>
                     </div>
                   </>
                 )

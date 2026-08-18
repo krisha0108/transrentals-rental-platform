@@ -8,13 +8,14 @@ import {
   ChevronRight, ChevronDown, RefreshCw, AlertCircle, CheckCircle, Clock,
   XCircle, FileText, Car, Star, TrendingUp, TrendingDown,
   Calendar, X, Tag, Plus, CalendarDays, MapPinPlus, Bell,
-  Globe, Smartphone,
+  Globe, Smartphone, Sparkles,
 } from 'lucide-react';
 
-type DatePreset = 'all' | 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'custom';
+type DatePreset = 'all' | 'last7Days' | 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'custom';
 
 const DATE_PRESET_LABELS: Record<DatePreset, string> = {
   all: 'All Time',
+  last7Days: '🆕 New (Last 7 Days)',
   today: 'Today',
   yesterday: 'Yesterday',
   thisWeek: 'This Week',
@@ -30,6 +31,11 @@ function getDateRange(preset: DatePreset, customFrom: string, customTo: string):
   const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
 
   switch (preset) {
+    case 'last7Days': {
+      const weekAgo = new Date(now);
+      weekAgo.setDate(weekAgo.getDate() - 6);
+      return [startOfDay(weekAgo), endOfDay(now)];
+    }
     case 'today':
       return [startOfDay(now), endOfDay(now)];
     case 'yesterday': {
@@ -163,6 +169,13 @@ function presenceTimeAgo(iso: string | null): string {
 // see the vendor status lifecycle notes elsewhere in this codebase).
 function needsAttention(v: Vendor): boolean {
   return v.hasPendingLocationRequest || v.hasPendingServiceRequest || v.status === 'UNDER_REVIEW';
+}
+
+// Same 7-day window as the "New (Last 7 Days)" Joined filter — a vendor
+// counts as new right up until it falls out of that filter's range.
+const NEW_VENDOR_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+function isNewVendor(v: Vendor): boolean {
+  return Date.now() - new Date(v.createdAt).getTime() <= NEW_VENDOR_WINDOW_MS;
 }
 
 const SORT_OPTIONS = [
@@ -423,8 +436,14 @@ function ManagerVendorsPageInner() {
       }
     }
 
-    // Tag filter — vendor matches if they carry the selected tag
-    if (tagFilter !== 'all') {
+    // Tag filter — vendor matches if they carry the selected tag, or (for
+    // '__none__') if they carry no tag at all. That second case is the one
+    // managers actually need most under a Pending filter: which of these
+    // haven't been triaged yet, as opposed to ones already tagged Follow-Up/
+    // Connected/etc and just sitting in Pending for another reason.
+    if (tagFilter === '__none__') {
+      list = list.filter(v => !Array.isArray(v.tags) || v.tags.length === 0);
+    } else if (tagFilter !== 'all') {
       list = list.filter(v => Array.isArray(v.tags) && v.tags.includes(tagFilter));
     }
 
@@ -635,6 +654,7 @@ function ManagerVendorsPageInner() {
             <select value={tagFilter} onChange={e => updateFilter({ tag: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
               <option value="all">All Tags</option>
+              <option value="__none__">🏷️ No Tag (Untagged)</option>
               {VENDOR_TAGS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
             </select>
           </div>
@@ -714,7 +734,7 @@ function ManagerVendorsPageInner() {
             )}
             {tagFilter !== 'all' && (
               <span className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium border border-indigo-200">
-                <Tag className="w-3 h-3" /> {TAG_BY_KEY[tagFilter]?.label || tagFilter}
+                <Tag className="w-3 h-3" /> {tagFilter === '__none__' ? 'No Tag (Untagged)' : (TAG_BY_KEY[tagFilter]?.label || tagFilter)}
                 <button onClick={() => updateFilter({ tag: '' })}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
             )}
@@ -791,6 +811,14 @@ function ManagerVendorsPageInner() {
                         {vendor.vid && (
                           <span className="px-2 py-0.5 rounded-full text-xs font-mono font-semibold bg-gray-100 text-gray-500 border border-gray-200 tracking-wider">
                             {vendor.vid.toUpperCase()}
+                          </span>
+                        )}
+                        {isNewVendor(vendor) && (
+                          <span
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
+                            title={`Joined ${formatDate(vendor.createdAt)}`}
+                          >
+                            <Sparkles className="w-3 h-3" /> NEW
                           </span>
                         )}
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${statusConfig.bg} ${statusConfig.text}`}>
