@@ -101,8 +101,43 @@ export default function CustomerPackersQuotesPage() {
       return;
     }
 
-    fetchRequests();
+    submitPendingQuoteThenLoad();
   }, [authLoading, isAuthenticated, customer]);
+
+  // If the customer filled the marketplace Packers form while logged out,
+  // their trip was stashed in sessionStorage (see handlePackersSubmit in
+  // src/app/marketplace/page.tsx) instead of being lost. Submit it now that
+  // we have a real logged-in customer, then jump straight to its detail
+  // page instead of showing this list with no sign the request happened —
+  // same pattern as the Bus/Truck tabs' quotes pages.
+  const submitPendingQuoteThenLoad = async () => {
+    const pendingRaw = sessionStorage.getItem('pendingPackersQuote');
+    if (!pendingRaw) {
+      fetchRequests();
+      return;
+    }
+    sessionStorage.removeItem('pendingPackersQuote');
+    try {
+      const pending = JSON.parse(pendingRaw);
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingType: pending.bookingType,
+          customerInfo: { name: customer!.name, phone: customer!.phone, email: customer!.email },
+          bookingData: pending.bookingData,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        router.replace(`/customer/packers-quotes/${data.request_id || data.booking_id}`);
+        return;
+      }
+    } catch {
+      // fall through to the normal list on any failure
+    }
+    fetchRequests();
+  };
 
   const fetchRequests = async () => {
     try {

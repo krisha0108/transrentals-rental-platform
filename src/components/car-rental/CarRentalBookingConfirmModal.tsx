@@ -84,7 +84,7 @@ interface CarRentalBookingConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
   bookingDetails: BookingDetails | null;
-  colorScheme?: 'blue' | 'purple';
+  colorScheme?: 'blue' | 'purple' | 'primary';
 }
 
 type Step = 'confirm' | 'auth' | 'processing';
@@ -96,7 +96,27 @@ export function CarRentalBookingConfirmModal({
   bookingDetails,
   colorScheme = 'blue',
 }: CarRentalBookingConfirmModalProps) {
-  const clr = colorScheme === 'purple' ? {
+  const clr = colorScheme === 'primary' ? {
+    header: 'bg-gradient-to-r from-primary-600 to-primary-800',
+    btn: 'bg-primary-600 hover:bg-primary-700',
+    imgBg: 'bg-primary-100',
+    imgIcon: 'text-primary-600',
+    badge: 'bg-primary-50 text-primary-700',
+    dot: 'bg-primary-500',
+    routeBg: 'bg-primary-50',
+    routeText: 'text-primary-700',
+    routeBorder: 'border-primary-200',
+    totalFare: 'text-primary-600',
+    advance: 'bg-primary-50 text-primary-700',
+    authSummary: 'bg-primary-50',
+    authIcon: 'text-primary-600',
+    loginCard: 'bg-primary-50 border-primary-200',
+    loginAvatarBg: 'bg-primary-100',
+    loginAvatarIcon: 'text-primary-600',
+    inputFocus: 'focus:ring-primary-500 focus:border-primary-500',
+    processingBg: 'bg-primary-100',
+    processingIcon: 'text-primary-600',
+  } : colorScheme === 'purple' ? {
     header: 'bg-gradient-to-r from-purple-600 to-indigo-600',
     btn: 'bg-purple-600 hover:bg-purple-700',
     imgBg: 'bg-purple-100',
