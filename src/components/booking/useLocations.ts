@@ -10,6 +10,8 @@ export interface Location {
   priority?: number;
   tier?: 1 | 2 | 3 | 4;
   keywords?: string[];
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface UseLocationsOptions {

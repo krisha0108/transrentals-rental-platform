@@ -78,6 +78,7 @@ function BookingContent({ location }: { location: string }) {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [pickupAddress, setPickupAddress] = useState('');
   const [dropAddress, setDropAddress] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
@@ -95,12 +96,14 @@ function BookingContent({ location }: { location: string }) {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const customerData = localStorage.getItem('customer');
-      if (customerData) {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      if (customerData && token) {
         try {
           const customer = JSON.parse(customerData);
           setCustomerName(customer.name || '');
           setCustomerEmail(customer.email || '');
           setCustomerPhone(customer.phone || '');
+          setIsLoggedIn(true);
           if (customer.linkedTravelAgentId) {
             setIsTravelAgent(true);
             setAgentName(customer.name || '');
@@ -470,62 +473,76 @@ function BookingContent({ location }: { location: string }) {
               <div className="bg-white rounded-xl shadow-sm p-6">
                 <h2 className="font-semibold text-lg mb-4">Traveller Details</h2>
 
+                {isLoggedIn ? (
+                  <div className="flex items-center gap-3 p-4 mb-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold shrink-0">
+                      {(customerName || 'U')[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">{customerName}</p>
+                      <p className="text-sm text-gray-600">{customerPhone} · {customerEmail}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Full Name *
+                      </label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                          type="text"
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                          placeholder="Enter your full name"
+                          className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Mobile Number *
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                          type="tel"
+                          value={customerPhone}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            if (val.length <= 10) setCustomerPhone(val);
+                          }}
+                          placeholder="10-digit mobile number"
+                          maxLength={10}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email Address *
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                          type="email"
+                          value={customerEmail}
+                          onChange={(e) => setCustomerEmail(e.target.value)}
+                          placeholder="your@email.com"
+                          className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Full Name *
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="Enter your full name"
-                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Mobile Number *
-                    </label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="tel"
-                        value={customerPhone}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, '');
-                          if (val.length <= 10) setCustomerPhone(val);
-                        }}
-                        placeholder="10-digit mobile number"
-                        maxLength={10}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email Address *
-                    </label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="email"
-                        value={customerEmail}
-                        onChange={(e) => setCustomerEmail(e.target.value)}
-                        placeholder="your@email.com"
-                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      />
-                    </div>
-                  </div>
-
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Special Requests (Optional)

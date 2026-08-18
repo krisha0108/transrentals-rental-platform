@@ -19,9 +19,31 @@ export function AppDownloadSection() {
   }, [playStoreUrl]);
 
   return (
-    <section className="py-12 md:py-16 bg-gradient-to-br from-purple-600 via-blue-600 to-green-600 text-white relative overflow-hidden">
+    <section className="py-12 md:py-16 bg-gradient-to-br from-primary-700 via-primary-600 to-primary-900 text-white relative overflow-hidden">
       {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
+      <div
+        className="absolute inset-0 opacity-30 pointer-events-none"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 15% 20%, #09B368 0%, transparent 35%), radial-gradient(circle at 85% 80%, #2AD291 0%, transparent 40%)',
+        }}
+      />
+      <div
+        className="absolute inset-0 opacity-[0.07] pointer-events-none"
+        style={{
+          backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
+        }}
+      />
+      <div
+        className="absolute inset-0 opacity-10 pointer-events-none"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,.6) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.6) 1px,transparent 1px)',
+          backgroundSize: '32px 32px',
+        }}
+      />
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl" />
       </div>
@@ -187,40 +209,6 @@ export function AppDownloadSection() {
             </div>
           </motion.div>
         </div>
-
-        {/* Vendor App CTA - Compact */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-4 md:p-5 border border-white/20"
-        >
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex-1 text-center md:text-left">
-              <h3 className="text-lg font-bold mb-1">Are you a Vendor?</h3>
-              <p className="text-white/90 text-sm">
-                Download the Vendor App to manage bookings and grow your business.
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <a
-                href={process.env.NEXT_PUBLIC_VENDOR_APP_ANDROID || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-white text-blue-600 rounded-lg font-bold text-sm hover:bg-gray-100 transition whitespace-nowrap"
-              >
-                Download Vendor App
-              </a>
-              <a
-                href="/vendor"
-                className="px-4 py-2 border-2 border-white text-white rounded-lg font-bold text-sm hover:bg-white hover:text-blue-600 transition whitespace-nowrap"
-              >
-                Learn More
-              </a>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </section>
   );

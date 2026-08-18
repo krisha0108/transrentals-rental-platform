@@ -133,7 +133,13 @@ export function RazorpayPayment({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create order');
+        // Keep the server's `details`. The 500 branch always sends the same
+        // generic `error`, so without this every upstream failure (Razorpay
+        // unreachable, rejected amount, bad key) reads identically in the
+        // browser and cannot be told apart.
+        throw new Error(
+          [data.error || 'Failed to create order', data.details].filter(Boolean).join(' — ')
+        );
       }
 
       // Previous order was already paid — recover immediately
@@ -466,7 +472,13 @@ export function PaymentButton({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create order');
+        // Keep the server's `details`. The 500 branch always sends the same
+        // generic `error`, so without this every upstream failure (Razorpay
+        // unreachable, rejected amount, bad key) reads identically in the
+        // browser and cannot be told apart.
+        throw new Error(
+          [data.error || 'Failed to create order', data.details].filter(Boolean).join(' — ')
+        );
       }
 
       const options = {

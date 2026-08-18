@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Loader2, Search, Store, Phone, Mail, MapPin, Layers,
@@ -264,30 +264,64 @@ function FilterSearchSelect({
   );
 }
 
-export default function ManagerVendorsPage() {
+function ManagerVendorsPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Filters
-  const [search, setSearch] = useState('');
-  const [locationFilter, setLocationFilter] = useState('all');
-  const [serviceFilter, setServiceFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [tagFilter, setTagFilter] = useState('all');
-  const [requestFilter, setRequestFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState<DatePreset>('all');
-  const [customFrom, setCustomFrom] = useState('');
-  const [customTo, setCustomTo] = useState('');
-  const [sortBy, setSortBy] = useState('date_desc');
+  // Filters — read from the URL (not local state) so applying a filter,
+  // opening a vendor's detail page, then hitting Back restores exactly what
+  // was selected instead of resetting to defaults. See clearFilters()/
+  // updateFilter() below for how changes get written back into the URL.
+  const search = searchParams.get('search') || '';
+  const locationFilter = searchParams.get('location') || 'all';
+  const serviceFilter = searchParams.get('service') || 'all';
+  const statusFilter = searchParams.get('status') || 'all';
+  const tagFilter = searchParams.get('tag') || 'all';
+  const requestFilter = searchParams.get('request') || 'all';
+  const dateFilter = (searchParams.get('joined') || 'all') as DatePreset;
+  const customFrom = searchParams.get('from') || '';
+  const customTo = searchParams.get('to') || '';
+  const sortBy = searchParams.get('sort') || 'date_desc';
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  const itemsPerPage = parseInt(searchParams.get('perPage') || '20', 10);
+  const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+
+  // Local echo of the search box so typing feels instant; committed into the
+  // URL on a short debounce instead of on every keystroke.
+  const [searchInput, setSearchInput] = useState(search);
+  useEffect(() => { setSearchInput(search); }, [search]);
+
   const [tagEditorOpenFor, setTagEditorOpenFor] = useState<string | null>(null);
   const [tagSaving, setTagSaving] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
-  const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+
+  // Writes the given filter(s) into the URL query string, merged with
+  // whatever's already there, and always resets pagination back to page 1
+  // (matches the old reset-on-filter-change behaviour). Pass '' to remove a
+  // param entirely rather than writing its default value into the URL.
+  const updateFilter = useCallback((updates: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([k, v]) => { if (v) params.set(k, v); else params.delete(k); });
+    params.delete('page');
+    router.push(`/manager/vendors?${params.toString()}`);
+  }, [searchParams, router]);
+
+  const setPage = useCallback((p: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (p > 1) params.set('page', String(p)); else params.delete('page');
+    router.push(`/manager/vendors?${params.toString()}`);
+  }, [searchParams, router]);
+
+  // Commit the search box into the URL after the manager stops typing.
+  useEffect(() => {
+    if (searchInput === search) return;
+    const t = setTimeout(() => updateFilter({ search: searchInput }), 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   const [presence, setPresence] = useState<Record<string, PresenceInfo>>({});
 
@@ -439,9 +473,6 @@ export default function ManagerVendorsPage() {
     suspended: vendors.filter(v => v.status === 'SUSPENDED').length,
   }), [vendors]);
 
-  // Reset to page 1 when filters or page size change
-  useEffect(() => { setCurrentPage(1); }, [search, locationFilter, serviceFilter, statusFilter, tagFilter, requestFilter, dateFilter, customFrom, customTo, sortBy, itemsPerPage]);
-
   const totalPages = Math.ceil(vendors.length / itemsPerPage);
   const paginatedVendors = vendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
@@ -454,9 +485,8 @@ export default function ManagerVendorsPage() {
   ].filter(Boolean).length;
 
   const clearFilters = () => {
-    setSearch(''); setLocationFilter('all'); setServiceFilter('all');
-    setStatusFilter('all'); setTagFilter('all'); setRequestFilter('all'); setDateFilter('all');
-    setCustomFrom(''); setCustomTo(''); setSortBy('date_desc');
+    setSearchInput('');
+    router.push('/manager/vendors');
   };
 
   // Optimistic tag toggle — adds/removes the tag locally, then syncs server.
@@ -554,11 +584,11 @@ export default function ManagerVendorsPage() {
         {/* Row 1: Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+          <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)}
             placeholder="Search by name, phone, email, VN-ID..."
             className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm" />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+          {searchInput && (
+            <button onClick={() => { setSearchInput(''); updateFilter({ search: '' }); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -572,7 +602,7 @@ export default function ManagerVendorsPage() {
             allLabel="All Locations"
             options={uniqueLocations}
             value={locationFilter}
-            onChange={setLocationFilter}
+            onChange={(v) => updateFilter({ location: v })}
           />
 
           {/* Service */}
@@ -581,13 +611,13 @@ export default function ManagerVendorsPage() {
             allLabel="All Services"
             options={uniqueServices}
             value={serviceFilter}
-            onChange={setServiceFilter}
+            onChange={(v) => updateFilter({ service: v })}
           />
 
           {/* Status */}
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1 block">Status</label>
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+            <select value={statusFilter} onChange={e => updateFilter({ status: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
               <option value="all">All Status</option>
               <option value="APPROVED">Approved</option>
@@ -602,7 +632,7 @@ export default function ManagerVendorsPage() {
           {/* Tag */}
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1 block">Tag</label>
-            <select value={tagFilter} onChange={e => setTagFilter(e.target.value)}
+            <select value={tagFilter} onChange={e => updateFilter({ tag: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
               <option value="all">All Tags</option>
               {VENDOR_TAGS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
@@ -612,7 +642,7 @@ export default function ManagerVendorsPage() {
           {/* New request */}
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1 block">New Request</label>
-            <select value={requestFilter} onChange={e => setRequestFilter(e.target.value)}
+            <select value={requestFilter} onChange={e => updateFilter({ request: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
               <option value="all">All Vendors</option>
               <option value="any">Any Pending Request</option>
@@ -624,7 +654,7 @@ export default function ManagerVendorsPage() {
           {/* Joined date */}
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1 block">Joined</label>
-            <select value={dateFilter} onChange={e => setDateFilter(e.target.value as DatePreset)}
+            <select value={dateFilter} onChange={e => updateFilter({ joined: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
               {(Object.keys(DATE_PRESET_LABELS) as DatePreset[]).map(preset => (
                 <option key={preset} value={preset}>{DATE_PRESET_LABELS[preset]}</option>
@@ -635,7 +665,7 @@ export default function ManagerVendorsPage() {
           {/* Sort */}
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1 block">Sort By</label>
-            <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+            <select value={sortBy} onChange={e => updateFilter({ sort: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
               {SORT_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
@@ -646,11 +676,11 @@ export default function ManagerVendorsPage() {
         {dateFilter === 'custom' && (
           <div className="flex items-center gap-2">
             <input type="date" value={customFrom} max={customTo || undefined}
-              onChange={e => setCustomFrom(e.target.value)}
+              onChange={e => updateFilter({ from: e.target.value })}
               className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500" />
             <span className="text-gray-400 text-sm">to</span>
             <input type="date" value={customTo} min={customFrom || undefined}
-              onChange={e => setCustomTo(e.target.value)}
+              onChange={e => updateFilter({ to: e.target.value })}
               className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500" />
           </div>
         )}
@@ -661,49 +691,49 @@ export default function ManagerVendorsPage() {
             {search && (
               <span className="flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium border border-green-200">
                 <Search className="w-3 h-3" /> "{search}"
-                <button onClick={() => setSearch('')}><X className="w-3 h-3 ml-0.5" /></button>
+                <button onClick={() => { setSearchInput(''); updateFilter({ search: '' }); }}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
             )}
             {locationFilter !== 'all' && (
               <span className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-200">
                 <MapPin className="w-3 h-3" /> {locationFilter}
-                <button onClick={() => setLocationFilter('all')}><X className="w-3 h-3 ml-0.5" /></button>
+                <button onClick={() => updateFilter({ location: '' })}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
             )}
             {serviceFilter !== 'all' && (
               <span className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200">
                 <Layers className="w-3 h-3" /> {serviceFilter}
-                <button onClick={() => setServiceFilter('all')}><X className="w-3 h-3 ml-0.5" /></button>
+                <button onClick={() => updateFilter({ service: '' })}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
             )}
             {statusFilter !== 'all' && (
               <span className="flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium border border-gray-200">
                 {statusFilter}
-                <button onClick={() => setStatusFilter('all')}><X className="w-3 h-3 ml-0.5" /></button>
+                <button onClick={() => updateFilter({ status: '' })}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
             )}
             {tagFilter !== 'all' && (
               <span className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium border border-indigo-200">
                 <Tag className="w-3 h-3" /> {TAG_BY_KEY[tagFilter]?.label || tagFilter}
-                <button onClick={() => setTagFilter('all')}><X className="w-3 h-3 ml-0.5" /></button>
+                <button onClick={() => updateFilter({ tag: '' })}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
             )}
             {requestFilter !== 'all' && (
               <span className="flex items-center gap-1 px-2.5 py-1 bg-orange-50 text-orange-700 rounded-full text-xs font-medium border border-orange-200">
                 <Bell className="w-3 h-3" /> {requestFilter === 'location' ? 'New Location Requested' : requestFilter === 'service' ? 'New Service Requested' : 'Any Pending Request'}
-                <button onClick={() => setRequestFilter('all')}><X className="w-3 h-3 ml-0.5" /></button>
+                <button onClick={() => updateFilter({ request: '' })}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
             )}
             {dateFilter !== 'all' && (
               <span className="flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-700 rounded-full text-xs font-medium border border-teal-200">
                 <CalendarDays className="w-3 h-3" /> {DATE_PRESET_LABELS[dateFilter]}
-                <button onClick={() => { setDateFilter('all'); setCustomFrom(''); setCustomTo(''); }}><X className="w-3 h-3 ml-0.5" /></button>
+                <button onClick={() => updateFilter({ joined: '', from: '', to: '' })}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
             )}
             {sortBy !== 'date_desc' && (
               <span className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium border border-amber-200">
                 {SORT_OPTIONS.find(o => o.value === sortBy)?.label}
-                <button onClick={() => setSortBy('date_desc')}><X className="w-3 h-3 ml-0.5" /></button>
+                <button onClick={() => updateFilter({ sort: '' })}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
             )}
             <button onClick={clearFilters} className="text-xs text-gray-500 hover:text-red-500 underline ml-1 transition">
@@ -958,7 +988,7 @@ export default function ManagerVendorsPage() {
               <select
                 id="itemsPerPage"
                 value={itemsPerPage}
-                onChange={e => setItemsPerPage(Number(e.target.value))}
+                onChange={e => updateFilter({ perPage: e.target.value })}
                 className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white cursor-pointer transition-colors"
               >
                 {PAGE_SIZE_OPTIONS.map(size => (
@@ -971,14 +1001,14 @@ export default function ManagerVendorsPage() {
           {totalPages > 1 && (
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setCurrentPage(1)}
+              onClick={() => setPage(1)}
               disabled={currentPage === 1}
               className="px-2 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               «
             </button>
             <button
-              onClick={() => setCurrentPage(p => p - 1)}
+              onClick={() => setPage(currentPage - 1)}
               disabled={currentPage === 1}
               className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
@@ -999,7 +1029,7 @@ export default function ManagerVendorsPage() {
                 ) : (
                   <button
                     key={item}
-                    onClick={() => setCurrentPage(item as number)}
+                    onClick={() => setPage(item as number)}
                     className={`px-3 py-1.5 text-xs rounded-lg border transition ${
                       currentPage === item
                         ? 'bg-green-600 text-white border-green-600 font-semibold'
@@ -1012,14 +1042,14 @@ export default function ManagerVendorsPage() {
               )}
 
             <button
-              onClick={() => setCurrentPage(p => p + 1)}
+              onClick={() => setPage(currentPage + 1)}
               disabled={currentPage === totalPages}
               className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               Next
             </button>
             <button
-              onClick={() => setCurrentPage(totalPages)}
+              onClick={() => setPage(totalPages)}
               disabled={currentPage === totalPages}
               className="px-2 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
@@ -1030,5 +1060,21 @@ export default function ManagerVendorsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+
+export default function ManagerVendorsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-green-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading vendors...</p>
+        </div>
+      </div>
+    }>
+      <ManagerVendorsPageInner />
+    </Suspense>
   );
 }

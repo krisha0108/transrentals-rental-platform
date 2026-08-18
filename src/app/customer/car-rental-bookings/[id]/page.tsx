@@ -21,6 +21,7 @@ import {
   Download,
   Share2,
   HelpCircle,
+  CreditCard,
 } from 'lucide-react';
 import { BikeBookingChat } from '@/components/bike/BikeBookingChat';
 import { DriverBookingChat } from '@/components/driver/DriverBookingChat';
@@ -417,6 +418,89 @@ export default function CarRentalBookingDetailPage() {
 
         {/* ══ Left column ══ */}
         <div className="flex min-w-0 flex-col gap-4">
+
+          {/* ── Payment Required ──
+              Lives in the wide column, not the 372px rail: the UPI / bank
+              transfer panel lays itself out on viewport width, so in the rail it
+              collapsed into an unreadable strip. The `:has()` rule drops this
+              card to one column while that panel is open, handing it the full
+              width — the page keeps its two columns either way. */}
+          {booking.status === 'PENDING_PAYMENT' && booking.paymentStatus !== 'SUBMITTED' && (
+            <section className="grid grid-cols-1 overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-[0_20px_52px_-22px_rgba(1,35,20,.45)] lg:grid-cols-[1.08fr_0.92fr] lg:has-[[data-manual-payment]]:grid-cols-1">
+              {/* Amount stub */}
+              <div className="relative overflow-hidden bg-[linear-gradient(155deg,#01301B_0%,#056B3E_58%,#078F53_100%)] px-5 py-5 text-white">
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    backgroundImage:
+                      'radial-gradient(520px 240px at 100% -30%, rgba(42,210,145,.42), transparent 62%),' +
+                      'repeating-linear-gradient(128deg, rgba(255,255,255,.045) 0 1px, transparent 1px 38px)',
+                  }}
+                />
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[9px] border border-white/[0.22] bg-white/[0.16]">
+                      <CreditCard className="h-4 w-4" />
+                    </span>
+                    <span>
+                      <span className="block text-[13px] font-extrabold">Complete Your Booking</span>
+                      <span className="mt-px block text-[11px] text-white/[0.66]">Pay advance to confirm</span>
+                    </span>
+                  </div>
+                  <p className="mt-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">Advance Payment</p>
+                  <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="text-[38px] font-extrabold leading-none tracking-[-0.035em] tabular-nums sm:text-[44px]">
+                      ₹{(booking.advanceAmount || Math.round(booking.grandTotal * 0.3)).toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-xs tabular-nums text-white/[0.68]">
+                      of ₹{booking.grandTotal.toLocaleString('en-IN')} total
+                    </span>
+                  </div>
+                  <p className="mt-4 text-[11px] font-semibold tabular-nums text-white/[0.6]">
+                    Balance ₹{(booking.grandTotal - (booking.advanceAmount || Math.round(booking.grandTotal * 0.3))).toLocaleString('en-IN')} after the trip
+                  </p>
+                </div>
+              </div>
+
+              {/* The widget keeps its own Razorpay + UPI/bank flows; this card
+                  only supplies the surrounding chrome, so it runs embedded. */}
+              <div
+                className="flex flex-col justify-center gap-3.5 px-5 py-5
+                  [&>div:not([data-manual-payment])>button]:!py-3
+                  [&>div:not([data-manual-payment])>div]:!mt-3.5
+                  [&>button]:!pt-3"
+              >
+                <BookingPayment
+                  bookingId={booking.id}
+                  bookingType="chauffeur"
+                  amount={booking.advanceAmount || Math.round(booking.grandTotal * 0.3)}
+                  bookingNumber={booking.bookingNumber}
+                  onSuccess={() => window.location.reload()}
+                  embedded
+                />
+              </div>
+            </section>
+          )}
+
+          {/* ── Payment Under Verification ── */}
+          {(booking.status === 'PAYMENT_SUBMITTED' || (booking.status === 'PENDING_PAYMENT' && booking.paymentStatus === 'SUBMITTED')) && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                  <CheckCircle className="h-6 w-6 text-amber-700" />
+                </div>
+                <div>
+                  <p className="text-[14px] font-extrabold text-amber-800">Payment Under Verification</p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-amber-700">
+                    Our team will verify and confirm within 15–30 minutes.
+                  </p>
+                  {booking.transactionId && (
+                    <p className="mt-1.5 text-[11.5px] tabular-nums text-amber-700/80">Ref: {booking.transactionId}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── Service Provider — vendor accepted from dashboard, no driver/staff ── */}
           {booking.vendor && !booking.acceptedDriverId && !booking.acceptedStaffId && (
@@ -935,29 +1019,6 @@ export default function CarRentalBookingDetailPage() {
           <div className={cardCls}>
             <div className={headCls}><p className={labelCls}>Actions</p></div>
             <div className="p-4 flex flex-col gap-2.5">
-              {(booking.status === 'PAYMENT_SUBMITTED' || (booking.status === 'PENDING_PAYMENT' && booking.paymentStatus === 'SUBMITTED')) && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center">
-                  <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-amber-100">
-                    <CheckCircle className="w-5 h-5 text-amber-700" />
-                  </div>
-                  <p className="text-[13.5px] font-extrabold text-amber-800">Payment Under Verification</p>
-                  <p className="mt-1 text-[12px] leading-relaxed text-amber-700">Our team will verify and confirm within 15–30 minutes.</p>
-                  {booking.transactionId && (
-                    <p className="mt-1.5 text-[11px] text-amber-700/80 tabular-nums">Ref: {booking.transactionId}</p>
-                  )}
-                </div>
-              )}
-
-              {booking.status === 'PENDING_PAYMENT' && booking.paymentStatus !== 'SUBMITTED' && (
-                <BookingPayment
-                  bookingId={booking.id}
-                  bookingType="chauffeur"
-                  amount={booking.advanceAmount || Math.round(booking.grandTotal * 0.3)}
-                  bookingNumber={booking.bookingNumber}
-                  onSuccess={() => window.location.reload()}
-                />
-              )}
-
               {canRate && (
                 <button
                   onClick={() => setShowRatingModal(true)}
