@@ -617,3 +617,15 @@ body.modal-open {
 .tr-safety-icon-breathe {
   animation: tr-safety-icon-breathe 1.6s ease-in-out infinite;
 }
+
+/* Browser autofill (esp. email fields) forces its own white background —
+   override it so dark-themed inputs stay dark once a value is filled in. */
+.b2b-dark-input:-webkit-autofill,
+.b2b-dark-input:-webkit-autofill:hover,
+.b2b-dark-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff;
+  -webkit-box-shadow: 0 0 0px 1000px #101d18 inset;
+  box-shadow: 0 0 0px 1000px #101d18 inset;
+  transition: background-color 9999s ease-in-out 0s;
+  caret-color: #fff;
+}
