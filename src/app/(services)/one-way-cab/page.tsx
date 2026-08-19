@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { OneWayCabRoutesGrid } from '@/components/services/OneWayCabRoutesGrid';
 import Link from 'next/link';
 import { Car, Star, Shield, Clock, IndianRupee, MapPin, ArrowRight, CheckCircle2 } from 'lucide-react';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
@@ -116,19 +116,15 @@ export default async function OneWayCabPage() {
           { name: 'Confirm & Travel', text: 'Pay booking amount. Driver picks you up at the scheduled time and drops at your destination.' },
         ]}
       />
-      {/* Hero with booking form */}
-      <ServiceHeroWithChat
-        badge="One Way Cab Service"
-        title="Book One Way Drop Taxi"
-        titleHighlight="Pay Only One Side @₹9/km"
-        description="No return charges. Book one way cab across 500+ routes in India with professional drivers."
-        features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'No Return Charges', color: 'text-emerald-600' },
-          { icon: 'zap', text: '500+ Routes', color: 'text-green-600' },
-        ]}
-        gradientFrom="emerald-50"
-        gradientTo="teal-50"
+      {/* Hero with booking form - same as /car-rental, defaults to the Outstation > One Way tab */}
+      <CarRentalBookingHero
+        city=""
+        citySlug=""
+        serviceSlug="car-rental"
+        serviceTitle="One Way Cab"
+        initialTripType="outstation"
+        headingLine1="Book One Way"
+        headingLine2="Drop Taxi"
       />
 
       {/* Why Choose One Way Cab */}
