@@ -405,11 +405,13 @@ async function handleBikeBooking(customerInfo: { name: string; email: string; ph
 
 // ============= CAR BOOKING HANDLER =============
 
-async function handleCarBooking(customerInfo: { name: string; email: string; phone: string; password?: string }, bookingData: Record<string, unknown>) {
+async function handleCarBooking(customerInfo: { name: string; email: string; phone: string; password?: string }, bookingData: Record<string, unknown>, bookingType: string = 'car-oneway') {
   const { customer } = await getOrCreateCustomer(customerInfo);
   const pickupLocation = await findLocation(bookingData.location_name as string);
 
-  const bookingNumber = generateBookingNumber('CR');
+  // Car-with-driver bookings must always use the CB- prefix and live in
+  // chauffeur_bookings — car_bookings/CR- is the self-drive table.
+  const bookingNumber = generateBookingNumber('CB');
 
   // Parse dates
   const pickupDate = bookingData.journey_datetime ? new Date(bookingData.journey_datetime as string) : new Date();
@@ -430,13 +432,30 @@ async function handleCarBooking(customerInfo: { name: string; email: string; pho
     '4': 'SUV',
     '5': 'Luxury',
   };
+  const carCategorySlugMap: Record<string, string> = {
+    '1': 'hatchback',
+    '2': 'sedan',
+    '3': 'muv',
+    '4': 'suv',
+    '5': 'luxury',
+  };
 
   // Calculate total days
   const totalDays = returnDate
     ? Math.max(1, Math.ceil((returnDate.getTime() - pickupDate.getTime()) / (24 * 60 * 60 * 1000)))
     : 1;
 
-  const booking: any = await (prisma as any).car_bookings.create({
+  const tripKind = tripTypeMap[bookingData.trip_type as string]
+    || (bookingType === 'car-roundtrip' ? 'roundtrip'
+      : bookingType === 'car-airport' ? 'airport'
+      : 'oneway');
+  const chauffeurTripType = tripKind === 'roundtrip'
+    ? 'OUTSTATION_ROUNDTRIP'
+    : tripKind === 'airport'
+      ? ((bookingData.airport_mode || bookingData.car_mode) === 'pickup' ? 'AIRPORT_PICKUP' : 'AIRPORT_DROP')
+      : 'OUTSTATION_ONEWAY';
+
+  const booking: any = await (prisma as any).chauffeur_bookings.create({
     data: {
       bookingNumber,
       customerId: customer.id,
@@ -445,26 +464,28 @@ async function handleCarBooking(customerInfo: { name: string; email: string; pho
       customerPhone: customerInfo.phone,
       locationId: pickupLocation?.id || 'default_loc',
       locationName: (bookingData.location_name as string) || 'Not specified',
-      requestedVehicleName: (bookingData.fleet as string) || carTypeMap[bookingData.car_type as string] || 'Any Car',
-      requestedCategory: carTypeMap[bookingData.car_type as string] || 'Sedan',
+      tripType: chauffeurTripType,
+      pickupCity: (bookingData.location_name as string) || 'Not specified',
+      dropCity: (bookingData.destination as string) || null,
+      carCategory: carCategorySlugMap[bookingData.car_type as string] || 'sedan',
+      carCategoryName: (bookingData.fleet as string) || carTypeMap[bookingData.car_type as string] || 'Sedan',
       pickupDate,
       pickupTime: pickupDate.toTimeString().slice(0, 5),
-      dropDate: returnDate || pickupDate,
-      dropTime: returnDate ? returnDate.toTimeString().slice(0, 5) : pickupDate.toTimeString().slice(0, 5),
+      returnDate: returnDate || null,
+      returnTime: returnDate ? returnDate.toTimeString().slice(0, 5) : null,
       totalDays,
       pickupAddress: (bookingData.location_name as string) || null,
       dropAddress: (bookingData.destination as string) || null,
       status: 'PENDING_VENDOR',
-      dailyRate: 0,
-      baseAmount: 0,
+      baseFare: 0,
+      perKmRate: 0,
       gstAmount: 0,
-      securityDeposit: 0,
       grandTotal: 0,
       customerNotes: bookingData.other_info as string || null,
     },
   });
 
-  await tagTaPersonalBooking('car_bookings', booking.id, customer.id);
+  await tagTaPersonalBooking('chauffeur_bookings', booking.id, customer.id);
 
   return {
     success: true,
@@ -478,7 +499,7 @@ async function handleCarBooking(customerInfo: { name: string; email: string; pho
       email: customer.email,
       phone: customer.phone,
     },
-    redirect_to: `/customer/car-bookings/${booking.bookingNumber}`,
+    redirect_to: `/pay/${booking.bookingNumber}`,
   };
 }
 
@@ -1638,7 +1659,7 @@ export async function POST(request: NextRequest) {
     }
     // CAR SERVICES (with driver)
     else if (bookingType === 'car-roundtrip' || bookingType === 'car-oneway' || bookingType === 'car-airport' || bookingType === 'car' || bookingType === 'one-way-cab') {
-      result = await handleCarBooking(customerInfo, bookingData);
+      result = await handleCarBooking(customerInfo, bookingData, bookingType);
     }
     // SELF-DRIVE CAR (direct booking - fleet cars with known vendor)
     else if (bookingType === 'selfdrive' || bookingType.includes('self-drive')) {
@@ -1680,7 +1701,7 @@ export async function POST(request: NextRequest) {
       }
       // Check if it looks like a car service
       else if (bookingData.trip_type || bookingData.car_type) {
-        result = await handleCarBooking(customerInfo, bookingData);
+        result = await handleCarBooking(customerInfo, bookingData, bookingType);
       }
       // Default to generic booking error
       else {
