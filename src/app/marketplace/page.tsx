@@ -9,7 +9,7 @@ import {
   Bike, Key, Car, Gem, Bus, Truck, Package, Wrench, Compass, Home, Building2,
   Star, ShieldCheck, Users, MapPin, TrendingUp, ArrowRight, ArrowLeft, Check, X,
   Search, Handshake, ScaleIcon, BadgeCheck, Sparkles, Zap, Plus,
-  Calendar, Clock, AlertCircle, ChevronLeft, ChevronRight,
+  Calendar, Clock, AlertCircle, ChevronLeft, ChevronRight, ChevronDown,
   FileText, Tag, ArrowLeftRight, CheckCircle2, Plane, BusFront,
   Bed, Utensils, Sofa, Armchair, Refrigerator, Tv2, DoorClosed, WashingMachine, Weight, Warehouse,
   IndianRupee, Headphones, Phone, Loader2,
@@ -1763,6 +1763,71 @@ function MiniAirportInput({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Custom-styled dropdown (button + floating option list) standing in for a
+// native <select> — matches the rest of the widget's card styling instead of
+// each browser/OS's own native picker UI.
+function MiniSelectInput({
+  label, icon: Icon, options, value, onChange, placeholder = 'Select an option', caption,
+  boxClassName = 'w-full sm:w-auto sm:min-w-[182px] sm:flex-1',
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  options: string[];
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  caption?: string;
+  boxClassName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  return (
+    <div
+      className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
+      ref={boxRef}
+    >
+      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+        <Icon className="h-3 w-3 text-primary-700" /> {label}
+      </label>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+      >
+        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{value || placeholder}</span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
+          {options.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => { onChange(opt); setOpen(false); }}
+              className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${
+                value === opt ? 'font-semibold text-primary-700' : 'text-slate-700'
+              }`}
+            >
+              <span className="truncate">{opt}</span>
+              {value === opt && <Check className="h-3.5 w-3.5 shrink-0 text-primary-600" />}
+            </button>
+          ))}
+        </div>
+      )}
+      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
     </div>
   );
 }
@@ -3697,34 +3762,24 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
                   {activeTab.hasTruckFields && (
                     <>
-                      <div className="w-full sm:w-auto sm:min-w-[182px] sm:flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                          <Package className="h-3 w-3 text-primary-700" /> Load Type
-                        </label>
-                        <select
-                          value={loadType}
-                          onChange={(e) => setLoadType(e.target.value)}
-                          className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                        >
-                          <option value="">Select load type</option>
-                          {QUICK_LOAD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                        <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Type of goods</span>
-                      </div>
-                      <div className="w-full sm:w-auto sm:min-w-[182px] sm:flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                          <Truck className="h-3 w-3 text-primary-700" /> Truck Type
-                        </label>
-                        <select
-                          value={truckType}
-                          onChange={(e) => setTruckType(e.target.value)}
-                          className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                        >
-                          <option value="">Select truck type</option>
-                          {QUICK_TRUCK_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                        <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Vehicle type</span>
-                      </div>
+                      <MiniSelectInput
+                        label="Load Type"
+                        icon={Package}
+                        options={QUICK_LOAD_TYPES}
+                        value={loadType}
+                        onChange={setLoadType}
+                        placeholder="Select load type"
+                        caption="Type of goods"
+                      />
+                      <MiniSelectInput
+                        label="Truck Type"
+                        icon={Truck}
+                        options={QUICK_TRUCK_TYPES}
+                        value={truckType}
+                        onChange={setTruckType}
+                        placeholder="Select truck type"
+                        caption="Vehicle type"
+                      />
                       <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                           <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
