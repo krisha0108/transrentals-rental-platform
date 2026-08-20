@@ -1651,8 +1651,8 @@ function MiniCityInput({
       : 0;
 
   return (
-    <div className="relative min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
-      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+    <div className="relative min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
+      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
         <MapPin className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <input
@@ -1662,7 +1662,7 @@ function MiniCityInput({
         placeholder={placeholder}
         className="w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
       />
-      {caption && <span className="mt-0.5 block text-[12.5px] text-slate-400">{caption}</span>}
+      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && matches.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
           {nearbyCount > 0 && (
@@ -1736,8 +1736,8 @@ function MiniAirportInput({
   }, [query, airports]);
 
   return (
-    <div className="relative min-w-[180px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
-      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+    <div className="relative min-w-[117px] sm:min-w-[180px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
+      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
         <Plane className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <input
@@ -1747,7 +1747,7 @@ function MiniAirportInput({
         placeholder={loading ? 'Loading airports…' : placeholder}
         className="w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
       />
-      {caption && <span className="mt-0.5 block text-[12.5px] text-slate-400">{caption}</span>}
+      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && matches.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
           {matches.map((a) => (
@@ -2555,7 +2555,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
               </div>
             )}
 
-            <div className={`flex flex-wrap items-stretch gap-4 p-5 sm:p-8 ${activeTab.key === 'car' || activeTab.key === 'bus' || activeTab.key === 'truck' || activeTab.key === 'packers' || activeTab.key === 'equipment' ? '' : 'md:flex-nowrap'}`}>
+            <div className={`flex flex-wrap items-stretch gap-2.5 p-3 sm:gap-4 sm:p-8 ${activeTab.key === 'car' || activeTab.key === 'bus' || activeTab.key === 'truck' || activeTab.key === 'packers' || activeTab.key === 'equipment' ? '' : 'md:flex-nowrap'}`}>
               {activeTab.key === 'car' ? (
                 <>
                   {carSubTab === 'local' && (
@@ -2568,8 +2568,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         value={fromCity?.name ?? ''}
                         onSelect={setFromCity}
                       />
-                      <div className="min-w-[260px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Select Package</label>
+                      <div className="min-w-[170px] sm:min-w-[260px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Select Package</label>
                         <div className="grid grid-cols-3 gap-1.5">
                           {(['4', '8', '12'] as const).map((p) => (
                             <button
@@ -2626,7 +2626,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         >
                           <ArrowLeftRight className="h-3 w-3" />
                         </button>
-                        <div className="relative min-w-[182px] flex-1">
+                        <div className="relative min-w-[120px] sm:min-w-[182px] flex-1">
                           <MiniCityInput
                             label="To"
                             placeholder="Enter delivery location"
@@ -2649,7 +2649,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       </div>
 
                       {viaCities.map((via, idx) => (
-                        <div key={idx} className="relative min-w-[182px] flex-1">
+                        <div key={idx} className="relative min-w-[120px] sm:min-w-[182px] flex-1">
                           <MiniCityInput
                             label={`Via ${viaCities.length > 1 ? idx + 1 : ''}`.trim()}
                             placeholder="Stop city"
@@ -2725,8 +2725,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     </>
                   )}
 
-                  <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                  <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                       <Calendar className="h-3 w-3 text-primary-700" />
                       {carSubTab === 'airport' ? (airportMode === 'from' ? 'Flight Arrival' : 'Pickup Date') : 'Pickup Date'}
                     </label>
@@ -2737,12 +2737,12 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       onChange={(e) => setDate(e.target.value)}
                       className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                     />
-                    <span className="mt-0.5 block text-[12.5px] text-slate-400">Journey date</span>
+                    <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Journey date</span>
                   </div>
 
                   {carSubTab === 'outstation' && carTripMode === 'roundtrip' && (
-                    <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Calendar className="h-3 w-3 text-primary-700" /> Return Date
                       </label>
                       <input
@@ -2752,12 +2752,12 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         onChange={(e) => setDropoffDate(e.target.value)}
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Return date</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Return date</span>
                     </div>
                   )}
 
-                  <div className="min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                  <div className="min-w-[112px] sm:min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                       <Clock className="h-3 w-3 text-primary-700" />
                       {carSubTab === 'airport' ? (airportMode === 'from' ? 'Arrival Time' : 'Pickup Time') : 'Pickup Time'}
                     </label>
@@ -2767,7 +2767,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       onChange={(e) => setPickupTime(e.target.value)}
                       className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                     />
-                    <span className="mt-0.5 block text-[12.5px] text-slate-400">Pickup time</span>
+                    <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Pickup time</span>
                   </div>
                 </>
               ) : activeTab.key === 'bus' ? (
@@ -2799,8 +2799,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         onSelect={setToCity}
                       />
                     </div>
-                    <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                       </label>
                       <input
@@ -2812,8 +2812,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
-                    <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Drop Address
                       </label>
                       <input
@@ -2839,8 +2839,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   </>
                 ) : (
                   <>
-                    <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Calendar className="h-3 w-3 text-primary-700" /> Journey Date
                       </label>
                       <input
@@ -2850,10 +2850,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         onChange={(e) => setDate(e.target.value)}
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Travel date</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Travel date</span>
                     </div>
-                    <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Calendar className="h-3 w-3 text-primary-700" /> Return Date
                       </label>
                       <input
@@ -2863,10 +2863,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         onChange={(e) => setDropoffDate(e.target.value)}
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Clock className="h-3 w-3 text-primary-700" /> Pickup Time
                       </label>
                       <input
@@ -2875,10 +2875,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         onChange={(e) => setPickupTime(e.target.value)}
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Pickup time</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Pickup time</span>
                     </div>
-                    <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Users className="h-3 w-3 text-primary-700" /> Passengers
                       </label>
                       <div className="flex items-center gap-2.5">
@@ -2942,7 +2942,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 packersStep === 1 ? (
                   <div className="flex w-full flex-col gap-3.5">
                     <div>
-                      <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Scope of Move</label>
+                      <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Scope of Move</label>
                       <div className="flex flex-wrap gap-2">
                         {([
                           { v: 'LOCAL', icon: MapPin, label: 'Local' },
@@ -2969,7 +2969,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
                     <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row">
                       <div className="flex-1">
-                        <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Type of Shifting</label>
+                        <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Type of Shifting</label>
                         <div className="grid grid-cols-3 gap-2.5">
                           {([
                             { v: 'Home', icon: Home, sub: 'Household' },
@@ -3019,7 +3019,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 ) : packersStep === 2 ? (
                   <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row">
                     <div className="flex-1">
-                      <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Home Size</label>
+                      <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Home Size</label>
                       <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
                         {([
                           { v: 'BHK_1', label: '1 BHK' },
@@ -3074,8 +3074,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={fromCity?.name ?? ''}
                       onSelect={setFromCity}
                     />
-                    <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                       </label>
                       <input
@@ -3087,8 +3087,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
-                    <div className="min-w-[100px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 block text-[13px] font-bold text-slate-500">Pincode</label>
+                    <div className="min-w-[65px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Pincode</label>
                       <input
                         type="tel"
                         maxLength={6}
@@ -3097,10 +3097,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         placeholder="6-digit"
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[90px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 block text-[13px] font-bold text-slate-500">Floor No.</label>
+                    <div className="min-w-[60px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Floor No.</label>
                       <input
                         type="number"
                         min={0}
@@ -3109,10 +3109,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         placeholder="0 = ground"
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 block text-[13px] font-bold text-slate-500">Lift at Pickup?</label>
+                    <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Lift at Pickup?</label>
                       <YesNoPill value={pickupLift} onChange={setPickupLift} />
                     </div>
 
@@ -3145,8 +3145,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={toCity?.name ?? ''}
                       onSelect={setToCity}
                     />
-                    <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Drop Address
                       </label>
                       <input
@@ -3158,8 +3158,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
-                    <div className="min-w-[100px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 block text-[13px] font-bold text-slate-500">Pincode</label>
+                    <div className="min-w-[65px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Pincode</label>
                       <input
                         type="tel"
                         maxLength={6}
@@ -3168,10 +3168,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         placeholder="6-digit"
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[90px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 block text-[13px] font-bold text-slate-500">Floor No.</label>
+                    <div className="min-w-[60px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Floor No.</label>
                       <input
                         type="number"
                         min={0}
@@ -3180,10 +3180,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         placeholder="0 = ground"
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 block text-[13px] font-bold text-slate-500">Lift at Drop?</label>
+                    <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Lift at Drop?</label>
                       <YesNoPill value={dropLift} onChange={setDropLift} />
                     </div>
 
@@ -3208,8 +3208,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   </>
                 ) : packersStep === 5 ? (
                   <>
-                    <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Calendar className="h-3 w-3 text-primary-700" /> Shift Date
                       </label>
                       <input
@@ -3219,10 +3219,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         onChange={(e) => setDate(e.target.value)}
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Moving date</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Moving date</span>
                     </div>
-                    <div className="min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Clock className="h-3 w-3 text-primary-700" /> Pickup Time
                       </label>
                       <input
@@ -3231,10 +3231,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         onChange={(e) => setPickupTime(e.target.value)}
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Pickup time</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Pickup time</span>
                     </div>
-                    <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Calendar className="h-3 w-3 text-primary-700" /> Expected Delivery
                       </label>
                       <input
@@ -3244,7 +3244,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         onChange={(e) => setExpectedDeliveryDate(e.target.value)}
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
 
                     <div className="flex shrink-0 flex-col items-center justify-end gap-1.5 sm:ml-1">
@@ -3269,7 +3269,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 ) : packersStep === 6 ? (
                   <div className="flex w-full flex-col gap-3">
                     <div className="w-full rounded-[10px] border border-slate-100 bg-[#fbfbfc] p-3.5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-2 block text-[13px] font-bold text-slate-500">What are you moving?</label>
+                      <label className="mb-2 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">What are you moving?</label>
                       <div className="flex flex-wrap gap-2">
                         {INVENTORY_ITEMS.map((item) => {
                           const Icon = item.icon;
@@ -3305,8 +3305,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     </div>
 
                     <div className="flex flex-wrap items-stretch gap-3">
-                      <div className="min-w-[200px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Other Items</label>
+                      <div className="min-w-[130px] sm:min-w-[200px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Other Items</label>
                         <input
                           type="text"
                           value={inventoryExtra}
@@ -3316,8 +3316,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         />
                         <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                       </div>
-                      <div className="min-w-[220px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Estimated Weight</label>
+                      <div className="min-w-[143px] sm:min-w-[220px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Estimated Weight</label>
                         <div className="grid grid-cols-2 gap-1.5">
                           {ESTIMATED_WEIGHT_OPTIONS.map((opt) => (
                             <button
@@ -3333,8 +3333,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           ))}
                         </div>
                       </div>
-                      <div className="min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Heavy Items?</label>
+                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Heavy Items?</label>
                         <YesNoPill value={hasHeavyItems} onChange={setHasHeavyItems} />
                         {hasHeavyItems && (
                           <input
@@ -3346,8 +3346,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           />
                         )}
                       </div>
-                      <div className="min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Fragile Items?</label>
+                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Fragile Items?</label>
                         <YesNoPill value={hasFragileItems} onChange={setHasFragileItems} />
                         {hasFragileItems && (
                           <input
@@ -3383,20 +3383,20 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 ) : (
                   <div className="flex w-full flex-col gap-3">
                     <div className="flex flex-wrap items-stretch gap-3">
-                      <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Packing Help?</label>
+                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Packing Help?</label>
                         <YesNoPill value={needPacking} onChange={setNeedPacking} />
                       </div>
-                      <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Loading Help?</label>
+                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Loading Help?</label>
                         <YesNoPill value={needLoading} onChange={setNeedLoading} />
                       </div>
-                      <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Unloading Help?</label>
+                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Unloading Help?</label>
                         <YesNoPill value={needUnloading} onChange={setNeedUnloading} />
                       </div>
-                      <div className="min-w-[155px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Labour Workers</label>
+                      <div className="min-w-[100px] sm:min-w-[155px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Labour Workers</label>
                         <input
                           type="number"
                           min={1}
@@ -3405,13 +3405,13 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           placeholder="e.g. 2"
                           className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                         />
-                        <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
+                        <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-stretch gap-3">
-                      <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Truck Type</label>
+                      <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Truck Type</label>
                         <div className="flex gap-1.5">
                           {([
                             { v: 'SHARED', icon: Warehouse, label: 'Shared' },
@@ -3433,12 +3433,12 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           })}
                         </div>
                       </div>
-                      <div className="min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Part Load OK?</label>
+                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Part Load OK?</label>
                         <YesNoPill value={partLoad} onChange={setPartLoad} />
                       </div>
-                      <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Transit Insurance?</label>
+                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Transit Insurance?</label>
                         <YesNoPill value={needInsurance} onChange={setNeedInsurance} />
                         {needInsurance && (
                           <input
@@ -3450,12 +3450,12 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           />
                         )}
                       </div>
-                      <div className="min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Proof of Delivery?</label>
+                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Proof of Delivery?</label>
                         <YesNoPill value={requiresPod} onChange={setRequiresPod} />
                       </div>
-                      <div className="min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Multiple Stops?</label>
+                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Multiple Stops?</label>
                         <YesNoPill value={multipleStops} onChange={setMultipleStops} />
                         {multipleStops && (
                           <input
@@ -3496,8 +3496,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
               ) : activeTab.key === 'equipment' ? (
                 equipmentStep === 1 ? (
                   <>
-                    <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Wrench className="h-3 w-3 text-primary-700" /> Equipment Type
                       </label>
                       <select
@@ -3508,7 +3508,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         <option value="">Select equipment</option>
                         {QUICK_EQUIPMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                       </select>
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Type of equipment</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Type of equipment</span>
                     </div>
                     <MiniCityInput
                       label="Pickup City"
@@ -3518,8 +3518,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={fromCity?.name ?? ''}
                       onSelect={setFromCity}
                     />
-                    <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                       </label>
                       <input
@@ -3544,8 +3544,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   </>
                 ) : (
                   <>
-                    <div className="min-w-[220px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Rental Duration</label>
+                    <div className="min-w-[143px] sm:min-w-[220px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Rental Duration</label>
                       <div className="grid grid-cols-2 gap-1.5">
                         {([
                           { v: '1', label: '1–5 Days' },
@@ -3566,8 +3566,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         ))}
                       </div>
                     </div>
-                    <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Calendar className="h-3 w-3 text-primary-700" /> Start Date
                       </label>
                       <input
@@ -3577,10 +3577,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         onChange={(e) => setDate(e.target.value)}
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Rental start</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Rental start</span>
                     </div>
-                    <div className="min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Wrench className="h-3 w-3 text-primary-700" /> Number of Equipment
                       </label>
                       <div className="flex items-center gap-2.5">
@@ -3615,8 +3615,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         </button>
                       </div>
                     </div>
-                    <div className="min-w-[260px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1.5 block text-[13px] font-bold text-slate-500">What do you need?</label>
+                    <div className="min-w-[170px] sm:min-w-[260px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">What do you need?</label>
                       <div className="flex flex-wrap gap-1.5">
                         {([
                           { v: 'operator', label: 'Operator', on: needOperator, set: setNeedOperator },
@@ -3697,8 +3697,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
                   {activeTab.hasTruckFields && (
                     <>
-                      <div className="min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                           <Package className="h-3 w-3 text-primary-700" /> Load Type
                         </label>
                         <select
@@ -3709,10 +3709,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           <option value="">Select load type</option>
                           {QUICK_LOAD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                         </select>
-                        <span className="mt-0.5 block text-[12.5px] text-slate-400">Type of goods</span>
+                        <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Type of goods</span>
                       </div>
-                      <div className="min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                           <Truck className="h-3 w-3 text-primary-700" /> Truck Type
                         </label>
                         <select
@@ -3723,10 +3723,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           <option value="">Select truck type</option>
                           {QUICK_TRUCK_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                         </select>
-                        <span className="mt-0.5 block text-[12.5px] text-slate-400">Vehicle type</span>
+                        <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Vehicle type</span>
                       </div>
-                      <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                           <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                         </label>
                         <input
@@ -3738,8 +3738,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         />
                         <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                       </div>
-                      <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                           <MapPin className="h-3 w-3 text-primary-700" /> Drop Address
                         </label>
                         <input
@@ -3756,8 +3756,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
                   {activeTab.hasDateTimeFields ? (
                 <>
-                  <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                  <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                       <Calendar className="h-3 w-3 text-primary-700" /> Pickup Date
                     </label>
                     <input
@@ -3767,10 +3767,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       onChange={(e) => setDate(e.target.value)}
                       className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                     />
-                    <span className="mt-0.5 block text-[12.5px] text-slate-400">Journey date</span>
+                    <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Journey date</span>
                   </div>
-                  <div className="min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                  <div className="min-w-[112px] sm:min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                       <Clock className="h-3 w-3 text-primary-700" /> Pickup Time
                     </label>
                     <input
@@ -3779,10 +3779,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       onChange={(e) => setPickupTime(e.target.value)}
                       className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                     />
-                    <span className="mt-0.5 block text-[12.5px] text-slate-400">Pickup time</span>
+                    <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Pickup time</span>
                   </div>
-                  <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                  <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                       <Calendar className="h-3 w-3 text-primary-700" /> Drop-off Date
                     </label>
                     <input
@@ -3792,10 +3792,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       onChange={(e) => setDropoffDate(e.target.value)}
                       className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                     />
-                    <span className="mt-0.5 block text-[12.5px] text-slate-400">Return date</span>
+                    <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Return date</span>
                   </div>
-                  <div className="min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                  <div className="min-w-[112px] sm:min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                       <Clock className="h-3 w-3 text-primary-700" /> Drop-off Time
                     </label>
                     <input
@@ -3804,12 +3804,12 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       onChange={(e) => setDropoffTime(e.target.value)}
                       className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                     />
-                    <span className="mt-0.5 block text-[12.5px] text-slate-400">Return time</span>
+                    <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Return time</span>
                   </div>
                 </>
               ) : (
-                <div className="min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                  <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                  <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                     <Calendar className="h-3 w-3 text-primary-700" /> Pickup Date
                   </label>
                   <input
@@ -3819,7 +3819,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     onChange={(e) => setDate(e.target.value)}
                     className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                   />
-                  <span className="mt-0.5 block text-[12.5px] text-slate-400">Journey date</span>
+                  <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Journey date</span>
                 </div>
               )}
                 </>
@@ -3851,7 +3851,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     {activeTab.key === 'car' ? 'Book Now' : 'Get Quotes Now'} <ArrowRight className="h-4 w-4" />
                   </button>
                   {activeTab.key !== 'car' && (
-                    <span className="whitespace-nowrap text-[12.5px] text-slate-400">It&rsquo;s free &amp; takes less than 2 minutes</span>
+                    <span className="hidden whitespace-nowrap text-[12.5px] text-slate-400 sm:inline">It&rsquo;s free &amp; takes less than 2 minutes</span>
                   )}
                 </div>
               )}
