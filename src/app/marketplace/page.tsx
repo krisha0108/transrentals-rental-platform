@@ -311,7 +311,7 @@ function TourTeaserCard({ tour }: { tour: TourListing }) {
   const cover = tour.images?.[0] || null;
   const hasPrice = tour.priceType !== 'ON_REQUEST' && tour.basePrice;
   return (
-    <Link href={`/wander/${tour.slug || tour.id}`} className="group flex-shrink-0" style={{ width: 240 }}>
+    <Link href={`/wander/${tour.slug || tour.id}`} className="group w-[190px] flex-shrink-0 sm:w-[240px]">
       <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-slate-100">
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -390,10 +390,10 @@ function ToursStrip() {
           </Link>
         </div>
 
-        <div className="mt-10 flex gap-5 overflow-x-auto pb-3 scrollbar-hide">
+        <div className="mt-10 flex gap-3 overflow-x-auto pb-3 scrollbar-hide sm:gap-5">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex-shrink-0 animate-pulse" style={{ width: 240 }}>
+                <div key={i} className="w-[190px] flex-shrink-0 animate-pulse sm:w-[240px]">
                   <div className="aspect-[4/3] w-full rounded-2xl bg-slate-100" />
                   <div className="mt-3 h-4 w-3/4 rounded bg-slate-100" />
                   <div className="mt-2 h-3 w-1/2 rounded bg-slate-100" />
