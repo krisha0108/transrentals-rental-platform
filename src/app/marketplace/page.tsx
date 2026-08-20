@@ -3868,7 +3868,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 <ShieldCheck className="h-[15px] w-[15px] shrink-0 text-primary-700" />
                 <span><b className="block font-semibold text-slate-900">Price Drop Protection</b><span className="mt-px block text-[12.5px] text-slate-400">Get refund if price drops</span></span>
               </span>
-              <span className="flex flex-1 items-center gap-2.5 border-slate-200 px-0 sm:border-r sm:px-4">
+              <span className="grid grid-cols-1 gap-1.5 border-slate-200 px-0 sm:flex sm:flex-1 sm:items-center sm:gap-2.5 sm:border-r sm:px-4">
                 <div className="flex">
                   {FOOTER_AVATARS.map((src, i) => (
                     // eslint-disable-next-line @next/next/no-img-element
