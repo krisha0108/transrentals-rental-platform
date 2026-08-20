@@ -2475,7 +2475,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
             </p>
           </div>
 
-          <div className="flex w-full items-center gap-2.5 rounded-2xl border border-white/[0.18] bg-slate-900/70 px-4 py-3 backdrop-blur-sm sm:w-fit sm:shrink-0 sm:gap-3.5 sm:whitespace-nowrap sm:px-5 sm:py-4">
+          <div className="flex w-full flex-wrap items-center gap-2.5 rounded-2xl border border-white/[0.18] bg-slate-900/70 px-4 py-3 backdrop-blur-sm sm:w-fit sm:shrink-0 sm:flex-nowrap sm:gap-3.5 sm:px-5 sm:py-4">
             <div className="flex shrink-0">
               {HERO_AVATARS.map((src, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -2488,7 +2488,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
               </div>
               <p className="mt-0.5 whitespace-nowrap text-xs text-slate-400">From 20,000+ reviews</p>
             </div>
-            <p className="text-[13px] font-medium text-slate-200">Trusted by Thousands of Customers</p>
+            <p className="w-full text-[13px] font-medium text-slate-200 sm:w-auto sm:whitespace-nowrap">Trusted by Thousands of Customers</p>
           </div>
         </div>
 
