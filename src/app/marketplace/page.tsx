@@ -2475,18 +2475,18 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-3.5 whitespace-nowrap rounded-2xl border border-white/[0.18] bg-slate-900/70 px-5 py-4 backdrop-blur-sm">
-            <div className="flex">
+          <div className="flex w-full items-center gap-2.5 rounded-2xl border border-white/[0.18] bg-slate-900/70 px-4 py-3 backdrop-blur-sm sm:w-fit sm:shrink-0 sm:gap-3.5 sm:whitespace-nowrap sm:px-5 sm:py-4">
+            <div className="flex shrink-0">
               {HERO_AVATARS.map((src, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img key={src} src={src} alt="" className={`h-9 w-9 rounded-full border-2 border-[#16202f] object-cover ${i > 0 ? '-ml-2.5' : ''}`} />
               ))}
             </div>
-            <div className="border-r border-white/[0.18] pr-4">
+            <div className="shrink-0 border-r border-white/[0.18] pr-4">
               <div className="flex items-center gap-1.5 text-[15px] font-bold text-white">
                 <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> 4.8/5
               </div>
-              <p className="mt-0.5 text-xs text-slate-400">From 20,000+ reviews</p>
+              <p className="mt-0.5 whitespace-nowrap text-xs text-slate-400">From 20,000+ reviews</p>
             </div>
             <p className="text-[13px] font-medium text-slate-200">Trusted by Thousands of Customers</p>
           </div>
