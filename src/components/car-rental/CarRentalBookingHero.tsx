@@ -255,6 +255,10 @@ interface CarRentalBookingHeroProps {
   gradientOverride?: string;
   accentOverride?: string;
   trustBadges?: { icon: React.ComponentType<{ className?: string }>; text: string }[];
+  // Shrinks the outer section padding + heading/copy sizing for pages where
+  // the hero is one of several sections rather than the full page focus
+  // (e.g. the /one-way-cab hub) — the booking form itself is unaffected.
+  compact?: boolean;
 }
 
 // Combo Input - allows both typing custom value and selecting from list
@@ -749,6 +753,7 @@ export function CarRentalBookingHero({
   gradientOverride,
   accentOverride,
   trustBadges,
+  compact = false,
 }: CarRentalBookingHeroProps) {
   // Trip type state
   const [tripType, setTripType] = useState<TripType>(initialTripType);
@@ -1516,14 +1521,14 @@ export function CarRentalBookingHero({
         />
       </div>
 
-      <div className="relative container-custom py-12 lg:py-16">
-        <div className="grid lg:grid-cols-2 gap-10 items-start">
+      <div className={`relative container-custom ${compact ? 'py-8 lg:py-10' : 'py-12 lg:py-16'}`}>
+        <div className={`grid lg:grid-cols-2 items-start ${compact ? 'gap-6' : 'gap-10'}`}>
           {/* Left - Hero Content */}
           <div className="text-center lg:text-left">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6`}
+              className={`inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 ${compact ? 'mb-3' : 'mb-6'}`}
             >
               <Car className={`w-4 h-4 text-${themeColors.accent}`} />
               <span className="text-sm font-medium">
@@ -1535,7 +1540,7 @@ export function CarRentalBookingHero({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
+              className={`font-bold ${compact ? 'text-2xl md:text-3xl lg:text-4xl mb-2' : 'text-3xl md:text-4xl lg:text-5xl mb-4'}`}
             >
               {headingLine1 ?? 'Book Outstation, Local &'}{' '}
               <span className={`text-${themeColors.accent}`}>{headingLine2 ?? 'Airport Cabs'}</span>
@@ -1545,7 +1550,7 @@ export function CarRentalBookingHero({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-lg text-blue-100 mb-8 max-w-xl mx-auto lg:mx-0"
+              className={`text-blue-100 max-w-xl mx-auto lg:mx-0 ${compact ? 'text-base mb-4' : 'text-lg mb-8'}`}
             >
               {subheading ?? 'All-inclusive fares with fuel & driver. Transparent pricing, no hidden charges.'}
             </motion.p>
@@ -1555,7 +1560,7 @@ export function CarRentalBookingHero({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="flex flex-wrap justify-center lg:justify-start gap-4 mb-8"
+              className={`flex flex-wrap justify-center lg:justify-start gap-4 ${compact ? 'mb-4' : 'mb-8'}`}
             >
               {resolvedTrustBadges.map((item) => (
                 <div
@@ -1572,7 +1577,7 @@ export function CarRentalBookingHero({
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-4 max-w-md mx-auto lg:mx-0"
+              className={`bg-white/10 backdrop-blur-sm rounded-xl max-w-md mx-auto lg:mx-0 ${compact ? 'p-3' : 'p-4'}`}
             >
               {tripType === 'local' && (
                 <div className="text-sm text-blue-100">

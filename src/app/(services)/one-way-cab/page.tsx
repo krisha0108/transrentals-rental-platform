@@ -125,6 +125,7 @@ export default async function OneWayCabPage() {
         initialTripType="outstation"
         headingLine1="Book One Way"
         headingLine2="Drop Taxi"
+        compact
       />
 
       {/* Why Choose One Way Cab */}
