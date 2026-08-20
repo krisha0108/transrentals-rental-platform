@@ -2385,17 +2385,20 @@ export function CarRentalBookingHero({
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); setSelectedCar(vehicle.id); onVehicleSelected?.(vehicle, priceData); }}
-                                  className={`flex w-full items-center justify-center gap-1 rounded-lg py-2.5 text-xs font-bold transition-colors ${
+                                  className={`flex w-full items-center justify-center gap-1 overflow-hidden rounded-lg py-2.5 px-2 text-xs font-bold transition-colors ${
                                     isSelected || isPopular
                                       ? 'bg-blue-600 text-white hover:bg-blue-700'
                                       : 'border-2 border-blue-600 text-blue-600 hover:bg-blue-50'
                                   }`}
                                 >
-                                  {/* min-w-0 + truncate keeps every card's button the same single-line
-                                      height regardless of vehicle name length (e.g. "hatchback" vs
-                                      "sedan") — without this, longer names wrap to 2 lines and make
-                                      the side-by-side cards look misaligned. */}
-                                  <span className="min-w-0 truncate">Select {vehicle.name}</span>
+                                  {/* flex-1 min-w-0 + truncate keeps every card's button the same
+                                      single-line height regardless of vehicle name length (e.g.
+                                      "hatchback" vs "sedan") — without flex-1 the text doesn't get a
+                                      definite size to shrink against, so nowrap kicks in but the
+                                      ellipsis/clipping doesn't, and the text spills past the button's
+                                      edge instead of being cut off cleanly. overflow-hidden on the
+                                      button itself is a hard backstop either way. */}
+                                  <span className="min-w-0 flex-1 truncate text-center">Select {vehicle.name}</span>
                                   <ArrowRight className="h-3 w-3 shrink-0" />
                                 </button>
                               )}
