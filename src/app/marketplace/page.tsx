@@ -827,7 +827,7 @@ export default function MarketplacePage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.25, ease: 'easeOut' }}
-                        className="absolute inset-0 flex flex-col items-center justify-center p-10 text-center"
+                        className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center sm:p-10"
                         style={
                           item.image
                             ? { background: '#F8FAFC' }
@@ -1030,7 +1030,7 @@ export default function MarketplacePage() {
               <span className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-primary-700">
                 <Sparkles className="h-4 w-4" /> Everything your business needs
               </span>
-              <h2 className="mt-5 font-heading text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl">
+              <h2 className="mt-5 font-heading text-2xl font-extrabold leading-tight text-slate-900 sm:text-4xl lg:text-5xl">
                 Powerful Management System for Rentals
               </h2>
 
@@ -1101,7 +1101,7 @@ export default function MarketplacePage() {
       {/* ══════════════════════════════ STATS ══════════════════════════════ */}
       <section className="relative overflow-hidden bg-slate-900 py-16 text-white">
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, #09B368 0%, transparent 45%), radial-gradient(circle at 80% 70%, #09B368 0%, transparent 45%)' }} />
-        <div className="container relative mx-auto grid grid-cols-2 gap-8 px-4 sm:grid-cols-4">
+        <div className="container relative mx-auto grid grid-cols-2 gap-4 px-4 sm:gap-8 sm:grid-cols-4">
           {STATS.map((s, i) => (
             <FadeIn key={s.label} delay={i * 90}>
               <div className="text-center">
@@ -2465,7 +2465,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
         <div className="mb-14 mt-7 flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-start">
           <div>
-            <h2 className="max-w-2xl font-heading text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl">
+            <h2 className="max-w-2xl font-heading text-2xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-4xl lg:text-5xl">
               Everything You Need to<br />
               <span className="text-primary-400">Ride, Move &amp; Travel.</span>
             </h2>
@@ -2517,7 +2517,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
           <div className="rounded-2xl bg-white shadow-[0_16px_34px_rgba(0,0,0,0.28)]">
             {activeTab.key === 'car' && (
-              <div className="flex gap-2 px-3.5 pt-3.5 sm:px-5 sm:pt-5">
+              <div className="flex flex-wrap gap-2 px-3.5 pt-3.5 sm:px-5 sm:pt-5">
                 {(['local', 'outstation', 'airport'] as const).map((mode) => (
                   <button
                     key={mode}
@@ -2537,7 +2537,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
             )}
 
             {activeTab.key === 'bus' && (
-              <div className="flex gap-2 px-3.5 pt-3.5 sm:px-5 sm:pt-5">
+              <div className="flex flex-wrap gap-2 px-3.5 pt-3.5 sm:px-5 sm:pt-5">
                 {(['outstation', 'local'] as const).map((t) => (
                   <button
                     key={t}
@@ -2555,7 +2555,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
               </div>
             )}
 
-            <div className={`flex flex-wrap items-stretch gap-4 p-5 sm:p-8 ${activeTab.key === 'car' || activeTab.key === 'bus' || activeTab.key === 'truck' || activeTab.key === 'packers' || activeTab.key === 'equipment' ? '' : 'sm:flex-nowrap'}`}>
+            <div className={`flex flex-wrap items-stretch gap-4 p-5 sm:p-8 ${activeTab.key === 'car' || activeTab.key === 'bus' || activeTab.key === 'truck' || activeTab.key === 'packers' || activeTab.key === 'equipment' ? '' : 'md:flex-nowrap'}`}>
               {activeTab.key === 'car' ? (
                 <>
                   {carSubTab === 'local' && (
@@ -2609,7 +2609,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         ))}
                       </div>
 
-                      <div className="flex flex-1 basis-[420px] items-stretch gap-2.5">
+                      <div className="flex flex-1 flex-wrap basis-[420px] items-stretch gap-2.5">
                         <MiniCityInput
                           label="From"
                           placeholder="Enter pickup location"
@@ -2773,7 +2773,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
               ) : activeTab.key === 'bus' ? (
                 busStep === 1 ? (
                   <>
-                    <div className="flex min-w-0 flex-1 basis-[260px] items-stretch gap-2.5">
+                    <div className="flex min-w-0 flex-1 flex-wrap basis-[260px] items-stretch gap-2.5">
                       <MiniCityInput
                         label="From"
                         placeholder="Enter pickup location"
@@ -2967,7 +2967,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       </div>
                     </div>
 
-                    <div className="flex w-full items-stretch gap-3">
+                    <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row">
                       <div className="flex-1">
                         <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Type of Shifting</label>
                         <div className="grid grid-cols-3 gap-2.5">
@@ -3017,10 +3017,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     </div>
                   </div>
                 ) : packersStep === 2 ? (
-                  <div className="flex w-full items-stretch gap-3">
+                  <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row">
                     <div className="flex-1">
                       <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Home Size</label>
-                      <div className="grid grid-cols-6 gap-1.5">
+                      <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
                         {([
                           { v: 'BHK_1', label: '1 BHK' },
                           { v: 'BHK_2', label: '2 BHK' },
@@ -3663,7 +3663,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 )
               ) : (
                 <>
-                  <div className="flex min-w-0 flex-[2] basis-[320px] items-stretch gap-2.5">
+                  <div className="flex min-w-0 flex-[2] flex-wrap basis-[320px] items-stretch gap-2.5">
                     <MiniCityInput
                       label="From"
                       placeholder="Enter pickup location"
