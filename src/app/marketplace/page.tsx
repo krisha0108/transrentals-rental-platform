@@ -3859,7 +3859,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
             {formError && <p className="px-5 pb-3 text-xs font-semibold text-red-500">{formError}</p>}
 
             {/* Secondary trust bar — same card, no gap */}
-            <div className="flex flex-wrap items-center gap-y-3 rounded-b-2xl border-t border-slate-100 bg-[#f7f8fa] px-5 py-3 text-xs text-slate-600 sm:text-sm">
+            <div className="grid grid-cols-2 items-center gap-x-4 gap-y-3 rounded-b-2xl border-t border-slate-100 bg-[#f7f8fa] px-5 py-3 text-xs text-slate-600 sm:flex sm:flex-wrap sm:gap-x-0 sm:text-sm">
               <span className="flex flex-1 items-center gap-2.5 border-slate-200 px-0 sm:border-r sm:px-4">
                 <FileText className="h-[15px] w-[15px] shrink-0 text-primary-700" />
                 <span><b className="block font-semibold text-slate-900">Add GST Invoice</b><span className="mt-px block text-[12.5px] text-slate-400">For business bookings</span></span>
