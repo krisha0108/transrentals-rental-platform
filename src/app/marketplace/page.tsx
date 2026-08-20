@@ -1963,6 +1963,98 @@ function MiniDateInput({
   );
 }
 
+function formatTimeSlot(t: string) {
+  const [hStr, mStr] = t.split(':');
+  let h = parseInt(hStr, 10);
+  const period = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${mStr} ${period}`;
+}
+
+const TIME_SLOTS: string[] = (() => {
+  const out: string[] = [];
+  for (let h = 0; h < 24; h++) {
+    for (const m of [0, 30]) out.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+  }
+  return out;
+})();
+
+// Custom-styled time picker (button + floating 30-min-slot list) standing in
+// for a native <input type="time"> — matches the rest of the widget's card
+// styling instead of each browser/OS's own native time picker UI.
+function MiniTimeInput({
+  label, value, onChange, caption,
+  boxClassName = 'min-w-[112px] sm:min-w-[172px] flex-1',
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  caption?: string;
+  boxClassName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  // Scroll the selected (or nearest) slot into view whenever the panel opens,
+  // instead of always starting the list at 12:00 AM.
+  useEffect(() => {
+    if (!open) return;
+    const id = requestAnimationFrame(() => {
+      listRef.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'center' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [open]);
+
+  return (
+    <div
+      className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
+      ref={boxRef}
+    >
+      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+        <Clock className="h-3 w-3 text-primary-700" /> {label}
+      </label>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+      >
+        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{value ? formatTimeSlot(value) : '--:-- --'}</span>
+      </button>
+      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {open && (
+        <div ref={listRef} className="absolute left-0 top-full z-[60] mt-1.5 max-h-64 w-40 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
+          {TIME_SLOTS.map((t) => {
+            const isSelected = t === value;
+            return (
+              <button
+                key={t}
+                type="button"
+                data-active={isSelected ? 'true' : undefined}
+                onClick={() => { onChange(t); setOpen(false); }}
+                className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${
+                  isSelected ? 'font-semibold text-primary-700' : 'text-slate-700'
+                }`}
+              >
+                {formatTimeSlot(t)}
+                {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-primary-600" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Real truck-type/goods-type option labels — copied from TruckRentalBookingForm's
 // backend-matching lists (src/components/booking/TruckRentalBookingForm.tsx),
 // trimmed to the most common ones so this quick bar doesn't invent its own
@@ -2941,19 +3033,13 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     />
                   )}
 
-                  <div className="min-w-[112px] sm:min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                      <Clock className="h-3 w-3 text-primary-700" />
-                      {carSubTab === 'airport' ? (airportMode === 'from' ? 'Arrival Time' : 'Pickup Time') : 'Pickup Time'}
-                    </label>
-                    <input
-                      type="time"
-                      value={pickupTime}
-                      onChange={(e) => setPickupTime(e.target.value)}
-                      className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                    />
-                    <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Pickup time</span>
-                  </div>
+                  <MiniTimeInput
+                    label={carSubTab === 'airport' ? (airportMode === 'from' ? 'Arrival Time' : 'Pickup Time') : 'Pickup Time'}
+                    value={pickupTime}
+                    onChange={setPickupTime}
+                    caption="Pickup time"
+                    boxClassName="min-w-[112px] sm:min-w-[172px] flex-1"
+                  />
                 </>
               ) : activeTab.key === 'bus' ? (
                 busStep === 1 ? (
@@ -3040,18 +3126,13 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       caption="Optional"
                       boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
                     />
-                    <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                        <Clock className="h-3 w-3 text-primary-700" /> Pickup Time
-                      </label>
-                      <input
-                        type="time"
-                        value={pickupTime}
-                        onChange={(e) => setPickupTime(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Pickup time</span>
-                    </div>
+                    <MiniTimeInput
+                      label="Pickup Time"
+                      value={pickupTime}
+                      onChange={setPickupTime}
+                      caption="Pickup time"
+                      boxClassName="min-w-[120px] sm:min-w-[182px] flex-1"
+                    />
                     <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Users className="h-3 w-3 text-primary-700" /> Passengers
@@ -3391,18 +3472,13 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       caption="Moving date"
                       boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
                     />
-                    <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                        <Clock className="h-3 w-3 text-primary-700" /> Pickup Time
-                      </label>
-                      <input
-                        type="time"
-                        value={pickupTime}
-                        onChange={(e) => setPickupTime(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Pickup time</span>
-                    </div>
+                    <MiniTimeInput
+                      label="Pickup Time"
+                      value={pickupTime}
+                      onChange={setPickupTime}
+                      caption="Pickup time"
+                      boxClassName="min-w-[120px] sm:min-w-[182px] flex-1"
+                    />
                     <MiniDateInput
                       label="Expected Delivery"
                       value={expectedDeliveryDate}
@@ -3914,18 +3990,13 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     caption="Journey date"
                     boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
                   />
-                  <div className="min-w-[112px] sm:min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                      <Clock className="h-3 w-3 text-primary-700" /> Pickup Time
-                    </label>
-                    <input
-                      type="time"
-                      value={pickupTime}
-                      onChange={(e) => setPickupTime(e.target.value)}
-                      className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                    />
-                    <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Pickup time</span>
-                  </div>
+                  <MiniTimeInput
+                    label="Pickup Time"
+                    value={pickupTime}
+                    onChange={setPickupTime}
+                    caption="Pickup time"
+                    boxClassName="min-w-[112px] sm:min-w-[172px] flex-1"
+                  />
                   <MiniDateInput
                     label="Drop-off Date"
                     value={dropoffDate}
@@ -3934,18 +4005,13 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     caption="Return date"
                     boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
                   />
-                  <div className="min-w-[112px] sm:min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                      <Clock className="h-3 w-3 text-primary-700" /> Drop-off Time
-                    </label>
-                    <input
-                      type="time"
-                      value={dropoffTime}
-                      onChange={(e) => setDropoffTime(e.target.value)}
-                      className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                    />
-                    <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Return time</span>
-                  </div>
+                  <MiniTimeInput
+                    label="Drop-off Time"
+                    value={dropoffTime}
+                    onChange={setDropoffTime}
+                    caption="Return time"
+                    boxClassName="min-w-[112px] sm:min-w-[172px] flex-1"
+                  />
                 </>
               ) : (
                 <MiniDateInput
