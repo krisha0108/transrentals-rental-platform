@@ -2494,7 +2494,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
         {/* Search panel */}
         <div className="flex flex-col items-stretch">
-          <div className="ml-1 w-fit max-w-full overflow-x-auto rounded-t-lg bg-white px-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:ml-5 sm:px-6 [&::-webkit-scrollbar]:hidden">
+          <div className="ml-1 w-fit max-w-full overflow-x-auto rounded-xl bg-white px-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:ml-5 sm:rounded-t-lg sm:rounded-b-none sm:px-6 [&::-webkit-scrollbar]:hidden">
             <div className="flex gap-1">
               {TRANSPORT_TABS.map((tab) => {
                 const Icon = tab.icon;
