@@ -3074,7 +3074,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={fromCity?.name ?? ''}
                       onSelect={setFromCity}
                     />
-                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                       </label>
@@ -3083,11 +3083,11 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         value={pickupAddress}
                         onChange={(e) => setPickupAddress(e.target.value)}
                         placeholder="Full pickup address"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
-                    <div className="min-w-[65px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[90px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Pincode</label>
                       <input
                         type="tel"
@@ -3095,11 +3095,11 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         value={pickupPincode}
                         onChange={(e) => setPickupPincode(e.target.value.replace(/\D/g, ''))}
                         placeholder="6-digit"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[60px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[105px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Floor No.</label>
                       <input
                         type="number"
@@ -3107,7 +3107,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         value={pickupFloor}
                         onChange={(e) => setPickupFloor(e.target.value)}
                         placeholder="0 = ground"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
@@ -3145,7 +3145,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={toCity?.name ?? ''}
                       onSelect={setToCity}
                     />
-                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Drop Address
                       </label>
@@ -3154,11 +3154,11 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         value={dropAddress}
                         onChange={(e) => setDropAddress(e.target.value)}
                         placeholder="Full drop address"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
-                    <div className="min-w-[65px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[90px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Pincode</label>
                       <input
                         type="tel"
@@ -3166,11 +3166,11 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         value={dropPincode}
                         onChange={(e) => setDropPincode(e.target.value.replace(/\D/g, ''))}
                         placeholder="6-digit"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[60px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[105px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Floor No.</label>
                       <input
                         type="number"
@@ -3178,7 +3178,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         value={dropFloor}
                         onChange={(e) => setDropFloor(e.target.value)}
                         placeholder="0 = ground"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
