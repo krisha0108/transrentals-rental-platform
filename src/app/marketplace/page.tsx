@@ -3697,28 +3697,28 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
                   {activeTab.hasTruckFields && (
                     <>
-                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="w-full sm:w-auto sm:min-w-[182px] sm:flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                           <Package className="h-3 w-3 text-primary-700" /> Load Type
                         </label>
                         <select
                           value={loadType}
                           onChange={(e) => setLoadType(e.target.value)}
-                          className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+                          className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                         >
                           <option value="">Select load type</option>
                           {QUICK_LOAD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                         </select>
                         <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Type of goods</span>
                       </div>
-                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="w-full sm:w-auto sm:min-w-[182px] sm:flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                           <Truck className="h-3 w-3 text-primary-700" /> Truck Type
                         </label>
                         <select
                           value={truckType}
                           onChange={(e) => setTruckType(e.target.value)}
-                          className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+                          className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                         >
                           <option value="">Select truck type</option>
                           {QUICK_TRUCK_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
