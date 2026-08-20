@@ -1832,6 +1832,137 @@ function MiniSelectInput({
   );
 }
 
+const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function ymdToDate(ymd: string) {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function dateToYmd(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Custom-styled date picker (button + floating month calendar) standing in
+// for a native <input type="date"> — matches the rest of the widget's card
+// styling instead of each browser/OS's own native date picker UI.
+function MiniDateInput({
+  label, value, onChange, min, caption,
+  boxClassName = 'min-w-[125px] sm:min-w-[190px] flex-1',
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  min?: string;
+  caption?: string;
+  boxClassName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [viewMonth, setViewMonth] = useState(() => {
+    const base = value ? ymdToDate(value) : min ? ymdToDate(min) : new Date();
+    return new Date(base.getFullYear(), base.getMonth(), 1);
+  });
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  // Jump the visible month back to the selected/min date whenever the
+  // picker is reopened, so it doesn't stay stuck wherever it was last browsed.
+  useEffect(() => {
+    if (!open) return;
+    const base = value ? ymdToDate(value) : min ? ymdToDate(min) : new Date();
+    setViewMonth(new Date(base.getFullYear(), base.getMonth(), 1));
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const minDate = min ? ymdToDate(min) : null;
+  const daysInMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0).getDate();
+  const firstWeekday = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1).getDay();
+  const monthLabel = viewMonth.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const canGoPrevMonth = !minDate || new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 0) >= new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+
+  const displayText = value
+    ? ymdToDate(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : 'dd/mm/yyyy';
+
+  return (
+    <div
+      className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
+      ref={boxRef}
+    >
+      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+        <Calendar className="h-3 w-3 text-primary-700" /> {label}
+      </label>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+      >
+        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{displayText}</span>
+      </button>
+      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {open && (
+        <div className="absolute left-0 top-full z-[60] mt-1.5 w-64 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-2xl">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              disabled={!canGoPrevMonth}
+              onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+              className="rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-[13px] font-bold text-slate-900">{monthLabel}</span>
+            <button
+              type="button"
+              onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+              className="rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-50"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="mt-2 grid grid-cols-7 gap-y-1 text-center text-[11px] font-semibold text-slate-400">
+            {WEEKDAY_LABELS.map((d, i) => <div key={i}>{d}</div>)}
+          </div>
+          <div className="mt-1 grid grid-cols-7 gap-y-1">
+            {Array.from({ length: firstWeekday }).map((_, i) => <div key={`empty-${i}`} />)}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const thisDate = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day);
+              const thisYmd = dateToYmd(thisDate);
+              const isDisabled = !!minDate && thisDate < minDate;
+              const isSelected = thisYmd === value;
+              return (
+                <div key={day} className="flex items-center justify-center">
+                  <button
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => { onChange(thisYmd); setOpen(false); }}
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[12.5px] font-semibold transition-colors ${
+                      isSelected
+                        ? 'bg-primary text-white'
+                        : isDisabled
+                          ? 'cursor-not-allowed text-slate-300'
+                          : 'text-slate-700 hover:bg-primary-50'
+                    }`}
+                  >
+                    {day}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Real truck-type/goods-type option labels — copied from TruckRentalBookingForm's
 // backend-matching lists (src/components/booking/TruckRentalBookingForm.tsx),
 // trimmed to the most common ones so this quick bar doesn't invent its own
@@ -2790,35 +2921,24 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     </>
                   )}
 
-                  <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                      <Calendar className="h-3 w-3 text-primary-700" />
-                      {carSubTab === 'airport' ? (airportMode === 'from' ? 'Flight Arrival' : 'Pickup Date') : 'Pickup Date'}
-                    </label>
-                    <input
-                      type="date"
-                      min={todayDateStr}
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                    />
-                    <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Journey date</span>
-                  </div>
+                  <MiniDateInput
+                    label={carSubTab === 'airport' ? (airportMode === 'from' ? 'Flight Arrival' : 'Pickup Date') : 'Pickup Date'}
+                    value={date}
+                    onChange={setDate}
+                    min={todayDateStr}
+                    caption="Journey date"
+                    boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
+                  />
 
                   {carSubTab === 'outstation' && carTripMode === 'roundtrip' && (
-                    <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                        <Calendar className="h-3 w-3 text-primary-700" /> Return Date
-                      </label>
-                      <input
-                        type="date"
-                        min={date || todayDateStr}
-                        value={dropoffDate}
-                        onChange={(e) => setDropoffDate(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Return date</span>
-                    </div>
+                    <MiniDateInput
+                      label="Return Date"
+                      value={dropoffDate}
+                      onChange={setDropoffDate}
+                      min={date || todayDateStr}
+                      caption="Return date"
+                      boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
+                    />
                   )}
 
                   <div className="min-w-[112px] sm:min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
@@ -2904,32 +3024,22 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   </>
                 ) : (
                   <>
-                    <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                        <Calendar className="h-3 w-3 text-primary-700" /> Journey Date
-                      </label>
-                      <input
-                        type="date"
-                        min={todayDateStr}
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Travel date</span>
-                    </div>
-                    <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                        <Calendar className="h-3 w-3 text-primary-700" /> Return Date
-                      </label>
-                      <input
-                        type="date"
-                        min={date || todayDateStr}
-                        value={dropoffDate}
-                        onChange={(e) => setDropoffDate(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
-                    </div>
+                    <MiniDateInput
+                      label="Journey Date"
+                      value={date}
+                      onChange={setDate}
+                      min={todayDateStr}
+                      caption="Travel date"
+                      boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
+                    />
+                    <MiniDateInput
+                      label="Return Date"
+                      value={dropoffDate}
+                      onChange={setDropoffDate}
+                      min={date || todayDateStr}
+                      caption="Optional"
+                      boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
+                    />
                     <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Clock className="h-3 w-3 text-primary-700" /> Pickup Time
@@ -3273,19 +3383,14 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   </>
                 ) : packersStep === 5 ? (
                   <>
-                    <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                        <Calendar className="h-3 w-3 text-primary-700" /> Shift Date
-                      </label>
-                      <input
-                        type="date"
-                        min={todayDateStr}
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Moving date</span>
-                    </div>
+                    <MiniDateInput
+                      label="Shift Date"
+                      value={date}
+                      onChange={setDate}
+                      min={todayDateStr}
+                      caption="Moving date"
+                      boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
+                    />
                     <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Clock className="h-3 w-3 text-primary-700" /> Pickup Time
@@ -3298,19 +3403,14 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Pickup time</span>
                     </div>
-                    <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                        <Calendar className="h-3 w-3 text-primary-700" /> Expected Delivery
-                      </label>
-                      <input
-                        type="date"
-                        min={date || todayDateStr}
-                        value={expectedDeliveryDate}
-                        onChange={(e) => setExpectedDeliveryDate(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
-                    </div>
+                    <MiniDateInput
+                      label="Expected Delivery"
+                      value={expectedDeliveryDate}
+                      onChange={setExpectedDeliveryDate}
+                      min={date || todayDateStr}
+                      caption="Optional"
+                      boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
+                    />
 
                     <div className="flex shrink-0 flex-col items-center justify-end gap-1.5 sm:ml-1">
                       <div className="flex shrink-0 items-center gap-2">
@@ -3631,19 +3731,14 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         ))}
                       </div>
                     </div>
-                    <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                        <Calendar className="h-3 w-3 text-primary-700" /> Start Date
-                      </label>
-                      <input
-                        type="date"
-                        min={todayDateStr}
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Rental start</span>
-                    </div>
+                    <MiniDateInput
+                      label="Start Date"
+                      value={date}
+                      onChange={setDate}
+                      min={todayDateStr}
+                      caption="Rental start"
+                      boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
+                    />
                     <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Wrench className="h-3 w-3 text-primary-700" /> Number of Equipment
@@ -3811,19 +3906,14 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
                   {activeTab.hasDateTimeFields ? (
                 <>
-                  <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                      <Calendar className="h-3 w-3 text-primary-700" /> Pickup Date
-                    </label>
-                    <input
-                      type="date"
-                      min={todayDateStr}
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                    />
-                    <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Journey date</span>
-                  </div>
+                  <MiniDateInput
+                    label="Pickup Date"
+                    value={date}
+                    onChange={setDate}
+                    min={todayDateStr}
+                    caption="Journey date"
+                    boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
+                  />
                   <div className="min-w-[112px] sm:min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                     <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                       <Clock className="h-3 w-3 text-primary-700" /> Pickup Time
@@ -3836,19 +3926,14 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     />
                     <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Pickup time</span>
                   </div>
-                  <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                      <Calendar className="h-3 w-3 text-primary-700" /> Drop-off Date
-                    </label>
-                    <input
-                      type="date"
-                      min={date || todayDateStr}
-                      value={dropoffDate}
-                      onChange={(e) => setDropoffDate(e.target.value)}
-                      className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                    />
-                    <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Return date</span>
-                  </div>
+                  <MiniDateInput
+                    label="Drop-off Date"
+                    value={dropoffDate}
+                    onChange={setDropoffDate}
+                    min={date || todayDateStr}
+                    caption="Return date"
+                    boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
+                  />
                   <div className="min-w-[112px] sm:min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                     <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                       <Clock className="h-3 w-3 text-primary-700" /> Drop-off Time
@@ -3863,19 +3948,14 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   </div>
                 </>
               ) : (
-                <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                  <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
-                    <Calendar className="h-3 w-3 text-primary-700" /> Pickup Date
-                  </label>
-                  <input
-                    type="date"
-                    min={todayDateStr}
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                  />
-                  <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Journey date</span>
-                </div>
+                <MiniDateInput
+                  label="Pickup Date"
+                  value={date}
+                  onChange={setDate}
+                  min={todayDateStr}
+                  caption="Journey date"
+                  boxClassName="min-w-[120px] sm:min-w-[182px] flex-1"
+                />
               )}
                 </>
               )}
