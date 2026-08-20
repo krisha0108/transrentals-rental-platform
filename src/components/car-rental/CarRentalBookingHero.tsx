@@ -2385,13 +2385,18 @@ export function CarRentalBookingHero({
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); setSelectedCar(vehicle.id); onVehicleSelected?.(vehicle, priceData); }}
-                                  className={`flex w-full items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-bold transition-colors ${
+                                  className={`flex w-full items-center justify-center gap-1 rounded-lg py-2.5 text-xs font-bold transition-colors ${
                                     isSelected || isPopular
                                       ? 'bg-blue-600 text-white hover:bg-blue-700'
                                       : 'border-2 border-blue-600 text-blue-600 hover:bg-blue-50'
                                   }`}
                                 >
-                                  Select {vehicle.name} <ArrowRight className="h-3.5 w-3.5" />
+                                  {/* min-w-0 + truncate keeps every card's button the same single-line
+                                      height regardless of vehicle name length (e.g. "hatchback" vs
+                                      "sedan") — without this, longer names wrap to 2 lines and make
+                                      the side-by-side cards look misaligned. */}
+                                  <span className="min-w-0 truncate">Select {vehicle.name}</span>
+                                  <ArrowRight className="h-3 w-3 shrink-0" />
                                 </button>
                               )}
 

@@ -3995,6 +3995,15 @@ function CarQuoteModal({
   const [isBooking, setIsBooking] = useState(false);
   const [bookingError, setBookingError] = useState('');
   const getBookingDetailsRef = useRef<((vehicleId: string) => CarBookingDraft | null) | null>(null);
+  const step2Ref = useRef<HTMLDivElement>(null);
+
+  // On mobile the modal's content grid stacks to a single column (grid-cols-1
+  // below md), so "Step 2" renders BELOW the vehicle list instead of beside
+  // it — without this, picking a vehicle looked like nothing happened since
+  // the new content appeared off-screen with no scroll cue.
+  useEffect(() => {
+    if (selectedVehicle) step2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [selectedVehicle]);
 
   // Pre-fill + skip asking again if the customer is already logged in
   useEffect(() => {
@@ -4202,7 +4211,7 @@ function CarQuoteModal({
             const p = selectedVehicle.priceData.pricing;
             const tripType = params.tripType;
             return (
-              <div className="border-t border-gray-100 p-6 md:border-l md:border-t-0">
+              <div ref={step2Ref} className="border-t border-gray-100 p-6 md:border-l md:border-t-0">
                 <span className="inline-block rounded-full bg-primary-50 px-3 py-1 text-xs font-bold text-primary-700">
                   Step 2 of 2
                 </span>
