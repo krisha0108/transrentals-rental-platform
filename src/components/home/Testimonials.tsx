@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Star, Quote, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { Star, Quote } from 'lucide-react';
 
 const testimonials = [
   {
@@ -43,98 +42,78 @@ const testimonials = [
   },
 ];
 
+const AVATAR_STYLES = [
+  'from-primary-400 to-primary-600',
+  'from-amber-400 to-orange-500',
+  'from-sky-400 to-blue-600',
+  'from-fuchsia-400 to-purple-600',
+];
+
+function initialsOf(name: string) {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 export function Testimonials() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  const nextTestimonial = () => {
-    setCurrentIndex((prev) => (prev + 1) % testimonials.length);
-  };
-
-  const prevTestimonial = () => {
-    setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
-  };
-
-  const currentTestimonial = testimonials[currentIndex];
-
   return (
-    <section className="section-padding bg-gray-900 text-white">
-      <div className="container-custom">
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            What Our Customers Say
-          </h2>
-          <p className="text-lg text-gray-300">
-            Don't just take our word for it - hear from our happy customers
-          </p>
+    <section className="relative overflow-hidden bg-[#0b1420] py-20 text-white sm:py-24">
+      {/* Background texture + glow, matching the loyalty rewards section */}
+      <div
+        className="absolute inset-0 opacity-[0.06]"
+        style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '28px 28px' }}
+      />
+      <div className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[600px] -translate-x-1/2 -translate-y-1/3 rounded-full bg-primary-500/10 blur-[120px]" />
+
+      <div className="container-custom relative">
+        {/* Header */}
+        <div className="mx-auto max-w-2xl text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary-300">
+            <Star className="h-3.5 w-3.5 fill-primary-300" /> Loved by thousands
+          </span>
+          <h2 className="mt-5 font-heading text-3xl font-extrabold sm:text-4xl">What Our Customers Say</h2>
+          <p className="mt-4 text-slate-300">Don&rsquo;t just take our word for it — hear from our happy customers</p>
         </div>
 
-        {/* Testimonial Card */}
-        <div className="max-w-4xl mx-auto">
-          <div className="relative bg-white/10 backdrop-blur-sm rounded-2xl p-8 md:p-12">
-            {/* Quote Icon */}
-            <Quote className="absolute top-6 right-6 w-16 h-16 text-primary/20" />
+        {/* Testimonial cards */}
+        <div className="mt-14 -mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto px-4 pb-4 scrollbar-hide lg:mx-0 lg:grid lg:snap-none lg:grid-cols-4 lg:overflow-visible lg:px-0 lg:pb-0">
+          {testimonials.map((t) => (
+            <div
+              key={t.name}
+              className="relative w-[280px] shrink-0 snap-start rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm transition-colors hover:bg-white/[0.06] lg:w-auto"
+            >
+              <Quote className="absolute right-5 top-5 h-8 w-8 text-white/10" />
 
-            {/* Stars */}
-            <div className="flex gap-1 mb-6">
-              {[...Array(currentTestimonial.rating)].map((_, i) => (
-                <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-              ))}
-            </div>
-
-            {/* Comment */}
-            <p className="text-xl md:text-2xl text-white/90 leading-relaxed mb-8 italic">
-              "{currentTestimonial.comment}"
-            </p>
-
-            {/* Author Info */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-xl font-bold text-white mb-1">
-                  {currentTestimonial.name}
-                </h4>
-                <p className="text-gray-300 text-sm">
-                  {currentTestimonial.service} in {currentTestimonial.location} • {currentTestimonial.date}
-                </p>
-              </div>
-
-              {/* Navigation */}
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={prevTestimonial}
-                  className="bg-white/10 border-white/20 hover:bg-white/20 text-white"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={nextTestimonial}
-                  className="bg-white/10 border-white/20 hover:bg-white/20 text-white"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Indicators */}
-            <div className="flex justify-center gap-2 mt-8">
-              {testimonials.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentIndex(index)}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    index === currentIndex
-                      ? 'bg-primary w-8'
-                      : 'bg-white/30 hover:bg-white/50'
+              <div className="flex items-center gap-3">
+                <span
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-white ${
+                    AVATAR_STYLES[testimonials.indexOf(t) % AVATAR_STYLES.length]
                   }`}
-                  aria-label={`Go to testimonial ${index + 1}`}
-                />
-              ))}
+                >
+                  {initialsOf(t.name)}
+                </span>
+                <div>
+                  <h3 className="text-sm font-bold text-white">{t.name}</h3>
+                  <p className="text-xs text-slate-400">
+                    {t.service} in {t.location}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex gap-0.5">
+                {Array.from({ length: t.rating }).map((_, i) => (
+                  <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+
+              <p className="mt-3 text-[14px] leading-relaxed text-slate-300">&ldquo;{t.comment}&rdquo;</p>
+
+              <p className="mt-4 text-[11px] font-medium uppercase tracking-wide text-slate-500">{t.date}</p>
             </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>
