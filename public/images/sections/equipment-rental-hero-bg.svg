@@ -1,0 +1,121 @@
+<svg viewBox="0 0 1600 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Construction equipment on a job site">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#eaf3ee"/>
+      <stop offset="55%" stop-color="#f4f8f5"/>
+      <stop offset="100%" stop-color="#eef4f0"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffe9b8" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ffe9b8" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="swoosh1" x1="0" y1="0" x2="1" y2="0.3">
+      <stop offset="0%" stop-color="#16a34a" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#16a34a" stop-opacity="0.05"/>
+    </linearGradient>
+    <linearGradient id="swoosh2" x1="0" y1="0" x2="1" y2="0.3">
+      <stop offset="0%" stop-color="#16a34a" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#16a34a" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dfe7e1"/>
+      <stop offset="100%" stop-color="#cfd9d2"/>
+    </linearGradient>
+    <linearGradient id="jcbBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#15803d"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="760" fill="url(#sky)"/>
+  <circle cx="1360" cy="130" r="220" fill="url(#sun)"/>
+
+  <!-- decorative swooshes (top-left, matches truck hero's route motif) -->
+  <path d="M-100,20 C 250,-60 520,10 620,150 C 700,260 560,290 480,225 C 420,175 470,115 560,105"
+        fill="none" stroke="url(#swoosh1)" stroke-width="60" stroke-linecap="round"/>
+  <path d="M-100,90 C 220,20 470,75 560,195 C 620,275 500,295 440,240"
+        fill="none" stroke="url(#swoosh2)" stroke-width="40" stroke-linecap="round"/>
+
+  <!-- dashed route + pins -->
+  <path d="M 90,430 C 210,360 290,335 345,285 C 400,235 365,195 410,170 C 455,145 530,165 575,125"
+        fill="none" stroke="#16a34a" stroke-width="3" stroke-dasharray="2 12" stroke-linecap="round" opacity="0.55"/>
+  <g fill="#16a34a" opacity="0.55">
+    <circle cx="60" cy="255" r="9"/>
+    <circle cx="115" cy="285" r="6"/>
+    <circle cx="150" cy="308" r="5"/>
+  </g>
+  <g>
+    <path d="M90 430 c0 -20 -16 -36 -36 -36 s-36 16 -36 36 c0 27 36 54 36 54 s36 -27 36 -54z" fill="#16a34a"/>
+    <circle cx="54" cy="428" r="12" fill="#eaf3ee"/>
+  </g>
+  <g>
+    <path d="M575 125 c0 -20 -16 -36 -36 -36 s-36 16 -36 36 c0 27 36 54 36 54 s36 -27 36 -54z" fill="#16a34a"/>
+    <circle cx="539" cy="123" r="12" fill="#eaf3ee"/>
+  </g>
+
+  <!-- ground -->
+  <rect x="0" y="600" width="1600" height="160" fill="url(#ground)"/>
+  <rect x="0" y="596" width="1600" height="6" fill="#b9c6bd"/>
+
+  <!-- distant city / site skyline (right side) -->
+  <g opacity="0.5" fill="#9fb0a6">
+    <rect x="1180" y="470" width="46" height="130"/>
+    <rect x="1236" y="430" width="60" height="170"/>
+    <rect x="1306" y="490" width="40" height="110"/>
+    <rect x="1356" y="410" width="70" height="190"/>
+    <rect x="1436" y="460" width="50" height="140"/>
+    <rect x="1496" y="500" width="60" height="100"/>
+  </g>
+
+  <!-- tower crane -->
+  <g stroke="#5b6b60" stroke-width="6" fill="none" opacity="0.8">
+    <line x1="1300" y1="600" x2="1300" y2="210"/>
+    <line x1="1300" y1="210" x2="1470" y2="210"/>
+    <line x1="1300" y1="210" x2="1230" y2="210"/>
+    <line x1="1300" y1="210" x2="1300" y2="258"/>
+    <line x1="1300" y1="258" x2="1440" y2="220"/>
+    <line x1="1300" y1="258" x2="1240" y2="220"/>
+    <line x1="1440" y1="220" x2="1440" y2="315"/>
+  </g>
+  <circle cx="1440" cy="317" r="5" fill="#5b6b60"/>
+
+  <!-- excavator (JCB backhoe loader), simplified flat illustration -->
+  <g transform="translate(700,400) scale(0.58)">
+    <!-- shadow -->
+    <ellipse cx="230" cy="238" rx="290" ry="20" fill="#00120a" opacity="0.12"/>
+
+    <!-- rear wheels -->
+    <circle cx="70" cy="228" r="46" fill="#1f2937"/>
+    <circle cx="70" cy="228" r="20" fill="#4b5563"/>
+    <circle cx="150" cy="228" r="46" fill="#1f2937"/>
+    <circle cx="150" cy="228" r="20" fill="#4b5563"/>
+    <!-- front wheel -->
+    <circle cx="380" cy="228" r="40" fill="#1f2937"/>
+    <circle cx="380" cy="228" r="17" fill="#4b5563"/>
+
+    <!-- body -->
+    <rect x="20" y="120" width="330" height="100" rx="14" fill="url(#jcbBody)"/>
+    <!-- cab -->
+    <rect x="70" y="55" width="120" height="80" rx="12" fill="url(#jcbBody)"/>
+    <rect x="86" y="70" width="88" height="50" rx="8" fill="#eaf3ee" opacity="0.85"/>
+    <!-- stripe -->
+    <rect x="20" y="168" width="330" height="14" fill="#eaf3ee" opacity="0.6"/>
+
+    <!-- rear boom (backhoe arm) -->
+    <path d="M40,150 L -70,90 L -110,160 L -70,175 L -10,150 Z" fill="url(#jcbBody)"/>
+    <path d="M-110,160 L -175,230 L -150,250 L -85,190 Z" fill="url(#jcbBody)"/>
+    <path d="M-175,230 L -215,215 L -230,255 L -190,268 Z" fill="#166534"/>
+
+    <!-- front loader arm + bucket -->
+    <path d="M330,140 L 430,70 L 448,90 L 360,155 Z" fill="url(#jcbBody)"/>
+    <path d="M430,70 L 480,120 L 460,138 L 415,92 Z" fill="url(#jcbBody)"/>
+    <path d="M470,110 L 520,150 L 505,190 L 452,175 L 448,130 Z" fill="#166534"/>
+  </g>
+
+  <!-- foreground pins on the road -->
+  <g opacity="0.35">
+    <circle cx="900" cy="660" r="4" fill="#0f172a"/>
+    <circle cx="960" cy="668" r="4" fill="#0f172a"/>
+    <circle cx="1020" cy="674" r="4" fill="#0f172a"/>
+  </g>
+</svg>

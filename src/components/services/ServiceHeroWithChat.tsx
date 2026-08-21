@@ -757,7 +757,7 @@ const EQUIPMENT_PROGRESS_STEPS = [
   { n: 4, label: 'Review' },
 ];
 
-function EquipmentBookingWidget({ cityName, serviceType }: { cityName: string; serviceType?: string }) {
+export function EquipmentBookingWidget({ cityName, serviceType }: { cityName: string; serviceType?: string }) {
   const [step, setStep] = useState<FormStep>(1);
 
   const [locations, setLocations] = useState<{ name: string }[]>([]);
@@ -1298,7 +1298,7 @@ function YesNoToggle({ value, onChange, yesLabel = 'Yes', noLabel = 'No' }: {
   );
 }
 
-function TruckBookingWidget({ cityName, serviceType }: { cityName: string; serviceType?: string }) {
+export function TruckBookingWidget({ cityName, serviceType }: { cityName: string; serviceType?: string }) {
   const [step, setStep] = useState<FormStep>(1);
 
   const [locations, setLocations] = useState<{ name: string }[]>([]);

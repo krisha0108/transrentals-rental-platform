@@ -7,7 +7,7 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { TransporterBookingHero } from '@/components/transporter/TransporterBookingHero';
 import { getAllIndiaFleet } from '@/lib/fleet-utils';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -271,29 +271,11 @@ export default async function TransporterLocationPage({ params }: PageProps) {
         </div>
       </div>
 
-      <ServiceHeroWithChat
+      <TransporterBookingHero
+        city={locationName}
+        citySlug={params.location.toLowerCase()}
         pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
         pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
-        badge={`Truck Rental in ${locationName}`}
-        title="Professional Transport Services"
-        titleHighlight="7-32 Ton Trucks | GPS Tracked"
-        description={`Reliable truck rental and transport services in ${locationName}. GPS tracking, professional drivers, and timely delivery for all your cargo needs.`}
-        features={[
-          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'GPS Tracking', color: 'text-slate-600' },
-          { icon: 'zap', text: 'Timely Delivery', color: 'text-green-600' },
-        ]}
-        gradientFrom="slate-50"
-        gradientTo="gray-50"
-        showQuickForm
-        cityName={locationName}
-        bookingVariant="truck"
-        priceAnchor="Mini Truck from ₹2,500/day"
-        heroHighlights={[
-          `GPS-tracked trucks with professional drivers in ${locationName}`,
-          'Mini Truck to 32-Ton Trailer, Open & Closed Body',
-          '500+ verified transporters, instant quote',
-        ]}
       />
 
       <VehicleGrid
