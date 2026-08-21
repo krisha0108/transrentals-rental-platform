@@ -2,223 +2,199 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Coins, Gift, Wallet, Zap, TrendingUp, ArrowRight } from 'lucide-react';
 
+const FEATURES = [
+  {
+    icon: Coins,
+    title: 'Earn Tokens',
+    description: 'Get a Backr tokens for every completed booking',
+    accent: 'text-amber-300',
+    chip: 'bg-amber-500/15',
+  },
+  {
+    icon: Gift,
+    title: 'Daily Spin Wheel',
+    description: 'Spin once every 24 hours to win up to 100 tokens',
+    accent: 'text-orange-300',
+    chip: 'bg-orange-500/15',
+  },
+  {
+    icon: Wallet,
+    title: 'Redeem for Crypto',
+    description: 'Convert your tokens to Solana cryptocurrency',
+    accent: 'text-primary-400',
+    chip: 'bg-primary-500/15',
+  },
+];
+
+const STATS = [
+  { label: 'Tokens Distributed', value: '50K+' },
+  { label: 'Active Users', value: '2,500+' },
+  { label: 'Daily Spins', value: '1,000+' },
+  { label: 'Redemptions', value: '500+' },
+];
+
+const HOW_IT_WORKS = ['Complete bookings', 'Earn tokens', 'Connect Solana wallet', 'Redeem for cryptocurrency'];
+
 export function BackrTokenSection() {
   return (
-    <section className="py-20 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-10 left-10 w-32 h-32 bg-amber-500 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-10 right-10 w-40 h-40 bg-yellow-500 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-      </div>
+    <section className="relative overflow-hidden bg-[#0b1420] py-20 text-white sm:py-24">
+      {/* Background texture + glows */}
+      <div
+        className="absolute inset-0 opacity-[0.06]"
+        style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '28px 28px' }}
+      />
+      <div className="pointer-events-none absolute left-0 top-0 h-[420px] w-[420px] -translate-x-1/3 -translate-y-1/4 rounded-full bg-amber-500/20 blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-[420px] w-[420px] translate-x-1/3 translate-y-1/4 rounded-full bg-primary-500/15 blur-[120px]" />
 
       <div className="container-custom relative">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left - Animated Coin */}
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mx-auto max-w-2xl text-center"
+        >
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-300">
+            <Zap className="h-3.5 w-3.5" /> Loyalty Rewards Program
+          </span>
+          <h2 className="mt-5 font-heading text-3xl font-extrabold sm:text-4xl">
+            Earn <span className="bg-gradient-to-r from-amber-300 to-orange-400 bg-clip-text text-transparent">Backr Tokens</span> on Every Booking
+          </h2>
+          <p className="mt-4 text-slate-300">
+            Complete bookings, spin the daily wheel, and earn cryptocurrency rewards that you can redeem for real value!
+          </p>
+        </motion.div>
+
+        {/* Main content */}
+        <div className="mt-14 grid items-center gap-14 lg:grid-cols-2 lg:gap-10">
+          {/* Coin */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.85 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="relative"
+            className="relative mx-auto w-full max-w-sm"
           >
-            <div className="relative w-full max-w-md mx-auto">
-              {/* Floating Coins Animation */}
-              <motion.div
-                animate={{
-                  y: [0, -20, 0],
-                  rotate: [0, 5, -5, 0],
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                className="relative"
-              >
-                {/* Main Coin */}
-                <div className="w-64 h-64 mx-auto bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 rounded-full shadow-2xl flex items-center justify-center relative">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent rounded-full" />
-                  <div className="text-white text-center">
-                    <div className="text-6xl font-bold mb-2">B</div>
-                    <div className="text-xl font-semibold">BACKR</div>
-                    <div className="text-sm opacity-80">TOKEN</div>
-                  </div>
-                </div>
+            <motion.div
+              animate={{ y: [0, -16, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              className="relative mx-auto h-72 w-72"
+            >
+              <Image
+                src="/images/backr/backr-coin.png"
+                alt="BackrCoin"
+                fill
+                sizes="288px"
+                className="object-contain drop-shadow-[0_25px_60px_rgba(245,158,11,0.35)]"
+                priority
+              />
+            </motion.div>
 
-                {/* Orbiting Small Coins */}
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                  className="absolute inset-0"
-                >
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 bg-gradient-to-br from-amber-300 to-yellow-400 rounded-full shadow-lg flex items-center justify-center text-white font-bold">
-                    +50
-                  </div>
-                </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="absolute -left-2 top-4 flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.06] p-3.5 backdrop-blur-md sm:-left-6"
+            >
+              <Coins className="h-5 w-5 shrink-0 text-amber-300" />
+              <div>
+                <p className="text-sm font-bold leading-none text-white">Up to 50</p>
+                <p className="mt-1 text-[11px] text-slate-400">Tokens / booking</p>
+              </div>
+            </motion.div>
 
-                <motion.div
-                  animate={{ rotate: -360 }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                  className="absolute inset-0"
-                >
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-12 bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full shadow-lg flex items-center justify-center text-white font-bold">
-                    +10
-                  </div>
-                </motion.div>
-              </motion.div>
-
-              {/* Stats Cards */}
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                className="absolute -left-4 top-1/3 bg-white rounded-xl shadow-xl p-4 max-w-[140px]"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <Coins className="w-5 h-5 text-amber-500" />
-                  <span className="text-sm text-gray-700">upto</span>
-                  <span className="text-2xl font-bold text-gray-900">50</span>
-                </div>
-                <p className="text-xs text-gray-600">Tokens per Booking</p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                className="absolute -right-4 top-2/3 bg-white rounded-xl shadow-xl p-4 max-w-[140px]"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <Gift className="w-5 h-5 text-orange-500" />
-                    <span className="text-sm text-gray-700">upto</span>
-                  <span className="text-2xl font-bold text-gray-900">100</span>
-                </div>
-                <p className="text-xs text-gray-600">Daily Spin Bonus</p>
-              </motion.div>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="absolute -right-2 bottom-6 flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.06] p-3.5 backdrop-blur-md sm:-right-6"
+            >
+              <Gift className="h-5 w-5 shrink-0 text-orange-300" />
+              <div>
+                <p className="text-sm font-bold leading-none text-white">Up to 100</p>
+                <p className="mt-1 text-[11px] text-slate-400">Daily spin bonus</p>
+              </div>
+            </motion.div>
           </motion.div>
 
-          {/* Right - Content */}
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="inline-flex items-center gap-2 bg-amber-100 px-4 py-2 rounded-full mb-6">
-              <Zap className="w-4 h-4 text-amber-600" />
-              <span className="text-sm font-semibold text-amber-900">Loyalty Rewards Program</span>
-            </div>
-
-            <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-6">
-              Earn <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-600">Backr Tokens</span> on Every Booking
-            </h2>
-
-            <p className="text-sm md:text-base text-gray-700 mb-8">
-              Complete bookings, spin the daily wheel, and earn cryptocurrency rewards that you can redeem for real value!
-            </p>
-
-            {/* Features */}
-            <div className="space-y-4 mb-8">
-              {[
-                {
-                  icon: <Coins className="w-6 h-6" />,
-                  title: 'Earn Tokens',
-                  description: 'Get a Backr tokens for every completed booking',
-                  gradient: 'from-amber-500 to-yellow-500',
-                },
-                {
-                  icon: <Gift className="w-6 h-6" />,
-                  title: 'Daily Spin Wheel',
-                  description: 'Spin once every 24 hours to win up to 100 tokens',
-                  gradient: 'from-orange-500 to-red-500',
-                },
-                {
-                  icon: <Wallet className="w-6 h-6" />,
-                  title: 'Redeem for Crypto',
-                  description: 'Convert your tokens to Solana cryptocurrency',
-                  gradient: 'from-purple-500 to-pink-500',
-                },
-              ].map((feature, index) => (
+          {/* Features + CTA */}
+          <div>
+            <div className="space-y-3">
+              {FEATURES.map((feature, index) => (
                 <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
+                  key={feature.title}
+                  initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                  className="flex items-start gap-4 bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow"
+                  transition={{ duration: 0.4, delay: index * 0.08 }}
+                  className="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition-colors hover:bg-white/[0.07]"
                 >
-                  <div className={`w-12 h-12 bg-gradient-to-br ${feature.gradient} rounded-lg flex items-center justify-center text-white flex-shrink-0`}>
-                    {feature.icon}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-bold text-gray-900 mb-1">{feature.title}</h3>
-                    <p className="text-xs text-gray-600">{feature.description}</p>
+                  <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${feature.chip} ${feature.accent}`}>
+                    <feature.icon className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">{feature.title}</h3>
+                    <p className="mt-0.5 text-[13px] text-slate-400">{feature.description}</p>
                   </div>
                 </motion.div>
               ))}
             </div>
 
             {/* CTA */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <a
                 href={process.env.NEXT_PUBLIC_CUSTOMER_APP_ANDROID || 'https://play.google.com/store/apps/details?id=com.transrentals.customer'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-xl font-bold hover:from-amber-700 hover:to-orange-700 transition shadow-xl hover:shadow-2xl hover:scale-105 transform duration-300"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary-900/30 transition-transform hover:-translate-y-0.5 hover:bg-primary-600"
               >
-                <TrendingUp className="w-5 h-5" />
+                <TrendingUp className="h-4 w-4" />
                 Download App to Earn
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="h-4 w-4" />
               </a>
 
               <Link
                 href="https://backrcoin.org/"
                 target="_blank"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 border-2 border-amber-600 text-amber-700 rounded-xl font-bold hover:bg-amber-50 transition"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-7 py-3.5 text-sm font-bold text-white transition-colors hover:bg-white/10"
               >
                 Learn More
               </Link>
             </div>
 
-            {/* Info */}
-            <p className="mt-6 text-sm text-gray-600">
-              💡 <span className="font-semibold">How it works:</span> Complete bookings → Earn tokens → Connect Solana wallet → Redeem for cryptocurrency
-            </p>
-          </motion.div>
+            {/* How it works flow */}
+            <div className="mt-7 flex flex-wrap items-center gap-x-2 gap-y-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[13px] text-slate-300">
+              {HOW_IT_WORKS.map((step, index) => (
+                <React.Fragment key={step}>
+                  <span className={index === 0 ? 'font-semibold text-white' : ''}>{step}</span>
+                  {index < HOW_IT_WORKS.length - 1 && <ArrowRight className="h-3 w-3 shrink-0 text-slate-500" />}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Bottom Stats Bar */}
+        {/* Stats */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="mt-16 bg-white rounded-2xl shadow-xl p-8"
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mt-16 grid grid-cols-2 gap-y-8 border-t border-white/10 pt-10 sm:grid-cols-4 sm:divide-x sm:divide-white/10"
         >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { label: 'Tokens Distributed', value: '50K+', icon: <Coins className="w-6 h-6" /> },
-              { label: 'Active Users', value: '2,500+', icon: <TrendingUp className="w-6 h-6" /> },
-              { label: 'Daily Spins', value: '1,000+', icon: <Gift className="w-6 h-6" /> },
-              { label: 'Redemptions', value: '500+', icon: <Wallet className="w-6 h-6" /> },
-            ].map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center mx-auto mb-3 text-amber-600">
-                  {stat.icon}
-                </div>
-                <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
-                  {stat.value}
-                </div>
-                <div className="text-sm text-gray-600">{stat.label}</div>
-              </div>
-            ))}
-          </div>
+          {STATS.map((stat) => (
+            <div key={stat.label} className="text-center">
+              <div className="font-heading text-3xl font-extrabold text-white sm:text-4xl">{stat.value}</div>
+              <div className="mt-1 text-xs font-medium uppercase tracking-wide text-slate-400 sm:text-sm">{stat.label}</div>
+            </div>
+          ))}
         </motion.div>
       </div>
     </section>

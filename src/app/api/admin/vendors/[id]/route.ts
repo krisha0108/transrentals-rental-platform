@@ -253,7 +253,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { action, rejectionReason, newEmail, newPhone } = body;
+    const { action, rejectionReason, newEmail, newPhone, status: requestedStatus } = body;
 
     const vendor = await prisma.vendors.findUnique({
       where: { id },
@@ -332,6 +332,37 @@ export async function PUT(
           status: 'BLOCKED',
         };
         break;
+      case 'SET_STATUS': {
+        // General-purpose status setter — covers DOCUMENTS_PENDING and
+        // UNDER_REVIEW, which have no dedicated action above, so an admin
+        // can manually correct a vendor stuck in either state (e.g. after
+        // deleting the document that had auto-bumped them to review).
+        const validStatuses = ['DOCUMENTS_PENDING', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'SUSPENDED', 'BLOCKED'];
+        if (!validStatuses.includes(requestedStatus)) {
+          return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
+        }
+        if (requestedStatus === 'REJECTED' && !rejectionReason) {
+          return NextResponse.json({ error: 'Rejection reason is required' }, { status: 400 });
+        }
+        if (requestedStatus === 'APPROVED') {
+          updateData = {
+            status: 'APPROVED',
+            approvedAt: new Date(),
+            approvedById: session.user.id,
+            rejectionReason: null,
+          };
+        } else if (requestedStatus === 'REJECTED') {
+          updateData = {
+            status: 'REJECTED',
+            rejectionReason,
+            approvedAt: null,
+            approvedById: session.user.id,
+          };
+        } else {
+          updateData = { status: requestedStatus };
+        }
+        break;
+      }
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }

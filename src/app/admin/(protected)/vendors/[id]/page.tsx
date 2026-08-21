@@ -284,6 +284,10 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<{ type: string; id?: string } | null>(null);
+  // Manual "Change Status" override — lets an admin set any status directly
+  // (e.g. to unstick a vendor left at UNDER_REVIEW after deleting the
+  // document that had auto-bumped them there, or DOCUMENTS_PENDING).
+  const [manualStatus, setManualStatus] = useState('');
   const [selectedDocument, setSelectedDocument] = useState<VendorDocument | null>(null);
   const [documentPreviewError, setDocumentPreviewError] = useState(false);
   const [documentLoading, setDocumentLoading] = useState(true);
@@ -529,13 +533,13 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
     finally { setContactReqLoading(null); }
   };
 
-  const handleVendorAction = async (action: string, reason?: string) => {
+  const handleVendorAction = async (action: string, reason?: string, status?: string) => {
     setActionLoading(action);
     try {
       const res = await fetch(`/api/admin/vendors/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, rejectionReason: reason }),
+        body: JSON.stringify({ action, rejectionReason: reason, status }),
       });
 
       if (res.ok) {
@@ -551,6 +555,17 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const handleManualStatusChange = () => {
+    if (!manualStatus || manualStatus === vendor?.status) return;
+    if (manualStatus === 'REJECTED') {
+      // Reuse the existing reject flow so a reason is still required.
+      openRejectModal('vendor');
+      return;
+    }
+    handleVendorAction('SET_STATUS', undefined, manualStatus);
+    setManualStatus('');
   };
 
   const handleServiceAction = async (requestId: string, action: string, reason?: string, commissionPercent?: number) => {
@@ -1023,6 +1038,38 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
             <KeyRound className="w-4 h-4 mr-2" />
             Set Password
           </Button>
+
+          {/* Manual status override — for correcting a vendor stuck in a
+              state the contextual buttons below can't reach directly
+              (e.g. DOCUMENTS_PENDING/UNDER_REVIEW after their triggering
+              document was deleted). */}
+          <div className="flex items-center gap-1.5">
+            <select
+              value={manualStatus}
+              onChange={(e) => setManualStatus(e.target.value)}
+              disabled={!!actionLoading}
+              className="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-700"
+            >
+              <option value="">Change status to...</option>
+              {Object.entries(statusConfig)
+                .filter(([value]) => value !== 'PENDING' && value !== vendor.status)
+                .map(([value, cfg]) => (
+                  <option key={value} value={value}>{cfg.label}</option>
+                ))}
+            </select>
+            <Button
+              variant="outline"
+              onClick={handleManualStatusChange}
+              disabled={!!actionLoading || !manualStatus}
+            >
+              {actionLoading === 'SET_STATUS' ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              Apply
+            </Button>
+          </div>
 
           {/* Approve + Reject for all pre-approval statuses */}
           {['PENDING', 'DOCUMENTS_PENDING', 'UNDER_REVIEW', 'REJECTED'].includes(vendor.status) && (
