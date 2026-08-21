@@ -38,6 +38,11 @@ declare global {
 function CustomerLoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Where to send the customer after a successful login/register/OTP —
+  // e.g. bus-quotes/equipment-quotes/etc. all link here with
+  // ?redirect=/customer/<x>-quotes so the customer lands back where they
+  // were instead of always going to the generic dashboard.
+  const redirectTo = searchParams.get('redirect') || '/customer/dashboard';
   const [mode, setMode] = useState<AuthMode>(
     searchParams.get('mode') === 'register' ? 'register' : 'login'
   );
@@ -81,7 +86,7 @@ function CustomerLoginPageContent() {
         localStorage.setItem('token', data.token);
         localStorage.setItem('customer', JSON.stringify(data.customers));
         setSuccess('Login successful! Redirecting...');
-        setTimeout(() => router.push('/customer/dashboard'), 1000);
+        setTimeout(() => router.push(redirectTo), 1000);
       } else {
         setError(data.message || 'Google login failed. Please try again.');
         setIsGoogleLoading(false);
@@ -148,7 +153,7 @@ function CustomerLoginPageContent() {
         }
         setSuccess('Welcome back! Redirecting to your dashboard...');
         setTimeout(() => {
-          window.location.href = data.redirect || '/customer/dashboard';
+          window.location.href = data.redirect || redirectTo;
         }, 800);
         return;
       }
@@ -158,7 +163,7 @@ function CustomerLoginPageContent() {
         localStorage.setItem('token', data.token);
         localStorage.setItem('customer', JSON.stringify(data.customers));
         setSuccess('Login successful! Redirecting...');
-        setTimeout(() => router.push('/customer/dashboard'), 1000);
+        setTimeout(() => router.push(redirectTo), 1000);
       } else {
         setError(data.message || 'Login failed. Please check your credentials.');
       }
@@ -195,7 +200,7 @@ function CustomerLoginPageContent() {
         localStorage.setItem('token', data.token);
         localStorage.setItem('customer', JSON.stringify(data.customers));
         setSuccess('Registration successful! Redirecting...');
-        setTimeout(() => router.push('/customer/dashboard'), 1000);
+        setTimeout(() => router.push(redirectTo), 1000);
       } else {
         setError(data.message || 'Registration failed. Please try again.');
       }
@@ -222,7 +227,7 @@ function CustomerLoginPageContent() {
         localStorage.setItem('token', data.token);
         localStorage.setItem('customer', JSON.stringify(data.customers));
         setSuccess('Registration successful! Redirecting...');
-        setTimeout(() => router.push('/customer/dashboard'), 1000);
+        setTimeout(() => router.push(redirectTo), 1000);
       } else {
         setError(data.message || 'Invalid OTP. Please try again.');
       }

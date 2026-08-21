@@ -90,8 +90,44 @@ export default function CustomerBusQuotesPage() {
       return;
     }
 
-    fetchRequests();
+    submitPendingQuoteThenLoad();
   }, [authLoading, isAuthenticated, customer]);
+
+  // If the customer filled the marketplace Bus form while logged out, their
+  // trip was stashed in sessionStorage (see handleBusSubmit in
+  // src/app/marketplace/page.tsx) instead of being lost. Submit it now that
+  // we have a real logged-in customer, then jump straight to its detail
+  // page — same place a logged-in submission lands — instead of showing
+  // this list with no sign the request ever happened.
+  const submitPendingQuoteThenLoad = async () => {
+    const pendingRaw = sessionStorage.getItem('pendingBusQuote');
+    if (!pendingRaw) {
+      fetchRequests();
+      return;
+    }
+    sessionStorage.removeItem('pendingBusQuote');
+    try {
+      const pending = JSON.parse(pendingRaw);
+      const res = await fetch('/api/bus-quote-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...pending,
+          customerName: customer!.name,
+          customerEmail: customer!.email,
+          customerPhone: customer!.phone,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        router.replace(`/customer/bus-quotes/${data.quoteRequest.id}`);
+        return;
+      }
+    } catch {
+      // fall through to the normal list on any failure
+    }
+    fetchRequests();
+  };
 
   const fetchRequests = async () => {
     try {

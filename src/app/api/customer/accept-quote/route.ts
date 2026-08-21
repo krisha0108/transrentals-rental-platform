@@ -376,6 +376,13 @@ async function acceptEquipmentQuote(quoteRequestId: string, quoteId: string) {
     // Calculate base amount from quote
     const baseAmount = quote.baseAmount || quote.totalAmount - (quote.deliveryCharges || 0) - (quote.operatorCharges || 0) - (quote.gstAmount || 0);
 
+    // The vendor sets the advance on the quote — either an explicit amount or a
+    // percentage. Fall back to 30% only when the quote carries neither.
+    const equipmentAdvance =
+      quote.advanceAmount && quote.advanceAmount > 0
+        ? quote.advanceAmount
+        : Math.round(quote.totalAmount * ((quote.advancePercent || 30) / 100));
+
     // Create booking
     const booking = await tx.equipment_bookings.create({
       data: {
@@ -404,8 +411,10 @@ async function acceptEquipmentQuote(quoteRequestId: string, quoteId: string) {
         securityDeposit: quote.securityDeposit || 0,
         gstAmount: quote.gstAmount || 0,
         totalAmount: quote.totalAmount,
-        advanceAmount: Math.round(quote.totalAmount * 0.3) + (quote.securityDeposit || 0),
-        balanceAmount: quote.totalAmount - Math.round(quote.totalAmount * 0.3),
+        // Honour what the vendor asked for on the quote; 30% is only the
+        // fallback for older quotes that carry neither figure.
+        advanceAmount: equipmentAdvance + (quote.securityDeposit || 0),
+        balanceAmount: quote.totalAmount - equipmentAdvance,
         status: 'PENDING_PAYMENT',
         deliveryOtp: generateOTP(),
         returnOtp: generateOTP(),

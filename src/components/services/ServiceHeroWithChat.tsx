@@ -781,6 +781,12 @@ function EquipmentBookingWidget({ cityName, serviceType }: { cityName: string; s
   const [startDate,     setStartDate]     = useState('');
   const [quantity,      setQuantity]      = useState(1);
   const [qtyRaw,        setQtyRaw]        = useState('1');
+  // Vendors price operator, delivery and installation separately, and their
+  // quote form only shows the matching charge field when the request asks for
+  // it — so the customer has to be the one to say.
+  const [needOperator,     setNeedOperator]     = useState(false);
+  const [needDelivery,     setNeedDelivery]     = useState(true);
+  const [needInstallation, setNeedInstallation] = useState(false);
   const [err2,          setErr2]          = useState('');
 
   // Step 3 – Contact + notes
@@ -851,6 +857,9 @@ function EquipmentBookingWidget({ cityName, serviceType }: { cityName: string; s
           deliveryAddress:   address.trim(),
           startDate:         start.toISOString(),
           endDate:           end.toISOString(),
+          needOperator,
+          needDelivery,
+          needInstallation,
           requirements:      notes.trim() || undefined,
         }),
       });
@@ -867,6 +876,7 @@ function EquipmentBookingWidget({ cityName, serviceType }: { cityName: string; s
   const resetForm = () => {
     setStep(1); setEquipmentTypeValue(''); setAddress(''); setNotes('');
     setDurationValue('1'); setStartDate(''); setQuantity(1); setQtyRaw('1');
+    setNeedOperator(false); setNeedDelivery(true); setNeedInstallation(false);
     setGuestOverride(false);
     if (!isAuthenticated) { setName(''); setPhone(''); }
   };
@@ -1035,6 +1045,37 @@ function EquipmentBookingWidget({ cityName, serviceType }: { cityName: string; s
                   +
                 </button>
               </div>
+            </div>
+
+            {/* What the vendor has to quote for. The vendor's quote form only
+                shows the operator / installation charge fields when the request
+                asks for them, so this has to be captured here. */}
+            <div className="mb-4">
+              <label className={lblCls}>What do you need?</label>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { on: needDelivery,     set: setNeedDelivery,     label: 'Delivery to site' },
+                  { on: needOperator,     set: setNeedOperator,     label: 'Operator' },
+                  { on: needInstallation, set: setNeedInstallation, label: 'Installation' },
+                ] as const).map(({ on, set, label }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => set(!on)}
+                    className={`h-9 px-3.5 rounded-xl border text-[13px] font-semibold transition-all ${
+                      on
+                        ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                        : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1.5">
+                Vendors quote only for what you pick here.
+              </p>
             </div>
 
             {err2 && <p className="text-xs text-red-500 font-semibold mb-2">{err2}</p>}

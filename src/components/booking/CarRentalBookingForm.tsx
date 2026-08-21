@@ -477,52 +477,63 @@ export function CarRentalBookingForm() {
               )}
             </div>
             <div className="space-y-4">
-              <div className="text-center">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <User className="w-4 h-4 inline mr-2" />Full Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => updateFormData('name', e.target.value)}
-                  placeholder="Enter your full name"
-                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                    }`}
-                  required
-                />
-              </div>
-              <div className="text-center">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Mail className="w-4 h-4 inline mr-2" />Email Address *
-                </label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => updateFormData('email', e.target.value)}
-                  placeholder="your.email@example.com"
-                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                    }`}
-                  required
-                />
-              </div>
-              <div className="text-center">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Phone className="w-4 h-4 inline mr-2" />Phone Number *
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    if (val.length <= 10) updateFormData('phone', val);
-                  }}
-                  placeholder="10-digit mobile number"
-                  maxLength={10}
-                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                    }`}
-                  required
-                />
-              </div>
+              {isAuthenticated ? (
+                <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-bold shrink-0">
+                    {(customer?.name || 'U')[0].toUpperCase()}
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-900">{customer?.name}</p>
+                    <p className="text-sm text-gray-600">{customer?.phone} · {customer?.email}</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-center">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <User className="w-4 h-4 inline mr-2" />Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => updateFormData('name', e.target.value)}
+                      placeholder="Enter your full name"
+                      className="w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none border-gray-200"
+                      required
+                    />
+                  </div>
+                  <div className="text-center">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Mail className="w-4 h-4 inline mr-2" />Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => updateFormData('email', e.target.value)}
+                      placeholder="your.email@example.com"
+                      className="w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none border-gray-200"
+                      required
+                    />
+                  </div>
+                  <div className="text-center">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Phone className="w-4 h-4 inline mr-2" />Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        if (val.length <= 10) updateFormData('phone', val);
+                      }}
+                      placeholder="10-digit mobile number"
+                      maxLength={10}
+                      className="w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none border-gray-200"
+                      required
+                    />
+                  </div>
+                </>
+              )}
               <div className="text-center">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <MessageSquare className="w-4 h-4 inline mr-2" />Additional Details (Optional)

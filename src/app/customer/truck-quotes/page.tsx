@@ -100,8 +100,44 @@ function TruckQuotesContent() {
       return;
     }
 
-    fetchRequests();
+    submitPendingQuoteThenLoad();
   }, [authLoading, isAuthenticated, customer]);
+
+  // If the customer filled the marketplace Truck form while logged out,
+  // their trip was stashed in sessionStorage (see handleTruckSubmit in
+  // src/app/marketplace/page.tsx) instead of being lost. Submit it now that
+  // we have a real logged-in customer, then jump straight to its detail
+  // page instead of showing this list with no sign the request happened —
+  // same pattern as the Bus tab's bus-quotes page.
+  const submitPendingQuoteThenLoad = async () => {
+    const pendingRaw = sessionStorage.getItem('pendingTruckQuote');
+    if (!pendingRaw) {
+      fetchRequests();
+      return;
+    }
+    sessionStorage.removeItem('pendingTruckQuote');
+    try {
+      const pending = JSON.parse(pendingRaw);
+      const res = await fetch('/api/truck-quote-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...pending,
+          customerName: customer!.name,
+          customerEmail: customer!.email,
+          customerPhone: customer!.phone,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        router.replace(`/customer/truck-quotes/${data.quoteRequest.id}`);
+        return;
+      }
+    } catch {
+      // fall through to the normal list on any failure
+    }
+    fetchRequests();
+  };
 
   const fetchRequests = async () => {
     try {

@@ -73,6 +73,35 @@ export async function DELETE(
       where: { id },
     });
 
+    // If deleting this document dropped the vendor below the minimum
+    // requirement that auto-bumped them to UNDER_REVIEW (see the same
+    // check in POST /api/vendor/documents), move them back down so they
+    // don't stay stuck showing "Under Review" with nothing left to review.
+    // Only touches UNDER_REVIEW — never overrides a staff decision like
+    // APPROVED/REJECTED/SUSPENDED/BLOCKED.
+    const vendor = await prisma.vendors.findUnique({
+      where: { id: auth.vendorId },
+      select: { status: true },
+    });
+
+    if (vendor?.status === 'UNDER_REVIEW') {
+      const requiredTypes = ['ADDRESS_PROOF'];
+      const remainingRequiredDocs = await prisma.vendor_documents.count({
+        where: {
+          vendorId: auth.vendorId,
+          documentType: { in: requiredTypes as any },
+          status: { not: 'REJECTED' },
+        },
+      });
+
+      if (remainingRequiredDocs < requiredTypes.length) {
+        await prisma.vendors.update({
+          where: { id: auth.vendorId },
+          data: { status: 'DOCUMENTS_PENDING' },
+        });
+      }
+    }
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     logger.error('Delete document error', error);

@@ -27,6 +27,8 @@ import {
   ChevronDown,
   X,
   Briefcase,
+  Tag,
+  Headphones,
 } from 'lucide-react';
 import { CarRentalBookingConfirmModal } from './CarRentalBookingConfirmModal';
 
@@ -36,7 +38,7 @@ type OutstationMode = 'one-way' | 'round-trip';
 type AirportMode = 'pickup' | 'drop';
 
 // Types from API
-interface VehicleCategory {
+export interface VehicleCategory {
   id: string;
   name: string;
   slug: string;
@@ -134,7 +136,7 @@ interface Airport {
   description: string;
 }
 
-interface PricingResult {
+export interface PricingResult {
   success: boolean;
   tripType: string;
   pricingMethod?: string;
@@ -181,6 +183,37 @@ interface PricingResult {
   legs?: Array<{ from: string; to: string; km: number }>;
 }
 
+// Same shape `handleBook` assembles before opening the real confirm modal —
+// exposed via `onBookingDetailsReady` so an external wrapper (the marketplace
+// modal) can build a booking payload itself without re-deriving this from
+// internal state.
+export interface BookingDraft {
+  vehicle: VehicleCategory;
+  tripType: TripType;
+  pickupCity: string;
+  pickupCitySlug?: string;
+  pickupLocationId?: string;
+  pickupDate: string;
+  pickupTime: string;
+  dropCity?: string;
+  dropLocationId?: string;
+  returnDate?: string;
+  outstationMode?: 'one-way' | 'round-trip';
+  intermediateStops: Array<{ id: string; locationId: string; cityText: string }>;
+  legs?: Array<{ from: string; to: string; km: number }>;
+  airportMode?: 'pickup' | 'drop';
+  airportId?: string;
+  airportName?: string;
+  airportCode?: string;
+  dropAddress?: string;
+  packageId?: string;
+  packageName?: string;
+  packageHours?: number;
+  packageKms?: number;
+  pricing: PricingResult['pricing'];
+  serviceSlug: string;
+}
+
 interface CarRentalBookingHeroProps {
   city?: string;
   citySlug?: string;
@@ -188,6 +221,34 @@ interface CarRentalBookingHeroProps {
   serviceTitle: string;
   initialTripType?: TripType;
   hideTabs?: boolean;
+  // Same shape as the query params the marketplace hero's car form appends
+  // to /car-rental/[city] (tripType/date/package/etc) — pass this when
+  // embedding the component directly (e.g. inside a modal) instead of via a
+  // real navigation, so there's no URL to read from window.location.search.
+  initialSearchParams?: Record<string, string>;
+  // Called instead of the default "go back to the form" behavior when the
+  // user clicks "← Modify Search" from the car selection screen — lets a
+  // modal wrapper close itself and return to the caller's own form.
+  onModifySearch?: () => void;
+  // 'horizontal' lays the vehicle results out as a scrolling row of compact
+  // cards instead of the default full-width stacked list — for embedding
+  // inside a narrow panel (e.g. the marketplace hero's inline results).
+  vehicleListLayout?: 'vertical' | 'horizontal';
+  // Fires once a vehicle card is chosen (horizontal layout only) instead of
+  // expanding the inline fare-breakdown accordion — lets an external wrapper
+  // (the marketplace modal) drive its own "step 2" panel from the pick.
+  onVehicleSelected?: (vehicle: VehicleCategory, priceData: PricingResult) => void;
+  // Hands the caller a reference to this component's own real `handleBook`
+  // function (same one the default "Book {vehicle}" button calls) so an
+  // external "Confirm & Continue" button can trigger the real, unmodified
+  // booking/auth modal without re-implementing its booking-details logic.
+  onBookHandlerReady?: (bookFn: (vehicleId: string) => void) => void;
+  // Hands the caller a function that builds the same booking-details draft
+  // `handleBook` uses internally, WITHOUT opening the real confirm modal —
+  // lets an external wrapper submit its own direct booking (skipping the
+  // login/register gate) while still reusing all of this component's
+  // trip/pricing state instead of re-deriving it.
+  onBookingDetailsReady?: (getDetails: (vehicleId: string) => BookingDraft | null) => void;
   // Optional overrides for specialty services (wedding, sports, vintage, etc.)
   headingLine1?: string;
   headingLine2?: string;
@@ -198,6 +259,10 @@ interface CarRentalBookingHeroProps {
   // Light, image-backed hero redesign — opt-in only, existing callers are untouched
   heroVariant?: 'classic' | 'aurora';
   heroImage?: string;
+  // Shrinks the outer section padding + heading/copy sizing for pages where
+  // the hero is one of several sections rather than the full page focus
+  // (e.g. the /one-way-cab hub) — the booking form itself is unaffected.
+  compact?: boolean;
 }
 
 const AURORA_TRUST_ITEMS = [
@@ -686,6 +751,12 @@ export function CarRentalBookingHero({
   serviceTitle,
   initialTripType = 'local',
   hideTabs = false,
+  initialSearchParams,
+  onModifySearch,
+  vehicleListLayout = 'vertical',
+  onVehicleSelected,
+  onBookHandlerReady,
+  onBookingDetailsReady,
   headingLine1,
   headingLine2,
   subheading,
@@ -694,6 +765,7 @@ export function CarRentalBookingHero({
   trustBadges,
   heroVariant = 'classic',
   heroImage,
+  compact = false,
 }: CarRentalBookingHeroProps) {
   const isAurora = heroVariant === 'aurora';
   // Trip type state
@@ -734,6 +806,12 @@ export function CarRentalBookingHero({
   const [showCarSelection, setShowCarSelection] = useState(false);
   const [carPrices, setCarPrices] = useState<Record<string, PricingResult>>({});
   const [loadingPrices, setLoadingPrices] = useState(false);
+  // True when arriving with the marketplace hero's own search already filled
+  // in (initialSearchParams present) — the auto-trigger effect below will
+  // flip showCarSelection on its own in a moment, so the plain search form
+  // (irrelevant here, it'd just flash and disappear) should stay hidden
+  // behind a lightweight loading state instead of rendering at all.
+  const [cameFromMarketplace] = useState(() => !!initialSearchParams?.tripType);
 
   // Booking modal state
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -743,6 +821,13 @@ export function CarRentalBookingHero({
   const [selectedAirportId, setSelectedAirportId] = useState<string>('');
   const [selectedAirport, setSelectedAirport] = useState<Airport | null>(null);
   const [dropAddress, setDropAddress] = useState('');
+
+  // Incoming search from the marketplace hero (/marketplace) — it appends
+  // tripType/date/package/etc as query params instead of duplicating this
+  // whole booking flow. Read once on mount so a filled-in marketplace search
+  // lands the user straight on car selection instead of a blank form.
+  const marketplaceParamsRef = useRef<URLSearchParams | null>(null);
+  const autoSearchTriggeredRef = useRef(false);
 
   // Determine API base path based on service
   const apiBasePath = serviceSlug === 'luxury-car-rental'
@@ -822,6 +907,91 @@ export function CarRentalBookingHero({
     fetchData();
   }, [citySlug, city, apiBasePath, serviceSlug]);
 
+  // Apply the marketplace hero's query params — only the fields resolvable
+  // without waiting on an async fetch (trip type, dates, modes, free-text
+  // city). ID-backed fields (drop city, airport, package) are matched once
+  // their source list has loaded, in the effects below.
+  useEffect(() => {
+    const params = initialSearchParams
+      ? new URLSearchParams(initialSearchParams)
+      : new URLSearchParams(window.location.search);
+    const qsTripType = params.get('tripType');
+    if (!qsTripType) return; // Not arriving from the marketplace search — leave defaults as-is
+    marketplaceParamsRef.current = params;
+
+    if (qsTripType === 'local' || qsTripType === 'outstation' || qsTripType === 'airport') {
+      setTripType(qsTripType);
+    }
+    const qsDate = params.get('date');
+    if (qsDate) setPickupDate(qsDate);
+    const qsPickupTime = params.get('pickupTime');
+    if (qsPickupTime) setPickupTime(qsPickupTime);
+
+    if (qsTripType === 'outstation') {
+      setOutstationMode(params.get('mode') === 'oneway' ? 'one-way' : 'round-trip');
+      const qsReturnDate = params.get('returnDate');
+      if (qsReturnDate) setReturnDate(qsReturnDate);
+      const qsTo = params.get('to');
+      if (qsTo) setDropCityText(qsTo);
+      const qsVia = params.get('via');
+      if (qsVia) {
+        const viaNames = qsVia.split('|').map((v) => v.trim()).filter(Boolean);
+        if (viaNames.length) {
+          setMultiStops(viaNames.map((name, i) => ({ id: String(i + 1), locationId: '', cityText: name })));
+        }
+      }
+    }
+
+    if (qsTripType === 'airport') {
+      setAirportMode(params.get('airportMode') === 'to' ? 'drop' : 'pickup');
+    }
+  }, []);
+
+  // Resolve the outstation drop city (text from the URL) against the real
+  // locations list once it loads — pricing needs a location id, not just a name.
+  useEffect(() => {
+    const params = marketplaceParamsRef.current;
+    if (!params || tripType !== 'outstation' || dropLocationId || locations.length === 0) return;
+    const qsTo = params.get('to');
+    if (!qsTo) return;
+    const match = locations.find((l) => l.name.toLowerCase() === qsTo.toLowerCase());
+    if (match) {
+      setDropLocationId(match.id);
+      setDropCity(match.name);
+    }
+  }, [locations, tripType, dropLocationId]);
+
+  // Resolve via-stop city text from the URL against the real locations list —
+  // pricing filters out any stop without a locationId, so an unresolved stop
+  // silently drops out of the trip instead of erroring.
+  useEffect(() => {
+    if (tripType !== 'outstation' || locations.length === 0) return;
+    setMultiStops((prev) => {
+      let changed = false;
+      const next = prev.map((s) => {
+        if (s.locationId || !s.cityText) return s;
+        const match = locations.find((l) => l.name.toLowerCase() === s.cityText.toLowerCase());
+        if (!match) return s;
+        changed = true;
+        return { ...s, locationId: match.id, cityText: match.name };
+      });
+      return changed ? next : prev;
+    });
+  }, [locations, tripType]);
+
+  // Resolve the airport code from the URL against the fetched airports list.
+  useEffect(() => {
+    const params = marketplaceParamsRef.current;
+    if (!params || tripType !== 'airport' || airports.length === 0) return;
+    const qsAirport = params.get('airport');
+    if (!qsAirport) return;
+    const match = airports.find((a) => a.code === qsAirport);
+    if (match && match.id !== selectedAirportId) {
+      setSelectedAirportId(match.id);
+      setSelectedAirport(match);
+    }
+  }, [airports, tripType, selectedAirportId]);
+
   // Minimum advance booking: pickup must be at least 12 hours from now
   const MIN_ADVANCE_HOURS = 12;
 
@@ -834,6 +1004,22 @@ export function CarRentalBookingHero({
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  };
+
+  // Weekday name + a coarse time-of-day label, used by the 3-segment trip
+  // summary bar in the premium (horizontal) results layout.
+  const getWeekdayLabel = (dateStr: string) => {
+    if (!dateStr) return '';
+    return new Date(`${dateStr}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long' });
+  };
+  const getTimeOfDayLabel = (timeStr: string) => {
+    const hour = parseInt((timeStr || '').split(':')[0], 10);
+    if (Number.isNaN(hour)) return '';
+    if (hour < 5) return 'Late Night';
+    if (hour < 12) return 'Morning';
+    if (hour < 17) return 'Afternoon';
+    if (hour < 21) return 'Evening';
+    return 'Night';
   };
 
   // Get minimum allowed booking date (for date picker `min` attribute)
@@ -854,8 +1040,12 @@ export function CarRentalBookingHero({
 
   const minBookingDate = getMinBookingDate();
 
-  // Set default dates
+  // Set default dates — skipped when the marketplace hero already supplied a
+  // date via query params, otherwise this runs on the same mount pass and
+  // silently overwrites the carried-over date with today's default.
   useEffect(() => {
+    if (marketplaceParamsRef.current?.get('date')) return;
+
     const now = new Date();
     const minPickup = new Date(now.getTime() + MIN_ADVANCE_HOURS * 60 * 60 * 1000);
     // Default pickup time is 10:00, so find the earliest date where 10:00 AM is ≥12hrs away
@@ -898,6 +1088,19 @@ export function CarRentalBookingHero({
       }
     }
   }, [localPackages, selectedPackageId]);
+
+  // Override the default package with the one picked in the marketplace hero
+  // (encoded as "4hrs-40km" / "8hrs-80km") once the real packages have loaded.
+  useEffect(() => {
+    const params = marketplaceParamsRef.current;
+    if (!params || tripType !== 'local' || localPackages.length === 0) return;
+    const qsPackage = params.get('package');
+    if (!qsPackage) return;
+    const hours = qsPackage.startsWith('12') ? 12 : qsPackage.startsWith('4') ? 4 : qsPackage.startsWith('8') ? 8 : null;
+    if (!hours) return;
+    const match = localPackages.find((p) => p.hours === hours);
+    if (match) setSelectedPackageId(match.id);
+  }, [localPackages, tripType]);
 
   // Get unique packages (grouped by hours/kms for display)
   // API already filters by location, so no client-side location filtering needed
@@ -993,7 +1196,12 @@ export function CarRentalBookingHero({
                 prices[vehicle.id] = { success: false, tripType: 'multi-stop', pricing: { grandTotal: 0, totalBeforeGst: 0, gst: 0 } };
                 return;
               }
-              // Build per-leg km with haversine fallback for legs not in distance matrix
+              // Build per-leg km with haversine fallback for legs not in distance matrix.
+              // A leg can come back priced two different ways: distance_matrix (a
+              // per-km rate we blend below) or route_package/forced_package (a flat
+              // fare for that whole leg, no per-km rate) — both must be handled or a
+              // route with no distance-matrix entry (only a fixed package) silently
+              // prices as ₹0 and shows "Not available" despite having valid pricing.
               const computedLegs = validLegs.map((r, i) => {
                 const apiKm = r.route?.oneWayDistance || r.calculation?.actualKm || 0;
                 let km = apiKm;
@@ -1004,7 +1212,7 @@ export function CarRentalBookingHero({
                     km = Math.round(haversineKm(fromLoc.latitude, fromLoc.longitude, toLoc.latitude, toLoc.longitude));
                   }
                 }
-                return { from: r.legFrom, to: r.legTo, km };
+                return { from: r.legFrom, to: r.legTo, km, result: r };
               });
               const totalKm = computedLegs.reduce((sum, l) => sum + l.km, 0);
               // Calculate days based on actual hours (ceil(hours/24))
@@ -1018,26 +1226,35 @@ export function CarRentalBookingHero({
                 const calcDays = Math.ceil(totalHours / 24);
                 if (calcDays > 1) days = calcDays;
               }
-              // Apply min km/day from DB (via first leg's API response), fallback 300
-              const minKmPerDay = validLegs.find((r) => r.calculation?.minKmPerDay)?.calculation?.minKmPerDay ?? 300;
-              const minKmForDays = days * minKmPerDay;
-              const chargeableKm = Math.max(totalKm, minKmForDays);
-              const minApplied = chargeableKm > totalKm;
-              const extraKm = minApplied ? chargeableKm - totalKm : 0;
-              const perKmRate = validLegs.find((r) => r.calculation?.perKmRate)?.calculation?.perKmRate || 0;
-              // Per-day driver batta × number of days
-              const driverAllowancePerDay = Math.max(...validLegs.map((r) => r.pricing?.driverAllowance || 0));
-              const driverAllowance = driverAllowancePerDay * days;
-              const baseCharge = Math.round(chargeableKm * perKmRate);
-              const beforeGst = baseCharge + driverAllowance;
+
+              const kmLegs = computedLegs.filter((l) => !!l.result.calculation?.perKmRate);
+              const fixedLegs = computedLegs.filter((l) => !l.result.calculation?.perKmRate && l.result.success && !!l.result.pricing?.grandTotal);
+              const allLegsResolved = kmLegs.length + fixedLegs.length === legPairs.length;
+
+              let chargeableKm = 0, perKmRate = 0, minKmPerDay = 0, minApplied = false, minKmForDays = 0, extraKm = 0, driverAllowance = 0;
+              let kmBasedTotal = 0;
+              if (kmLegs.length > 0) {
+                const kmLegsKm = kmLegs.reduce((sum, l) => sum + l.km, 0);
+                perKmRate = kmLegs[0].result.calculation?.perKmRate || 0;
+                minKmPerDay = kmLegs.find((l) => l.result.calculation?.minKmPerDay)?.result.calculation?.minKmPerDay ?? 300;
+                minKmForDays = days * minKmPerDay;
+                chargeableKm = Math.max(kmLegsKm, minKmForDays);
+                minApplied = chargeableKm > kmLegsKm;
+                extraKm = minApplied ? chargeableKm - kmLegsKm : 0;
+                const driverAllowancePerDay = Math.max(...kmLegs.map((l) => l.result.pricing?.driverAllowance || 0), 0);
+                driverAllowance = driverAllowancePerDay * days;
+                kmBasedTotal = Math.round(chargeableKm * perKmRate) + driverAllowance;
+              }
+              const fixedTotal = fixedLegs.reduce((sum, l) => sum + (l.result.pricing?.grandTotal || 0), 0);
+              const beforeGst = kmBasedTotal + fixedTotal;
               const gst = Math.round(beforeGst * 0.05);
               prices[vehicle.id] = {
-                success: chargeableKm > 0 && perKmRate > 0,
+                success: allLegsResolved && beforeGst > 0,
                 tripType: outstationMode === 'one-way' ? 'one_way' : 'round_trip',
-                pricingMethod: 'per_km',
-                pricing: { grandTotal: beforeGst + gst, totalBeforeGst: beforeGst, gst, baseKmCharge: baseCharge, totalKm: chargeableKm, perKmRate, driverAllowance },
+                pricingMethod: kmLegs.length && fixedLegs.length ? 'mixed' : fixedLegs.length ? 'route_package' : 'per_km',
+                pricing: { grandTotal: beforeGst + gst, totalBeforeGst: beforeGst, gst, baseKmCharge: Math.round(chargeableKm * perKmRate), totalKm: chargeableKm || totalKm, perKmRate, driverAllowance },
                 calculation: { days, actualKm: totalKm, chargeableKm, perKmRate, minKmPerDay, minApplied, minKmForDays, extraKm },
-                legs: computedLegs,
+                legs: computedLegs.map(({ from, to, km }) => ({ from, to, km })),
               };
               return;
             }
@@ -1158,18 +1375,52 @@ export function CarRentalBookingHero({
     fetchPrices();
   };
 
+  // Auto-open car/package selection once the marketplace hero's choices have
+  // landed — the point of carrying them over via query params is to skip
+  // making the user fill this same form a second time. Each condition below
+  // waits for its matching effect (drop city / airport / package) to resolve
+  // rather than firing on a still-default value.
+  useEffect(() => {
+    const params = marketplaceParamsRef.current;
+    if (!params || autoSearchTriggeredRef.current || loadingData || !pickupDate) return;
+
+    if (tripType === 'outstation' && !dropLocationId) return;
+
+    if (tripType === 'airport') {
+      if (!selectedAirportId) return;
+      const qsAirport = params.get('airport');
+      if (qsAirport && selectedAirport?.code !== qsAirport) return;
+    }
+
+    if (tripType === 'local') {
+      const qsPackage = params.get('package');
+      if (qsPackage) {
+        const targetHours = qsPackage.startsWith('12') ? 12 : qsPackage.startsWith('4') ? 4 : qsPackage.startsWith('8') ? 8 : null;
+        const currentHours = localPackages.find((p) => p.id === selectedPackageId)?.hours;
+        if (targetHours && currentHours !== targetHours) return;
+      } else if (!selectedPackageId) {
+        return;
+      }
+    }
+
+    autoSearchTriggeredRef.current = true;
+    handleSearch();
+  }, [loadingData, pickupDate, tripType, dropLocationId, selectedAirportId, selectedAirport, selectedPackageId, localPackages]);
+
   // Handle booking - Show confirmation modal
-  const handleBook = (vehicleId: string) => {
+  // Shared by handleBook (opens the real confirm modal) and
+  // onBookingDetailsReady (lets an external wrapper submit its own direct
+  // booking) — both need the exact same draft, just different next steps.
+  const buildBookingDetails = (vehicleId: string): BookingDraft | null => {
     const vehicle = vehicleCategories.find((c) => c.id === vehicleId);
     const priceData = carPrices[vehicleId];
 
-    if (!vehicle || !priceData?.success) return;
+    if (!vehicle || !priceData?.success) return null;
 
     // Get selected package details for local trips
     const selectedPackage = localPackages.find((p) => p.id === selectedPackageId);
 
-    // Prepare booking details for the modal
-    const details = {
+    return {
       vehicle: {
         id: vehicle.id,
         name: vehicle.name,
@@ -1179,6 +1430,8 @@ export function CarRentalBookingHero({
         fuelType: vehicle.fuelType,
         image: vehicle.image,
         exampleVehicles: vehicle.exampleVehicles,
+        slug: vehicle.slug,
+        isActive: vehicle.isActive,
       },
       tripType,
       pickupCity,
@@ -1205,13 +1458,44 @@ export function CarRentalBookingHero({
       pricing: priceData.pricing,
       serviceSlug,
     };
+  };
 
+  const handleBook = (vehicleId: string) => {
+    const details = buildBookingDetails(vehicleId);
+    if (!details) return;
     setBookingDetails(details);
     setShowBookingModal(true);
   };
 
+  // Hand the latest handleBook/buildBookingDetails closures up to the caller
+  // on every render — cheap (the caller just stores them in a ref), and
+  // avoids a stale closure holding an old pickupDate/selectedPackageId/etc.
+  useEffect(() => {
+    onBookHandlerReady?.(handleBook);
+    onBookingDetailsReady?.(buildBookingDetails);
+  });
+
   // Get selected package details
   const selectedPackage = localPackages.find((p) => p.id === selectedPackageId);
+
+  // Trip route text for the results screen's summary bar — shared by both
+  // the default and premium (horizontal) layouts.
+  const tripLocationLine =
+    tripType === 'local'
+      ? pickupCity
+      : tripType === 'outstation'
+        ? (multiStops.filter((s) => s.cityText).length > 0
+          ? `${pickupCity} → ${multiStops.filter((s) => s.cityText).map((s) => s.cityText).join(' → ')} → ${dropCity || dropCityText}`
+          : `${pickupCity} → ${dropCity || dropCityText}`)
+        : (airportMode === 'pickup'
+          ? `${selectedAirport?.code || 'Airport'} → ${pickupCity}`
+          : `${pickupCity} → ${selectedAirport?.code || 'Airport'}`);
+  const tripSubLine =
+    tripType === 'local'
+      ? `${selectedPackage?.hours || 8} hr / ${selectedPackage?.kms || 80} km`
+      : tripType === 'outstation'
+        ? (outstationMode === 'round-trip' ? 'Round Trip' : 'One Way')
+        : (airportMode === 'pickup' ? 'Airport pickup' : 'Airport drop');
 
   // Theme colors based on service (overrides take priority)
   const baseTheme = isAurora
@@ -1263,8 +1547,8 @@ export function CarRentalBookingHero({
         </div>
       )}
 
-      <div className={`relative container-custom ${isAurora ? 'py-8 lg:py-10' : 'py-12 lg:py-16'}`}>
-        <div className="grid lg:grid-cols-2 gap-10 items-start">
+      <div className={`relative container-custom ${isAurora ? 'py-8 lg:py-10' : compact ? 'py-8 lg:py-10' : 'py-12 lg:py-16'}`}>
+        <div className={`grid lg:grid-cols-2 items-start ${isAurora ? 'gap-10' : compact ? 'gap-6' : 'gap-10'}`}>
           {/* Left - Hero Content (Aurora variant) */}
           {isAurora && (
           <div className="text-center lg:text-left">
@@ -1372,7 +1656,7 @@ export function CarRentalBookingHero({
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6`}
+              className={`inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 ${compact ? 'mb-3' : 'mb-6'}`}
             >
               <Car className={`w-4 h-4 text-${themeColors.accent}`} />
               <span className="text-sm font-medium">
@@ -1384,7 +1668,7 @@ export function CarRentalBookingHero({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
+              className={`font-bold ${compact ? 'text-2xl md:text-3xl lg:text-4xl mb-2' : 'text-3xl md:text-4xl lg:text-5xl mb-4'}`}
             >
               {headingLine1 ?? 'Book Outstation, Local &'}{' '}
               <span className={`text-${themeColors.accent}`}>{headingLine2 ?? 'Airport Cabs'}</span>
@@ -1394,7 +1678,7 @@ export function CarRentalBookingHero({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-lg text-blue-100 mb-8 max-w-xl mx-auto lg:mx-0"
+              className={`text-blue-100 max-w-xl mx-auto lg:mx-0 ${compact ? 'text-base mb-4' : 'text-lg mb-8'}`}
             >
               {subheading ?? 'All-inclusive fares with fuel & driver. Transparent pricing, no hidden charges.'}
             </motion.p>
@@ -1404,7 +1688,7 @@ export function CarRentalBookingHero({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="flex flex-wrap justify-center lg:justify-start gap-4 mb-8"
+              className={`flex flex-wrap justify-center lg:justify-start gap-4 ${compact ? 'mb-4' : 'mb-8'}`}
             >
               {resolvedTrustBadges.map((item) => (
                 <div
@@ -1421,7 +1705,7 @@ export function CarRentalBookingHero({
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-4 max-w-md mx-auto lg:mx-0"
+              className={`bg-white/10 backdrop-blur-sm rounded-xl max-w-md mx-auto lg:mx-0 ${compact ? 'p-3' : 'p-4'}`}
             >
               {tripType === 'local' && (
                 <div className="text-sm text-blue-100">
@@ -1493,7 +1777,19 @@ export function CarRentalBookingHero({
               }`}
             >
               <AnimatePresence mode="wait">
-                {!showCarSelection ? (
+                {cameFromMarketplace && !showCarSelection ? (
+                  <motion.div
+                    key="loading"
+                    initial={false}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="flex flex-col items-center justify-center gap-3 py-16 text-center"
+                  >
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                    <p className="text-sm font-medium text-gray-500">Finding the best rides for you…</p>
+                  </motion.div>
+                ) : !showCarSelection ? (
                   <motion.div
                     key="form"
                     initial={{ opacity: 0 }}
@@ -2015,57 +2311,94 @@ export function CarRentalBookingHero({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
                     className="space-y-4"
                   >
                     {/* Back Button */}
                     <button
-                      onClick={() => setShowCarSelection(false)}
+                      onClick={() => (onModifySearch ? onModifySearch() : setShowCarSelection(false))}
                       className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
                     >
                       ← Modify Search
                     </button>
 
                     {/* Trip Summary */}
-                    <div className="bg-blue-50 rounded-lg p-3 text-sm">
-                      <div className="flex items-center gap-2 text-blue-800">
-                        {tripType === 'airport' ? (
-                          <Plane className="w-4 h-4" />
-                        ) : (
-                          <MapPin className="w-4 h-4" />
-                        )}
-                        <span className="font-medium">
-                          {tripType === 'local' &&
-                            `${pickupCity} - ${selectedPackage?.hours || 8}hr/${selectedPackage?.kms || 80}km`}
-                          {tripType === 'outstation' && (
-                            multiStops.filter((s) => s.cityText).length > 0
-                              ? `${pickupCity} → ${multiStops.filter((s) => s.cityText).map((s) => s.cityText).join(' → ')} → ${dropCity || dropCityText}`
-                              : `${pickupCity} → ${dropCity || dropCityText}`
+                    {vehicleListLayout === 'horizontal' ? (
+                      <div className="flex flex-wrap divide-x divide-blue-100 overflow-hidden rounded-xl bg-blue-50 text-sm">
+                        <div className="flex min-w-0 flex-1 items-center gap-2.5 px-4 py-3">
+                          {tripType === 'airport' ? (
+                            <Plane className="h-4 w-4 shrink-0 text-blue-600" />
+                          ) : (
+                            <MapPin className="h-4 w-4 shrink-0 text-blue-600" />
                           )}
-                          {tripType === 'airport' &&
-                            (airportMode === 'pickup'
-                              ? `${selectedAirport?.code || 'Airport'} → ${pickupCity}`
-                              : `${pickupCity} → ${selectedAirport?.code || 'Airport'}`)}
-                        </span>
-                        {tripType === 'outstation' && (
-                          <span className="ml-auto shrink-0 text-xs font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white">
-                            {outstationMode === 'round-trip' ? 'Round Trip' : 'One Way'}
+                          <div className="min-w-0">
+                            <div className="truncate font-semibold text-gray-900">{tripLocationLine}</div>
+                            <div className="truncate text-xs text-gray-500">{tripSubLine}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2.5 px-4 py-3">
+                          <Calendar className="h-4 w-4 shrink-0 text-blue-600" />
+                          <div>
+                            <div className="whitespace-nowrap font-semibold text-gray-900">
+                              {new Date(`${pickupDate}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </div>
+                            <div className="text-xs text-gray-500">{getWeekdayLabel(pickupDate)}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2.5 px-4 py-3">
+                          <Clock className="h-4 w-4 shrink-0 text-blue-600" />
+                          <div>
+                            <div className="font-semibold text-gray-900">{pickupTime}</div>
+                            <div className="text-xs text-gray-500">{getTimeOfDayLabel(pickupTime)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-blue-50 rounded-lg p-3 text-sm">
+                        <div className="flex items-center gap-2 text-blue-800">
+                          {tripType === 'airport' ? (
+                            <Plane className="w-4 h-4" />
+                          ) : (
+                            <MapPin className="w-4 h-4" />
+                          )}
+                          <span className="font-medium">
+                            {tripType === 'local' &&
+                              `${pickupCity} - ${selectedPackage?.hours || 8}hr/${selectedPackage?.kms || 80}km`}
+                            {tripType === 'outstation' && (
+                              multiStops.filter((s) => s.cityText).length > 0
+                                ? `${pickupCity} → ${multiStops.filter((s) => s.cityText).map((s) => s.cityText).join(' → ')} → ${dropCity || dropCityText}`
+                                : `${pickupCity} → ${dropCity || dropCityText}`
+                            )}
+                            {tripType === 'airport' &&
+                              (airportMode === 'pickup'
+                                ? `${selectedAirport?.code || 'Airport'} → ${pickupCity}`
+                                : `${pickupCity} → ${selectedAirport?.code || 'Airport'}`)}
                           </span>
-                        )}
+                          {tripType === 'outstation' && (
+                            <span className="ml-auto shrink-0 text-xs font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white">
+                              {outstationMode === 'round-trip' ? 'Round Trip' : 'One Way'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 mt-1 text-blue-700">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(pickupDate).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                            })}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {pickupTime}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4 mt-1 text-blue-700">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(pickupDate).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                          })}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {pickupTime}
-                        </span>
-                      </div>
-                    </div>
+                    )}
+
+                    {vehicleListLayout === 'horizontal' && (
+                      <h3 className="text-base font-bold text-gray-900">Available Rides</h3>
+                    )}
 
                     {/* Loading State */}
                     {loadingPrices && (
@@ -2076,7 +2409,7 @@ export function CarRentalBookingHero({
 
                     {/* Car Options */}
                     {!loadingPrices && (
-                      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                      <div className={vehicleListLayout === 'horizontal' ? 'grid grid-cols-2 gap-4' : 'space-y-3 max-h-[400px] overflow-y-auto pr-1'}>
                         {[...vehicleCategories]
                           .sort((a, b) => {
                             const aAvail = carPrices[a.id]?.success && carPrices[a.id]?.pricing?.grandTotal > 0 ? 0 : 1;
@@ -2094,41 +2427,60 @@ export function CarRentalBookingHero({
                             );
                             return hasPrice || !hasAnyAvailable;
                           })
-                          .map((vehicle) => {
+                          .map((vehicle, vehicleIdx) => {
                           const priceData = carPrices[vehicle.id];
                           const hasPrice =
                             priceData?.success && priceData.pricing?.grandTotal > 0;
 
+                          const isHorizontal = vehicleListLayout === 'horizontal';
+                          const isSelected = selectedCar === vehicle.id;
+                          const isPopular = isHorizontal && vehicleIdx === 0 && hasPrice;
                           return (
                             <div
                               key={vehicle.id}
-                              className={`border-2 rounded-xl p-4 cursor-pointer transition ${
-                                selectedCar === vehicle.id
-                                  ? 'border-blue-500 bg-blue-50'
+                              className={`relative border-2 cursor-pointer transition-all duration-200 ${
+                                isHorizontal ? `flex w-full flex-col items-center gap-3 rounded-2xl p-4 text-center ${hasPrice ? 'hover:-translate-y-1' : ''}` : 'rounded-xl p-4'
+                              } ${
+                                isSelected
+                                  ? `border-blue-500 bg-blue-50 ${isHorizontal ? 'shadow-lg shadow-blue-500/10' : 'shadow-sm'}`
                                   : hasPrice
-                                    ? 'border-gray-200 hover:border-blue-200'
+                                    ? `border-gray-200 hover:border-blue-300 ${isHorizontal ? 'hover:shadow-lg hover:shadow-black/5' : ''}`
                                     : 'border-gray-100 bg-gray-50 opacity-60'
                               }`}
-                              onClick={() => hasPrice && setSelectedCar(vehicle.id)}
+                              onClick={() => {
+                                if (!hasPrice) return;
+                                setSelectedCar(vehicle.id);
+                                if (isHorizontal) onVehicleSelected?.(vehicle, priceData);
+                              }}
                             >
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-16 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                              {isHorizontal && isSelected && (
+                                <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white shadow-md ring-2 ring-white">
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                </span>
+                              )}
+                              {isPopular && (
+                                <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">
+                                  <Star className="h-3 w-3 fill-blue-700" /> Popular
+                                </span>
+                              )}
+                              <div className={isHorizontal ? 'flex w-full flex-col items-center gap-3' : 'flex items-start justify-between'}>
+                                <div className={isHorizontal ? 'flex w-full flex-col items-center gap-2.5' : 'flex items-center gap-3'}>
+                                  <div className={isHorizontal ? `mt-4 flex h-24 w-full items-center justify-center rounded-xl bg-gradient-to-br ${isSelected ? 'from-blue-100 to-blue-50' : 'from-gray-50 to-gray-100'}` : 'w-16 h-12 bg-gray-100 rounded-lg flex items-center justify-center'}>
                                     {vehicle.image ? (
                                       <Image
                                         src={vehicle.image}
                                         alt={vehicle.name}
-                                        width={56}
-                                        height={40}
+                                        width={isHorizontal ? 96 : 56}
+                                        height={isHorizontal ? 72 : 40}
                                         className="object-contain"
                                       />
                                     ) : (
-                                      <Car className="w-8 h-8 text-gray-400" />
+                                      <Car className={isHorizontal ? 'h-12 w-12 text-gray-400' : 'w-8 h-8 text-gray-400'} />
                                     )}
                                   </div>
-                                  <div>
-                                    <h4 className="font-semibold text-gray-900">{vehicle.name}</h4>
-                                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
+                                  <div className={isHorizontal ? 'w-full' : ''}>
+                                    <h4 className={isHorizontal ? 'text-[15px] font-bold leading-tight text-gray-900' : 'font-semibold text-gray-900'}>{vehicle.name}</h4>
+                                    <div className={`flex items-center gap-3 mt-1 text-xs text-gray-600 ${isHorizontal ? 'flex-wrap justify-center gap-x-1.5 gap-y-0.5 text-[11px] text-gray-500' : ''}`}>
                                       <span className="flex items-center gap-1">
                                         <Users className="w-3 h-3" />
                                         {vehicle.seatingCapacity}
@@ -2140,10 +2492,10 @@ export function CarRentalBookingHero({
                                     </div>
                                   </div>
                                 </div>
-                                <div className="text-right">
+                                <div className={isHorizontal ? 'w-full border-t border-gray-100 pt-2.5 text-center' : 'text-right'}>
                                   {hasPrice ? (
                                     <>
-                                      <div className="text-xl font-bold text-gray-900">
+                                      <div className={isHorizontal ? `text-lg font-extrabold ${isSelected ? 'text-blue-600' : 'text-gray-900'}` : 'text-xl font-bold text-gray-900'}>
                                         ₹{priceData.pricing.grandTotal.toLocaleString()}
                                       </div>
                                       <div className="text-xs text-gray-500">
@@ -2158,7 +2510,7 @@ export function CarRentalBookingHero({
                                       </div>
                                     </>
                                   ) : (
-                                    <div className="flex items-center gap-1 text-amber-600 text-sm">
+                                    <div className="flex items-center justify-center gap-1 text-amber-600 text-sm">
                                       <AlertCircle className="w-4 h-4" />
                                       <span>Not available</span>
                                     </div>
@@ -2166,7 +2518,29 @@ export function CarRentalBookingHero({
                                 </div>
                               </div>
 
-                              {selectedCar === vehicle.id && hasPrice && (
+                              {isHorizontal && hasPrice && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setSelectedCar(vehicle.id); onVehicleSelected?.(vehicle, priceData); }}
+                                  className={`flex w-full items-center justify-center gap-1 overflow-hidden rounded-lg py-2.5 px-2 text-xs font-bold transition-colors ${
+                                    isSelected || isPopular
+                                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                      : 'border-2 border-blue-600 text-blue-600 hover:bg-blue-50'
+                                  }`}
+                                >
+                                  {/* flex-1 min-w-0 + truncate keeps every card's button the same
+                                      single-line height regardless of vehicle name length (e.g.
+                                      "hatchback" vs "sedan") — without flex-1 the text doesn't get a
+                                      definite size to shrink against, so nowrap kicks in but the
+                                      ellipsis/clipping doesn't, and the text spills past the button's
+                                      edge instead of being cut off cleanly. overflow-hidden on the
+                                      button itself is a hard backstop either way. */}
+                                  <span className="min-w-0 flex-1 truncate text-center">Select {vehicle.name}</span>
+                                  <ArrowRight className="h-3 w-3 shrink-0" />
+                                </button>
+                              )}
+
+                              {!isHorizontal && selectedCar === vehicle.id && hasPrice && (
                                 <motion.div
                                   initial={{ opacity: 0, height: 0 }}
                                   animate={{ opacity: 1, height: 'auto' }}
@@ -2314,6 +2688,29 @@ export function CarRentalBookingHero({
                         })}
                       </div>
                     )}
+
+                    {vehicleListLayout === 'horizontal' && (
+                      <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 border-t border-gray-100 pt-4 text-xs text-gray-600">
+                        <span className="flex items-center gap-2">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                            <Shield className="h-3.5 w-3.5" />
+                          </span>
+                          Verified Drivers
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                            <Tag className="h-3.5 w-3.5" />
+                          </span>
+                          All-inclusive Pricing
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                            <Headphones className="h-3.5 w-3.5" />
+                          </span>
+                          24/7 Support
+                        </span>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -2330,6 +2727,7 @@ export function CarRentalBookingHero({
           setBookingDetails(null);
         }}
         bookingDetails={bookingDetails}
+        colorScheme={vehicleListLayout === 'horizontal' ? 'primary' : 'blue'}
       />
     </section>
   );

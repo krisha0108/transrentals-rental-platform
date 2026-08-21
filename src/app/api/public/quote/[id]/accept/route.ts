@@ -113,7 +113,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         if (existing) { booking = { id: existing.id, bookingNumber: existing.bookingNumber, vendorId: existing.vendorId, advanceAmount: existing.advanceAmount, status: existing.status }; bookingType = 'equipment'; break; }
         const rentalDays = r.rentalDays || 1;
         const endDate = r.endDate || new Date(r.startDate.getTime() + rentalDays * 86400000);
-        const advanceAmount = Math.round((quote.totalAmount || 0) * 0.3) + (quote.securityDeposit || 0);
+        // Honour the vendor's advance from the quote; 30% is the fallback only.
+        const equipmentAdvance =
+          quote.advanceAmount && quote.advanceAmount > 0
+            ? quote.advanceAmount
+            : Math.round((quote.totalAmount || 0) * (((quote as any).advancePercent || 30) / 100));
+        const advanceAmount = equipmentAdvance + (quote.securityDeposit || 0);
         const bookingNumber = generateBookingNumber('EB');
         const result = await prisma.$transaction(async (tx) => {
           await tx.equipment_quotes.update({ where: { id: quoteId }, data: { status: 'ACCEPTED' } });
@@ -130,7 +135,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             deliveryCharges: quote.deliveryCharges || 0, operatorCharges: quote.operatorCharges || 0,
             pickupCharges: quote.pickupCharges || 0, securityDeposit: quote.securityDeposit || 0,
             gstAmount: quote.gstAmount || 0, totalAmount: quote.totalAmount,
-            advanceAmount, balanceAmount: (quote.totalAmount || 0) - Math.round((quote.totalAmount || 0) * 0.3),
+            advanceAmount, balanceAmount: (quote.totalAmount || 0) - equipmentAdvance,
             status: 'PENDING_PAYMENT', deliveryOtp: generateOTP(), returnOtp: generateOTP(),
           }});
         });
