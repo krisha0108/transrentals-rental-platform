@@ -14,15 +14,21 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Icon from 'react-native-vector-icons/Feather';
 import { getBookings } from '../../../api/client';
+import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
+// Same key names this screen already used — only the values now come from
+// the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399',
-  g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  red: '#DC2626', redL: '#FEF2F2',
-  blue: '#2563EB', blueL: '#EFF6FF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald600, g400: T.emerald,
+  g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  red: T.red, redL: T.redLight,
+  blue: T.blue, blueL: T.blueLight,
+  glassBorder: T.glassBorder,
 };
 
 function SkeletonCard() {
@@ -48,6 +54,27 @@ function SkeletonCard() {
     </Animated.View>
   );
 }
+
+/* ── Illustrated empty state ──────────────────────────────────────────── */
+const EmptyState = () => (
+  <View style={styles.emptyCardWrap}>
+    <View style={styles.emptyArt}>
+      <View style={styles.emptyArtCardBack} />
+      <View style={styles.emptyArtCard}>
+        <Ionicons name="checkmark-circle-outline" size={rs(40)} color={C.g400} />
+      </View>
+      <View style={styles.emptyArtDot} />
+      <View style={styles.emptyArtTag}>
+        <Text style={styles.emptyArtTagTxt}>DONE</Text>
+      </View>
+    </View>
+
+    <Text style={styles.emptyTitle}>No Trips Completed Today</Text>
+    <Text style={styles.emptyBody}>
+      Completed trips will appear here when they are finished
+    </Text>
+  </View>
+);
 
 export default function CarRentalCompletedTodayScreen({ navigation }) {
   const [bookings, setBookings] = useState([]);
@@ -112,136 +139,141 @@ export default function CarRentalCompletedTodayScreen({ navigation }) {
     });
   };
 
+  /* ── Booking card ──────────────────────────────────────────────────────── */
   const renderBooking = ({ item }) => {
     const completedTime = formatTime(item.tripEndedAt || item.updatedAt);
     const pickupDate = formatDate(item.pickupDate);
     const dropDate = formatDate(item.dropDate || item.returnDate);
 
     return (
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => navigation.navigate('CarRentalBookingDetail', {
-          bookingId: item.id,
-          serviceType: 'car',
-        })}
-        activeOpacity={0.7}
-      >
-        {/* Card header */}
-        <View style={styles.cardHeader}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.bookingNumber}>#{item.bookingNumber}</Text>
-            <View style={styles.completedBadge}>
-              <Ionicons name="checkmark-circle" size={13} color={C.g600} />
-              <Text style={styles.completedText}>Completed</Text>
+      <View style={styles.card}>
+        {/* Tonal accent rail — stretches to the card's full height */}
+        <LinearGradient
+          colors={[C.g600, C.g800]}
+          start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+          style={styles.cardRail}
+        />
+
+        <TouchableOpacity
+          style={styles.cardInner}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('CarRentalBookingDetail', {
+            bookingId: item.id,
+            serviceType: 'car',
+          })}
+        >
+          {/* Top stripe: icon box + booking number + completed time */}
+          <View style={styles.cardTopStripe}>
+            <LinearGradient colors={[C.g600, C.g700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.iconBox}>
+              <Ionicons name="car-sport" size={rs(13)} color="#fff" />
+            </LinearGradient>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <View style={styles.cardTopLeft}>
+                <Text style={styles.bookingNum} numberOfLines={1}>#{item.bookingNumber}</Text>
+                <View style={styles.completedChip}>
+                  <Ionicons name="checkmark-circle" size={10} color={C.g700} />
+                  <Text style={styles.completedChipText}>Completed</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.timeBox}>
+              <Icon name="clock" size={10} color={C.g700} />
+              <Text style={styles.timeBoxText}>{completedTime}</Text>
             </View>
           </View>
-          <View style={styles.timeBox}>
-            <Icon name="clock" size={12} color={C.g700} />
-            <Text style={styles.completedTime}>{completedTime}</Text>
-          </View>
-        </View>
 
-        <View style={styles.cardBody}>
-          {/* Customer info */}
-          <View style={styles.infoRow}>
-            <Ionicons name="person-circle-outline" size={18} color={C.muted} />
-            <Text style={styles.infoText}>{item.customerName}</Text>
-          </View>
+          {/* Primary name */}
+          <Text style={styles.cardName} numberOfLines={1}>{item.customerName}</Text>
 
           {/* Route */}
           <View style={styles.routeRow}>
             <View style={styles.locationBox}>
               <View style={[styles.locationDot, { backgroundColor: C.g500 }]} />
-              <Text style={styles.locationText} numberOfLines={1}>
-                {item.pickupCity}
-              </Text>
+              <Text style={styles.locationText} numberOfLines={1}>{item.pickupCity}</Text>
             </View>
-            <Icon name="arrow-right" size={14} color={C.muted} />
+            <Icon name="arrow-right" size={12} color={C.muted} />
             <View style={styles.locationBox}>
               <View style={[styles.locationDot, { backgroundColor: C.red }]} />
-              <Text style={styles.locationText} numberOfLines={1}>
-                {item.dropCity || 'Local'}
-              </Text>
+              <Text style={styles.locationText} numberOfLines={1}>{item.dropCity || 'Local'}</Text>
             </View>
           </View>
 
-          {/* Trip Duration */}
-          <View style={styles.infoRow}>
-            <Icon name="calendar" size={16} color={C.muted} />
-            <Text style={styles.infoText}>
-              {pickupDate} - {dropDate}
-            </Text>
+          {/* Meta row */}
+          <View style={styles.metaRow}>
+            <View style={styles.metaItem}>
+              <Icon name="calendar" size={10} color={C.muted} />
+              <Text style={styles.metaText}>{pickupDate} - {dropDate}</Text>
+            </View>
+            {!!item.driverName && (
+              <View style={styles.metaItem}>
+                <Ionicons name="person" size={10} color={C.muted} />
+                <Text style={[styles.metaText, { fontWeight: '700' }]} numberOfLines={1}>
+                  {item.driverName}
+                </Text>
+              </View>
+            )}
           </View>
 
-          {/* Driver info (if available) */}
-          {item.driverName && (
-            <View style={styles.driverBox}>
-              <Ionicons name="person" size={14} color={C.g700} />
-              <Text style={styles.driverText}>Driver: {item.driverName}</Text>
-            </View>
-          )}
-
-          <View style={styles.divider} />
-
-          {/* Footer - Amount */}
-          <View style={styles.footer}>
+          {/* Footer: amount + chevron */}
+          <View style={styles.cardFooter}>
             <View>
-              <Text style={styles.amountLabel}>Total Amount</Text>
-              <Text style={styles.amount}>₹{item.grandTotal || item.totalAmount}</Text>
+              <Text style={styles.amtLabel}>Total Amount</Text>
+              <Text style={styles.amtValue}>₹{item.grandTotal || item.totalAmount}</Text>
             </View>
-            <View style={styles.chevronBox}>
-              <Ionicons name="chevron-forward" size={18} color={C.g600} />
+            <View style={styles.arrowCircle}>
+              <Icon name="arrow-right" size={12} color={C.g700} />
             </View>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
     );
   };
 
+  /* ── Render ── */
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-      {/* Gradient Header */}
-      <LinearGradient
-        colors={[C.g900, '#064E3B', C.g700]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <View style={styles.decCircle1} />
-        <View style={styles.decCircle2} />
 
-        {/* Top row */}
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <View style={styles.headerIconRow}>
-              <Ionicons name="checkmark-circle" size={20} color="rgba(255,255,255,0.9)" />
-              <Text style={styles.headerTitle}>Completed Today</Text>
-            </View>
-            <Text style={styles.headerSubtitle}>
-              {bookings.length} trip{bookings.length !== 1 ? 's' : ''} completed
-            </Text>
+      {/* Hero header */}
+      <LinearGradient colors={G.hero} style={styles.header}>
+        <AnimatedOrb style={styles.orbA} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={['top']} style={styles.headerSafe}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }} />
           </View>
-          <View style={{ width: 40 }} />
-        </View>
+
+          <Text style={styles.headerEyebrow}>CAR RENTALS</Text>
+          <Text style={styles.bigTitle}>Completed Today</Text>
+          <Text style={styles.bigSub}>
+            {bookings.length} trip{bookings.length !== 1 ? 's' : ''} completed
+          </Text>
+
+          <View style={{ height: rs(28) }} />
+        </SafeAreaView>
       </LinearGradient>
 
-      {/* Green date banner */}
-      <View style={styles.dateBanner}>
-        <Ionicons name="calendar-outline" size={16} color={C.g700} />
-        <Text style={styles.dateBannerText}>
-          {new Date().toLocaleDateString('en-IN', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          })}
-        </Text>
+      {/* Floating date card — tucks into the hero's bottom curve */}
+      <View style={styles.dateBarWrap}>
+        <View style={styles.dateCard}>
+          <View style={styles.dateIconBox}>
+            <Ionicons name="calendar-outline" size={16} color={C.g700} />
+          </View>
+          <Text style={styles.dateCardText}>
+            {new Date().toLocaleDateString('en-IN', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
+          </Text>
+        </View>
       </View>
 
+      {/* List */}
       {loading ? (
         <View style={styles.skeletonWrap}>
           <SkeletonCard /><SkeletonCard /><SkeletonCard />
@@ -251,24 +283,15 @@ export default function CarRentalCompletedTodayScreen({ navigation }) {
           data={bookings}
           renderItem={renderBooking}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />
           }
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <View style={styles.emptyIconBox}>
-                <Ionicons name="checkmark-circle-outline" size={44} color={C.g400} />
-              </View>
-              <Text style={styles.emptyTitle}>No Trips Completed Today</Text>
-              <Text style={styles.emptyText}>
-                Completed trips will appear here when they are finished
-              </Text>
-            </View>
-          }
+          ListEmptyComponent={<EmptyState />}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -279,259 +302,149 @@ const styles = StyleSheet.create({
   skRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   skBox: { backgroundColor: '#E2E8F0', borderRadius: 8, height: 14 },
 
-  /* Header */
+  /* Hero header */
   header: {
-    paddingHorizontal: 16,
-    paddingBottom: 18,
-    paddingTop: 8,
     overflow: 'hidden',
+    borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
+    paddingBottom: rs(8),
   },
-  decCircle1: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    top: -50,
-    right: 10,
+  headerSafe: { paddingHorizontal: 16 },
+  orbA: {
+    position: 'absolute', top: -46, right: -30, width: 150, height: 150,
+    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  decCircle2: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    bottom: -30,
-    left: 30,
+  orbB: {
+    position: 'absolute', bottom: -40, left: -34, width: 120, height: 120,
+    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
   },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(10) },
+  backCircle: {
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
   },
-  headerCenter: { alignItems: 'center' },
-  headerIconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 4,
-  },
+  headerEyebrow: { fontSize: 10, color: 'rgba(255,255,255,0.65)', fontWeight: '700', letterSpacing: 1.2, fontFamily: DISPLAY, marginBottom: 2 },
+  bigTitle: { fontSize: 28, fontWeight: '700', color: '#fff', fontFamily: DISPLAY },
+  bigSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', marginTop: 4, fontFamily: DISPLAY },
 
-  /* Date banner */
-  dateBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  /* Floating date card */
+  dateBarWrap: { marginHorizontal: 16, marginTop: -rs(24), marginBottom: rs(14) },
+  dateCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.card, borderRadius: rs(15),
+    paddingHorizontal: 14, height: rs(46),
+    borderWidth: 1, borderColor: C.glassBorder,
+    ...cardShadow,
+  },
+  dateIconBox: {
+    width: 26, height: 26, borderRadius: 8,
     backgroundColor: C.g50,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.g100,
+    justifyContent: 'center', alignItems: 'center',
   },
-  dateBannerText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: C.g800,
-  },
+  dateCardText: { fontSize: 13, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
 
-  /* List */
-  list: { padding: 16, gap: 12, backgroundColor: C.bg },
+  listContent: { paddingHorizontal: 16, paddingBottom: 40, gap: 12 },
 
   /* Card */
   card: {
+    flexDirection: 'row',
     backgroundColor: C.card,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: rs(14),
     borderWidth: 1,
-    borderColor: C.border,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    borderColor: C.glassBorder,
+    overflow: 'hidden',
+    ...cardShadow,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  bookingNumber: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  completedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: C.g50,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.g100,
-  },
-  completedText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: C.g700,
-  },
-  timeBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: C.g50,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: C.g100,
-  },
-  completedTime: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: C.g700,
-  },
+  cardRail: { width: 3 },
+  cardInner: { flex: 1, padding: 11, minWidth: 0 },
 
-  cardBody: { gap: 10 },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  cardTopStripe: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  iconBox: {
+    width: rs(26), height: rs(26), borderRadius: rs(8),
+    justifyContent: 'center', alignItems: 'center',
   },
-  infoText: {
-    fontSize: 14,
-    color: C.text,
-    flex: 1,
+  cardTopLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  bookingNum: { fontSize: 12.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
+  completedChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: C.g50, paddingHorizontal: 7, paddingVertical: 2,
+    borderRadius: 7, borderWidth: 1, borderColor: C.g100,
   },
+  completedChipText: { fontSize: 10, color: C.g700, fontWeight: '600' },
+  timeBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: C.g50, paddingHorizontal: 8, paddingVertical: 4,
+    borderRadius: 999, borderWidth: 1, borderColor: C.g100,
+  },
+  timeBoxText: { fontSize: 10.5, fontWeight: '700', color: C.g700 },
+
+  cardName: { fontSize: 14.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY, marginBottom: 6 },
 
   routeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: C.bg,
-    borderRadius: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingVertical: 7, paddingHorizontal: 10,
+    backgroundColor: C.bg, borderRadius: 10,
+    marginBottom: 7,
   },
-  locationBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
+  locationBox: { flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 },
+  locationDot: { width: 7, height: 7, borderRadius: 3.5 },
+  locationText: { fontSize: 11.5, fontWeight: '500', color: C.text, flex: 1 },
+
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 7 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  metaText: { fontSize: 10.5, color: C.sub, fontWeight: '600' },
+
+  cardFooter: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingTop: 9,
+    borderTopWidth: 1, borderTopColor: C.border,
   },
-  locationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  locationText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: C.text,
-    flex: 1,
+  amtLabel: { fontSize: 10, color: C.muted, marginBottom: 1 },
+  amtValue: { fontSize: 15, fontWeight: '800', color: C.g700, fontFamily: DISPLAY },
+  arrowCircle: {
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: C.g50,
+    justifyContent: 'center', alignItems: 'center',
   },
 
-  driverBox: {
-    flexDirection: 'row',
+  /* Elaborate empty state */
+  emptyCardWrap: {
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: C.g50,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: C.g100,
+    backgroundColor: C.card, borderRadius: rs(24),
+    borderWidth: 1, borderColor: C.glassBorder,
+    paddingHorizontal: 20, paddingVertical: rs(30),
+    marginTop: rs(10),
   },
-  driverText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: C.g700,
+  emptyArt: {
+    width: rs(140), height: rs(112), marginBottom: rs(16),
+    alignItems: 'center', justifyContent: 'center',
   },
-
-  divider: {
-    height: 1,
-    backgroundColor: C.border,
-    marginVertical: 8,
+  emptyArtCardBack: {
+    position: 'absolute', top: rs(12), right: rs(20),
+    width: rs(88), height: rs(64), borderRadius: rs(14),
+    backgroundColor: C.g50, transform: [{ rotate: '8deg' }],
   },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  emptyArtCard: {
+    width: rs(88), height: rs(78), borderRadius: rs(16),
+    backgroundColor: C.bg, borderWidth: 1, borderColor: C.g50,
+    alignItems: 'center', justifyContent: 'center',
   },
-  amountLabel: {
-    fontSize: 12,
-    color: C.muted,
-    marginBottom: 2,
+  emptyArtDot: {
+    position: 'absolute', top: rs(4), right: rs(16),
+    width: rs(20), height: rs(20), borderRadius: rs(10), backgroundColor: C.g400,
+    borderWidth: rs(3), borderColor: C.card,
   },
-  amount: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: C.g700,
+  emptyArtTag: {
+    position: 'absolute', bottom: rs(8), left: rs(4),
+    backgroundColor: C.card, borderRadius: rs(8),
+    paddingHorizontal: rs(8), paddingVertical: rs(3),
+    borderWidth: 1, borderColor: C.g50,
+    transform: [{ rotate: '-8deg' }],
   },
-  chevronBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: C.g50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  /* Empty */
-  empty: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 32,
-  },
-  emptyIconBox: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: C.g50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: C.g100,
-    marginBottom: 4,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.text,
-    marginTop: 12,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: C.muted,
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 20,
+  emptyArtTagTxt: { fontSize: 8.5, fontWeight: '700', color: C.g700, letterSpacing: 0.6, fontFamily: DISPLAY },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 6, fontFamily: DISPLAY, textAlign: 'center' },
+  emptyBody: {
+    fontSize: 13, color: C.muted, textAlign: 'center',
+    lineHeight: 19, maxWidth: rs(260),
   },
 });

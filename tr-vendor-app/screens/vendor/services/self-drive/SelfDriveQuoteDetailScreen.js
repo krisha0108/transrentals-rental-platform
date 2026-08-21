@@ -21,31 +21,97 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import LinearGradient from 'react-native-linear-gradient';
 import { getVendorQuotes, getBaseURL, getQuoteRequestById, withdrawQuote } from '../../../api/client';
 import { showError, showSuccess, showInfo, showConfirm } from '../../../../services/alertService';
+import { SC as T, G, rs, shade, cardShadow } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - 32; // Full width with padding
 
+// How far the ticket summary card rides up over the hero's rounded bottom
+// edge. The hero's own paddingBottom is shortened by the same amount and the
+// scroll content gets it back as paddingTop, so the gap stays the same —
+// only the visual overlap changes. Same technique used on the bike sibling.
+const TICKET_OVERLAP = 40;
+
+// Same key names this screen already used everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g500: '#059669', g400: '#34D399',
-  g50: '#ECFDF5', g100: '#D1FAE5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  green: '#059669', greenL: '#ECFDF5',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  orange: '#EA580C',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border, text: T.ink, sub: T.text, muted: T.subText,
+  green: T.emerald500, greenL: T.tintEmerald,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  blue: T.blue, blueL: T.blueLight,
+  orange: T.orange, orangeL: T.orangeL,
 };
 
-const STATUS_CFG = {
-  PENDING:   { label: 'Pending',   bg: C.amberL,   text: C.amber,   icon: 'hourglass'        },
-  SENT:      { label: 'Sent',      bg: C.blueL,    text: C.blue,    icon: 'send'             },
-  ACCEPTED:  { label: 'Accepted',  bg: C.greenL,   text: C.green,   icon: 'checkmark-circle' },
-  REJECTED:  { label: 'Rejected',  bg: C.redL,     text: C.red,     icon: 'close-circle'     },
-  EXPIRED:   { label: 'Expired',   bg: '#F1F5F9',  text: '#6B7280', icon: 'time'             },
-  WITHDRAWN: { label: 'Withdrawn', bg: '#F1F5F9',  text: '#9CA3AF', icon: 'close'            },
+const STATUS_COLORS = {
+  PENDING:   { color: C.amber, bg: C.amberL },
+  SENT:      { color: C.amber, bg: C.amberL },
+  ACCEPTED:  { color: C.g600,  bg: C.g50    },
+  REJECTED:  { color: C.red,   bg: C.redL   },
+  EXPIRED:   { color: C.muted, bg: C.bg     },
+  WITHDRAWN: { color: C.muted, bg: C.bg     },
 };
 
+const getStatusIcon = (status) => {
+  switch (status) {
+    case 'ACCEPTED':  return 'checkmark-circle';
+    case 'REJECTED':  return 'close-circle';
+    case 'EXPIRED':   return 'time';
+    case 'PENDING':
+    case 'SENT':      return 'hourglass';
+    default:          return 'help-circle';
+  }
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  return new Date(dateStr).toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  });
+};
+
+const formatCurrency = (amount) => {
+  if (!amount) return '₹0';
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency', currency: 'INR', maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+/* ── Section wrapper ─────────────────────────────────────────────────────── */
+const Section = ({ icon, title, iconBg, children }) => (
+  <View style={styles.card}>
+    <View style={styles.cardHead}>
+      <View style={[styles.cardIcon, iconBg && { backgroundColor: iconBg }]}>
+        {icon}
+      </View>
+      <Text style={styles.cardTitle}>{title}</Text>
+    </View>
+    {children}
+  </View>
+);
+
+/* ── Info row inside a card ──────────────────────────────────────────────── */
+const InfoRow = ({ iconName, iconLib = 'ion', color, label, value }) => {
+  const ic = color || C.muted;
+  const IcoComp = iconLib === 'mci' ? MaterialCommunityIcons : Ionicons;
+  return (
+    <View style={styles.infoRow}>
+      <View style={[styles.infoIconWrap, { backgroundColor: `${ic}18` }]}>
+        <IcoComp name={iconName} size={16} color={ic} />
+      </View>
+      <View style={styles.infoContent}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue}>{value}</Text>
+      </View>
+    </View>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
 export default function SelfDriveQuoteDetailScreen({ route, navigation }) {
   const { quoteId } = route.params || {};
   const [quote, setQuote] = useState(null);
@@ -128,102 +194,74 @@ export default function SelfDriveQuoteDetailScreen({ route, navigation }) {
     );
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return 'N/A';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const formatCurrency = (amount) => {
-    if (!amount) return '₹0';
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'ACCEPTED':
-        return 'checkmark-circle';
-      case 'REJECTED':
-        return 'close-circle';
-      case 'EXPIRED':
-        return 'time';
-      case 'PENDING':
-      case 'SENT':
-        return 'hourglass';
-      default:
-        return 'help-circle';
-    }
-  };
-
+  /* ── Loading ── */
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.gradientHeader}>
-          <View style={styles.decorCircle1} />
-          <View style={styles.decorCircle2} />
-          <View style={styles.headerRow}>
-            <View style={{ width: 40 }} />
-            <View style={styles.headerCenter}>
-              <Ionicons name="document-text-outline" size={18} color={C.g400} />
-              <Text style={styles.headerTitle}>Quote Details</Text>
-              <Text style={styles.headerSubtitle}>Self Drive</Text>
+        <LinearGradient colors={G.hero} style={styles.hero}>
+          <AnimatedOrb style={styles.deco1} />
+          <AnimatedOrb style={styles.deco2} delay={1200} dx={-10} dy={8} />
+          <SafeAreaView edges={['top']}>
+            <View style={styles.topBar}>
+              <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-left" size={18} color="#fff" />
+              </TouchableOpacity>
+              <View style={styles.titleWrap}>
+                <MaterialCommunityIcons name="car-outline" size={18} color={C.amber} />
+                <Text style={styles.heroTitle}>Quote Details</Text>
+              </View>
+              <View style={{ width: 36 }} />
             </View>
-            <View style={{ width: 40 }} />
-          </View>
+          </SafeAreaView>
         </LinearGradient>
-        <View style={styles.loaderWrap}>
+        <View style={styles.centered}>
           <ActivityIndicator size="large" color={C.g500} />
-          <Text style={styles.loaderText}>Loading quote details...</Text>
+          <Text style={styles.centeredTxt}>Loading quote details...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
+  /* ── Not found ── */
   if (!quote) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.gradientHeader}>
-          <View style={styles.decorCircle1} />
-          <View style={styles.decorCircle2} />
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="arrow-back" size={22} color="#fff" />
-            </TouchableOpacity>
-            <View style={styles.headerCenter}>
-              <Ionicons name="document-text-outline" size={18} color={C.g400} />
-              <Text style={styles.headerTitle}>Quote Details</Text>
-              <Text style={styles.headerSubtitle}>Self Drive</Text>
+        <LinearGradient colors={G.hero} style={styles.hero}>
+          <AnimatedOrb style={styles.deco1} />
+          <AnimatedOrb style={styles.deco2} delay={1200} dx={-10} dy={8} />
+          <SafeAreaView edges={['top']}>
+            <View style={styles.topBar}>
+              <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-left" size={18} color="#fff" />
+              </TouchableOpacity>
+              <View style={styles.titleWrap}>
+                <MaterialCommunityIcons name="car-outline" size={18} color={C.amber} />
+                <Text style={styles.heroTitle}>Quote Details</Text>
+              </View>
+              <View style={{ width: 36 }} />
             </View>
-            <View style={{ width: 40 }} />
-          </View>
+          </SafeAreaView>
         </LinearGradient>
-        <View style={styles.emptyState}>
-          <View style={styles.emptyIconBox}>
-            <Ionicons name="document-text-outline" size={48} color={C.g400} />
+        <View style={styles.centered}>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="document-text-outline" size={44} color={C.g400} />
           </View>
           <Text style={styles.emptyTitle}>Quote Not Found</Text>
           <Text style={styles.emptySubtitle}>This quote may have been removed</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
+  /* ── Data extraction ── */
   const status = quote.status || 'PENDING';
-  const sc = STATUS_CFG[status] || STATUS_CFG.PENDING;
+  const sc = STATUS_COLORS[status] || { color: C.muted, bg: C.bg };
 
   const request = quote.request || {};
   const isActive   = ['SENT', 'VIEWED'].includes(status);
-  const canReQuote = status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes((quote.request || {}).status);
+  const canReQuote = status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(request.status);
 
   const customerName = request.customerName || quote.customerName || 'Customer';
   const customerEmail = request.customerEmail || quote.customerEmail;
@@ -302,535 +340,437 @@ export default function SelfDriveQuoteDetailScreen({ route, navigation }) {
     imagesLength: vehicleImages?.length,
   });
 
+  // Timeline events — same two possible entries the original screen showed,
+  // just assembled into a list so the connecting line can be drawn between
+  // whichever dots actually render.
+  const timelineEvents = [
+    { key: 'sent', label: 'Sent on', date: quote.createdAt || quote.created_at, color: C.g500 },
+  ];
+  if (quote.updatedAt && quote.updatedAt !== quote.createdAt) {
+    timelineEvents.push({ key: 'updated', label: 'Updated on', date: quote.updatedAt, color: C.sub });
+  }
+
+  /* ── Render ── */
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      {/* Gradient Header */}
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.gradientHeader}>
-        <View style={styles.decorCircle1} />
-        <View style={styles.decorCircle2} />
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#fff" />
+      {/* ══ Hero Header ══════════════════════════════════════════════════════ */}
+      <LinearGradient
+        colors={G.hero}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.hero}
+      >
+        <AnimatedOrb style={styles.deco1} />
+        <AnimatedOrb style={styles.deco2} delay={1200} dx={-10} dy={8} />
+
+        <View style={styles.topBar}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-left" size={18} color="#fff" />
           </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Ionicons name="document-text-outline" size={18} color={C.g400} />
-            <Text style={styles.headerTitle}>Quote Details</Text>
-            <Text style={styles.headerSubtitle}>Self Drive</Text>
+          <View style={styles.titleWrap}>
+            <MaterialCommunityIcons name="car-outline" size={18} color={C.amber} />
+            <Text style={styles.heroTitle}>Quote Details</Text>
           </View>
-          {/* Status badge in header */}
-          <View style={[styles.headerStatusBadge, { backgroundColor: sc.bg }]}>
-            <Text style={[styles.headerStatusText, { color: sc.text }]}>{sc.label}</Text>
+          <View style={{ width: 36 }} />
+        </View>
+
+        {/* Identity block — who this quote is for */}
+        <View style={styles.identityBlock}>
+          <View style={styles.identityIcon}>
+            <MaterialCommunityIcons name="account" size={24} color="#fff" />
+          </View>
+          <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12) }}>
+            <Text style={styles.identityLabel}>QUOTE FOR</Text>
+            <Text style={styles.identityName} numberOfLines={1}>{customerName}</Text>
+            <Text style={styles.identitySub} numberOfLines={1}>
+              {pickupCity}{dropCity ? ` → ${dropCity}` : ''}
+            </Text>
           </View>
         </View>
       </LinearGradient>
 
+      {/* ══ Body ═════════════════════════════════════════════════════════════ */}
       <ScrollView
-        style={styles.scrollView}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g500]} tintColor={C.g500} />
         }
       >
-        {/* Hero Amount Banner */}
-        <LinearGradient colors={[C.g900, C.g700]} style={styles.heroBanner}>
-          <View style={styles.heroBannerInner}>
-            <View style={styles.heroLeft}>
-              <Text style={styles.heroQuoteLabel}>Quote #{quoteNumber}</Text>
-              <Text style={styles.heroAmount}>{formatCurrency(totalAmount)}</Text>
-              <View style={[styles.heroStatusBadge, { backgroundColor: sc.bg }]}>
-                <Ionicons name={sc.icon} size={13} color={sc.text} />
-                <Text style={[styles.heroStatusText, { color: sc.text }]}>{sc.label}</Text>
-              </View>
+        {/* ── Ticket summary — quote #, status & total, floated over the hero ── */}
+        <View style={styles.ticketWrap}>
+          <LinearGradient
+            colors={[sc.color, shade(sc.color, -18)]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={styles.ticketRail}
+          />
+          <View style={styles.ticketUpperStub}>
+            <View style={styles.ticketIconBox}>
+              <MaterialCommunityIcons name="car" size={22} color={C.g700} />
             </View>
-            <View style={styles.heroIconBox}>
-              <MaterialCommunityIcons name="car-outline" size={40} color={C.g400} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.ticketLabel}>QUOTE #</Text>
+              <Text style={styles.ticketNumber} numberOfLines={1}>{quoteNumber}</Text>
             </View>
-          </View>
-        </LinearGradient>
-
-        <View style={styles.content}>
-
-          {/* Vehicle Images Slider */}
-          {vehicleImages && vehicleImages.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconBox}>
-                  <Ionicons name="images-outline" size={18} color={C.g700} />
-                </View>
-                <Text style={styles.sectionTitle}>Vehicle Images</Text>
-              </View>
-              <View style={styles.imageSliderContainer}>
-                <FlatList
-                  ref={imageSliderRef}
-                  data={vehicleImages}
-                  horizontal
-                  pagingEnabled
-                  showsHorizontalScrollIndicator={false}
-                  keyExtractor={(item, index) => index.toString()}
-                  onMomentumScrollEnd={(event) => {
-                    const index = Math.round(event.nativeEvent.contentOffset.x / SLIDER_WIDTH);
-                    setCurrentImageIndex(index);
-                  }}
-                  renderItem={({ item }) => (
-                    <View style={styles.imageSlide}>
-                      <Image
-                        source={{ uri: item }}
-                        style={styles.sliderImage}
-                        resizeMode="cover"
-                      />
-                    </View>
-                  )}
-                />
-                {/* Pagination Dots */}
-                {vehicleImages.length > 1 && (
-                  <View style={styles.paginationDots}>
-                    {vehicleImages.map((_, index) => (
-                      <View
-                        key={index}
-                        style={[
-                          styles.dot,
-                          index === currentImageIndex ? styles.activeDot : styles.inactiveDot,
-                        ]}
-                      />
-                    ))}
-                  </View>
-                )}
-                {/* Image Counter */}
-                <View style={styles.imageCounter}>
-                  <Text style={styles.imageCounterText}>
-                    {currentImageIndex + 1} / {vehicleImages.length}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Request Reference */}
-          {requestNumber && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconBox}>
-                  <Ionicons name="document-text-outline" size={18} color={C.g700} />
-                </View>
-                <Text style={styles.sectionTitle}>Request Reference</Text>
-              </View>
-              <View style={styles.card}>
-                <View style={styles.refRow}>
-                  <View style={styles.refDot} />
-                  <Text style={styles.cardText}>Request #{requestNumber}</Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Customer Information */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconBox}>
-                <Ionicons name="person-circle-outline" size={18} color={C.g700} />
-              </View>
-              <Text style={styles.sectionTitle}>Customer Information</Text>
-            </View>
-            <View style={styles.card}>
-              <View style={styles.infoRow}>
-                <View style={styles.infoIconBox}>
-                  <Ionicons name="person" size={16} color={C.g700} />
-                </View>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Name</Text>
-                  <Text style={styles.infoValue}>{customerName}</Text>
-                </View>
-              </View>
-              {customerEmail && (
-                <View style={[styles.infoRow, styles.infoRowBorder]}>
-                  <View style={styles.infoIconBox}>
-                    <Ionicons name="mail" size={16} color={C.g700} />
-                  </View>
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Email</Text>
-                    <Text style={styles.infoValue}>{customerEmail}</Text>
-                  </View>
-                </View>
-              )}
+            <View style={[styles.statusPill, { backgroundColor: sc.bg, borderColor: sc.color + '40' }]}>
+              <Ionicons name={getStatusIcon(status)} size={12} color={sc.color} />
+              <Text style={[styles.statusPillTxt, { color: sc.color }]}>{status}</Text>
             </View>
           </View>
 
-          {/* Vehicle Information */}
-          {vehicleName && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconBox}>
-                  <MaterialCommunityIcons name="car" size={18} color={C.g700} />
-                </View>
-                <Text style={styles.sectionTitle}>Vehicle Details</Text>
-              </View>
-              <View style={styles.card}>
-                {/* Vehicle name hero row */}
-                <LinearGradient colors={[C.g50, C.g100]} style={styles.vehicleHeroGradient}>
-                  <View style={styles.vehicleIconCircle}>
-                    <MaterialCommunityIcons name="car" size={28} color={C.g700} />
-                  </View>
-                  <View style={styles.vehicleTextWrap}>
-                    <Text style={styles.vehicleName}>{vehicleName}</Text>
-                    {vehicleBrand && (
-                      <Text style={styles.vehicleBrand}>{vehicleBrand}</Text>
-                    )}
-                  </View>
-                </LinearGradient>
-
-                {registrationNumber && (
-                  <View style={[styles.infoRow, styles.infoRowBorder]}>
-                    <View style={styles.infoIconBox}>
-                      <Ionicons name="car" size={16} color={C.g700} />
-                    </View>
-                    <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Registration Number</Text>
-                      <Text style={styles.infoValue}>{registrationNumber}</Text>
-                    </View>
-                  </View>
-                )}
-                {vehicleYear && (
-                  <View style={[styles.infoRow, styles.infoRowBorder]}>
-                    <View style={styles.infoIconBox}>
-                      <Ionicons name="calendar" size={16} color={C.g700} />
-                    </View>
-                    <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Model Year</Text>
-                      <Text style={styles.infoValue}>{vehicleYear}</Text>
-                    </View>
-                  </View>
-                )}
-                {vehicleFeatures && vehicleFeatures.length > 0 && (
-                  <View style={styles.featuresWrap}>
-                    <Text style={styles.featuresTitle}>Features</Text>
-                    {vehicleFeatures.map((feature, idx) => (
-                      <View key={idx} style={styles.featureItem}>
-                        <Ionicons name="checkmark-circle" size={15} color={C.green} />
-                        <Text style={styles.featureText}>{feature}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            </View>
-          )}
-
-          {/* Booking Details */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconBox}>
-                <Ionicons name="calendar-outline" size={18} color={C.g700} />
-              </View>
-              <Text style={styles.sectionTitle}>Booking Details</Text>
-            </View>
-            <View style={styles.card}>
-              <View style={styles.infoRow}>
-                <View style={[styles.infoIconBox, { backgroundColor: '#ECFDF5' }]}>
-                  <Ionicons name="location" size={16} color={C.green} />
-                </View>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Pickup Location</Text>
-                  <Text style={styles.infoValue}>{pickupCity}</Text>
-                </View>
-              </View>
-              {dropCity && (
-                <View style={[styles.infoRow, styles.infoRowBorder]}>
-                  <View style={[styles.infoIconBox, { backgroundColor: C.redL }]}>
-                    <Ionicons name="location" size={16} color={C.red} />
-                  </View>
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Drop Location</Text>
-                    <Text style={styles.infoValue}>{dropCity}</Text>
-                  </View>
-                </View>
-              )}
-              <View style={[styles.infoRow, styles.infoRowBorder]}>
-                <View style={styles.infoIconBox}>
-                  <Ionicons name="calendar" size={16} color={C.g700} />
-                </View>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Pickup Date</Text>
-                  <Text style={styles.infoValue}>{formatDate(pickupDate)}</Text>
-                </View>
-              </View>
-              {returnDate && (
-                <View style={[styles.infoRow, styles.infoRowBorder]}>
-                  <View style={styles.infoIconBox}>
-                    <Ionicons name="calendar" size={16} color={C.g700} />
-                  </View>
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Return Date</Text>
-                    <Text style={styles.infoValue}>{formatDate(returnDate)}</Text>
-                  </View>
-                </View>
-              )}
-            </View>
+          {/* Perforation — torn-ticket edge, echoes the My Quotes list card */}
+          <View style={styles.perforationRow}>
+            <View style={styles.notchLeft} />
+            <View style={styles.dashLine} />
+            <View style={styles.notchRight} />
           </View>
 
-          {/* Car Specifications */}
-          {(quote.transmission || quote.fuelType || quote.seats || quote.kmLimitPerDay) && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconBox}>
-                  <MaterialCommunityIcons name="car-info" size={18} color={C.g700} />
-                </View>
-                <Text style={styles.sectionTitle}>Car Specifications</Text>
-              </View>
-              <View style={styles.card}>
-                {quote.transmission && (
-                  <View style={styles.infoRow}>
-                    <View style={styles.infoIconBox}>
-                      <Ionicons name="settings-outline" size={16} color={C.g700} />
-                    </View>
-                    <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Transmission</Text>
-                      <Text style={styles.infoValue}>{quote.transmission}</Text>
-                    </View>
-                  </View>
-                )}
-                {quote.fuelType && (
-                  <View style={[styles.infoRow, styles.infoRowBorder]}>
-                    <View style={styles.infoIconBox}>
-                      <Ionicons name="water-outline" size={16} color={C.g700} />
-                    </View>
-                    <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Fuel Type</Text>
-                      <Text style={styles.infoValue}>{quote.fuelType}</Text>
-                    </View>
-                  </View>
-                )}
-                {quote.seats && (
-                  <View style={[styles.infoRow, styles.infoRowBorder]}>
-                    <View style={styles.infoIconBox}>
-                      <Ionicons name="people-outline" size={16} color={C.g700} />
-                    </View>
-                    <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Seating Capacity</Text>
-                      <Text style={styles.infoValue}>{quote.seats} seats</Text>
-                    </View>
-                  </View>
-                )}
-                {quote.kmLimitPerDay && (
-                  <View style={[styles.infoRow, styles.infoRowBorder]}>
-                    <View style={styles.infoIconBox}>
-                      <Ionicons name="speedometer" size={16} color={C.g700} />
-                    </View>
-                    <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>KM Limit Per Day</Text>
-                      <Text style={styles.infoValue}>{quote.kmLimitPerDay} km</Text>
-                    </View>
-                  </View>
-                )}
-                {quote.extraKmRate > 0 && (
-                  <View style={[styles.infoRow, styles.infoRowBorder]}>
-                    <View style={styles.infoIconBox}>
-                      <Ionicons name="cash-outline" size={16} color={C.g700} />
-                    </View>
-                    <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Extra KM Rate</Text>
-                      <Text style={styles.infoValue}>{formatCurrency(quote.extraKmRate)}/km</Text>
-                    </View>
-                  </View>
-                )}
-              </View>
+          <View style={styles.ticketLowerStub}>
+            <View style={styles.moneyIconWrap}>
+              <Ionicons name="cash" size={16} color={C.g700} />
             </View>
-          )}
-
-          {/* Pricing Breakdown */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconBox}>
-                <Ionicons name="receipt-outline" size={18} color={C.g700} />
-              </View>
-              <Text style={styles.sectionTitle}>Pricing Breakdown</Text>
-            </View>
-            <View style={styles.card}>
-              {baseAmount > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Base Amount</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(baseAmount)}</Text>
-                </View>
-              )}
-              {quote.deliveryCharges > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Delivery Charges</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(quote.deliveryCharges)}</Text>
-                </View>
-              )}
-              {quote.pickupCharges > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Pickup Charges</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(quote.pickupCharges)}</Text>
-                </View>
-              )}
-              {securityDeposit > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Security Deposit</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(securityDeposit)}</Text>
-                </View>
-              )}
-              {quote.gstAmount > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>GST</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(quote.gstAmount)}</Text>
-                </View>
-              )}
-              {taxes > 0 && !quote.gstAmount && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Taxes & GST</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(taxes)}</Text>
-                </View>
-              )}
-              <View style={styles.priceDivider} />
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabelTotal}>Grand Total</Text>
-                <Text style={styles.priceValueTotal}>{formatCurrency(totalAmount)}</Text>
-              </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.ticketAmountLabel}>TOTAL QUOTED</Text>
+              <Text style={styles.ticketAmountVal}>{formatCurrency(totalAmount)}</Text>
             </View>
           </View>
-
-          {/* Quote Validity */}
-          {validTill && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconBox}>
-                  <Ionicons name="time-outline" size={18} color={C.g700} />
-                </View>
-                <Text style={styles.sectionTitle}>Quote Validity</Text>
-              </View>
-              <View style={styles.card}>
-                <View style={styles.infoRow}>
-                  <View style={styles.infoIconBox}>
-                    <Ionicons name="hourglass-outline" size={16} color={C.g700} />
-                  </View>
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Valid Until</Text>
-                    <Text style={styles.infoValue}>{formatDate(validTill)}</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Additional Notes */}
-          {notes && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconBox}>
-                  <Ionicons name="chatbox-outline" size={18} color={C.g700} />
-                </View>
-                <Text style={styles.sectionTitle}>Additional Notes</Text>
-              </View>
-              <View style={styles.card}>
-                <Text style={styles.notesText}>{notes}</Text>
-              </View>
-            </View>
-          )}
-
-          {/* Inclusions */}
-          {inclusions && inclusions.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={[styles.sectionIconBox, { backgroundColor: C.greenL }]}>
-                  <Ionicons name="checkmark-circle-outline" size={18} color={C.green} />
-                </View>
-                <Text style={styles.sectionTitle}>Inclusions</Text>
-              </View>
-              <View style={styles.card}>
-                {inclusions.map((item, idx) => (
-                  <View key={idx} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
-                    <Ionicons name="checkmark-circle" size={17} color={C.green} />
-                    <Text style={styles.listText}>{item}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Exclusions */}
-          {exclusions && exclusions.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={[styles.sectionIconBox, { backgroundColor: C.redL }]}>
-                  <Ionicons name="close-circle-outline" size={18} color={C.red} />
-                </View>
-                <Text style={styles.sectionTitle}>Exclusions</Text>
-              </View>
-              <View style={styles.card}>
-                {exclusions.map((item, idx) => (
-                  <View key={idx} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
-                    <Ionicons name="close-circle" size={17} color={C.red} />
-                    <Text style={styles.listText}>{item}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Terms & Conditions */}
-          {termsConditions && termsConditions.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconBox}>
-                  <Ionicons name="document-text-outline" size={18} color={C.g700} />
-                </View>
-                <Text style={styles.sectionTitle}>Terms & Conditions</Text>
-              </View>
-              <View style={styles.card}>
-                {termsConditions.map((item, idx) => (
-                  <View key={idx} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
-                    <View style={styles.termNumberBox}>
-                      <Text style={styles.listNumber}>{idx + 1}</Text>
-                    </View>
-                    <Text style={styles.listText}>{item}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Quote Timeline */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconBox}>
-                <Ionicons name="time-outline" size={18} color={C.g700} />
-              </View>
-              <Text style={styles.sectionTitle}>Quote Timeline</Text>
-            </View>
-            <View style={styles.card}>
-              <View style={styles.timelineRow}>
-                <View style={[styles.timelineDot, { backgroundColor: C.g100 }]}>
-                  <Ionicons name="paper-plane" size={14} color={C.g700} />
-                </View>
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineLabel}>Sent on</Text>
-                  <Text style={styles.timelineValue}>{formatDate(quote.createdAt || quote.created_at)}</Text>
-                </View>
-              </View>
-              {quote.updatedAt && quote.updatedAt !== quote.createdAt && (
-                <View style={[styles.timelineRow, styles.timelineRowBorder]}>
-                  <View style={styles.timelineDot}>
-                    <Ionicons name="refresh" size={14} color={C.muted} />
-                  </View>
-                  <View style={styles.timelineContent}>
-                    <Text style={styles.timelineLabel}>Updated on</Text>
-                    <Text style={styles.timelineValue}>{formatDate(quote.updatedAt)}</Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          </View>
-
         </View>
+
+        {/* ── Vehicle Images ── */}
+        {vehicleImages && vehicleImages.length > 0 && (
+          <Section
+            icon={<Ionicons name="images-outline" size={15} color={C.g700} />}
+            title="Vehicle Images"
+          >
+            <View style={styles.sliderWrap}>
+              <FlatList
+                ref={imageSliderRef}
+                data={vehicleImages}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item, index) => index.toString()}
+                onMomentumScrollEnd={(event) => {
+                  const index = Math.round(event.nativeEvent.contentOffset.x / SLIDER_WIDTH);
+                  setCurrentImageIndex(index);
+                }}
+                renderItem={({ item }) => (
+                  <View style={styles.imageSlide}>
+                    <Image
+                      source={{ uri: item }}
+                      style={styles.sliderImage}
+                      resizeMode="cover"
+                    />
+                  </View>
+                )}
+              />
+              {/* Pagination Dots */}
+              {vehicleImages.length > 1 && (
+                <View style={styles.paginationDots}>
+                  {vehicleImages.map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.dot,
+                        index === currentImageIndex ? styles.activeDot : styles.inactiveDot,
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
+              {/* Image Counter */}
+              <View style={styles.imageCounter}>
+                <Text style={styles.imageCounterText}>
+                  {currentImageIndex + 1} / {vehicleImages.length}
+                </Text>
+              </View>
+            </View>
+          </Section>
+        )}
+
+        {/* ── Request Reference ── */}
+        {requestNumber && (
+          <Section
+            icon={<Ionicons name="document-text-outline" size={15} color={C.g700} />}
+            title="Request Reference"
+          >
+            <View style={styles.refBadge}>
+              <Ionicons name="document-text-outline" size={16} color={C.g700} />
+              <Text style={styles.refBadgeText}>Request #{requestNumber}</Text>
+            </View>
+          </Section>
+        )}
+
+        {/* ── Customer Information ── */}
+        <Section
+          icon={<Ionicons name="person-circle-outline" size={15} color={C.g700} />}
+          title="Customer Information"
+        >
+          <InfoRow iconName="person" color={C.g700} label="Name" value={customerName} />
+          {customerEmail && (
+            <InfoRow iconName="mail" color={C.blue} label="Email" value={customerEmail} />
+          )}
+          {customerPhone && (
+            <InfoRow iconName="call" color={C.blue} label="Phone" value={customerPhone} />
+          )}
+        </Section>
+
+        {/* ── Vehicle Details ── */}
+        {vehicleName && (
+          <Section
+            icon={<MaterialCommunityIcons name="car" size={15} color={C.g700} />}
+            title="Vehicle Details"
+          >
+            {/* Vehicle hero row */}
+            <View style={styles.vehicleHero}>
+              <View style={styles.vehicleHeroIcon}>
+                <MaterialCommunityIcons name="car" size={26} color={C.g700} />
+              </View>
+              <View style={styles.vehicleHeroText}>
+                <Text style={styles.vehicleHeroName}>{vehicleName}</Text>
+                {vehicleBrand && <Text style={styles.vehicleHeroBrand}>{vehicleBrand}</Text>}
+              </View>
+            </View>
+
+            {registrationNumber && (
+              <InfoRow iconName="card-outline" color={C.sub} label="Registration Number" value={registrationNumber} />
+            )}
+            {vehicleYear && (
+              <InfoRow iconName="calendar" color={C.sub} label="Model Year" value={String(vehicleYear)} />
+            )}
+            {vehicleFeatures && vehicleFeatures.length > 0 && (
+              <View style={styles.featuresWrap}>
+                <Text style={styles.featuresTitle}>Features</Text>
+                {vehicleFeatures.map((feature, idx) => (
+                  <View key={idx} style={styles.featureItem}>
+                    <Ionicons name="checkmark-circle" size={15} color={C.green} />
+                    <Text style={styles.featureText}>{feature}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </Section>
+        )}
+
+        {/* ── Booking Details ── */}
+        <Section
+          icon={<Ionicons name="calendar-outline" size={15} color={C.g700} />}
+          title="Booking Details"
+        >
+          <View style={styles.routeCard}>
+            <View style={styles.routeRail}>
+              <View style={[styles.routeDot, { backgroundColor: C.g600 }]} />
+              {!!dropCity && <View style={styles.routeLine} />}
+              {!!dropCity && <View style={[styles.routeDot, { backgroundColor: C.red }]} />}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.routeLabel}>PICKUP</Text>
+              <Text style={styles.routeValue} numberOfLines={1}>{pickupCity}</Text>
+              {!!dropCity && (
+                <>
+                  <View style={{ height: rs(12) }} />
+                  <Text style={styles.routeLabel}>DROP</Text>
+                  <Text style={styles.routeValue} numberOfLines={1}>{dropCity}</Text>
+                </>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.dateGrid}>
+            <View style={styles.dateCell}>
+              <Ionicons name="calendar" size={14} color={C.sub} />
+              <Text style={styles.dateCellLabel}>PICKUP DATE</Text>
+              <Text style={styles.dateCellValue}>{formatDate(pickupDate)}</Text>
+            </View>
+            {returnDate && (
+              <View style={styles.dateCell}>
+                <Ionicons name="calendar" size={14} color={C.sub} />
+                <Text style={styles.dateCellLabel}>RETURN DATE</Text>
+                <Text style={styles.dateCellValue}>{formatDate(returnDate)}</Text>
+              </View>
+            )}
+          </View>
+        </Section>
+
+        {/* ── Car Specifications ── */}
+        {(quote.transmission || quote.fuelType || quote.seats || quote.kmLimitPerDay) && (
+          <Section
+            icon={<MaterialCommunityIcons name="car-info" size={15} color={C.g700} />}
+            title="Car Specifications"
+          >
+            {quote.transmission && (
+              <InfoRow iconName="settings-outline" color={C.sub} label="Transmission" value={quote.transmission} />
+            )}
+            {quote.fuelType && (
+              <InfoRow iconName="water-outline" color={C.sub} label="Fuel Type" value={quote.fuelType} />
+            )}
+            {quote.seats && (
+              <InfoRow iconName="people-outline" color={C.sub} label="Seating Capacity" value={`${quote.seats} seats`} />
+            )}
+            {quote.kmLimitPerDay && (
+              <InfoRow iconName="speedometer" color={C.sub} label="KM Limit Per Day" value={`${quote.kmLimitPerDay} km`} />
+            )}
+            {quote.extraKmRate > 0 && (
+              <InfoRow iconName="cash-outline" color={C.sub} label="Extra KM Rate" value={`${formatCurrency(quote.extraKmRate)}/km`} />
+            )}
+          </Section>
+        )}
+
+        {/* ── Pricing Breakdown ── */}
+        <Section
+          icon={<Ionicons name="receipt-outline" size={15} color={C.g700} />}
+          title="Pricing Breakdown"
+        >
+          {baseAmount > 0 && (
+            <View style={styles.payRow}>
+              <Text style={styles.payLabel}>Base Amount</Text>
+              <Text style={styles.payVal}>{formatCurrency(baseAmount)}</Text>
+            </View>
+          )}
+          {quote.deliveryCharges > 0 && (
+            <View style={styles.payRow}>
+              <Text style={styles.payLabel}>Delivery Charges</Text>
+              <Text style={styles.payVal}>{formatCurrency(quote.deliveryCharges)}</Text>
+            </View>
+          )}
+          {quote.pickupCharges > 0 && (
+            <View style={styles.payRow}>
+              <Text style={styles.payLabel}>Pickup Charges</Text>
+              <Text style={styles.payVal}>{formatCurrency(quote.pickupCharges)}</Text>
+            </View>
+          )}
+          {securityDeposit > 0 && (
+            <View style={styles.payRow}>
+              <Text style={styles.payLabel}>Security Deposit</Text>
+              <Text style={styles.payVal}>{formatCurrency(securityDeposit)}</Text>
+            </View>
+          )}
+          {quote.gstAmount > 0 && (
+            <View style={styles.payRow}>
+              <Text style={styles.payLabel}>GST</Text>
+              <Text style={styles.payVal}>{formatCurrency(quote.gstAmount)}</Text>
+            </View>
+          )}
+          {taxes > 0 && !quote.gstAmount && (
+            <View style={styles.payRow}>
+              <Text style={styles.payLabel}>Taxes & GST</Text>
+              <Text style={styles.payVal}>{formatCurrency(taxes)}</Text>
+            </View>
+          )}
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Grand Total</Text>
+            <Text style={styles.totalVal}>{formatCurrency(totalAmount)}</Text>
+          </View>
+        </Section>
+
+        {/* ── Quote Validity ── */}
+        {validTill && (
+          <Section
+            icon={<Ionicons name="time-outline" size={15} color={C.g700} />}
+            title="Quote Validity"
+          >
+            <InfoRow iconName="hourglass-outline" color={C.amber} label="Valid Until" value={formatDate(validTill)} />
+          </Section>
+        )}
+
+        {/* ── Inclusions ── */}
+        {inclusions && inclusions.length > 0 && (
+          <Section
+            icon={<Ionicons name="checkmark-circle-outline" size={15} color={C.g700} />}
+            title="Inclusions"
+          >
+            <View style={styles.pillWrap}>
+              {inclusions.map((item, idx) => (
+                <View key={idx} style={[styles.pill, { backgroundColor: C.g100 }]}>
+                  <View style={[styles.pillPip, { backgroundColor: C.g700 }]}>
+                    <Ionicons name="checkmark" size={10} color="#fff" />
+                  </View>
+                  <Text style={[styles.pillTxt, { color: C.g700 }]}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          </Section>
+        )}
+
+        {/* ── Exclusions ── */}
+        {exclusions && exclusions.length > 0 && (
+          <Section
+            icon={<Ionicons name="close-circle-outline" size={15} color={C.g700} />}
+            title="Exclusions"
+          >
+            <View style={styles.pillWrap}>
+              {exclusions.map((item, idx) => (
+                <View key={idx} style={[styles.pill, { backgroundColor: C.redL }]}>
+                  <View style={[styles.pillPip, { backgroundColor: C.red }]}>
+                    <Ionicons name="close" size={10} color="#fff" />
+                  </View>
+                  <Text style={[styles.pillTxt, { color: C.red }]}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          </Section>
+        )}
+
+        {/* ── Terms & Conditions ── */}
+        {termsConditions && termsConditions.length > 0 && (
+          <Section
+            icon={<Ionicons name="document-text-outline" size={15} color={C.g700} />}
+            title="Terms & Conditions"
+          >
+            <View style={styles.termsCard}>
+              {termsConditions.map((item, idx) => (
+                <View key={idx} style={[styles.termLine, idx === termsConditions.length - 1 && { marginBottom: 0 }]}>
+                  <Text style={styles.termNum}>{idx + 1}.</Text>
+                  <Text style={styles.termTxt}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          </Section>
+        )}
+
+        {/* ── Additional Notes ── */}
+        {notes && (
+          <Section
+            icon={<Ionicons name="chatbox-outline" size={15} color={C.g700} />}
+            title="Additional Notes"
+            iconBg={C.amberL}
+          >
+            <View style={styles.notesInner}>
+              <Text style={styles.notesTxt}>{notes}</Text>
+            </View>
+          </Section>
+        )}
+
+        {/* ── Quote Timeline ── */}
+        <Section
+          icon={<Ionicons name="time-outline" size={15} color={C.g700} />}
+          title="Quote Timeline"
+        >
+          {timelineEvents.map((ev, idx) => (
+            <View key={ev.key} style={styles.timelineItem}>
+              <View style={styles.timelineRail}>
+                <View style={[styles.timelineDot, { backgroundColor: ev.color }]} />
+                {idx < timelineEvents.length - 1 && <View style={styles.timelineLine} />}
+              </View>
+              <View style={[styles.timelineBody, idx < timelineEvents.length - 1 && { marginBottom: rs(14) }]}>
+                <Text style={styles.timelineEvent}>{ev.label}</Text>
+                <Text style={styles.timelineDate}>{formatDate(ev.date)}</Text>
+              </View>
+            </View>
+          ))}
+        </Section>
+
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Bottom Navigation Bar */}
       <View style={styles.bottomBar}>
         {status === 'ACCEPTED' ? (
           <TouchableOpacity
-            style={styles.viewBookingButton}
+            style={styles.primaryBtnWrap}
+            activeOpacity={0.9}
             onPress={() => {
               if (bookingId) {
                 navigation.navigate('SelfDriveBookingDetail', { bookingId });
@@ -840,12 +780,11 @@ export default function SelfDriveQuoteDetailScreen({ route, navigation }) {
                 else showInfo('Please check your Bookings section.');
               }
             }}
-            activeOpacity={0.85}
           >
-            <View style={styles.bottomBtnInner}>
+            <LinearGradient colors={G.ocean} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnInner}>
               <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
-              <Text style={styles.actionBtnText}>View Booking Details</Text>
-            </View>
+              <Text style={styles.bottomBtnText}>View Booking Details</Text>
+            </LinearGradient>
           </TouchableOpacity>
         ) : isActive ? (
           <View style={styles.bottomRow}>
@@ -853,70 +792,73 @@ export default function SelfDriveQuoteDetailScreen({ route, navigation }) {
               style={[styles.withdrawBtn, isWithdrawing && { opacity: 0.6 }]}
               onPress={handleWithdraw}
               disabled={isWithdrawing}
+              activeOpacity={0.75}
             >
-              <Icon name="x-circle" size={17} color="#fff" />
-              <Text style={styles.actionBtnText}>{isWithdrawing ? 'Withdrawing...' : 'Withdraw'}</Text>
+              {isWithdrawing ? (
+                <ActivityIndicator size="small" color={C.red} />
+              ) : (
+                <>
+                  <Icon name="x-circle" size={16} color={C.red} />
+                  <Text style={styles.withdrawBtnText}>Withdraw</Text>
+                </>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.viewRequestButton, { flex: 1 }]}
+              style={[styles.outlineBtn, { flex: 1 }]}
+              activeOpacity={0.75}
               onPress={() => {
                 const rid = quote.requestId || quote.request?.id || quote.request?._id;
                 if (rid) navigation.navigate('SelfDriveQuoteRequestDetail', { requestId: rid });
                 else showInfo('Request details not available.');
               }}
-              activeOpacity={0.85}
             >
-              <View style={styles.bottomBtnInner}>
-                <Ionicons name="document-text-outline" size={17} color="#fff" />
-                <Text style={styles.actionBtnText}>View Request</Text>
-              </View>
+              <Ionicons name="document-text-outline" size={16} color={C.g700} />
+              <Text style={styles.outlineBtnText}>View Request</Text>
             </TouchableOpacity>
           </View>
         ) : canReQuote ? (
           <View style={styles.bottomRow}>
             <TouchableOpacity
-              style={[styles.viewRequestButton, { flex: 1 }]}
+              style={[styles.outlineBtn, { flex: 1 }]}
+              activeOpacity={0.75}
               onPress={() => {
                 const rid = quote.requestId || quote.request?.id || quote.request?._id;
                 if (rid) navigation.navigate('SelfDriveQuoteRequestDetail', { requestId: rid });
                 else showInfo('Request details not available.');
               }}
-              activeOpacity={0.85}
             >
-              <View style={styles.bottomBtnInner}>
-                <Ionicons name="document-text-outline" size={17} color="#fff" />
-                <Text style={styles.actionBtnText}>View Request</Text>
-              </View>
+              <Ionicons name="document-text-outline" size={16} color={C.g700} />
+              <Text style={styles.outlineBtnText}>View Request</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.freshQuoteBtn, { flex: 1 }]}
+              style={[styles.primaryBtnWrap, { flex: 1 }]}
+              activeOpacity={0.9}
               onPress={() => {
                 const rid = quote.requestId || quote.request?.id || quote.request?._id;
                 if (rid) navigation.navigate('SelfDriveSendQuote', { requestId: rid });
                 else showInfo('Request details not available.');
               }}
-              activeOpacity={0.85}
             >
-              <View style={styles.bottomBtnInner}>
-                <Icon name="refresh-cw" size={17} color="#fff" />
-                <Text style={styles.actionBtnText}>Send Fresh Quote</Text>
-              </View>
+              <LinearGradient colors={G.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnInner}>
+                <Icon name="refresh-cw" size={16} color="#fff" />
+                <Text style={styles.bottomBtnText}>Send Fresh Quote</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         ) : (
           <TouchableOpacity
-            style={styles.viewRequestButton}
+            style={styles.primaryBtnWrap}
+            activeOpacity={0.9}
             onPress={() => {
               const rid = quote.requestId || quote.request?.id || quote.request?._id;
               if (rid) navigation.navigate('SelfDriveQuoteRequestDetail', { requestId: rid });
               else showInfo('Request details not available.');
             }}
-            activeOpacity={0.85}
           >
-            <View style={styles.bottomBtnInner}>
+            <LinearGradient colors={G.emerald} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnInner}>
               <Ionicons name="document-text-outline" size={18} color="#fff" />
-              <Text style={styles.actionBtnText}>View Request Details</Text>
-            </View>
+              <Text style={styles.bottomBtnText}>View Request Details</Text>
+            </LinearGradient>
           </TouchableOpacity>
         )}
       </View>
@@ -924,403 +866,198 @@ export default function SelfDriveQuoteDetailScreen({ route, navigation }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
+  safe:   { flex: 1, backgroundColor: C.bg },
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: TICKET_OVERLAP, paddingBottom: 100 },
 
-  // Gradient Header
-  gradientHeader: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 18,
-    overflow: 'hidden',
-  },
-  decorCircle1: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    top: -60,
-    right: -30,
-  },
-  decorCircle2: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    bottom: -40,
-    left: 20,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginTop: 3,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.65)',
-  },
-  headerStatusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  headerStatusText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  centered:    { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10, paddingHorizontal: 32 },
+  centeredTxt: { fontSize: 14, color: C.muted },
 
-  // Hero Amount Banner
-  heroBanner: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 18,
-    overflow: 'hidden',
+  // ── Hero ──────────────────────────────────────────────────────────────────
+  hero: {
+    paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden',
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
   },
-  heroBannerInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
+  deco1: {
+    position: 'absolute', width: width * 0.55, height: width * 0.55,
+    borderRadius: width * 0.275, backgroundColor: 'rgba(52,211,153,0.06)',
+    top: -width * 0.18, right: -width * 0.1,
   },
-  heroLeft: { flex: 1 },
-  heroQuoteLabel: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '500',
-    marginBottom: 4,
-    letterSpacing: 0.3,
+  deco2: {
+    position: 'absolute', width: width * 0.32, height: width * 0.32,
+    borderRadius: width * 0.16, backgroundColor: 'rgba(16,185,129,0.05)',
+    bottom: 0, left: width * 0.38,
   },
-  heroAmount: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 10,
-    letterSpacing: -0.5,
+  topBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 16 },
+  backBtn:   { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
+
+  identityBlock: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 2 },
+  identityIcon: {
+    width: rs(48), height: rs(48), borderRadius: rs(14),
+    backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  heroStatusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
+  identityLabel: { fontSize: 9.5, color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: 1.4, marginBottom: 3 },
+  identityName:  { fontFamily: DISPLAY, fontSize: 19, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
+  identitySub:   { fontSize: 12.5, color: 'rgba(255,255,255,0.65)', fontWeight: '600', marginTop: 3 },
+
+  // ── Ticket summary card — quote #, status, total; overlaps hero bottom ──
+  ticketWrap: {
+    marginTop: -TICKET_OVERLAP, backgroundColor: C.card,
+    borderRadius: rs(16), overflow: 'hidden', borderWidth: 1, borderColor: C.border,
+    marginBottom: 12, ...cardShadow,
   },
-  heroStatusText: { fontSize: 12, fontWeight: '700' },
-  heroIconBox: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  ticketRail: { height: 3, width: '100%' },
+  ticketUpperStub: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingBottom: 14 },
+  ticketIconBox: {
+    width: rs(44), height: rs(44), borderRadius: rs(12),
+    backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
+  },
+  ticketLabel: { fontSize: 9.5, color: C.muted, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
+  ticketNumber: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '900', color: C.text, letterSpacing: -0.3 },
+
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  statusPillTxt: { fontSize: 11, fontWeight: '700' },
+
+  perforationRow: { height: 2, justifyContent: 'center' },
+  dashLine: { marginHorizontal: 20, borderTopWidth: 1, borderColor: C.border, borderStyle: 'dashed' },
+  notchLeft: {
+    position: 'absolute', left: -9, top: -8,
+    width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg,
+  },
+  notchRight: {
+    position: 'absolute', right: -9, top: -8,
+    width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg,
   },
 
-  loaderWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
+  ticketLowerStub: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, paddingTop: 14 },
+  moneyIconWrap: {
+    width: rs(30), height: rs(30), borderRadius: rs(9),
+    backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
   },
-  loaderText: { fontSize: 14, color: C.sub, marginTop: 8 },
+  ticketAmountLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
+  ticketAmountVal: { fontFamily: DISPLAY, fontSize: 24, fontWeight: '900', color: C.g700, letterSpacing: -0.4 },
 
-  scrollView: { flex: 1 },
-
-  content: { padding: 16, paddingTop: 12, paddingBottom: 110 },
-
-  section: { marginBottom: 20 },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 10,
-  },
-  sectionIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: C.g50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: C.text },
-
+  // ── Card ──────────────────────────────────────────────────────────────────
   card: {
-    backgroundColor: C.card,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    backgroundColor: C.card, borderRadius: rs(16), padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
   },
-  cardText: { fontSize: 14, color: '#334155', fontWeight: '600' },
+  cardHead:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  cardIcon:  { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: C.g50 },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
 
-  refRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  refDot: {
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: C.g500,
-  },
+  /* InfoRow */
+  infoRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10 },
+  infoIconWrap: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginTop: 1 },
+  infoContent:  { flex: 1 },
+  infoLabel:    { fontSize: 11, color: C.muted, marginBottom: 2 },
+  infoValue:    { fontSize: 14, color: C.text, fontWeight: '600' },
 
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    paddingVertical: 2,
+  /* Ref badge */
+  refBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.g50, padding: 12, borderRadius: rs(10),
   },
-  infoRowBorder: {
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    marginTop: 10,
-    paddingTop: 12,
-  },
-  infoIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+  refBadgeText: { fontSize: 14, fontWeight: '700', color: C.g700 },
+
+  /* Vehicle hero */
+  vehicleHero: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+  vehicleHeroIcon: {
+    width: 52, height: 52, borderRadius: 14,
     backgroundColor: C.g50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 1,
+    justifyContent: 'center', alignItems: 'center',
   },
-  infoContent: { flex: 1 },
-  infoLabel: { fontSize: 11, color: C.muted, marginBottom: 3, fontWeight: '500', letterSpacing: 0.2 },
-  infoValue: { fontSize: 14, color: C.text, fontWeight: '600' },
+  vehicleHeroText: { flex: 1 },
+  vehicleHeroName:  { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.text },
+  vehicleHeroBrand: { fontSize: 13, color: C.sub, marginTop: 3 },
 
-  // Vehicle card
-  vehicleHeroGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 4,
-  },
-  vehicleIconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: C.g700,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  vehicleTextWrap: { flex: 1 },
-  vehicleName: { fontSize: 16, fontWeight: '700', color: C.g700 },
-  vehicleBrand: { fontSize: 13, color: C.sub, marginTop: 3 },
+  /* Features */
+  featuresWrap: { paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border },
+  featuresTitle: { fontSize: 11, fontWeight: '800', color: C.sub, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.4 },
+  featureItem:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  featureText:  { fontSize: 13, color: C.sub, flex: 1 },
 
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
+  /* Route / booking details */
+  routeCard: {
+    flexDirection: 'row', gap: 12,
+    backgroundColor: C.bg, borderRadius: rs(12), padding: 14,
   },
-  priceLabel: { fontSize: 14, color: C.sub },
-  priceValue: { fontSize: 14, color: C.text, fontWeight: '600' },
-  priceDivider: {
-    height: 1,
-    backgroundColor: C.border,
-    marginVertical: 8,
-  },
-  priceLabelTotal: { fontSize: 15, fontWeight: '700', color: C.text },
-  priceValueTotal: { fontSize: 19, fontWeight: '800', color: C.g700 },
+  routeRail: { alignItems: 'center', paddingTop: 3 },
+  routeDot: { width: 10, height: 10, borderRadius: 5 },
+  routeLine: { width: 2, flex: 1, minHeight: rs(28), backgroundColor: C.border, marginVertical: 4 },
+  routeLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 0.6 },
+  routeValue: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '700', color: C.text, marginTop: 2 },
 
-  notesText: { fontSize: 14, color: C.sub, lineHeight: 22 },
+  dateGrid: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  dateCell: {
+    flex: 1, alignItems: 'flex-start', gap: 4,
+    backgroundColor: C.g50, borderRadius: rs(12), padding: 12,
+  },
+  dateCellLabel: { fontSize: 9.5, color: C.g700, fontWeight: '700', letterSpacing: 0.8, marginTop: 2 },
+  dateCellValue: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: '800', color: C.text },
 
-  // Timeline
-  timelineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 2,
+  /* Pricing */
+  payRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
+  payLabel:{ fontSize: 13, color: C.sub },
+  payVal:  { fontSize: 13, fontWeight: '600', color: C.text },
+  totalRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: C.g50, borderRadius: rs(12), padding: 14,
+    borderWidth: 1, borderColor: C.g100, marginVertical: 6,
   },
-  timelineRowBorder: {
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    marginTop: 10,
-    paddingTop: 12,
-  },
-  timelineDot: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: C.g50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  timelineContent: { flex: 1 },
-  timelineLabel: { fontSize: 11, color: C.muted, fontWeight: '500', marginBottom: 2 },
-  timelineValue: { fontSize: 14, color: C.text, fontWeight: '600' },
+  totalLabel: { fontSize: 14, fontWeight: '700', color: C.g800 },
+  totalVal:   { fontFamily: DISPLAY, fontSize: 22, fontWeight: '900', color: C.g700 },
 
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 80,
-  },
-  emptyIconBox: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: C.g50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginTop: 12 },
-  emptySubtitle: {
-    fontSize: 14,
-    color: C.sub,
-    marginTop: 8,
-    textAlign: 'center',
-    paddingHorizontal: 32,
-  },
+  /* Inclusions / Exclusions pills */
+  pillWrap:  { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  pill:      { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingRight: 12, paddingLeft: 7, borderRadius: 20 },
+  pillPip:   { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  pillTxt:   { fontSize: 12, fontWeight: '600' },
 
-  // Image Slider
-  imageSliderContainer: {
-    position: 'relative',
-    backgroundColor: C.g50,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  imageSlide: {
-    width: SLIDER_WIDTH,
-    height: 250,
-    backgroundColor: C.g50,
-  },
-  sliderImage: {
-    width: '100%',
-    height: '100%',
-  },
+  /* Terms */
+  termsCard: { backgroundColor: C.bg, borderRadius: rs(12), padding: 12 },
+  termLine:  { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  termNum:   { fontSize: 12, fontWeight: '800', color: C.text },
+  termTxt:   { flex: 1, fontSize: 12.5, color: C.sub, lineHeight: 18 },
+
+  /* Notes */
+  notesInner: { borderLeftWidth: 3, borderLeftColor: C.amber, paddingLeft: 12 },
+  notesTxt: { fontSize: 13, color: C.text, lineHeight: 20 },
+
+  /* Timeline */
+  timelineItem: { flexDirection: 'row', gap: 12 },
+  timelineRail: { alignItems: 'center' },
+  timelineDot:  { width: 10, height: 10, borderRadius: 5 },
+  timelineLine: { width: 2, flex: 1, minHeight: rs(20), backgroundColor: C.border, marginTop: 4 },
+  timelineBody: { flex: 1, paddingTop: 0 },
+  timelineEvent: { fontSize: 14, fontWeight: '600', color: C.text },
+  timelineDate:  { fontSize: 12, color: C.muted, marginTop: 2 },
+
+  /* Image Slider */
+  sliderWrap: { borderRadius: rs(12), overflow: 'hidden', position: 'relative' },
+  imageSlide: { width: SLIDER_WIDTH - 32, height: 240, backgroundColor: C.bg },
+  sliderImage: { width: '100%', height: '100%' },
   paginationDots: {
-    position: 'absolute',
-    bottom: 12,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
+    position: 'absolute', bottom: 12, left: 0, right: 0,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  activeDot: {
-    backgroundColor: C.g700,
-    width: 20,
-  },
-  inactiveDot: {
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-  },
+  dot:        { width: 8, height: 8, borderRadius: 4 },
+  activeDot:  { backgroundColor: C.g400, width: 20 },
+  inactiveDot: { backgroundColor: 'rgba(255,255,255,0.6)' },
   imageCounter: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    position: 'absolute', top: 10, right: 10,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
   },
-  imageCounterText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  imageCounterText: { color: '#fff', fontSize: 12, fontWeight: '600' },
 
-  // Features
-  featuresWrap: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  featuresTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 10,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 7,
-  },
-  featureText: {
-    fontSize: 13,
-    color: C.sub,
-    flex: 1,
-  },
-
-  // List items
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    paddingVertical: 2,
-  },
-  listItemBorder: {
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    marginTop: 9,
-    paddingTop: 10,
-  },
-  listText: {
-    fontSize: 13,
-    color: C.sub,
-    flex: 1,
-    lineHeight: 20,
-  },
-  termNumberBox: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: C.g50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 1,
-  },
-  listNumber: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: C.g700,
-  },
-
-  // Bottom Bar
+  /* Bottom Bar */
   bottomBar: {
     backgroundColor: C.card,
     paddingHorizontal: 16,
@@ -1328,37 +1065,38 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 28 : 14,
     borderTopWidth: 1,
     borderTopColor: C.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 8,
+    ...cardShadow,
   },
-  viewRequestButton: {
-    backgroundColor: C.g700,
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  viewBookingButton: {
-    backgroundColor: C.green,
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  bottomBtnInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 15,
-  },
-  actionBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   bottomRow: { flexDirection: 'row', gap: 10 },
+
+  primaryBtnWrap: { borderRadius: rs(14), overflow: 'hidden' },
+  primaryBtnInner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 14,
+  },
+
+  outlineBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.card, paddingVertical: 14, borderRadius: rs(14),
+    borderWidth: 1.5, borderColor: C.g100,
+  },
+  outlineBtnText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.g700 },
+
   withdrawBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: C.red, paddingVertical: 15, borderRadius: 14, flex: 1,
+    backgroundColor: C.redL, paddingVertical: 14, borderRadius: rs(14), flex: 1,
+    borderWidth: 1.5, borderColor: '#FECACA',
   },
-  freshQuoteBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: C.orange, paddingVertical: 15, borderRadius: 14,
+  withdrawBtnText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.red },
+
+  bottomBtnText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
+
+  /* Empty */
+  emptyIconWrap: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: C.g50,
+    justifyContent: 'center', alignItems: 'center',
   },
+  emptyTitle:    { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text },
+  emptySubtitle: { fontSize: 13, color: C.muted, textAlign: 'center' },
 });

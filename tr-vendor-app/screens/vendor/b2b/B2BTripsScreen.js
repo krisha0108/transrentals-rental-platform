@@ -9,17 +9,24 @@ import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getB2BTrips } from '../../api/client';
+import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g300: '#6EE7B7', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F0FDF9', surface: '#FFFFFF',
-  text: '#1E293B', sub: '#475569', muted: '#94A3B8', border: '#E2E8F0',
-  amber: '#F59E0B', amberBg: '#FFFBEB', amberDark: '#D97706',
-  red: '#EF4444', redBg: '#FEF2F2', redDark: '#DC2626',
-  blue: '#3B82F6', blueBg: '#EFF6FF',
-  purple: '#8B5CF6', purpleBg: '#F5F3FF',
-  cyan: '#06B6D4', cyanBg: '#ECFEFF',
+  g950: T.forestDark, g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g300: T.oceanLight, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, surface: T.card,
+  text: T.ink, sub: T.text, muted: T.subText, border: T.border,
+  amber: T.amber, amberBg: T.amberLight, amberDark: shade(T.amber, -15),
+  red: T.red, redBg: T.redLight, redDark: shade(T.red, -15),
+  blue: T.blue, blueBg: T.blueLight,
+  purple: T.purple, purpleBg: T.tintPlum,
+  // No dedicated cyan token in the shared palette — oceanLight/tintOcean is the
+  // closest hue family (cool teal-blue) and keeps the pre-existing near-duplicate
+  // relationship with blue/blueBg (originally #06B6D4/#ECFEFF vs #3B82F6/#EFF6FF).
+  cyan: T.oceanLight, cyanBg: T.tintOcean,
 };
 
 const STATUS_CONFIG = {
@@ -241,7 +248,7 @@ export default function B2BTripsScreen({ navigation, route }) {
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       {/* Gradient Header */}
-      <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.header}>
+      <LinearGradient colors={G.hero} style={s.header}>
         <View style={s.headerTop}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
             <Icon name="arrow-left" size={22} color="#fff" />
@@ -356,7 +363,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff', fontFamily: DISPLAY },
   headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
 
   // Stats strip
@@ -364,10 +371,10 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     marginHorizontal: 16, marginBottom: 14,
     backgroundColor: 'rgba(255,255,255,0.10)',
-    borderRadius: 14, paddingVertical: 12,
+    borderRadius: rs(14), paddingVertical: 12,
   },
   statItem: { flex: 1, alignItems: 'center', gap: 2 },
-  statValue: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  statValue: { fontSize: 20, fontWeight: '800', color: '#fff', fontFamily: DISPLAY },
   statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '500' },
   statDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginVertical: 4 },
 
@@ -399,16 +406,16 @@ const s = StyleSheet.create({
 
   // Trip card
   card: {
-    backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border,
-    marginBottom: 12, elevation: 2,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
+    backgroundColor: C.surface, borderRadius: rs(16), borderWidth: 1, borderColor: C.border,
+    marginBottom: 12,
+    ...cardShadow,
     flexDirection: 'row', overflow: 'hidden',
   },
-  cardAccent: { width: 4, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 },
+  cardAccent: { width: 4, borderTopLeftRadius: rs(16), borderBottomLeftRadius: rs(16) },
   cardContent: { flex: 1, padding: 14 },
 
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 },
-  tripCode: { fontSize: 15, fontWeight: '800', color: C.text, fontFamily: 'monospace' },
+  tripCode: { fontSize: 15, fontWeight: '800', color: C.text, fontFamily: DISPLAY },
   tripDate: { fontSize: 12, color: C.muted, marginBottom: 10 },
 
   statusChip: {
@@ -446,6 +453,6 @@ const s = StyleSheet.create({
 
   // Empty
   empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
   emptySub: { fontSize: 13, color: C.sub, textAlign: 'center', paddingHorizontal: 32 },
 });

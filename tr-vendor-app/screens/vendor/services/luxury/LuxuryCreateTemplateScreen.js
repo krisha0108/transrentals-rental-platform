@@ -14,17 +14,20 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { createTemplate } from '../../../api/client';
 import { showError, showSuccess } from '../../../../services/alertService';
+import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
 const { width: W } = Dimensions.get('window');
 
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A',
-  sub: '#475569', muted: '#94A3B8',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
-  indigo: '#4F46E5', indigoL: '#EEF2FF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border, text: T.ink,
+  sub: T.text, muted: T.subText,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  indigo: T.indigo, indigoL: T.indigoLight,
 };
 
 const LUXURY_CATEGORIES = [
@@ -140,9 +143,9 @@ export default function LuxuryCreateTemplateScreen({ navigation }) {
     <SafeAreaView style={s.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.hero}>
-        <View style={[s.deco, { width: 160, height: 160, top: -50, right: -30, opacity: 0.07 }]} />
-        <View style={[s.deco, { width: 70, height: 70, top: 15, right: 80, opacity: 0.05 }]} />
+      <LinearGradient colors={G.hero} style={s.hero}>
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
         <View style={s.heroRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
             <Icon name="arrow-left" size={22} color="#fff" />
@@ -343,10 +346,20 @@ export default function LuxuryCreateTemplateScreen({ navigation }) {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
-  hero: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20, overflow: 'hidden' },
-  deco: { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
+  hero: {
+    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20, overflow: 'hidden',
+    borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20),
+  },
+  deco1: {
+    position: 'absolute', width: 160, height: 160, borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.07)', top: -50, right: -30,
+  },
+  deco2: {
+    position: 'absolute', width: 70, height: 70, borderRadius: 35,
+    backgroundColor: 'rgba(255,255,255,0.05)', top: 15, right: 80,
+  },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  heroTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: '#fff' },
   heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
   heroBadge: { width: 42, height: 42, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.amber + '50' },
@@ -355,7 +368,7 @@ const s = StyleSheet.create({
   quickBox: { backgroundColor: C.card, borderRadius: 18, marginBottom: 14, borderWidth: 1, borderColor: C.amber + '40', overflow: 'hidden' },
   quickHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
   quickIconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.amber + '40' },
-  quickTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  quickTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '700', color: C.text },
   quickSub: { fontSize: 12, color: C.sub, marginTop: 2 },
   quickSkip: { paddingHorizontal: 10, paddingVertical: 6 },
   quickSkipText: { fontSize: 13, fontWeight: '600', color: C.amber },
@@ -365,10 +378,10 @@ const s = StyleSheet.create({
   sgDesc: { fontSize: 12, color: C.sub },
   sgRate: { backgroundColor: C.amberL, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: C.amber + '30' },
   sgRateText: { fontSize: 11, fontWeight: '700', color: C.amber },
-  section: { backgroundColor: C.card, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
+  section: { backgroundColor: C.card, borderRadius: rs(16), padding: 16, marginBottom: 12, borderWidth: 1, borderColor: C.border, ...cardShadow },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
   sectionIconBox: { width: 32, height: 32, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  sectionTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '700', color: C.text },
   sectionNote: { fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 17 },
   label: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 7 },
   optional: { fontWeight: '400', color: C.muted },
@@ -399,6 +412,6 @@ const s = StyleSheet.create({
   footer: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border, gap: 12 },
   cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
   cancelBtnText: { fontSize: 15, fontWeight: '600', color: C.sub },
-  submitBtn: { flex: 2, flexDirection: 'row', paddingVertical: 14, borderRadius: 14, backgroundColor: C.g700, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  submitBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  submitBtn: { flex: 2, flexDirection: 'row', paddingVertical: 14, borderRadius: rs(14), backgroundColor: C.g700, alignItems: 'center', justifyContent: 'center', gap: 8, ...cardShadow },
+  submitBtnText: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '700', color: '#fff' },
 });

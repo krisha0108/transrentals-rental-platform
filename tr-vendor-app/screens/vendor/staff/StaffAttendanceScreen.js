@@ -19,29 +19,30 @@ import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getStaffAttendance, markStaffAttendance } from '../../api/staff-api';
 import { showError, showSuccess, showInfo, showConfirm } from '../../../services/alertService';
+import { SC as T, G, rs, rf, GUT, shade, cardShadow, rowShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already used — only the values now come from
+// the shared "Elevate" theme instead of hardcoded hex, mirroring the mapping
+// convention already used in StaffListScreen.js (sibling file, same folder).
 const C = {
-  bg: '#F1F5F9',
-  surface: '#FFFFFF',
-  text: '#0F172A',
-  textSec: '#334155',
-  muted: '#94A3B8',
-  border: '#E2E8F0',
-  borderLight: '#F1F5F9',
-  brand: '#22C55E',
-  brandDark: '#16A34A',
-  brandLight: '#DCFCE7',
-  blue: '#3B82F6',
-  orange: '#F59E0B',
-  red: '#EF4444',
-  purple: '#8B5CF6',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueLight: T.blueLight,
+  amber: T.amber, amberLight: T.amberLight,
+  red: T.red, redLight: T.redLight,
+  orange: T.orange, orangeLight: T.orangeL,
+  glassBorder: T.glassBorder, scrim: T.scrim,
 };
 
 const STATUS_CONFIG = {
-  PRESENT:  { color: '#22C55E', bg: '#F0FDF4', label: 'Present',  short: 'P', icon: 'check' },
-  ABSENT:   { color: '#EF4444', bg: '#FEF2F2', label: 'Absent',   short: 'A', icon: 'x' },
-  LEAVE:    { color: '#F59E0B', bg: '#FFFBEB', label: 'Leave',    short: 'L', icon: 'clock' },
-  HALF_DAY: { color: '#F97316', bg: '#FFF7ED', label: 'Half Day', short: 'H', icon: 'sun' },
+  PRESENT:  { color: C.g600,  bg: C.g50,        label: 'Present',  short: 'P', icon: 'check' },
+  ABSENT:   { color: C.red,   bg: C.redLight,   label: 'Absent',   short: 'A', icon: 'x' },
+  LEAVE:    { color: C.amber, bg: C.amberLight, label: 'Leave',    short: 'L', icon: 'clock' },
+  HALF_DAY: { color: C.orange,bg: C.orangeLight,label: 'Half Day', short: 'H', icon: 'sun' },
 };
 
 const MONTH_NAMES = [
@@ -53,13 +54,8 @@ const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 const { width: SW } = Dimensions.get('window');
-const DAY_W = 36;
-const NAME_W = 110;
-
-const shadow = (elev = 4) => Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: elev / 2 }, shadowOpacity: 0.08, shadowRadius: elev },
-  android: { elevation: elev / 2 },
-});
+const DAY_W = rs(36);
+const NAME_W = rs(120);
 
 export default function StaffAttendanceScreen({ navigation }) {
   const now = new Date();
@@ -195,34 +191,22 @@ export default function StaffAttendanceScreen({ navigation }) {
     }
   };
 
-  const GradHeader = () => (
-    <LinearGradient colors={['#022C22', '#064E3B', '#047857']} style={s.headerGrad}>
-      <SafeAreaView edges={['top']}>
-        <View style={s.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={s.glassBtn}>
-            <Icon name="arrow-left" size={20} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onRefresh} style={s.glassBtn}>
-            <Icon name="refresh-cw" size={17} color="rgba(255,255,255,0.7)" />
-          </TouchableOpacity>
-        </View>
-        <View style={s.heroSection}>
-          <View style={s.heroIconWrap}>
-            <MaterialCommunityIcons name="calendar-check" size={26} color="#34D399" />
-          </View>
-          <Text style={s.heroTitle}>Staff Attendance</Text>
-          <Text style={s.heroSub}>{MONTH_NAMES[month]} {year}</Text>
-        </View>
-      </SafeAreaView>
-    </LinearGradient>
-  );
-
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: C.bg }}>
-        <StatusBar barStyle="light-content" backgroundColor="#022C22" />
-        <GradHeader />
-        <View style={s.loader}><ActivityIndicator size="large" color={C.brand} /></View>
+      <View style={s.root}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={G.hero} style={s.headerGradLoading}>
+          <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
+            <View style={s.headerTopRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={s.backCircle}>
+                <Icon name="arrow-left" size={rs(20)} color="#fff" />
+              </TouchableOpacity>
+              <Text style={s.loadTitle}>Staff Attendance</Text>
+              <View style={{ width: rs(40) }} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+        <View style={s.centered}><ActivityIndicator size="large" color={C.g600} /></View>
       </View>
     );
   }
@@ -231,85 +215,116 @@ export default function StaffAttendanceScreen({ navigation }) {
   const markedCount = Object.keys(modalRecords).length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor="#022C22" />
-      <GradHeader />
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.brand} />}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
-      >
-        {/* ── Month Picker ── */}
-        <View style={s.monthBar}>
-          <TouchableOpacity onPress={goToPrevMonth} style={s.monthArrow} activeOpacity={0.6}>
-            <Icon name="chevron-left" size={20} color={C.text} />
-          </TouchableOpacity>
-          <TouchableOpacity style={s.monthPill} activeOpacity={0.8}>
-            <Icon name="calendar" size={14} color={C.brand} />
-            <Text style={s.monthLabel}>{MONTH_NAMES[month]} {year}</Text>
-          </TouchableOpacity>
+      {/* ── Hero header — month/year nav integrated in the hero ── */}
+      <LinearGradient colors={G.hero} style={s.headerGrad}>
+        <AnimatedOrb style={s.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
+          <View style={s.headerTopRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backCircle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Icon name="arrow-left" size={rs(20)} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity onPress={onRefresh} style={s.refreshCircle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Icon name="refresh-cw" size={rs(16)} color="rgba(255,255,255,0.75)" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={s.heroBadge}>
+            <MaterialCommunityIcons name="calendar-check" size={rs(12)} color={C.g400} />
+            <Text style={s.heroBadgeTxt}>Attendance Tracker</Text>
+          </View>
+          <Text style={s.bigTitle}>Staff Attendance</Text>
+          <Text style={s.bigSub}>Track daily check-ins for your team</Text>
+
+          <View style={s.monthNavRow}>
+            <TouchableOpacity onPress={goToPrevMonth} style={s.monthNavBtn} activeOpacity={0.7}>
+              <Icon name="chevron-left" size={rs(18)} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.monthNavPill}>
+              <Icon name="calendar" size={rs(13)} color={C.g400} />
+              <Text style={s.monthNavPillTxt}>{MONTH_NAMES[month]} {year}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={goToNextMonth}
+              style={[s.monthNavBtn, isCurrentMonth && s.monthNavBtnDisabled]}
+              disabled={isCurrentMonth}
+              activeOpacity={0.7}
+            >
+              <Icon name="chevron-right" size={rs(18)} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ height: rs(isCurrentMonth ? 28 : 12) }} />
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* Floating today-summary card — tucks into the hero's bottom curve */}
+      {isCurrentMonth && (
+        <View style={s.statsWrap}>
           <TouchableOpacity
-            onPress={goToNextMonth}
-            style={[s.monthArrow, isCurrentMonth && { opacity: 0.25 }]}
-            disabled={isCurrentMonth}
-            activeOpacity={0.6}
+            style={[s.statsCard, cardShadow]}
+            onPress={() => openMarkModal(now.getDate())}
+            activeOpacity={0.85}
           >
-            <Icon name="chevron-right" size={20} color={C.text} />
+            <View style={s.statsTodayBadge}>
+              <Text style={s.statsTodayNum}>{now.getDate()}</Text>
+              <Text style={s.statsTodaySub}>{MONTH_SHORT[month]}</Text>
+            </View>
+            <View style={s.statsRow}>
+              <View style={s.statItem}>
+                <Text style={[s.statVal, { color: C.g600 }]}>{todaySummary?.present || 0}</Text>
+                <Text style={s.statLabel}>Present</Text>
+              </View>
+              <View style={s.statDiv} />
+              <View style={s.statItem}>
+                <Text style={[s.statVal, { color: C.red }]}>{todaySummary?.absent || 0}</Text>
+                <Text style={s.statLabel}>Absent</Text>
+              </View>
+              {(todaySummary?.notMarked > 0) && (
+                <>
+                  <View style={s.statDiv} />
+                  <View style={s.statItem}>
+                    <Text style={[s.statVal, { color: C.muted }]}>{todaySummary.notMarked}</Text>
+                    <Text style={s.statLabel}>Pending</Text>
+                  </View>
+                </>
+              )}
+            </View>
+            <Icon name="edit-2" size={rs(15)} color={C.g600} />
           </TouchableOpacity>
         </View>
+      )}
 
-        {/* ── Today Card ── */}
-        {isCurrentMonth && (
-          <TouchableOpacity
-            style={s.todayCard}
-            onPress={() => openMarkModal(now.getDate())}
-            activeOpacity={0.7}
-          >
-            <View style={s.todayBadge}>
-              <Text style={s.todayBadgeText}>{now.getDate()}</Text>
-              <Text style={s.todayBadgeSub}>{MONTH_SHORT[month]}</Text>
-            </View>
-            <View style={s.todayMid}>
-              <Text style={s.todayHeading}>Today's Attendance</Text>
-              <View style={s.todayChips}>
-                <View style={[s.todayChip, { backgroundColor: '#F0FDF4' }]}>
-                  <View style={[s.chipDot, { backgroundColor: C.brand }]} />
-                  <Text style={[s.chipText, { color: '#16A34A' }]}>{todaySummary?.present || 0} Present</Text>
-                </View>
-                <View style={[s.todayChip, { backgroundColor: '#FEF2F2' }]}>
-                  <View style={[s.chipDot, { backgroundColor: C.red }]} />
-                  <Text style={[s.chipText, { color: C.red }]}>{todaySummary?.absent || 0} Absent</Text>
-                </View>
-                {(todaySummary?.notMarked > 0) && (
-                  <View style={[s.todayChip, { backgroundColor: '#F8FAFC' }]}>
-                    <View style={[s.chipDot, { backgroundColor: C.muted }]} />
-                    <Text style={[s.chipText, { color: C.muted }]}>{todaySummary.notMarked} Pending</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-            <Icon name="edit-2" size={16} color={C.brand} />
-          </TouchableOpacity>
-        )}
-
-        {/* ── Attendance Grid ── */}
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={s.scroll}
+      >
         {staff.length === 0 ? (
-          <View style={s.emptyWrap}>
-            <View style={s.emptyCircle}>
-              <Icon name="users" size={36} color={C.muted} />
+          <View style={s.emptyCardWrap}>
+            <View style={s.emptyArt}>
+              <View style={s.emptyArtCardBack} />
+              <View style={s.emptyArtCard}>
+                <Icon name="users" size={rs(36)} color={C.g500} />
+              </View>
+              <View style={s.emptyArtDot} />
+              <View style={s.emptyArtTag}><Text style={s.emptyArtTagTxt}>NO STAFF</Text></View>
             </View>
             <Text style={s.emptyTitle}>No Staff Found</Text>
-            <Text style={s.emptyDesc}>Add staff members to start tracking attendance</Text>
+            <Text style={s.emptyBody}>Add staff members to start tracking attendance</Text>
           </View>
         ) : (
-          <View style={s.gridOuter}>
+          <View style={[s.gridCard, cardShadow]}>
             {/* Legend */}
             <View style={s.legendBar}>
               {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
                 <View key={key} style={s.legendChip}>
                   <View style={[s.legendDot, { backgroundColor: cfg.color }]} />
-                  <Text style={s.legendText}>{cfg.short} - {cfg.label}</Text>
+                  <Text style={s.legendTxt}>{cfg.short} · {cfg.label}</Text>
                 </View>
               ))}
             </View>
@@ -320,7 +335,7 @@ export default function StaffAttendanceScreen({ navigation }) {
                 {/* Day Headers */}
                 <View style={s.hRow}>
                   <View style={s.hName}>
-                    <Text style={s.hNameText}>Staff</Text>
+                    <Text style={s.hNameTxt}>Staff</Text>
                   </View>
                   {days.map((day) => {
                     const today = isToday(day);
@@ -334,34 +349,40 @@ export default function StaffAttendanceScreen({ navigation }) {
                         disabled={future}
                         activeOpacity={0.5}
                       >
-                        <Text style={[s.hDayLetter, today ? s.hTodayText : sun && !future ? s.hSunText : future ? s.hFutureText : null]}>
+                        <Text style={[s.hDayLetter, today ? s.hTodayTxt : sun && !future ? s.hSunTxt : future ? s.hFutureTxt : null]}>
                           {DAY_LABELS[getDayOfWeek(day)]}
                         </Text>
                         <View style={[s.hDayNum, today && s.hDayNumToday]}>
-                          <Text style={[s.hDayNumText, today && s.hDayNumTodayText, future && s.hFutureText, sun && !today && !future && s.hSunText]}>
+                          <Text style={[s.hDayNumTxt, today && s.hDayNumTodayTxt, future && s.hFutureTxt, sun && !today && !future && s.hSunTxt]}>
                             {day}
                           </Text>
                         </View>
                       </TouchableOpacity>
                     );
                   })}
-                  <View style={s.hStat}><Text style={[s.hStatText, { color: C.brand }]}>P</Text></View>
-                  <View style={s.hStat}><Text style={[s.hStatText, { color: C.red }]}>A</Text></View>
+                  <View style={s.hStat}><Text style={[s.hStatTxt, { color: C.g600 }]}>P</Text></View>
+                  <View style={s.hStat}><Text style={[s.hStatTxt, { color: C.red }]}>A</Text></View>
                 </View>
 
                 {/* Staff Rows */}
                 {staff.map((person, idx) => {
                   const stats = getStaffStats(person.id);
                   const isLast = idx === staff.length - 1;
+                  const railColor = stats.a > 0 ? C.red : C.g600;
                   return (
-                    <View key={person.id} style={[s.gRow, idx % 2 === 0 && s.gRowStripe, isLast && { borderBottomWidth: 0 }]}>
+                    <View key={person.id} style={[s.gRow, idx % 2 === 0 && s.gRowStripe, isLast && s.gRowLast]}>
+                      <LinearGradient
+                        colors={[railColor, shade(railColor, -18)]}
+                        start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+                        style={s.gRail}
+                      />
                       <View style={s.gName}>
-                        <View style={s.gAvatar}>
-                          <Text style={s.gAvatarText}>{person.name?.charAt(0)?.toUpperCase() || 'S'}</Text>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={s.gNameText} numberOfLines={1}>{person.name || 'Staff'}</Text>
-                          {person.role ? <Text style={s.gRoleText} numberOfLines={1}>{person.role}</Text> : null}
+                        <LinearGradient colors={[C.g800, C.g600]} style={s.gAvatar}>
+                          <Text style={s.gAvatarTxt}>{person.name?.charAt(0)?.toUpperCase() || 'S'}</Text>
+                        </LinearGradient>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={s.gNameTxt} numberOfLines={1}>{person.name || 'Staff'}</Text>
+                          {person.role ? <Text style={s.gRoleTxt} numberOfLines={1}>{person.role}</Text> : null}
                         </View>
                       </View>
                       {days.map((day) => {
@@ -379,7 +400,7 @@ export default function StaffAttendanceScreen({ navigation }) {
                           >
                             {status ? (
                               <View style={[s.badge, { backgroundColor: cfg?.color }]}>
-                                <Text style={s.badgeText}>{cfg?.short}</Text>
+                                <Text style={s.badgeTxt}>{cfg?.short}</Text>
                               </View>
                             ) : future ? (
                               <View style={s.futureCell} />
@@ -390,7 +411,7 @@ export default function StaffAttendanceScreen({ navigation }) {
                         );
                       })}
                       <View style={s.gStat}>
-                        <Text style={[s.gStatNum, { color: C.brand }]}>{stats.p}</Text>
+                        <Text style={[s.gStatNum, { color: C.g600 }]}>{stats.p}</Text>
                       </View>
                       <View style={s.gStat}>
                         <Text style={[s.gStatNum, { color: C.red }]}>{stats.a}</Text>
@@ -402,336 +423,380 @@ export default function StaffAttendanceScreen({ navigation }) {
             </ScrollView>
           </View>
         )}
+        <View style={{ height: rs(20) }} />
       </ScrollView>
 
       {/* ── Mark Attendance Modal ── */}
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <TouchableOpacity style={s.mOverlay} activeOpacity={1} onPress={() => setModalVisible(false)}>
-          <TouchableOpacity style={s.mSheet} activeOpacity={1} onPress={() => {}}>
-            {/* Grab Handle */}
-            <View style={s.mHandle}><View style={s.mHandleBar} /></View>
+      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalContent}>
+            <View style={s.sheetHandleWrap}><View style={s.sheetHandle} /></View>
 
-            {/* Modal Header */}
-            <View style={s.mHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.mTitle}>Mark Attendance</Text>
-                {modalDate && (
-                  <Text style={s.mDate}>
-                    {new Date(modalDate + 'T00:00:00').toLocaleDateString('en-US', {
-                      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-                    })}
-                  </Text>
-                )}
-              </View>
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={s.mCloseBtn}>
-                <Icon name="x" size={20} color={C.muted} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Quick Actions */}
-            <View style={s.quickRow}>
-              <Text style={s.quickLabel}>Quick:</Text>
-              {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                <TouchableOpacity
-                  key={key}
-                  style={[s.quickBtn, { borderColor: cfg.color + '50' }]}
-                  onPress={() => markAllAs(key)}
-                  activeOpacity={0.6}
-                >
-                  <Text style={[s.quickBtnText, { color: cfg.color }]}>All {cfg.short}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Staff List */}
-            <ScrollView style={s.mScroll} showsVerticalScrollIndicator={false}>
-              {staff.map((person, idx) => {
-                const sel = modalRecords[person.id];
-                const selCfg = STATUS_CONFIG[sel];
-                return (
-                  <View
-                    key={person.id}
-                    style={[
-                      s.mCard,
-                      sel && { borderLeftWidth: 3, borderLeftColor: selCfg?.color },
-                      idx === staff.length - 1 && { marginBottom: 0 },
-                    ]}
-                  >
-                    <View style={s.mCardTop}>
-                      <View style={[s.mAvatar, sel && { backgroundColor: selCfg?.bg }]}>
-                        <Text style={[s.mAvatarText, sel && { color: selCfg?.color }]}>
-                          {person.name?.charAt(0)?.toUpperCase() || 'S'}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.mName}>{person.name || 'Staff'}</Text>
-                        {person.role ? <Text style={s.mRole}>{person.role}</Text> : null}
-                      </View>
-                      {sel && (
-                        <View style={[s.mSelBadge, { backgroundColor: selCfg?.bg }]}>
-                          <Icon name={selCfg?.icon} size={11} color={selCfg?.color} />
-                          <Text style={[s.mSelBadgeText, { color: selCfg?.color }]}>{selCfg?.label}</Text>
-                        </View>
-                      )}
-                    </View>
-                    <View style={s.mOptions}>
-                      {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
-                        const active = sel === key;
-                        return (
-                          <TouchableOpacity
-                            key={key}
-                            style={[
-                              s.mOpt,
-                              active && { backgroundColor: cfg.color, borderColor: cfg.color },
-                            ]}
-                            onPress={() => setStaffStatus(person.id, key)}
-                            activeOpacity={0.6}
-                          >
-                            <Icon name={cfg.icon} size={13} color={active ? '#fff' : C.muted} />
-                            <Text style={[s.mOptText, active && { color: '#fff', fontWeight: '700' }]}>
-                              {cfg.label}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
+            <ScrollView contentContainerStyle={{ paddingBottom: rs(50) }} keyboardShouldPersistTaps="handled">
+              {/* Modal hero */}
+              <LinearGradient colors={[C.g900, C.g800]} style={s.modalHero}>
+                <View style={s.modalHeroRow}>
+                  <View style={s.modalHeroBadge}>
+                    <MaterialCommunityIcons name="calendar-check" size={rs(20)} color={C.g400} />
                   </View>
-                );
-              })}
-            </ScrollView>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.modalHeroTitle}>Mark Attendance</Text>
+                    {modalDate && (
+                      <Text style={s.modalHeroSub}>
+                        {new Date(modalDate + 'T00:00:00').toLocaleDateString('en-US', {
+                          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+                        })}
+                      </Text>
+                    )}
+                  </View>
+                  <TouchableOpacity style={s.modalCloseBtn} onPress={() => setModalVisible(false)}>
+                    <Icon name="x" size={rs(16)} color="rgba(255,255,255,0.8)" />
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
 
-            {/* Save */}
-            <View style={s.mFooter}>
-              <Text style={s.mFooterInfo}>{markedCount}/{staff.length} staff marked</Text>
-              <TouchableOpacity
-                style={[s.saveBtn, saving && { opacity: 0.6 }]}
-                onPress={saveAttendance}
-                disabled={saving}
-                activeOpacity={0.7}
-              >
-                {saving ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Icon name="check-circle" size={18} color="#fff" />
-                    <Text style={s.saveBtnText}>Save Attendance</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
+              <View style={s.modalBody}>
+                {/* Quick Actions */}
+                <View style={s.quickRow}>
+                  <Text style={s.quickLabel}>Quick mark:</Text>
+                  <View style={s.quickChipsWrap}>
+                    {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+                      <TouchableOpacity
+                        key={key}
+                        style={[s.quickBtn, { borderColor: cfg.color }]}
+                        onPress={() => markAllAs(key)}
+                        activeOpacity={0.6}
+                      >
+                        <Text style={[s.quickBtnTxt, { color: cfg.color }]}>All {cfg.short}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Staff List */}
+                {staff.map((person, idx) => {
+                  const sel = modalRecords[person.id];
+                  const selCfg = STATUS_CONFIG[sel];
+                  return (
+                    <View
+                      key={person.id}
+                      style={[
+                        s.mCard,
+                        sel && { borderLeftWidth: rs(3), borderLeftColor: selCfg?.color },
+                        idx === staff.length - 1 && { marginBottom: 0 },
+                      ]}
+                    >
+                      <View style={s.mCardTop}>
+                        <View style={[s.mAvatar, sel && { backgroundColor: selCfg?.bg }]}>
+                          <Text style={[s.mAvatarTxt, sel && { color: selCfg?.color }]}>
+                            {person.name?.charAt(0)?.toUpperCase() || 'S'}
+                          </Text>
+                        </View>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={s.mName} numberOfLines={1}>{person.name || 'Staff'}</Text>
+                          {person.role ? <Text style={s.mRole} numberOfLines={1}>{person.role}</Text> : null}
+                        </View>
+                        {sel && (
+                          <View style={[s.mSelBadge, { backgroundColor: selCfg?.bg }]}>
+                            <Icon name={selCfg?.icon} size={rs(11)} color={selCfg?.color} />
+                            <Text style={[s.mSelBadgeTxt, { color: selCfg?.color }]}>{selCfg?.label}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <View style={s.mOptions}>
+                        {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
+                          const active = sel === key;
+                          return (
+                            <TouchableOpacity
+                              key={key}
+                              style={[
+                                s.mOpt,
+                                active && { backgroundColor: cfg.color, borderColor: cfg.color },
+                              ]}
+                              onPress={() => setStaffStatus(person.id, key)}
+                              activeOpacity={0.6}
+                            >
+                              <Icon name={cfg.icon} size={rs(13)} color={active ? '#fff' : C.muted} />
+                              <Text style={[s.mOptTxt, active && { color: '#fff', fontWeight: '700' }]}>
+                                {cfg.label}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  );
+                })}
+
+                {/* Save */}
+                <View style={s.mFooter}>
+                  <Text style={s.mFooterInfo}>{markedCount}/{staff.length} staff marked</Text>
+                  <TouchableOpacity onPress={saveAttendance} disabled={saving} activeOpacity={0.85}>
+                    <LinearGradient colors={[C.g800, C.g600]} style={[s.saveBtn, saving && { opacity: 0.6 }]}>
+                      {saving ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <>
+                          <Icon name="check-circle" size={rs(18)} color="#fff" />
+                          <Text style={s.saveBtnTxt}>Save Attendance</Text>
+                        </>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  root: { flex: 1, backgroundColor: C.bg },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  // Gradient Header
+  // Hero
   headerGrad: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
+    overflow: 'hidden',
+    borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
+    paddingBottom: rs(4),
   },
-  headerRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 8, marginBottom: 16,
+  headerGradLoading: { paddingBottom: rs(14) },
+  orbA: {
+    position: 'absolute', top: -rs(50), right: -rs(30),
+    width: rs(170), height: rs(170), borderRadius: rs(85),
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
-  glassBtn: {
-    width: 40, height: 40, borderRadius: 20,
+  orbB: {
+    position: 'absolute', bottom: -rs(60), left: -rs(40),
+    width: rs(150), height: rs(150), borderRadius: rs(75),
+    backgroundColor: 'rgba(46,158,120,0.16)',
+  },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(12) },
+  backCircle: {
+    width: rs(38), height: rs(38), borderRadius: rs(19),
     backgroundColor: 'rgba(255,255,255,0.15)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  refreshCircle: {
+    width: rs(38), height: rs(38), borderRadius: rs(19),
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  loadTitle: { fontFamily: DISPLAY, fontSize: rf(17), fontWeight: '800', color: '#fff', flex: 1, textAlign: 'center' },
+
+  heroBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: rs(5),
+    backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start',
+    paddingHorizontal: rs(10), paddingVertical: rs(4), borderRadius: 999, marginBottom: rs(6),
+  },
+  heroBadgeTxt: { fontFamily: DISPLAY, fontSize: rf(10.5), fontWeight: '700', color: C.g400, letterSpacing: 0.4 },
+  bigTitle: { fontFamily: DISPLAY, fontSize: rf(25), color: '#fff', letterSpacing: 0.2, fontWeight: '800' },
+  bigSub: { fontFamily: DISPLAY, fontSize: rf(12.5), color: 'rgba(255,255,255,0.68)', fontWeight: '600', marginTop: rs(3) },
+
+  // Month nav (in-hero)
+  monthNavRow: { flexDirection: 'row', alignItems: 'center', gap: rs(10), marginTop: rs(16) },
+  monthNavBtn: {
+    width: rs(34), height: rs(34), borderRadius: rs(17),
+    backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  monthNavBtnDisabled: { opacity: 0.3 },
+  monthNavPill: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(7),
+    backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)',
+    borderRadius: rs(14), paddingVertical: rs(9),
+  },
+  monthNavPillTxt: { fontFamily: DISPLAY, fontSize: rf(13.5), fontWeight: '700', color: '#fff' },
+
+  // Floating today-summary card
+  statsWrap: { marginHorizontal: GUT, marginTop: -rs(24) },
+  statsCard: {
+    flexDirection: 'row', alignItems: 'center', gap: rs(12),
+    backgroundColor: C.card, borderRadius: rs(18),
+    paddingHorizontal: rs(14), paddingVertical: rs(13),
+    borderWidth: 1, borderColor: C.glassBorder,
+  },
+  statsTodayBadge: {
+    width: rs(46), height: rs(46), borderRadius: rs(13), backgroundColor: C.g600,
     alignItems: 'center', justifyContent: 'center',
   },
-  heroSection: { alignItems: 'center' },
-  heroIconWrap: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: 'rgba(52,211,153,0.15)',
-    borderWidth: 1.5, borderColor: 'rgba(52,211,153,0.25)',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 10,
-  },
-  heroTitle: { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 3 },
+  statsTodayNum: { fontFamily: DISPLAY, fontSize: rf(17), fontWeight: '800', color: '#fff', lineHeight: rf(19) },
+  statsTodaySub: { fontFamily: DISPLAY, fontSize: rf(8.5), fontWeight: '700', color: '#fff', opacity: 0.85, marginTop: -rs(1) },
+  statsRow: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  statItem: { flex: 1, alignItems: 'center', minWidth: 0 },
+  statVal: { fontFamily: DISPLAY, fontSize: rf(16), fontWeight: '800' },
+  statLabel: { fontFamily: DISPLAY, fontSize: rf(9), fontWeight: '700', color: C.muted, marginTop: rs(2) },
+  statDiv: { width: 1, height: rs(28), backgroundColor: C.border },
 
-  // Month
-  monthBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginHorizontal: 16, marginTop: 14,
-  },
-  monthArrow: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: C.border, ...shadow(2),
-  },
-  monthPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: C.surface, paddingHorizontal: 20, paddingVertical: 10,
-    borderRadius: 12, borderWidth: 1, borderColor: C.border, ...shadow(2),
-  },
-  monthLabel: { fontSize: 15, fontWeight: '700', color: C.text },
+  scroll: { paddingHorizontal: GUT, paddingTop: rs(14) },
 
-  // Today
-  todayCard: {
-    flexDirection: 'row', alignItems: 'center',
-    marginHorizontal: 16, marginTop: 12,
-    backgroundColor: C.surface, borderRadius: 16, padding: 14,
-    borderWidth: 1, borderColor: C.brandLight,
-    ...shadow(4),
-  },
-  todayBadge: {
-    width: 48, height: 48, borderRadius: 14, backgroundColor: C.brand,
-    alignItems: 'center', justifyContent: 'center', marginRight: 12,
-  },
-  todayBadgeText: { fontSize: 18, fontWeight: '800', color: '#fff', lineHeight: 20 },
-  todayBadgeSub: { fontSize: 9, fontWeight: '700', color: '#fff', opacity: 0.8, marginTop: -1 },
-  todayMid: { flex: 1 },
-  todayHeading: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 6 },
-  todayChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  todayChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, gap: 4 },
-  chipDot: { width: 6, height: 6, borderRadius: 3 },
-  chipText: { fontSize: 10, fontWeight: '700' },
-
-  // Grid Outer
-  gridOuter: {
-    marginHorizontal: 16, marginTop: 14,
-    backgroundColor: C.surface, borderRadius: 16,
-    borderWidth: 1, borderColor: C.border,
-    overflow: 'hidden', ...shadow(4),
+  // Grid card
+  gridCard: {
+    backgroundColor: C.card, borderRadius: rs(16),
+    borderWidth: 1, borderColor: C.glassBorder,
+    overflow: 'hidden',
   },
 
   // Legend
   legendBar: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 10,
-    paddingHorizontal: 14, paddingVertical: 10,
-    backgroundColor: '#F8FAFC', borderBottomWidth: 1, borderBottomColor: C.border,
+    flexDirection: 'row', flexWrap: 'wrap', gap: rs(10),
+    paddingHorizontal: rs(14), paddingVertical: rs(10),
+    backgroundColor: C.bg, borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  legendChip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 10, color: C.muted, fontWeight: '600' },
+  legendChip: { flexDirection: 'row', alignItems: 'center', gap: rs(4) },
+  legendDot: { width: rs(8), height: rs(8), borderRadius: rs(4) },
+  legendTxt: { fontFamily: DISPLAY, fontSize: rf(10), color: C.muted, fontWeight: '600' },
 
-  // Grid Header Row
-  hRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderBottomWidth: 1, borderBottomColor: C.border },
-  hName: { width: NAME_W, paddingHorizontal: 12, paddingVertical: 10, borderRightWidth: 1, borderRightColor: C.border },
-  hNameText: { fontSize: 10, fontWeight: '800', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.8 },
-  hDay: { width: DAY_W, alignItems: 'center', paddingVertical: 5 },
-  hDayToday: { backgroundColor: C.brand + '10' },
+  // Grid header row
+  hRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.bg, borderBottomWidth: 1, borderBottomColor: C.border },
+  hName: { width: NAME_W, paddingHorizontal: rs(12), paddingVertical: rs(10), borderRightWidth: 1, borderRightColor: C.border },
+  hNameTxt: { fontFamily: DISPLAY, fontSize: rf(10), fontWeight: '800', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.8 },
+  hDay: { width: DAY_W, alignItems: 'center', paddingVertical: rs(5) },
+  hDayToday: { backgroundColor: C.g50 },
   hDayFuture: { opacity: 0.25 },
-  hDayLetter: { fontSize: 9, fontWeight: '600', color: C.muted },
-  hDayNum: { width: 22, height: 22, borderRadius: 7, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  hDayNumText: { fontSize: 11, fontWeight: '700', color: C.textSec },
-  hDayNumToday: { backgroundColor: C.brand, borderRadius: 7 },
-  hDayNumTodayText: { color: '#fff' },
-  hTodayText: { color: C.brand, fontWeight: '800' },
-  hSunText: { color: C.red },
-  hFutureText: { color: '#CBD5E1' },
-  hStat: { width: 34, alignItems: 'center', justifyContent: 'center', paddingVertical: 5, borderLeftWidth: 1, borderLeftColor: C.border },
-  hStatText: { fontSize: 11, fontWeight: '900' },
+  hDayLetter: { fontFamily: DISPLAY, fontSize: rf(9), fontWeight: '600', color: C.muted },
+  hDayNum: { width: rs(22), height: rs(22), borderRadius: rs(7), alignItems: 'center', justifyContent: 'center', marginTop: rs(1) },
+  hDayNumTxt: { fontFamily: DISPLAY, fontSize: rf(11), fontWeight: '700', color: C.sub },
+  hDayNumToday: { backgroundColor: C.g600, borderRadius: rs(7) },
+  hDayNumTodayTxt: { color: '#fff' },
+  hTodayTxt: { color: C.g600, fontWeight: '800' },
+  hSunTxt: { color: C.red },
+  hFutureTxt: { color: '#CBD5E1' },
+  hStat: { width: rs(34), alignItems: 'center', justifyContent: 'center', paddingVertical: rs(5), borderLeftWidth: 1, borderLeftColor: C.border },
+  hStatTxt: { fontFamily: DISPLAY, fontSize: rf(11), fontWeight: '900' },
 
-  // Grid Data Row
+  // Grid data row
   gRow: {
-    flexDirection: 'row', alignItems: 'center',
-    borderBottomWidth: 1, borderBottomColor: C.borderLight,
+    flexDirection: 'row', alignItems: 'stretch',
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
   gRowStripe: { backgroundColor: '#FAFBFD' },
+  gRowLast: { borderBottomWidth: 0 },
+  gRail: { width: rs(3) },
   gName: {
     width: NAME_W, flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 8, paddingVertical: 7,
+    paddingHorizontal: rs(8), paddingVertical: rs(7),
     borderRightWidth: 1, borderRightColor: C.border,
   },
   gAvatar: {
-    width: 26, height: 26, borderRadius: 8, backgroundColor: '#EEF2FF',
-    alignItems: 'center', justifyContent: 'center', marginRight: 6,
+    width: rs(26), height: rs(26), borderRadius: rs(8),
+    alignItems: 'center', justifyContent: 'center', marginRight: rs(6),
   },
-  gAvatarText: { fontSize: 11, fontWeight: '800', color: C.purple },
-  gNameText: { fontSize: 11, fontWeight: '600', color: C.text, lineHeight: 14 },
-  gRoleText: { fontSize: 8, color: C.muted, textTransform: 'capitalize', marginTop: 1 },
+  gAvatarTxt: { fontFamily: DISPLAY, fontSize: rf(11), fontWeight: '800', color: '#fff' },
+  gNameTxt: { fontFamily: DISPLAY, fontSize: rf(11), fontWeight: '600', color: C.text, lineHeight: rf(14) },
+  gRoleTxt: { fontFamily: DISPLAY, fontSize: rf(8), color: C.muted, textTransform: 'capitalize', marginTop: rs(1) },
 
-  // Grid Cell
-  gCell: { width: DAY_W, height: 36, alignItems: 'center', justifyContent: 'center' },
-  gCellToday: { backgroundColor: C.brand + '06' },
-  badge: { width: 24, height: 24, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontSize: 10, fontWeight: '900', color: '#fff' },
-  blankCell: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: '#E2E8F0', borderStyle: 'dashed' },
-  futureCell: { width: 20, height: 20, borderRadius: 6, backgroundColor: '#F1F5F9' },
+  // Grid cell
+  gCell: { width: DAY_W, height: rs(36), alignItems: 'center', justifyContent: 'center' },
+  gCellToday: { backgroundColor: C.g50 },
+  badge: { width: rs(24), height: rs(24), borderRadius: rs(7), alignItems: 'center', justifyContent: 'center' },
+  badgeTxt: { fontFamily: DISPLAY, fontSize: rf(10), fontWeight: '900', color: '#fff' },
+  blankCell: { width: rs(20), height: rs(20), borderRadius: rs(6), borderWidth: 1.5, borderColor: C.border, borderStyle: 'dashed' },
+  futureCell: { width: rs(20), height: rs(20), borderRadius: rs(6), backgroundColor: C.bg },
 
-  gStat: { width: 34, height: 36, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: C.borderLight },
-  gStatNum: { fontSize: 12, fontWeight: '800' },
+  gStat: { width: rs(34), height: rs(36), alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: C.border },
+  gStatNum: { fontFamily: DISPLAY, fontSize: rf(12), fontWeight: '800' },
 
-  // Empty
-  emptyWrap: { alignItems: 'center', paddingVertical: 60 },
-  emptyCircle: {
-    width: 88, height: 88, borderRadius: 44, backgroundColor: C.surface,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
-    borderWidth: 2, borderColor: C.border, ...shadow(6),
+  // Empty state
+  emptyCardWrap: {
+    alignItems: 'center',
+    backgroundColor: C.card, borderRadius: rs(24),
+    borderWidth: 1, borderColor: C.glassBorder,
+    paddingHorizontal: rs(20), paddingVertical: rs(30),
+    marginTop: rs(6),
   },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 4 },
-  emptyDesc: { fontSize: 13, color: C.muted },
+  emptyArt: {
+    width: rs(140), height: rs(112), marginBottom: rs(16),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyArtCardBack: {
+    position: 'absolute', top: rs(12), right: rs(20),
+    width: rs(88), height: rs(64), borderRadius: rs(14),
+    backgroundColor: C.g50, transform: [{ rotate: '8deg' }],
+  },
+  emptyArtCard: {
+    width: rs(88), height: rs(78), borderRadius: rs(16),
+    backgroundColor: C.bg, borderWidth: 1, borderColor: C.g50,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyArtDot: {
+    position: 'absolute', top: rs(4), right: rs(16),
+    width: rs(20), height: rs(20), borderRadius: rs(10), backgroundColor: C.g400,
+    borderWidth: rs(3), borderColor: C.card,
+  },
+  emptyArtTag: {
+    position: 'absolute', bottom: rs(8), left: rs(4),
+    backgroundColor: C.card, borderRadius: rs(8),
+    paddingHorizontal: rs(8), paddingVertical: rs(3),
+    borderWidth: 1, borderColor: C.g50,
+    transform: [{ rotate: '-8deg' }],
+  },
+  emptyArtTagTxt: { fontFamily: DISPLAY, fontSize: rf(8.5), fontWeight: '700', color: C.g700, letterSpacing: 0.6 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: rf(18), fontWeight: '700', color: C.text, marginBottom: rs(6), textAlign: 'center' },
+  emptyBody: { fontFamily: DISPLAY, fontSize: rf(13), color: C.muted, textAlign: 'center', lineHeight: rf(19), maxWidth: rs(260) },
 
   // Modal
-  mOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'flex-end' },
-  mSheet: { backgroundColor: C.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '90%' },
-  mHandle: { alignItems: 'center', paddingTop: 10, paddingBottom: 4 },
-  mHandleBar: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#E2E8F0' },
+  modalOverlay: { flex: 1, backgroundColor: C.scrim, justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: C.bg, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS, maxHeight: '90%', overflow: 'hidden' },
+  sheetHandleWrap: { alignItems: 'center', paddingTop: rs(10), backgroundColor: C.bg },
+  sheetHandle: { width: rs(40), height: rs(4), borderRadius: rs(2), backgroundColor: C.border },
 
-  mHeader: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: C.border,
-  },
-  mTitle: { fontSize: 19, fontWeight: '800', color: C.text, letterSpacing: -0.3 },
-  mDate: { fontSize: 13, color: C.muted, marginTop: 3 },
-  mCloseBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+  // Modal hero
+  modalHero: { paddingHorizontal: rs(20), paddingTop: rs(14), paddingBottom: rs(18) },
+  modalHeroRow: { flexDirection: 'row', alignItems: 'center', gap: rs(14) },
+  modalHeroBadge: { width: rs(46), height: rs(46), borderRadius: rs(14), backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
+  modalHeroTitle: { fontFamily: DISPLAY, fontSize: rf(18), fontWeight: '800', color: '#fff', marginBottom: rs(2) },
+  modalHeroSub: { fontFamily: DISPLAY, fontSize: rf(12), color: 'rgba(255,255,255,0.6)' },
+  modalCloseBtn: { width: rs(32), height: rs(32), borderRadius: rs(16), backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
 
-  // Quick Actions
-  quickRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 20, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: C.borderLight,
-  },
-  quickLabel: { fontSize: 11, fontWeight: '700', color: C.muted, marginRight: 2 },
-  quickBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1.5, backgroundColor: C.bg },
-  quickBtnText: { fontSize: 10, fontWeight: '800' },
+  // Modal body
+  modalBody: { padding: rs(20) },
 
-  // Modal Staff Cards
-  mScroll: { paddingHorizontal: 16, paddingTop: 10 },
+  // Quick actions
+  quickRow: { marginBottom: rs(18) },
+  quickLabel: { fontFamily: DISPLAY, fontSize: rf(11), fontWeight: '800', color: C.muted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: rs(8) },
+  quickChipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(8) },
+  quickBtn: { paddingHorizontal: rs(12), paddingVertical: rs(7), borderRadius: rs(10), borderWidth: 1.5, backgroundColor: C.card },
+  quickBtnTxt: { fontFamily: DISPLAY, fontSize: rf(11), fontWeight: '800' },
+
+  // Modal staff cards
   mCard: {
-    backgroundColor: C.surface, borderRadius: 14, padding: 12, marginBottom: 8,
-    borderWidth: 1, borderColor: C.border, ...shadow(2),
+    backgroundColor: C.card, borderRadius: rs(14), padding: rs(12), marginBottom: rs(8),
+    borderWidth: 1, borderColor: C.border, ...rowShadow,
   },
-  mCardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  mCardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: rs(10) },
   mAvatar: {
-    width: 38, height: 38, borderRadius: 12, backgroundColor: '#EEF2FF',
-    alignItems: 'center', justifyContent: 'center', marginRight: 10,
+    width: rs(38), height: rs(38), borderRadius: rs(12), backgroundColor: C.g50,
+    alignItems: 'center', justifyContent: 'center', marginRight: rs(10),
   },
-  mAvatarText: { fontSize: 15, fontWeight: '800', color: C.purple },
-  mName: { fontSize: 14, fontWeight: '700', color: C.text },
-  mRole: { fontSize: 11, color: C.muted, textTransform: 'capitalize', marginTop: 1 },
+  mAvatarTxt: { fontFamily: DISPLAY, fontSize: rf(15), fontWeight: '800', color: C.g700 },
+  mName: { fontFamily: DISPLAY, fontSize: rf(14), fontWeight: '700', color: C.text },
+  mRole: { fontFamily: DISPLAY, fontSize: rf(11), color: C.muted, textTransform: 'capitalize', marginTop: rs(1) },
   mSelBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+    flexDirection: 'row', alignItems: 'center', gap: rs(4),
+    paddingHorizontal: rs(8), paddingVertical: rs(4), borderRadius: rs(8),
   },
-  mSelBadgeText: { fontSize: 10, fontWeight: '800' },
+  mSelBadgeTxt: { fontFamily: DISPLAY, fontSize: rf(10), fontWeight: '800' },
 
-  // Modal Options
-  mOptions: { flexDirection: 'row', gap: 6 },
+  // Modal options
+  mOptions: { flexDirection: 'row', gap: rs(6) },
   mOpt: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 9, borderRadius: 10, borderWidth: 1.5,
-    borderColor: C.border, backgroundColor: C.bg, gap: 4,
+    paddingVertical: rs(9), borderRadius: rs(10), borderWidth: 1.5,
+    borderColor: C.border, backgroundColor: C.bg, gap: rs(4),
   },
-  mOptText: { fontSize: 10, fontWeight: '600', color: C.muted },
+  mOptTxt: { fontFamily: DISPLAY, fontSize: rf(10), fontWeight: '600', color: C.muted },
 
-  // Modal Footer
-  mFooter: {
-    paddingHorizontal: 20, paddingTop: 12, paddingBottom: Platform.OS === 'ios' ? 34 : 24,
-    borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.surface,
-  },
-  mFooterInfo: { fontSize: 11, color: C.muted, fontWeight: '600', textAlign: 'center', marginBottom: 10 },
+  // Modal footer / save
+  mFooter: { paddingTop: rs(6) },
+  mFooterInfo: { fontFamily: DISPLAY, fontSize: rf(11), color: C.muted, fontWeight: '600', textAlign: 'center', marginBottom: rs(10) },
   saveBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: C.brand, paddingVertical: 15, borderRadius: 14, gap: 8,
-    ...shadow(6),
+    paddingVertical: rs(15), borderRadius: rs(14), gap: rs(8),
   },
-  saveBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+  saveBtnTxt: { fontFamily: DISPLAY, color: '#fff', fontWeight: '800', fontSize: rf(15) },
 });

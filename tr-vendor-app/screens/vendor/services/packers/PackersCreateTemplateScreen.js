@@ -10,14 +10,17 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import CustomDropdown from '../../../../components/CustomDropdown';
 import { createTemplate } from '../../../api/client';
 import { showError, showSuccess } from '../../../../services/alertService';
+import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  red: '#DC2626', redL: '#FEF2F2',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  red: T.red, redL: T.redLight,
 };
 
 const SHIFTING_CATEGORIES = [
@@ -129,8 +132,9 @@ export default function PackersCreateTemplateScreen({ navigation }) {
     <SafeAreaView style={s.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <LinearGradient colors={[C.g900, '#064E3B', C.g700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroMin}>
-        <View style={s.deco1} /><View style={s.deco2} />
+      <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroMin}>
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={18} color="#fff" />
@@ -369,27 +373,30 @@ export default function PackersCreateTemplateScreen({ navigation }) {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
 
-  heroMin: { paddingHorizontal: 16, paddingBottom: 16 },
-  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(52,211,153,0.08)' },
-  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(52,211,153,0.06)' },
+  heroMin: {
+    paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden',
+    borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20),
+  },
+  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)' },
+  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  heroTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff' },
   heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
 
   scroll: { flex: 1 },
   scrollContent: { padding: 16 },
 
   card: {
-    backgroundColor: C.card, borderRadius: 16, padding: 16, marginBottom: 12,
+    backgroundColor: C.card, borderRadius: rs(16), padding: 16, marginBottom: 12,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2,
+    ...cardShadow,
   },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
   cardTitleRowSpaced: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   cardIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
 
   hint: { fontSize: 13, color: C.muted, marginBottom: 12 },
   inputLabel: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 8, marginTop: 12 },
@@ -414,21 +421,21 @@ const s = StyleSheet.create({
 
   footer: {
     padding: 16, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: -3 }, elevation: 12,
+    ...cardShadow,
   },
-  submitBtn: { backgroundColor: C.g600, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15, borderRadius: 12 },
-  submitBtnTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  submitBtn: { backgroundColor: C.g600, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15, borderRadius: rs(12) },
+  submitBtnTxt: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff' },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalSheet: { backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 24 },
+  modalOverlay: { flex: 1, backgroundColor: T.scrim, justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: C.card, borderTopLeftRadius: rs(24), borderTopRightRadius: rs(24), paddingBottom: 24 },
   modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginTop: 12, marginBottom: 4 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: C.border },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: C.text },
+  modalTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text },
   modalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: C.bg, borderRadius: 10, marginBottom: 8 },
   modalItemTxt: { flex: 1, fontSize: 14, color: C.text },
   modalAddRow: { flexDirection: 'row', gap: 10, margin: 20 },
   modalInput: { flex: 1, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12, fontSize: 14, color: C.text },
   modalAddBtn: { backgroundColor: C.g600, width: 48, height: 48, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  modalSaveBtn: { backgroundColor: C.g600, marginHorizontal: 20, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  modalSaveBtnTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  modalSaveBtn: { backgroundColor: C.g600, marginHorizontal: 20, paddingVertical: 14, borderRadius: rs(12), alignItems: 'center' },
+  modalSaveBtnTxt: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff' },
 });

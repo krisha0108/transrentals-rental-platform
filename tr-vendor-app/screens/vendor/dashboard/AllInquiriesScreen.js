@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, RefreshControl, ActivityIndicator,
+  StatusBar, RefreshControl, ActivityIndicator, Animated, Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -11,17 +11,21 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { getVendorProfile, apiPatch } from '../../api/client';
 import { fetchInquiries } from '../../api/inquiriesApi';
 import { showConfirm, showSuccess, showError } from '../../../services/alertService';
+import { SC as T, G, rs, rf, cardShadow, rowShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
-// ── Design tokens (matches DashboardScreen) ────────────────────
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399',
-  g100: '#D1FAE5', g50:  '#ECFDF5',
-  bg:     '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text:   '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue:    '#2563EB', purple: '#7C3AED', amber: '#D97706',
-  red:     '#DC2626', redL: '#FEF2F2', orange: '#EA580C',
-  indigo:  '#4F46E5', teal: '#0D9488', pink: '#DB2777', cyan: '#0891B2',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald,
+  g100: T.tintEmerald, g50:  T.tintEmerald,
+  bg:     T.bg, card: T.card, border: T.border,
+  text:   T.ink, sub: T.text, muted: T.subText,
+  blue:    T.blue, purple: T.purple, amber: T.amber,
+  red:     T.red, redL: T.redLight, orange: T.orange,
+  indigo:  T.indigo, teal: T.ocean, pink: T.rose, cyan: T.oceanLight,
 };
 
 const SVC_META = {
@@ -71,6 +75,36 @@ const BOOKING_DETAIL_SCREEN = {
   car: 'CarRentalBookingDetail', packers: 'PackersBookingDetail',
   equipment: 'EquipmentBookingDetail', luxury: 'LuxuryBookingDetail',
 };
+
+// ── Breathing halo (empty state) — pulsing outer ring + a gently rocking
+// icon, same idiom as travel-agent's Leads empty state. ──────────────────
+function BreathingHalo({ icon }) {
+  const pulse = useRef(new Animated.Value(0)).current;
+  const rock  = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = (val, duration) => Animated.loop(
+      Animated.sequence([
+        Animated.timing(val, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(val, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    );
+    const p = loop(pulse, 1400); const r = loop(rock, 1600);
+    p.start(); r.start();
+    return () => { p.stop(); r.stop(); };
+  }, [pulse, rock]);
+  const scale   = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
+  const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] });
+  const rotate  = rock.interpolate({ inputRange: [0, 1], outputRange: ['-12deg', '12deg'] });
+  return (
+    <Animated.View style={[s.halo, { transform: [{ scale }], opacity }]}>
+      <View style={s.haloRing}>
+        <Animated.View style={{ transform: [{ rotate }] }}>
+          <Ionicons name={icon} size={30} color={C.g700} />
+        </Animated.View>
+      </View>
+    </Animated.View>
+  );
+}
 
 export default function AllInquiriesScreen({ navigation }) {
   const [slugs, setSlugs]           = useState(null);  // null = profile not loaded yet
@@ -181,6 +215,7 @@ export default function AllInquiriesScreen({ navigation }) {
 
   const newCount    = data.new?.total ?? 0;
   const quotedCount = data.quoted?.total ?? 0;
+  const urgentCount = (data.new?.items || []).filter(x => x.urgent).length;
   const tabItems    = data[tab]?.items || [];
 
   // Filter chips reflect services that actually have inquiries (either tab).
@@ -201,8 +236,10 @@ export default function AllInquiriesScreen({ navigation }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* ── Header ── */}
-      <LinearGradient colors={[C.g900, '#064E3B', C.g700]}
+      <LinearGradient colors={G.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerRow}>
             <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
@@ -212,6 +249,21 @@ export default function AllInquiriesScreen({ navigation }) {
               <Text style={s.headerTitle}>Inquiries</Text>
               <Text style={s.headerSub}>Across all your services</Text>
             </View>
+          </View>
+
+          {/* Real stat row — New / Quoted / Urgent (same numbers as the
+              toggle counts + urgent flag already carried by each item) */}
+          <View style={s.statRow}>
+            {[
+              { label: 'New', value: newCount },
+              { label: 'Quoted', value: quotedCount },
+              { label: 'Urgent', value: urgentCount },
+            ].map((st, i) => (
+              <View key={i} style={s.statCard}>
+                <Text style={s.statVal}>{st.value}</Text>
+                <Text style={s.statLbl}>{st.label}</Text>
+              </View>
+            ))}
           </View>
 
           {/* New / Quoted toggle */}
@@ -279,9 +331,7 @@ export default function AllInquiriesScreen({ navigation }) {
         >
           {list.length === 0 ? (
             <View style={s.empty}>
-              <View style={s.emptyIcon}>
-                <Ionicons name="mail-open-outline" size={28} color={C.muted} />
-              </View>
+              <BreathingHalo icon="mail-open-outline" />
               <Text style={s.emptyTitle}>No {tab === 'new' ? 'new' : 'quoted'} inquiries</Text>
               <Text style={s.emptySub}>
                 {tab === 'new' ? 'New requests will show up here.' : 'Quotes you send will appear here.'}
@@ -290,19 +340,26 @@ export default function AllInquiriesScreen({ navigation }) {
           ) : (
             list.map(q => {
               const meta = SVC_META[q.service] || { name: q.service, icon: 'help-circle', color: C.muted };
+              const isUrgent  = !q.quoted && q.urgent;
+              const isAccepted = q.quoted && q.bookingId;
               return (
                 <TouchableOpacity key={q.id} style={s.card} activeOpacity={0.85}
                   onPress={() => openDetail(q)}>
-                  {/* Top */}
+                  {/* Identity row — avatar + customer + service/title */}
                   <View style={s.cardTop}>
-                    <View style={[s.iconBox, { backgroundColor: meta.color + '14' }]}>
-                      <MaterialCommunityIcons name={meta.icon} size={20} color={meta.color} />
+                    <View style={[s.avatar, isUrgent && { backgroundColor: C.redL, borderColor: '#FECACA' }]}>
+                      <Text style={[s.avatarTxt, isUrgent && { color: C.red }]}>{q.customer.charAt(0)}</Text>
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.cardTitle} numberOfLines={1}>{q.title}</Text>
-                      {!!q.sub && <Text style={s.cardSub} numberOfLines={1}>{q.sub}</Text>}
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text style={s.customerTxt} numberOfLines={1}>{q.customer}</Text>
+                      <View style={s.cardMetaRow}>
+                        <MaterialCommunityIcons name={meta.icon} size={11} color={meta.color} />
+                        <Text style={s.cardTitle} numberOfLines={1}>
+                          {q.title}{!!q.sub && ` · ${q.sub}`}
+                        </Text>
+                      </View>
                     </View>
-                    {!q.quoted && q.urgent ? (
+                    {isUrgent ? (
                       <View style={s.urgent}>
                         <Ionicons name="time-outline" size={10} color={C.red} />
                         <Text style={s.urgentTxt}>{q.expiry}</Text>
@@ -312,28 +369,26 @@ export default function AllInquiriesScreen({ navigation }) {
                     )}
                   </View>
 
-                  {/* Bottom */}
+                  {/* Chip footer — status chip + amount chip + action button */}
                   <View style={s.cardBottom}>
-                    <View style={s.customer}>
-                      <View style={s.avatar}>
-                        <Text style={s.avatarTxt}>{q.customer.charAt(0)}</Text>
-                      </View>
-                      <Text style={s.customerTxt} numberOfLines={1}>{q.customer}</Text>
+                    <View style={[s.statusChip,
+                      isAccepted ? { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }
+                        : q.quoted ? { backgroundColor: C.g50, borderColor: C.g100 }
+                        : { backgroundColor: C.amberL, borderColor: '#FDE68A' }]}>
+                      <Ionicons
+                        name={isAccepted ? 'checkmark-done-circle' : q.quoted ? 'checkmark-circle' : 'ellipse'}
+                        size={12} color={isAccepted ? C.blue : q.quoted ? C.g600 : C.amber} />
+                      <Text style={[s.statusChipTxt, { color: isAccepted ? C.blue : q.quoted ? C.g700 : C.amber }]}>
+                        {isAccepted ? 'Accepted' : q.quoted ? 'Quoted' : 'New'}
+                      </Text>
                     </View>
-
-                    {q.quoted ? (
-                      q.bookingId ? (
-                        <View style={s.acceptedTag}>
-                          <Ionicons name="checkmark-done-circle" size={13} color={C.blue} />
-                          <Text style={s.acceptedTagTxt}>Accepted</Text>
-                        </View>
-                      ) : (
-                        <View style={s.quotedTag}>
-                          <Ionicons name="checkmark-circle" size={13} color={C.g600} />
-                          <Text style={s.quotedTagTxt}>{q.myQuote ? `Quoted ${q.myQuote}` : 'Quoted'}</Text>
-                        </View>
-                      )
-                    ) : (
+                    {!!q.myQuote && (
+                      <View style={s.amtChip}>
+                        <Text style={s.amtChipTxt}>{q.myQuote}</Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }} />
+                    {!q.quoted && (
                       <TouchableOpacity activeOpacity={0.85}
                         style={[s.btn, q.accept && { backgroundColor: C.blue }]}
                         onPress={() => handleAction(q)}>
@@ -356,28 +411,36 @@ export default function AllInquiriesScreen({ navigation }) {
 
 const s = StyleSheet.create({
   // Header
-  hero:        { paddingHorizontal: 16, paddingBottom: 16 },
-  headerRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 8, marginBottom: 18 },
+  hero:        { paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
+  deco1: { position: 'absolute', width: 190, height: 190, borderRadius: 95, backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40 },
+  deco2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)', bottom: -10, left: 40 },
+  headerRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 8, marginBottom: 16 },
   backBtn:     { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 21, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
   headerSub:   { fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: '600', marginTop: 2 },
+
+  // Real stat row (New / Quoted / Urgent)
+  statRow:  { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  statCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: rs(14), paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
+  statVal:  { fontFamily: DISPLAY, fontSize: rf(17), fontWeight: '800', color: '#fff' },
+  statLbl:  { fontSize: 9.5, fontWeight: '600', color: 'rgba(255,255,255,0.55)', marginTop: 2 },
 
   // Toggle
   toggle:          { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: 12, padding: 4, gap: 4 },
   toggleBtn:       { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 9 },
-  toggleBtnActive: { backgroundColor: '#fff' },
+  toggleBtnActive: { backgroundColor: C.g700 },
   toggleTxt:       { fontSize: 13, fontWeight: '800', color: 'rgba(255,255,255,0.7)' },
-  toggleTxtActive: { color: C.g800 },
+  toggleTxtActive: { color: '#fff' },
   togglePill:      { minWidth: 20, paddingHorizontal: 6, height: 18, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  togglePillActive:{ backgroundColor: C.g100 },
+  togglePillActive:{ backgroundColor: 'rgba(255,255,255,0.22)' },
   togglePillTxt:   { fontSize: 10, fontWeight: '800', color: '#fff' },
-  togglePillTxtActive: { color: C.g700 },
+  togglePillTxtActive: { color: '#fff' },
 
   // Chips
   chipsWrap: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
   chipsRow:  { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   chip:      { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
-  chipActive:{ backgroundColor: C.g600, borderColor: C.g600 },
+  chipActive:{ backgroundColor: C.g700, borderColor: C.g700 },
   chipTxt:   { fontSize: 12, fontWeight: '700', color: C.sub },
   chipTxtActive: { color: '#fff' },
 
@@ -385,36 +448,34 @@ const s = StyleSheet.create({
   body: { paddingHorizontal: 16, paddingTop: 14, gap: 10 },
 
   card: {
-    backgroundColor: C.card, borderRadius: 14, padding: 13,
+    backgroundColor: C.card, borderRadius: rs(18), padding: 13,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    ...cardShadow,
   },
-  cardTop:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  iconBox:   { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontSize: 13, fontWeight: '800', color: C.text },
-  cardSub:   { fontSize: 11, color: C.sub, marginTop: 2 },
+  cardTop:      { flexDirection: 'row', alignItems: 'center' },
+  cardMetaRow:  { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  cardTitle:    { fontSize: 11.5, color: C.sub, fontWeight: '600', flexShrink: 1 },
   ago:       { fontSize: 10, color: C.muted, fontWeight: '600' },
   urgent:    { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: C.redL, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10 },
   urgentTxt: { fontSize: 9, fontWeight: '800', color: C.red },
 
-  cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 11, borderTopWidth: 1, borderTopColor: C.border },
-  customer:    { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  avatar:      { width: 26, height: 26, borderRadius: 13, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
-  avatarTxt:   { fontSize: 11, fontWeight: '800', color: C.g700 },
-  customerTxt: { fontSize: 12, fontWeight: '600', color: C.text, flex: 1 },
+  cardBottom: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, paddingTop: 11, borderTopWidth: 1, borderTopColor: C.border },
+  avatar:      { width: 32, height: 32, borderRadius: 11, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
+  avatarTxt:   { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.g700 },
+  customerTxt: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text },
 
-  btn:    { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.g600, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  btn:    { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.g600, paddingHorizontal: 14, paddingVertical: 8, borderRadius: rs(10) },
   btnTxt: { fontSize: 12, fontWeight: '800', color: '#fff' },
 
-  quotedTag:    { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.g50, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: C.g100 },
-  quotedTagTxt: { fontSize: 11, fontWeight: '800', color: C.g700 },
-  acceptedTag:    { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#EFF6FF', paddingHorizontal: 11, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: '#BFDBFE' },
-  acceptedTagTxt: { fontSize: 11, fontWeight: '800', color: C.blue },
+  statusChip:    { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
+  statusChipTxt: { fontSize: 10.5, fontWeight: '800' },
+  amtChip:       { backgroundColor: C.g50, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 7 },
+  amtChipTxt:    { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: '800', color: C.g700 },
 
   // Empty / loading
   empty:      { alignItems: 'center', paddingTop: 60, gap: 6 },
-  emptyIcon:  { width: 60, height: 60, borderRadius: 30, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  emptyTitle: { fontSize: 15, fontWeight: '800', color: C.text },
+  halo:       { width: rs(90), height: rs(90), borderRadius: rs(45), backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  haloRing:   { width: rs(64), height: rs(64), borderRadius: rs(32), backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.text },
   emptySub:   { fontSize: 12, color: C.muted, textAlign: 'center' },
 });

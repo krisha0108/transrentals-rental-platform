@@ -189,6 +189,8 @@ import DirectBookingDetailScreen from './screens/vendor/direct-bookings/DirectBo
 
 // Booking Links
 import BookingLinksScreen from './screens/vendor/booking-links/BookingLinksScreen';
+import CustomizeBookingLinkScreen from './screens/vendor/booking-links/CustomizeBookingLinkScreen';
+import BookingLinkQRScreen from './screens/vendor/booking-links/BookingLinkQRScreen';
 
 // Financials
 import FinancialsScreen from './screens/vendor/financials/FinancialsScreen';
@@ -1043,6 +1045,8 @@ export default function App() {
 
             {/* Booking Links */}
             <Stack.Screen name="BookingLinks" component={BookingLinksScreen} />
+            <Stack.Screen name="CustomizeBookingLink" component={CustomizeBookingLinkScreen} />
+            <Stack.Screen name="BookingLinkQR" component={BookingLinkQRScreen} />
 
             {/* Financials */}
             <Stack.Screen name="Financials" component={FinancialsScreen} />

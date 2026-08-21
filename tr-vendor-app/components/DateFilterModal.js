@@ -10,16 +10,21 @@ import {
   Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import { SC as T, rs, cardShadow, SHEET_RADIUS } from '../screens/vendor/_shared/theme';
+import { DISPLAY } from '../screens/vendor/_shared/typography';
+import SheetHandle from '../screens/vendor/_shared/SheetHandle';
 
+// Same key names this component already used — only the values now come
+// from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#1E293B',
-  muted: '#64748B',
-  border: '#E2E8F0',
-  brand: '#3B82F6',
-  green: '#10B981',
-  red: '#EF4444',
+  bg: T.bg,
+  surface: T.card,
+  text: T.ink,
+  muted: T.subText,
+  border: T.border,
+  brand: T.emerald600,
+  green: T.emerald500,
+  red: T.red,
 };
 
 /**
@@ -189,11 +194,16 @@ const DateFilterModal = ({ visible, onClose, onApply, currentStartDate, currentE
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
+          <SheetHandle />
+
           {/* Header */}
           <View style={styles.header}>
+            <View style={styles.headerIconWrap}>
+              <Icon name="calendar" size={16} color={C.brand} />
+            </View>
             <Text style={styles.headerTitle}>Filter by Date</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Icon name="x" size={24} color={C.text} />
+            <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Icon name="x" size={20} color={C.muted} />
             </TouchableOpacity>
           </View>
 
@@ -215,7 +225,7 @@ const DateFilterModal = ({ visible, onClose, onApply, currentStartDate, currentE
                         onPress={() => handleQuickFilter(filter.value)}
                         activeOpacity={0.7}
                       >
-                        <Icon name={filter.icon} size={18} color={isActive ? '#FFFFFF' : C.brand} />
+                        <Icon name={filter.icon} size={16} color={isActive ? '#FFFFFF' : C.brand} />
                         <Text style={[styles.quickFilterText, isActive && styles.activeFilterText]}>
                           {filter.label}
                         </Text>
@@ -234,7 +244,7 @@ const DateFilterModal = ({ visible, onClose, onApply, currentStartDate, currentE
                   >
                     <Icon
                       name="edit-3"
-                      size={18}
+                      size={16}
                       color={currentFilterType === 'custom' ? '#FFFFFF' : C.brand}
                     />
                     <Text
@@ -255,7 +265,7 @@ const DateFilterModal = ({ visible, onClose, onApply, currentStartDate, currentE
                   onPress={handleBackFromCustom}
                   style={styles.backButton}
                 >
-                  <Icon name="arrow-left" size={20} color={C.brand} />
+                  <Icon name="arrow-left" size={18} color={C.brand} />
                   <Text style={styles.backButtonText}>Back</Text>
                 </TouchableOpacity>
 
@@ -327,33 +337,43 @@ const DateFilterModal = ({ visible, onClose, onApply, currentStartDate, currentE
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: T.scrim,
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: C.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: SHEET_RADIUS,
+    borderTopRightRadius: SHEET_RADIUS,
     maxHeight: '85%',
     paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+    ...cardShadow,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: rs(10),
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
+  headerIconWrap: {
+    width: rs(30), height: rs(30), borderRadius: rs(9),
+    backgroundColor: T.tintEmerald,
+    alignItems: 'center', justifyContent: 'center',
+  },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    flex: 1,
+    fontSize: 16.5,
+    fontWeight: '700',
     color: C.text,
+    fontFamily: DISPLAY,
   },
   closeButton: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.bg,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -364,10 +384,12 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: C.text,
+    fontSize: 13,
+    fontWeight: '700',
+    color: C.muted,
     marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   helperText: {
     fontSize: 12,
@@ -386,18 +408,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     backgroundColor: C.bg,
-    borderRadius: 8,
+    borderRadius: rs(20),
     borderWidth: 1,
     borderColor: C.border,
   },
   customButton: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: T.tintEmerald,
     borderColor: C.brand,
   },
   quickFilterText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
     color: C.text,
+    fontFamily: DISPLAY,
   },
   activeFilterButton: {
     backgroundColor: C.brand,
@@ -405,7 +428,7 @@ const styles = StyleSheet.create({
   },
   activeFilterText: {
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   backButton: {
     flexDirection: 'row',
@@ -415,15 +438,16 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: C.brand,
+    fontFamily: DISPLAY,
   },
   dateInputContainer: {
     marginBottom: 16,
   },
   dateLabel: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
     color: C.text,
     marginBottom: 8,
   },
@@ -431,7 +455,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     backgroundColor: C.bg,
-    borderRadius: 8,
+    borderRadius: rs(12),
     borderWidth: 1,
     borderColor: C.border,
     fontSize: 15,
@@ -443,7 +467,7 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 12,
     backgroundColor: '#FEE2E2',
-    borderRadius: 8,
+    borderRadius: rs(10),
     marginBottom: 16,
   },
   errorText: {
@@ -454,14 +478,16 @@ const styles = StyleSheet.create({
   applyCustomButton: {
     paddingVertical: 14,
     backgroundColor: C.brand,
-    borderRadius: 12,
+    borderRadius: rs(14),
     alignItems: 'center',
     justifyContent: 'center',
+    ...cardShadow,
   },
   applyCustomButtonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#FFFFFF',
+    fontFamily: DISPLAY,
   },
   footer: {
     paddingHorizontal: 20,
@@ -469,7 +495,7 @@ const styles = StyleSheet.create({
   },
   button: {
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: rs(14),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -480,8 +506,9 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: C.text,
+    fontFamily: DISPLAY,
   },
 });
 

@@ -11,17 +11,22 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { apiGet } from '../../api/client';
 import { ListSkeleton } from '../../../components/SkeletonLoader';
+import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#3B82F6', blueL: '#EFF6FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  orange: '#EA580C', orangeL: '#FFF7ED',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  purple: T.purple, purpleL: T.purpleLight,
+  orange: T.orange, orangeL: T.orangeL,
 };
 
 const SERVICE_TYPES = [
@@ -277,7 +282,9 @@ export default function ChatListScreen({ navigation }) {
     return (
       <SafeAreaView style={st.safe} edges={['top']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.heroLoading}>
+        <LinearGradient colors={G.hero} style={st.heroLoading}>
+          <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
           <View style={st.heroTopSimple}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
               <Icon name="arrow-left" size={20} color="#fff" />
@@ -296,9 +303,9 @@ export default function ChatListScreen({ navigation }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* ── HERO HEADER ── */}
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.hero}>
-        <View style={[st.deco, { width: 160, height: 160, top: -60, right: -40, opacity: 0.07 }]} />
-        <View style={[st.deco, { width: 70, height: 70, top: 8, right: 100, opacity: 0.04 }]} />
+      <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.hero}>
+        <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
 
         <View style={st.heroTop}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
@@ -329,17 +336,17 @@ export default function ChatListScreen({ navigation }) {
 
         {/* Search bar */}
         <View style={st.searchBar}>
-          <Ionicons name="search" size={16} color={C.muted} />
+          <Ionicons name="search" size={16} color="rgba(255,255,255,0.7)" />
           <TextInput
             style={st.searchInput}
             placeholder="Search customer, booking, service..."
-            placeholderTextColor={C.muted}
+            placeholderTextColor="rgba(255,255,255,0.55)"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={16} color={C.muted} />
+              <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.7)" />
             </TouchableOpacity>
           )}
         </View>
@@ -406,29 +413,44 @@ export default function ChatListScreen({ navigation }) {
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
 
-  hero:        { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16, overflow: 'hidden' },
-  heroLoading: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 18 },
+  hero:        {
+    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16, overflow: 'hidden',
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
+  },
+  heroLoading: {
+    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 18, overflow: 'hidden',
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
+  },
   heroTopSimple: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  deco: { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
+  orbA: {
+    position: 'absolute', top: -rs(50), right: -rs(30),
+    width: rs(170), height: rs(170), borderRadius: rs(85),
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  orbB: {
+    position: 'absolute', bottom: -rs(60), left: -rs(40),
+    width: rs(150), height: rs(150), borderRadius: rs(75),
+    backgroundColor: 'rgba(46,158,120,0.16)',
+  },
   heroTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
-  backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center', marginTop: 2 },
+  backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', justifyContent: 'center', alignItems: 'center', marginTop: 2 },
   heroMid: { flex: 1 },
   heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 5 },
-  heroBadgeTxt: { fontSize: 11, fontWeight: '600', color: C.g400 },
-  heroTitle: { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  heroSub:   { fontSize: 13, color: 'rgba(255,255,255,0.65)' },
+  heroBadgeTxt: { fontFamily: DISPLAY, fontSize: 11, fontWeight: '700', color: C.g400 },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 2, letterSpacing: -0.2 },
+  heroSub:   { fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: '600' },
   unreadToggle: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', marginTop: 2 },
   unreadToggleActive: { backgroundColor: '#fff' },
   unreadToggleDot: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: C.red, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3, borderWidth: 2, borderColor: C.g800 },
   unreadToggleDotTxt: { fontSize: 9, fontWeight: '800', color: '#fff' },
 
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 14, paddingHorizontal: 13, paddingVertical: 10, gap: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  searchInput: { flex: 1, fontSize: 14, color: '#fff', padding: 0 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 14, paddingHorizontal: 13, paddingVertical: 10, gap: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' },
+  searchInput: { fontFamily: DISPLAY, flex: 1, fontSize: 14, color: '#fff', padding: 0, fontWeight: '600' },
 
   filterWrap:   { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
   filterScroll: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   filterChip:   { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border },
-  filterChipTxt:   { fontSize: 12, fontWeight: '700', color: C.muted },
+  filterChipTxt:   { fontFamily: DISPLAY, fontSize: 12, fontWeight: '700', color: C.muted },
   filterChipBadge: { minWidth: 18, height: 18, borderRadius: 9, backgroundColor: C.border, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
   filterChipBadgeTxt: { fontSize: 10, fontWeight: '800', color: C.muted },
 
@@ -436,19 +458,18 @@ const st = StyleSheet.create({
 
   chatCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.card, borderRadius: 16, padding: 14,
+    backgroundColor: C.card, borderRadius: rs(16), padding: 14,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 }, elevation: 2,
+    ...cardShadow,
     overflow: 'hidden',
   },
   chatCardUnread: { borderColor: C.g100, backgroundColor: C.g50 },
-  unreadBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: C.g500, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 },
+  unreadBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: C.g500, borderTopLeftRadius: rs(16), borderBottomLeftRadius: rs(16) },
 
   avatarWrap:    { marginRight: 12, position: 'relative' },
-  avatar:        { width: 52, height: 52, borderRadius: 26 },
-  avatarCircle:  { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center' },
-  avatarInitial: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  avatar:        { width: 52, height: 52, borderRadius: 16 },
+  avatarCircle:  { width: 52, height: 52, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  avatarInitial: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: '#fff' },
   unreadBadge:   { position: 'absolute', top: -3, right: -3, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: C.red, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3, borderWidth: 2, borderColor: C.card },
   unreadBadgeTxt:{ fontSize: 9, fontWeight: '800', color: '#fff' },
 
@@ -456,8 +477,8 @@ const st = StyleSheet.create({
   chatRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chatRow2: { flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' },
   chatRow3: { flexDirection: 'row', alignItems: 'center' },
-  chatName: { fontSize: 15, fontWeight: '700', color: C.text, flex: 1, marginRight: 6 },
-  chatTime: { fontSize: 11, color: C.muted, fontWeight: '500' },
+  chatName: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '700', color: C.text, flex: 1, marginRight: 6 },
+  chatTime: { fontSize: 11, color: C.muted, fontWeight: '600' },
 
   bookingCountPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.g50, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: C.g100 },
   bookingCountTxt: { fontSize: 10, fontWeight: '700', color: C.g700 },
@@ -468,6 +489,6 @@ const st = StyleSheet.create({
 
   empty:     { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
   emptyIcon: { width: 90, height: 90, borderRadius: 45, backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center', marginBottom: 18, borderWidth: 1, borderColor: C.g100 },
-  emptyTitle:{ fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 8, textAlign: 'center' },
+  emptyTitle:{ fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 8, textAlign: 'center' },
   emptyMsg:  { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 21 },
 });

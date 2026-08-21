@@ -44,18 +44,25 @@ import {
   sendMessage,
 } from '../../api/socialApi';
 import { getFullImageURL } from '../../api/client';
+import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
-const G = {
-  bg: '#F8FAFC', surface: '#FFFFFF', text: '#1E293B', muted: '#64748B',
-  border: '#E2E8F0', violet: '#059669', violetL: '#ECFDF5',
-  red: '#EF4444', redL: '#FEF2F2', green: '#059669', greenL: '#ECFDF5',
-  orange: '#F97316', orangeL: '#FFF7ED', amber: '#D97706', amberL: '#FFFBEB',
-  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g600: '#059669',
+// Local hex-named palette this screen already used everywhere below — same
+// key names, now pointed at the shared "Elevate" theme tokens instead of
+// hardcoded hex. Renamed G -> C so it doesn't collide with the theme's own
+// `G` gradients export, mirroring the rename CreatePostScreen.js just used.
+const C = {
+  bg: T.bg, surface: T.card, text: T.ink, muted: T.subText,
+  border: T.border, violet: T.emerald600, violetL: T.tintEmerald,
+  red: T.red, redL: T.redLight, green: T.emerald600, greenL: T.tintEmerald,
+  orange: T.orange, orangeL: T.orangeL, amber: T.amber, amberL: T.tintGold,
+  g950: T.forestDark, g900: T.forest, g800: T.emeraldDeep, g600: T.emerald600,
 };
 
-const AVATAR_COLORS = ['#059669', '#DC2626', '#16A34A', '#F97316', '#0891B2', '#DB2777', '#D97706'];
+const AVATAR_COLORS = [T.emerald, T.ocean, T.gold, T.rose, T.indigo, T.orange, T.emeraldDeep];
 const getAvatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
 const formatTimeAgo = (dateStr) => {
@@ -95,11 +102,11 @@ function wrapText(text, maxChars = 62) {
 const PostCardSVG = React.forwardRef(({ post }, ref) => {
   if (!post) return null;
   const isSOS = post.category?.isSOS || post.category?.name?.toLowerCase() === 'sos';
-  const accent1 = isSOS ? '#ef4444' : '#059669';
-  const accent2 = isSOS ? '#f97316' : '#047857';
-  const bgTint = isSOS ? '#fff7f7' : '#f0fdf4';
-  const catBg = isSOS ? '#fee2e2' : '#d1fae5';
-  const catColor = isSOS ? '#dc2626' : '#059669';
+  const accent1 = isSOS ? C.red : C.violet;
+  const accent2 = isSOS ? '#8E332B' : T.forestDark;
+  const bgTint = isSOS ? T.redLight : T.tintEmerald;
+  const catBg = isSOS ? T.redLight : T.tintEmerald;
+  const catColor = isSOS ? C.red : C.violet;
 
   const vendorName = post.vendor?.businessName || 'Vendor';
   const ownerName = post.vendor?.ownerName || '';
@@ -227,9 +234,9 @@ function AvatarCircle({ name, logo, size = 40, style }) {
   return (
     <View style={[{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, style]}>
       {logo && uri && !imgErr ? (
-        <Image 
-          source={{ uri }} 
-          style={{ width: size, height: size, borderRadius: size / 2 }} 
+        <Image
+          source={{ uri }}
+          style={{ width: size, height: size, borderRadius: size / 2 }}
           onError={() => setImgErr(true)}
         />
       ) : (
@@ -271,11 +278,11 @@ function PostImages({ images }) {
 }
 
 const postImageStyles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
-  img: { borderRadius: 12, backgroundColor: '#E2E8F0' },
-  imgSingle: { width: '100%', height: 220 },
-  imgMulti: { width: '48.5%', height: 130 },
-  imgWide: { width: '100%', height: 160 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(5), overflow: 'hidden', borderRadius: rs(14), borderWidth: 1, borderColor: T.tintBorder },
+  img: { backgroundColor: T.tintBorder },
+  imgSingle: { width: '100%', height: rs(170) },
+  imgMulti: { width: '49%', height: rs(105) },
+  imgWide: { width: '100%', height: rs(120) },
 });
 
 export default function SocialFeedScreen({ navigation }) {
@@ -406,7 +413,7 @@ export default function SocialFeedScreen({ navigation }) {
 
   useFocusEffect(useCallback(() => {
     StatusBar.setBarStyle('light-content');
-    if (Platform.OS === 'android') StatusBar.setBackgroundColor(G.g950);
+    if (Platform.OS === 'android') StatusBar.setBackgroundColor(C.g950);
   }, []));
 
   useEffect(() => { initialLoad(); }, []);
@@ -765,8 +772,8 @@ export default function SocialFeedScreen({ navigation }) {
   const renderCategoryBadge = (post) => {
     const isSOS = post.category?.name?.toLowerCase() === 'sos' || post.type === 'sos';
     return (
-      <View style={[styles.catBadge, { backgroundColor: isSOS ? G.redL : G.violetL }]}>
-        <Text style={[styles.catBadgeText, { color: isSOS ? G.red : G.violet }]}>
+      <View style={[styles.catBadge, { backgroundColor: isSOS ? C.redL : C.violetL }]}>
+        <Text style={[styles.catBadgeText, { color: isSOS ? C.red : C.violet }]}>
           {isSOS ? '🚨 SOS' : post.category?.name || 'General'}
         </Text>
       </View>
@@ -776,77 +783,68 @@ export default function SocialFeedScreen({ navigation }) {
   const renderPost = ({ item }) => {
     const isSOS = item.category?.name?.toLowerCase() === 'sos' || item.type === 'sos';
     const isOwn = String(item.vendorId) === String(currentVendorId);
-    const accentColor = isSOS ? G.red : G.green;
-    const catBg = isSOS ? '#FEF2F2' : '#ECFDF5';
-    const catText = isSOS ? G.red : G.green;
+    const catBg = isSOS ? C.redL : C.greenL;
+    const catText = isSOS ? C.red : C.green;
 
     return (
       <View style={styles.postCard}>
-        {/* Colored left accent bar */}
-        <View style={[styles.postAccentBar, { backgroundColor: accentColor }]} />
+        <TouchableOpacity
+          activeOpacity={0.6}
+          onPress={() => navigation.navigate('SocialProfileScreen', { vendorId: item.vendorId })}
+        >
+          <AvatarCircle name={item.vendor?.businessName} logo={item.vendor?.logo} size={rs(34)} style={styles.postAvatar} />
+        </TouchableOpacity>
 
-        <View style={styles.postInner}>
-          {/* Post Header */}
-          <View style={styles.postHeader}>
-            <TouchableOpacity
-              style={styles.postVendorRow}
-              onPress={() => navigation.navigate('SocialProfileScreen', { vendorId: item.vendorId })}
-              activeOpacity={0.75}
-            >
-              <AvatarCircle name={item.vendor?.businessName} logo={item.vendor?.logo} size={42} />
-              <View style={styles.postVendorInfo}>
-                <Text style={styles.postVendorName} numberOfLines={1}>
-                  {item.vendor?.businessName || 'Unknown Vendor'}
-                </Text>
-                <Text style={styles.postMeta} numberOfLines={1}>
-                  {item.vendor?.city ? `${item.vendor.city} · ` : ''}{formatTimeAgo(item.createdAt)}
-                </Text>
-              </View>
-            </TouchableOpacity>
-            <View style={styles.postHeaderRight}>
+        <View style={styles.postBody}>
+          {/* Line 1 — name · time, category tag + menu pushed right, Twitter-style */}
+          <View style={styles.postLine1}>
+            <Text style={styles.postVendorName} numberOfLines={1}>
+              {item.vendor?.businessName || 'Unknown Vendor'}
+            </Text>
+            <Text style={styles.postMeta} numberOfLines={1}>
+              · {item.vendor?.city ? `${item.vendor.city} · ` : ''}{formatTimeAgo(item.createdAt)}
+            </Text>
+            <View style={styles.postLine1Right}>
               <View style={[styles.catBadge, { backgroundColor: catBg }]}>
-                {isSOS && <Icon name="alert-circle" size={10} color={catText} style={{ marginRight: 3 }} />}
+                {isSOS && <Icon name="alert-circle" size={rs(9)} color={catText} style={{ marginRight: rs(3) }} />}
                 <Text style={[styles.catBadgeText, { color: catText }]}>
                   {isSOS ? 'SOS' : (item.category?.name || 'General')}
                 </Text>
               </View>
               <TouchableOpacity style={styles.menuBtn} onPress={() => setMenuPost(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Icon name="more-vertical" size={18} color={G.muted} />
+                <Icon name="more-vertical" size={rs(16)} color={C.muted} />
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Content */}
-          <Text style={styles.postContent}>{item.content}</Text>
+          {!!item.content && <Text style={styles.postContent}>{item.content}</Text>}
 
-          {/* Images */}
+          {/* Images — compact, rounded, inline within the text column */}
           <PostImages images={item.images} />
 
-          {/* Action bar */}
+          {/* Icon row — compact icon + count pairs, Twitter-style */}
           <View style={styles.actionBar}>
-            <TouchableOpacity style={[styles.actionBtn, item.isLiked && styles.actionBtnLiked]} onPress={() => handleLike(item.id)}>
-              <MCI name={item.isLiked ? 'heart' : 'heart-outline'} size={17} color={item.isLiked ? G.red : G.muted} />
-              <Text style={[styles.actionLabel, item.isLiked && { color: G.red }]}>
-                {item.likesCount > 0 ? item.likesCount : 'Like'}
-              </Text>
+            <TouchableOpacity style={styles.actionPair} onPress={() => openComments(item)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+              <MCI name="comment-outline" size={rs(15)} color={C.muted} />
+              {item.commentsCount > 0 && <Text style={styles.actionCount}>{item.commentsCount}</Text>}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionBtn} onPress={() => openComments(item)}>
-              <MCI name="comment-outline" size={17} color={G.muted} />
-              <Text style={styles.actionLabel}>{item.commentsCount > 0 ? item.commentsCount : 'Comment'}</Text>
+            <TouchableOpacity style={styles.actionPair} onPress={() => handleLike(item.id)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+              <MCI name={item.isLiked ? 'heart' : 'heart-outline'} size={rs(15)} color={item.isLiked ? C.red : C.muted} />
+              {item.likesCount > 0 && <Text style={[styles.actionCount, item.isLiked && { color: C.red }]}>{item.likesCount}</Text>}
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.actionBtn, item.isSaved && styles.actionBtnSaved]} onPress={() => handleSave(item.id)}>
-              <MCI name={item.isSaved ? 'bookmark' : 'bookmark-outline'} size={17} color={item.isSaved ? G.green : G.muted} />
-              <Text style={[styles.actionLabel, item.isSaved && { color: G.green }]}>Save</Text>
+            <TouchableOpacity style={styles.actionPair} onPress={() => handleShareToChat(item)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+              <Icon name="send" size={rs(14)} color={C.muted} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionBtnShare} onPress={() => handleShareToChat(item)}>
-              <Icon name="send" size={15} color={G.green} />
+            <TouchableOpacity style={styles.actionPair} onPress={() => handleShare(item)} disabled={sharingCard} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+              <Icon name="share-2" size={rs(14)} color={sharingCard ? C.border : C.muted} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionBtnShare} onPress={() => handleShare(item)} disabled={sharingCard}>
-              <Icon name="share-2" size={15} color={sharingCard ? G.border : G.muted} />
+            <TouchableOpacity style={[styles.actionPair, { marginLeft: 'auto' }]} onPress={() => handleSave(item.id)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+              <MCI name={item.isSaved ? 'bookmark' : 'bookmark-outline'} size={rs(15)} color={item.isSaved ? C.green : C.muted} />
             </TouchableOpacity>
           </View>
         </View>
@@ -859,32 +857,36 @@ export default function SocialFeedScreen({ navigation }) {
   // ── Main Render ───────────────────────────────────────────────────────
   return (
     <View style={styles.safe} {...screenPanResponder.panHandlers}>
-      <StatusBar barStyle="light-content" backgroundColor={G.g950} translucent={false} />
+      <StatusBar barStyle="light-content" backgroundColor={C.g950} translucent={false} />
       {/* Header */}
-      <LG colors={[G.g950, G.g900, G.g800]} style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <View style={styles.headerLeft}>
-          <View style={styles.headerIconWrap}>
-            <Icon name="trending-up" size={18} color="#fff" />
+      <LG colors={G.hero} style={[styles.header, { paddingTop: insets.top + rs(10) }]}>
+        <AnimatedOrb style={styles.orbA} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <View style={styles.headerRow}>
+          <View style={styles.headerLeft}>
+            <View style={styles.headerIconWrap}>
+              <Icon name="trending-up" size={rs(18)} color="#fff" />
+            </View>
+            <View>
+              <Text style={styles.headerTitle}>Vendor Network</Text>
+              <Text style={styles.headerSub}>Connect · Share · Grow</Text>
+            </View>
           </View>
-          <View>
-            <Text style={styles.headerTitle}>Vendor Network</Text>
-            <Text style={styles.headerSub}>Connect · Share · Grow</Text>
-          </View>
+          <TouchableOpacity
+            style={styles.headerMsgBtn}
+            onPress={() => navigation.navigate('SocialMessagesScreen')}
+            activeOpacity={0.8}
+          >
+            <Icon name="message-circle" size={rs(20)} color="#fff" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.headerMsgBtn}
-          onPress={() => navigation.navigate('SocialMessagesScreen')}
-          activeOpacity={0.8}
-        >
-          <Icon name="message-circle" size={20} color="#fff" />
-        </TouchableOpacity>
       </LG>
 
       <FlatList
         data={displayPosts}
         keyExtractor={(item) => item.id}
         renderItem={renderPost}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={G.violet} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.violet} />}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
@@ -894,7 +896,7 @@ export default function SocialFeedScreen({ navigation }) {
               <View style={styles.sosStrip}>
                 <View style={styles.sosStripHeader}>
                   <View style={styles.sosStripIconWrap}>
-                    <Icon name="alert-circle" size={14} color={G.red} />
+                    <Icon name="alert-circle" size={rs(14)} color={C.red} />
                   </View>
                   <Text style={styles.sosStripLabel}>Urgent SOS</Text>
                   <Text style={styles.sosStripCount}>{sosPosts.length} post{sosPosts.length !== 1 ? 's' : ''}</Text>
@@ -903,7 +905,7 @@ export default function SocialFeedScreen({ navigation }) {
                   {sosGroups.map((group, index) => (
                     <TouchableOpacity key={group.vendor?.id || index} style={styles.sosCircleWrap} onPress={() => openStory(index)} activeOpacity={0.8}>
                       <View style={styles.sosCircleBorder}>
-                        <AvatarCircle name={group.vendor?.businessName} logo={group.vendor?.logo} size={52} />
+                        <AvatarCircle name={group.vendor?.businessName} logo={group.vendor?.logo} size={rs(52)} />
                       </View>
                       <Text style={styles.sosCircleName} numberOfLines={1}>
                         {group.vendor?.businessName?.split(' ')[0] || 'SOS'}
@@ -917,8 +919,8 @@ export default function SocialFeedScreen({ navigation }) {
             {/* Tabs */}
             <View style={styles.tabsRow}>
               {['feed', 'saved'].map((t) => (
-                <TouchableOpacity key={t} style={[styles.tab, tab === t && styles.tabActive]} onPress={() => switchTab(t)}>
-                  <Icon name={t === 'feed' ? 'rss' : 'bookmark'} size={14} color={tab === t ? G.green : G.muted} />
+                <TouchableOpacity key={t} style={[styles.tab, tab === t && styles.tabActive]} onPress={() => switchTab(t)} activeOpacity={0.8}>
+                  <Icon name={t === 'feed' ? 'rss' : 'bookmark'} size={rs(14)} color={tab === t ? C.green : C.muted} />
                   <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
                     {t === 'feed' ? 'Feed' : 'Saved'}
                   </Text>
@@ -952,11 +954,11 @@ export default function SocialFeedScreen({ navigation }) {
         }
         ListFooterComponent={
           loading ? (
-            <ActivityIndicator color={G.violet} style={{ margin: 24 }} />
+            <ActivityIndicator color={C.violet} style={{ margin: rs(24) }} />
           ) : hasMore && tab === 'feed' ? (
-            <TouchableOpacity style={styles.loadMoreBtn} onPress={onLoadMore} disabled={loadingMore}>
+            <TouchableOpacity style={styles.loadMoreBtn} onPress={onLoadMore} disabled={loadingMore} activeOpacity={0.85}>
               {loadingMore
-                ? <ActivityIndicator color={G.violet} size="small" />
+                ? <ActivityIndicator color={C.violet} size="small" />
                 : <Text style={styles.loadMoreText}>Load more posts</Text>}
             </TouchableOpacity>
           ) : null
@@ -964,7 +966,9 @@ export default function SocialFeedScreen({ navigation }) {
         ListEmptyComponent={
           !loading ? (
             <View style={styles.emptyWrap}>
-              <Icon name={tab === 'saved' ? 'bookmark' : 'rss'} size={48} color={G.border} />
+              <View style={styles.emptyIconWrap}>
+                <Icon name={tab === 'saved' ? 'bookmark' : 'rss'} size={rs(40)} color={C.violet} />
+              </View>
               <Text style={styles.emptyTitle}>{tab === 'saved' ? 'No saved posts' : 'No posts yet'}</Text>
               <Text style={styles.emptyText}>
                 {tab === 'saved' ? 'Bookmark posts to see them here.' : 'Be the first to post something!'}
@@ -983,7 +987,7 @@ export default function SocialFeedScreen({ navigation }) {
           </View>
           {/* Spinner on top */}
           <View style={styles.sharingSpinner} pointerEvents="none">
-            <ActivityIndicator color={G.violet} size="large" />
+            <ActivityIndicator color={C.violet} size="large" />
             <Text style={styles.sharingText}>Generating card…</Text>
           </View>
         </View>
@@ -991,7 +995,9 @@ export default function SocialFeedScreen({ navigation }) {
 
       {/* ── Floating New Post Button (tap or swipe-up) ─────────────────── */}
       <View style={styles.floatingNewPostBtn} {...fabPanResponder.panHandlers}>
-        <Icon name="plus" size={26} color="#fff" />
+        <LG colors={G.emerald} style={styles.floatingNewPostBtnInner}>
+          <Icon name="plus" size={rs(26)} color="#fff" />
+        </LG>
       </View>
 
       {/* ── SOS Story Viewer Modal ─────────────────────────────────────── */}
@@ -1028,7 +1034,7 @@ export default function SocialFeedScreen({ navigation }) {
                   {/* Pause indicator */}
                   {storyPaused && (
                     <View style={styles.storyPausedOverlay} pointerEvents="none">
-                      <Icon name="pause" size={40} color="rgba(255,255,255,0.7)" />
+                      <Icon name="pause" size={rs(40)} color="rgba(255,255,255,0.7)" />
                     </View>
                   )}
 
@@ -1052,7 +1058,7 @@ export default function SocialFeedScreen({ navigation }) {
                         activeOpacity={0.8}
                       >
                         <View style={styles.storyAvatarBorder}>
-                          <AvatarCircle name={currentPost.vendor?.businessName} logo={currentPost.vendor?.logo} size={36} />
+                          <AvatarCircle name={currentPost.vendor?.businessName} logo={currentPost.vendor?.logo} size={rs(36)} />
                         </View>
                         <View style={styles.storyHeaderInfo}>
                           <Text style={styles.storyVendorName} numberOfLines={1}>
@@ -1065,7 +1071,7 @@ export default function SocialFeedScreen({ navigation }) {
                         </View>
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.storyCloseBtn} onPress={() => setStoryVisible(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                        <Icon name="x" size={22} color="#fff" />
+                        <Icon name="x" size={rs(22)} color="#fff" />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1073,13 +1079,13 @@ export default function SocialFeedScreen({ navigation }) {
                   {/* Content */}
                   <View style={styles.storyContent}>
                     <View style={styles.storySOSBadge}>
-                      <Icon name="alert-circle" size={14} color="#fff" />
+                      <Icon name="alert-circle" size={rs(14)} color="#fff" />
                       <Text style={styles.storySOSBadgeText}>SOS · URGENT</Text>
                     </View>
                     <Text style={styles.storyText}>{currentPost.content}</Text>
                     {currentPost.vendor?.city ? (
                       <View style={styles.storyLocationRow}>
-                        <Icon name="map-pin" size={13} color="rgba(255,255,255,0.6)" />
+                        <Icon name="map-pin" size={rs(13)} color="rgba(255,255,255,0.6)" />
                         <Text style={styles.storyLocationText}>{currentPost.vendor.city}</Text>
                       </View>
                     ) : null}
@@ -1113,7 +1119,7 @@ export default function SocialFeedScreen({ navigation }) {
                     >
                       {storySendingComment
                         ? <ActivityIndicator size="small" color="#fff" />
-                        : <Icon name="send" size={18} color="#fff" />}
+                        : <Icon name="send" size={rs(18)} color="#fff" />}
                     </TouchableOpacity>
                   </View>
 
@@ -1124,7 +1130,7 @@ export default function SocialFeedScreen({ navigation }) {
                   >
                     <MCI
                       name={currentPost.isLiked ? 'heart' : 'heart-outline'}
-                      size={28}
+                      size={rs(28)}
                       color={currentPost.isLiked ? '#FF4D4D' : '#fff'}
                     />
                     {currentPost.likesCount > 0 && (
@@ -1144,33 +1150,42 @@ export default function SocialFeedScreen({ navigation }) {
       <Modal visible={!!menuPost} transparent animationType="fade" onRequestClose={() => setMenuPost(null)}>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuPost(null)}>
           <View style={styles.menuSheet}>
-            <View style={styles.menuHandle} />
+            <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
             {menuPost && String(menuPost.vendorId) !== String(currentVendorId) && (
-              <TouchableOpacity style={styles.menuItem} onPress={() => handleFollow(menuPost.vendorId)}>
-                <Icon name="user-plus" size={18} color={G.violet} />
+              <TouchableOpacity style={styles.menuItem} onPress={() => handleFollow(menuPost.vendorId)} activeOpacity={0.85}>
+                <View style={[styles.menuItemIcon, { backgroundColor: C.violetL }]}>
+                  <Icon name="user-plus" size={rs(16)} color={C.violet} />
+                </View>
                 <Text style={styles.menuItemText}>Follow / Unfollow</Text>
               </TouchableOpacity>
             )}
             {menuPost && String(menuPost.vendorId) !== String(currentVendorId) && (
               <TouchableOpacity
                 style={styles.menuItem}
+                activeOpacity={0.85}
                 onPress={() => {
                   setMenuPost(null);
                   navigation.navigate('SocialProfileScreen', { vendorId: menuPost.vendorId });
                 }}
               >
-                <Icon name="user" size={18} color={G.muted} />
+                <View style={[styles.menuItemIcon, { backgroundColor: T.tintBorder }]}>
+                  <Icon name="user" size={rs(16)} color={C.muted} />
+                </View>
                 <Text style={styles.menuItemText}>View Profile</Text>
               </TouchableOpacity>
             )}
             {menuPost && String(menuPost.vendorId) === String(currentVendorId) && (
-              <TouchableOpacity style={styles.menuItem} onPress={() => handleDelete(menuPost.id)}>
-                <Icon name="trash-2" size={18} color={G.red} />
-                <Text style={[styles.menuItemText, { color: G.red }]}>Delete Post</Text>
+              <TouchableOpacity style={styles.menuItem} onPress={() => handleDelete(menuPost.id)} activeOpacity={0.85}>
+                <View style={[styles.menuItemIcon, { backgroundColor: C.redL }]}>
+                  <Icon name="trash-2" size={rs(16)} color={C.red} />
+                </View>
+                <Text style={[styles.menuItemText, { color: C.red }]}>Delete Post</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.menuItem} onPress={() => setMenuPost(null)}>
-              <Icon name="x" size={18} color={G.muted} />
+            <TouchableOpacity style={styles.menuItem} onPress={() => setMenuPost(null)} activeOpacity={0.85}>
+              <View style={[styles.menuItemIcon, { backgroundColor: T.tintBorder }]}>
+                <Icon name="x" size={rs(16)} color={C.muted} />
+              </View>
               <Text style={styles.menuItemText}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -1182,11 +1197,14 @@ export default function SocialFeedScreen({ navigation }) {
         <View style={styles.commentOverlay}>
           <TouchableOpacity style={styles.commentBackdrop} onPress={() => setShareToChatPost(null)} />
           <View style={styles.commentSheet}>
-            <View style={styles.commentSheetHandle} />
+            <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
             <View style={styles.commentSheetHeader}>
+              <View style={styles.commentSheetHeaderIcon}>
+                <Icon name="send" size={rs(15)} color={C.violet} />
+              </View>
               <Text style={styles.commentSheetTitle}>Share to Chat</Text>
-              <TouchableOpacity onPress={() => setShareToChatPost(null)}>
-                <Icon name="x" size={20} color={G.muted} />
+              <TouchableOpacity onPress={() => setShareToChatPost(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Icon name="x" size={rs(20)} color={C.muted} />
               </TouchableOpacity>
             </View>
 
@@ -1203,12 +1221,12 @@ export default function SocialFeedScreen({ navigation }) {
             )}
 
             {shareConvLoading ? (
-              <ActivityIndicator color={G.violet} style={{ margin: 24 }} />
+              <ActivityIndicator color={C.violet} style={{ margin: rs(24) }} />
             ) : shareConversations.length === 0 ? (
               <View style={styles.commentEmpty}>
-                <Icon name="message-circle" size={36} color={G.border} />
+                <Icon name="message-circle" size={rs(36)} color={C.border} />
                 <Text style={styles.commentEmptyText}>No conversations yet</Text>
-                <Text style={[styles.commentEmptyText, { fontSize: 12, marginTop: 4 }]}>
+                <Text style={[styles.commentEmptyText, { fontSize: rs(12), marginTop: rs(4) }]}>
                   Start a chat first from the Messages screen
                 </Text>
               </View>
@@ -1225,14 +1243,14 @@ export default function SocialFeedScreen({ navigation }) {
                       disabled={!!sendingToChat}
                       activeOpacity={0.75}
                     >
-                      <AvatarCircle name={vendor.businessName} logo={vendor.logo} size={40} />
+                      <AvatarCircle name={vendor.businessName} logo={vendor.logo} size={rs(40)} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.shareChatConvName} numberOfLines={1}>{vendor.businessName || 'Vendor'}</Text>
                         {vendor.ownerName && <Text style={styles.shareChatConvOwner} numberOfLines={1}>{vendor.ownerName}</Text>}
                       </View>
                       {isSending
-                        ? <ActivityIndicator size="small" color={G.violet} />
-                        : <Icon name="send" size={16} color={G.violet} />}
+                        ? <ActivityIndicator size="small" color={C.violet} />
+                        : <Icon name="send" size={rs(16)} color={C.violet} />}
                     </TouchableOpacity>
                   );
                 })}
@@ -1247,26 +1265,29 @@ export default function SocialFeedScreen({ navigation }) {
         <View style={styles.commentOverlay}>
           <TouchableOpacity style={styles.commentBackdrop} onPress={() => closeComments()} />
           <View style={styles.commentSheet}>
-            <View style={styles.commentSheetHandle} />
+            <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
             <View style={styles.commentSheetHeader}>
+              <View style={styles.commentSheetHeaderIcon}>
+                <Icon name="message-circle" size={rs(15)} color={C.violet} />
+              </View>
               <Text style={styles.commentSheetTitle}>Comments</Text>
-              <TouchableOpacity onPress={() => closeComments()}>
-                <Icon name="x" size={20} color={G.muted} />
+              <TouchableOpacity onPress={() => closeComments()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Icon name="x" size={rs(20)} color={C.muted} />
               </TouchableOpacity>
             </View>
 
             {commentsLoading ? (
-              <ActivityIndicator color={G.violet} style={{ margin: 24 }} />
+              <ActivityIndicator color={C.violet} style={{ margin: rs(24) }} />
             ) : comments.length === 0 ? (
               <View style={styles.commentEmpty}>
-                <Icon name="message-circle" size={36} color={G.border} />
+                <Icon name="message-circle" size={rs(36)} color={C.border} />
                 <Text style={styles.commentEmptyText}>No comments yet</Text>
               </View>
             ) : (
               <ScrollView style={styles.commentsList} showsVerticalScrollIndicator={false}>
                 {comments.map((c) => (
                   <View key={c.id} style={styles.commentItem}>
-                    <AvatarCircle name={c.vendor?.businessName || c.author?.businessName} logo={c.vendor?.logo || c.author?.logo} size={32} />
+                    <AvatarCircle name={c.vendor?.businessName || c.author?.businessName} logo={c.vendor?.logo || c.author?.logo} size={rs(32)} />
                     <View style={styles.commentBody}>
                       <Text style={styles.commentAuthor}>{c.vendor?.businessName || c.author?.businessName || 'Vendor'}</Text>
                       <Text style={styles.commentText}>{c.content}</Text>
@@ -1281,7 +1302,7 @@ export default function SocialFeedScreen({ navigation }) {
               <TextInput
                 style={styles.commentTextInput}
                 placeholder="Write a comment..."
-                placeholderTextColor={G.muted}
+                placeholderTextColor={C.muted}
                 value={commentText}
                 onChangeText={setCommentText}
                 multiline
@@ -1290,10 +1311,11 @@ export default function SocialFeedScreen({ navigation }) {
                 style={[styles.commentSendBtn, (!commentText.trim() || sendingComment) && styles.commentSendBtnDisabled]}
                 onPress={handleAddComment}
                 disabled={!commentText.trim() || sendingComment}
+                activeOpacity={0.85}
               >
                 {sendingComment
                   ? <ActivityIndicator size="small" color="#fff" />
-                  : <Icon name="send" size={16} color="#fff" />}
+                  : <Icon name="send" size={rs(16)} color="#fff" />}
               </TouchableOpacity>
             </View>
           </View>
@@ -1304,22 +1326,38 @@ export default function SocialFeedScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: G.bg },
+  safe: { flex: 1, backgroundColor: C.bg },
 
-  // Header
+  // Header — hero gradient with rounded bottom corners + ambient orbs
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingBottom: 14,
+    paddingHorizontal: rs(16), paddingBottom: rs(14),
+    borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
+    overflow: 'hidden',
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  orbA: {
+    position: 'absolute', top: -rs(44), right: -rs(30), width: rs(170), height: rs(170), borderRadius: rs(85),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  orbB: {
+    position: 'absolute', bottom: -rs(36), left: -rs(34), width: rs(140), height: rs(140), borderRadius: rs(70),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  headerRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: rs(10) },
   headerIconWrap: {
-    width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.15)',
+    width: rs(36), height: rs(36), borderRadius: rs(11), backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
     alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
-  headerSub: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 1 },
+  headerTitle: {
+    fontFamily: DISPLAY, fontSize: rs(18), fontWeight: 'bold', color: '#fff', letterSpacing: 0.2,
+    includeFontPadding: false,
+  },
+  headerSub: { fontFamily: DISPLAY, fontSize: rs(11), color: 'rgba(255,255,255,0.65)', marginTop: rs(1), includeFontPadding: false },
   headerMsgBtn: {
-    width: 38, height: 38, borderRadius: 19,
+    width: rs(38), height: rs(38), borderRadius: rs(19),
     backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
@@ -1327,104 +1365,96 @@ const styles = StyleSheet.create({
 
   // SOS Strip
   sosStrip: {
-    backgroundColor: G.surface, paddingTop: 12, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: G.border, marginBottom: 4,
-    borderLeftWidth: 3, borderLeftColor: G.red,
-    marginHorizontal: 12, marginTop: 8, borderRadius: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
+    backgroundColor: C.surface, paddingTop: rs(12), paddingBottom: rs(12),
+    borderWidth: 1, borderColor: C.border, marginBottom: rs(4),
+    borderLeftWidth: 3, borderLeftColor: C.red,
+    marginHorizontal: rs(12), marginTop: rs(12), borderRadius: rs(16),
+    ...cardShadow,
   },
-  sosStripHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, marginBottom: 10, gap: 6 },
-  sosStripIconWrap: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center' },
-  sosStripLabel: { fontSize: 12, fontWeight: '700', color: G.red, flex: 1 },
-  sosStripCount: { fontSize: 11, color: G.muted, fontWeight: '500' },
-  sosScrollContent: { paddingHorizontal: 10, gap: 12 },
-  sosCircleWrap: { alignItems: 'center', width: 62 },
-  sosCircleBorder: { padding: 2.5, borderRadius: 32, borderWidth: 2.5, borderColor: G.red, marginBottom: 5 },
-  sosCircleName: { fontSize: 10, color: G.text, fontWeight: '600', textAlign: 'center' },
+  sosStripHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: rs(12), marginBottom: rs(10), gap: rs(6) },
+  sosStripIconWrap: { width: rs(22), height: rs(22), borderRadius: rs(11), backgroundColor: C.redL, alignItems: 'center', justifyContent: 'center' },
+  sosStripLabel: { fontFamily: DISPLAY, fontSize: rs(12.5), fontWeight: 'bold', color: C.red, flex: 1 },
+  sosStripCount: { fontFamily: DISPLAY, fontSize: rs(11), color: C.muted, fontWeight: '600' },
+  sosScrollContent: { paddingHorizontal: rs(10), gap: rs(12) },
+  sosCircleWrap: { alignItems: 'center', width: rs(64) },
+  sosCircleBorder: { padding: rs(2.5), borderRadius: rs(32), borderWidth: 2.5, borderColor: C.red, marginBottom: rs(5) },
+  sosCircleName: { fontFamily: DISPLAY, fontSize: rs(10.5), color: C.text, fontWeight: '600', textAlign: 'center' },
   sosPostCountBadge: {
-    position: 'absolute', top: -4, right: -4,
-    backgroundColor: G.red, borderRadius: 8, minWidth: 16, height: 16,
-    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
-    borderWidth: 1.5, borderColor: G.surface,
+    position: 'absolute', top: -rs(4), right: -rs(4),
+    backgroundColor: C.red, borderRadius: rs(8), minWidth: rs(16), height: rs(16),
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: rs(3),
+    borderWidth: 1.5, borderColor: C.surface,
   },
-  sosPostCountText: { fontSize: 9, color: '#fff', fontWeight: '700' },
+  sosPostCountText: { fontFamily: DISPLAY, fontSize: rs(9), color: '#fff', fontWeight: 'bold' },
 
   // Floating New Post button
   floatingNewPostBtn: {
-    position: 'absolute', bottom: 24, right: 20,
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: G.g950,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.22, shadowRadius: 6, elevation: 8,
+    position: 'absolute', bottom: rs(24), right: rs(20),
+    width: rs(58), height: rs(58), borderRadius: rs(29),
+    ...cardShadow,
     zIndex: 50,
   },
+  floatingNewPostBtnInner: {
+    flex: 1, borderRadius: rs(29), alignItems: 'center', justifyContent: 'center',
+  },
 
-  // Tabs
+  // Tabs — segmented pill row
   tabsRow: {
-    flexDirection: 'row', backgroundColor: G.surface,
-    borderBottomWidth: 1, borderBottomColor: G.border,
-    marginTop: 4,
+    flexDirection: 'row', backgroundColor: C.surface,
+    marginHorizontal: rs(12), marginTop: rs(12),
+    borderRadius: rs(14), padding: rs(4), gap: rs(4),
+    borderWidth: 1, borderColor: C.border,
   },
   tab: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, paddingVertical: 13, borderBottomWidth: 2.5, borderBottomColor: 'transparent',
+    gap: rs(6), paddingVertical: rs(9), borderRadius: rs(10),
   },
-  tabActive: { borderBottomColor: G.green },
-  tabText: { fontSize: 14, fontWeight: '600', color: G.muted },
-  tabTextActive: { color: G.green },
+  tabActive: { backgroundColor: C.greenL },
+  tabText: { fontFamily: DISPLAY, fontSize: rs(13), fontWeight: '700', color: C.muted },
+  tabTextActive: { color: C.green },
 
   // Category chips
-  chipsContent: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  chipsContent: { paddingHorizontal: rs(12), paddingVertical: rs(10), gap: rs(8) },
   chip: {
-    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
-    backgroundColor: G.surface, borderWidth: 1, borderColor: G.border,
+    paddingHorizontal: rs(14), paddingVertical: rs(7), borderRadius: rs(20),
+    backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
   },
-  chipActive: { backgroundColor: G.greenL, borderColor: G.green },
-  chipText: { fontSize: 13, fontWeight: '600', color: G.muted },
-  chipTextActive: { color: G.green },
+  chipActive: { backgroundColor: C.greenL, borderColor: C.green },
+  chipText: { fontFamily: DISPLAY, fontSize: rs(12.5), fontWeight: '600', color: C.muted },
+  chipTextActive: { color: C.green },
 
   // Post card
-  listContent: { paddingBottom: 100 },
+  listContent: { paddingBottom: rs(110) },
+  // Twitter/X-compact: flat timeline row, avatar left + text column right, hairline divider
   postCard: {
-    backgroundColor: G.surface, marginHorizontal: 12, marginVertical: 6,
-    borderRadius: 14, borderWidth: 1, borderColor: G.border, overflow: 'hidden',
-    flexDirection: 'row',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
+    flexDirection: 'row', gap: rs(10),
+    backgroundColor: C.surface, paddingHorizontal: rs(14), paddingVertical: rs(12),
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  postAccentBar: { width: 4 },
-  postInner: { flex: 1, padding: 14 },
-  postHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 },
-  postVendorRow: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 },
-  postVendorInfo: { flex: 1 },
-  postVendorName: { fontSize: 14, fontWeight: '700', color: G.text },
-  postMeta: { fontSize: 11, color: G.muted, marginTop: 2 },
-  postHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 8 },
-  menuBtn: { padding: 2 },
-  catBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 },
-  catBadgeText: { fontSize: 10, fontWeight: '700' },
-  postContent: { fontSize: 14, color: G.text, lineHeight: 22, marginBottom: 14 },
-  actionBar: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: G.border, paddingTop: 10, gap: 6 },
-  actionBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8,
-    backgroundColor: G.bg, flex: 1, justifyContent: 'center',
-  },
-  actionBtnLiked: { backgroundColor: '#FEF2F2' },
-  actionBtnSaved: { backgroundColor: G.greenL },
-  actionBtnShare: {
-    width: 32, height: 32, borderRadius: 8, backgroundColor: G.bg,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  actionLabel: { fontSize: 11, color: G.muted, fontWeight: '600' },
-  actionCount: { fontSize: 12, color: G.muted, fontWeight: '600' },
+  postAvatar: { marginTop: rs(2) },
+  postBody: { flex: 1, minWidth: 0 },
+  postLine1: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+  postVendorName: { fontFamily: DISPLAY, fontSize: rs(13), fontWeight: 'bold', color: C.text, includeFontPadding: false },
+  postMeta: { fontFamily: DISPLAY, fontSize: rs(12), color: C.muted, marginLeft: rs(4) },
+  postLine1Right: { flexDirection: 'row', alignItems: 'center', gap: rs(6), marginLeft: 'auto', paddingLeft: rs(8) },
+  menuBtn: { padding: rs(2) },
+  catBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: rs(7), paddingVertical: rs(2.5), borderRadius: rs(20) },
+  catBadgeText: { fontFamily: DISPLAY, fontSize: rs(9), fontWeight: 'bold' },
+  postContent: { fontFamily: DISPLAY, fontSize: rs(13), color: C.text, lineHeight: rs(19), marginTop: rs(3), marginBottom: rs(8) },
+  actionBar: { flexDirection: 'row', alignItems: 'center', marginTop: rs(9), gap: rs(26) },
+  actionPair: { flexDirection: 'row', alignItems: 'center', gap: rs(5) },
+  actionCount: { fontFamily: DISPLAY, fontSize: rs(11), color: C.muted, fontWeight: '700' },
 
   // Load more / empty
-  loadMoreBtn: { margin: 16, padding: 12, alignItems: 'center', backgroundColor: G.violetL, borderRadius: 10 },
-  loadMoreText: { color: G.violet, fontWeight: '700', fontSize: 13 },
-  emptyWrap: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 40 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: G.text, marginTop: 12, marginBottom: 6 },
-  emptyText: { fontSize: 14, color: G.muted, textAlign: 'center', lineHeight: 20 },
+  loadMoreBtn: { margin: rs(16), padding: rs(13), alignItems: 'center', backgroundColor: C.violetL, borderRadius: rs(14) },
+  loadMoreText: { fontFamily: DISPLAY, color: C.violet, fontWeight: 'bold', fontSize: rs(13) },
+  emptyWrap: { alignItems: 'center', paddingVertical: rs(60), paddingHorizontal: rs(40) },
+  emptyIconWrap: {
+    width: rs(76), height: rs(76), borderRadius: rs(38), backgroundColor: C.violetL,
+    alignItems: 'center', justifyContent: 'center', marginBottom: rs(14),
+  },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: rs(17), fontWeight: 'bold', color: C.text, marginBottom: rs(6) },
+  emptyText: { fontFamily: DISPLAY, fontSize: rs(13), color: C.muted, textAlign: 'center', lineHeight: rs(19) },
 
   // Story overlay
   storyOverlay: { flex: 1, backgroundColor: '#000' },
@@ -1435,33 +1465,33 @@ const styles = StyleSheet.create({
   // Story top bar
   storyTopBar: {
     position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
-    paddingTop: 52, paddingHorizontal: 10, paddingBottom: 8,
+    paddingTop: rs(52), paddingHorizontal: rs(10), paddingBottom: rs(8),
   },
-  progressBarRow: { flexDirection: 'row', gap: 3, marginBottom: 12 },
+  progressBarRow: { flexDirection: 'row', gap: rs(3), marginBottom: rs(12) },
   progressSegment: {
-    flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.25)',
+    flex: 1, height: rs(3), borderRadius: rs(2), backgroundColor: 'rgba(255,255,255,0.25)',
     overflow: 'hidden',
   },
-  progressFill: { height: '100%', backgroundColor: '#fff', borderRadius: 2 },
+  progressFill: { height: '100%', backgroundColor: '#fff', borderRadius: rs(2) },
   storyHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  storySenderRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  storyAvatarBorder: { borderRadius: 22, borderWidth: 2, borderColor: G.red, padding: 2 },
+  storySenderRow: { flexDirection: 'row', alignItems: 'center', gap: rs(10), flex: 1 },
+  storyAvatarBorder: { borderRadius: rs(22), borderWidth: 2, borderColor: C.red, padding: rs(2) },
   storyHeaderInfo: { flex: 1 },
-  storyVendorName: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  storyMeta: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 1 },
-  storyCloseBtn: { padding: 6, zIndex: 30 },
+  storyVendorName: { fontFamily: DISPLAY, fontSize: rs(15), fontWeight: 'bold', color: '#fff' },
+  storyMeta: { fontFamily: DISPLAY, fontSize: rs(11), color: 'rgba(255,255,255,0.6)', marginTop: rs(1) },
+  storyCloseBtn: { padding: rs(6), zIndex: 30 },
 
   // Story content
-  storyContent: { flex: 1, justifyContent: 'center', paddingHorizontal: 24, paddingTop: 140, paddingBottom: 20 },
+  storyContent: { flex: 1, justifyContent: 'center', paddingHorizontal: rs(24), paddingTop: rs(140), paddingBottom: rs(20) },
   storySOSBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-    backgroundColor: G.red, paddingHorizontal: 12, paddingVertical: 5,
-    borderRadius: 20, marginBottom: 20,
+    flexDirection: 'row', alignItems: 'center', gap: rs(6), alignSelf: 'flex-start',
+    backgroundColor: C.red, paddingHorizontal: rs(12), paddingVertical: rs(5),
+    borderRadius: rs(20), marginBottom: rs(20),
   },
-  storySOSBadgeText: { color: '#fff', fontWeight: '700', fontSize: 11, letterSpacing: 1 },
-  storyText: { fontSize: 22, color: '#fff', lineHeight: 34, fontWeight: '500' },
-  storyLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 16 },
-  storyLocationText: { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
+  storySOSBadgeText: { fontFamily: DISPLAY, color: '#fff', fontWeight: 'bold', fontSize: rs(11), letterSpacing: 1 },
+  storyText: { fontFamily: DISPLAY, fontSize: rs(21), color: '#fff', lineHeight: rs(32), fontWeight: '600' },
+  storyLocationRow: { flexDirection: 'row', alignItems: 'center', gap: rs(5), marginTop: rs(16) },
+  storyLocationText: { fontFamily: DISPLAY, fontSize: rs(13), color: 'rgba(255,255,255,0.6)' },
 
   // Story pause overlay
   storyPausedOverlay: {
@@ -1470,81 +1500,91 @@ const styles = StyleSheet.create({
   },
 
   storyBottomGradient: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, height: 140, zIndex: 19,
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: rs(140), zIndex: 19,
   },
 
   // Story bottom bar — Instagram style (normal flow, KAV pushes above keyboard)
   storyBottomBar: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 14, paddingVertical: 12, gap: 10,
+    paddingHorizontal: rs(14), paddingVertical: rs(12), gap: rs(10),
     backgroundColor: 'rgba(0,0,0,0.6)',
   },
   storyLikeBtn: {
-    alignItems: 'center', justifyContent: 'center', gap: 3, paddingHorizontal: 4,
+    alignItems: 'center', justifyContent: 'center', gap: rs(3), paddingHorizontal: rs(4),
   },
-  storyActionCount: { color: '#fff', fontSize: 12, fontWeight: '700', textAlign: 'center' },
+  storyActionCount: { fontFamily: DISPLAY, color: '#fff', fontSize: rs(12), fontWeight: 'bold', textAlign: 'center' },
   storyCommentRow: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
-    paddingHorizontal: 14, paddingVertical: 2,
+    borderRadius: rs(24), borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+    paddingHorizontal: rs(14), paddingVertical: rs(2),
   },
   storyCommentInput: {
-    flex: 1, color: '#fff', fontSize: 14, paddingVertical: 9, paddingRight: 4,
+    flex: 1, fontFamily: DISPLAY, color: '#fff', fontSize: rs(14), paddingVertical: rs(9), paddingRight: rs(4),
   },
-  storyCommentSend: { paddingLeft: 8, paddingVertical: 6 },
+  storyCommentSend: { paddingLeft: rs(8), paddingVertical: rs(6) },
+
+  // Bottom-sheet grab handle (shared by menu / share / comment sheets)
+  sheetHandleWrap: { alignItems: 'center', paddingTop: rs(10) },
+  sheetHandle: { width: rs(40), height: rs(4), borderRadius: rs(2), backgroundColor: C.border },
 
   // Menu modal
-  menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  menuSheet: { backgroundColor: G.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 32 },
-  menuHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: G.border, alignSelf: 'center', marginTop: 10, marginBottom: 8 },
-  menuItem: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: G.border },
-  menuItemText: { fontSize: 15, fontWeight: '600', color: G.text },
-
-  // Comment modal
-  commentOverlay: { flex: 1, justifyContent: 'flex-end' },
-  commentBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
-  commentSheet: { backgroundColor: G.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, maxHeight: SCREEN_H * 0.72, paddingBottom: 16 },
-  commentSheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: G.border, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
-  commentSheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: G.border },
-  commentSheetTitle: { fontSize: 16, fontWeight: '700', color: G.text },
-  commentEmpty: { alignItems: 'center', paddingVertical: 32 },
-  commentEmptyText: { fontSize: 14, color: G.muted, marginTop: 8 },
-  commentsList: { flexGrow: 0, maxHeight: SCREEN_H * 0.45, paddingHorizontal: 16, paddingTop: 8 },
-  commentItem: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-  commentBody: { flex: 1 },
-  commentAuthor: { fontSize: 13, fontWeight: '700', color: G.text, marginBottom: 2 },
-  commentText: { fontSize: 14, color: G.text, lineHeight: 19 },
-  commentTime: { fontSize: 11, color: G.muted, marginTop: 3 },
-  commentInput: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: G.border, marginTop: 4 },
-  commentTextInput: {
-    flex: 1, backgroundColor: G.bg, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 14, color: G.text, maxHeight: 80, borderWidth: 1, borderColor: G.border,
+  menuOverlay: { flex: 1, backgroundColor: T.scrim, justifyContent: 'flex-end' },
+  menuSheet: {
+    backgroundColor: C.surface, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
+    paddingBottom: rs(32), overflow: 'hidden',
   },
-  commentSendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: G.green, alignItems: 'center', justifyContent: 'center' },
-  commentSendBtnDisabled: { backgroundColor: G.border },
+  menuItem: { flexDirection: 'row', alignItems: 'center', gap: rs(14), paddingHorizontal: rs(20), paddingVertical: rs(14), borderBottomWidth: 1, borderBottomColor: C.border },
+  menuItemIcon: { width: rs(34), height: rs(34), borderRadius: rs(11), alignItems: 'center', justifyContent: 'center' },
+  menuItemText: { fontFamily: DISPLAY, fontSize: rs(14.5), fontWeight: '600', color: C.text },
+
+  // Comment / share-to-chat sheet
+  commentOverlay: { flex: 1, justifyContent: 'flex-end' },
+  commentBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: T.scrim },
+  commentSheet: {
+    backgroundColor: C.surface, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
+    maxHeight: SCREEN_H * 0.72, paddingBottom: rs(16), overflow: 'hidden',
+  },
+  commentSheetHeader: { flexDirection: 'row', alignItems: 'center', gap: rs(10), paddingHorizontal: rs(18), paddingVertical: rs(12), borderBottomWidth: 1, borderBottomColor: C.border },
+  commentSheetHeaderIcon: { width: rs(30), height: rs(30), borderRadius: rs(10), backgroundColor: C.violetL, alignItems: 'center', justifyContent: 'center' },
+  commentSheetTitle: { flex: 1, fontFamily: DISPLAY, fontSize: rs(15.5), fontWeight: 'bold', color: C.text },
+  commentEmpty: { alignItems: 'center', paddingVertical: rs(32) },
+  commentEmptyText: { fontFamily: DISPLAY, fontSize: rs(13.5), color: C.muted, marginTop: rs(8) },
+  commentsList: { flexGrow: 0, maxHeight: SCREEN_H * 0.45, paddingHorizontal: rs(16), paddingTop: rs(8) },
+  commentItem: { flexDirection: 'row', gap: rs(10), marginBottom: rs(14) },
+  commentBody: { flex: 1 },
+  commentAuthor: { fontFamily: DISPLAY, fontSize: rs(12.5), fontWeight: 'bold', color: C.text, marginBottom: rs(2) },
+  commentText: { fontFamily: DISPLAY, fontSize: rs(13.5), color: C.text, lineHeight: rs(19) },
+  commentTime: { fontFamily: DISPLAY, fontSize: rs(11), color: C.muted, marginTop: rs(3) },
+  commentInput: { flexDirection: 'row', alignItems: 'flex-end', gap: rs(10), paddingHorizontal: rs(16), paddingTop: rs(10), borderTopWidth: 1, borderTopColor: C.border, marginTop: rs(4) },
+  commentTextInput: {
+    flex: 1, backgroundColor: T.field, borderRadius: rs(14), paddingHorizontal: rs(14), paddingVertical: rs(10),
+    fontFamily: DISPLAY, fontSize: rs(13.5), color: C.text, maxHeight: rs(80), borderWidth: 1, borderColor: C.border,
+  },
+  commentSendBtn: { width: rs(40), height: rs(40), borderRadius: rs(20), backgroundColor: C.green, alignItems: 'center', justifyContent: 'center' },
+  commentSendBtnDisabled: { backgroundColor: C.border },
 
   // Share to chat
   shareChatPreview: {
-    marginHorizontal: 16, marginBottom: 12, padding: 12,
-    backgroundColor: G.violetL, borderRadius: 10, borderLeftWidth: 3, borderLeftColor: G.violet,
+    marginHorizontal: rs(16), marginTop: rs(12), marginBottom: rs(12), padding: rs(12),
+    backgroundColor: C.violetL, borderRadius: rs(12), borderLeftWidth: 3, borderLeftColor: C.violet,
   },
-  shareChatPreviewName: { fontSize: 12, fontWeight: '700', color: G.violet, marginBottom: 4 },
-  shareChatPreviewContent: { fontSize: 13, color: G.text, lineHeight: 18 },
+  shareChatPreviewName: { fontFamily: DISPLAY, fontSize: rs(12), fontWeight: 'bold', color: C.violet, marginBottom: rs(4) },
+  shareChatPreviewContent: { fontFamily: DISPLAY, fontSize: rs(13), color: C.text, lineHeight: rs(18) },
   shareChatConvItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: G.border,
+    flexDirection: 'row', alignItems: 'center', gap: rs(12),
+    paddingHorizontal: rs(16), paddingVertical: rs(12),
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  shareChatAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  shareChatAvatarText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  shareChatConvName: { fontSize: 14, fontWeight: '700', color: G.text },
-  shareChatConvOwner: { fontSize: 12, color: G.muted, marginTop: 1 },
+  shareChatAvatar: { width: rs(40), height: rs(40), borderRadius: rs(20), alignItems: 'center', justifyContent: 'center' },
+  shareChatAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: rs(16) },
+  shareChatConvName: { fontFamily: DISPLAY, fontSize: rs(14), fontWeight: 'bold', color: C.text },
+  shareChatConvOwner: { fontFamily: DISPLAY, fontSize: rs(12), color: C.muted, marginTop: rs(1) },
 
   // Share card generating overlay
   sharingOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 999,
+    backgroundColor: T.scrim, zIndex: 999,
     alignItems: 'center', justifyContent: 'center',
   },
   // SVG must be on-screen (not at -9999) for GPU rasterization
@@ -1553,9 +1593,9 @@ const styles = StyleSheet.create({
     width: 800, height: 480, overflow: 'hidden',
   },
   sharingSpinner: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 28,
-    alignItems: 'center', gap: 12,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 10,
+    backgroundColor: C.surface, borderRadius: rs(18), padding: rs(28),
+    alignItems: 'center', gap: rs(12),
+    ...cardShadow,
   },
-  sharingText: { fontSize: 14, fontWeight: '600', color: G.text },
+  sharingText: { fontFamily: DISPLAY, fontSize: rs(13.5), fontWeight: '600', color: C.text },
 });

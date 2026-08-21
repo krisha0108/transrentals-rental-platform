@@ -11,6 +11,7 @@ import {
   Linking,
   TextInput,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
@@ -28,17 +29,30 @@ import {
   getBaseURL,
   getSessionToken,
 } from '../../../api/client';
+import { SC as T, G, rs, cardShadow, shade } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
+// How far the ticket summary card rides up over the hero's rounded bottom
+// edge. Same technique/constant role as the bike sibling detail screens'
+// ticket card and the travel-agent BookingDetailScreen's contact bar — the
+// hero's own bottom padding is shortened by the same amount and the scroll
+// content gets it back as paddingTop, so the gap stays the same, only the
+// overlap changes.
+const TICKET_OVERLAP = 40;
+
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g500: '#059669', g400: '#34D399',
-  g50: '#ECFDF5', g100: '#D1FAE5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  green: '#059669', greenL: '#ECFDF5', greenD: '#065F46',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  teal: '#0D9488', tealL: '#F0FDFA',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g500: T.emerald500, g400: T.emerald,
+  g50: T.tintEmerald, g100: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border, text: T.ink, sub: T.text, muted: T.subText,
+  green: T.emerald500, greenL: T.tintEmerald, greenD: T.forest,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  blue: T.blue, blueL: T.blueLight,
+  purple: T.purple, purpleL: T.purpleLight,
+  teal: T.teal, tealL: T.tintOcean,
 };
 
 const STATUS_CONFIG = {
@@ -53,6 +67,19 @@ const STATUS_CONFIG = {
   COMPLETED: { color: C.muted, bg: C.bg, label: 'Completed', icon: 'checkmark-done-circle-outline' },
   CANCELLED: { color: C.red, bg: C.redL, label: 'Cancelled', icon: 'close-circle-outline' },
 };
+
+/* ── Section wrapper — icon + title header inside one bordered card ────── */
+function Section({ icon, title, children }) {
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHeaderRow}>
+        <View style={styles.cardIcon}>{icon}</View>
+        <Text style={styles.cardTitle}>{title}</Text>
+      </View>
+      {children}
+    </View>
+  );
+}
 
 export default function SelfDriveBookingDetailScreen({ route, navigation }) {
   const { bookingId } = route.params || {};
@@ -265,19 +292,19 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
     return (
       <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient
-          colors={[C.g900, C.g800, C.g700]}
-          style={styles.gradientHeader}
-        >
-          <View style={styles.decoCircle1} />
-          <View style={styles.decoCircle2} />
+        <LinearGradient colors={G.hero} style={styles.hero}>
+          <AnimatedOrb style={styles.deco1} />
+          <AnimatedOrb style={styles.deco2} delay={1200} dx={-10} dy={8} />
           <SafeAreaView edges={['top']}>
-            <View style={styles.headerRow}>
+            <View style={styles.topBar}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                <Icon name="arrow-left" size={22} color="#fff" />
+                <Icon name="arrow-left" size={18} color="#fff" />
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>Booking Details</Text>
-              <View style={{ width: 44 }} />
+              <View style={styles.titleWrap}>
+                <MaterialCommunityIcons name="car-side" size={18} color={C.amber} />
+                <Text style={styles.heroTitle}>Booking Details</Text>
+              </View>
+              <View style={{ width: 36 }} />
             </View>
           </SafeAreaView>
         </LinearGradient>
@@ -293,25 +320,27 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
     return (
       <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient
-          colors={[C.g900, C.g800, C.g700]}
-          style={styles.gradientHeader}
-        >
-          <View style={styles.decoCircle1} />
-          <View style={styles.decoCircle2} />
+        <LinearGradient colors={G.hero} style={styles.hero}>
+          <AnimatedOrb style={styles.deco1} />
+          <AnimatedOrb style={styles.deco2} delay={1200} dx={-10} dy={8} />
           <SafeAreaView edges={['top']}>
-            <View style={styles.headerRow}>
+            <View style={styles.topBar}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                <Icon name="arrow-left" size={22} color="#fff" />
+                <Icon name="arrow-left" size={18} color="#fff" />
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>Booking Details</Text>
-              <View style={{ width: 44 }} />
+              <View style={styles.titleWrap}>
+                <MaterialCommunityIcons name="car-side" size={18} color={C.amber} />
+                <Text style={styles.heroTitle}>Booking Details</Text>
+              </View>
+              <View style={{ width: 36 }} />
             </View>
           </SafeAreaView>
         </LinearGradient>
         <View style={styles.centered}>
-          <Ionicons name="alert-circle-outline" size={64} color={C.muted} />
-          <Text style={styles.emptyText}>Booking not found</Text>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="alert-circle-outline" size={44} color={C.g400} />
+          </View>
+          <Text style={styles.emptyTitle}>Booking not found</Text>
         </View>
       </SafeAreaView>
     );
@@ -319,42 +348,48 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
 
   const statusConfig = getStatusConfig(booking.status);
 
+  /* ── Status progression: Quoted → Accepted → Pickup OTP ── */
+  const st = booking.status;
+  const acceptedDone = ['ACCEPTED', 'CONFIRMED', 'READY_FOR_PICKUP', 'IN_PROGRESS', 'COMPLETED', 'PAYMENT_VERIFIED'].includes(st);
+  const otpDone      = ['IN_PROGRESS', 'COMPLETED'].includes(st);
+  const steps = [
+    { key: 'quoted',   label: 'Quoted',     done: true },
+    { key: 'accepted', label: 'Accepted',   done: acceptedDone },
+    { key: 'otp',      label: 'Pickup OTP', done: otpDone },
+  ];
+  const curIdx = steps.findIndex(x => !x.done);
+  steps.forEach((x, i) => { x.current = i === curIdx; });
+
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      {/* Gradient Header */}
-      <LinearGradient
-        colors={[C.g900, C.g800, C.g700]}
-        style={styles.gradientHeader}
-      >
-        {/* Decorative Circles */}
-        <View style={styles.decoCircle1} />
-        <View style={styles.decoCircle2} />
+      {/* ══ Hero ═════════════════════════════════════════════════════════ */}
+      <LinearGradient colors={G.hero} style={styles.hero}>
+        <AnimatedOrb style={styles.deco1} />
+        <AnimatedOrb style={styles.deco2} delay={1200} dx={-10} dy={8} />
 
         <SafeAreaView edges={['top']}>
-          <View style={styles.headerRow}>
-            {/* Back Button */}
+          <View style={styles.topBar}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Icon name="arrow-left" size={22} color="#fff" />
+              <Icon name="arrow-left" size={18} color="#fff" />
             </TouchableOpacity>
-
-            {/* Center: icon + booking number */}
-            <View style={styles.headerCenter}>
-              <View style={styles.headerIconRow}>
-                <MaterialCommunityIcons name="car-side" size={18} color={C.g400} />
-                <Text style={styles.headerTitle} numberOfLines={1}>
-                  #{booking.bookingNumber || booking.id}
-                </Text>
-              </View>
-              <Text style={styles.headerSubtitle}>Self Drive</Text>
+            <View style={styles.titleWrap}>
+              <MaterialCommunityIcons name="car-side" size={18} color={C.amber} />
+              <Text style={styles.heroTitle}>Self Drive</Text>
             </View>
+            <View style={{ width: 36 }} />
+          </View>
 
-            {/* Status Badge */}
-            <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-              <Text style={[styles.statusBadgeText, { color: statusConfig.color }]} numberOfLines={1}>
-                {statusConfig.label}
-              </Text>
+          {/* Identity block — booking # + customer, mirrors sibling detail screens */}
+          <View style={styles.identityBlock}>
+            <View style={styles.identityIcon}>
+              <MaterialCommunityIcons name="car-side" size={24} color="#fff" />
+            </View>
+            <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12) }}>
+              <Text style={styles.identityLabel}>BOOKING #</Text>
+              <Text style={styles.identityName} numberOfLines={1}>{booking.bookingNumber || booking.id}</Text>
+              <Text style={styles.identitySub} numberOfLines={1}>{booking.customerName || 'Customer'}</Text>
             </View>
           </View>
         </SafeAreaView>
@@ -368,42 +403,82 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Status progression: Quoted → Accepted → Pickup OTP ── */}
-        {(() => {
-          const st = booking.status;
-          const acceptedDone = ['ACCEPTED', 'CONFIRMED', 'READY_FOR_PICKUP', 'IN_PROGRESS', 'COMPLETED', 'PAYMENT_VERIFIED'].includes(st);
-          const otpDone      = ['IN_PROGRESS', 'COMPLETED'].includes(st);
-          const steps = [
-            { key: 'quoted',   label: 'Quoted',     done: true },
-            { key: 'accepted', label: 'Accepted',   done: acceptedDone },
-            { key: 'otp',      label: 'Pickup OTP', done: otpDone },
-          ];
-          const curIdx = steps.findIndex(x => !x.done);
-          steps.forEach((x, i) => { x.current = i === curIdx; });
-          return (
-            <View style={styles.statusStrip}>
-              {steps.map((stp, i) => (
-                <React.Fragment key={stp.key}>
-                  {i > 0 && <View style={[styles.statusLine, steps[i - 1].done && { backgroundColor: C.g500 }]} />}
-                  <View style={styles.statusStep}>
-                    <View style={[styles.statusDot, stp.done && styles.statusDotDone, stp.current && styles.statusDotCurrent]}>
-                      {stp.done
-                        ? <Ionicons name="checkmark" size={11} color="#fff" />
-                        : <Text style={[styles.statusDotNum, stp.current && { color: '#fff' }]}>{i + 1}</Text>}
-                    </View>
-                    <Text style={[styles.statusStepLbl, (stp.done || stp.current) && { color: C.text, fontWeight: '700' }]}>{stp.label}</Text>
-                  </View>
-                </React.Fragment>
-              ))}
+        {/* ── Ticket summary — status & grand total, floated over the hero ── */}
+        <View style={styles.ticketWrap}>
+          <LinearGradient
+            colors={[statusConfig.color, shade(statusConfig.color, -18)]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={styles.ticketRail}
+          />
+          <View style={styles.ticketUpperStub}>
+            <View style={styles.ticketIconBox}>
+              <MaterialCommunityIcons name="car-side" size={22} color={C.g700} />
             </View>
-          );
-        })()}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.ticketLabel}>CREATED</Text>
+              <Text style={styles.ticketNumber} numberOfLines={1}>{formatDate(booking.createdAt)}</Text>
+            </View>
+            <View style={[styles.statusPill, { backgroundColor: statusConfig.bg, borderColor: statusConfig.color + '40' }]}>
+              <Ionicons name={statusConfig.icon} size={12} color={statusConfig.color} />
+              <Text style={[styles.statusPillTxt, { color: statusConfig.color }]}>{statusConfig.label}</Text>
+            </View>
+          </View>
+
+          {/* Perforation — torn-ticket edge, echoes the bike sibling ticket card */}
+          <View style={styles.perforationRow}>
+            <View style={styles.notchLeft} />
+            <View style={styles.dashLine} />
+            <View style={styles.notchRight} />
+          </View>
+
+          <View style={styles.ticketLowerStub}>
+            <View style={styles.moneyIconWrap}>
+              <Ionicons name="cash" size={16} color={C.g700} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.ticketAmountLabel}>GRAND TOTAL</Text>
+              <Text style={styles.ticketAmountVal}>
+                ₹{(booking.grandTotal || booking.totalAmount || 0).toLocaleString()}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ── Status progression stepper ── */}
+        <View style={styles.statusStrip}>
+          {steps.map((stp, i) => (
+            <React.Fragment key={stp.key}>
+              {i > 0 && <View style={[styles.statusLine, steps[i - 1].done && { backgroundColor: C.g500 }]} />}
+              <View style={styles.statusStep}>
+                <View style={[styles.statusDot, stp.done && styles.statusDotDone, stp.current && styles.statusDotCurrent]}>
+                  {stp.done
+                    ? <Ionicons name="checkmark" size={11} color="#fff" />
+                    : <Text style={[styles.statusDotNum, stp.current && { color: '#fff' }]}>{i + 1}</Text>}
+                </View>
+                <Text style={[styles.statusStepLbl, (stp.done || stp.current) && { color: C.text, fontWeight: '700' }]}>{stp.label}</Text>
+              </View>
+            </React.Fragment>
+          ))}
+        </View>
+
+        {/* ── Status banner ── */}
+        <View style={[styles.statusBanner, { borderLeftColor: statusConfig.color }]}>
+          <Ionicons name={statusConfig.icon} size={26} color={statusConfig.color} />
+          <View style={styles.statusTextWrap}>
+            <Text style={[styles.statusLabel, { color: statusConfig.color }]}>
+              {statusConfig.label}
+            </Text>
+            <Text style={styles.statusDate}>
+              Created on {formatDate(booking.createdAt)}
+            </Text>
+          </View>
+        </View>
 
         {/* ── Quote Details (collapsible) ── */}
         <View style={styles.card}>
           <TouchableOpacity style={styles.quoteHead} activeOpacity={0.7} onPress={() => setShowQuote(v => !v)}>
             <View style={styles.cardHead0}>
-              <View style={[styles.cardIcon, { backgroundColor: C.g50 }]}>
+              <View style={styles.cardIcon}>
                 <Ionicons name="document-text-outline" size={15} color={C.g700} />
               </View>
               <Text style={styles.cardTitle}>Quote Details</Text>
@@ -424,42 +499,42 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
             return (
               <View style={styles.quoteBody}>
                 {/* Pricing rows */}
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>Vehicle</Text>
-                  <Text style={styles.paymentValue}>{q.vehicleName || booking.requestedVehicleName || booking.vehicleName || '—'}</Text>
+                <View style={styles.payRow}>
+                  <Text style={styles.payLabel}>Vehicle</Text>
+                  <Text style={styles.payVal}>{q.vehicleName || booking.requestedVehicleName || booking.vehicleName || '—'}</Text>
                 </View>
                 {q.vehicleCategory ? (
-                  <View style={styles.paymentRow}>
-                    <Text style={styles.paymentLabel}>Category</Text>
-                    <Text style={styles.paymentValue}>{q.vehicleCategory}</Text>
+                  <View style={styles.payRow}>
+                    <Text style={styles.payLabel}>Category</Text>
+                    <Text style={styles.payVal}>{q.vehicleCategory}</Text>
                   </View>
                 ) : null}
                 {dailyRate ? (
-                  <View style={styles.paymentRow}>
-                    <Text style={styles.paymentLabel}>Daily Rate × {booking.totalDays || 1}</Text>
-                    <Text style={styles.paymentValue}>{money(dailyRate)}</Text>
+                  <View style={styles.payRow}>
+                    <Text style={styles.payLabel}>Daily Rate × {booking.totalDays || 1}</Text>
+                    <Text style={styles.payVal}>{money(dailyRate)}</Text>
                   </View>
                 ) : null}
                 {deposit > 0 ? (
-                  <View style={styles.paymentRow}>
-                    <Text style={styles.paymentLabel}>Security Deposit</Text>
-                    <Text style={styles.paymentValue}>{money(deposit)}</Text>
+                  <View style={styles.payRow}>
+                    <Text style={styles.payLabel}>Security Deposit</Text>
+                    <Text style={styles.payVal}>{money(deposit)}</Text>
                   </View>
                 ) : null}
                 {(q.unlimitedKm || q.kmLimitPerDay != null) ? (
-                  <View style={styles.paymentRow}>
-                    <Text style={styles.paymentLabel}>KM Limit</Text>
-                    <Text style={styles.paymentValue}>{q.unlimitedKm ? 'Unlimited' : `${q.kmLimitPerDay} km/day`}</Text>
+                  <View style={styles.payRow}>
+                    <Text style={styles.payLabel}>KM Limit</Text>
+                    <Text style={styles.payVal}>{q.unlimitedKm ? 'Unlimited' : `${q.kmLimitPerDay} km/day`}</Text>
                   </View>
                 ) : null}
-                <View style={styles.paymentRow}>
-                  <Text style={[styles.paymentLabel, { fontWeight: '700', color: C.text }]}>Total Quoted</Text>
-                  <Text style={[styles.paymentValue, { color: C.g700 }]}>{money(total)}</Text>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Total Quoted</Text>
+                  <Text style={styles.totalVal}>{money(total)}</Text>
                 </View>
                 {advance > 0 ? (
-                  <View style={styles.paymentRow}>
-                    <Text style={styles.paymentLabel}>Advance{q.advancePercent ? ` (${q.advancePercent}%)` : ''}</Text>
-                    <Text style={styles.paymentValue}>{money(advance)}</Text>
+                  <View style={styles.payRow}>
+                    <Text style={styles.payLabel}>Advance{q.advancePercent ? ` (${q.advancePercent}%)` : ''}</Text>
+                    <Text style={styles.payVal}>{money(advance)}</Text>
                   </View>
                 ) : null}
 
@@ -467,43 +542,53 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
                 {inc.length > 0 && (
                   <View style={styles.quoteSub}>
                     <Text style={styles.quoteSubTitle}>Inclusions</Text>
-                    {inc.map((t, i) => (
-                      <View key={i} style={styles.quoteLi}>
-                        <Ionicons name="checkmark-circle" size={13} color={C.g500} />
-                        <Text style={styles.quoteLiTxt}>{t}</Text>
-                      </View>
-                    ))}
+                    <View style={styles.pillWrap}>
+                      {inc.map((t, i) => (
+                        <View key={i} style={[styles.pill, { backgroundColor: C.g100 }]}>
+                          <View style={[styles.pillPip, { backgroundColor: C.g700 }]}>
+                            <Ionicons name="checkmark" size={10} color="#fff" />
+                          </View>
+                          <Text style={[styles.pillTxt, { color: C.g700 }]}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
                 {/* Exclusions */}
                 {exc.length > 0 && (
                   <View style={styles.quoteSub}>
                     <Text style={styles.quoteSubTitle}>Exclusions</Text>
-                    {exc.map((t, i) => (
-                      <View key={i} style={styles.quoteLi}>
-                        <Ionicons name="close-circle" size={13} color={C.red} />
-                        <Text style={styles.quoteLiTxt}>{t}</Text>
-                      </View>
-                    ))}
+                    <View style={styles.pillWrap}>
+                      {exc.map((t, i) => (
+                        <View key={i} style={[styles.pill, { backgroundColor: C.redL }]}>
+                          <View style={[styles.pillPip, { backgroundColor: C.red }]}>
+                            <Ionicons name="close" size={10} color="#fff" />
+                          </View>
+                          <Text style={[styles.pillTxt, { color: C.red }]}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
                 {/* Terms */}
                 {terms.length > 0 && (
                   <View style={styles.quoteSub}>
                     <Text style={styles.quoteSubTitle}>Terms & Conditions</Text>
-                    {terms.map((t, i) => (
-                      <View key={i} style={styles.quoteLi}>
-                        <Text style={styles.quoteBullet}>•</Text>
-                        <Text style={styles.quoteLiTxt}>{t}</Text>
-                      </View>
-                    ))}
+                    <View style={styles.termsCard}>
+                      {terms.map((t, i) => (
+                        <View key={i} style={[styles.termLine, i === terms.length - 1 && { marginBottom: 0 }]}>
+                          <Text style={styles.termNum}>{i + 1}.</Text>
+                          <Text style={styles.termTxt}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
                 {/* Vendor note */}
                 {q.vendorMessage ? (
-                  <View style={styles.quoteSub}>
-                    <Text style={styles.quoteSubTitle}>Your Note</Text>
-                    <Text style={styles.quoteLiTxt}>{q.vendorMessage}</Text>
+                  <View style={styles.quoteNote}>
+                    <Ionicons name="chatbox-ellipses-outline" size={13} color={C.muted} />
+                    <Text style={[styles.quoteLiTxt, { flex: 1 }]}>{q.vendorMessage}</Text>
                   </View>
                 ) : null}
                 {q.validTill ? (
@@ -514,26 +599,8 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
           })()}
         </View>
 
-        {/* Status Banner */}
-        <View style={[styles.statusBanner, { borderLeftColor: statusConfig.color }]}>
-          <Ionicons name={statusConfig.icon} size={26} color={statusConfig.color} />
-          <View style={styles.statusTextWrap}>
-            <Text style={[styles.statusLabel, { color: statusConfig.color }]}>
-              {statusConfig.label}
-            </Text>
-            <Text style={styles.statusDate}>
-              Created on {formatDate(booking.createdAt)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Customer Info Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Ionicons name="person-circle-outline" size={22} color={C.g700} />
-            <Text style={styles.cardTitle}>Customer Information</Text>
-          </View>
-
+        {/* ── Customer Information ── */}
+        <Section icon={<Ionicons name="person-circle-outline" size={15} color={C.g700} />} title="Customer Information">
           <View style={styles.customerGrid}>
             <View style={styles.infoBox}>
               <View style={[styles.infoIconBox, { backgroundColor: C.blueL }]}>
@@ -579,21 +646,13 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
               <Text style={[styles.quickActionText, { color: C.purple }]}>Chat</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Section>
 
-        {/* Vehicle & Trip Details */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <MaterialCommunityIcons name="car-side" size={22} color={C.g700} />
-            <Text style={styles.cardTitle}>Vehicle & Trip Details</Text>
-          </View>
-
+        {/* ── Vehicle & Trip Details ── */}
+        <Section icon={<MaterialCommunityIcons name="car-side" size={15} color={C.g700} />} title="Vehicle & Trip Details">
           {/* Vehicle Info */}
           <View style={styles.vehicleBox}>
-            <LinearGradient
-              colors={[C.g50, C.g100]}
-              style={styles.vehicleIconWrap}
-            >
+            <LinearGradient colors={[C.g50, C.g100]} style={styles.vehicleIconWrap}>
               <MaterialCommunityIcons name="car-side" size={32} color={C.g700} />
             </LinearGradient>
             <View style={styles.vehicleInfo}>
@@ -638,61 +697,59 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
             )}
           </View>
 
-          {/* Pickup & Drop Dates */}
-          <View style={styles.dateGrid}>
-            <View style={[styles.dateBox, { backgroundColor: C.blueL }]}>
-              <Text style={[styles.dateBoxLabel, { color: C.g700 }]}>PICKUP</Text>
-              <Text style={styles.dateBoxDate}>{formatDate(booking.pickupDate)}</Text>
-              {booking.pickupTime && (
-                <Text style={styles.dateBoxTime}>{formatTime(booking.pickupTime)}</Text>
+          {/* Rental period rail — connected pickup → drop-off, mirrors the
+              bike siblings' route-rail treatment (dots + connecting line) */}
+          <View style={styles.rentalRail}>
+            <View style={styles.rentalGutter}>
+              <View style={[styles.rentalDot, { backgroundColor: C.g500 }]} />
+              {(booking.dropDate || booking.returnDate) && <View style={styles.rentalLine} />}
+              {(booking.dropDate || booking.returnDate) && <View style={[styles.rentalDot, { backgroundColor: C.red }]} />}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rentalLabel}>PICKUP</Text>
+              <Text style={styles.rentalValue}>{formatDate(booking.pickupDate)}</Text>
+              {booking.pickupTime && <Text style={styles.rentalTime}>{formatTime(booking.pickupTime)}</Text>}
+              {(booking.dropDate || booking.returnDate) && (
+                <>
+                  <Text style={[styles.rentalLabel, { marginTop: rs(12) }]}>DROP-OFF</Text>
+                  <Text style={styles.rentalValue}>{formatDate(booking.dropDate || booking.returnDate)}</Text>
+                  {(booking.dropTime || booking.returnTime) && (
+                    <Text style={styles.rentalTime}>{formatTime(booking.dropTime || booking.returnTime)}</Text>
+                  )}
+                </>
               )}
             </View>
-
-            {(booking.dropDate || booking.returnDate) && (
-              <View style={[styles.dateBox, { backgroundColor: C.redL }]}>
-                <Text style={[styles.dateBoxLabel, { color: C.red }]}>DROP-OFF</Text>
-                <Text style={styles.dateBoxDate}>{formatDate(booking.dropDate || booking.returnDate)}</Text>
-                {(booking.dropTime || booking.returnTime) && (
-                  <Text style={styles.dateBoxTime}>{formatTime(booking.dropTime || booking.returnTime)}</Text>
-                )}
-              </View>
-            )}
           </View>
-        </View>
+        </Section>
 
-        {/* Payment Summary */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Ionicons name="card-outline" size={22} color={C.g700} />
-            <Text style={styles.cardTitle}>Payment Summary</Text>
-          </View>
-
+        {/* ── Payment Summary ── */}
+        <Section icon={<Ionicons name="card-outline" size={15} color={C.g700} />} title="Payment Summary">
           <View style={styles.paymentDetails}>
             {booking.dailyRate && (
-              <View style={styles.paymentRow}>
-                <Text style={styles.paymentLabel}>Daily Rate</Text>
-                <Text style={styles.paymentValue}>₹{booking.dailyRate.toLocaleString()}</Text>
+              <View style={styles.payRow}>
+                <Text style={styles.payLabel}>Daily Rate</Text>
+                <Text style={styles.payVal}>₹{booking.dailyRate.toLocaleString()}</Text>
               </View>
             )}
 
             {booking.totalDays && (
-              <View style={styles.paymentRow}>
-                <Text style={styles.paymentLabel}>Days</Text>
-                <Text style={styles.paymentValue}>{booking.totalDays}</Text>
+              <View style={styles.payRow}>
+                <Text style={styles.payLabel}>Days</Text>
+                <Text style={styles.payVal}>{booking.totalDays}</Text>
               </View>
             )}
 
-            <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Subtotal</Text>
-              <Text style={styles.paymentValue}>
+            <View style={styles.payRow}>
+              <Text style={styles.payLabel}>Subtotal</Text>
+              <Text style={styles.payVal}>
                 ₹{(booking.totalAmount || booking.amount || 0).toLocaleString()}
               </Text>
             </View>
 
             {booking.securityDeposit > 0 && (
-              <View style={styles.paymentRow}>
-                <Text style={styles.paymentLabel}>Security Deposit</Text>
-                <Text style={styles.paymentValue}>
+              <View style={styles.payRow}>
+                <Text style={styles.payLabel}>Security Deposit</Text>
+                <Text style={styles.payVal}>
                   ₹{booking.securityDeposit.toLocaleString()}
                 </Text>
               </View>
@@ -700,7 +757,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
 
             <View style={styles.paymentDivider} />
 
-            <View style={styles.paymentRow}>
+            <View style={styles.payRow}>
               <Text style={styles.paymentLabelBold}>Grand Total</Text>
               <Text style={styles.paymentValueTotal}>
                 ₹{(booking.grandTotal || booking.totalAmount || 0).toLocaleString()}
@@ -709,16 +766,16 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
 
             {(booking.advancePaid || booking.paidAmount || booking.advanceAmount) > 0 && (
               <>
-                <View style={styles.paymentRow}>
-                  <Text style={[styles.paymentLabel, { color: C.green }]}>Advance Paid</Text>
-                  <Text style={[styles.paymentValue, { color: C.green }]}>
+                <View style={styles.payRow}>
+                  <Text style={[styles.payLabel, { color: C.green }]}>Advance Paid</Text>
+                  <Text style={[styles.payVal, { color: C.green }]}>
                     ₹{(booking.advancePaid || booking.paidAmount || booking.advanceAmount || 0).toLocaleString()}
                   </Text>
                 </View>
 
-                <View style={styles.paymentRow}>
-                  <Text style={[styles.paymentLabel, { color: C.amber }]}>Balance Due</Text>
-                  <Text style={[styles.paymentValue, { color: C.amber }]}>
+                <View style={styles.payRow}>
+                  <Text style={[styles.payLabel, { color: C.amber }]}>Balance Due</Text>
+                  <Text style={[styles.payVal, { color: C.amber }]}>
                     ₹{(
                       (booking.grandTotal || booking.totalAmount || 0) -
                       (booking.advancePaid || booking.paidAmount || booking.advanceAmount || 0)
@@ -728,22 +785,22 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
               </>
             )}
           </View>
-        </View>
+        </Section>
 
-        {/* Payment Verified Info Card */}
+        {/* ── Payment Verified Info Card ── */}
         {booking.status === 'PAYMENT_VERIFIED' && booking.isOwnBooking && (
-          <View style={[styles.card, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+          <View style={[styles.card, styles.verifiedCard]}>
             <View style={styles.cardHeaderRow}>
               <Ionicons name="checkmark-circle" size={22} color={C.g700} />
               <Text style={[styles.cardTitle, { color: C.g700 }]}>Advance Payment Received!</Text>
             </View>
-            <Text style={[styles.tripControlDesc, { color: C.g700 }]}>
+            <Text style={[styles.tripControlDesc, { color: C.g700, marginBottom: 0 }]}>
               Customer has paid the advance amount. You can now generate OTP to start the trip when the customer arrives.
             </Text>
           </View>
         )}
 
-        {/* Trip Control - OTP Section */}
+        {/* ── Trip Control - OTP Section ── */}
         {(booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED' || booking.status === 'READY_FOR_PICKUP' || booking.status === 'IN_PROGRESS' || (booking.status === 'PAYMENT_VERIFIED' && booking.isOwnBooking)) && (
           <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
@@ -770,18 +827,21 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
                   When customer arrives for pickup, generate OTP to start the trip.
                 </Text>
                 <TouchableOpacity
-                  style={[styles.otpButton, { backgroundColor: C.g700 }]}
+                  style={styles.otpBtnWrap}
                   onPress={handleGenerateOtp}
                   disabled={otpLoading}
+                  activeOpacity={0.9}
                 >
-                  {otpLoading ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <>
-                      <Ionicons name="send" size={20} color="#fff" />
-                      <Text style={styles.otpButtonText}>Generate & Send OTP to Customer</Text>
-                    </>
-                  )}
+                  <LinearGradient colors={G.emerald} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.otpBtnInner}>
+                    {otpLoading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="send" size={20} color="#fff" />
+                        <Text style={styles.otpButtonText}>Generate & Send OTP to Customer</Text>
+                      </>
+                    )}
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
             )}
@@ -815,21 +875,25 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
                 </View>
 
                 <TouchableOpacity
-                  style={[
-                    styles.otpButton,
-                    { backgroundColor: otpInput.length === 6 ? C.green : C.muted },
-                  ]}
+                  style={styles.otpBtnWrap}
                   onPress={handleStartTrip}
                   disabled={otpLoading || otpInput.length !== 6}
+                  activeOpacity={0.9}
                 >
-                  {otpLoading ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <>
-                      <Ionicons name="play-circle" size={20} color="#fff" />
-                      <Text style={styles.otpButtonText}>Verify OTP & Start Trip</Text>
-                    </>
-                  )}
+                  <LinearGradient
+                    colors={otpInput.length === 6 ? G.emerald : [C.muted, C.muted]}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                    style={styles.otpBtnInner}
+                  >
+                    {otpLoading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="play-circle" size={20} color="#fff" />
+                        <Text style={styles.otpButtonText}>Verify OTP & Start Trip</Text>
+                      </>
+                    )}
+                  </LinearGradient>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -857,16 +921,16 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
                 </View>
 
                 <TouchableOpacity
-                  style={[styles.otpButton, { backgroundColor: C.red }]}
+                  style={[styles.otpButton, styles.otpButtonDanger]}
                   onPress={handleEndTrip}
                   disabled={otpLoading}
                 >
                   {otpLoading ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small" color={C.red} />
                   ) : (
                     <>
-                      <Ionicons name="stop-circle" size={20} color="#fff" />
-                      <Text style={styles.otpButtonText}>End Trip & Complete Booking</Text>
+                      <Ionicons name="stop-circle" size={20} color={C.red} />
+                      <Text style={[styles.otpButtonText, { color: C.red }]}>End Trip & Complete Booking</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -875,30 +939,26 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Completed Status */}
+        {/* ── Completed Status ── */}
         {booking.status === 'COMPLETED' && (
-          <View style={[styles.card, { backgroundColor: C.greenL, borderColor: C.green }]}>
-            <View style={{ alignItems: 'center', paddingVertical: 12 }}>
+          <View style={[styles.card, styles.completedCard]}>
+            <View style={styles.completedInner}>
               <Ionicons name="checkmark-circle" size={48} color={C.green} />
-              <Text style={[styles.cardTitle, { marginTop: 12, color: C.green }]}>Trip Completed!</Text>
-              <Text style={[styles.tripControlDesc, { textAlign: 'center', marginTop: 8 }]}>
+              <Text style={styles.completedTitle}>Trip Completed!</Text>
+              <Text style={styles.completedDesc}>
                 This booking has been successfully completed.
               </Text>
             </View>
           </View>
         )}
 
-        {/* Customer Notes */}
+        {/* ── Customer Notes ── */}
         {booking.customerNotes && (
-          <View style={styles.card}>
-            <View style={styles.cardHeaderRow}>
-              <Ionicons name="chatbox-ellipses-outline" size={22} color={C.amber} />
-              <Text style={styles.cardTitle}>Customer Notes</Text>
-            </View>
+          <Section icon={<Ionicons name="chatbox-ellipses-outline" size={15} color={C.amber} />} title="Customer Notes">
             <View style={styles.notesBox}>
               <Text style={styles.notesText}>{booking.customerNotes}</Text>
             </View>
-          </View>
+          </Section>
         )}
 
         <View style={{ height: 100 }} />
@@ -919,20 +979,23 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
           )}
           {canAccept() && (
             <TouchableOpacity
-              style={[styles.actionBtn, styles.acceptBtn]}
+              style={styles.acceptBtnWrap}
               onPress={handleAccept}
               disabled={actionLoading}
+              activeOpacity={0.9}
             >
-              {actionLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                  <Text style={[styles.actionBtnText, { color: '#fff' }]}>
-                    Accept Booking
-                  </Text>
-                </>
-              )}
+              <LinearGradient colors={G.emerald} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.acceptBtnInner}>
+                {actionLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                    <Text style={[styles.actionBtnText, { color: '#fff' }]}>
+                      Accept Booking
+                    </Text>
+                  </>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           )}
         </View>
@@ -951,500 +1014,257 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
+    paddingHorizontal: 32,
   },
   loadingText: {
     fontSize: 14,
     color: C.muted,
     marginTop: 8,
   },
-  emptyText: {
-    fontSize: 16,
-    color: C.muted,
-    marginTop: 12,
+  emptyIconWrap: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: C.g50,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  emptyTitle: {
+    fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text, marginTop: 14,
   },
 
-  // Gradient Header
-  gradientHeader: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 18,
-    overflow: 'hidden',
+  // ── Hero ──────────────────────────────────────────────────────────────
+  hero: {
+    paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden',
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
   },
-  decoCircle1: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    top: -40,
-    right: -20,
-    borderRadius: 60,
-    backgroundColor: '#fff',
-    opacity: 0.06,
+  deco1: {
+    position: 'absolute', width: 190, height: 190, borderRadius: 95,
+    backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40,
   },
-  decoCircle2: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    bottom: -20,
-    left: 10,
-    borderRadius: 40,
-    backgroundColor: '#fff',
-    opacity: 0.05,
+  deco2: {
+    position: 'absolute', width: 120, height: 120, borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.045)', bottom: -10, left: 40,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  topBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 10, marginBottom: 16,
   },
   backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36, height: 36, borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
   },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerIconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.65)',
-    marginTop: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    maxWidth: 120,
-    flexShrink: 0,
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
+  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
-  scrollView: {
-    flex: 1,
+  identityBlock: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 2 },
+  identityIcon: {
+    width: rs(48), height: rs(48), borderRadius: rs(14),
+    backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
+  identityLabel: { fontSize: 9.5, color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: 1.4, marginBottom: 3 },
+  identityName: { fontFamily: DISPLAY, fontSize: 19, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
+  identitySub: { fontSize: 12.5, color: 'rgba(255,255,255,0.65)', fontWeight: '600', marginTop: 3 },
 
-  // Status Banner
+  scrollView: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: TICKET_OVERLAP, paddingBottom: 40 },
+
+  // ── Ticket summary card — status, created date, grand total ──
+  ticketWrap: {
+    marginTop: -TICKET_OVERLAP, backgroundColor: C.card,
+    borderRadius: rs(16), overflow: 'hidden', borderWidth: 1, borderColor: C.border,
+    marginBottom: 12, ...cardShadow,
+  },
+  ticketRail: { height: 3, width: '100%' },
+  ticketUpperStub: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingBottom: 14 },
+  ticketIconBox: {
+    width: rs(44), height: rs(44), borderRadius: rs(12),
+    backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
+  },
+  ticketLabel: { fontSize: 9.5, color: C.muted, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
+  ticketNumber: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '900', color: C.text, letterSpacing: -0.3 },
+
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  statusPillTxt: { fontSize: 11, fontWeight: '700' },
+
+  perforationRow: { height: 2, justifyContent: 'center' },
+  dashLine: { marginHorizontal: 20, borderTopWidth: 1, borderColor: C.border, borderStyle: 'dashed' },
+  notchLeft: { position: 'absolute', left: -9, top: -8, width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg },
+  notchRight: { position: 'absolute', right: -9, top: -8, width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg },
+
+  ticketLowerStub: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, paddingTop: 14 },
+  moneyIconWrap: {
+    width: rs(30), height: rs(30), borderRadius: rs(9),
+    backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
+  },
+  ticketAmountLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
+  ticketAmountVal: { fontFamily: DISPLAY, fontSize: 24, fontWeight: '900', color: C.g700, letterSpacing: -0.4 },
+
+  // ── Status progression strip ──
+  statusStrip: {
+    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
+    backgroundColor: C.card, borderRadius: rs(16), borderWidth: 1, borderColor: C.border,
+    paddingVertical: 14, paddingHorizontal: 14, marginBottom: 12, ...cardShadow,
+  },
+  statusStep: { alignItems: 'center', width: 66 },
+  statusLine: { flex: 1, height: 2, backgroundColor: C.border, marginTop: 11 },
+  statusDot: { width: 24, height: 24, borderRadius: 12, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  statusDotDone: { backgroundColor: C.g500, borderColor: C.g500 },
+  statusDotCurrent: { backgroundColor: C.amber, borderColor: C.amber },
+  statusDotNum: { fontSize: 11, fontWeight: '800', color: C.muted },
+  statusStepLbl: { fontSize: 10, fontWeight: '600', color: C.muted, textAlign: 'center' },
+
+  // ── Status banner ──
   statusBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: C.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: C.card, borderRadius: rs(16), padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: C.border, borderLeftWidth: 4,
+    ...cardShadow,
   },
-  statusTextWrap: {
-    flex: 1,
-  },
-  statusLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  statusDate: {
-    fontSize: 12,
-    color: C.muted,
-  },
+  statusTextWrap: { flex: 1 },
+  statusLabel: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  statusDate: { fontSize: 12, color: C.muted },
 
-  // Cards
+  // ── Cards ──
   card: {
-    backgroundColor: C.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: C.border,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    backgroundColor: C.card, borderRadius: rs(16), padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
   },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-
-  // Customer Grid
-  customerGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 12,
-  },
-  infoBox: {
-    flex: 1,
-    minWidth: '45%',
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  infoBoxFull: {
-    minWidth: '100%',
-  },
-  infoIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: C.muted,
-    marginBottom: 2,
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-
-  // Quick Actions
-  quickActions: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  quickActionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  quickActionText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  // Vehicle Box
-  vehicleBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 16,
-    backgroundColor: C.bg,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  vehicleIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  vehicleInfo: {
-    flex: 1,
-  },
-  vehicleName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 4,
-  },
-  vehicleDetails: {
-    fontSize: 13,
-    color: C.muted,
-  },
-  assignedBadge: {
-    marginTop: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: C.g50,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  assignedText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: C.g700,
-  },
-
-  // Trip Info Grid
-  tripInfoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 16,
-  },
-  tripInfoItem: {
-    flex: 1,
-    minWidth: '45%',
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  tripInfoLabel: {
-    fontSize: 11,
-    color: C.muted,
-    textTransform: 'uppercase',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  tripInfoValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-
-  // Date Grid
-  dateGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  dateBox: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
-  },
-  dateBoxLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  dateBoxDate: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 4,
-  },
-  dateBoxTime: {
-    fontSize: 13,
-    color: C.muted,
-  },
-
-  // Payment
-  paymentDetails: {
-    gap: 12,
-  },
-  paymentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  paymentLabel: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  paymentValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  paymentLabelBold: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  paymentValueTotal: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: C.g700,
-  },
-  paymentDivider: {
-    height: 1,
-    backgroundColor: C.border,
-    marginVertical: 4,
-  },
-
-  // Notes
-  notesBox: {
-    padding: 14,
-    backgroundColor: C.amberL,
-    borderRadius: 12,
-  },
-  notesText: {
-    fontSize: 14,
-    color: C.text,
-    lineHeight: 20,
-  },
-
-  // Action Bar
-  actionBar: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    backgroundColor: C.card,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: -2 },
-    elevation: 10,
-  },
-  actionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  rejectBtn: {
-    backgroundColor: C.redL,
-    borderColor: C.red,
-  },
-  acceptBtn: {
-    backgroundColor: C.g700,
-    borderColor: C.g700,
-  },
-  actionBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-
-  // Trip Control / OTP
-  messageBox: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  messageText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  tripControlDesc: {
-    fontSize: 13,
-    color: C.muted,
-    marginBottom: 16,
-    lineHeight: 18,
-  },
-  otpButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  otpButtonOutline: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: C.g700,
-  },
-  otpButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  otpSentBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    padding: 14,
-    backgroundColor: C.g50,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.g100,
-    marginBottom: 16,
-  },
-  otpSentTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: C.g700,
-    marginBottom: 4,
-  },
-  otpSentDesc: {
-    fontSize: 12,
-    color: C.muted,
-    lineHeight: 16,
-  },
-  otpInputSection: {
-    marginBottom: 16,
-  },
-  otpInputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: C.text,
-    marginBottom: 8,
-  },
-  otpInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 2,
-    borderColor: C.g400,
-    borderRadius: 12,
-    backgroundColor: C.card,
-  },
-  otpInput: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: 4,
-    textAlign: 'center',
-    color: C.text,
-  },
-
-  // Status progression strip
-  statusStrip: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingVertical: 14, paddingHorizontal: 14, marginBottom: 14 },
-  statusStep:  { alignItems: 'center', width: 66 },
-  statusLine:  { flex: 1, height: 2, backgroundColor: C.border, marginTop: 11 },
-  statusDot:   { width: 24, height: 24, borderRadius: 12, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  statusDotDone:    { backgroundColor: C.g500, borderColor: C.g500 },
-  statusDotCurrent: { backgroundColor: C.blue, borderColor: C.blue },
-  statusDotNum:     { fontSize: 11, fontWeight: '800', color: C.muted },
-  statusStepLbl:    { fontSize: 10, fontWeight: '600', color: C.muted, textAlign: 'center' },
+  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  cardIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: C.g50 },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.text },
 
   // Collapsible quote details
-  quoteHead:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardHead0:     { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  cardIcon:      { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  quoteBody:     { marginTop: 14, gap: 10 },
-  quoteSub:      { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, gap: 7 },
-  quoteSubTitle: { fontSize: 12, fontWeight: '800', color: C.text, marginBottom: 2 },
-  quoteLi:       { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  quoteLiTxt:    { flex: 1, fontSize: 12.5, color: C.sub, lineHeight: 18 },
-  quoteBullet:   { fontSize: 13, color: C.muted, lineHeight: 18, width: 13, textAlign: 'center' },
-  quoteValid:    { fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 6 },
+  quoteHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardHead0: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  quoteBody: { marginTop: 14, gap: 10 },
+  quoteSub: { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, gap: 8 },
+  quoteSubTitle: { fontSize: 11, fontWeight: '800', color: C.sub, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
+  quoteLiTxt: { flex: 1, fontSize: 12.5, color: C.sub, lineHeight: 18 },
+  pillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingRight: 12, paddingLeft: 7, borderRadius: 20 },
+  pillPip: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  pillTxt: { fontSize: 12, fontWeight: '600' },
+  termsCard: { backgroundColor: C.bg, borderRadius: rs(12), padding: 11 },
+  termLine: { flexDirection: 'row', gap: 8, marginBottom: 7 },
+  termNum: { fontSize: 12, fontWeight: '800', color: C.text },
+  termTxt: { flex: 1, fontSize: 12, color: C.sub, lineHeight: 18 },
+  quoteNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: C.bg, borderRadius: rs(10), padding: 10, marginTop: 4 },
+  quoteValid: { fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 6 },
+  totalRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: C.g50, borderRadius: rs(12), padding: 14,
+    borderWidth: 1, borderColor: C.g100, marginBottom: 10,
+  },
+  totalLabel: { fontSize: 14, fontWeight: '700', color: C.g800 },
+  totalVal: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '900', color: C.g700 },
+
+  // Generic pay row (quote details + payment summary)
+  payRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
+  payLabel: { fontSize: 13, color: C.sub },
+  payVal: { fontSize: 13, fontWeight: '600', color: C.text },
+
+  // Customer grid
+  customerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12 },
+  infoBox: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  infoBoxFull: { minWidth: '100%' },
+  infoIconBox: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  infoContent: { flex: 1 },
+  infoLabel: { fontSize: 12, color: C.muted, marginBottom: 2 },
+  infoValue: { fontSize: 14, fontWeight: '600', color: C.text },
+
+  // Quick actions
+  quickActions: { flexDirection: 'row', gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border },
+  quickActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 12 },
+  quickActionText: { fontSize: 13, fontWeight: '600' },
+
+  // Vehicle box
+  vehicleBox: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, backgroundColor: C.bg, borderRadius: 12, marginBottom: 16 },
+  vehicleIconWrap: { width: 64, height: 64, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  vehicleInfo: { flex: 1 },
+  vehicleName: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text, marginBottom: 4 },
+  vehicleDetails: { fontSize: 13, color: C.muted },
+  assignedBadge: { marginTop: 8, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: C.g50, borderRadius: 12, alignSelf: 'flex-start' },
+  assignedText: { fontSize: 11, fontWeight: '600', color: C.g700 },
+
+  // Trip info grid
+  tripInfoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
+  tripInfoItem: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'flex-start' },
+  tripInfoLabel: { fontSize: 11, color: C.muted, textTransform: 'uppercase', fontWeight: '600', marginBottom: 4 },
+  tripInfoValue: { fontSize: 14, fontWeight: '600', color: C.text },
+
+  // Rental period rail (pickup → drop-off)
+  rentalRail: {
+    flexDirection: 'row', gap: 12,
+    backgroundColor: C.bg, borderRadius: rs(12), padding: 14,
+    marginTop: 4,
+  },
+  rentalGutter: { alignItems: 'center', paddingTop: 3 },
+  rentalDot: { width: 10, height: 10, borderRadius: 5 },
+  rentalLine: { width: 2, flex: 1, minHeight: rs(28), backgroundColor: C.border, marginVertical: 4 },
+  rentalLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 0.6 },
+  rentalValue: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '700', color: C.text, marginTop: 2 },
+  rentalTime: { fontSize: 12, color: C.sub, marginTop: 1 },
+
+  // Payment summary
+  paymentDetails: { gap: 2 },
+  paymentLabelBold: { fontSize: 16, fontWeight: '700', color: C.text },
+  paymentValueTotal: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: C.g700 },
+  paymentDivider: { height: 1, backgroundColor: C.border, marginVertical: 6 },
+
+  // Payment verified card
+  verifiedCard: { backgroundColor: C.g50, borderColor: C.g100 },
+
+  // Trip control / OTP
+  messageBox: { padding: 12, borderRadius: 8, borderWidth: 1, marginBottom: 16 },
+  messageText: { fontSize: 13, fontWeight: '500' },
+  tripControlDesc: { fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 18 },
+  otpBtnWrap: { borderRadius: 12, overflow: 'hidden', marginBottom: 12 },
+  otpBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
+  otpButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 14, borderRadius: 12, marginBottom: 12,
+  },
+  otpButtonOutline: { backgroundColor: 'transparent', borderWidth: 2, borderColor: C.g700 },
+  otpButtonDanger: { backgroundColor: C.redL, borderWidth: 1.5, borderColor: '#FECACA' },
+  otpButtonText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
+  otpSentBox: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14,
+    backgroundColor: C.g50, borderRadius: 12, borderWidth: 1, borderColor: C.g100, marginBottom: 16,
+  },
+  otpSentTitle: { fontSize: 14, fontWeight: '700', color: C.g700, marginBottom: 4 },
+  otpSentDesc: { fontSize: 12, color: C.muted, lineHeight: 16 },
+  otpInputSection: { marginBottom: 16 },
+  otpInputLabel: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 8 },
+  otpInputWrapper: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderWidth: 2, borderColor: C.g400, borderRadius: 12, backgroundColor: C.card,
+  },
+  otpInput: { flex: 1, fontSize: 20, fontWeight: '700', letterSpacing: 4, textAlign: 'center', color: C.text },
+
+  // Completed card
+  completedCard: { backgroundColor: C.greenL, borderColor: C.green },
+  completedInner: { alignItems: 'center', paddingVertical: 12 },
+  completedTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.green, marginTop: 12 },
+  completedDesc: { fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 18, textAlign: 'center', marginTop: 8 },
+
+  // Notes
+  notesBox: { padding: 14, backgroundColor: C.amberL, borderRadius: 12 },
+  notesText: { fontSize: 14, color: C.text, lineHeight: 20 },
+
+  // Action bar
+  actionBar: {
+    flexDirection: 'row', gap: 12, padding: 16,
+    backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
+    ...cardShadow,
+  },
+  actionBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 14, borderRadius: rs(12), borderWidth: 1,
+  },
+  rejectBtn: { backgroundColor: C.redL, borderColor: C.red },
+  acceptBtnWrap: { flex: 1, borderRadius: rs(12), overflow: 'hidden' },
+  acceptBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
+  actionBtnText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800' },
 });

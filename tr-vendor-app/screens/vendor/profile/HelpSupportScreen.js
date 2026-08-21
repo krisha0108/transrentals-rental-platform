@@ -1,7 +1,16 @@
+// screens/vendor/profile/HelpSupportScreen.js
+// REDESIGNED — "Elevate" visual language, structurally matching
+// screens/travel-agent/support/HelpAssistantScreen.js's gradient hero (with
+// AnimatedOrb ambient motion) and this app's own VendorDocumentsScreen.js /
+// BankDetailsScreen.js card + modal conventions.
+//
+// UI ONLY. All behaviour is preserved exactly: same GET (/public/contact-settings)
+// call, same contact/FAQ/ticket-category data, same ticket submit placeholder
+// flow, same tel:/mailto:/wa.me deep links, same category-picker modal logic.
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Linking, StatusBar, Animated,
+  TouchableOpacity, Linking, StatusBar,
   TextInput, Modal, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,15 +18,22 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { apiGet } from '../../api/client';
+import { SC as T, G, rs, rf, GUT, cardShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already used everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#3B82F6', blueL: '#EFF6FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  green: '#25D366',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  amber: T.amber, amberL: T.amberLight,
+  purple: T.purple, purpleL: T.purpleLight,
+  green: T.whatsapp,
+  red: T.red, redL: T.redLight,
 };
 
 const FAQ_DATA = [
@@ -75,7 +91,7 @@ const TICKET_CATEGORIES = [
 
 const RESOURCES = [
   { label: 'Vendor Guidelines',  sub: 'Best practices for vendors',     icon: 'book-outline',       color: C.blue,   bg: C.blueL },
-  { label: 'Pricing Guide',      sub: 'How to set competitive prices',  icon: 'pricetag-outline',   color: '#7C3AED', bg: '#F3E8FF' },
+  { label: 'Pricing Guide',      sub: 'How to set competitive prices',  icon: 'pricetag-outline',   color: C.purple, bg: C.purpleL },
   { label: 'Terms & Conditions', sub: 'Vendor partnership agreement',   icon: 'document-text-outline', color: C.g700, bg: C.g50 },
   { label: 'Privacy Policy',     sub: 'How we handle your data',        icon: 'lock-closed-outline', color: C.amber, bg: C.amberL },
 ];
@@ -149,31 +165,33 @@ export default function HelpSupportScreen({ navigation }) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
+    <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      {/* ── HEADER ── */}
-      <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={styles.headerGrad}>
-        <SafeAreaView edges={['top']}>
+      {/* ── HERO — static sibling so it can never be clipped by the
+          ScrollView's own viewport ── */}
+      <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+
+        <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="arrow-back" size={22} color="#fff" />
+              <Ionicons name="arrow-back" size={rs(20)} color="#fff" />
             </TouchableOpacity>
             <View style={{ flex: 1 }} />
           </View>
 
-          {/* Hero */}
-          <View style={styles.hero}>
+          <View style={styles.heroBody}>
             <View style={styles.heroIconWrap}>
-              <MaterialCommunityIcons name="headset" size={32} color={C.g400} />
+              <MaterialCommunityIcons name="headset" size={rs(30)} color={C.g400} />
             </View>
             <Text style={styles.heroTitle}>Help & Support</Text>
             <Text style={styles.heroSub}>We're here to help you 24/7</Text>
           </View>
 
-          {/* Support Hours Strip */}
           <View style={styles.hoursStrip}>
-            <Ionicons name="time-outline" size={16} color={C.g400} />
+            <Ionicons name="time-outline" size={rs(14)} color={C.g400} />
             <Text style={styles.hoursText}>Mon–Sun · Round the Clock · 24/7 Support</Text>
           </View>
         </SafeAreaView>
@@ -186,7 +204,7 @@ export default function HelpSupportScreen({ navigation }) {
       >
         {/* ── GET IN TOUCH ── */}
         <Text style={styles.sectionLabel}>Get in Touch</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, cardShadow]}>
           {CONTACT_OPTIONS.map((opt, i) => (
             <TouchableOpacity
               key={i}
@@ -195,14 +213,14 @@ export default function HelpSupportScreen({ navigation }) {
               activeOpacity={0.7}
             >
               <View style={[styles.contactIconBox, { backgroundColor: opt.bg }]}>
-                <Ionicons name={opt.icon} size={22} color={opt.color} />
+                <Ionicons name={opt.icon} size={rs(20)} color={opt.color} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.contactLabel}>{opt.label}</Text>
                 <Text style={styles.contactValue}>{opt.value}</Text>
               </View>
               <View style={[styles.contactArrow, { backgroundColor: opt.bg }]}>
-                <Ionicons name="chevron-forward" size={16} color={opt.color} />
+                <Ionicons name="chevron-forward" size={rs(15)} color={opt.color} />
               </View>
             </TouchableOpacity>
           ))}
@@ -210,7 +228,7 @@ export default function HelpSupportScreen({ navigation }) {
 
         {/* ── FAQs ── */}
         <Text style={styles.sectionLabel}>Frequently Asked Questions</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, cardShadow]}>
           {FAQ_DATA.map((faq, i) => (
             <TouchableOpacity
               key={i}
@@ -220,12 +238,12 @@ export default function HelpSupportScreen({ navigation }) {
             >
               <View style={styles.faqTop}>
                 <View style={styles.faqIconBox}>
-                  <Ionicons name={faq.icon} size={18} color={C.g600} />
+                  <Ionicons name={faq.icon} size={rs(17)} color={C.g600} />
                 </View>
                 <Text style={styles.faqQuestion}>{faq.question}</Text>
                 <Ionicons
                   name={expandedFaq === i ? 'chevron-up' : 'chevron-down'}
-                  size={18}
+                  size={rs(17)}
                   color={C.muted}
                 />
               </View>
@@ -238,17 +256,17 @@ export default function HelpSupportScreen({ navigation }) {
 
         {/* ── RAISE TICKET ── */}
         <Text style={styles.sectionLabel}>Raise a Ticket</Text>
-        <View style={styles.card}>
-          <View style={{ padding: 16, gap: 12 }}>
+        <View style={[styles.card, cardShadow]}>
+          <View style={styles.ticketFormBody}>
             {submitted && (
               <View style={styles.successBox}>
-                <Ionicons name="checkmark-circle" size={18} color="#15803D" />
+                <Ionicons name="checkmark-circle" size={rs(17)} color={C.g700} />
                 <Text style={styles.successText}>Ticket submitted! We will get back within 24 hours.</Text>
               </View>
             )}
             {!!submitError && (
               <View style={styles.errorBox}>
-                <Ionicons name="alert-circle" size={18} color="#B91C1C" />
+                <Ionicons name="alert-circle" size={rs(17)} color={C.red} />
                 <Text style={styles.errorText}>{submitError}</Text>
               </View>
             )}
@@ -263,7 +281,7 @@ export default function HelpSupportScreen({ navigation }) {
                 <Text style={[styles.selectTxt, !selectedCategoryLabel && { color: C.muted }]}>
                   {selectedCategoryLabel || 'Select category'}
                 </Text>
-                <Ionicons name="chevron-down" size={18} color={C.muted} />
+                <Ionicons name="chevron-down" size={rs(17)} color={C.muted} />
               </TouchableOpacity>
             </View>
 
@@ -293,7 +311,7 @@ export default function HelpSupportScreen({ navigation }) {
 
             <View style={styles.submitRow}>
               <View style={styles.responseHint}>
-                <Ionicons name="time-outline" size={13} color={C.muted} />
+                <Ionicons name="time-outline" size={rs(12)} color={C.muted} />
                 <Text style={styles.responseHintTxt}>Response within 24 hours</Text>
               </View>
               <TouchableOpacity
@@ -305,7 +323,7 @@ export default function HelpSupportScreen({ navigation }) {
                 {submitting ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Ionicons name="send" size={15} color="#fff" />
+                  <Ionicons name="send" size={rs(14)} color="#fff" />
                 )}
                 <Text style={styles.submitBtnTxt}>{submitting ? 'Submitting…' : 'Submit Ticket'}</Text>
               </TouchableOpacity>
@@ -315,7 +333,7 @@ export default function HelpSupportScreen({ navigation }) {
 
         {/* ── HELPFUL RESOURCES ── */}
         <Text style={styles.sectionLabel}>Helpful Resources</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, cardShadow]}>
           {RESOURCES.map((r, i) => (
             <TouchableOpacity
               key={r.label}
@@ -324,34 +342,34 @@ export default function HelpSupportScreen({ navigation }) {
               onPress={() => {/* placeholder — wire to actual docs URLs when available */}}
             >
               <View style={[styles.contactIconBox, { backgroundColor: r.bg }]}>
-                <Ionicons name={r.icon} size={20} color={r.color} />
+                <Ionicons name={r.icon} size={rs(18)} color={r.color} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.contactLabel}>{r.label}</Text>
                 <Text style={styles.contactValue}>{r.sub}</Text>
               </View>
-              <Ionicons name="open-outline" size={16} color={C.muted} />
+              <Ionicons name="open-outline" size={rs(15)} color={C.muted} />
             </TouchableOpacity>
           ))}
         </View>
 
         {/* ── INFO BANNER ── */}
         <LinearGradient
-          colors={[C.g900, '#064E3B']}
+          colors={[C.g900, C.g800]}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
           style={styles.infoBanner}
         >
-          <MaterialCommunityIcons name="shield-check-outline" size={28} color={C.g400} />
-          <View style={{ flex: 1, marginLeft: 14 }}>
+          <MaterialCommunityIcons name="shield-check-outline" size={rs(26)} color={C.g400} />
+          <View style={{ flex: 1, marginLeft: rs(14) }}>
             <Text style={styles.infoTitle}>Dedicated Vendor Support</Text>
             <Text style={styles.infoText}>Our support team is always ready to assist vendors grow their business on TransRentals.</Text>
           </View>
         </LinearGradient>
 
-        <View style={{ height: 32 }} />
+        <View style={{ height: rs(32) }} />
       </ScrollView>
 
-      {/* Category picker — bottom-sheet style modal */}
+      {/* Category picker — bottom-sheet modal */}
       <Modal
         visible={categoryPickerOpen}
         transparent
@@ -361,30 +379,32 @@ export default function HelpSupportScreen({ navigation }) {
         <TouchableOpacity
           activeOpacity={1}
           onPress={() => setCategoryPickerOpen(false)}
-          style={styles.modalBackdrop}
+          style={styles.modalOverlay}
         >
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Select Category</Text>
-            {TICKET_CATEGORIES.map((cat) => {
-              const selected = cat.value === ticket.category;
-              return (
-                <TouchableOpacity
-                  key={cat.value}
-                  onPress={() => {
-                    setTicket((p) => ({ ...p, category: cat.value }));
-                    setCategoryPickerOpen(false);
-                  }}
-                  style={[styles.modalRow, selected && styles.modalRowActive]}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.modalRowTxt, selected && { color: C.g700, fontWeight: '700' }]}>
-                    {cat.label}
-                  </Text>
-                  {selected && <Ionicons name="checkmark-circle" size={18} color={C.g600} />}
-                </TouchableOpacity>
-              );
-            })}
+          <View style={styles.modalContent}>
+            <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
+            <ScrollView bounces={false} contentContainerStyle={styles.modalScroll}>
+              <Text style={styles.modalTitle}>Select Category</Text>
+              {TICKET_CATEGORIES.map((cat) => {
+                const selected = cat.value === ticket.category;
+                return (
+                  <TouchableOpacity
+                    key={cat.value}
+                    onPress={() => {
+                      setTicket((p) => ({ ...p, category: cat.value }));
+                      setCategoryPickerOpen(false);
+                    }}
+                    style={[styles.modalRow, selected && styles.modalRowActive]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.modalRowTxt, selected && { color: C.g700, fontWeight: '700' }]}>
+                      {cat.label}
+                    </Text>
+                    {selected && <Ionicons name="checkmark-circle" size={rs(17)} color={C.g600} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -393,182 +413,197 @@ export default function HelpSupportScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  headerGrad: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
+  root: { flex: 1, backgroundColor: C.bg },
+
+  /* ── Hero ── */
+  hero: {
+    paddingHorizontal: 0,
+    paddingBottom: rs(20),
+    borderBottomLeftRadius: rs(26),
+    borderBottomRightRadius: rs(26),
+    overflow: 'hidden',
+  },
+  orbA: {
+    position: 'absolute', top: -rs(50), right: -rs(30),
+    width: rs(160), height: rs(160), borderRadius: rs(80),
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  orbB: {
+    position: 'absolute', bottom: -rs(40), left: -rs(30),
+    width: rs(130), height: rs(130), borderRadius: rs(65),
+    backgroundColor: 'rgba(46,158,120,0.16)',
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 8,
-    marginBottom: 20,
+    paddingTop: rs(8),
+    marginBottom: rs(18),
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 20,
+    width: rs(38), height: rs(38), borderRadius: rs(19),
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
   },
-  hero: {
+  heroBody: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: rs(18),
   },
   heroIconWrap: {
-    width: 68, height: 68, borderRadius: 34,
+    width: rs(66), height: rs(66), borderRadius: rs(33),
     backgroundColor: 'rgba(52,211,153,0.15)',
     borderWidth: 1.5, borderColor: 'rgba(52,211,153,0.3)',
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: 14,
+    marginBottom: rs(14),
   },
   heroTitle: {
-    fontSize: 22, fontWeight: '800', color: '#fff',
+    fontFamily: DISPLAY, fontSize: rf(21), fontWeight: '800', color: '#fff',
     letterSpacing: -0.3,
   },
   heroSub: {
-    fontSize: 13, color: 'rgba(255,255,255,0.65)',
-    marginTop: 4,
+    fontSize: rf(13), color: 'rgba(255,255,255,0.65)',
+    marginTop: rs(4),
   },
   hoursStrip: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16,
-    gap: 6,
+    borderRadius: 999, paddingVertical: rs(8), paddingHorizontal: rs(16),
+    gap: rs(6), alignSelf: 'center',
   },
   hoursText: {
-    fontSize: 12, color: 'rgba(255,255,255,0.75)',
+    fontSize: rf(11.5), color: 'rgba(255,255,255,0.75)',
     fontWeight: '600',
   },
 
-  scroll: { padding: 16 },
+  scroll: { padding: GUT, paddingTop: rs(18) },
 
   sectionLabel: {
-    fontSize: 13, fontWeight: '700', color: C.sub,
+    fontSize: rf(12.5), fontWeight: '700', color: C.sub,
     textTransform: 'uppercase', letterSpacing: 0.5,
-    marginBottom: 10, marginTop: 8, marginLeft: 2,
+    marginBottom: rs(10), marginTop: rs(8), marginLeft: rs(2),
   },
 
   card: {
-    backgroundColor: C.card, borderRadius: 16,
-    borderWidth: 1, borderColor: C.border,
-    overflow: 'hidden', marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+    backgroundColor: C.card, borderRadius: rs(18),
+    borderWidth: 1, borderColor: T.glassBorder,
+    overflow: 'hidden', marginBottom: rs(16),
   },
 
   /* Contact */
   contactRow: {
     flexDirection: 'row', alignItems: 'center',
-    padding: 16, gap: 14,
+    padding: rs(16), gap: rs(14),
   },
   contactBorder: {
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
   contactIconBox: {
-    width: 48, height: 48, borderRadius: 14,
+    width: rs(46), height: rs(46), borderRadius: rs(13),
     alignItems: 'center', justifyContent: 'center',
   },
   contactLabel: {
-    fontSize: 14, fontWeight: '700', color: C.text,
+    fontFamily: DISPLAY, fontSize: rf(14), fontWeight: '700', color: C.text,
   },
   contactValue: {
-    fontSize: 13, color: C.sub, marginTop: 2,
+    fontSize: rf(12.5), color: C.sub, marginTop: rs(2),
   },
   contactArrow: {
-    width: 32, height: 32, borderRadius: 10,
+    width: rs(30), height: rs(30), borderRadius: rs(10),
     alignItems: 'center', justifyContent: 'center',
   },
 
   /* FAQ */
   faqRow: {
-    padding: 16,
+    padding: rs(16),
   },
   faqBorder: {
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
   faqTop: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
+    flexDirection: 'row', alignItems: 'center', gap: rs(12),
   },
   faqIconBox: {
-    width: 34, height: 34, borderRadius: 10,
+    width: rs(32), height: rs(32), borderRadius: rs(10),
     backgroundColor: C.g50,
     alignItems: 'center', justifyContent: 'center',
   },
   faqQuestion: {
-    flex: 1, fontSize: 14, fontWeight: '600', color: C.text,
+    flex: 1, fontSize: rf(13.5), fontWeight: '600', color: C.text,
   },
   faqAnswer: {
-    fontSize: 13, color: C.sub, lineHeight: 20,
-    marginTop: 12, marginLeft: 46,
+    fontSize: rf(12.5), color: C.sub, lineHeight: rs(19),
+    marginTop: rs(12), marginLeft: rs(44),
   },
 
   /* Info Banner */
   infoBanner: {
     flexDirection: 'row', alignItems: 'center',
-    borderRadius: 16, padding: 18, marginBottom: 8,
+    borderRadius: rs(18), padding: rs(18), marginBottom: rs(8),
   },
   infoTitle: {
-    fontSize: 14, fontWeight: '700', color: '#fff',
-    marginBottom: 4,
+    fontFamily: DISPLAY, fontSize: rf(14), fontWeight: '700', color: '#fff',
+    marginBottom: rs(4),
   },
   infoText: {
-    fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 18,
+    fontSize: rf(11.5), color: 'rgba(255,255,255,0.7)', lineHeight: rs(17),
   },
 
   /* Ticket form */
-  label: { fontSize: 12, fontWeight: '700', color: C.sub, marginBottom: 6, letterSpacing: 0.2 },
+  ticketFormBody: { padding: rs(16), gap: rs(12) },
+  label: { fontSize: rf(11.5), fontWeight: '700', color: C.sub, marginBottom: rs(6), letterSpacing: 0.2 },
   selectBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border,
-    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12,
+    borderRadius: rs(10), paddingHorizontal: rs(12), paddingVertical: rs(12),
   },
-  selectTxt: { fontSize: 14, color: C.text, fontWeight: '600' },
+  selectTxt: { fontSize: rf(14), color: C.text, fontWeight: '600' },
   input: {
     backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border,
-    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
-    fontSize: 14, color: C.text,
+    borderRadius: rs(10), paddingHorizontal: rs(12), paddingVertical: rs(10),
+    fontSize: rf(14), color: C.text,
   },
-  textarea: { minHeight: 100, paddingTop: 10, textAlignVertical: 'top' },
+  textarea: { minHeight: rs(100), paddingTop: rs(10), textAlignVertical: 'top' },
   submitRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginTop: 4, gap: 8, flexWrap: 'wrap',
+    marginTop: rs(4), gap: rs(8), flexWrap: 'wrap',
   },
-  responseHint: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  responseHintTxt: { fontSize: 11, color: C.muted, fontWeight: '600' },
+  responseHint: { flexDirection: 'row', alignItems: 'center', gap: rs(4) },
+  responseHintTxt: { fontSize: rf(10.5), color: C.muted, fontWeight: '600' },
   submitBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: C.g700, paddingHorizontal: 16, paddingVertical: 11, borderRadius: 10,
+    flexDirection: 'row', alignItems: 'center', gap: rs(8),
+    backgroundColor: C.g700, paddingHorizontal: rs(16), paddingVertical: rs(11), borderRadius: rs(10),
   },
-  submitBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.2 },
+  submitBtnTxt: { color: '#fff', fontSize: rf(13), fontWeight: '800', letterSpacing: 0.2 },
   successBox: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#DCFCE7', borderWidth: 1, borderColor: '#86EFAC',
-    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10,
+    flexDirection: 'row', alignItems: 'center', gap: rs(8),
+    backgroundColor: C.g50, borderWidth: 1, borderColor: C.g400,
+    paddingHorizontal: rs(12), paddingVertical: rs(10), borderRadius: rs(10),
   },
-  successText: { flex: 1, fontSize: 12, color: '#15803D', fontWeight: '600', lineHeight: 16 },
+  successText: { flex: 1, fontSize: rf(11.5), color: C.g700, fontWeight: '600', lineHeight: rs(16) },
   errorBox: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#FEE2E2', borderWidth: 1, borderColor: '#FCA5A5',
-    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10,
+    flexDirection: 'row', alignItems: 'center', gap: rs(8),
+    backgroundColor: C.redL, borderWidth: 1, borderColor: C.red,
+    paddingHorizontal: rs(12), paddingVertical: rs(10), borderRadius: rs(10),
   },
-  errorText: { flex: 1, fontSize: 12, color: '#B91C1C', fontWeight: '600', lineHeight: 16 },
+  errorText: { flex: 1, fontSize: rf(11.5), color: C.red, fontWeight: '600', lineHeight: rs(16) },
 
-  /* Category picker modal */
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalSheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22,
-    paddingHorizontal: 16, paddingTop: 10, paddingBottom: 24,
+  /* Category picker modal — modalOverlay(scrim) → modalContent(capped
+     height, overflow hidden, SHEET_RADIUS) → handle → single ScrollView. */
+  modalOverlay: { flex: 1, backgroundColor: T.scrim, justifyContent: 'flex-end' },
+  modalContent: {
+    backgroundColor: C.card,
+    borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
+    maxHeight: '80%', overflow: 'hidden',
   },
-  modalHandle: {
-    alignSelf: 'center', width: 38, height: 4, borderRadius: 2,
-    backgroundColor: '#CBD5E1', marginBottom: 12,
-  },
-  modalTitle: { fontSize: 15, fontWeight: '800', color: C.text, marginBottom: 6, marginLeft: 4 },
+  sheetHandleWrap: { alignItems: 'center', paddingTop: rs(10) },
+  sheetHandle: { width: rs(38), height: rs(4), borderRadius: rs(2), backgroundColor: C.border },
+  modalScroll: { paddingHorizontal: GUT, paddingTop: rs(10), paddingBottom: rs(24) },
+  modalTitle: { fontFamily: DISPLAY, fontSize: rf(15), fontWeight: '800', color: C.text, marginBottom: rs(6), marginLeft: rs(4) },
   modalRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 13, paddingHorizontal: 10, borderRadius: 10,
+    paddingVertical: rs(13), paddingHorizontal: rs(10), borderRadius: rs(10),
   },
   modalRowActive: { backgroundColor: C.g50 },
-  modalRowTxt: { fontSize: 14, color: C.text, fontWeight: '500' },
+  modalRowTxt: { fontSize: rf(14), color: C.text, fontWeight: '500' },
 });

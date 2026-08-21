@@ -10,14 +10,20 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { createDirectBooking } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
+import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already used — only the values now come from
+// the shared "Elevate" theme instead of hardcoded hex, mirroring the mapping
+// convention already used in DirectBookingsScreen.js / DirectBookingDetailScreen.js.
 const C = {
-  g900: '#022C22', g800: '#064E3B', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g300: '#6EE7B7', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F0FDF9', surface: '#FFFFFF',
-  text: '#1E293B', subtext: '#475569', muted: '#94A3B8', border: '#D1FAE5',
-  blue: '#3B82F6', indigo: '#6366F1', purple: '#8B5CF6',
-  amber: '#F59E0B', orange: '#F97316', red: '#EF4444', teal: '#14B8A6',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g300: shade(T.emerald, 20), g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, surface: T.card,
+  text: T.ink, subtext: T.text, muted: T.subText, border: T.border,
+  blue: T.blue, indigo: T.indigo, purple: T.purple,
+  amber: T.amber, orange: T.orange, red: T.red, teal: T.ocean,
 };
 
 /* ─── Static data ─── */
@@ -298,32 +304,39 @@ export default function AddDirectBookingScreen({ navigation }) {
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      {/* Gradient Header */}
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.grad}>
-        <SafeAreaView edges={['top']}>
-          <View style={s.gradTop}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-              <Icon name="arrow-left" size={22} color="#fff" />
+      {/* ── Hero header ── */}
+      <LinearGradient colors={G.hero} style={s.hero}>
+        <AnimatedOrb style={s.orbA} />
+        <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={['top']} style={s.heroSafe}>
+          <View style={s.topRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backCircle}>
+              <Icon name="arrow-left" size={20} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={s.gradTitle}>Add Direct Booking</Text>
-              <Text style={s.gradSub}>Manual walk-in entry</Text>
-            </View>
-            <View style={[s.heroIcon, { backgroundColor: 'rgba(255,255,255,0.12)' }]}>
-              <MaterialCommunityIcons name="book-plus" size={26} color="#fff" />
+            <View style={s.heroIconChip}>
+              <MaterialCommunityIcons name="book-plus" size={20} color="#fff" />
             </View>
           </View>
+
+          <View style={s.heroBadge}>
+            <MaterialCommunityIcons name="book-plus" size={12} color={C.g400} />
+            <Text style={s.heroBadgeTxt}>MANUAL ENTRY</Text>
+          </View>
+          <Text style={s.heroTitle}>Add Direct Booking</Text>
+          <Text style={s.heroSub}>Manual walk-in entry</Text>
+
+          <View style={{ height: rs(18) }} />
         </SafeAreaView>
       </LinearGradient>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
           {/* 1. Service Type */}
           <View style={s.section}>
             <View style={s.sectionHead}>
               <View style={[s.sectionIcon, { backgroundColor: C.g100 }]}>
-                <MaterialCommunityIcons name="car-multiple" size={17} color={C.g700} />
+                <MaterialCommunityIcons name="car-multiple" size={16} color={C.g700} />
               </View>
               <Text style={s.sectionTitle}>Service Type</Text>
             </View>
@@ -357,7 +370,7 @@ export default function AddDirectBookingScreen({ navigation }) {
             <View style={[s.section, { borderColor: svcMeta.color + '50', borderWidth: 1.5 }]}>
               <View style={s.sectionHead}>
                 <View style={[s.sectionIcon, { backgroundColor: svcMeta.color + '18' }]}>
-                  <MaterialCommunityIcons name={svcMeta.icon} size={17} color={svcMeta.color} />
+                  <MaterialCommunityIcons name={svcMeta.icon} size={16} color={svcMeta.color} />
                 </View>
                 <Text style={s.sectionTitle}>{svcMeta.label} Details</Text>
               </View>
@@ -369,7 +382,7 @@ export default function AddDirectBookingScreen({ navigation }) {
           <View style={s.section}>
             <View style={s.sectionHead}>
               <View style={[s.sectionIcon, { backgroundColor: '#E0E7FF' }]}>
-                <Icon name="user" size={16} color={C.indigo} />
+                <Icon name="user" size={15} color={C.indigo} />
               </View>
               <Text style={s.sectionTitle}>Customer Details</Text>
             </View>
@@ -414,7 +427,7 @@ export default function AddDirectBookingScreen({ navigation }) {
           <View style={s.section}>
             <View style={s.sectionHead}>
               <View style={[s.sectionIcon, { backgroundColor: C.g100 }]}>
-                <Icon name="map-pin" size={16} color={C.g700} />
+                <Icon name="map-pin" size={15} color={C.g700} />
               </View>
               <Text style={s.sectionTitle}>Schedule & Location</Text>
             </View>
@@ -487,7 +500,7 @@ export default function AddDirectBookingScreen({ navigation }) {
           <View style={s.section}>
             <View style={s.sectionHead}>
               <View style={[s.sectionIcon, { backgroundColor: '#FEF3C7' }]}>
-                <Icon name="credit-card" size={16} color={C.amber} />
+                <Icon name="credit-card" size={15} color={C.amber} />
               </View>
               <Text style={s.sectionTitle}>Payment</Text>
             </View>
@@ -541,8 +554,8 @@ export default function AddDirectBookingScreen({ navigation }) {
           </View>
 
           {/* Submit */}
-          <TouchableOpacity style={[s.submitWrap, saving && { opacity: 0.6 }]} onPress={handleSubmit} disabled={saving}>
-            <LinearGradient colors={[C.g700, C.g600, C.g500]} style={s.submitBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+          <TouchableOpacity style={[s.submitWrap, saving && { opacity: 0.6 }]} onPress={handleSubmit} disabled={saving} activeOpacity={0.85}>
+            <LinearGradient colors={G.emerald} style={s.submitBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               {saving ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
@@ -593,69 +606,93 @@ export default function AddDirectBookingScreen({ navigation }) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
 
-  /* Gradient header */
-  grad: { paddingBottom: 18 },
-  gradTop: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14, gap: 10 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
-  gradTitle: { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  gradSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
-  heroIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
+  /* ── Hero header ── */
+  hero: {
+    paddingHorizontal: 16, paddingBottom: rs(18), overflow: 'hidden',
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
+  },
+  heroSafe: {},
+  orbA: {
+    position: 'absolute', top: -50, right: -34, width: 170, height: 170,
+    borderRadius: 85, backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  orbB: {
+    position: 'absolute', bottom: -34, left: -30, width: 120, height: 120,
+    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
+  },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: rs(4), marginBottom: rs(14) },
+  backCircle: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center',
+  },
+  heroIconChip: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  heroBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 8,
+  },
+  heroBadgeTxt: { fontSize: 10.5, fontWeight: '700', color: C.g400, fontFamily: DISPLAY, textTransform: 'uppercase', letterSpacing: 0.5 },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 3, letterSpacing: -0.4 },
+  heroSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', fontFamily: DISPLAY },
 
-  scroll: { padding: 14, gap: 12 },
+  scroll: { padding: 16, gap: 14 },
 
   /* Sections */
-  section: { backgroundColor: C.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: C.border, shadowColor: C.g900, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 1 },
+  section: { backgroundColor: C.surface, borderRadius: rs(16), padding: 16, borderWidth: 1, borderColor: C.border, ...cardShadow },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
-  sectionIcon: { width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  sectionTitle: { fontSize: 14, fontWeight: '800', color: C.text },
+  sectionIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  sectionTitle: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '800', color: C.text },
 
   /* Service grid */
   serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  svcCard: { width: '31%', alignItems: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface },
+  svcCard: { width: '31%', alignItems: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.bg },
   svcCardLabel: { fontSize: 10, fontWeight: '700', color: C.muted, textAlign: 'center' },
   activeDot: { width: 6, height: 6, borderRadius: 3 },
 
   /* Fields */
   fieldGroup: {},
-  fieldLabel: { fontSize: 11, fontWeight: '700', color: C.subtext, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 4 },
-  input: { backgroundColor: C.g50, borderWidth: 1.5, borderColor: C.g100, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14, color: C.text },
+  fieldLabel: { fontSize: 12, fontWeight: '600', color: C.text, marginBottom: 8, marginTop: 4 },
+  input: { backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: C.text },
   rowFields: { flexDirection: 'row', gap: 10, marginTop: 4 },
 
   /* Chips */
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingVertical: 10, paddingHorizontal: 10, borderRadius: 10, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface, alignItems: 'center' },
-  chipActive: { borderColor: C.g700, backgroundColor: C.g50 },
-  chipTxt: { fontSize: 12, fontWeight: '600', color: C.muted, textAlign: 'center' },
-  chipTxtActive: { color: C.g700 },
+  chip: { paddingVertical: 10, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.bg, alignItems: 'center' },
+  chipActive: { borderColor: C.g500, backgroundColor: C.g50 },
+  chipTxt: { fontSize: 12, fontWeight: '600', color: C.subtext, textAlign: 'center' },
+  chipTxtActive: { color: C.g700, fontWeight: '800' },
 
   /* Toggle */
   toggleRow: { flexDirection: 'row', gap: 8 },
-  toggle: { flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 2, borderColor: C.border, alignItems: 'center', backgroundColor: C.surface },
-  toggleActive: { borderColor: C.g700, backgroundColor: C.g50 },
-  toggleTxt: { fontSize: 13, fontWeight: '700', color: C.muted },
+  toggle: { flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', backgroundColor: C.bg },
+  toggleActive: { borderColor: C.g500, backgroundColor: C.g50 },
+  toggleTxt: { fontSize: 13, fontWeight: '700', color: C.subtext },
   toggleTxtActive: { color: C.g700 },
 
   /* Weight */
   weightRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  unitToggle: { flexDirection: 'row', borderRadius: 10, overflow: 'hidden', borderWidth: 2, borderColor: C.border },
-  unitBtn: { paddingHorizontal: 16, paddingVertical: 11, backgroundColor: C.surface },
+  unitToggle: { flexDirection: 'row', borderRadius: 10, overflow: 'hidden', borderWidth: 1.5, borderColor: C.border },
+  unitBtn: { paddingHorizontal: 16, paddingVertical: 11, backgroundColor: C.bg },
   unitBtnActive: { backgroundColor: C.g700 },
-  unitBtnTxt: { fontSize: 13, fontWeight: '700', color: C.muted },
+  unitBtnTxt: { fontSize: 13, fontWeight: '700', color: C.subtext },
   unitBtnTxtActive: { color: '#fff' },
 
   /* Date */
-  dateBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.g50, borderWidth: 1.5, borderColor: C.g100, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13 },
+  dateBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12 },
   dateBtnTxt: { fontSize: 14, color: C.muted },
 
   /* Payment */
   payStatusRow: { flexDirection: 'row', gap: 8 },
-  payStatusBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 12, borderRadius: 12, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface },
-  payStatusTxt: { fontSize: 12, fontWeight: '700', color: C.muted },
+  payStatusBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 12, borderRadius: 10, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.bg },
+  payStatusTxt: { fontSize: 12, fontWeight: '700', color: C.subtext },
 
   /* Submit */
-  submitWrap: { borderRadius: 16, overflow: 'hidden', marginTop: 8 },
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 18 },
-  submitBtnTxt: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },
-  cancelBtn: { alignItems: 'center', paddingVertical: 15, borderRadius: 16, borderWidth: 2, borderColor: C.border, marginTop: 8 },
+  submitWrap: { borderRadius: rs(14), overflow: 'hidden', marginTop: 8 },
+  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16 },
+  submitBtnTxt: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },
+  cancelBtn: { alignItems: 'center', paddingVertical: 15, borderRadius: rs(14), borderWidth: 1.5, borderColor: C.border, marginTop: 8 },
   cancelBtnTxt: { fontSize: 14, fontWeight: '600', color: C.muted },
 });

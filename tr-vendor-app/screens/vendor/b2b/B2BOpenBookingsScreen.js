@@ -8,14 +8,19 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getB2BOpenBookings } from '../../api/client';
+import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g300: '#6EE7B7', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F0FDF9', surface: '#FFFFFF',
-  text: '#1E293B', sub: '#475569', muted: '#94A3B8', border: '#E2E8F0',
-  amber: '#F59E0B', amberBg: '#FFFBEB', red: '#EF4444', redBg: '#FEF2F2',
-  blue: '#3B82F6', blueBg: '#EFF6FF', purple: '#8B5CF6', purpleBg: '#F5F3FF',
+  g950: T.forestDark, g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g300: T.oceanLight, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, surface: T.card,
+  text: T.ink, sub: T.text, muted: T.subText, border: T.border,
+  amber: T.amber, amberBg: T.amberLight, red: T.red, redBg: T.redLight,
+  blue: T.blue, blueBg: T.blueLight, purple: T.purple, purpleBg: T.tintPlum,
 };
 
 const STATUS_CONFIG = {
@@ -234,9 +239,9 @@ export default function B2BOpenBookingsScreen({ navigation }) {
   const ListHeader = (
     <>
       {/* Header gradient */}
-      <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.headerGrad}>
-        <View style={s.deco1} />
-        <View style={s.deco2} />
+      <LinearGradient colors={G.hero} style={s.headerGrad}>
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.headerBtn}>
@@ -398,7 +403,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700', fontFamily: DISPLAY },
   headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 2 },
 
   /* Filter tabs */
@@ -444,9 +449,9 @@ const s = StyleSheet.create({
   },
 
   /* Service filter modal */
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: T.scrim, justifyContent: 'flex-end' },
   filterSheet: {
-    backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: C.surface, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     paddingBottom: 32,
   },
   sheetHandle: {
@@ -458,7 +463,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 14,
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  sheetTitle: { fontSize: 16, fontWeight: '700', color: C.text },
+  sheetTitle: { fontSize: 16, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
   sheetGrid: {
     flexDirection: 'row', flexWrap: 'wrap',
     padding: 16, gap: 12,
@@ -466,7 +471,7 @@ const s = StyleSheet.create({
   sheetOption: {
     width: '46%', flexGrow: 1,
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: C.bg, borderRadius: 14,
+    backgroundColor: C.bg, borderRadius: rs(14),
     borderWidth: 1.5, borderColor: C.border,
     padding: 14,
   },
@@ -482,10 +487,10 @@ const s = StyleSheet.create({
 
   /* Card */
   card: {
-    backgroundColor: C.surface, borderRadius: 16,
+    backgroundColor: C.surface, borderRadius: rs(16),
     borderWidth: 1, borderColor: C.border,
     marginHorizontal: 14, marginBottom: 12, overflow: 'hidden',
-    elevation: 2, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
+    ...cardShadow,
   },
 
   /* Card top row */
@@ -499,7 +504,7 @@ const s = StyleSheet.create({
   },
   cardTopMid: { flex: 1 },
   bookingNum: { fontSize: 11, fontWeight: '700', color: C.muted, fontVariant: ['tabular-nums'] },
-  companyName: { fontSize: 14, fontWeight: '700', color: C.text, marginTop: 1 },
+  companyName: { fontSize: 14, fontWeight: '700', color: C.text, marginTop: 1, fontFamily: DISPLAY },
   vehicleCategoryText: { fontSize: 12, color: C.sub, marginTop: 2 },
   cardTopRight: { alignItems: 'flex-end', gap: 4 },
   statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
@@ -563,7 +568,7 @@ const s = StyleSheet.create({
 
   /* Empty */
   emptyBox: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginTop: 14 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginTop: 14, fontFamily: DISPLAY },
   emptySub: { fontSize: 13, color: C.sub, marginTop: 6, textAlign: 'center', lineHeight: 19 },
 
   /* Load more */

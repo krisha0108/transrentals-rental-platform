@@ -9,16 +9,20 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorEarnings } from '../../api/client';
+import { SC as T, G, rs, rf, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399',
-  g100: '#D1FAE5', g50:  '#ECFDF5',
-  bg:     '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text:   '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue:    '#2563EB', purple: '#7C3AED', amber: '#D97706',
-  red:     '#DC2626', orange: '#EA580C',
-  indigo:  '#4F46E5', teal: '#0D9488', pink: '#DB2777', cyan: '#0891B2',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald,
+  g100: T.tintEmerald, g50:  T.tintEmerald,
+  bg:     T.bg, card: T.card, border: T.border,
+  text:   T.ink, sub: T.text, muted: T.subText,
+  blue:    T.blue, purple: T.purple, amber: T.amber, orange: T.orange,
+  indigo:  T.indigo, pink: T.rose, cyan: T.oceanLight,
 };
 
 // service tag (from earnings.bookingsList) → icon/color + detail screen
@@ -105,8 +109,10 @@ export default function AllBookingsScreen({ navigation, route }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* Header */}
-      <LinearGradient colors={[C.g900, '#064E3B', C.g700]}
+      <LinearGradient colors={G.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerRow}>
             <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
@@ -217,53 +223,56 @@ export default function AllBookingsScreen({ navigation, route }) {
 }
 
 const s = StyleSheet.create({
-  hero:        { paddingHorizontal: 16, paddingBottom: 16 },
+  // Header
+  hero: { paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
+  deco1: { position: 'absolute', width: 190, height: 190, borderRadius: 95, backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40 },
+  deco2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)', bottom: -10, left: 40 },
   headerRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 8, marginBottom: 18 },
   backBtn:     { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 21, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
   headerSub:   { fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: '600', marginTop: 2 },
 
   toggle:          { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: 12, padding: 4, gap: 4 },
   toggleBtn:       { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 9 },
-  toggleBtnActive: { backgroundColor: '#fff' },
+  toggleBtnActive: { backgroundColor: C.g700 },
   toggleTxt:       { fontSize: 13, fontWeight: '800', color: 'rgba(255,255,255,0.7)' },
-  toggleTxtActive: { color: C.g800 },
+  toggleTxtActive: { color: '#fff' },
   togglePill:      { minWidth: 20, paddingHorizontal: 6, height: 18, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  togglePillActive:{ backgroundColor: C.g100 },
+  togglePillActive:{ backgroundColor: 'rgba(255,255,255,0.22)' },
   togglePillTxt:   { fontSize: 10, fontWeight: '800', color: '#fff' },
-  togglePillTxtActive: { color: C.g700 },
+  togglePillTxtActive: { color: '#fff' },
 
   chipsWrap: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
   chipsRow:  { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   chip:      { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
-  chipActive:{ backgroundColor: C.g600, borderColor: C.g600 },
+  chipActive:{ backgroundColor: C.g700, borderColor: C.g700 },
   chipTxt:   { fontSize: 12, fontWeight: '700', color: C.sub },
   chipTxtActive: { color: '#fff' },
 
   body: { paddingHorizontal: 16, paddingTop: 14, gap: 10 },
 
   card: {
-    backgroundColor: C.card, borderRadius: 14, padding: 13, borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    backgroundColor: C.card, borderRadius: rs(18), padding: 13, borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
   },
   cardTop:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
   iconBox:   { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontSize: 12.5, fontWeight: '800', color: C.text },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text },
   cardSub:   { fontSize: 11, color: C.sub, marginTop: 2 },
-  statusPill:{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  statusPill:{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: rs(8) },
   statusTxt: { fontSize: 9.5, fontWeight: '800' },
 
   cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 11, borderTopWidth: 1, borderTopColor: C.border },
   customer:    { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   avatar:      { width: 26, height: 26, borderRadius: 13, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
-  avatarTxt:   { fontSize: 11, fontWeight: '800', color: C.g700 },
-  customerTxt: { fontSize: 12, fontWeight: '600', color: C.text, flex: 1 },
+  avatarTxt:   { fontFamily: DISPLAY, fontSize: 11, fontWeight: '800', color: C.g700 },
+  customerTxt: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: '800', color: C.text, flex: 1 },
   metaRight:   { alignItems: 'flex-end' },
   dateTxt:     { fontSize: 10, color: C.muted, fontWeight: '600' },
-  amountTxt:   { fontSize: 13, fontWeight: '800', color: C.g700, marginTop: 1 },
+  amountTxt:   { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.g700, marginTop: 1 },
 
   empty:      { alignItems: 'center', paddingTop: 60, gap: 6 },
-  emptyIcon:  { width: 60, height: 60, borderRadius: 30, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  emptyTitle: { fontSize: 15, fontWeight: '800', color: C.text, textTransform: 'capitalize' },
+  emptyIcon:  { width: rs(60), height: rs(60), borderRadius: rs(30), backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6, ...cardShadow },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.text, textTransform: 'capitalize' },
   emptySub:   { fontSize: 12, color: C.muted, textAlign: 'center' },
 });
