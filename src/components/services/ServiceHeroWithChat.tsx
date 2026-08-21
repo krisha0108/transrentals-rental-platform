@@ -7,7 +7,7 @@ import {
   Users, Calendar, ArrowRight, BadgeCheck,
   Clock, Headphones, Minus, Plus, Bus, Navigation2,
   Search, ChevronDown, X, Check, ArrowLeft, User, Lock, Home, Flag,
-  HardHat, Wrench, Package, Mail,
+  HardHat, Wrench, Package, Mail, Truck,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DynamicChatBookingHero } from '@/components/booking/DynamicChatBookingHero';
@@ -37,7 +37,7 @@ export interface ServiceHeroWithChatProps {
   cityName?: string;
   priceAnchor?: string;
   heroHighlights?: string[];
-  bookingVariant?: 'bus' | 'equipment';
+  bookingVariant?: 'bus' | 'equipment' | 'truck';
 }
 
 /* ──────────────────────────── CONSTANTS ──────────────────────── */
@@ -1219,11 +1219,748 @@ function EquipmentBookingWidget({ cityName, serviceType }: { cityName: string; s
   );
 }
 
+/* ──────────────────────────── TRUCK BOOKING WIDGET ────────────── */
+/* Field set mirrors what "Shivi" (the AI booking assistant) already
+ * asks for transporter/truck — see askForTruckMode / askForTruckBodyType /
+ * askForTruckType / askForTruckGoodsType / askForMaterialDetails /
+ * askForWeight / askForWeightUnit / askForEstimatedVolume / askForLocation /
+ * askForPickupFullAddress / askForTruckPickupPincode / askForTruckPickupFloor /
+ * askForTruckPickupLift / askForDestination / askForDestinationFullAddress /
+ * askForTruckDropPincode / askForTruckDropFloor / askForTruckDropLift /
+ * askForPickupDateTime / askForExpectedTruckDelivery / askForTruckDeliveryTime /
+ * askForTripDirection / askForLoadingHelp / askForTruckLabourCount /
+ * askForTruckMultipleStops / askForTruckMultipleStopsDesc /
+ * askForTruckReceiverName / askForTruckReceiverPhone / askForTruckPOD /
+ * askForContactInfo / askForAdditionalDetails in ChatBookingHero.tsx. */
+
+const TRUCK_BODY_TYPES: { value: string; label: string }[] = [
+  { value: 'OPEN', label: 'Open' },
+  { value: 'CLOSED_BODY', label: 'Closed Body' },
+  { value: 'CONTAINER', label: 'Container' },
+  { value: 'TRAILER', label: 'Trailer' },
+  { value: 'LCV', label: 'LCV' },
+  { value: 'REFRIGERATED', label: 'Refrigerated' },
+  { value: 'FLATBED', label: 'Flatbed' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+const TRUCK_TYPES: { value: string; label: string }[] = [
+  { value: '14', label: 'Tata Ace' },
+  { value: '12', label: 'Tata 407 (2.5 MT)' },
+  { value: '4',  label: 'Canter 3MT (4 wheel)' },
+  { value: '2',  label: 'Canter 17ft (4 wheel)' },
+  { value: '3',  label: 'Canter 19ft (6 wheel)' },
+  { value: '5',  label: 'Canter Close Body 20ft' },
+  { value: '6',  label: 'Canter Close Body 24ft' },
+  { value: '1',  label: 'Canter Jumbo' },
+  { value: '13', label: 'Truck 9MT (6 Wheel)' },
+  { value: '11', label: 'Truck 16MT (10 Wheel)' },
+  { value: '9',  label: 'Truck 20MT (12 Wheel)' },
+  { value: '10', label: 'Truck 25MT (14 Wheel)' },
+  { value: '8',  label: 'Semi Low Bed Trailer' },
+  { value: '7',  label: 'LCV' },
+];
+
+const GOODS_TYPES: string[] = [
+  'Household Goods', 'Furniture & Wood', 'Electronics', 'Vehicles/Automobiles',
+  'Building Materials', 'Industrial Equipment', 'Iron/Steel Material', 'Container',
+  'Cement', 'Chemical', 'Machineries', 'Liquid/Oil Drums',
+  'Granites/Marbles', 'Coal & Ash', 'Engineering Goods', 'Fertilizer',
+  'Fruits & Vegetables', 'Marble Slab/Block', 'Medicines', 'Packed Foods',
+  'Plastic Pipes', 'Books/Paper Rolls', 'Plastic Granules', 'Crop/Agriculture',
+  'Scrap', 'Stones/Tiles', 'Textiles', 'Tyres & Rubber', 'Others',
+];
+
+const TRUCK_PROGRESS_STEPS = [
+  { n: 1, label: 'Truck' },
+  { n: 2, label: 'Route' },
+  { n: 3, label: 'Contact' },
+  { n: 4, label: 'Review' },
+];
+
+function YesNoToggle({ value, onChange, yesLabel = 'Yes', noLabel = 'No' }: {
+  value: boolean; onChange: (v: boolean) => void; yesLabel?: string; noLabel?: string;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2.5">
+      {[{ v: true, l: yesLabel }, { v: false, l: noLabel }].map(opt => (
+        <button key={String(opt.v)} type="button" onClick={() => onChange(opt.v)}
+          className={`h-11 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
+            value === opt.v
+              ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+              : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+          }`}>
+          {value === opt.v && <Check className="w-3.5 h-3.5" />}
+          {opt.l}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function TruckBookingWidget({ cityName, serviceType }: { cityName: string; serviceType?: string }) {
+  const [step, setStep] = useState<FormStep>(1);
+
+  const [locations, setLocations] = useState<{ name: string }[]>([]);
+  useEffect(() => {
+    fetch('/api/locations?serviceSlug=transporter&type=CITY')
+      .then(r => r.json())
+      .then(d => { if (d.locations) setLocations(d.locations); })
+      .catch(() => {});
+  }, []);
+
+  const { customer, isAuthenticated } = useCustomerAuth();
+
+  // Step 1 – Truck & goods
+  const [truckMode,        setTruckMode]        = useState('1');
+  const [truckBodyType,    setTruckBodyType]    = useState('OPEN');
+  const [truckTypeValue,   setTruckTypeValue]   = useState('14');
+  const [goodsType,        setGoodsType]        = useState('');
+  const [materialDetails,  setMaterialDetails]  = useState('');
+  const [weightVal,        setWeightVal]        = useState('');
+  const [weightUnit,       setWeightUnit]       = useState('1');
+  const [estimatedVolume,  setEstimatedVolume]  = useState('');
+  const [err1,             setErr1]             = useState('');
+
+  // Step 2 – Pickup & drop
+  const [pickupCity,     setPickupCity]     = useState(cityName);
+  const [pickupAddress,  setPickupAddress]  = useState('');
+  const [pickupPincode,  setPickupPincode]  = useState('');
+  const [pickupFloor,    setPickupFloor]    = useState('');
+  const [hasPickupLift,  setHasPickupLift]  = useState(false);
+  const [dropCity,       setDropCity]       = useState('');
+  const [dropAddress,    setDropAddress]    = useState('');
+  const [dropPincode,    setDropPincode]    = useState('');
+  const [dropFloor,      setDropFloor]      = useState('');
+  const [hasDropLift,    setHasDropLift]    = useState(false);
+  const [err2,           setErr2]           = useState('');
+
+  // Step 3 – Schedule, requirements & contact
+  const [pickupDate,           setPickupDate]           = useState('');
+  const [pickupTime,           setPickupTime]           = useState('09:00');
+  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
+  const [expectedDeliveryTime, setExpectedDeliveryTime] = useState('');
+  const [tripDirection,        setTripDirection]        = useState('ONE_WAY');
+  const [requiresLabour,       setRequiresLabour]       = useState(false);
+  const [labourCount,          setLabourCount]          = useState('');
+  const [hasMultipleStops,     setHasMultipleStops]     = useState(false);
+  const [multipleStopsDetails, setMultipleStopsDetails] = useState('');
+  const [receiverName,         setReceiverName]         = useState('');
+  const [receiverPhone,        setReceiverPhone]        = useState('');
+  const [requiresPOD,          setRequiresPOD]          = useState(false);
+  const [name,          setName]          = useState('');
+  const [phone,         setPhone]         = useState('');
+  const [email,         setEmail]         = useState('');
+  const [guestOverride, setGuestOverride] = useState(false);
+  const [requirements,  setRequirements]  = useState('');
+  const [err3,          setErr3]          = useState('');
+
+  // Submit
+  const [loading, setLoading] = useState(false);
+  const [submitErr, setSubmitErr] = useState('');
+
+  const today = new Date().toISOString().split('T')[0];
+  const showAutoFill = isAuthenticated && !!customer && !guestOverride;
+
+  useEffect(() => {
+    if (isAuthenticated && customer) {
+      setName(customer.name || '');
+      setPhone(customer.phone || '');
+      setEmail(customer.email || '');
+    }
+  }, [isAuthenticated, customer]);
+
+  const selectedTruckType = TRUCK_TYPES.find(t => t.value === truckTypeValue);
+
+  const onStep1 = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!goodsType) { setErr1('Please select the type of goods'); return; }
+    setErr1(''); setStep(2);
+  };
+
+  const onStep2 = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pickupCity.trim())    { setErr2('Please select a pickup city'); return; }
+    if (!pickupAddress.trim()) { setErr2('Please enter a pickup address'); return; }
+    if (!dropCity.trim())      { setErr2('Please select a drop city'); return; }
+    if (!dropAddress.trim())   { setErr2('Please enter a drop address'); return; }
+    setErr2(''); setStep(3);
+  };
+
+  const onStep3 = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pickupDate) { setErr3('Please select a pickup date'); return; }
+    if (!name.trim()) { setErr3('Please enter your name'); return; }
+    if (phone.replace(/\D/g, '').length < 10) { setErr3('Please enter a valid 10-digit mobile number'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setErr3('Please enter a valid email address'); return; }
+    setErr3(''); setStep(4);
+  };
+
+  const onSubmit = async () => {
+    setLoading(true); setSubmitErr('');
+    try {
+      const modeLabel = truckMode === '2' ? 'Commercial' : 'Personal';
+      const weightUnitLabel = weightUnit === '2' ? 'TON' : 'KG';
+      const parsedWeight = weightVal.trim() ? parseFloat(weightVal.trim()) : NaN;
+      // estimatedWeight column is a plain Float with no unit column, so we
+      // normalize everything to KG and keep the customer's original entry
+      // (with unit) visible to vendors inside goodsDescription.
+      const estimatedWeightKg = !isNaN(parsedWeight)
+        ? (weightUnit === '2' ? parsedWeight * 1000 : parsedWeight)
+        : undefined;
+      const goodsDescription = [
+        `Use: ${modeLabel}`,
+        materialDetails.trim(),
+        weightVal.trim() ? `Weight: ${weightVal.trim()} ${weightUnitLabel}` : '',
+      ].filter(Boolean).join(' • ');
+
+      const res = await fetch('/api/truck-quote-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName:  name.trim(),
+          customerEmail: email.trim(),
+          customerPhone: phone.trim(),
+          serviceType:   serviceType || 'transporter',
+          vehicle_category:     truckTypeValue,
+          vehicleCategoryName:  selectedTruckType?.label,
+          truckBodyType,
+          tripDirection,
+          goodsType,
+          goodsDescription,
+          estimatedWeight: estimatedWeightKg,
+          estimatedVolume: estimatedVolume || undefined,
+          requiresLabour,
+          labourCount:   requiresLabour && labourCount.trim() ? parseInt(labourCount, 10) : undefined,
+          pickupCity:    pickupCity.trim(),
+          pickupAddress: pickupAddress.trim(),
+          pickupPincode: pickupPincode.trim() || undefined,
+          pickupFloor:   pickupFloor.trim() ? parseInt(pickupFloor, 10) : undefined,
+          hasPickupLift,
+          dropCity:      dropCity.trim(),
+          dropAddress:   dropAddress.trim(),
+          dropPincode:   dropPincode.trim() || undefined,
+          dropFloor:     dropFloor.trim() ? parseInt(dropFloor, 10) : undefined,
+          hasDropLift,
+          pickupDate,
+          pickupTime,
+          expectedDeliveryDate: expectedDeliveryDate || undefined,
+          expectedDeliveryTime: expectedDeliveryTime || undefined,
+          hasMultipleStops,
+          multipleStopsDetails: hasMultipleStops ? (multipleStopsDetails.trim() || undefined) : undefined,
+          receiverName:  receiverName.trim() || undefined,
+          receiverPhone: receiverPhone.trim() || undefined,
+          requiresPOD,
+          requirements: requirements.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong');
+      setStep(5);
+    } catch (err: unknown) {
+      setSubmitErr(err instanceof Error ? err.message : 'Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setStep(1); setTruckMode('1'); setTruckBodyType('OPEN'); setTruckTypeValue('14');
+    setGoodsType(''); setMaterialDetails(''); setWeightVal(''); setWeightUnit('1'); setEstimatedVolume('');
+    setPickupAddress(''); setPickupPincode(''); setPickupFloor(''); setHasPickupLift(false);
+    setDropCity(''); setDropAddress(''); setDropPincode(''); setDropFloor(''); setHasDropLift(false);
+    setPickupDate(''); setExpectedDeliveryDate(''); setExpectedDeliveryTime(''); setTripDirection('ONE_WAY');
+    setRequiresLabour(false); setLabourCount(''); setHasMultipleStops(false); setMultipleStopsDetails('');
+    setReceiverName(''); setReceiverPhone(''); setRequiresPOD(false); setRequirements('');
+    setGuestOverride(false);
+    if (!isAuthenticated) { setName(''); setPhone(''); setEmail(''); }
+  };
+
+  /* shared styles — matches Bus/Equipment widgets' visual language */
+  const inputCls = "w-full h-[46px] pl-10 pr-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all";
+  const iconCls  = "absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none [&>svg]:w-4 [&>svg]:h-4";
+  const lblCls   = "block text-xs font-semibold text-gray-800 mb-1.5";
+  const subHdCls = "text-[11px] font-black tracking-wide text-emerald-700 uppercase mb-2 mt-4 first:mt-0";
+  const backBtn  = "flex-none w-[88px] h-12 border border-gray-200 bg-white text-gray-400 font-bold rounded-2xl flex items-center justify-center gap-1.5 hover:bg-gray-50 hover:text-gray-700 transition-all text-sm";
+  const nextBtn  = "flex-1 h-12 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-100 text-sm";
+
+  /* ── SUCCESS ── */
+  if (step === 5) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-center px-2">
+        <motion.div
+          initial={{ scale: 0 }} animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+          className="w-20 h-20 mb-4"
+        >
+          <svg viewBox="0 0 52 52" className="w-20 h-20">
+            <circle cx="26" cy="26" r="24" fill="none" stroke="#16C47F" strokeWidth="2.5" />
+            <path fill="none" stroke="#16C47F" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" d="M14 27l8 8 16-16" />
+          </svg>
+        </motion.div>
+        <h2 className="text-[21px] font-black text-gray-900 mb-2">You&apos;re all set</h2>
+        <p className="text-sm text-gray-500 mb-4">Our operators are preparing your quotes.</p>
+        <div className="inline-flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 mb-5">
+          <Clock className="w-5 h-5 text-emerald-600 shrink-0" />
+          <div className="text-left">
+            <small className="block text-[11px] text-gray-400">Expected callback</small>
+            <b className="text-sm text-emerald-700">within 15 minutes</b>
+          </div>
+        </div>
+        <button onClick={resetForm} className="text-sm text-gray-400 hover:text-gray-600 transition-colors font-medium">
+          New Request
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <ProgressBar step={step} steps={TRUCK_PROGRESS_STEPS} />
+
+      <AnimatePresence mode="wait">
+
+        {/* ── STEP 1: Truck & Goods ── */}
+        {step === 1 && (
+          <motion.form key="s1" onSubmit={onStep1}
+            initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
+            transition={{ duration: 0.28 }}>
+
+            <div className="mb-4">
+              <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Truck &amp; Goods</h2>
+              <p className="text-[12.5px] text-gray-400 mt-0.5">What are you moving &amp; how.</p>
+            </div>
+
+            <label className={lblCls}>Usage</label>
+            <div className="mb-3.5">
+              <YesNoToggle
+                value={truckMode === '2'}
+                onChange={v => setTruckMode(v ? '2' : '1')}
+                yesLabel="🏭 Commercial"
+                noLabel="🏠 Personal"
+              />
+            </div>
+
+            <label className={lblCls}>Truck Body Type</label>
+            <div className="relative mb-3.5">
+              <span className={iconCls}><Truck /></span>
+              <select value={truckBodyType} onChange={e => setTruckBodyType(e.target.value)}
+                className={`${inputCls} pr-9 appearance-none`}>
+                {TRUCK_BODY_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+
+            <label className={lblCls}>Truck Type</label>
+            <div className="relative mb-3.5">
+              <span className={iconCls}><Truck /></span>
+              <select value={truckTypeValue} onChange={e => setTruckTypeValue(e.target.value)}
+                className={`${inputCls} pr-9 appearance-none`}>
+                {TRUCK_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+
+            <label className={lblCls}>Goods Type</label>
+            <div className="relative mb-3.5">
+              <span className={iconCls}><Package /></span>
+              <select required value={goodsType} onChange={e => { setGoodsType(e.target.value); setErr1(''); }}
+                className={`${inputCls} pr-9 appearance-none`}>
+                <option value="" disabled>Select goods type</option>
+                {GOODS_TYPES.map(g => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+
+            <label className={lblCls}>
+              Specific items <small className="text-[11px] text-gray-400 font-normal ml-1">(optional)</small>
+            </label>
+            <textarea placeholder="e.g., 10 boxes, 2 beds, machinery parts…"
+              value={materialDetails} onChange={e => setMaterialDetails(e.target.value)}
+              rows={2} maxLength={250}
+              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all resize-none mb-3.5" />
+
+            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+              <div>
+                <label className={lblCls}>Approx. Weight</label>
+                <input type="text" inputMode="numeric" placeholder="e.g., 500"
+                  value={weightVal} onChange={e => setWeightVal(e.target.value)}
+                  className="w-full h-[46px] px-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
+              </div>
+              <div>
+                <label className={lblCls}>Unit</label>
+                <YesNoToggle value={weightUnit === '1'} onChange={v => setWeightUnit(v ? '1' : '2')} yesLabel="KG" noLabel="TON" />
+              </div>
+            </div>
+
+            <label className={lblCls}>
+              Estimated Volume <small className="text-[11px] text-gray-400 font-normal ml-1">(optional)</small>
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { v: 'LIGHT', l: '🪶 Light' },
+                { v: 'MEDIUM', l: '📦 Medium' },
+                { v: 'LARGE', l: '🚛 Large' },
+              ].map(opt => (
+                <button key={opt.v} type="button"
+                  onClick={() => setEstimatedVolume(prev => prev === opt.v ? '' : opt.v)}
+                  className={`h-10 rounded-xl border text-[12px] font-bold transition-all ${
+                    estimatedVolume === opt.v
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                      : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                  }`}>
+                  {opt.l}
+                </button>
+              ))}
+            </div>
+
+            {err1 && <p className="text-xs text-red-500 font-semibold mt-3">{err1}</p>}
+
+            <button type="submit" className={`${nextBtn} w-full mt-5`}>
+              Continue <ChevronRight className="w-4 h-4" />
+            </button>
+          </motion.form>
+        )}
+
+        {/* ── STEP 2: Pickup & Drop ── */}
+        {step === 2 && (
+          <motion.form key="s2" onSubmit={onStep2}
+            initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
+            transition={{ duration: 0.28 }}>
+
+            <div className="mb-4">
+              <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Pickup &amp; Drop</h2>
+              <p className="text-[12.5px] text-gray-400 mt-0.5">Where the truck picks up &amp; delivers.</p>
+            </div>
+
+            <p className={subHdCls}>Pickup</p>
+            <label className={lblCls}>Pickup City</label>
+            <div className="mb-3.5">
+              <CityPicker value={pickupCity} onChange={setPickupCity}
+                placeholder="Select pickup city" locations={locations} icon={<MapPin />} />
+            </div>
+            <label className={lblCls}>Pickup Address</label>
+            <div className="relative mb-3.5">
+              <span className={iconCls}><Home /></span>
+              <input required type="text" placeholder="Enter pickup address or landmark"
+                value={pickupAddress} onChange={e => setPickupAddress(e.target.value)}
+                className={inputCls} />
+            </div>
+            <div className="grid grid-cols-3 gap-2.5 mb-3.5">
+              <div className="col-span-1">
+                <label className={lblCls}>Pincode <small className="text-[10px] text-gray-400 font-normal">(optional)</small></label>
+                <input type="text" inputMode="numeric" maxLength={6} placeholder="e.g., 110001"
+                  value={pickupPincode} onChange={e => setPickupPincode(e.target.value.replace(/\D/g, ''))}
+                  className="w-full h-[46px] px-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
+              </div>
+              <div className="col-span-1">
+                <label className={lblCls}>Floor</label>
+                <input type="text" inputMode="numeric" placeholder="0 = Ground"
+                  value={pickupFloor} onChange={e => setPickupFloor(e.target.value.replace(/\D/g, ''))}
+                  className="w-full h-[46px] px-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
+              </div>
+              <div className="col-span-1">
+                <label className={lblCls}>Lift?</label>
+                <YesNoToggle value={hasPickupLift} onChange={setHasPickupLift} yesLabel="Yes" noLabel="No" />
+              </div>
+            </div>
+
+            <p className={subHdCls}>Drop</p>
+            <label className={lblCls}>Drop City</label>
+            <div className="mb-3.5">
+              <CityPicker value={dropCity} onChange={setDropCity}
+                placeholder="Enter drop city" locations={locations} allowCustom icon={<Flag />} />
+            </div>
+            <label className={lblCls}>Drop Address</label>
+            <div className="relative mb-3.5">
+              <span className={iconCls}><MapPin /></span>
+              <input required type="text" placeholder="Enter drop address or landmark"
+                value={dropAddress} onChange={e => setDropAddress(e.target.value)}
+                className={inputCls} />
+            </div>
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="col-span-1">
+                <label className={lblCls}>Pincode <small className="text-[10px] text-gray-400 font-normal">(optional)</small></label>
+                <input type="text" inputMode="numeric" maxLength={6} placeholder="e.g., 400001"
+                  value={dropPincode} onChange={e => setDropPincode(e.target.value.replace(/\D/g, ''))}
+                  className="w-full h-[46px] px-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
+              </div>
+              <div className="col-span-1">
+                <label className={lblCls}>Floor</label>
+                <input type="text" inputMode="numeric" placeholder="0 = Ground"
+                  value={dropFloor} onChange={e => setDropFloor(e.target.value.replace(/\D/g, ''))}
+                  className="w-full h-[46px] px-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
+              </div>
+              <div className="col-span-1">
+                <label className={lblCls}>Lift?</label>
+                <YesNoToggle value={hasDropLift} onChange={setHasDropLift} yesLabel="Yes" noLabel="No" />
+              </div>
+            </div>
+
+            {err2 && <p className="text-xs text-red-500 font-semibold mt-3">{err2}</p>}
+
+            <div className="flex gap-2.5 mt-5">
+              <button type="button" onClick={() => setStep(1)} className={backBtn}>
+                <ArrowLeft className="w-3.5 h-3.5" /> Back
+              </button>
+              <button type="submit" className={nextBtn}>
+                Continue <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.form>
+        )}
+
+        {/* ── STEP 3: Schedule, Requirements & Contact ── */}
+        {step === 3 && (
+          <motion.form key="s3" onSubmit={onStep3}
+            initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
+            transition={{ duration: 0.28 }}>
+
+            <div className="mb-4">
+              <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Schedule &amp; Contact</h2>
+              <p className="text-[12.5px] text-gray-400 mt-0.5">When, extra needs &amp; who to reach.</p>
+            </div>
+
+            <p className={subHdCls}>Schedule</p>
+            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+              <div>
+                <label className={lblCls}>Pickup Date</label>
+                <div className="relative">
+                  <span className={iconCls}><Calendar /></span>
+                  <input required type="date" min={today} value={pickupDate}
+                    onChange={e => setPickupDate(e.target.value)} className={inputCls} />
+                </div>
+              </div>
+              <div>
+                <label className={lblCls}>Pickup Time</label>
+                <div className="relative">
+                  <span className={iconCls}><Clock /></span>
+                  <input type="time" value={pickupTime}
+                    onChange={e => setPickupTime(e.target.value)} className={inputCls} />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+              <div>
+                <label className={lblCls}>Delivery By <small className="text-[10px] text-gray-400 font-normal">(optional)</small></label>
+                <div className="relative">
+                  <span className={iconCls}><Calendar /></span>
+                  <input type="date" min={pickupDate || today} value={expectedDeliveryDate}
+                    onChange={e => setExpectedDeliveryDate(e.target.value)} className={inputCls} />
+                </div>
+              </div>
+              <div>
+                <label className={lblCls}>Trip Direction</label>
+                <YesNoToggle value={tripDirection === 'ONE_WAY'} onChange={v => setTripDirection(v ? 'ONE_WAY' : 'ROUND_TRIP')} yesLabel="One Way" noLabel="Round Trip" />
+              </div>
+            </div>
+            <label className={lblCls}>
+              Preferred Delivery Time <small className="text-[11px] text-gray-400 font-normal ml-1">(optional)</small>
+            </label>
+            <div className="grid grid-cols-4 gap-2 mb-3.5">
+              {[
+                { v: 'MORNING', l: '🌅 Morn' },
+                { v: 'AFTERNOON', l: '☀️ Aft' },
+                { v: 'EVENING', l: '🌆 Eve' },
+                { v: 'ANYTIME', l: '🌙 Any' },
+              ].map(opt => (
+                <button key={opt.v} type="button"
+                  onClick={() => setExpectedDeliveryTime(prev => prev === opt.v ? '' : opt.v)}
+                  className={`h-10 rounded-xl border text-[11.5px] font-bold transition-all ${
+                    expectedDeliveryTime === opt.v
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                      : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                  }`}>
+                  {opt.l}
+                </button>
+              ))}
+            </div>
+
+            <p className={subHdCls}>Trip Requirements</p>
+            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+              <div>
+                <label className={lblCls}>Loading/Unloading Help?</label>
+                <YesNoToggle value={requiresLabour} onChange={setRequiresLabour} />
+              </div>
+              {requiresLabour && (
+                <div>
+                  <label className={lblCls}>Labourers <small className="text-[10px] text-gray-400 font-normal">(optional)</small></label>
+                  <input type="text" inputMode="numeric" placeholder="e.g., 2, 4"
+                    value={labourCount} onChange={e => setLabourCount(e.target.value.replace(/\D/g, ''))}
+                    className="w-full h-[46px] px-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
+                </div>
+              )}
+            </div>
+            <div className="mb-3.5">
+              <label className={lblCls}>Multiple Stops Needed?</label>
+              <YesNoToggle value={hasMultipleStops} onChange={setHasMultipleStops} />
+            </div>
+            {hasMultipleStops && (
+              <textarea placeholder="Describe the additional stops…"
+                value={multipleStopsDetails} onChange={e => setMultipleStopsDetails(e.target.value)}
+                rows={2} maxLength={200}
+                className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all resize-none mb-3.5" />
+            )}
+            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+              <div>
+                <label className={lblCls}>Receiver Name <small className="text-[10px] text-gray-400 font-normal">(optional)</small></label>
+                <input type="text" placeholder="Who receives goods"
+                  value={receiverName} onChange={e => setReceiverName(e.target.value)}
+                  className="w-full h-[46px] px-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
+              </div>
+              <div>
+                <label className={lblCls}>Receiver Phone <small className="text-[10px] text-gray-400 font-normal">(optional)</small></label>
+                <input type="tel" maxLength={10} placeholder="10-digit number"
+                  value={receiverPhone} onChange={e => setReceiverPhone(e.target.value.replace(/\D/g, ''))}
+                  className="w-full h-[46px] px-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
+              </div>
+            </div>
+            <div className="mb-1">
+              <label className={lblCls}>Need Proof of Delivery (POD)?</label>
+              <YesNoToggle value={requiresPOD} onChange={setRequiresPOD} />
+            </div>
+
+            <p className={subHdCls}>Your Contact Details</p>
+            {showAutoFill ? (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 mb-3.5">
+                <p className="text-xs text-emerald-600 font-semibold mb-2">Booking as</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-emerald-200 flex items-center justify-center text-emerald-700 font-black text-sm shrink-0">
+                    {(customer!.name || 'U')[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-800">{customer!.name}</p>
+                    <p className="text-xs text-gray-500">{customer!.phone}</p>
+                  </div>
+                  <button type="button"
+                    onClick={() => { setGuestOverride(true); setName(''); setPhone(''); setEmail(''); }}
+                    className="ml-auto text-xs text-gray-400 hover:text-gray-600 underline">
+                    Not you?
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <label className={lblCls}>Name <span className="text-red-500">*</span></label>
+                <div className="relative mb-3.5">
+                  <span className={iconCls}><User /></span>
+                  <input required type="text" placeholder="Your full name" value={name}
+                    onChange={e => { setName(e.target.value); setErr3(''); }}
+                    className={inputCls} />
+                </div>
+
+                <label className={lblCls}>Mobile <span className="text-red-500">*</span></label>
+                <div className="relative mb-3.5">
+                  <span className={iconCls}><Phone /></span>
+                  <input required type="tel" maxLength={10} placeholder="10-digit mobile number"
+                    value={phone} onChange={e => { setPhone(e.target.value.replace(/\D/g, '')); setErr3(''); }}
+                    className={inputCls} />
+                </div>
+
+                <label className={lblCls}>Email <span className="text-red-500">*</span></label>
+                <div className="relative mb-3.5">
+                  <span className={iconCls}><Mail /></span>
+                  <input required type="email" placeholder="you@example.com"
+                    value={email} onChange={e => { setEmail(e.target.value); setErr3(''); }}
+                    className={inputCls} />
+                </div>
+              </>
+            )}
+
+            <label className={lblCls}>
+              Additional details <small className="text-[11px] text-gray-400 font-normal ml-1">(optional)</small>
+            </label>
+            <textarea placeholder="Any special requirements…"
+              value={requirements} onChange={e => setRequirements(e.target.value)}
+              rows={2} maxLength={250}
+              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all resize-none mb-1" />
+
+            {err3 && <p className="text-xs text-red-500 font-semibold mb-2">{err3}</p>}
+
+            <div className="flex gap-2.5 mt-4">
+              <button type="button" onClick={() => setStep(2)} className={backBtn}>
+                <ArrowLeft className="w-3.5 h-3.5" /> Back
+              </button>
+              <button type="submit" className={nextBtn}>
+                Continue <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.form>
+        )}
+
+        {/* ── STEP 4: Review & Confirm ── */}
+        {step === 4 && (
+          <motion.div key="s4"
+            initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
+            transition={{ duration: 0.28 }}>
+
+            <div className="mb-4">
+              <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Review &amp; Confirm</h2>
+              <p className="text-[12.5px] text-gray-400 mt-0.5">Please review before requesting quotes.</p>
+            </div>
+
+            <ReviewSection title="Truck & Goods" icon={<Truck />} onEdit={() => setStep(1)}>
+              <RV label="Truck Type" value={selectedTruckType?.label || ''} />
+              <RV label="Body Type" value={TRUCK_BODY_TYPES.find(t => t.value === truckBodyType)?.label || ''} />
+              <RV label="Goods Type" value={goodsType} />
+              <RV label="Weight" value={weightVal ? `${weightVal} ${weightUnit === '2' ? 'TON' : 'KG'}` : 'Not set'} />
+            </ReviewSection>
+
+            <ReviewSection title="Pickup & Drop" icon={<MapPin />} onEdit={() => setStep(2)}>
+              <RV label="Pickup City" value={pickupCity} />
+              <RV label="Pickup Address" value={pickupAddress} full />
+              <RV label="Drop City" value={dropCity} />
+              <RV label="Drop Address" value={dropAddress} full />
+            </ReviewSection>
+
+            <ReviewSection title="Schedule" icon={<Calendar />} onEdit={() => setStep(3)}>
+              <RV label="Pickup Date" value={pickupDate} />
+              <RV label="Pickup Time" value={pickupTime} />
+              <RV label="Trip Direction" value={tripDirection === 'ONE_WAY' ? 'One Way' : 'Round Trip'} />
+            </ReviewSection>
+
+            <ReviewSection title="Contact Details" icon={<User />} onEdit={() => setStep(3)}>
+              <RV label="Name" value={name} />
+              <RV label="Mobile" value={phone} />
+              <RV label="Email" value={email} />
+            </ReviewSection>
+
+            {submitErr && (
+              <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5 mb-3">{submitErr}</p>
+            )}
+
+            <div className="flex gap-2.5 mb-3">
+              <button type="button" onClick={() => setStep(3)} className={backBtn}>
+                <ArrowLeft className="w-3.5 h-3.5" /> Back
+              </button>
+              <button type="button" onClick={onSubmit} disabled={loading}
+                className="flex-1 h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-60 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-xl shadow-emerald-100 text-sm">
+                {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</> : 'Get Instant Quotes'}
+              </button>
+            </div>
+            <p className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
+              <Lock className="w-3 h-3" /> No advance payment · Best price guaranteed
+            </p>
+          </motion.div>
+        )}
+
+      </AnimatePresence>
+    </div>
+  );
+}
+
 /* ──────────────────────────── BOOKING CARD ───────────────────── */
 
-function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityName: string; serviceType?: string; variant?: 'bus' | 'equipment' }) {
+function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityName: string; serviceType?: string; variant?: 'bus' | 'equipment' | 'truck' }) {
   const [showChat, setShowChat] = useState(false);
   const isEquipment = variant === 'equipment';
+  const isTruck = variant === 'truck';
 
   return (
     <div className="w-full lg:w-[500px] shrink-0 order-1 lg:order-2">
@@ -1235,13 +1972,15 @@ function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityName: str
             <div className="relative w-[42px] h-[42px] rounded-[13px] bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-200/60">
               {isEquipment
                 ? <HardHat className="w-[22px] h-[22px] text-white" />
-                : <Bus className="w-[22px] h-[22px] text-white" />}
+                : isTruck
+                  ? <Truck className="w-[22px] h-[22px] text-white" />
+                  : <Bus className="w-[22px] h-[22px] text-white" />}
               {/* online dot */}
               <span className="absolute bottom-[-1px] right-[-1px] w-[11px] h-[11px] rounded-full bg-emerald-400 border-2 border-white" />
             </div>
             <div>
               <p className="text-[17px] font-black text-gray-900 leading-tight tracking-tight">
-                {isEquipment ? 'Book Your Equipment' : 'Book Your Bus'}
+                {isEquipment ? 'Book Your Equipment' : isTruck ? 'Book Your Truck' : 'Book Your Bus'}
               </p>
               <p className="text-[11.5px] text-gray-400 mt-0.5">Free quote · No advance payment</p>
             </div>
@@ -1269,7 +2008,9 @@ function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityName: str
             ? <DynamicChatBookingHero hideHeader serviceType={serviceType} />
             : isEquipment
               ? <EquipmentBookingWidget cityName={cityName} serviceType={serviceType} />
-              : <BusBookingWidget cityName={cityName} serviceType={serviceType} />
+              : isTruck
+                ? <TruckBookingWidget cityName={cityName} serviceType={serviceType} />
+                : <BusBookingWidget cityName={cityName} serviceType={serviceType} />
           }
         </div>
 

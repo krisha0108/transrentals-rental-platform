@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { Send, Sparkles, CheckCircle, User, AlertTriangle, Calendar, Clock, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Send, Sparkles, CheckCircle, User, AlertTriangle, Calendar, Clock, ChevronUp, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocations } from './useLocations';
 import { useServices } from './useServices';
@@ -70,14 +70,10 @@ export function ChatBookingHero({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loggedInCustomer, setLoggedInCustomer] = useState<any>(null);
   const [isB2B, setIsB2B] = useState(false);
-  const [hourInput, setHourInput] = useState('09');
-  const [minInput, setMinInput] = useState('00');
   const [calView, setCalView] = useState<{ y: number; m: number }>(() => {
     const d = new Date(); d.setMonth(d.getMonth());
     return { y: d.getFullYear(), m: d.getMonth() };
   });
-  const hourFocused = useRef(false);
-  const minFocused = useRef(false);
 
   const B2B_SERVICES = ['car', 'self-drive', 'bus'];
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -86,20 +82,6 @@ export function ChatBookingHero({
 
   const { locations } = useLocations();
   const { services } = useServices();
-
-  // Sync hour/minute display inputs from inputValue (only when not focused)
-  useEffect(() => {
-    const t = inputValue.split('T')[1];
-    if (!t) return;
-    const [h24n, mn] = t.split(':').map(Number);
-    if (!hourFocused.current) {
-      const h12 = (h24n ?? 9) === 0 ? 12 : (h24n ?? 9) > 12 ? (h24n ?? 9) - 12 : (h24n ?? 9);
-      setHourInput(String(h12).padStart(2, '0'));
-    }
-    if (!minFocused.current) {
-      setMinInput(String(mn ?? 0).padStart(2, '0'));
-    }
-  }, [inputValue]);
 
   // Check if user is logged in
   useEffect(() => {
@@ -4536,19 +4518,6 @@ export function ChatBookingHero({
 
                     // ── time helpers ──
                     const rawT = inputValue.split('T')[1] || '09:00';
-                    const [h24r, mR] = rawT.split(':').map(Number);
-                    const h24 = isNaN(h24r) ? 9 : h24r;
-                    const curMin = isNaN(mR) ? 0 : mR;
-                    const curPeriod: 'AM' | 'PM' = h24 < 12 ? 'AM' : 'PM';
-                    const curH12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
-                    const applyTime = (h12: number, min: number, period: 'AM' | 'PM') => {
-                      let h = h12;
-                      if (period === 'AM' && h12 === 12) h = 0;
-                      else if (period === 'PM' && h12 !== 12) h = h12 + 12;
-                      const d = inputValue.split('T')[0] || new Date(Date.now() + 86400000).toISOString().split('T')[0];
-                      setInputValue(`${d}T${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`);
-                      setDateError('');
-                    };
 
                     return (
                       <div className={`rounded-2xl border border-gray-200 overflow-hidden shadow-sm ${isDisabled ? 'opacity-50' : ''}`}>
@@ -4582,79 +4551,20 @@ export function ChatBookingHero({
                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
                             <Clock className="w-3 h-3" /> Time
                           </p>
-                          <div className="flex items-center gap-2">
-                            {/* Hour */}
-                            <div className={`flex items-center gap-1 bg-white rounded-xl border px-2 py-1.5 flex-1 transition-colors ${hourInput && (parseInt(hourInput) < 1 || parseInt(hourInput) > 12) ? 'border-red-400' : 'border-gray-200'}`}>
-                              <button type="button" disabled={isDisabled}
-                                className="text-gray-400 hover:text-primary transition-colors disabled:opacity-30 p-0.5"
-                                onClick={() => applyTime(curH12 === 1 ? 12 : curH12 - 1, curMin, curPeriod)}>
-                                <ChevronLeft className="w-4 h-4" />
-                              </button>
-                              <input type="text" value={hourInput} maxLength={2} disabled={isDisabled} placeholder="09"
-                                onFocus={() => { hourFocused.current = true; setDateError(''); setHourInput(String(curH12)); }}
-                                onBlur={() => {
-                                  hourFocused.current = false;
-                                  const n = parseInt(hourInput);
-                                  if (isNaN(n) || n < 1 || n > 12) {
-                                    setDateError('⏰ Hour must be between 1 and 12. Please enter a valid time.');
-                                    setHourInput(String(curH12).padStart(2, '0'));
-                                  } else {
-                                    applyTime(n, curMin, curPeriod);
-                                    setHourInput(String(n).padStart(2, '0'));
-                                  }
-                                }}
-                                onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,2); setHourInput(v); const n = parseInt(v); if (n>=1&&n<=12) applyTime(n,curMin,curPeriod); }}
-                                className="flex-1 text-center text-base font-bold text-gray-800 tabular-nums bg-transparent outline-none"
-                              />
-                              <button type="button" disabled={isDisabled}
-                                className="text-gray-400 hover:text-primary transition-colors disabled:opacity-30 p-0.5"
-                                onClick={() => applyTime(curH12 === 12 ? 1 : curH12 + 1, curMin, curPeriod)}>
-                                <ChevronRight className="w-4 h-4" />
-                              </button>
-                            </div>
-
-                            <span className="text-lg font-black text-gray-300 select-none">:</span>
-
-                            {/* Minute */}
-                            <div className={`flex items-center gap-1 bg-white rounded-xl border px-2 py-1.5 flex-1 transition-colors ${minInput && parseInt(minInput) > 59 ? 'border-red-400' : 'border-gray-200'}`}>
-                              <button type="button" disabled={isDisabled}
-                                className="text-gray-400 hover:text-primary transition-colors disabled:opacity-30 p-0.5"
-                                onClick={() => applyTime(curH12, (curMin - 5 + 60) % 60, curPeriod)}>
-                                <ChevronLeft className="w-4 h-4" />
-                              </button>
-                              <input type="text" value={minInput} maxLength={2} disabled={isDisabled} placeholder="00"
-                                onFocus={() => { minFocused.current = true; setDateError(''); setMinInput(String(curMin)); }}
-                                onBlur={() => {
-                                  minFocused.current = false;
-                                  const n = parseInt(minInput);
-                                  if (isNaN(n) || n < 0 || n > 59) {
-                                    setDateError('⏰ Minutes must be between 0 and 59. Please enter a valid time.');
-                                    setMinInput(String(curMin).padStart(2, '0'));
-                                  } else {
-                                    applyTime(curH12, n, curPeriod);
-                                    setMinInput(String(n).padStart(2, '0'));
-                                  }
-                                }}
-                                onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,2); setMinInput(v); const n = parseInt(v); if (n>=0&&n<=59) applyTime(curH12,n,curPeriod); }}
-                                className="flex-1 text-center text-base font-bold text-gray-800 tabular-nums bg-transparent outline-none"
-                              />
-                              <button type="button" disabled={isDisabled}
-                                className="text-gray-400 hover:text-primary transition-colors disabled:opacity-30 p-0.5"
-                                onClick={() => applyTime(curH12, (curMin + 5) % 60, curPeriod)}>
-                                <ChevronRight className="w-4 h-4" />
-                              </button>
-                            </div>
-
-                            {/* AM / PM */}
-                            <div className="flex rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
-                              {(['AM', 'PM'] as const).map((p, i) => (
-                                <button key={p} type="button" disabled={isDisabled}
-                                  onClick={() => applyTime(curH12, curMin, p)}
-                                  className={`w-10 py-1.5 text-xs font-bold transition-all ${i > 0 ? 'border-l border-gray-200' : ''} ${curPeriod === p ? 'bg-primary text-white' : 'bg-white text-gray-400 hover:text-gray-700'}`}>
-                                  {p}
-                                </button>
-                              ))}
-                            </div>
+                          <div className="relative">
+                            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <input
+                              type="time"
+                              value={rawT}
+                              disabled={isDisabled}
+                              onChange={(e) => {
+                                if (!e.target.value) return;
+                                const d = inputValue.split('T')[0] || new Date(Date.now() + 86400000).toISOString().split('T')[0];
+                                setInputValue(`${d}T${e.target.value}`);
+                                setDateError('');
+                              }}
+                              className="w-full h-11 pl-10 pr-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-colors disabled:opacity-50"
+                            />
                           </div>
                         </div>
 

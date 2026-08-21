@@ -285,6 +285,15 @@ export default async function TransporterLocationPage({ params }: PageProps) {
         ]}
         gradientFrom="slate-50"
         gradientTo="gray-50"
+        showQuickForm
+        cityName={locationName}
+        bookingVariant="truck"
+        priceAnchor="Mini Truck from ₹2,500/day"
+        heroHighlights={[
+          `GPS-tracked trucks with professional drivers in ${locationName}`,
+          'Mini Truck to 32-Ton Trailer, Open & Closed Body',
+          '500+ verified transporters, instant quote',
+        ]}
       />
 
       <VehicleGrid
