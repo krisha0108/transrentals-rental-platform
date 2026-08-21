@@ -11,6 +11,7 @@ import {
   Filter, IndianRupee, Users, AlertCircle, MessageCircle, RefreshCw,
 } from 'lucide-react';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 
 const STATUS_LABELS: Record<string, string> = {
   OPEN_FOR_QUOTES: 'Open for Quotes', QUOTES_RECEIVED: 'Quotes Received',
@@ -134,12 +135,12 @@ function CustomerB2BBookingsContent() {
   }, [bookings]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9]">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-[#F8FAF9]`}>
       <CustomerHeader showBackButton backHref="/customer/dashboard" title="B2B Bookings" />
 
       <main className="pt-16 pb-12">
         {/* Hero */}
-        <div className="bg-[#09B368] pt-8 pb-14 relative overflow-hidden">
+        <div className="bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)] pt-8 pb-14 relative overflow-hidden">
           <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle at 75% 50%, #ffffff 0%, transparent 60%)'}} />
           <div className="absolute inset-0 opacity-5" style={{backgroundImage: 'linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)', backgroundSize: '40px 40px'}} />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
@@ -149,7 +150,7 @@ function CustomerB2BBookingsContent() {
                   <Building2 className="h-4 w-4" />
                   Corporate Transport
                 </p>
-                <h1 className="text-2xl md:text-3xl font-bold text-white mt-1">B2B Bookings</h1>
+                <h1 className="quote-serif text-[30px] md:text-[40px] font-medium text-white mt-1">B2B Bookings</h1>
                 <p className="text-white/70 text-sm mt-1">{bookings.length} total booking{bookings.length !== 1 ? 's' : ''}</p>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
@@ -256,7 +257,7 @@ function CustomerB2BBookingsContent() {
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
-                <h2 className="font-semibold text-gray-900">Corporate Bookings</h2>
+                <h2 className="quote-serif font-medium text-gray-900 text-[21px]">Corporate Bookings</h2>
                 <p className="text-xs text-gray-400 mt-0.5">Showing {filteredBookings.length} of {bookings.length}</p>
               </div>
             </div>
@@ -272,7 +273,7 @@ function CustomerB2BBookingsContent() {
                 <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Building2 className="w-7 h-7 text-gray-400" />
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-1">No B2B bookings yet</h3>
+                <h3 className="quote-serif font-medium text-gray-900 mb-1 text-[21px]">No B2B bookings yet</h3>
                 <p className="text-sm text-gray-500 mb-4">No corporate bulk bookings found</p>
                 <Link href="/" className="inline-flex items-center gap-2 px-4 py-2 bg-[#09B368] text-white rounded-xl text-sm font-semibold hover:bg-[#078F53] transition">
                   Go to Home
@@ -369,7 +370,7 @@ function CustomerB2BBookingsContent() {
 
 export default function CustomerB2BBookingsPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-[#F8FAF9]"><div className="animate-spin w-9 h-9 border-4 border-[#09B368] border-t-transparent rounded-full" /></div>}>
+    <Suspense fallback={<div className={`${quoteDisplay.variable} flex items-center justify-center min-h-screen bg-[#F8FAF9]`}><div className="animate-spin w-9 h-9 border-4 border-[#09B368] border-t-transparent rounded-full" /></div>}>
       <CustomerB2BBookingsContent />
     </Suspense>
   );

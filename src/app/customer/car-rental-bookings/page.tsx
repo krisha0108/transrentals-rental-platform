@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 import {
   Car,
   Calendar,
@@ -94,20 +95,20 @@ export default function CustomerCarRentalBookingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className={`${quoteDisplay.variable} min-h-screen flex items-center justify-center`}>
         <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 pt-16`}>
       <CustomerHeader showBackButton />
       {/* Header */}
-      <div className="bg-emerald-900 text-white py-8">
+      <div className="bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)] text-white py-8">
         <div className="container-custom">
-          <h1 className="text-2xl font-bold">My Car Rental Bookings</h1>
-          <p className="text-emerald-200">View and manage your car rental bookings</p>
+          <h1 className="quote-serif text-[30px] font-medium">My Car Rental Bookings</h1>
+          <p className="text-white/75">View and manage your car rental bookings</p>
         </div>
       </div>
 
@@ -141,7 +142,7 @@ export default function CustomerCarRentalBookingsPage() {
           {filteredBookings.length === 0 ? (
             <div className="bg-white rounded-xl p-8 text-center">
               <Car className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="font-medium text-gray-900 mb-1">No bookings found</h3>
+              <h3 className="quote-serif font-medium text-gray-900 mb-1 text-[21px]">No bookings found</h3>
               <p className="text-sm text-gray-500 mb-4">
                 {statusFilter !== 'all'
                   ? 'Try a different filter'
@@ -179,7 +180,7 @@ export default function CustomerCarRentalBookingsPage() {
                             {statusConfig.label}
                           </span>
                         </div>
-                        <h3 className="font-semibold text-gray-900">{booking.carCategoryName}</h3>
+                        <h3 className="quote-serif font-medium text-gray-900 text-[21px]">{booking.carCategoryName}</h3>
                         {booking.vehicle_models && (
                           <p className="text-sm text-gray-500">{booking.vehicle_models}</p>
                         )}

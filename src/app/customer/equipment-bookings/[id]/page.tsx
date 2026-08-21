@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 
 interface Customer {
   id: string;
@@ -247,7 +248,7 @@ export default function CustomerEquipmentBookingDetailPage() {
 
   if (isLoading || !customer) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 flex items-center justify-center`}>
         <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
       </div>
     );
@@ -255,7 +256,7 @@ export default function CustomerEquipmentBookingDetailPage() {
 
   if (error || !booking) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 p-4`}>
         <div className="max-w-2xl mx-auto">
           <Link href="/customer/dashboard" className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6">
             <ArrowLeft className="w-4 h-4" />
@@ -263,7 +264,7 @@ export default function CustomerEquipmentBookingDetailPage() {
           </Link>
           <div className="bg-white rounded-xl p-8 text-center shadow-sm">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Booking Not Found</h2>
+            <h2 className="quote-serif text-[26px] font-medium text-gray-900 mb-2">Booking Not Found</h2>
             <p className="text-gray-600">{error || 'This booking does not exist or you do not have access to it.'}</p>
           </div>
         </div>
@@ -300,7 +301,7 @@ export default function CustomerEquipmentBookingDetailPage() {
 
   const CARD = 'overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm';
   const CARD_HEAD = 'flex items-center justify-between gap-3 border-b border-gray-50 bg-[#FCFDFC] px-4 py-3';
-  const CARD_LABEL = 'text-[11px] font-extrabold uppercase tracking-[0.1em] text-gray-400';
+  const CARD_LABEL = 'quote-serif text-[17px] font-medium text-gray-400';
   const ACTION_ROW =
     'group flex w-full items-center gap-3 rounded-2xl border border-gray-100 bg-white px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:border-[#C8F1DF] hover:bg-[#FCFDFC] hover:shadow-[0_10px_24px_-14px_rgba(1,35,20,.45)]';
   // No colour here on purpose — each row supplies its own tint. Tailwind picks
@@ -360,12 +361,12 @@ export default function CustomerEquipmentBookingDetailPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 pt-16`}>
       <CustomerHeader showBackButton />
 
       {/* ══════════════ Hero header ══════════════ */}
       <div className="relative overflow-hidden bg-[#012314] text-white">
-        <div className="absolute inset-0 bg-[linear-gradient(118deg,#056B3E_0%,#078F53_42%,#09B368_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)]" />
         <div
           className="absolute inset-0 opacity-60"
           style={{
@@ -398,7 +399,7 @@ export default function CustomerEquipmentBookingDetailPage() {
                 <Wrench className="w-7 h-7" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-2xl sm:text-[28px] font-extrabold leading-tight tracking-tight">{booking.equipmentType}</h1>
+                <h1 className="quote-serif text-[30px] sm:text-[38px] font-medium leading-tight tracking-[-0.01em]">{booking.equipmentType}</h1>
                 <div className="mt-2 flex flex-wrap items-center gap-2.5">
                   <span className="rounded-md border border-white/[0.14] bg-white/10 px-2.5 py-1 text-xs font-bold tabular-nums text-white/80">
                     {booking.bookingNumber}
@@ -551,7 +552,7 @@ export default function CustomerEquipmentBookingDetailPage() {
                   <Clock className="h-6 w-6 text-amber-600" />
                 </div>
                 <div>
-                  <h3 className="mb-1 font-extrabold text-amber-800">Payment Under Verification</h3>
+                  <h3 className="quote-serif mb-1 font-medium text-amber-800 text-[21px]">Payment Under Verification</h3>
                   <p className="text-sm leading-relaxed text-amber-700">
                     Your payment is being verified. This usually takes 15-30 minutes during business hours.
                     You will receive a notification once verified.
@@ -716,7 +717,7 @@ export default function CustomerEquipmentBookingDetailPage() {
             <div className="overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm">
               <div className="flex items-center gap-2 border-b border-red-100 bg-red-50 px-4 py-3">
                 <XCircle className="h-3.5 w-3.5 text-red-700" />
-                <p className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-red-700">Cancellation Details</p>
+                <p className="quote-serif text-[17px] font-medium text-red-700">Cancellation Details</p>
               </div>
               <div className="p-4">
                 <div className="flex flex-col">
@@ -890,7 +891,7 @@ export default function CustomerEquipmentBookingDetailPage() {
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
                 <Star className="h-8 w-8 fill-amber-500 text-amber-500" />
               </div>
-              <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">How was your rental?</h2>
+              <h2 className="quote-serif text-[30px] font-medium tracking-[-0.01em] text-gray-900">How was your rental?</h2>
               <p className="text-[13px] text-gray-500">Your feedback helps us improve our service.</p>
             </div>
 
@@ -941,7 +942,7 @@ export default function CustomerEquipmentBookingDetailPage() {
           <div className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl">
             <div className="flex items-center justify-between rounded-t-2xl bg-[linear-gradient(118deg,#056B3E_0%,#078F53_60%,#09B368_100%)] p-5 text-white">
               <div>
-                <h3 className="text-lg font-extrabold tracking-tight">{booking.vendor.name}</h3>
+                <h3 className="quote-serif text-[23px] font-medium tracking-[-0.01em]">{booking.vendor.name}</h3>
                 <p className="text-xs text-white/[0.72]">Equipment Booking #{booking.bookingNumber}</p>
               </div>
               <button onClick={() => setShowChat(false)} className="rounded-full p-2 transition hover:bg-white/20">

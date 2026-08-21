@@ -5,6 +5,7 @@ import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 import {
   Loader2, ArrowLeft, Truck, MapPin, Calendar, Clock, FileText,
   Users, Car, ChevronRight, Home, CheckCircle, Bike, Bus, AlertTriangle
@@ -90,10 +91,10 @@ function CreateB2BBookingForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 pt-16`}>
       <CustomerHeader showBackButton />
       {/* Header */}
-      <header className="bg-gradient-to-r from-slate-900 via-green-900 to-slate-900 text-white">
+      <header className="bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)] text-white">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
@@ -105,8 +106,8 @@ function CreateB2BBookingForm() {
                   <Truck className="w-6 h-6" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-lg">New B2B Booking</h1>
-                  <p className="text-green-300 text-xs">Corporate bulk transport</p>
+                  <h1 className="quote-serif font-medium text-[23px]">New B2B Booking</h1>
+                  <p className="text-white/70 text-xs">Corporate bulk transport</p>
                 </div>
               </div>
             </div>
@@ -130,7 +131,7 @@ function CreateB2BBookingForm() {
 
           {/* Step 1: Service Type */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <h3 className="quote-serif font-medium text-gray-900 mb-4 flex items-center gap-2 text-[21px]">
               <Truck className="w-5 h-5 text-green-600" />
               Select Service Type
             </h3>
@@ -165,7 +166,7 @@ function CreateB2BBookingForm() {
 
           {/* Step 2: Vehicle Details */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <h3 className="quote-serif font-medium text-gray-900 mb-4 flex items-center gap-2 text-[21px]">
               <Users className="w-5 h-5 text-green-600" />
               Vehicle Requirements
             </h3>
@@ -211,7 +212,7 @@ function CreateB2BBookingForm() {
 
           {/* Step 3: Trip Type */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <h3 className="quote-serif font-medium text-gray-900 mb-4 flex items-center gap-2 text-[21px]">
               <MapPin className="w-5 h-5 text-green-600" />
               Trip Details
             </h3>
@@ -273,7 +274,7 @@ function CreateB2BBookingForm() {
 
           {/* Step 4: Date & Time */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <h3 className="quote-serif font-medium text-gray-900 mb-4 flex items-center gap-2 text-[21px]">
               <Calendar className="w-5 h-5 text-green-600" />
               Schedule
             </h3>
@@ -342,7 +343,7 @@ function CreateB2BBookingForm() {
 
           {/* Step 5: Notes */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <h3 className="quote-serif font-medium text-gray-900 mb-4 flex items-center gap-2 text-[21px]">
               <FileText className="w-5 h-5 text-green-600" />
               Additional Requirements
             </h3>
@@ -363,7 +364,7 @@ function CreateB2BBookingForm() {
                   <AlertTriangle className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-amber-800">Advance Payment Required</h4>
+                  <h4 className="quote-serif font-medium text-amber-800 text-[21px]">Advance Payment Required</h4>
                   <p className="text-sm text-amber-700 mt-0.5">
                     This service is <strong>not covered under your B2B agreement</strong>. This booking will not be counted as a B2B booking — advance payment will be required before trip confirmation.
                   </p>
@@ -377,7 +378,7 @@ function CreateB2BBookingForm() {
                   <CheckCircle className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-green-800">No Payment Required Now</h4>
+                  <h4 className="quote-serif font-medium text-green-800 text-[21px]">No Payment Required Now</h4>
                   <p className="text-sm text-green-700 mt-0.5">
                     This is a post-paid corporate booking. You'll receive quotes from vendors, and billing happens after trip completion.
                   </p>
@@ -413,7 +414,7 @@ function CreateB2BBookingForm() {
 
 export default function CreateB2BBookingPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center items-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin text-green-600" /></div>}>
+    <Suspense fallback={<div className={`${quoteDisplay.variable} flex justify-center items-center min-h-screen`}><Loader2 className="w-8 h-8 animate-spin text-green-600" /></div>}>
       <CreateB2BBookingForm />
     </Suspense>
   );

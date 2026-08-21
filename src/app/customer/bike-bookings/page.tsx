@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { cn } from '@/lib/utils';
+import { quoteDisplay } from '@/lib/quote-font';
 
 // Bike booking status types
 type BikeBookingStatus =
@@ -234,7 +235,7 @@ export default function CustomerBikeBookingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8FAF9]">
+      <div className={`${quoteDisplay.variable} min-h-screen flex items-center justify-center bg-[#F8FAF9]`}>
         <div className="text-center">
           <Loader2 className="h-10 w-10 animate-spin text-[#09B368] mx-auto" />
           <p className="text-gray-500 mt-3 text-sm">Loading your bookings...</p>
@@ -244,7 +245,7 @@ export default function CustomerBikeBookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9]">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-[#F8FAF9]`}>
       <CustomerHeader
         showBackButton
         backHref="/customer/dashboard"
@@ -255,7 +256,7 @@ export default function CustomerBikeBookingsPage() {
 
       <main className="pt-16 pb-12">
         {/* Hero */}
-        <div className="bg-[#09B368] pt-8 pb-14 relative overflow-hidden">
+        <div className="bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)] pt-8 pb-14 relative overflow-hidden">
           <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle at 75% 50%, #ffffff 0%, transparent 60%)'}} />
           <div className="absolute inset-0 opacity-5" style={{backgroundImage: 'linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)', backgroundSize: '40px 40px'}} />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -264,7 +265,7 @@ export default function CustomerBikeBookingsPage() {
                 <Bike className="h-4 w-4" />
                 Bike Rentals
               </p>
-              <h1 className="text-2xl md:text-3xl font-bold text-white mt-1">My Bike Bookings</h1>
+              <h1 className="quote-serif text-[30px] md:text-[40px] font-medium text-white mt-1">My Bike Bookings</h1>
               <p className="text-white/70 text-sm mt-1">{bookings.length} total booking{bookings.length !== 1 ? 's' : ''}</p>
             </div>
             <Link
@@ -315,7 +316,7 @@ export default function CustomerBikeBookingsPage() {
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
-                <h2 className="font-semibold text-gray-900">Bookings</h2>
+                <h2 className="quote-serif font-medium text-gray-900 text-[21px]">Bookings</h2>
                 <p className="text-xs text-gray-400 mt-0.5">Showing {filteredBookings.length} of {bookings.length}</p>
               </div>
               <button
@@ -333,7 +334,7 @@ export default function CustomerBikeBookingsPage() {
                 <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Bike className="w-7 h-7 text-gray-400" />
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-1">No bookings found</h3>
+                <h3 className="quote-serif font-medium text-gray-900 mb-1 text-[21px]">No bookings found</h3>
                 <p className="text-sm text-gray-500 mb-4">
                   {searchQuery || statusFilter !== 'all' ? 'Try adjusting your filters' : "You haven't made any bike rentals yet"}
                 </p>
@@ -424,7 +425,7 @@ export default function CustomerBikeBookingsPage() {
               className="bg-[#09B368] text-white rounded-2xl p-5 flex items-center justify-between hover:bg-[#078F53] transition"
             >
               <div>
-                <h3 className="font-bold mb-0.5">Rent Another Bike</h3>
+                <h3 className="quote-serif font-medium mb-0.5 text-[21px]">Rent Another Bike</h3>
                 <p className="text-white/70 text-sm">Browse scooters, bikes & more</p>
               </div>
               <Bike className="w-10 h-10 opacity-40" />
@@ -434,7 +435,7 @@ export default function CustomerBikeBookingsPage() {
               className="bg-white border border-gray-200 rounded-2xl p-5 flex items-center justify-between hover:border-[#09B368]/30 transition"
             >
               <div>
-                <h3 className="font-bold text-gray-900 mb-0.5">All Bookings</h3>
+                <h3 className="quote-serif font-medium text-gray-900 mb-0.5 text-[21px]">All Bookings</h3>
                 <p className="text-gray-500 text-sm">View all your travel bookings</p>
               </div>
               <Calendar className="w-10 h-10 text-gray-200" />

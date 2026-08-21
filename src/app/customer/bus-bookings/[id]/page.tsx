@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 
 interface Customer {
   id: string;
@@ -336,7 +337,7 @@ export default function CustomerBusBookingDetailPage() {
 
   if (isLoading || !customer) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 flex items-center justify-center`}>
         <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
       </div>
     );
@@ -344,7 +345,7 @@ export default function CustomerBusBookingDetailPage() {
 
   if (error || !booking) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 p-4`}>
         <div className="max-w-2xl mx-auto">
           <Link href="/customer/dashboard" className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6">
             <ArrowLeft className="w-4 h-4" />
@@ -352,7 +353,7 @@ export default function CustomerBusBookingDetailPage() {
           </Link>
           <div className="bg-white rounded-xl p-8 text-center shadow-sm">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Booking Not Found</h2>
+            <h2 className="quote-serif text-[26px] font-medium text-gray-900 mb-2">Booking Not Found</h2>
             <p className="text-gray-600">{error || 'This booking does not exist or you do not have access to it.'}</p>
           </div>
         </div>
@@ -363,11 +364,11 @@ export default function CustomerBusBookingDetailPage() {
   const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING_PAYMENT;
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 pt-16`}>
       <CustomerHeader showBackButton />
       {/* Hero Header */}
       <div className="relative overflow-hidden bg-[#012314] text-white">
-        <div className="absolute inset-0 bg-[linear-gradient(118deg,#056B3E_0%,#078F53_42%,#09B368_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)]" />
         <div
           className="absolute inset-0 opacity-60"
           style={{
@@ -397,7 +398,7 @@ export default function CustomerBusBookingDetailPage() {
                 <Bus className="w-7 h-7" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-2xl sm:text-[28px] font-extrabold leading-tight tracking-tight">{booking.vehicleName}</h1>
+                <h1 className="quote-serif text-[30px] sm:text-[38px] font-medium leading-tight tracking-[-0.01em]">{booking.vehicleName}</h1>
                 <div className="mt-2 flex flex-wrap items-center gap-2.5">
                   <span className="rounded-md border border-white/[0.14] bg-white/10 px-2.5 py-1 text-xs font-bold tabular-nums text-white/80">
                     {booking.bookingNumber}
@@ -579,7 +580,7 @@ export default function CustomerBusBookingDetailPage() {
                 <Clock className="w-6 h-6 text-amber-600" />
               </div>
               <div>
-                <h3 className="font-bold text-amber-800 mb-1">Payment Under Verification</h3>
+                <h3 className="quote-serif font-medium text-amber-800 mb-1 text-[21px]">Payment Under Verification</h3>
                 <p className="text-sm text-amber-700">
                   Your payment is being verified. This usually takes 15-30 minutes during business hours.
                   You will receive a notification once verified.
@@ -592,7 +593,7 @@ export default function CustomerBusBookingDetailPage() {
         {/* Trip Details */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC] flex items-center justify-between gap-2">
-            <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Trip Details</p>
+            <p className="quote-serif text-[17px] font-medium text-gray-400">Trip Details</p>
             {booking.tripType && (
               <span className="rounded-full border border-[#C8F1DF] bg-[#E9FAF2] px-2.5 py-0.5 text-[11px] font-bold capitalize text-[#056B3E]">
                 {booking.tripType}
@@ -678,7 +679,7 @@ export default function CustomerBusBookingDetailPage() {
         {(booking.vehicleNumber || booking.driverName) && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
-              <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Vehicle &amp; Driver</p>
+              <p className="quote-serif text-[17px] font-medium text-gray-400">Vehicle &amp; Driver</p>
             </div>
             <div className="p-4">
               <div className="flex flex-wrap items-center gap-4">
@@ -775,7 +776,7 @@ export default function CustomerBusBookingDetailPage() {
         {/* Payment Summary */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC] flex items-center justify-between gap-2">
-            <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Payment Summary</p>
+            <p className="quote-serif text-[17px] font-medium text-gray-400">Payment Summary</p>
             {booking.paymentStatus && (
               <span className="rounded-full border border-gray-100 bg-gray-50 px-2.5 py-0.5 text-[11px] font-bold capitalize text-gray-600">
                 {booking.paymentStatus.toLowerCase()}
@@ -831,7 +832,7 @@ export default function CustomerBusBookingDetailPage() {
         {/* Cancellation Details */}
         {booking.status === 'CANCELLED' && booking.cancelledAt && (
           <div className="bg-red-50 rounded-xl border border-red-200 p-4">
-            <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <p className="quote-serif text-[17px] font-medium text-red-600 mb-3 flex items-center gap-1.5">
               <XCircle className="w-3.5 h-3.5" />
               Cancellation Details
             </p>
@@ -862,7 +863,7 @@ export default function CustomerBusBookingDetailPage() {
         {booking.status === 'COMPLETED' && booking.rating && (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="p-4 border-b bg-gray-50">
-              <h2 className="font-semibold text-gray-900">Your Rating</h2>
+              <h2 className="quote-serif font-medium text-gray-900 text-[21px]">Your Rating</h2>
             </div>
             <div className="p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -885,7 +886,7 @@ export default function CustomerBusBookingDetailPage() {
         {['PENDING_PAYMENT', 'ADVANCE_PAID', 'CONFIRMED', 'VEHICLE_ASSIGNED'].includes(booking.status) && (
           <div className="bg-white rounded-2xl border border-red-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-red-100 bg-red-50">
-              <p className="text-[11px] font-extrabold text-red-700 uppercase tracking-[0.1em]">Cancel Booking</p>
+              <p className="quote-serif text-[17px] font-medium text-red-700">Cancel Booking</p>
             </div>
             <div className="p-4">
               <p className="text-[12.5px] leading-relaxed text-gray-500 mb-3">
@@ -911,7 +912,7 @@ export default function CustomerBusBookingDetailPage() {
           {booking.vendor && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
-                <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Vendor Details</p>
+                <p className="quote-serif text-[17px] font-medium text-gray-400">Vendor Details</p>
               </div>
               <div className="p-4">
                 <div className="flex items-center gap-3">
@@ -954,7 +955,7 @@ export default function CustomerBusBookingDetailPage() {
           {/* Booking Info */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
-              <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Booking Info</p>
+              <p className="quote-serif text-[17px] font-medium text-gray-400">Booking Info</p>
             </div>
             <div className="p-4">
               <div className="flex flex-col gap-px overflow-hidden rounded-xl bg-gray-50">
@@ -995,7 +996,7 @@ export default function CustomerBusBookingDetailPage() {
           {/* Actions */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
-              <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Need a hand</p>
+              <p className="quote-serif text-[17px] font-medium text-gray-400">Need a hand</p>
             </div>
             <div className="p-4 flex flex-col gap-2.5">
           {booking.status === 'COMPLETED' && !booking.rating && (
@@ -1050,7 +1051,7 @@ export default function CustomerBusBookingDetailPage() {
                   <AlertCircle className="h-5 w-5" />
                 </span>
                 <div className="flex-1">
-                  <h2 className="text-[17px] font-extrabold">Cancel this booking?</h2>
+                  <h2 className="quote-serif text-[21px] font-medium">Cancel this booking?</h2>
                   <p className="mt-0.5 text-[12.5px] leading-relaxed text-white/[0.82]">
                     The vendor is notified immediately and the vehicle is released. This cannot be undone.
                   </p>
@@ -1182,7 +1183,7 @@ export default function CustomerBusBookingDetailPage() {
               <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Star className="w-8 h-8 text-amber-500 fill-amber-500" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">How was your trip?</h2>
+              <h2 className="quote-serif text-[26px] font-medium text-gray-900">How was your trip?</h2>
               <p className="text-sm text-gray-500 mt-1">Your feedback helps us improve our service.</p>
             </div>
             <div className="flex justify-center gap-2 mb-6">

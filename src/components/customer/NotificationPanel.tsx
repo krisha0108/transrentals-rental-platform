@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
@@ -12,6 +12,17 @@ import {
   Loader2,
   BellOff,
   RefreshCw,
+  Car,
+  Bike,
+  Users,
+  Truck,
+  Star,
+  Wrench,
+  Package,
+  MessageCircle,
+  IndianRupee,
+  CheckCircle,
+  KeyRound,
 } from 'lucide-react';
 
 interface Notification {
@@ -39,6 +50,81 @@ const SERVICE_TYPE_MAP: Record<string, string> = {
   'self-drive': 'self-drive',
   'bike-rental': 'bike',
 };
+
+// Notification titles are written with emoji by the API routes that create
+// them. Strip them here and show an SVG icon instead — this also cleans the
+// rows already stored in the database.
+const EMOJI_RE =
+  /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/gu;
+
+function stripEmoji(text?: string | null): string {
+  if (!text) return '';
+  return text.replace(EMOJI_RE, '').replace(/\s{2,}/g, ' ').trim();
+}
+
+/** Tint for the icon tile, matching the ledger's per-service colours. */
+function getNotificationTint(item: Notification) {
+  const raw = (item.service_type || '').toLowerCase();
+  const service = SERVICE_TYPE_MAP[raw] || raw;
+  const type = (item.type || '').toLowerCase();
+  const title = (item.title || '').toLowerCase();
+  const hay = `${service} ${title}`;
+
+  if (type === 'chat' || title.includes('message'))
+    return { bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-600' };
+  if (title.includes('payment') || title.includes('refund'))
+    return { bg: 'bg-[#EAF8F1]', border: 'border-[#BEE9D3]', text: 'text-[#056B3E]' };
+
+  if (hay.includes('bike') || hay.includes('scooter'))
+    return { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600' };
+  if (hay.includes('bus') || hay.includes('tempo'))
+    return { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600' };
+  if (hay.includes('truck') || hay.includes('transporter'))
+    return { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600' };
+  if (hay.includes('luxury'))
+    return { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-700' };
+  if (hay.includes('packer') || hay.includes('mover'))
+    return { bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-600' };
+  if (hay.includes('equipment') || hay.includes('jcb') || hay.includes('crane'))
+    return { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600' };
+  if (hay.includes('self-drive') || hay.includes('self drive'))
+    return { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-600' };
+  if (hay.includes('car') || hay.includes('chauffeur') || hay.includes('outstation') || hay.includes('airport'))
+    return { bg: 'bg-[#EAF8F1]', border: 'border-[#BEE9D3]', text: 'text-[#056B3E]' };
+
+  return { bg: 'bg-[#F4F8F5]', border: 'border-[#E7EEE9]', text: 'text-[#78857C]' };
+}
+
+/** Pick the icon from the notification's own service_type / type fields. */
+function getNotificationIcon(item: Notification) {
+  const raw = (item.service_type || '').toLowerCase();
+  const service = SERVICE_TYPE_MAP[raw] || raw;
+  const type = (item.type || '').toLowerCase();
+  const title = (item.title || '').toLowerCase();
+
+  if (type === 'chat' || title.includes('message')) return MessageCircle;
+  if (title.includes('otp')) return KeyRound;
+  if (title.includes('accepted') || title.includes('confirmed')) return CheckCircle;
+  if (title.includes('payment') || title.includes('refund')) return IndianRupee;
+
+  if (service.includes('bus')) return Users;
+  if (service.includes('truck') || service.includes('transporter')) return Truck;
+  if (service.includes('luxury')) return Star;
+  if (service.includes('equipment')) return Wrench;
+  if (service.includes('packers')) return Package;
+  if (service.includes('bike')) return Bike;
+  if (service.includes('car') || service.includes('drive')) return Car;
+
+  if (title.includes('bus')) return Users;
+  if (title.includes('truck') || title.includes('transporter')) return Truck;
+  if (title.includes('luxury')) return Star;
+  if (title.includes('equipment')) return Wrench;
+  if (title.includes('packers') || title.includes('movers')) return Package;
+  if (title.includes('bike')) return Bike;
+  if (title.includes('car') || title.includes('drive')) return Car;
+
+  return Bell;
+}
 
 function getNotificationRoute(item: Notification): string {
   const title = (item.title || '').toLowerCase();
@@ -125,17 +211,29 @@ export default function NotificationPanel() {
 
   useEffect(() => {
     const stored = localStorage.getItem('customer');
+    let resolved: string | null = null;
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
         const id = parsed?.id ?? parsed?.customer_id ?? parsed?.customerId;
-        if (id) setCustomerId(String(id));
+        if (id) resolved = String(id);
       } catch {}
     }
+    if (resolved) setCustomerId(resolved);
+    // Without this the spinner never clears: fetchNotifications returns early
+    // when there is no id, so `loading` would stay true forever.
+    else setLoading(false);
   }, []);
+
+  // Guards the 30s poll: on a slow connection the previous request can still
+  // be open when the next tick fires, which stacks requests and keeps the card
+  // in its refreshing state indefinitely.
+  const inFlight = useRef(false);
 
   const fetchNotifications = useCallback(async (isRefresh = false) => {
     if (!customerId) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     if (!isRefresh) setLoading(true);
     else setRefreshing(true);
 
@@ -148,6 +246,7 @@ export default function NotificationPanel() {
     } catch {
       // silent
     } finally {
+      inFlight.current = false;
       setLoading(false);
       setRefreshing(false);
     }
@@ -200,120 +299,158 @@ export default function NotificationPanel() {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
+  // Presentation only — the same list, split into two dated groups so the
+  // timeline reads like a diary. Nothing is filtered out, dropped or reordered.
+  const groups = useMemo(() => {
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const recent: Notification[] = [];
+    const older: Notification[] = [];
+    notifications.forEach((n) => {
+      const t = new Date(n.created_at).getTime();
+      if (Number.isFinite(t) && now - t < WEEK_MS) recent.push(n);
+      else older.push(n);
+    });
+    return [
+      { label: 'This week', items: recent },
+      { label: 'Earlier', items: older },
+    ].filter((g) => g.items.length > 0);
+  }, [notifications]);
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-[#056040] to-[#09B368] px-4 py-3 relative overflow-hidden">
-        <div className="absolute -top-4 -right-4 w-16 h-16 bg-white/10 rounded-full" />
-        <div className="absolute -bottom-4 -left-2 w-12 h-12 bg-white/10 rounded-full" />
-        <div className="relative flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
-              <Bell className="w-3.5 h-3.5 text-white" />
-            </div>
-            <span className="text-sm font-bold text-white">Notifications</span>
-            {unreadCount > 0 && (
-              <span className="bg-white/25 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                {unreadCount} new
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1">
+    <div className="overflow-hidden rounded-2xl border border-[#C3D6F5] bg-white">
+      {/* Header — blue. Green sits in the column to the left, so this card
+          needs a hue the eye separates at a glance, not a near-green. */}
+      <div className="flex items-end justify-between gap-3 border-b border-[#C3D6F5] bg-gradient-to-r from-[#E7EFFD] to-[#F7FAFF] px-5 py-4">
+        <div>
+          <p className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-[#1D4ED8]">Activity</p>
+          <h3 className="quote-serif mt-[3px] text-[23px] font-semibold leading-none text-[#122A5E]">Notifications</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <span className="rounded-full bg-[#09B368] px-2.5 py-[2px] text-[10px] font-bold text-white">
+              {unreadCount} new
+            </span>
+          )}
+          <button
+            onClick={() => fetchNotifications(true)}
+            disabled={refreshing}
+            className="grid h-7 w-7 place-items-center rounded-[9px] border border-[#C3D6F5] bg-white text-[#1D4ED8] transition hover:border-[#1D4ED8] hover:text-[#122A5E] disabled:opacity-50"
+            title="Refresh"
+          >
+            <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin text-[#09B368]' : ''}`} />
+          </button>
+          {unreadCount > 0 && (
             <button
-              onClick={() => fetchNotifications(true)}
-              disabled={refreshing}
-              className="w-7 h-7 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center transition disabled:opacity-50"
-              title="Refresh"
+              onClick={handleMarkAllRead}
+              className="grid h-7 w-7 place-items-center rounded-[9px] border border-[#C3D6F5] bg-white text-[#1D4ED8] transition hover:border-[#1D4ED8] hover:text-[#122A5E]"
+              title="Mark all as read"
             >
-              <RefreshCw className={`w-3 h-3 text-white ${refreshing ? 'animate-spin' : ''}`} />
+              <CheckCheck className="h-3.5 w-3.5" />
             </button>
-            {unreadCount > 0 && (
-              <button
-                onClick={handleMarkAllRead}
-                className="w-7 h-7 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center transition"
-                title="Mark all as read"
-              >
-                <CheckCheck className="w-3.5 h-3.5 text-white" />
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Notification List */}
-      <div className="max-h-[420px] overflow-y-auto">
+      {/* Notification List — scrolls inside the card */}
+      <div className="max-h-[452px] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-10 gap-2">
-            <Loader2 className="w-5 h-5 text-[#09B368] animate-spin" />
-            <p className="text-xs text-gray-400">Loading notifications...</p>
+          <div className="px-5 pb-4 pt-1" aria-label="Loading notifications">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex gap-3.5 py-3">
+                <span className="h-[34px] w-[34px] flex-none animate-pulse rounded-[11px] bg-[#EAF0EC]" />
+                <div className="min-w-0 flex-1">
+                  <span className="block h-3 w-3/5 animate-pulse rounded bg-[#EAF0EC]" />
+                  <span className="mt-2 block h-2.5 w-full animate-pulse rounded bg-[#F1F5F2]" />
+                  <span className="mt-1.5 block h-2.5 w-2/5 animate-pulse rounded bg-[#F1F5F2]" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 px-4">
-            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
-              <BellOff className="w-5 h-5 text-gray-300" />
-            </div>
-            <p className="text-sm font-semibold text-gray-500">No notifications</p>
-            <p className="text-xs text-gray-400 text-center mt-1">You&apos;re all caught up!</p>
+          <div className="flex flex-col items-center justify-center px-5 py-10">
+            <BellOff className="mb-2.5 h-5 w-5 text-[#D4DFD8]" />
+            <p className="text-[13px] font-semibold text-[#78857C]">No notifications</p>
+            <p className="mt-1 text-center text-xs text-[#A6B1AA]">You&apos;re all caught up!</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-50">
-            {notifications.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleNotificationClick(item)}
-                className={`w-full text-left px-4 py-3 hover:bg-gray-50/80 transition-colors group ${
-                  !item.is_read ? 'bg-emerald-50/40' : ''
-                }`}
-              >
-                <div className="flex gap-3">
-                  {/* Icon */}
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                    !item.is_read
-                      ? 'bg-[#09B368] shadow-sm shadow-emerald-200'
-                      : 'bg-gray-100'
-                  }`}>
-                    {!item.is_read ? (
-                      <BellRing className="w-3.5 h-3.5 text-white" />
-                    ) : (
-                      <Bell className="w-3.5 h-3.5 text-gray-400" />
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className={`text-xs leading-snug line-clamp-2 ${
-                        !item.is_read ? 'font-bold text-gray-900' : 'font-medium text-gray-700'
-                      }`}>
-                        {item.title}
-                      </p>
-                      {!item.is_read && (
-                        <span className="w-2 h-2 bg-[#09B368] rounded-full flex-shrink-0 mt-1" />
-                      )}
-                    </div>
-                    <p className={`text-[11px] leading-relaxed mt-0.5 line-clamp-2 ${
-                      !item.is_read ? 'text-gray-600' : 'text-gray-400'
-                    }`}>
-                      {item.body}
-                    </p>
-                    {item.image && (
-                      <div className="mt-1.5 rounded-lg overflow-hidden">
-                        <Image src={item.image} alt="" width={300} height={80} className="w-full object-cover rounded-lg" />
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between mt-1.5">
-                      <div className="flex items-center gap-1 text-gray-400">
-                        <Clock className="w-3 h-3" />
-                        <span className="text-[10px]">{item.relative_time}</span>
-                      </div>
-                      <div className="flex items-center gap-0.5 text-[#09B368] opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-[10px] font-medium">View</span>
-                        <ChevronRight className="w-3 h-3" />
-                      </div>
-                    </div>
-                  </div>
+          <div className="px-5 pb-4">
+            {groups.map((group) => (
+              <div key={group.label}>
+                {/* day divider */}
+                <div className="flex items-center gap-3 pb-2 pt-3.5">
+                  <span className="whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.2em] text-[#5B7FD4]">
+                    {group.label}
+                  </span>
+                  <span className="h-px flex-1 bg-[#DCE6FA]" />
                 </div>
-              </button>
+
+                {group.items.map((item, i) => {
+                  const Icon = getNotificationIcon(item);
+                  const tint = getNotificationTint(item);
+                  // The spine runs between the icon tiles: it starts at the first
+                  // tile and stops at the last, so it never dangles past the group.
+                  const spine = `${i === 0 ? 'top-3' : 'top-0'} ${
+                    i === group.items.length - 1 ? 'h-3.5' : 'bottom-0'
+                  }`;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNotificationClick(item)}
+                      className="group relative grid w-full grid-cols-[34px_1fr] gap-3.5 py-3 text-left"
+                    >
+                      <span className={`pointer-events-none absolute left-[16px] w-px bg-[#E7EEE9] ${spine}`} />
+
+                      {/* SVG icon picked from the notification's service_type / type. */}
+                      <span
+                        className={`relative z-[1] grid h-[34px] w-[34px] flex-none place-items-center rounded-[11px] border bg-white ${tint.bg} ${tint.border} ${tint.text} ${
+                          item.is_read ? 'opacity-50' : ''
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+
+                      <div className="min-w-0 rounded-xl py-[2px] pl-[2px] pr-3 transition group-hover:bg-[#F4F8F5]">
+                        <div className="flex items-start justify-between gap-2.5">
+                          <p
+                            className={`line-clamp-2 text-[13px] leading-[1.35] ${
+                              !item.is_read ? 'font-semibold text-[#0B1610]' : 'font-medium text-[#46524A]'
+                            }`}
+                          >
+                            {stripEmoji(item.title)}
+                          </p>
+                          {!item.is_read && (
+                            <span className="flex-none rounded-full bg-[#EAF8F1] px-2 py-px text-[9px] font-bold uppercase tracking-[0.06em] text-[#056B3E]">
+                              New
+                            </span>
+                          )}
+                        </div>
+                        <p
+                          className={`mt-[5px] line-clamp-2 text-[11.5px] leading-[1.55] ${
+                            !item.is_read ? 'text-[#78857C]' : 'text-[#A6B1AA]'
+                          }`}
+                        >
+                          {stripEmoji(item.body)}
+                        </p>
+                        {item.image && (
+                          <div className="mt-2 overflow-hidden rounded-lg">
+                            <Image src={item.image} alt="" width={300} height={80} className="w-full rounded-lg object-cover" />
+                          </div>
+                        )}
+                        <div className="mt-[7px] flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-[10px] text-[#A6B1AA]">
+                            <Clock className="h-[11px] w-[11px]" />
+                            {item.relative_time}
+                          </span>
+                          <span className="flex -translate-x-1 items-center gap-0.5 text-[10.5px] font-semibold text-[#056B3E] opacity-0 transition group-hover:translate-x-0 group-hover:opacity-100">
+                            View <ChevronRight className="h-3 w-3" />
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             ))}
           </div>
         )}

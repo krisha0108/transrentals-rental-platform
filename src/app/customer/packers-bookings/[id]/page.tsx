@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 import {
   formatShiftingScope,
   formatPropertyTypeAndSize,
@@ -282,7 +283,7 @@ function Card({
   return (
     <div className={`overflow-hidden rounded-2xl border bg-white shadow-sm ${shell}`}>
       <div className={`flex items-center justify-between gap-3 border-b px-4 py-3 ${head}`}>
-        <p className={`text-[11px] font-extrabold uppercase tracking-[0.1em] ${label}`}>{title}</p>
+        <p className={`quote-serif text-[17px] font-medium ${label}`}>{title}</p>
         {aside}
       </div>
       <div className="p-4">{children}</div>
@@ -359,7 +360,7 @@ function Group({
         <span className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg ${tints[tint]}`}>
           <Icon className="h-3 w-3" />
         </span>
-        <p className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gray-500">{title}</p>
+        <p className="quote-serif text-[17px] font-medium text-gray-500">{title}</p>
       </div>
       {children}
     </div>
@@ -691,7 +692,7 @@ export default function CustomerPackersBookingDetailPage() {
 
   if (isLoading || !customer) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 flex items-center justify-center`}>
         <Loader2 className="w-8 h-8 animate-spin text-[#09B368]" />
       </div>
     );
@@ -699,7 +700,7 @@ export default function CustomerPackersBookingDetailPage() {
 
   if (error || !booking) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 p-4`}>
         <div className="max-w-2xl mx-auto">
           <Link href="/customer/dashboard" className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6">
             <ArrowLeft className="w-4 h-4" />
@@ -707,7 +708,7 @@ export default function CustomerPackersBookingDetailPage() {
           </Link>
           <div className="bg-white rounded-xl p-8 text-center shadow-sm">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Booking Not Found</h2>
+            <h2 className="quote-serif text-[26px] font-medium text-gray-900 mb-2">Booking Not Found</h2>
             <p className="text-gray-600">{error || 'This booking does not exist or you do not have access to it.'}</p>
           </div>
         </div>
@@ -748,12 +749,12 @@ export default function CustomerPackersBookingDetailPage() {
   const packingMaterials = toList(booking.quote?.packingMaterials);
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 pt-16`}>
       <CustomerHeader showBackButton />
 
       {/* ══════════════ Hero header ══════════════ */}
       <div className="relative overflow-hidden bg-[#012314] text-white">
-        <div className="absolute inset-0 bg-[linear-gradient(118deg,#056B3E_0%,#078F53_42%,#09B368_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)]" />
         <div
           className="absolute inset-0 opacity-60"
           style={{
@@ -785,7 +786,7 @@ export default function CustomerPackersBookingDetailPage() {
                 <Package className="w-7 h-7" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-2xl sm:text-[28px] font-extrabold leading-tight tracking-tight">{headline}</h1>
+                <h1 className="quote-serif text-[30px] sm:text-[38px] font-medium leading-tight tracking-[-0.01em]">{headline}</h1>
                 <div className="mt-2 flex flex-wrap items-center gap-2.5">
                   <span className="rounded-md border border-white/[0.14] bg-white/10 px-2.5 py-1 text-xs font-bold tabular-nums text-white/80">
                     {booking.bookingNumber}
@@ -1566,7 +1567,7 @@ export default function CustomerPackersBookingDetailPage() {
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#E9FAF2]">
                 <Star className="h-8 w-8 fill-[#09B368] text-[#09B368]" />
               </div>
-              <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">How was your move?</h2>
+              <h2 className="quote-serif text-[30px] font-medium tracking-[-0.01em] text-gray-900">How was your move?</h2>
               <p className="text-[13px] text-gray-500">Your feedback helps us improve our service.</p>
             </div>
 
@@ -1631,7 +1632,7 @@ export default function CustomerPackersBookingDetailPage() {
             {/* Header */}
             <div className="flex items-center justify-between rounded-t-2xl bg-[linear-gradient(118deg,#056B3E_0%,#078F53_60%,#09B368_100%)] p-5 text-white">
               <div>
-                <h3 className="text-lg font-extrabold tracking-tight">{booking.vendor.name}</h3>
+                <h3 className="quote-serif text-[23px] font-medium tracking-[-0.01em]">{booking.vendor.name}</h3>
                 <p className="text-xs text-white/[0.72]">Packers Booking #{booking.bookingNumber}</p>
               </div>
               <button onClick={() => setShowChat(false)} className="rounded-full p-2 transition hover:bg-white/20">
@@ -1703,7 +1704,7 @@ export default function CustomerPackersBookingDetailPage() {
                 <XCircle className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <h3 className="font-extrabold text-gray-900">Cancel Booking</h3>
+                <h3 className="quote-serif font-medium text-gray-900 text-[21px]">Cancel Booking</h3>
                 <p className="text-xs tabular-nums text-gray-500">#{booking?.bookingNumber}</p>
               </div>
               <button

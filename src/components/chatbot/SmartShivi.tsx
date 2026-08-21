@@ -4316,8 +4316,9 @@ Ready to confirm?
             <MessageCircle className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></span>
 
-            <div className="absolute right-full mr-3 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              Chat with Shivi 💬
+            <div className="absolute right-full mr-3 flex items-center gap-1.5 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <MessageCircle className="w-3.5 h-3.5" />
+              Chat with Shivi
             </div>
           </motion.button>
         )}

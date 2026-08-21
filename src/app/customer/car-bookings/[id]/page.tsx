@@ -40,6 +40,7 @@ import { useCustomerAuth } from '@/hooks/useCustomer';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import InlineBookingChat from '@/components/customer/InlineBookingChat';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 
 // Car booking status type
 type CarBookingStatus =
@@ -424,7 +425,7 @@ export default function CarBookingDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900">
+      <div className={`${quoteDisplay.variable} min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900`}>
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-indigo-400 mx-auto" />
           <p className="text-indigo-200 mt-4">Loading booking details...</p>
@@ -435,10 +436,10 @@ export default function CarBookingDetailPage() {
 
   if (!booking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100">
+      <div className={`${quoteDisplay.variable} min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100`}>
         <div className="text-center">
           <Car className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Booking Not Found</h1>
+          <h1 className="quote-serif text-[30px] font-medium text-gray-900 mb-2">Booking Not Found</h1>
           <p className="text-gray-600 mb-6">
             We couldn&apos;t find a booking with number: <strong>{params.id}</strong>
           </p>
@@ -460,10 +461,10 @@ export default function CarBookingDetailPage() {
   const canCancel = ['PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED'].includes(booking.status);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 pt-16`}>
       <CustomerHeader showBackButton />
       {/* Header */}
-      <header className="bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 text-white">
+      <header className="bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)] text-white">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
@@ -471,8 +472,8 @@ export default function CarBookingDetailPage() {
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <div>
-                <h1 className="font-bold text-lg">Booking Details</h1>
-                <p className="text-indigo-300 text-xs">#{booking.bookingNumber}</p>
+                <h1 className="quote-serif font-medium text-[23px]">Booking Details</h1>
+                <p className="text-white/70 text-xs">#{booking.bookingNumber}</p>
               </div>
             </div>
             <button
@@ -545,7 +546,7 @@ export default function CarBookingDetailPage() {
                 <Timer className="w-6 h-6 text-amber-600" />
               </div>
               <div>
-                <h3 className="font-bold text-amber-800 mb-1">Payment Under Verification</h3>
+                <h3 className="quote-serif font-medium text-amber-800 mb-1 text-[21px]">Payment Under Verification</h3>
                 <p className="text-sm text-amber-700">
                   Your payment is being verified. This usually takes 15-30 minutes during business hours. You will receive a notification once verified.
                 </p>
@@ -561,7 +562,7 @@ export default function CarBookingDetailPage() {
               <div className="w-16 h-16 bg-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <KeyRound className="w-8 h-8 text-cyan-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Your Trip OTP</h3>
+              <h3 className="quote-serif text-[26px] font-medium text-gray-900 mb-2">Your Trip OTP</h3>
               <p className="text-gray-600 mb-4">
                 Share this OTP with the vendor to start your trip
               </p>
@@ -611,7 +612,7 @@ export default function CarBookingDetailPage() {
                 <Play className="w-7 h-7 text-emerald-600" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-emerald-800">Trip In Progress</h3>
+                <h3 className="quote-serif text-[23px] font-medium text-emerald-800">Trip In Progress</h3>
                 <p className="text-emerald-600">
                   Enjoy your ride! Return the car before your drop-off time.
                 </p>
@@ -634,7 +635,7 @@ export default function CarBookingDetailPage() {
                 <User className="w-6 h-6 text-indigo-600" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-gray-900 mb-1">Create an Account</h3>
+                <h3 className="quote-serif font-medium text-gray-900 mb-1 text-[21px]">Create an Account</h3>
                 <p className="text-sm text-gray-600 mb-3">
                   Save this booking to your account and enjoy faster checkouts, booking history, and exclusive offers!
                 </p>
@@ -667,7 +668,7 @@ export default function CarBookingDetailPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-4 left-4 text-white">
               <p className="text-sm text-white/80">{booking.brand}</p>
-              <h2 className="text-2xl font-bold">{booking.vehicleName}</h2>
+              <h2 className="quote-serif text-[30px] font-medium">{booking.vehicleName}</h2>
               <p className="text-sm text-white/80">{booking.vehicleType}</p>
             </div>
           </div>
@@ -707,7 +708,7 @@ export default function CarBookingDetailPage() {
 
         {/* Trip Details */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h3 className="quote-serif font-medium text-gray-900 mb-4 flex items-center gap-2 text-[21px]">
             <Calendar className="w-5 h-5 text-indigo-500" />
             Trip Details
           </h3>
@@ -756,7 +757,7 @@ export default function CarBookingDetailPage() {
         {/* Vendor Details */}
         {booking.vendorName && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <h3 className="quote-serif font-medium text-gray-900 mb-4 flex items-center gap-2 text-[21px]">
               <User className="w-5 h-5 text-indigo-500" />
               Vendor Details
             </h3>
@@ -828,7 +829,7 @@ export default function CarBookingDetailPage() {
 
         {/* Payment Summary */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h3 className="quote-serif font-medium text-gray-900 mb-4 flex items-center gap-2 text-[21px]">
             <CreditCard className="w-5 h-5 text-indigo-500" />
             Payment Summary
           </h3>
@@ -856,7 +857,7 @@ export default function CarBookingDetailPage() {
 
         {/* Timeline */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h3 className="quote-serif font-medium text-gray-900 mb-4 flex items-center gap-2 text-[21px]">
             <Clock className="w-5 h-5 text-indigo-500" />
             Booking Timeline
           </h3>
@@ -928,7 +929,7 @@ export default function CarBookingDetailPage() {
         {/* Support */}
         <div className="bg-indigo-50 rounded-2xl p-6 text-center">
           <Shield className="w-10 h-10 text-indigo-500 mx-auto mb-3" />
-          <h3 className="font-bold text-gray-900 mb-1">Need Help?</h3>
+          <h3 className="quote-serif font-medium text-gray-900 mb-1 text-[21px]">Need Help?</h3>
           <p className="text-sm text-gray-600 mb-4">
             Our support team is available 24/7
           </p>
@@ -946,7 +947,7 @@ export default function CarBookingDetailPage() {
       {showCancelModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Cancel Booking?</h2>
+            <h2 className="quote-serif text-[26px] font-medium text-gray-900 mb-2">Cancel Booking?</h2>
             <p className="text-gray-600 mb-4">
               Are you sure you want to cancel this booking? Cancellation charges may apply based on
               our cancellation policy.
@@ -980,7 +981,7 @@ export default function CarBookingDetailPage() {
       {showRateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Rate Your Experience</h2>
+            <h2 className="quote-serif text-[26px] font-medium text-gray-900 mb-4">Rate Your Experience</h2>
             <div className="flex justify-center gap-2 mb-4">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button

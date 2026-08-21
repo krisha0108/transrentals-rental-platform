@@ -81,6 +81,24 @@ export async function GET(
     const transformedQuoteRequest = {
       ...quoteRequest,
       luxury_quotes: quoteRequest.luxury_quotes.map((q) => {
+        // inclusions / exclusions / termsConditions / vehicleFeatures are stored
+        // as JSON strings. Send them as real arrays — handing the raw string to
+        // the client left it splitting on commas, which turned
+        // '["A","B"]' into '["A"' + '"B"]'.
+        const toList = (raw: any): string[] => {
+          if (Array.isArray(raw)) return raw.filter(Boolean);
+          if (typeof raw !== 'string' || !raw.trim()) return [];
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed.filter(Boolean);
+            if (parsed && typeof parsed === 'object') return Object.values(parsed).filter(Boolean) as string[];
+            return [];
+          } catch {
+            // Not JSON — fall back to the comma-separated form.
+            return raw.split(',').map((x) => x.trim()).filter(Boolean);
+          }
+        };
+
         // Resolve images: prefer the linked fleet vehicle's images, else the
         // quote's own stored images. Normalize BOTH to a plain array so the
         // final JSON.stringify never double-encodes an already-stringified value.
@@ -102,6 +120,10 @@ export async function GET(
         return {
           ...q,
           vehicleImages: imageArr.length ? JSON.stringify(imageArr) : null,
+          inclusions: toList(q.inclusions),
+          exclusions: toList(q.exclusions),
+          termsConditions: toList(q.termsConditions),
+          vehicleFeatures: toList(q.vehicleFeatures),
         };
       }),
     };

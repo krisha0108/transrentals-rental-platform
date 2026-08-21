@@ -34,6 +34,7 @@ import {
 // Chat will be inline - no external component needed
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 
 interface BookingDetail {
   id: string;
@@ -432,7 +433,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 flex items-center justify-center`}>
         <div className="text-center">
           <div className="animate-spin w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-gray-500">Loading booking details...</p>
@@ -443,10 +444,10 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
 
   if (error || !booking) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 flex items-center justify-center p-4`}>
         <div className="text-center">
           <Crown className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">{error || 'Booking not found'}</h2>
+          <h2 className="quote-serif text-[26px] font-medium text-gray-900 mb-2">{error || 'Booking not found'}</h2>
           <Link href="/customer/dashboard" className="text-amber-600 hover:underline">
             Back to Dashboard
           </Link>
@@ -459,7 +460,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
   const StatusIcon = statusConfig.icon;
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 pt-16`}>
       <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-gray-900 via-amber-900 to-gray-900 text-white py-6">
@@ -482,7 +483,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
           <div className="flex items-center gap-3">
             <Crown className="w-8 h-8 text-amber-400" />
             <div>
-              <h1 className="text-xl font-bold">#{booking.bookingNumber}</h1>
+              <h1 className="quote-serif text-[26px] font-medium">#{booking.bookingNumber}</h1>
               <p className="text-amber-200 text-sm">Luxury Car Booking</p>
             </div>
           </div>
@@ -498,7 +499,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
                 <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
               <div>
-                <h2 className="font-bold text-green-800 text-lg mb-1">Booking Created!</h2>
+                <h2 className="quote-serif font-medium text-green-800 text-[23px] mb-1">Booking Created!</h2>
                 <p className="text-green-700">
                   Your luxury car booking is created. Please pay the advance to confirm.
                 </p>
@@ -591,7 +592,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
         {/* Vehicle Details */}
         <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden">
           <div className="bg-gradient-to-r from-gray-900 to-amber-900 px-4 py-3">
-            <h3 className="font-semibold text-amber-200 flex items-center gap-2">
+            <h3 className="quote-serif font-medium text-amber-200 flex items-center gap-2 text-[21px]">
               <Crown className="w-4 h-4" />
               Your Luxury Vehicle
             </h3>
@@ -602,7 +603,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
                 <Car className="w-8 h-8 text-amber-600" />
               </div>
               <div>
-                <h4 className="font-bold text-xl text-gray-900">
+                <h4 className="quote-serif font-medium text-[26px] text-gray-900">
                   {booking.vehicleName || booking.carCategoryName || booking.carCategory}
                 </h4>
                 {booking.vehicleNumber && (
@@ -634,7 +635,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
         {booking.driverName && (
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
             <div className="bg-gray-50 px-4 py-3 border-b">
-              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+              <h3 className="quote-serif font-medium text-gray-900 flex items-center gap-2 text-[21px]">
                 <Star className="w-4 h-4 text-amber-500" />
                 Your Driver
               </h3>
@@ -645,7 +646,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
                   {booking.driverName.charAt(0)}
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-bold text-lg text-gray-900">{booking.driverName}</h4>
+                  <h4 className="quote-serif font-medium text-[23px] text-gray-900">{booking.driverName}</h4>
                   {booking.vendor && (
                     <p className="text-gray-500 flex items-center gap-1">
                       {booking.vendor.businessName}
@@ -676,7 +677,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
         {/* Trip Details */}
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
           <div className="bg-gray-50 px-4 py-3 border-b">
-            <h3 className="font-semibold text-gray-900">Trip Details</h3>
+            <h3 className="quote-serif font-medium text-gray-900 text-[21px]">Trip Details</h3>
           </div>
           <div className="p-6 space-y-4">
             <div className="flex items-start gap-3">
@@ -728,7 +729,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
         {/* Fare Breakdown */}
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
           <div className="bg-gray-50 px-4 py-3 border-b">
-            <h3 className="font-semibold text-gray-900">Fare Breakdown</h3>
+            <h3 className="quote-serif font-medium text-gray-900 text-[21px]">Fare Breakdown</h3>
           </div>
           <div className="p-6">
             <div className="space-y-3 text-sm">
@@ -774,7 +775,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
                     <FileText className="w-6 h-6 text-green-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Booking Invoice</h3>
+                    <h3 className="quote-serif font-medium text-gray-900 text-[21px]">Booking Invoice</h3>
                     <p className="text-sm text-gray-600">Download your payment receipt</p>
                   </div>
                 </div>
@@ -796,7 +797,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
         {booking.vendor && (
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
             <div className="bg-gray-50 px-4 py-3 border-b">
-              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+              <h3 className="quote-serif font-medium text-gray-900 flex items-center gap-2 text-[21px]">
                 <Building2 className="w-4 h-4" />
                 Service Provider
               </h3>
@@ -837,7 +838,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
         {/* Cancellation Details */}
         {booking.status === 'CANCELLED' && booking.cancelledAt && (
           <div className="bg-red-50 rounded-xl border border-red-200 p-4">
-            <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <p className="quote-serif text-[17px] font-medium text-red-600 mb-3 flex items-center gap-1.5">
               <XCircle className="w-3.5 h-3.5" />
               Cancellation Details
             </p>
@@ -878,7 +879,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
         {/* Cancel Option */}
         {['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && (
           <div className="bg-white rounded-xl border border-red-100 p-4">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Cancel Booking</h3>
+            <h3 className="quote-serif text-[17px] font-medium text-gray-400 mb-1">Cancel Booking</h3>
             <p className="text-sm text-gray-500 mb-3">
               Once cancelled, refund will be processed as per vendor's cancellation policy.
             </p>
@@ -906,7 +907,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <h2 className="text-xl font-bold mb-2 text-center">Pay Advance</h2>
+              <h2 className="quote-serif text-[26px] font-medium mb-2 text-center">Pay Advance</h2>
               <p className="text-center text-3xl font-bold text-amber-600 mb-1">
                 ₹{booking.advanceAmount?.toLocaleString()}
               </p>
@@ -1076,7 +1077,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
             <div className="flex items-center justify-between p-5 border-b">
               <div className="flex items-center gap-2">
                 <XCircle className="w-5 h-5 text-red-500" />
-                <h2 className="font-bold text-gray-900">Cancel Booking</h2>
+                <h2 className="quote-serif font-medium text-gray-900 text-[21px]">Cancel Booking</h2>
               </div>
               <button onClick={() => setShowCancelModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5 text-gray-500" />
@@ -1152,7 +1153,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
       {showRatingModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold mb-4 text-center">Rate Your Experience</h2>
+            <h2 className="quote-serif text-[26px] font-medium mb-4 text-center">Rate Your Experience</h2>
 
             <div className="flex justify-center gap-2 mb-6">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -1204,7 +1205,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
                   <Building2 className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900">{booking.vendor.businessName}</h3>
+                  <h3 className="quote-serif font-medium text-gray-900 text-[21px]">{booking.vendor.businessName}</h3>
                   <p className="text-sm text-gray-700">Luxury Booking #{booking.bookingNumber}</p>
                 </div>
               </div>
@@ -1295,7 +1296,7 @@ export default function LuxuryBookingDetailPage({ params }: { params: { id: stri
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 flex items-center justify-center`}>
           <div className="text-center">
             <div className="animate-spin w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-4" />
             <p className="text-gray-500">Loading...</p>

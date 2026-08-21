@@ -1,1 +1,8 @@
 @import '../styles/globals.css';
+
+/* Display face for the customer quote-detail pages. The variable is supplied by
+   `quoteDisplay` in src/lib/quote-font.ts, which each of those pages puts on its
+   root element; this class is purely additive and affects nothing else. */
+.quote-serif {
+  font-family: var(--quote-display), Georgia, serif;
+}

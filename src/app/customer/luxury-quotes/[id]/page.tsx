@@ -24,10 +24,19 @@ import {
   RefreshCw,
   Loader2,
 } from 'lucide-react';
+import { Cormorant_Garamond } from 'next/font/google';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 import CustomerHeader from '@/components/customer/CustomerHeader';
-import QuotePaymentSafetyNotice from '@/components/customer/QuotePaymentSafetyNotice';
+
+// Display face for the luxury treatment. Exposed as a CSS variable so the
+// scoped <style> below can use it without touching the global font config.
+const luxDisplay = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--lux-display',
+});
 
 const LUXURY_CATEGORIES: Record<string, string> = {
   luxury_sedan: 'Luxury Sedan',
@@ -306,296 +315,530 @@ export default function CustomerLuxuryQuoteDetailPage() {
     );
   }
 
+  /* ────────────────────────────────────────────────────────────────
+     Presentation helpers. Everything below derives from the state
+     already fetched above — no new requests, no new state.
+     ──────────────────────────────────────────────────────────────── */
+
+  const fmtShort = (d?: string | null) =>
+    d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+  const fmtLong = (d?: string | null) =>
+    d ? new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : null;
+  const fmtDateTime = (d?: string | null) =>
+    d
+      ? new Date(d).toLocaleString('en-IN', {
+          day: 'numeric', month: 'short', year: 'numeric',
+          hour: 'numeric', minute: '2-digit', hour12: true,
+        })
+      : null;
+
+  const categoryLabel = request.vehicleCategoryName || getCategoryName(request.vehicle_category);
+  const tripLabel = getTripTypeName(request.tripType);
+  const titleLabel = request.specificModel || categoryLabel;
+  const durationLabel = [
+    request.tripDays ? `${request.tripDays} day${request.tripDays > 1 ? 's' : ''}` : null,
+    request.tripHours ? `${request.tripHours} hours` : null,
+  ].filter(Boolean).join(' · ');
+  const selectedQ = quotes.find((q) => q.id === selectedQuote);
+
+  /** Small-caps label — the page's signature. */
+  const L = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+    <span className={`text-[9.5px] font-semibold uppercase tracking-[0.22em] text-gray-400 ${className}`}>{children}</span>
+  );
+
+  /** One key/value line in a rail list. */
+  const Row = ({ label, value, gold, off }: { label: string; value: React.ReactNode; gold?: boolean; off?: boolean }) => {
+    if (value === null || value === undefined || value === '') return null;
+    return (
+      <div className="flex items-baseline justify-between gap-3.5 border-b border-gray-100 py-3 last:border-b-0">
+        <L>{label}</L>
+        <span
+          className={`max-w-[60%] break-words text-right text-[13px] ${
+            gold ? 'font-medium text-amber-700' : off ? 'text-gray-400' : 'text-gray-900'
+          }`}
+        >
+          {value}
+        </span>
+      </div>
+    );
+  };
+
+  /** Section heading inside an expanded quote — label plus a rule. */
+  const DHead = ({ label }: { label: string }) => (
+    <div className="mb-3.5 flex items-center gap-3">
+      <L>{label}</L>
+      <span className="h-px flex-1 bg-gray-200" />
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-32 pt-16">
+    // pt-16 clears the fixed CustomerHeader
+    <div className={`${luxDisplay.variable} min-h-screen bg-gray-50 pt-16 ${selectedQuote ? 'pb-32' : 'pb-12'}`}>
       <CustomerHeader showBackButton />
-      {/* Header */}
-      <div className="bg-gradient-to-r from-gray-900 via-amber-900 to-gray-900 text-white py-6">
-        <div className="container mx-auto px-4">
-          <Link
-            href="/customer/dashboard"
-            className="inline-flex items-center gap-2 text-amber-200 hover:text-white mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Link>
-          <div className="flex items-center gap-3">
-            <Crown className="w-8 h-8 text-amber-400" />
-            <div>
-              <h1 className="text-xl font-bold">#{request.requestNumber}</h1>
-              <p className="text-amber-200">
-                {quotes.length} {quotes.length === 1 ? 'quote' : 'quotes'} received
+
+      {/* Type + motion for the luxury treatment. Scoped class names so nothing
+          here can leak into another page's stylesheet. */}
+      <style>{`
+        .lux-serif{font-family:var(--lux-display),Georgia,serif}
+        @keyframes luxBreathe{to{transform:translate(70px,44px) scale(1.16);opacity:.5}}
+        @keyframes luxUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+        .lux-up{animation:luxUp .8s cubic-bezier(.2,.9,.25,1) var(--lux-d,0s) both}
+        .lux-grain{background-image:
+          repeating-linear-gradient(52deg,rgba(245,243,239,.028) 0 1px,transparent 1px 7px),
+          repeating-linear-gradient(-52deg,rgba(245,243,239,.02) 0 1px,transparent 1px 9px);opacity:.5}
+        .lux-glow{background:radial-gradient(circle,rgba(245,196,106,.55),transparent 66%);
+          filter:blur(80px);opacity:.34;animation:luxBreathe 16s cubic-bezier(.2,.9,.25,1) infinite alternate}
+        /* a gilt edge where the dark hero meets the page */
+        .lux-hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;
+          background:linear-gradient(90deg,transparent,rgba(232,199,102,.55) 30%,rgba(232,199,102,.55) 70%,transparent)}
+        .lux-back{transition:color .35s cubic-bezier(.2,.9,.25,1),gap .35s cubic-bezier(.2,.9,.25,1)}
+        .lux-back:hover{gap:13px}
+        .lux-terms{counter-reset:luxt}
+        .lux-terms li::before{counter-increment:luxt;content:counter(luxt,decimal-leading-zero);
+          font-family:var(--lux-display),Georgia,serif;font-size:15px;color:#B45309;opacity:.8;
+          min-width:20px;flex:none}
+        @media(prefers-reduced-motion:reduce){
+          .lux-up,.lux-glow{animation:none!important}
+          .lux-up{opacity:1!important;transform:none!important}
+        }
+      `}</style>
+
+      {/* ══════════════ Hero — colour unchanged ══════════════ */}
+      <div className="lux-hero relative overflow-hidden bg-gradient-to-r from-gray-900 via-amber-900 to-gray-900 text-[#F5F3EF]">
+        {/* depth only — the gradient above stays the colour of record */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              'radial-gradient(900px 380px at 50% -30%, rgba(245,196,106,.16), transparent 64%),' +
+              'radial-gradient(620px 320px at 50% 130%, rgba(0,0,0,.34), transparent 62%)',
+          }}
+        />
+        <div className="lux-grain pointer-events-none absolute inset-0" />
+        <div className="lux-glow pointer-events-none absolute left-1/2 top-[-42%] -ml-[340px] h-[680px] w-[680px] rounded-full" />
+
+        <div className="relative z-10 mx-auto max-w-7xl px-4 pb-7 pt-6 sm:px-6 lg:px-8">
+          {/* Back link + status */}
+          <div className="lux-up flex items-center justify-between gap-3">
+            <Link
+              href="/customer/luxury-quotes"
+              className="lux-back inline-flex items-center gap-2.5 text-[10.5px] font-medium uppercase tracking-[0.2em] text-[#F5F3EF]/50 hover:text-[#F5E7B8]"
+            >
+              <ArrowLeft className="h-3 w-3" />
+              Back to Requests
+            </Link>
+            <span className="inline-flex flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-[#E8C766]/40 bg-black/30 px-[15px] py-[7px] text-[9.5px] font-semibold uppercase tracking-[0.2em] text-[#F5E7B8] backdrop-blur-[6px]">
+              <span className="h-[5px] w-[5px] rounded-full bg-[#E8C766] shadow-[0_0_0_3px_rgba(232,199,102,.18)]" />
+              {request.status === 'QUOTES_RECEIVED'
+                ? 'Quotes Received'
+                : request.status === 'BOOKED' || request.status === 'ACCEPTED'
+                  ? 'Booked'
+                  : request.status === 'CANCELLED'
+                    ? 'Cancelled'
+                    : 'Awaiting Quotes'}
+            </span>
+          </div>
+
+          {/* Crest + title */}
+          <div className="lux-up mt-6 flex min-w-0 items-center gap-5" style={{ ['--lux-d' as any]: '.1s' }}>
+            <span
+              className="relative grid h-[64px] w-[64px] flex-none place-items-center rounded-full border border-[#E8C766]/45 text-[#F5E7B8] shadow-[inset_0_1px_0_rgba(245,196,106,.25)] after:absolute after:-inset-2 after:rounded-full after:border after:border-[#E8C766]/20 after:content-['']"
+              style={{ background: 'radial-gradient(circle at 34% 28%, rgba(245,196,106,.26), rgba(0,0,0,.22))' }}
+            >
+              <Crown className="h-6 w-6" />
+            </span>
+            <div className="min-w-0">
+              <p className="flex items-center gap-3">
+                <span className="h-px w-[34px] bg-gradient-to-r from-[#E8C766] to-transparent" />
+                <span className="text-[9.5px] font-semibold uppercase tracking-[0.28em] text-[#F5E7B8]">
+                  {[categoryLabel, request.occasion].filter(Boolean).join(' · ')}
+                </span>
               </p>
+              <h1 className="lux-serif mt-2.5 text-[30px] font-medium leading-[1] tracking-[-0.02em] [text-shadow:0_2px_24px_rgba(0,0,0,.35)] sm:text-[38px] lg:text-[46px]">
+                {titleLabel}
+              </h1>
+              <div className="mt-3 flex flex-wrap items-center gap-x-[18px] gap-y-1.5">
+                <span className="text-xs tracking-[0.1em] text-[#F5F3EF]/[0.72] tabular-nums">{request.requestNumber}</span>
+                <span className="relative inline-flex items-center gap-2 text-xs text-[#F5F3EF]/[0.56] before:absolute before:-left-[9px] before:top-1/2 before:-mt-[1.5px] before:h-[3px] before:w-[3px] before:rounded-full before:bg-[#E8C766]/60 before:content-['']">
+                  <MapPin className="h-3 w-3 text-[#E8C766]/75" />
+                  {request.pickupCity}
+                </span>
+                {request.passengers ? (
+                  <span className="relative inline-flex items-center gap-2 text-xs text-[#F5F3EF]/[0.56] before:absolute before:-left-[9px] before:top-1/2 before:-mt-[1.5px] before:h-[3px] before:w-[3px] before:rounded-full before:bg-[#E8C766]/60 before:content-['']">
+                    <User className="h-3 w-3 text-[#E8C766]/75" />
+                    <b className="font-medium text-[#F5F3EF]">{request.passengers}</b>&nbsp;guests
+                  </span>
+                ) : null}
+                <span className="relative inline-flex items-center gap-2 text-xs capitalize text-[#F5F3EF]/[0.56] before:absolute before:-left-[9px] before:top-1/2 before:-mt-[1.5px] before:h-[3px] before:w-[3px] before:rounded-full before:bg-[#E8C766]/60 before:content-['']">
+                  <Car className="h-3 w-3 text-[#E8C766]/75" />
+                  {tripLabel}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Journey rail */}
+          <div
+            className="lux-up mt-6 grid grid-cols-1 items-center gap-5 border-t border-[#F5F3EF]/[0.12] pt-5 lg:grid-cols-[1fr_auto_1fr]"
+            style={{ ['--lux-d' as any]: '.2s' }}
+          >
+            <div className="min-w-0">
+              <L className="!text-[#F5F3EF]/45">Pickup</L>
+              <p className="lux-serif mt-1.5 text-[23px] font-medium leading-[1.1] tracking-[-0.01em]">{request.pickupCity}</p>
+              <p className="mt-1.5 text-[12.5px] text-[#F5F3EF]/[0.58]">
+                {fmtLong(request.pickupDate)}
+                {request.pickupTime && ` · ${request.pickupTime}`}
+              </p>
+              {request.pickupAddress && <p className="mt-1 text-[12.5px] text-[#F5F3EF]/[0.3]">{request.pickupAddress}</p>}
+            </div>
+
+            <div className="flex min-w-[230px] flex-col items-center gap-3">
+              <span className="relative h-px w-full bg-[linear-gradient(90deg,transparent,rgba(232,199,102,.42)_20%,rgba(232,199,102,.42)_80%,transparent)] before:absolute before:left-0 before:top-1/2 before:-mt-[2.5px] before:h-[5px] before:w-[5px] before:rounded-full before:bg-[#E8C766] before:shadow-[0_0_0_3px_rgba(232,199,102,.16)] before:content-[''] after:absolute after:right-0 after:top-1/2 after:-mt-[2.5px] after:h-[5px] after:w-[5px] after:rounded-full after:bg-[#E8C766] after:shadow-[0_0_0_3px_rgba(232,199,102,.16)] after:content-['']" />
+              <span className="inline-flex items-center gap-2.5 whitespace-nowrap rounded-full border border-[#E8C766]/[0.34] bg-black/[0.28] px-4 py-[7px] text-[10px] font-semibold uppercase tracking-[0.18em] text-[#F5E7B8]">
+                <Clock className="h-3 w-3" />
+                {durationLabel || tripLabel}
+              </span>
+              <span className="relative h-px w-full bg-[linear-gradient(90deg,transparent,rgba(232,199,102,.42)_20%,rgba(232,199,102,.42)_80%,transparent)] before:absolute before:left-0 before:top-1/2 before:-mt-[2.5px] before:h-[5px] before:w-[5px] before:rounded-full before:bg-[#E8C766] before:shadow-[0_0_0_3px_rgba(232,199,102,.16)] before:content-[''] after:absolute after:right-0 after:top-1/2 after:-mt-[2.5px] after:h-[5px] after:w-[5px] after:rounded-full after:bg-[#E8C766] after:shadow-[0_0_0_3px_rgba(232,199,102,.16)] after:content-['']" />
+            </div>
+
+            <div className="min-w-0 lg:text-right">
+              <L className="!text-[#F5F3EF]/45">Drop</L>
+              <p className="lux-serif mt-1.5 text-[23px] font-medium leading-[1.1] tracking-[-0.01em]">
+                {request.dropCity || request.pickupCity}
+              </p>
+              <p className="mt-1.5 text-[12.5px] text-[#F5F3EF]/[0.58]">
+                {request.returnDate
+                  ? `Returns ${fmtLong(request.returnDate)}${request.returnTime ? ` · ${request.returnTime}` : ''}`
+                  : durationLabel || '—'}
+              </p>
+              {request.dropAddress ? (
+                <p className="mt-1 text-[12.5px] text-[#F5F3EF]/[0.3]">{request.dropAddress}</p>
+              ) : !request.returnDate ? (
+                <p className="mt-1 text-[12.5px] text-[#F5F3EF]/[0.3]">Return not specified</p>
+              ) : null}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
-        {/* Error Display */}
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            {error}
-          </div>
-        )}
-
-        {/* Request Summary */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-amber-100">
-          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <Crown className="w-4 h-4 text-amber-500" />
-            Your Request
-          </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="flex items-center gap-2 text-sm">
-              <Car className="w-4 h-4 text-amber-500" />
-              <span className="font-medium">{request.vehicleCategoryName || getCategoryName(request.vehicle_category)}</span>
-              {request.specificModel && (
-                <span className="text-gray-500">• {request.specificModel}</span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-amber-500" />
-              <span>{getTripTypeName(request.tripType)}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-green-500" />
-              <span>
-                {request.pickupCity}
-                {request.dropCity && ` → ${request.dropCity}`}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="w-4 h-4 text-amber-500" />
-              <span>
-                {new Date(request.pickupDate).toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })}
-                {' at '}
-                {request.pickupTime}
-                {request.returnDate && (
-                  <> - {new Date(request.returnDate).toLocaleDateString('en-IN', {
-                    day: 'numeric',
-                    month: 'short',
-                  })}</>
-                )}
-              </span>
-            </div>
-            {request.occasion && (
-              <div className="flex items-center gap-2 text-sm">
-                <Gift className="w-4 h-4 text-pink-500" />
-                <span className="capitalize">{request.occasion}</span>
-              </div>
-            )}
-            {request.needDecoration && (
-              <div className="flex items-center gap-2 text-sm">
-                <Gift className="w-4 h-4 text-pink-500" />
-                <span>Decoration: {request.decorationType || 'Yes'}</span>
-              </div>
-            )}
-          </div>
-          {request.requirements && (
-            <div className="mt-3 p-3 bg-amber-50 rounded-lg text-sm text-gray-700">
-              <strong>Special Requirements:</strong> {request.requirements}
-            </div>
+      {/* ══════════════ Body ══════════════ */}
+      <div className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-[22px] px-4 py-9 sm:px-6 lg:grid-cols-[minmax(0,1fr)_372px] lg:gap-[26px] lg:px-8">
+        {/* ══ Left column ══ */}
+        <div className="flex min-w-0 flex-col gap-[22px]">
+          {/* Error Display */}
+          {error && (
+            <div className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
           )}
-        </div>
 
-        {/* Payment safety notice — stays visible whether quotes are still
-            pending or have already arrived */}
-        <div className="mb-4">
-          <QuotePaymentSafetyNotice />
-        </div>
+          {/* Quotes */}
+          {quotes.length === 0 ? (
+            <section className="overflow-hidden rounded border border-amber-100 bg-white">
+              <div className="px-6 py-16 text-center">
+                <span className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full border border-amber-200 bg-amber-50 text-amber-700">
+                  <Clock className="h-[26px] w-[26px]" />
+                </span>
+                <h3 className="lux-serif text-[27px] font-medium">Awaiting Quotes</h3>
+                <p className="mx-auto mt-2.5 max-w-[360px] text-[13px] leading-relaxed text-gray-500">
+                  Premium vendors are reviewing your request. You'll receive quotes shortly.
+                </p>
+              </div>
+            </section>
+          ) : (
+            <>
+              <div className="flex items-baseline justify-between gap-3.5">
+                <h2 className="lux-serif text-[29px] font-medium tracking-[-0.01em]">
+                  Curated Offers <span className="text-amber-700">({quotes.length})</span>
+                </h2>
+                <L>Sorted by price</L>
+              </div>
 
-        {/* Quotes */}
-        {quotes.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center border border-amber-100">
-            <Clock className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-            <h3 className="text-base font-medium text-gray-900 mb-1">Awaiting Quotes</h3>
-            <p className="text-sm text-gray-500">
-              Premium vendors are reviewing your request. You'll receive quotes shortly.
-            </p>
-          </div>
-        ) : (
-          <>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Star className="w-5 h-5 text-amber-500" />
-              Compare Quotes ({quotes.length})
-            </h2>
+              <div className="flex flex-col gap-[22px]">
+                {sortedQuotes.map((quote) => {
+                  const isExpanded = expandedQuote === quote.id;
+                  const isSelected = selectedQuote === quote.id;
+                  const isLowestPrice = quote.totalAmount === lowestPrice;
+                  const isExpired = quote.validTill && new Date(quote.validTill).getTime() < Date.now();
+                  const isExpiringSoon =
+                    !isExpired && quote.validTill && new Date(quote.validTill).getTime() - Date.now() < 24 * 3600000;
 
-            <div className="space-y-4">
-              {sortedQuotes.map((quote) => {
-                const isExpanded = expandedQuote === quote.id;
-                const isSelected = selectedQuote === quote.id;
-                const isLowestPrice = quote.totalAmount === lowestPrice;
-                const isExpired = quote.status === 'EXPIRED' || (quote.validTill && new Date(quote.validTill).getTime() < Date.now());
-                const isExpiringSoon = !isExpired && new Date(quote.validTill).getTime() - Date.now() < 24 * 3600000;
+                  return (
+                    <article
+                      key={quote.id}
+                      className={`relative overflow-hidden rounded border bg-white transition ${
+                        isExpired
+                          ? 'border-gray-200 opacity-[.55]'
+                          : isSelected
+                            ? 'border-amber-200 shadow-[0_0_0_1px_rgba(201,162,39,.16),0_24px_60px_-40px_rgba(180,83,9,.5)]'
+                            : 'border-amber-100 hover:border-amber-200 hover:shadow-[0_18px_44px_-34px_rgba(17,24,39,.4)]'
+                      }`}
+                    >
+                      {/* Badges */}
+                      {isExpired ? (
+                        <div className="flex items-center gap-2.5 border-b border-red-200 bg-gradient-to-r from-red-100 to-red-50 px-5 py-2.5 text-[9.5px] font-semibold uppercase tracking-[0.22em] text-red-700">
+                          <XCircle className="h-3 w-3" />
+                          Quote Expired
+                        </div>
+                      ) : isLowestPrice ? (
+                        <div className="flex items-center gap-2.5 border-b border-amber-200 bg-gradient-to-r from-amber-200 to-amber-50 px-5 py-2.5 text-[9.5px] font-semibold uppercase tracking-[0.22em] text-amber-900">
+                          <ThumbsUp className="h-3 w-3" />
+                          Best Value
+                        </div>
+                      ) : null}
 
-                return (
-                  <div
-                    key={quote.id}
-                    className={`rounded-xl shadow-sm border-2 overflow-hidden transition ${
-                      isExpired ? 'bg-gray-50 opacity-75 border-gray-200' : isSelected ? 'bg-white border-amber-500 ring-2 ring-amber-100' : 'bg-white border-transparent'
-                    }`}
-                  >
-                    {/* Badges */}
-                    {isExpired ? (
-                      <div className="px-4 py-1.5 bg-red-500 text-white text-xs font-medium flex items-center gap-2">
-                        <XCircle className="w-3 h-3" />
-                        Quote Expired
-                      </div>
-                    ) : isLowestPrice ? (
-                      <div className="px-4 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-medium flex items-center gap-2">
-                        <ThumbsUp className="w-3 h-3" />
-                        Best Value
-                      </div>
-                    ) : null}
-
-                    <div className="p-4">
-                      {/* Vendor Info */}
-                      <div className="flex items-start justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-yellow-100 rounded-full flex items-center justify-center">
-                            <Crown className="w-6 h-6 text-amber-600" />
-                          </div>
-                          <div>
-                            <h3 className="text-base font-bold text-gray-900">{quote.vendors.businessName}</h3>
-                            <div className="flex items-center gap-2 text-sm">
+                      {/* Vendor + price */}
+                      <div className="flex flex-wrap items-start justify-between gap-[22px] px-5 pb-5 pt-6">
+                        <div className="flex min-w-0 items-center gap-[15px]">
+                          <span className="grid h-14 w-14 flex-none place-items-center rounded-full border border-amber-200 bg-amber-50 text-amber-700">
+                            <Crown className="h-6 w-6" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="lux-serif text-[23px] font-medium leading-[1.15]">{quote.vendors.businessName}</p>
+                            <div className="mt-1.5 flex items-center gap-1">
                               {quote.vendors.rating ? (
-                                <div className="flex items-center gap-1">
-                                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                                  <span className="font-medium">{quote.vendors.rating}</span>
-                                </div>
+                                <>
+                                  {[1, 2, 3, 4, 5].map(i => (
+                                    <Star
+                                      key={i}
+                                      className={`h-3 w-3 ${
+                                        i <= Math.round(quote.vendors.rating) ? 'fill-amber-500 text-amber-500' : 'fill-gray-200 text-gray-200'
+                                      }`}
+                                    />
+                                  ))}
+                                  <b className="ml-1.5 text-[11.5px] font-medium text-gray-700">{quote.vendors.rating}</b>
+                                </>
                               ) : (
-                                <span className="text-gray-500">New Vendor</span>
+                                <span className="text-[11.5px] text-gray-500">New Vendor</span>
+                              )}
+                              {quote.vendors.phone && (
+                                <span className="text-[11.5px] text-gray-400">· {quote.vendors.phone}</span>
                               )}
                             </div>
                           </div>
                         </div>
 
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-amber-600">
+                        <div className="flex-none text-right">
+                          <p className="lux-serif text-[44px] font-medium leading-none tracking-[-0.02em] tabular-nums">
                             ₹{quote.totalAmount.toLocaleString()}
                           </p>
+                          <p className="mt-1.5 text-[11px] tracking-[0.06em] text-gray-400">
+                            All inclusive{durationLabel ? ` · ${durationLabel}` : ''}
+                          </p>
                           {isExpiringSoon && (
-                            <p className="text-xs text-red-500">Expires soon!</p>
+                            <span className="mt-2.5 inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-red-600">
+                              <AlertCircle className="h-3 w-3" />
+                              Expires soon
+                            </span>
                           )}
                         </div>
                       </div>
 
-                      {/* Vehicle Info */}
-                      <div className="flex items-center gap-2 text-sm text-gray-700 mb-3 bg-gray-50 p-2 rounded-lg">
-                        <Car className="w-4 h-4 text-amber-600" />
-                        <span className="font-medium">{quote.vehicleName}</span>
-                        {quote.vehicleYear && (
-                          <span className="text-gray-500">({quote.vehicleYear})</span>
-                        )}
+                      {/* Vehicle line */}
+                      <div className="flex flex-wrap items-center gap-2.5 px-5 pb-5">
+                        <span className="lux-serif text-[19px] font-medium">{quote.vehicleName}</span>
+                        {quote.vehicleYear ? (
+                          <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-[3px] text-[10.5px] uppercase tracking-[0.1em] text-amber-700">
+                            {quote.vehicleYear}
+                          </span>
+                        ) : null}
                         {quote.vehicleNumber && (
-                          <span className="text-gray-400 font-mono">• {quote.vehicleNumber}</span>
+                          <span className="rounded-sm border border-gray-200 bg-gray-50 px-2 py-[3px] font-mono text-[11px] tracking-[0.08em] text-gray-700">
+                            {quote.vehicleNumber}
+                          </span>
+                        )}
+                        {(quote.chauffeur_vehicle_categories || quote.vehicleCategory) && (
+                          <span className="inline-flex items-center rounded-full border border-gray-200 px-2.5 py-[3px] text-[10.5px] uppercase tracking-[0.1em] text-gray-500">
+                            {getCategoryName(quote.chauffeur_vehicle_categories || quote.vehicleCategory)}
+                          </span>
+                        )}
+                        {quote.quoteNumber && (
+                          <span className="inline-flex items-center rounded-full border border-gray-200 px-2.5 py-[3px] text-[10.5px] uppercase tracking-[0.1em] tabular-nums text-gray-500">
+                            {quote.quoteNumber}
+                          </span>
                         )}
                       </div>
 
-                      {/* Vehicle Features */}
+                      {/* Vehicle features */}
                       {quote.vehicleFeatures && quote.vehicleFeatures.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-3">
+                        <div className="flex flex-wrap gap-2 px-5 pb-5">
                           {quote.vehicleFeatures.slice(0, 4).map((feature, i) => (
-                            <span key={i} className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-100">
+                            <span
+                              key={i}
+                              className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-[5px] text-[11px] text-amber-700"
+                            >
                               {feature}
                             </span>
                           ))}
                           {quote.vehicleFeatures.length > 4 && (
-                            <span className="text-xs text-gray-500">+{quote.vehicleFeatures.length - 4} more</span>
+                            <span className="inline-flex items-center rounded-full border border-gray-200 px-3 py-[5px] text-[11px] text-gray-400">
+                              +{quote.vehicleFeatures.length - 4} more
+                            </span>
                           )}
                         </div>
                       )}
 
-                      {/* Price Breakdown Summary */}
-                      <div className="flex flex-wrap gap-3 text-sm text-gray-500 mb-4">
-                        <span>Base: ₹{quote.baseAmount.toLocaleString()}</span>
-                        {quote.chauffeurCharges > 0 && (
-                          <span>+ Chauffeur: ₹{quote.chauffeurCharges.toLocaleString()}</span>
-                        )}
+                      {/* Spec strip — hairline grid, no boxes */}
+                      <div className="mx-5 mb-5 grid grid-cols-2 border-l border-t border-gray-100 sm:grid-cols-4">
+                        {[
+                          { label: 'Chauffeur', value: quote.chauffeurCharges > 0 ? `₹${quote.chauffeurCharges.toLocaleString()}` : '—' },
+                          {
+                            label: 'Advance',
+                            value:
+                              quote.advanceAmount > 0
+                                ? `${quote.advancePercent > 0 ? `${quote.advancePercent}% · ` : ''}₹${quote.advanceAmount.toLocaleString()}`
+                                : '—',
+                          },
+                          { label: 'Extra / km', value: quote.extraKmRate > 0 ? `₹${quote.extraKmRate}` : '—' },
+                          { label: 'Extra / hour', value: quote.extraHourRate > 0 ? `₹${quote.extraHourRate}` : '—' },
+                        ].map(({ label, value }) => (
+                          <div key={label} className="border-b border-r border-gray-100 px-4 py-3.5">
+                            <L>{label}</L>
+                            <p className="mt-[7px] text-sm font-medium tabular-nums text-gray-900">{value}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Money line — quiet, every figure is itemised below */}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-5 pb-5 text-[11.5px] text-gray-400">
+                        <span>
+                          Base <b className="font-medium tabular-nums text-gray-700">₹{quote.baseAmount.toLocaleString()}</b>
+                        </span>
                         {quote.decorationCharges > 0 && (
-                          <span>+ Decoration: ₹{quote.decorationCharges.toLocaleString()}</span>
+                          <>
+                            <span className="text-gray-300">—</span>
+                            <span>
+                              Decoration <b className="font-medium tabular-nums text-gray-700">₹{quote.decorationCharges.toLocaleString()}</b>
+                            </span>
+                          </>
+                        )}
+                        {quote.gstAmount > 0 && (
+                          <>
+                            <span className="text-gray-300">—</span>
+                            <span>
+                              GST <b className="font-medium tabular-nums text-gray-700">₹{quote.gstAmount.toLocaleString()}</b>
+                            </span>
+                          </>
+                        )}
+                        {quote.validTill && (
+                          <>
+                            <span className="text-gray-300">—</span>
+                            <span>
+                              Valid till{' '}
+                              <b className="font-medium tabular-nums text-gray-700">
+                                {new Date(quote.validTill).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                              </b>
+                            </span>
+                          </>
                         )}
                       </div>
 
-                      {/* Quick Inclusions */}
+                      {/* Quick inclusions */}
                       {quote.inclusions && quote.inclusions.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-4">
-                          {quote.inclusions.slice(0, 4).map((item, i) => (
-                            <span key={i} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                              ✓ {item}
+                        <div className="flex flex-wrap gap-2 px-5 pb-[22px]">
+                          {quote.inclusions.slice(0, 3).map((item, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center gap-[7px] rounded-full border border-amber-200 bg-amber-50 px-3 py-[5px] text-[11px] text-amber-700"
+                            >
+                              <CheckCircle className="h-2.5 w-2.5" />
+                              {item}
                             </span>
                           ))}
-                          {quote.inclusions.length > 4 && (
-                            <span className="text-xs text-gray-500">+{quote.inclusions.length - 4} more</span>
+                          {quote.inclusions.length > 3 && (
+                            <span className="inline-flex items-center rounded-full border border-gray-200 px-3 py-[5px] text-[11px] text-gray-400">
+                              +{quote.inclusions.length - 3} more
+                            </span>
                           )}
                         </div>
                       )}
 
-                      {/* Expanded Details */}
+                      {/* Expanded */}
                       {isExpanded && (
-                        <div className="border-t pt-4 mt-4 space-y-4">
-                          {/* Price Breakdown */}
-                          <div className="bg-gray-50 p-3 rounded-lg">
-                            <h4 className="text-sm font-semibold text-gray-900 mb-2">Price Breakdown</h4>
-                            <div className="space-y-1 text-sm">
-                              <div className="flex justify-between">
-                                <span>Base</span>
-                                <span>₹{quote.baseAmount.toLocaleString()}</span>
+                        <div className="flex flex-col gap-7 border-t border-gray-100 bg-gray-50 px-5 py-6">
+                          {/* Price breakdown */}
+                          <div>
+                            <DHead label="Price Breakdown" />
+                            <div className="flex flex-col">
+                              <div className="flex items-baseline justify-between gap-4 border-b border-gray-100 py-[11px]">
+                                <span className="text-[12.5px] text-gray-500">Base</span>
+                                <span className="text-[13.5px] tabular-nums text-gray-700">₹{quote.baseAmount.toLocaleString()}</span>
                               </div>
                               {quote.chauffeurCharges > 0 && (
-                                <div className="flex justify-between">
-                                  <span>Chauffeur Charges</span>
-                                  <span>₹{quote.chauffeurCharges.toLocaleString()}</span>
+                                <div className="flex items-baseline justify-between gap-4 border-b border-gray-100 py-[11px]">
+                                  <span className="text-[12.5px] text-gray-500">Chauffeur Charges</span>
+                                  <span className="text-[13.5px] tabular-nums text-gray-700">₹{quote.chauffeurCharges.toLocaleString()}</span>
                                 </div>
                               )}
                               {quote.decorationCharges > 0 && (
-                                <div className="flex justify-between">
-                                  <span>Decoration Charges</span>
-                                  <span>₹{quote.decorationCharges.toLocaleString()}</span>
+                                <div className="flex items-baseline justify-between gap-4 border-b border-gray-100 py-[11px]">
+                                  <span className="text-[12.5px] text-gray-500">Decoration Charges</span>
+                                  <span className="text-[13.5px] tabular-nums text-gray-700">₹{quote.decorationCharges.toLocaleString()}</span>
                                 </div>
                               )}
                               {quote.gstAmount > 0 && (
-                                <div className="flex justify-between">
-                                  <span>GST</span>
-                                  <span>₹{quote.gstAmount.toLocaleString()}</span>
+                                <div className="flex items-baseline justify-between gap-4 border-b border-gray-100 py-[11px]">
+                                  <span className="text-[12.5px] text-gray-500">GST</span>
+                                  <span className="text-[13.5px] tabular-nums text-gray-700">₹{quote.gstAmount.toLocaleString()}</span>
                                 </div>
                               )}
-                              <div className="flex justify-between font-semibold border-t pt-1 mt-1">
-                                <span>Total Amount to Pay</span>
-                                <span>₹{(quote.totalAmount).toLocaleString()}</span>
+                              {(quote.extraKmRate > 0 || quote.extraHourRate > 0) && (
+                                <div className="flex items-baseline justify-between gap-4 border-b border-gray-100 py-[11px]">
+                                  <span className="text-[12.5px] text-gray-500">Extra Charges</span>
+                                  <span className="text-[13.5px] tabular-nums text-gray-700">
+                                    {[
+                                      quote.extraKmRate > 0 ? `₹${quote.extraKmRate}/km` : null,
+                                      quote.extraHourRate > 0 ? `₹${quote.extraHourRate}/hr` : null,
+                                    ].filter(Boolean).join(' · ')}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="mt-1.5 flex items-baseline justify-between gap-4 border-y border-amber-200 py-4">
+                                <L className="!text-gray-700">Total Amount to Pay</L>
+                                <span className="lux-serif text-[30px] font-medium tabular-nums text-gray-900">
+                                  ₹{quote.totalAmount.toLocaleString()}
+                                </span>
                               </div>
-                              <div className="flex justify-between text-emerald-600">
-                                <span>Advance {quote.advancePercent > 0 ? `(${quote.advancePercent}%)` : ''}</span>
-                                <span>₹{quote.advanceAmount.toLocaleString()}</span>
+                              <div className="flex items-baseline justify-between gap-4 border-b border-gray-100 py-[11px]">
+                                <span className="text-[12.5px] font-medium text-amber-700">
+                                  Advance {quote.advancePercent > 0 ? `(${quote.advancePercent}%)` : ''}
+                                </span>
+                                <span className="text-[13.5px] font-medium tabular-nums text-amber-700">
+                                  ₹{quote.advanceAmount.toLocaleString()}
+                                </span>
                               </div>
-                              <div className="flex justify-between text-gray-500">
-                                <span>Remaining at pickup</span>
-                                <span>₹{(quote.totalAmount - quote.advanceAmount).toLocaleString()}</span>
+                              <div className="flex items-baseline justify-between gap-4 py-[11px]">
+                                <span className="text-[12.5px] text-gray-500">Remaining at pickup</span>
+                                <span className="text-[13.5px] tabular-nums text-gray-700">
+                                  ₹{(quote.totalAmount - quote.advanceAmount).toLocaleString()}
+                                </span>
                               </div>
                             </div>
                           </div>
 
-                          {/* Vehicle Images */}
-                          <VehicleImageGallery
-                            vehicleImages={quote.vehicleImages}
-                            vehicleName={quote.vehicleName}
-                          />
+                          {/* Vehicle images. The gallery renders nothing when the
+                              vendor attached none, so the heading is gated too
+                              rather than left standing over empty space. */}
+                          {quote.vehicleImages ? (
+                            <div>
+                              <DHead label="Vehicle Images" />
+                              <VehicleImageGallery vehicleImages={quote.vehicleImages} vehicleName={quote.vehicleName} />
+                            </div>
+                          ) : (
+                            <div>
+                              <DHead label="Vehicle Images" />
+                              <p className="rounded-sm border border-dashed border-gray-200 px-[18px] py-[15px] text-[12.5px] text-gray-400">
+                                Vendor has not attached photographs for this vehicle
+                              </p>
+                            </div>
+                          )}
 
-                          {/* All Inclusions */}
+                          {/* Inclusions */}
                           {quote.inclusions && quote.inclusions.length > 0 && (
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                Inclusions
-                              </h4>
-                              <ul className="grid md:grid-cols-2 gap-1">
+                              <DHead label="Inclusions" />
+                              <ul className="grid grid-cols-1 gap-[11px] sm:grid-cols-2 sm:gap-x-[26px]">
                                 {quote.inclusions.map((item, i) => (
-                                  <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
-                                    <span className="text-green-500">✓</span>
+                                  <li key={i} className="flex gap-[11px] text-[13px] leading-relaxed text-gray-700">
+                                    <span className="mt-[6px] h-1 w-1 flex-none rounded-full bg-amber-500" />
                                     {item}
                                   </li>
                                 ))}
@@ -606,14 +849,11 @@ export default function CustomerLuxuryQuoteDetailPage() {
                           {/* Exclusions */}
                           {quote.exclusions && quote.exclusions.length > 0 && (
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                                <XCircle className="w-4 h-4 text-red-500" />
-                                Exclusions
-                              </h4>
-                              <ul className="grid md:grid-cols-2 gap-1">
+                              <DHead label="Exclusions" />
+                              <ul className="grid grid-cols-1 gap-[11px] sm:grid-cols-2 sm:gap-x-[26px]">
                                 {quote.exclusions.map((item, i) => (
-                                  <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
-                                    <span className="text-red-500">✗</span>
+                                  <li key={i} className="flex gap-[11px] text-[13px] leading-relaxed text-gray-700">
+                                    <span className="mt-[6px] h-1 w-1 flex-none rounded-full bg-red-400" />
                                     {item}
                                   </li>
                                 ))}
@@ -621,16 +861,20 @@ export default function CustomerLuxuryQuoteDetailPage() {
                             </div>
                           )}
 
-                          {/* Extra Rates */}
-                          {(quote.extraKmRate || quote.extraHourRate) && (
-                            <div className="bg-amber-50 p-3 rounded-lg">
-                              <h4 className="text-sm font-semibold text-amber-800 mb-2">Extra Charges</h4>
-                              <div className="flex gap-4 text-sm text-amber-700">
+                          {/* Extra rates */}
+                          {(quote.extraKmRate > 0 || quote.extraHourRate > 0) && (
+                            <div>
+                              <DHead label="Extra Charges" />
+                              <div className="flex flex-wrap gap-x-8 gap-y-2 text-[13px] text-gray-700">
                                 {quote.extraKmRate > 0 && (
-                                  <span>Extra Km: ₹{quote.extraKmRate}/km</span>
+                                  <span>
+                                    Extra Km <b className="font-medium tabular-nums text-amber-700">₹{quote.extraKmRate}/km</b>
+                                  </span>
                                 )}
                                 {quote.extraHourRate > 0 && (
-                                  <span>Extra Hour: ₹{quote.extraHourRate}/hr</span>
+                                  <span>
+                                    Extra Hour <b className="font-medium tabular-nums text-amber-700">₹{quote.extraHourRate}/hr</b>
+                                  </span>
                                 )}
                               </div>
                             </div>
@@ -639,29 +883,40 @@ export default function CustomerLuxuryQuoteDetailPage() {
                           {/* Terms */}
                           {quote.termsConditions && quote.termsConditions.length > 0 && (
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-900 mb-2">Terms & Conditions</h4>
-                              <ul className="space-y-1">
+                              <DHead label="Terms & Conditions" />
+                              <ul className="lux-terms flex flex-col gap-3">
                                 {quote.termsConditions.map((item, i) => (
-                                  <li key={i} className="text-sm text-gray-600">• {item}</li>
+                                  <li key={i} className="flex gap-3.5 text-[12.5px] leading-relaxed text-gray-500">
+                                    {item}
+                                  </li>
                                 ))}
                               </ul>
                             </div>
                           )}
 
-                          {/* Vendor Message */}
+                          {/* Vendor message */}
                           {quote.vendorMessage && (
-                            <div className="bg-amber-50 p-3 rounded-lg border border-amber-100">
-                              <h4 className="text-sm font-semibold text-amber-800 mb-1 flex items-center gap-2">
-                                <MessageSquare className="w-4 h-4" />
-                                Message from Vendor
-                              </h4>
-                              <p className="text-sm text-amber-700">{quote.vendorMessage}</p>
+                            <div className="rounded-sm border border-amber-200 bg-amber-50 px-5 py-[18px]">
+                              <MessageSquare className="h-5 w-5 text-amber-500/70" />
+                              <p className="lux-serif mt-2 text-[18px] font-normal italic leading-relaxed text-gray-900">
+                                {quote.vendorMessage}
+                              </p>
+                              <p className="mt-3 text-[10.5px] uppercase tracking-[0.16em] text-gray-400">
+                                {quote.vendors.businessName}
+                              </p>
                             </div>
                           )}
 
-                          <div className="flex justify-between items-center text-sm">
-                            <span className={`${isExpired ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
-                              {isExpired ? 'Expired on: ' : 'Valid until: '}{new Date(quote.validTill).toLocaleString('en-IN', {
+                          {/* Validity + call */}
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <span
+                              className={`inline-flex items-center gap-2.5 text-[11px] tracking-[0.06em] ${
+                                isExpired ? 'text-red-600' : 'text-gray-400'
+                              }`}
+                            >
+                              <Clock className="h-3 w-3" />
+                              {isExpired ? 'Expired on ' : 'Valid until '}
+                              {new Date(quote.validTill).toLocaleString('en-IN', {
                                 day: 'numeric',
                                 month: 'short',
                                 year: 'numeric',
@@ -669,12 +924,13 @@ export default function CustomerLuxuryQuoteDetailPage() {
                                 minute: '2-digit',
                                 hour12: true,
                               })}
+                              {quote.validityDays > 0 && ` · ${quote.validityDays} day validity`}
                             </span>
                             <a
                               href={`tel:${quote.vendors.phone}`}
-                              className="flex items-center gap-1 text-amber-600 hover:text-amber-700"
+                              className="inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-amber-700 hover:text-amber-800"
                             >
-                              <Phone className="w-4 h-4" />
+                              <Phone className="h-3.5 w-3.5" />
                               Call Vendor
                             </a>
                           </div>
@@ -682,188 +938,347 @@ export default function CustomerLuxuryQuoteDetailPage() {
                       )}
 
                       {/* Actions */}
-                      <div className="flex gap-2 mt-4 pt-4 border-t">
+                      <div className="flex gap-3 border-t border-gray-100 bg-gray-50 px-5 py-[18px]">
                         <button
                           onClick={() => setExpandedQuote(isExpanded ? null : quote.id)}
-                          className="flex-1 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition text-sm"
+                          className="inline-flex flex-1 items-center justify-center gap-2.5 rounded-sm border border-gray-200 bg-white px-[22px] py-[13px] text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-700 transition hover:border-amber-200 hover:text-amber-700"
                         >
                           {isExpanded ? 'Show Less' : 'View Details'}
                         </button>
                         {isExpired ? (
-                          <div className="flex-1 py-2 text-center font-medium rounded-lg text-sm bg-red-50 text-red-500 cursor-not-allowed">
+                          <div className="inline-flex flex-1 cursor-not-allowed items-center justify-center rounded-sm border border-red-200 px-[22px] py-[13px] text-[11px] font-semibold uppercase tracking-[0.18em] text-red-600">
                             Quote Expired
                           </div>
                         ) : (
                           <button
                             onClick={() => setSelectedQuote(quote.id)}
-                            className={`flex-1 py-2 font-medium rounded-lg transition text-sm ${
+                            className={`inline-flex flex-1 items-center justify-center gap-2.5 rounded-sm px-[22px] py-[13px] text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
                               isSelected
-                                ? 'bg-amber-600 text-white'
-                                : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                ? 'bg-gradient-to-br from-[#E8C766] to-[#C9A227] text-[#241C05] shadow-[0_14px_30px_-18px_rgba(201,162,39,.9)] hover:brightness-105'
+                                : 'border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
                             }`}
                           >
-                            {isSelected ? '✓ Selected' : 'Select This Quote'}
+                            {isSelected && <CheckCircle className="h-4 w-4" />}
+                            {isSelected ? 'Selected' : 'Select This Quote'}
                           </button>
                         )}
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
+                    </article>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
-        {/* Expired — Booking Date Passed (cannot re-request) */}
-        {allQuotesExpired && !bookingDateInFuture && request?.status !== 'BOOKED' && request?.status !== 'ACCEPTED' && (
-          <div className="mt-6 bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
-            <div className="p-5">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <XCircle className="w-5 h-5 text-red-500" />
-                </div>
+          {/* Payment safety notice. Rendered inline rather than through
+              QuotePaymentSafetyNotice so it can carry this page's serif +
+              hairline treatment; the wording is copied from that component
+              verbatim. It stays in use on the other quote pages untouched.
+              Sits under the offers, i.e. right where the customer is about to
+              pick one, and outside the branch above so it stays visible while
+              quotes are still pending too. */}
+          <div className="rounded border border-red-200 bg-gradient-to-br from-red-50 to-white px-6 py-[22px]">
+            <div className="flex items-start gap-4">
+              <span className="grid h-10 w-10 flex-none place-items-center rounded-full border border-red-200 bg-white text-red-600">
+                <Shield className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <h3 className="lux-serif text-[22px] font-medium text-gray-900">Pay Only Through TransRentals</h3>
+                <p className="mt-[7px] text-[13px] leading-relaxed text-gray-500">
+                  Before accepting any quote or making a payment, make sure you&rsquo;re on the official TransRentals
+                  platform. Never pay a vendor directly outside TransRentals &mdash; not for booking confirmation, not
+                  for the quotation, and not at any point until your trip is complete.
+                </p>
+                <ul className="mt-3.5 flex flex-col gap-2.5">
+                  <li className="flex gap-[11px] text-[12.5px] leading-relaxed text-gray-500">
+                    <CheckCircle className="mt-[3px] h-4 w-4 flex-none text-emerald-600" />
+                    Accept quotes and pay only through the TransRentals platform
+                  </li>
+                  <li className="flex gap-[11px] text-[12.5px] leading-relaxed text-gray-500">
+                    <XCircle className="mt-[3px] h-4 w-4 flex-none text-red-500" />
+                    If you pay a vendor directly, TransRentals cannot help with any issues, refunds, or disputes for
+                    that booking
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Expired — Booking Date Passed (cannot re-request) */}
+          {allQuotesExpired && !bookingDateInFuture && request?.status !== 'BOOKED' && request?.status !== 'ACCEPTED' && (
+            <div className="overflow-hidden rounded border border-gray-200 bg-white">
+              <div className="flex items-start gap-4 p-6">
+                <span className="grid h-10 w-10 flex-none place-items-center rounded-full border border-red-200 bg-red-50 text-red-600">
+                  <XCircle className="h-5 w-5" />
+                </span>
                 <div className="flex-1">
-                  <h4 className="text-base font-semibold text-gray-800">Quotes Expired — Booking Date Passed</h4>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <h4 className="lux-serif text-[22px] font-medium">Quotes Expired — Booking Date Passed</h4>
+                  <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
                     All vendor quotes have expired and your pickup date{' '}
-                    {request?.pickupDate && (
-                      <span className="font-medium text-gray-700">
-                        ({new Date(request.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })})
-                      </span>
-                    )}{' '}
+                    {request?.pickupDate && <span className="font-medium text-gray-700">({fmtShort(request.pickupDate)})</span>}{' '}
                     has already passed. Re-requesting is no longer possible for this booking.
                   </p>
                   <a
                     href="/customer/luxury-fleet"
-                    className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white text-sm font-semibold rounded-lg hover:bg-gray-700 transition"
+                    className="mt-4 inline-flex items-center gap-2.5 rounded-sm bg-gray-900 px-[22px] py-[13px] text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-gray-800"
                   >
-                    <RefreshCw className="w-3.5 h-3.5" />
+                    <RefreshCw className="h-3.5 w-3.5" />
                     Create a New Request
                   </a>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Re-Request Quotes Banner */}
-        {allQuotesExpired && bookingDateInFuture && request?.status !== 'BOOKED' && request?.status !== 'ACCEPTED' && !reRequestSuccess && (
-          <div className="mt-6 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl overflow-hidden border border-amber-200">
-            <div className="p-5">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <AlertCircle className="w-5 h-5 text-amber-600" />
-                </div>
+          {/* Re-Request Quotes Banner */}
+          {allQuotesExpired && bookingDateInFuture && request?.status !== 'BOOKED' && request?.status !== 'ACCEPTED' && !reRequestSuccess && (
+            <div className="overflow-hidden rounded border border-amber-200 bg-gradient-to-br from-amber-50 to-white">
+              <div className="flex items-start gap-4 p-6">
+                <span className="grid h-10 w-10 flex-none place-items-center rounded-full border border-amber-200 bg-white text-amber-700">
+                  <AlertCircle className="h-5 w-5" />
+                </span>
                 <div className="flex-1">
-                  <h4 className="text-base font-semibold text-gray-900">All quotes have expired</h4>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Your pickup date is still upcoming. Re-open this request and vendors will send fresh quotes.
+                  <h4 className="lux-serif text-[22px] font-medium">All quotes have expired</h4>
+                  <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
+                    Your booking date is still upcoming. You can re-open this request so vendors can send fresh quotes.
                   </p>
                   {remainingAttempts > 0 ? (
                     <button
                       onClick={handleReRequestQuotes}
                       disabled={isReRequesting}
-                      className="mt-3 inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 transition disabled:opacity-50 shadow-sm"
+                      className="mt-4 inline-flex items-center gap-2.5 rounded-sm bg-gradient-to-br from-[#E8C766] to-[#C9A227] px-[22px] py-[13px] text-[11px] font-semibold uppercase tracking-[0.18em] text-[#241C05] shadow-[0_14px_30px_-18px_rgba(201,162,39,.9)] transition hover:brightness-105 disabled:opacity-50"
                     >
                       {isReRequesting ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           Sending request...
                         </>
                       ) : (
                         <>
-                          <RefreshCw className="w-4 h-4" />
+                          <RefreshCw className="h-3.5 w-3.5" />
                           Request Fresh Quotes
                         </>
                       )}
                     </button>
                   ) : (
-                    <p className="mt-3 text-sm font-medium text-red-600">
+                    <p className="mt-4 text-[13px] font-medium text-red-600">
                       You have used all 3 re-request attempts. Please create a new quote request.
                     </p>
                   )}
                 </div>
               </div>
+              {remainingAttempts > 0 && (
+                <div className="flex items-center justify-between gap-3 border-t border-amber-100 bg-white/60 px-6 py-3">
+                  <span className="text-[11px] tracking-[0.1em] text-gray-400">
+                    {remainingAttempts} of 3 re-request{remainingAttempts !== 1 ? 's' : ''} remaining
+                  </span>
+                  <div className="flex gap-1.5">
+                    {[1, 2, 3].map(i => (
+                      <span
+                        key={i}
+                        className={`h-[5px] w-[5px] rounded-full ${i <= 3 - remainingAttempts ? 'bg-amber-500' : 'bg-amber-200'}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            {remainingAttempts > 0 && (
-              <div className="px-5 py-2.5 bg-amber-100/60 border-t border-amber-200 flex items-center justify-between">
-                <span className="text-xs text-amber-700">
-                  {remainingAttempts} of 3 re-request{remainingAttempts !== 1 ? 's' : ''} remaining
-                </span>
-                <div className="flex gap-1">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className={`w-2 h-2 rounded-full ${i <= (3 - remainingAttempts) ? 'bg-amber-500' : 'bg-amber-300'}`} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
-        {reRequestSuccess && (
-          <div className="mt-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl overflow-hidden border border-green-200">
-            <div className="p-5">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                </div>
+          {reRequestSuccess && (
+            <div className="overflow-hidden rounded border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white">
+              <div className="flex items-start gap-4 p-6">
+                <span className="grid h-10 w-10 flex-none place-items-center rounded-full border border-emerald-200 bg-white text-emerald-700">
+                  <CheckCircle className="h-5 w-5" />
+                </span>
                 <div className="flex-1">
-                  <h4 className="text-base font-semibold text-green-800">Request sent successfully!</h4>
-                  <p className="text-sm text-green-700 mt-1">{reRequestSuccess}</p>
+                  <h4 className="lux-serif text-[22px] font-medium text-emerald-800">Request sent successfully!</h4>
+                  <p className="mt-2 text-[13px] leading-relaxed text-emerald-700">{reRequestSuccess}</p>
                 </div>
               </div>
+              {remainingAttempts > 0 && (
+                <div className="border-t border-emerald-100 bg-white/60 px-6 py-3">
+                  <span className="text-[11px] tracking-[0.1em] text-emerald-700">
+                    {remainingAttempts} re-request{remainingAttempts !== 1 ? 's' : ''} remaining
+                  </span>
+                </div>
+              )}
             </div>
-            {remainingAttempts > 0 && (
-              <div className="px-5 py-2.5 bg-green-100/60 border-t border-green-200">
-                <span className="text-xs text-green-700">
-                  {remainingAttempts} re-request{remainingAttempts !== 1 ? 's' : ''} remaining
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Help */}
-        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl p-4 mt-6 border border-amber-200">
-          <h4 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
-            <Shield className="w-5 h-5" />
-            Premium Booking Protection
-          </h4>
-          <ul className="text-sm text-amber-700 space-y-1">
-            <li>• Your payment is held securely until trip completion</li>
-            <li>• Verified premium vendors with luxury fleet</li>
-            <li>• 24/7 concierge support during your trip</li>
-            <li>• Free cancellation up to 48 hours before (check T&C)</li>
-          </ul>
+          )}
         </div>
+
+        {/* ══ Right rail ══ */}
+        <aside className="flex min-w-0 flex-col gap-[22px] lg:sticky lg:top-[92px]">
+          {/* Your Request */}
+          <section className="overflow-hidden rounded border border-amber-100 bg-white">
+            <div className="flex items-center justify-between gap-3 border-b border-gray-100 bg-gray-50 px-5 py-4">
+              <L>Your Request</L>
+              <span className="text-[9.5px] font-semibold uppercase tracking-[0.22em] tabular-nums text-amber-700">
+                {request.requestNumber}
+              </span>
+            </div>
+            <div className="p-5">
+              <div className="flex flex-col">
+                <Row label="Occasion" value={request.occasion ? <span className="capitalize">{request.occasion}</span> : null} gold />
+                <Row label="Trip Type" value={<span className="capitalize">{tripLabel}</span>} />
+                <Row label="Category" value={categoryLabel} />
+                <Row label="Preferred Model" value={request.specificModel} />
+                <Row label="Guests" value={request.passengers ? <span className="tabular-nums">{request.passengers}</span> : null} />
+                <Row label="Duration" value={durationLabel} />
+                <Row
+                  label="Pickup"
+                  value={
+                    <>
+                      {fmtLong(request.pickupDate)}
+                      {request.pickupTime && <span className="tabular-nums"> · {request.pickupTime}</span>}
+                    </>
+                  }
+                />
+                <Row
+                  label="Pickup Address"
+                  value={[request.pickupCity, request.pickupAddress].filter(Boolean).join(' · ')}
+                />
+                <Row
+                  label="Drop"
+                  value={
+                    request.dropCity
+                      ? [request.dropCity, request.dropAddress].filter(Boolean).join(' · ')
+                      : <span className="text-gray-400">Not specified</span>
+                  }
+                />
+                <Row
+                  label="Return"
+                  value={
+                    request.returnDate
+                      ? `${fmtLong(request.returnDate)}${request.returnTime ? ` · ${request.returnTime}` : ''}`
+                      : <span className="text-gray-400">Not specified</span>
+                  }
+                />
+              </div>
+
+              {/* What the customer asked for */}
+              <div className="mt-5 border-t border-gray-100 pt-1">
+                <p className="my-3.5">
+                  <L>Requested</L>
+                </p>
+                {[
+                  { on: request.needChauffeur, icon: User, label: 'Chauffeur', extra: null },
+                  {
+                    on: request.needDecoration,
+                    icon: Gift,
+                    label: 'Decoration',
+                    extra: request.needDecoration && request.decorationType ? request.decorationType : null,
+                  },
+                ].map(({ on, icon: Icon, label, extra }) => (
+                  <div key={label} className="flex items-center gap-3 border-b border-gray-100 py-3 last:border-b-0">
+                    <Icon className={`h-4 w-4 flex-none ${on ? 'text-amber-700' : 'text-gray-300'}`} />
+                    <span className={`flex-1 text-[13px] ${on ? 'text-gray-700' : 'text-gray-400'}`}>
+                      {label}
+                      {extra && <span className="text-gray-400"> · {extra}</span>}
+                    </span>
+                    <span
+                      className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                        on ? 'text-amber-700' : 'text-gray-400'
+                      }`}
+                    >
+                      {on ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {request.requirements && (
+                <div className="mt-[18px] border-l-2 border-amber-200 py-0.5 pl-4">
+                  <L>Special Requirements</L>
+                  <p className="lux-serif mt-1.5 text-[17px] italic leading-relaxed text-gray-700">{request.requirements}</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Request Info */}
+          <section className="overflow-hidden rounded border border-amber-100 bg-white">
+            <div className="border-b border-gray-100 bg-gray-50 px-5 py-4">
+              <L>Request Info</L>
+            </div>
+            <div className="p-5">
+              <div className="flex flex-col">
+                {[
+                  { k: 'Requested On', v: fmtDateTime(request.createdAt) },
+                  { k: 'Quotes Open Till', v: fmtDateTime(request.quotesOpenTill) },
+                  { k: 'Request Expires', v: fmtDateTime(request.expiresAt) },
+                ]
+                  .filter(r => r.v)
+                  .map(r => (
+                    <div key={r.k} className="flex items-baseline justify-between gap-3.5 border-b border-gray-100 py-3 last:border-b-0">
+                      <span className="text-[11.5px] text-gray-400">{r.k}</span>
+                      <span className="text-right text-[12.5px] text-gray-700">{r.v}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Premium Booking Protection */}
+          <section className="overflow-hidden rounded border border-amber-100 bg-white">
+            <div className="border-b border-gray-100 bg-gray-50 px-5 py-4">
+              <L>Premium Booking Protection</L>
+            </div>
+            <div className="p-5">
+              <div className="flex flex-col">
+                {[
+                  { icon: Shield, text: 'Your payment is held securely until trip completion' },
+                  { icon: Crown, text: 'Verified premium vendors with luxury fleet' },
+                  { icon: Phone, text: '24/7 concierge support during your trip' },
+                  { icon: Calendar, text: 'Free cancellation up to 48 hours before (check T&C)' },
+                ].map(({ icon: Icon, text }) => (
+                  <div key={text} className="flex gap-3.5 border-b border-gray-100 py-3.5 last:border-b-0">
+                    <span className="grid h-8 w-8 flex-none place-items-center rounded-full border border-amber-200 bg-amber-50 text-amber-700">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="text-[12.5px] leading-snug text-gray-700">{text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </aside>
       </div>
 
       {/* Accept Button */}
-      {selectedQuote && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-amber-100 p-4 shadow-lg">
-          <div className="container mx-auto flex items-center justify-between gap-4">
-            <div>
-              <p className="font-semibold text-gray-900">
-                {quotes.find((q) => q.id === selectedQuote)?.vendor.businessName}
+      {selectedQuote && selectedQ && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-amber-200 bg-white/95 py-4 shadow-[0_-14px_34px_-26px_rgba(17,24,39,.5)] backdrop-blur-[16px]">
+          <div className="mx-auto flex max-w-7xl items-center gap-5 px-4 sm:px-6 lg:px-8">
+            <div className="min-w-0 flex-1">
+              <L>Selected offer</L>
+              <p className="lux-serif mt-1.5 truncate text-[20px] font-medium">
+                {selectedQ.vendor?.businessName || selectedQ.vendors?.businessName}
               </p>
-              <p className="text-lg font-bold text-amber-600">
-                ₹{quotes.find((q) => q.id === selectedQuote)?.totalAmount.toLocaleString()}
+              <p className="mt-1 truncate text-[11px] tabular-nums text-gray-400">
+                {selectedQ.vehicleName && `${selectedQ.vehicleName} · `}
+                advance ₹{(selectedQ.advanceAmount || 0).toLocaleString()}
+              </p>
+            </div>
+            <div className="flex-none text-right">
+              <L>Total</L>
+              <p className="lux-serif mt-1 text-[34px] font-medium leading-tight tabular-nums">
+                ₹{selectedQ.totalAmount.toLocaleString()}
               </p>
             </div>
             <button
               onClick={handleAcceptQuote}
               disabled={isAccepting}
-              className="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-gray-900 font-bold rounded-lg hover:from-amber-600 hover:to-yellow-600 transition disabled:opacity-50 flex items-center gap-2"
+              className="inline-flex flex-none items-center justify-center gap-2.5 rounded-sm bg-gradient-to-br from-[#E8C766] to-[#C9A227] px-[26px] py-[15px] text-[11px] font-semibold uppercase tracking-[0.18em] text-[#241C05] shadow-[0_14px_30px_-18px_rgba(201,162,39,.9)] transition hover:brightness-105 disabled:opacity-50"
             >
               {isAccepting ? (
                 <>
-                  <span className="animate-spin w-5 h-5 border-2 border-gray-900 border-t-transparent rounded-full" />
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#241C05] border-t-transparent" />
                   Processing...
                 </>
               ) : (
                 <>
-                  <CheckCircle className="w-5 h-5" />
-                  Accept & Proceed
+                  <CheckCircle className="h-4 w-4" />
+                  Accept &amp; Proceed
                 </>
               )}
             </button>
