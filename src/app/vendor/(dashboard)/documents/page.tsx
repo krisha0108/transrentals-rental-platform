@@ -544,7 +544,7 @@ export default function VendorDocumentsPage() {
           onClick={() => setPreviewDoc(null)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden"
+            className="bg-white rounded-2xl w-full max-w-4xl max-h-[92dvh] flex flex-col shadow-2xl overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}

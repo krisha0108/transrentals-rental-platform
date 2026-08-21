@@ -176,7 +176,7 @@ export default function VendorSocialProfilePage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-20 sm:pb-6">
+      <div className="min-h-dvh bg-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-20 sm:pb-6">
         <style jsx global>{`
           @keyframes shimmer {
             0% { background-position: -200% 0; }
@@ -225,7 +225,7 @@ export default function VendorSocialProfilePage({
 
   if (!vendor) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-20 sm:pb-6 flex flex-col items-center justify-center gap-4">
+      <div className="min-h-dvh bg-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-20 sm:pb-6 flex flex-col items-center justify-center gap-4">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-8 text-center max-w-sm w-full">
           <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-3">
             <FileText className="h-6 w-6 text-emerald-600" />
@@ -241,7 +241,7 @@ export default function VendorSocialProfilePage({
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-20 sm:pb-6">
+    <div className="min-h-dvh bg-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-20 sm:pb-6">
       <style jsx global>{`
         @keyframes fade-up {
           from { opacity: 0; transform: translateY(16px); }

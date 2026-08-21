@@ -533,7 +533,7 @@ export default function VendorDashboard() {
   const displayActions = showAllActions ? approvedServices : approvedServices.slice(0, 4);
 
   return (
-    <div className="space-y-6 min-h-screen bg-[#F9FAFB] -m-4 p-4 sm:-m-6 sm:p-6">
+    <div className="space-y-6 min-h-dvh bg-[#F9FAFB] -m-4 p-4 sm:-m-6 sm:p-6">
 
       <style jsx>{`
         @keyframes shimmerSweepCard {

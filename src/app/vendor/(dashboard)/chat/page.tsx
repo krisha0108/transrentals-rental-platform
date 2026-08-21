@@ -595,7 +595,7 @@ export default function VendorChatPage() {
   ];
 
   return (
-    <div className="h-[calc(100vh-80px)] flex flex-col rounded-2xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-200/60 bg-[#F9FAFB]">
+    <div className="h-[calc(100dvh-80px)] flex flex-col rounded-2xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-200/60 bg-[#F9FAFB]">
 
       <style jsx>{`
         @keyframes msgIn { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
@@ -825,7 +825,7 @@ export default function VendorChatPage() {
                 {isLoadingMessages ? (
                   <div className="flex items-center justify-center h-32"><div className="animate-spin w-5 h-5 border-[3px] border-emerald-100 border-t-emerald-600 rounded-full" /></div>
                 ) : messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-[50vh]">
+                  <div className="flex flex-col items-center justify-center h-[50dvh]">
                     <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-5 text-center shadow-sm fade-in-up">
                       <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto mb-2">
                         <Send className="w-6 h-6 text-emerald-400" />

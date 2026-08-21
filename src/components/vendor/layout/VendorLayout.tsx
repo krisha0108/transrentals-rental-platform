@@ -338,7 +338,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
 
   if (status === 'loading' || (status === 'authenticated' && statusLoading)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-dvh flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading...</p>
@@ -354,7 +354,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
 
   if (showAccessDenied) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-dvh bg-gray-50">
         <VendorSidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
@@ -363,7 +363,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
           approvedServiceSlugs={approvedServiceSlugs}
         />
         <div className="lg:pl-64">
-          <div className="min-h-screen flex items-center justify-center p-6">
+          <div className="min-h-dvh flex items-center justify-center p-6">
             <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
               <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle className="w-8 h-8 text-yellow-600" />
@@ -383,7 +383,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
   return (
     <VendorVerificationContext.Provider value={contextValue}>
       <ToastProvider>
-        <div className="min-h-screen bg-[#f5f6fa]">
+        <div className="min-h-dvh bg-[#f5f6fa]">
           <VendorSidebar
             isOpen={sidebarOpen}
             onClose={() => setSidebarOpen(false)}

@@ -158,7 +158,7 @@ function StoryViewer({ groups, initialVendorIdx, onClose }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.88)' }}
       onClick={onClose}>
-      <div className="relative flex flex-col" style={{ width: '100%', maxWidth: 400, height: '92vh', maxHeight: 720, margin: '0 16px' }}
+      <div className="relative flex flex-col" style={{ width: '100%', maxWidth: 400, height: '92dvh', maxHeight: 720, margin: '0 16px' }}
         onClick={e => e.stopPropagation()}>
         {totalVendors > 1 && (
           <div className="flex items-center justify-center gap-2 mb-3 relative z-20">
@@ -319,7 +319,7 @@ function CommentModal({ post, currentVendorId, onClose }: { post: Post; currentV
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/30 backdrop-blur-md">
-      <div className="bg-white w-full sm:rounded-2xl sm:max-w-lg max-h-[85vh] flex flex-col shadow-2xl">
+      <div className="bg-white w-full sm:rounded-2xl sm:max-w-lg max-h-[85dvh] flex flex-col shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
             <p className="font-bold text-gray-900">Comments</p>
@@ -951,7 +951,7 @@ function SocialFeedContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-20 sm:pb-0">
+    <div className="min-h-dvh bg-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-20 sm:pb-0">
       <style jsx global>{`
         @keyframes fade-up { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
         @keyframes pop-in { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }

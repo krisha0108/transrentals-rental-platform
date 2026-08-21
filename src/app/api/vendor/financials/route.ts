@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
     // { service, id, bookingNumber, customerName, totalAmount, paidAmount, paymentStatus, status, createdAt, detailUrl }
     type UB = {
       service: string;
+      serviceType: string;
       id: string;
       bookingNumber: string;
       customerName: string;
@@ -62,6 +63,7 @@ export async function GET(request: NextRequest) {
       for (const b of rows) {
         all.push({
           service: 'Direct Booking',
+          serviceType: 'direct',
           id: b.id, bookingNumber: b.bookingNumber, customerName: b.customerName,
           totalAmount: Number(b.totalAmount || 0), paidAmount: Number(b.paidAmount || 0),
           paymentStatus: normPayStatus(b.paymentStatus), status: b.status,
@@ -81,6 +83,7 @@ export async function GET(request: NextRequest) {
       for (const b of rows) {
         all.push({
           service: 'Bike Rental',
+          serviceType: 'bike',
           id: b.id, bookingNumber: b.bookingNumber, customerName: b.customerName,
           totalAmount: Number(b.totalAmount || 0), paidAmount: Number(b.paidAmount || 0),
           paymentStatus: normPayStatus(b.paymentStatus), status: b.status,
@@ -101,6 +104,7 @@ export async function GET(request: NextRequest) {
         const paid = normPayStatus(b.paymentStatus) === 'paid' ? Number(b.totalAmount || 0) : 0;
         all.push({
           service: 'Bus & Tempo',
+          serviceType: 'bus',
           id: b.id, bookingNumber: b.bookingNumber, customerName: b.customerName,
           totalAmount: Number(b.totalAmount || 0), paidAmount: paid,
           paymentStatus: normPayStatus(b.paymentStatus), status: b.status,
@@ -121,6 +125,7 @@ export async function GET(request: NextRequest) {
         const paid = normPayStatus(b.paymentStatus) === 'paid' ? Number(b.totalAmount || 0) : 0;
         all.push({
           service: 'Packers & Movers',
+          serviceType: 'packers-movers',
           id: b.id, bookingNumber: b.bookingNumber, customerName: b.customerName,
           totalAmount: Number(b.totalAmount || 0), paidAmount: paid,
           paymentStatus: normPayStatus(b.paymentStatus), status: b.status,
@@ -141,6 +146,7 @@ export async function GET(request: NextRequest) {
         const paid = normPayStatus(b.paymentStatus) === 'paid' ? Number(b.totalAmount || 0) : 0;
         all.push({
           service: 'Transporter',
+          serviceType: 'transporter',
           id: b.id, bookingNumber: b.bookingNumber, customerName: b.customerName,
           totalAmount: Number(b.totalAmount || 0), paidAmount: paid,
           paymentStatus: normPayStatus(b.paymentStatus), status: b.status,
@@ -160,6 +166,7 @@ export async function GET(request: NextRequest) {
       for (const b of rows) {
         all.push({
           service: 'Car Rental',
+          serviceType: 'car-with-driver',
           id: b.id, bookingNumber: b.bookingNumber, customerName: b.customerName,
           totalAmount: Number(b.grandTotal || b.paidAmount || 0), paidAmount: Number(b.paidAmount || 0),
           paymentStatus: normPayStatus(b.paymentStatus), status: b.status,
@@ -181,6 +188,7 @@ export async function GET(request: NextRequest) {
         const paid  = normPayStatus(b.paymentStatus) === 'paid' ? total : 0;
         all.push({
           service: 'Luxury Cars',
+          serviceType: 'luxury',
           id: b.id, bookingNumber: b.bookingNumber, customerName: b.customerName,
           totalAmount: total, paidAmount: paid,
           paymentStatus: normPayStatus(b.paymentStatus), status: b.status,
@@ -205,6 +213,7 @@ export async function GET(request: NextRequest) {
         const ps      = b.balancePaid ? 'paid' : b.advancePaid ? 'partial' : 'pending';
         all.push({
           service: 'Wander Tours',
+          serviceType: 'wander',
           id: b.id, bookingNumber: b.bookingId, customerName: 'Tour Customer',
           totalAmount: total, paidAmount: paid,
           paymentStatus: ps as 'paid' | 'partial' | 'pending', status: b.status,

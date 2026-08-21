@@ -35,6 +35,13 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   themeColor: '#16a34a',
+  // On Chromium mobile browsers, the on-screen keyboard opens without
+  // shrinking the layout viewport by default (it only shrinks the visual
+  // viewport), so 100vh/min-h-screen containers and fixed-position submit
+  // buttons don't resize — the bottom of forms ends up hidden behind the
+  // keyboard. This makes the layout viewport actually resize when the
+  // keyboard opens, matching iOS Safari's behavior.
+  interactiveWidget: 'resizes-content',
 };
 
 const BASE_METADATA: Metadata = {

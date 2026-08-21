@@ -907,7 +907,7 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed top-0 left-0 z-50 h-screen w-64 bg-gray-900 text-white transition-transform duration-300 ease-in-out lg:translate-x-0',
+          'fixed top-0 left-0 z-50 h-dvh w-64 bg-gray-900 text-white transition-transform duration-300 ease-in-out lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >

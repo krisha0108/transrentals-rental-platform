@@ -146,7 +146,7 @@ function NewChatModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-start sm:items-center justify-center p-4 pt-16 sm:pt-4"
       onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
+      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[80dvh]"
         onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
           <h3 className="font-bold text-gray-900 flex items-center gap-2">
@@ -428,7 +428,7 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
   const isInConversation = !!activeConvId;
 
   return (
-    <div className="flex bg-white overflow-hidden" style={{ height: 'calc(100vh - 49px)' }}>
+    <div className="flex bg-white overflow-hidden" style={{ height: 'calc(100dvh - 49px)' }}>
       {/* ── Left Panel: Conversation List ── */}
       <div
         className={`
