@@ -37,6 +37,7 @@ interface QuoteRequest {
   startDate: string;
   endDate?: string;
   needOperator?: boolean;
+  needInstallation?: boolean;
   requirements?: string;
   customerName?: string;
   customerPhone?: string;
@@ -180,6 +181,8 @@ export default function SendEquipmentQuotePage() {
   const [deliveryCharges, setDeliveryCharges] = useState('');
   const [operatorCharges, setOperatorCharges] = useState('');
   const [securityDeposit, setSecurityDeposit] = useState('');
+  const [installationCharges, setInstallationCharges] = useState('');
+  const [gstAmount, setGstAmount] = useState('');
   const [advancePercent, setAdvancePercent] = useState('30'); // Default 30% advance
   const [advanceMode, setAdvanceMode] = useState<'percent' | 'manual'>('percent');
   const [customAdvanceAmount, setCustomAdvanceAmount] = useState('');
@@ -211,6 +214,7 @@ export default function SendEquipmentQuotePage() {
   const deliveryChargesRef = useRef<HTMLInputElement>(null);
   const operatorChargesRef = useRef<HTMLInputElement>(null);
   const securityDepositRef = useRef<HTMLInputElement>(null);
+  const customAdvanceAmountRef = useRef<HTMLInputElement>(null);
   const validUntilRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -248,6 +252,7 @@ export default function SendEquipmentQuotePage() {
           startDate: data.request.startDate,
           endDate: data.request.endDate,
           needOperator: data.request.needOperator,
+          needInstallation: data.request.needInstallation,
           requirements: data.request.requirements,
           customerName: data.request.customerName,
           customerPhone: data.request.customerPhone,
@@ -435,8 +440,10 @@ export default function SendEquipmentQuotePage() {
 
     const delivery = parseFloat(deliveryCharges) || 0;
     const operator = parseFloat(operatorCharges) || 0;
+    const installation = parseFloat(installationCharges) || 0;
+    const gst = parseFloat(gstAmount) || 0;
 
-    return baseAmount + delivery + operator;
+    return baseAmount + delivery + operator + installation + gst;
   };
 
   const calculateAdvance = () => {
@@ -458,9 +465,16 @@ export default function SendEquipmentQuotePage() {
       if (!quickTotalPrice || parseFloat(quickTotalPrice) <= 0) newErrors.quickTotalPrice = 'Total price must be greater than 0';
     } else {
       if (!dailyRate || parseFloat(dailyRate) <= 0) newErrors.dailyRate = 'Daily rate is required and must be greater than 0';
-      if (deliveryCharges === '') newErrors.deliveryCharges = 'Delivery charges required (enter 0 if not applicable)';
-      if (operatorCharges === '') newErrors.operatorCharges = 'Operator charges required (enter 0 if not applicable)';
-      if (securityDeposit === '') newErrors.securityDeposit = 'Security deposit required (enter 0 if not applicable)';
+      // Only demand a charge the vendor can actually see. Operator charges are
+      // rendered behind request.needOperator, so requiring them unconditionally
+      // left the form unsubmittable on every request that did not want an
+      // operator: no input to fill, yet validation kept failing on it. Keying
+      // off the mounted input keeps that in step automatically if any of these
+      // fields become conditional later. The payload already coerces a blank to
+      // 0, so skipping the check does not change what gets stored.
+      if (deliveryChargesRef.current && deliveryCharges === '') newErrors.deliveryCharges = 'Delivery charges required (enter 0 if not applicable)';
+      if (operatorChargesRef.current && operatorCharges === '') newErrors.operatorCharges = 'Operator charges required (enter 0 if not applicable)';
+      if (securityDepositRef.current && securityDeposit === '') newErrors.securityDeposit = 'Security deposit required (enter 0 if not applicable)';
     }
     if (!validUntil) newErrors.validUntil = 'Quote validity date is required';
     if (advanceMode === 'manual' && customAdvanceAmount) {
@@ -469,24 +483,57 @@ export default function SendEquipmentQuotePage() {
       if (total > 0 && adv > total) newErrors.customAdvanceAmount = 'Advance amount cannot exceed total price';
     }
     setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) {
-      const firstRef =
-        newErrors.equipmentName ? equipmentNameRef :
-        newErrors.equipmentModel ? equipmentModelRef :
-        newErrors.quickTotalPrice ? quickTotalPriceRef :
-        newErrors.dailyRate ? dailyRateRef :
-        newErrors.deliveryCharges ? deliveryChargesRef :
-        newErrors.operatorCharges ? operatorChargesRef :
-        newErrors.securityDeposit ? securityDepositRef :
-        newErrors.validUntil ? validUntilRef :
-        null;
-      if (firstRef?.current) {
-        firstRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        firstRef.current.focus();
-      }
-      return false;
+
+    if (Object.keys(newErrors).length === 0) {
+      setApiError('');
+      return true;
     }
-    return true;
+
+    // Fields in the order they appear on the form, so "first problem" is the
+    // topmost one and the page scrolls upward rather than jumping about.
+    const FIELD_ORDER: { key: string; label: string; ref: React.RefObject<HTMLInputElement> }[] = [
+      { key: 'equipmentName', label: 'Equipment Name', ref: equipmentNameRef },
+      { key: 'equipmentModel', label: 'Equipment Model / Type', ref: equipmentModelRef },
+      { key: 'quickTotalPrice', label: 'Total Price', ref: quickTotalPriceRef },
+      { key: 'dailyRate', label: 'Daily Rate', ref: dailyRateRef },
+      { key: 'deliveryCharges', label: 'Delivery Charges', ref: deliveryChargesRef },
+      { key: 'operatorCharges', label: 'Operator Charges', ref: operatorChargesRef },
+      { key: 'securityDeposit', label: 'Security Deposit', ref: securityDepositRef },
+      { key: 'customAdvanceAmount', label: 'Advance Amount', ref: customAdvanceAmountRef },
+      { key: 'validUntil', label: 'Quote Validity', ref: validUntilRef },
+    ];
+
+    const problems = FIELD_ORDER.filter((f) => newErrors[f.key]);
+    // Anything without a ref still has to be reported, or the vendor is left
+    // pressing Send Quote with nothing happening at all.
+    const unlisted = Object.keys(newErrors).filter((k) => !FIELD_ORDER.some((f) => f.key === k));
+
+    const lines = [
+      ...problems.map((f) => `• ${f.label} — ${newErrors[f.key]}`),
+      ...unlisted.map((k) => `• ${newErrors[k]}`),
+    ];
+
+    const summary =
+      lines.length === 1
+        ? `${problems[0]?.label ?? 'One field'} needs attention.`
+        : `${lines.length} fields need attention before the quote can be sent.`;
+
+    setApiError(summary);
+
+    // Blocking alert first — it is the only thing a vendor cannot scroll past —
+    // then move the cursor into the offending field once it is dismissed.
+    alert(`Cannot send quote yet\n\n${lines.join('\n')}`);
+
+    const target = problems.find((f) => f.ref.current);
+    if (target && target.ref.current) {
+      window.setTimeout(() => {
+        target.ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.ref.current?.focus();
+      }, 0);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    return false;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -515,6 +562,8 @@ export default function SendEquipmentQuotePage() {
           deliveryCharges: quickQuoteMode ? 0 : (parseFloat(deliveryCharges) || 0),
           operatorCharges: quickQuoteMode ? 0 : (parseFloat(operatorCharges) || 0),
           securityDeposit: quickQuoteMode ? 0 : (parseFloat(securityDeposit) || 0),
+          installationCharges: quickQuoteMode ? 0 : (parseFloat(installationCharges) || 0),
+          gstAmount: quickQuoteMode ? 0 : (parseFloat(gstAmount) || 0),
           rentalStartDate,
           rentalEndDate,
           rentalDays,
@@ -1042,6 +1091,43 @@ export default function SendEquipmentQuotePage() {
               </div>
               {errors.securityDeposit && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.securityDeposit}</p>}
             </div>
+
+            {/* Shown only when the customer asked for installation, same rule
+                as operator charges above. */}
+            {request.needInstallation && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Installation Charges
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                  <input
+                    type="number"
+                    value={installationCharges}
+                    onChange={(e) => setInstallationCharges(e.target.value)}
+                    placeholder="Enter 0 if not applicable"
+                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                GST
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                <input
+                  type="number"
+                  value={gstAmount}
+                  onChange={(e) => setGstAmount(e.target.value)}
+                  placeholder="Enter 0 if not applicable"
+                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Leave blank or 0 if you are not charging GST</p>
+            </div>
           </div>
           )}
 
@@ -1083,13 +1169,15 @@ export default function SendEquipmentQuotePage() {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                   <input
+                    ref={customAdvanceAmountRef}
                     type="number"
                     value={customAdvanceAmount}
-                    onChange={(e) => setCustomAdvanceAmount(e.target.value)}
+                    onChange={(e) => { setCustomAdvanceAmount(e.target.value); if (errors.customAdvanceAmount) setErrors(prev => ({ ...prev, customAdvanceAmount: '' })); }}
                     placeholder="Enter advance amount"
                     min="0"
-                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${errors.customAdvanceAmount ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                   />
+                  {errors.customAdvanceAmount && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.customAdvanceAmount}</p>}
                 </div>
               )}
             </div>
