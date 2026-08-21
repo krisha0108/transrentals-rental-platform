@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Coins, Gift, Wallet, Zap, TrendingUp, ArrowRight } from 'lucide-react';
 
@@ -39,13 +40,15 @@ export function BackrTokenSection() {
                 className="relative"
               >
                 {/* Main Coin */}
-                <div className="w-64 h-64 mx-auto bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 rounded-full shadow-2xl flex items-center justify-center relative">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent rounded-full" />
-                  <div className="text-white text-center">
-                    <div className="text-6xl font-bold mb-2">B</div>
-                    <div className="text-xl font-semibold">BACKR</div>
-                    <div className="text-sm opacity-80">TOKEN</div>
-                  </div>
+                <div className="relative mx-auto h-64 w-64 drop-shadow-2xl">
+                  <Image
+                    src="/images/backr/backr-coin.png"
+                    alt="BackrCoin"
+                    fill
+                    sizes="256px"
+                    className="object-contain"
+                    priority
+                  />
                 </div>
 
                 {/* Orbiting Small Coins */}
