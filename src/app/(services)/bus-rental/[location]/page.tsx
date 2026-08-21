@@ -9,7 +9,7 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BusRentalBookingHero } from '@/components/bus-rental/BusRentalBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
@@ -296,37 +296,20 @@ export default async function BusLocationPage({ params }: PageProps) {
         </div>
       </div>
 
-      <ServiceHeroWithChat
-        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
-        badge={`Bus Rental in ${locationName}`}
-        title="Bus Rental Services"
-        titleHighlight="Mini Bus & Luxury Coach Hire"
-        description={`Rent comfortable buses in ${locationName} for group travel, tours, and events. Choose from mini buses, tempo travellers, and luxury coaches.`}
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Verified Fleet', color: 'text-green-600' },
-          { icon: 'zap', text: 'Instant Booking', color: 'text-blue-600' },
-        ]}
-        gradientFrom="green-50"
-        gradientTo="teal-50"
-        showQuickForm
-        cityName={locationName}
-        priceAnchor="Tempo Traveller from ₹18/km"
-        heroHighlights={[
-          `Driver included on all trips in ${locationName}`,
-          'AC & Non-AC buses — 9 to 55 seater options',
-          '500+ verified operators, instant quote',
-        ]}
+      <BusRentalBookingHero
+        city={locationName}
+        citySlug={params.location.toLowerCase()}
       />
 
-      <VehicleGrid
-        vehicles={vehicles}
-        title={`Available Buses in ${locationName}`}
-        location={locationName}
-        locationSlug={params.location.toLowerCase()}
-        serviceSlug="bus-rental"
-      />
+      <div id="bus-fleet">
+        <VehicleGrid
+          vehicles={vehicles}
+          title={`Available Buses in ${locationName}`}
+          location={locationName}
+          locationSlug={params.location.toLowerCase()}
+          serviceSlug="bus-rental"
+        />
+      </div>
 
       <WhyRentHere locationName={locationName} />
 

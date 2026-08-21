@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
+import { CalendarCheck, Bike as BikeIcon, CreditCard, PartyPopper } from 'lucide-react';
 import { BikeSearchHero } from '@/components/bike';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { FAQSection } from '@/components/services/FAQSection';
@@ -360,46 +361,64 @@ export default async function BikeLocationPage({ params }: PageProps) {
       <BikeSearchHero city={locationName} citySlug={params.location} pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined} pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined} />
 
       {/* Available Bikes - Dynamic from Database */}
-      <LazyServiceFleetDisplay
-        serviceSlug="bike-on-rent"
-        locationSlug={params.location}
-        title={`Bikes Available for Rent in ${locationName}`}
-        showCategories={true}
-        limit={12}
-        priceUnit="/day"
-      />
+      <div id="bikes-fleet">
+        <LazyServiceFleetDisplay
+          serviceSlug="bike-on-rent"
+          locationSlug={params.location}
+          title={`Bikes Available for Rent in ${locationName}`}
+          showCategories={true}
+          limit={12}
+          priceUnit="/day"
+        />
+      </div>
 
       {/* Why Rent Here */}
       <WhyRentHere locationName={locationName} />
 
       {/* How It Works */}
-      <section className="py-16 bg-white">
+      <section
+        className="relative py-16 md:py-20 bg-[#fafcfb] bg-no-repeat bg-cover bg-center"
+        style={{ backgroundImage: "url('/images/sections/how-it-works-bg.png')" }}
+      >
         <div className="container-custom">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">
-              How to Rent a Bike in {locationName}
-            </h2>
+          <div className="text-center mb-14 md:mb-16">
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <span className="hidden sm:flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="w-10 h-px border-t-2 border-dashed border-emerald-300" />
+              </span>
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900">
+                How to Rent a Bike in <span className="text-emerald-600">{locationName}</span>
+              </h2>
+              <span className="hidden sm:flex items-center gap-1">
+                <span className="w-10 h-px border-t-2 border-dashed border-emerald-300" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              </span>
+            </div>
             <p className="text-gray-600">Simple 4-step process to get you riding</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="relative grid grid-cols-2 md:grid-cols-4 gap-y-10 gap-x-6">
+            {/* Dashed connector line behind the step circles (desktop only) */}
+            <div className="hidden md:block absolute top-11 left-[12.5%] right-[12.5%] border-t-2 border-dashed border-emerald-300 -z-0" />
+
             {[
-              { step: 1, title: 'Select Dates', desc: 'Choose your pickup & drop-off date and time', icon: '📅' },
-              { step: 2, title: 'Choose Bike', desc: 'Browse available bikes and select your ride', icon: '🏍️' },
-              { step: 3, title: 'Book Online', desc: 'Complete booking with secure payment', icon: '💳' },
-              { step: 4, title: 'Ride Away', desc: 'Pick up your bike and enjoy your ride!', icon: '🚀' },
+              { step: '01', title: 'Select Dates', desc: 'Choose your pickup & drop-off date and time', Icon: CalendarCheck },
+              { step: '02', title: 'Choose Bike', desc: 'Browse available bikes and select your ride', Icon: BikeIcon },
+              { step: '03', title: 'Book Online', desc: 'Complete booking with secure payment', Icon: CreditCard },
+              { step: '04', title: 'Ride Away', desc: 'Pick up your bike and enjoy your ride!', Icon: PartyPopper },
             ].map((item) => (
-              <div key={item.step} className="text-center">
+              <div key={item.step} className="relative z-10 text-center">
                 <div className="relative inline-block mb-4">
-                  <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-4xl">
-                    {item.icon}
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold">
+                  <span className="absolute -top-2 -left-1 z-10 w-7 h-7 bg-emerald-600 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-sm">
                     {item.step}
+                  </span>
+                  <div className="w-20 h-20 md:w-24 md:h-24 bg-emerald-50 border border-emerald-100 rounded-full flex items-center justify-center">
+                    <item.Icon className="w-8 h-8 text-emerald-600" strokeWidth={1.75} />
                   </div>
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-gray-600 text-sm">{item.desc}</p>
+                <h3 className="font-bold text-gray-900 mb-1.5">{item.title}</h3>
+                <p className="text-gray-600 text-xs md:text-sm max-w-[180px] mx-auto">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -455,10 +474,12 @@ export default async function BikeLocationPage({ params }: PageProps) {
       />
 
       {/* Browse by Brand */}
-      <section className="py-10 bg-white border-t border-gray-100">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Browse Bikes by Brand in {locationName}</h2>
-          <div className="flex flex-wrap gap-3">
+      <section className="py-12 bg-white border-t border-gray-100">
+        <div className="container-custom max-w-5xl">
+          <h2 className="text-lg font-bold text-gray-900 mb-5">
+            Browse Bikes by Brand in <span className="text-emerald-600">{locationName}</span>
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
               { slug: 'royal-enfield', label: 'Royal Enfield', from: '₹649/day' },
               { slug: 'honda', label: 'Honda', from: '₹299/day' },
@@ -470,10 +491,13 @@ export default async function BikeLocationPage({ params }: PageProps) {
               <a
                 key={brand.slug}
                 href={`/bike-on-rent/${params.location}/${brand.slug}`}
-                className="inline-flex flex-col items-center px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 transition-all"
+                className="group flex flex-col items-center text-center px-3 py-4 bg-gray-50 border border-gray-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50 transition-all"
               >
-                <span className="font-bold">{brand.label}</span>
-                <span className="text-xs text-gray-400 mt-0.5">{brand.from}</span>
+                <span className="w-10 h-10 rounded-full bg-white border border-gray-200 group-hover:border-emerald-200 group-hover:bg-emerald-600 flex items-center justify-center font-black text-sm text-gray-500 group-hover:text-white transition-colors mb-2">
+                  {brand.label.charAt(0)}
+                </span>
+                <span className="font-bold text-sm text-gray-800 group-hover:text-emerald-700 transition-colors">{brand.label}</span>
+                <span className="text-xs text-gray-400 mt-0.5">From {brand.from}</span>
               </a>
             ))}
           </div>
