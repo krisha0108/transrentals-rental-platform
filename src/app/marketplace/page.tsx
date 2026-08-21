@@ -1879,7 +1879,7 @@ function MiniDateInput({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full flex-col items-start gap-1 border-none bg-transparent p-0 text-left focus:outline-none focus:ring-0"
+        className="flex h-full w-full flex-col items-start justify-center gap-1 border-none bg-transparent p-0 text-left focus:outline-none focus:ring-0"
       >
         <span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-500 sm:text-[15px]">
           <Calendar className="h-3 w-3 text-primary-700" /> {label}
@@ -2003,7 +2003,7 @@ function MiniTimeInput({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full flex-col items-start gap-1 border-none bg-transparent p-0 text-left focus:outline-none focus:ring-0"
+        className="flex h-full w-full flex-col items-start justify-center gap-1 border-none bg-transparent p-0 text-left focus:outline-none focus:ring-0"
       >
         <span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-500 sm:text-[15px]">
           <Clock className="h-3 w-3 text-primary-700" /> {label}
