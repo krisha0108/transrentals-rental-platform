@@ -9,7 +9,7 @@ import {
   Bike, Key, Car, Gem, Bus, Truck, Package, Wrench, Compass, Home, Building2,
   Star, ShieldCheck, Users, MapPin, TrendingUp, ArrowRight, ArrowLeft, Check, X,
   Search, Handshake, ScaleIcon, BadgeCheck, Sparkles, Zap, Plus,
-  Calendar, Clock, AlertCircle, ChevronLeft, ChevronRight,
+  Calendar, Clock, AlertCircle, ChevronLeft, ChevronRight, ChevronDown,
   FileText, Tag, ArrowLeftRight, CheckCircle2, Plane, BusFront,
   Bed, Utensils, Sofa, Armchair, Refrigerator, Tv2, DoorClosed, WashingMachine, Weight, Warehouse,
   IndianRupee, Headphones, Phone, Loader2,
@@ -226,15 +226,6 @@ const WHY_CHOOSE_US = [
   },
 ] as const;
 
-// Real, already-published platform stats (BackersSection.tsx / vendor landing
-// page / homepage hero) — reused here, nothing invented.
-const STATS = [
-  { label: 'Verified Vendors', value: '10,000+', icon: ShieldCheck },
-  { label: 'Cities Covered', value: '150+', icon: MapPin },
-  { label: 'Successful Bookings', value: '2,00,000+', icon: TrendingUp },
-  { label: 'Average Rating', value: '4.8/5', icon: Star },
-];
-
 const HOW_IT_WORKS = [
   {
     step: '01', icon: Search, title: 'Tell us what you need',
@@ -311,7 +302,7 @@ function TourTeaserCard({ tour }: { tour: TourListing }) {
   const cover = tour.images?.[0] || null;
   const hasPrice = tour.priceType !== 'ON_REQUEST' && tour.basePrice;
   return (
-    <Link href={`/wander/${tour.slug || tour.id}`} className="group flex-shrink-0" style={{ width: 240 }}>
+    <Link href={`/wander/${tour.slug || tour.id}`} className="group w-[190px] flex-shrink-0 sm:w-[240px]">
       <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-slate-100">
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -390,10 +381,10 @@ function ToursStrip() {
           </Link>
         </div>
 
-        <div className="mt-10 flex gap-5 overflow-x-auto pb-3 scrollbar-hide">
+        <div className="mt-10 flex gap-3 overflow-x-auto pb-3 scrollbar-hide sm:gap-5">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex-shrink-0 animate-pulse" style={{ width: 240 }}>
+                <div key={i} className="w-[190px] flex-shrink-0 animate-pulse sm:w-[240px]">
                   <div className="aspect-[4/3] w-full rounded-2xl bg-slate-100" />
                   <div className="mt-3 h-4 w-3/4 rounded bg-slate-100" />
                   <div className="mt-2 h-3 w-1/2 rounded bg-slate-100" />
@@ -827,7 +818,7 @@ export default function MarketplacePage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.25, ease: 'easeOut' }}
-                        className="absolute inset-0 flex flex-col items-center justify-center p-10 text-center"
+                        className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center sm:p-10"
                         style={
                           item.image
                             ? { background: '#F8FAFC' }
@@ -1030,7 +1021,7 @@ export default function MarketplacePage() {
               <span className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-primary-700">
                 <Sparkles className="h-4 w-4" /> Everything your business needs
               </span>
-              <h2 className="mt-5 font-heading text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl">
+              <h2 className="mt-5 font-heading text-2xl font-extrabold leading-tight text-slate-900 sm:text-4xl lg:text-5xl">
                 Powerful Management System for Rentals
               </h2>
 
@@ -1095,22 +1086,6 @@ export default function MarketplacePage() {
               </div>
             </FadeIn>
           </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════ STATS ══════════════════════════════ */}
-      <section className="relative overflow-hidden bg-slate-900 py-16 text-white">
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, #09B368 0%, transparent 45%), radial-gradient(circle at 80% 70%, #09B368 0%, transparent 45%)' }} />
-        <div className="container relative mx-auto grid grid-cols-2 gap-8 px-4 sm:grid-cols-4">
-          {STATS.map((s, i) => (
-            <FadeIn key={s.label} delay={i * 90}>
-              <div className="text-center">
-                <s.icon className="mx-auto h-6 w-6 text-primary-300" />
-                <p className="mt-2 font-heading text-3xl font-extrabold sm:text-4xl">{s.value}</p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400 sm:text-sm">{s.label}</p>
-              </div>
-            </FadeIn>
-          ))}
         </div>
       </section>
 
@@ -1651,8 +1626,8 @@ function MiniCityInput({
       : 0;
 
   return (
-    <div className="relative min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
-      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+    <div className="relative min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
+      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
         <MapPin className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <input
@@ -1662,7 +1637,7 @@ function MiniCityInput({
         placeholder={placeholder}
         className="w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
       />
-      {caption && <span className="mt-0.5 block text-[12.5px] text-slate-400">{caption}</span>}
+      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && matches.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
           {nearbyCount > 0 && (
@@ -1736,8 +1711,8 @@ function MiniAirportInput({
   }, [query, airports]);
 
   return (
-    <div className="relative min-w-[180px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
-      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+    <div className="relative min-w-[117px] sm:min-w-[180px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
+      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
         <Plane className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <input
@@ -1747,7 +1722,7 @@ function MiniAirportInput({
         placeholder={loading ? 'Loading airports…' : placeholder}
         className="w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
       />
-      {caption && <span className="mt-0.5 block text-[12.5px] text-slate-400">{caption}</span>}
+      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && matches.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
           {matches.map((a) => (
@@ -1761,6 +1736,294 @@ function MiniAirportInput({
               <span className="truncate">{a.displayName}</span>
             </button>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Custom-styled dropdown (button + floating option list) standing in for a
+// native <select> — matches the rest of the widget's card styling instead of
+// each browser/OS's own native picker UI.
+function MiniSelectInput({
+  label, icon: Icon, options, value, onChange, placeholder = 'Select an option', caption,
+  boxClassName = 'w-full sm:w-auto sm:min-w-[182px] sm:flex-1',
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  options: string[];
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  caption?: string;
+  boxClassName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  return (
+    <div
+      className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
+      ref={boxRef}
+    >
+      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+        <Icon className="h-3 w-3 text-primary-700" /> {label}
+      </label>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+      >
+        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{value || placeholder}</span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
+          {options.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => { onChange(opt); setOpen(false); }}
+              className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${
+                value === opt ? 'font-semibold text-primary-700' : 'text-slate-700'
+              }`}
+            >
+              <span className="truncate">{opt}</span>
+              {value === opt && <Check className="h-3.5 w-3.5 shrink-0 text-primary-600" />}
+            </button>
+          ))}
+        </div>
+      )}
+      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+    </div>
+  );
+}
+
+const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function ymdToDate(ymd: string) {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function dateToYmd(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Custom-styled date picker (button + floating month calendar) standing in
+// for a native <input type="date"> — matches the rest of the widget's card
+// styling instead of each browser/OS's own native date picker UI.
+function MiniDateInput({
+  label, value, onChange, min, caption,
+  boxClassName = 'min-w-[125px] sm:min-w-[190px] flex-1',
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  min?: string;
+  caption?: string;
+  boxClassName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [viewMonth, setViewMonth] = useState(() => {
+    const base = value ? ymdToDate(value) : min ? ymdToDate(min) : new Date();
+    return new Date(base.getFullYear(), base.getMonth(), 1);
+  });
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  // Jump the visible month back to the selected/min date whenever the
+  // picker is reopened, so it doesn't stay stuck wherever it was last browsed.
+  useEffect(() => {
+    if (!open) return;
+    const base = value ? ymdToDate(value) : min ? ymdToDate(min) : new Date();
+    setViewMonth(new Date(base.getFullYear(), base.getMonth(), 1));
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const minDate = min ? ymdToDate(min) : null;
+  const daysInMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0).getDate();
+  const firstWeekday = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1).getDay();
+  const monthLabel = viewMonth.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const canGoPrevMonth = !minDate || new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 0) >= new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+
+  const displayText = value
+    ? ymdToDate(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : 'dd/mm/yyyy';
+
+  return (
+    <div
+      className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
+      ref={boxRef}
+    >
+      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+        <Calendar className="h-3 w-3 text-primary-700" /> {label}
+      </label>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+      >
+        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{displayText}</span>
+      </button>
+      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {open && (
+        <div className="absolute left-0 top-full z-[60] mt-1.5 w-64 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-2xl">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              disabled={!canGoPrevMonth}
+              onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+              className="rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-[13px] font-bold text-slate-900">{monthLabel}</span>
+            <button
+              type="button"
+              onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+              className="rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-50"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="mt-2 grid grid-cols-7 gap-y-1 text-center text-[11px] font-semibold text-slate-400">
+            {WEEKDAY_LABELS.map((d, i) => <div key={i}>{d}</div>)}
+          </div>
+          <div className="mt-1 grid grid-cols-7 gap-y-1">
+            {Array.from({ length: firstWeekday }).map((_, i) => <div key={`empty-${i}`} />)}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const thisDate = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day);
+              const thisYmd = dateToYmd(thisDate);
+              const isDisabled = !!minDate && thisDate < minDate;
+              const isSelected = thisYmd === value;
+              return (
+                <div key={day} className="flex items-center justify-center">
+                  <button
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => { onChange(thisYmd); setOpen(false); }}
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[12.5px] font-semibold transition-colors ${
+                      isSelected
+                        ? 'bg-primary text-white'
+                        : isDisabled
+                          ? 'cursor-not-allowed text-slate-300'
+                          : 'text-slate-700 hover:bg-primary-50'
+                    }`}
+                  >
+                    {day}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatTimeSlot(t: string) {
+  const [hStr, mStr] = t.split(':');
+  let h = parseInt(hStr, 10);
+  const period = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${mStr} ${period}`;
+}
+
+const TIME_SLOTS: string[] = (() => {
+  const out: string[] = [];
+  for (let h = 0; h < 24; h++) {
+    for (const m of [0, 30]) out.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+  }
+  return out;
+})();
+
+// Custom-styled time picker (button + floating 30-min-slot list) standing in
+// for a native <input type="time"> — matches the rest of the widget's card
+// styling instead of each browser/OS's own native time picker UI.
+function MiniTimeInput({
+  label, value, onChange, caption,
+  boxClassName = 'min-w-[112px] sm:min-w-[172px] flex-1',
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  caption?: string;
+  boxClassName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  // Scroll the selected (or nearest) slot into view whenever the panel opens,
+  // instead of always starting the list at 12:00 AM.
+  useEffect(() => {
+    if (!open) return;
+    const id = requestAnimationFrame(() => {
+      listRef.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'center' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [open]);
+
+  return (
+    <div
+      className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
+      ref={boxRef}
+    >
+      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+        <Clock className="h-3 w-3 text-primary-700" /> {label}
+      </label>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+      >
+        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{value ? formatTimeSlot(value) : '--:-- --'}</span>
+      </button>
+      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {open && (
+        <div ref={listRef} className="absolute left-0 top-full z-[60] mt-1.5 max-h-64 w-40 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
+          {TIME_SLOTS.map((t) => {
+            const isSelected = t === value;
+            return (
+              <button
+                key={t}
+                type="button"
+                data-active={isSelected ? 'true' : undefined}
+                onClick={() => { onChange(t); setOpen(false); }}
+                className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${
+                  isSelected ? 'font-semibold text-primary-700' : 'text-slate-700'
+                }`}
+              >
+                {formatTimeSlot(t)}
+                {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-primary-600" />}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -2465,7 +2728,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
         <div className="mb-14 mt-7 flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-start">
           <div>
-            <h2 className="max-w-2xl font-heading text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl">
+            <h2 className="max-w-2xl font-heading text-2xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-4xl lg:text-5xl">
               Everything You Need to<br />
               <span className="text-primary-400">Ride, Move &amp; Travel.</span>
             </h2>
@@ -2475,26 +2738,26 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-3.5 whitespace-nowrap rounded-2xl border border-white/[0.18] bg-slate-900/70 px-5 py-4 backdrop-blur-sm">
-            <div className="flex">
+          <div className="flex w-full flex-wrap items-center gap-2.5 rounded-2xl border border-white/[0.18] bg-slate-900/70 px-4 py-3 backdrop-blur-sm sm:w-fit sm:shrink-0 sm:flex-nowrap sm:gap-3.5 sm:px-5 sm:py-4">
+            <div className="flex shrink-0">
               {HERO_AVATARS.map((src, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img key={src} src={src} alt="" className={`h-9 w-9 rounded-full border-2 border-[#16202f] object-cover ${i > 0 ? '-ml-2.5' : ''}`} />
               ))}
             </div>
-            <div className="border-r border-white/[0.18] pr-4">
+            <div className="shrink-0 border-r border-white/[0.18] pr-4">
               <div className="flex items-center gap-1.5 text-[15px] font-bold text-white">
                 <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> 4.8/5
               </div>
-              <p className="mt-0.5 text-xs text-slate-400">From 20,000+ reviews</p>
+              <p className="mt-0.5 whitespace-nowrap text-xs text-slate-400">From 20,000+ reviews</p>
             </div>
-            <p className="text-[13px] font-medium text-slate-200">Trusted by Thousands of Customers</p>
+            <p className="w-full text-[13px] font-medium text-slate-200 sm:w-auto sm:whitespace-nowrap">Trusted by Thousands of Customers</p>
           </div>
         </div>
 
         {/* Search panel */}
         <div className="flex flex-col items-stretch">
-          <div className="ml-1 w-fit max-w-full overflow-x-auto rounded-t-lg bg-white px-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:ml-5 sm:px-6 [&::-webkit-scrollbar]:hidden">
+          <div className="ml-1 w-fit max-w-full overflow-x-auto rounded-xl bg-white px-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:ml-5 sm:rounded-t-lg sm:rounded-b-none sm:px-6 [&::-webkit-scrollbar]:hidden">
             <div className="flex gap-1">
               {TRANSPORT_TABS.map((tab) => {
                 const Icon = tab.icon;
@@ -2517,7 +2780,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
           <div className="rounded-2xl bg-white shadow-[0_16px_34px_rgba(0,0,0,0.28)]">
             {activeTab.key === 'car' && (
-              <div className="flex gap-2 px-3.5 pt-3.5 sm:px-5 sm:pt-5">
+              <div className="flex flex-wrap gap-2 px-3.5 pt-3.5 sm:px-5 sm:pt-5">
                 {(['local', 'outstation', 'airport'] as const).map((mode) => (
                   <button
                     key={mode}
@@ -2537,7 +2800,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
             )}
 
             {activeTab.key === 'bus' && (
-              <div className="flex gap-2 px-3.5 pt-3.5 sm:px-5 sm:pt-5">
+              <div className="flex flex-wrap gap-2 px-3.5 pt-3.5 sm:px-5 sm:pt-5">
                 {(['outstation', 'local'] as const).map((t) => (
                   <button
                     key={t}
@@ -2555,7 +2818,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
               </div>
             )}
 
-            <div className={`flex flex-wrap items-stretch gap-4 p-5 sm:p-8 ${activeTab.key === 'car' || activeTab.key === 'bus' || activeTab.key === 'truck' || activeTab.key === 'packers' || activeTab.key === 'equipment' ? '' : 'sm:flex-nowrap'}`}>
+            <div className={`flex flex-wrap items-stretch gap-2.5 p-3 sm:gap-4 sm:p-8 ${activeTab.key === 'car' || activeTab.key === 'bus' || activeTab.key === 'truck' || activeTab.key === 'packers' || activeTab.key === 'equipment' ? '' : 'md:flex-nowrap'}`}>
               {activeTab.key === 'car' ? (
                 <>
                   {carSubTab === 'local' && (
@@ -2568,8 +2831,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         value={fromCity?.name ?? ''}
                         onSelect={setFromCity}
                       />
-                      <div className="min-w-[260px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Select Package</label>
+                      <div className="min-w-[170px] sm:min-w-[260px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Select Package</label>
                         <div className="grid grid-cols-3 gap-1.5">
                           {(['4', '8', '12'] as const).map((p) => (
                             <button
@@ -2609,7 +2872,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         ))}
                       </div>
 
-                      <div className="flex flex-1 basis-[420px] items-stretch gap-2.5">
+                      <div className="flex flex-1 flex-wrap basis-[420px] items-stretch gap-2.5">
                         <MiniCityInput
                           label="From"
                           placeholder="Enter pickup location"
@@ -2626,7 +2889,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         >
                           <ArrowLeftRight className="h-3 w-3" />
                         </button>
-                        <div className="relative min-w-[182px] flex-1">
+                        <div className="relative min-w-[120px] sm:min-w-[182px] flex-1">
                           <MiniCityInput
                             label="To"
                             placeholder="Enter delivery location"
@@ -2649,7 +2912,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       </div>
 
                       {viaCities.map((via, idx) => (
-                        <div key={idx} className="relative min-w-[182px] flex-1">
+                        <div key={idx} className="relative min-w-[120px] sm:min-w-[182px] flex-1">
                           <MiniCityInput
                             label={`Via ${viaCities.length > 1 ? idx + 1 : ''}`.trim()}
                             placeholder="Stop city"
@@ -2725,55 +2988,38 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     </>
                   )}
 
-                  <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                      <Calendar className="h-3 w-3 text-primary-700" />
-                      {carSubTab === 'airport' ? (airportMode === 'from' ? 'Flight Arrival' : 'Pickup Date') : 'Pickup Date'}
-                    </label>
-                    <input
-                      type="date"
-                      min={todayDateStr}
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                    />
-                    <span className="mt-0.5 block text-[12.5px] text-slate-400">Journey date</span>
-                  </div>
+                  <MiniDateInput
+                    label={carSubTab === 'airport' ? (airportMode === 'from' ? 'Flight Arrival' : 'Pickup Date') : 'Pickup Date'}
+                    value={date}
+                    onChange={setDate}
+                    min={todayDateStr}
+                    caption="Journey date"
+                    boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
+                  />
 
                   {carSubTab === 'outstation' && carTripMode === 'roundtrip' && (
-                    <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                        <Calendar className="h-3 w-3 text-primary-700" /> Return Date
-                      </label>
-                      <input
-                        type="date"
-                        min={date || todayDateStr}
-                        value={dropoffDate}
-                        onChange={(e) => setDropoffDate(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Return date</span>
-                    </div>
+                    <MiniDateInput
+                      label="Return Date"
+                      value={dropoffDate}
+                      onChange={setDropoffDate}
+                      min={date || todayDateStr}
+                      caption="Return date"
+                      boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
+                    />
                   )}
 
-                  <div className="min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                      <Clock className="h-3 w-3 text-primary-700" />
-                      {carSubTab === 'airport' ? (airportMode === 'from' ? 'Arrival Time' : 'Pickup Time') : 'Pickup Time'}
-                    </label>
-                    <input
-                      type="time"
-                      value={pickupTime}
-                      onChange={(e) => setPickupTime(e.target.value)}
-                      className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                    />
-                    <span className="mt-0.5 block text-[12.5px] text-slate-400">Pickup time</span>
-                  </div>
+                  <MiniTimeInput
+                    label={carSubTab === 'airport' ? (airportMode === 'from' ? 'Arrival Time' : 'Pickup Time') : 'Pickup Time'}
+                    value={pickupTime}
+                    onChange={setPickupTime}
+                    caption="Pickup time"
+                    boxClassName="min-w-[112px] sm:min-w-[172px] flex-1"
+                  />
                 </>
               ) : activeTab.key === 'bus' ? (
                 busStep === 1 ? (
                   <>
-                    <div className="flex min-w-0 flex-1 basis-[260px] items-stretch gap-2.5">
+                    <div className="flex min-w-0 flex-1 flex-wrap basis-[260px] items-stretch gap-2.5">
                       <MiniCityInput
                         label="From"
                         placeholder="Enter pickup location"
@@ -2799,8 +3045,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         onSelect={setToCity}
                       />
                     </div>
-                    <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                       </label>
                       <input
@@ -2812,8 +3058,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
-                    <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Drop Address
                       </label>
                       <input
@@ -2839,46 +3085,31 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   </>
                 ) : (
                   <>
-                    <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                        <Calendar className="h-3 w-3 text-primary-700" /> Journey Date
-                      </label>
-                      <input
-                        type="date"
-                        min={todayDateStr}
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Travel date</span>
-                    </div>
-                    <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                        <Calendar className="h-3 w-3 text-primary-700" /> Return Date
-                      </label>
-                      <input
-                        type="date"
-                        min={date || todayDateStr}
-                        value={dropoffDate}
-                        onChange={(e) => setDropoffDate(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
-                    </div>
-                    <div className="min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                        <Clock className="h-3 w-3 text-primary-700" /> Pickup Time
-                      </label>
-                      <input
-                        type="time"
-                        value={pickupTime}
-                        onChange={(e) => setPickupTime(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Pickup time</span>
-                    </div>
-                    <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <MiniDateInput
+                      label="Journey Date"
+                      value={date}
+                      onChange={setDate}
+                      min={todayDateStr}
+                      caption="Travel date"
+                      boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
+                    />
+                    <MiniDateInput
+                      label="Return Date"
+                      value={dropoffDate}
+                      onChange={setDropoffDate}
+                      min={date || todayDateStr}
+                      caption="Optional"
+                      boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
+                    />
+                    <MiniTimeInput
+                      label="Pickup Time"
+                      value={pickupTime}
+                      onChange={setPickupTime}
+                      caption="Pickup time"
+                      boxClassName="min-w-[120px] sm:min-w-[182px] flex-1"
+                    />
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Users className="h-3 w-3 text-primary-700" /> Passengers
                       </label>
                       <div className="flex items-center gap-2.5">
@@ -2942,7 +3173,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 packersStep === 1 ? (
                   <div className="flex w-full flex-col gap-3.5">
                     <div>
-                      <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Scope of Move</label>
+                      <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Scope of Move</label>
                       <div className="flex flex-wrap gap-2">
                         {([
                           { v: 'LOCAL', icon: MapPin, label: 'Local' },
@@ -2967,9 +3198,9 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       </div>
                     </div>
 
-                    <div className="flex w-full items-stretch gap-3">
+                    <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row">
                       <div className="flex-1">
-                        <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Type of Shifting</label>
+                        <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Type of Shifting</label>
                         <div className="grid grid-cols-3 gap-2.5">
                           {([
                             { v: 'Home', icon: Home, sub: 'Household' },
@@ -3017,10 +3248,10 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     </div>
                   </div>
                 ) : packersStep === 2 ? (
-                  <div className="flex w-full items-stretch gap-3">
+                  <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row">
                     <div className="flex-1">
-                      <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Home Size</label>
-                      <div className="grid grid-cols-6 gap-1.5">
+                      <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Home Size</label>
+                      <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
                         {([
                           { v: 'BHK_1', label: '1 BHK' },
                           { v: 'BHK_2', label: '2 BHK' },
@@ -3074,8 +3305,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={fromCity?.name ?? ''}
                       onSelect={setFromCity}
                     />
-                    <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                       </label>
                       <input
@@ -3083,36 +3314,36 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         value={pickupAddress}
                         onChange={(e) => setPickupAddress(e.target.value)}
                         placeholder="Full pickup address"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
-                    <div className="min-w-[100px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 block text-[13px] font-bold text-slate-500">Pincode</label>
+                    <div className="min-w-[90px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Pincode</label>
                       <input
                         type="tel"
                         maxLength={6}
                         value={pickupPincode}
                         onChange={(e) => setPickupPincode(e.target.value.replace(/\D/g, ''))}
                         placeholder="6-digit"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[90px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 block text-[13px] font-bold text-slate-500">Floor No.</label>
+                    <div className="min-w-[105px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Floor No.</label>
                       <input
                         type="number"
                         min={0}
                         value={pickupFloor}
                         onChange={(e) => setPickupFloor(e.target.value)}
                         placeholder="0 = ground"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 block text-[13px] font-bold text-slate-500">Lift at Pickup?</label>
+                    <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Lift at Pickup?</label>
                       <YesNoPill value={pickupLift} onChange={setPickupLift} />
                     </div>
 
@@ -3145,8 +3376,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={toCity?.name ?? ''}
                       onSelect={setToCity}
                     />
-                    <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Drop Address
                       </label>
                       <input
@@ -3154,36 +3385,36 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         value={dropAddress}
                         onChange={(e) => setDropAddress(e.target.value)}
                         placeholder="Full drop address"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
-                    <div className="min-w-[100px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 block text-[13px] font-bold text-slate-500">Pincode</label>
+                    <div className="min-w-[90px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Pincode</label>
                       <input
                         type="tel"
                         maxLength={6}
                         value={dropPincode}
                         onChange={(e) => setDropPincode(e.target.value.replace(/\D/g, ''))}
                         placeholder="6-digit"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[90px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 block text-[13px] font-bold text-slate-500">Floor No.</label>
+                    <div className="min-w-[105px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Floor No.</label>
                       <input
                         type="number"
                         min={0}
                         value={dropFloor}
                         onChange={(e) => setDropFloor(e.target.value)}
                         placeholder="0 = ground"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 block text-[13px] font-bold text-slate-500">Lift at Drop?</label>
+                    <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Lift at Drop?</label>
                       <YesNoPill value={dropLift} onChange={setDropLift} />
                     </div>
 
@@ -3208,44 +3439,29 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   </>
                 ) : packersStep === 5 ? (
                   <>
-                    <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                        <Calendar className="h-3 w-3 text-primary-700" /> Shift Date
-                      </label>
-                      <input
-                        type="date"
-                        min={todayDateStr}
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Moving date</span>
-                    </div>
-                    <div className="min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                        <Clock className="h-3 w-3 text-primary-700" /> Pickup Time
-                      </label>
-                      <input
-                        type="time"
-                        value={pickupTime}
-                        onChange={(e) => setPickupTime(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Pickup time</span>
-                    </div>
-                    <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                        <Calendar className="h-3 w-3 text-primary-700" /> Expected Delivery
-                      </label>
-                      <input
-                        type="date"
-                        min={date || todayDateStr}
-                        value={expectedDeliveryDate}
-                        onChange={(e) => setExpectedDeliveryDate(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
-                    </div>
+                    <MiniDateInput
+                      label="Shift Date"
+                      value={date}
+                      onChange={setDate}
+                      min={todayDateStr}
+                      caption="Moving date"
+                      boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
+                    />
+                    <MiniTimeInput
+                      label="Pickup Time"
+                      value={pickupTime}
+                      onChange={setPickupTime}
+                      caption="Pickup time"
+                      boxClassName="min-w-[120px] sm:min-w-[182px] flex-1"
+                    />
+                    <MiniDateInput
+                      label="Expected Delivery"
+                      value={expectedDeliveryDate}
+                      onChange={setExpectedDeliveryDate}
+                      min={date || todayDateStr}
+                      caption="Optional"
+                      boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
+                    />
 
                     <div className="flex shrink-0 flex-col items-center justify-end gap-1.5 sm:ml-1">
                       <div className="flex shrink-0 items-center gap-2">
@@ -3269,7 +3485,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 ) : packersStep === 6 ? (
                   <div className="flex w-full flex-col gap-3">
                     <div className="w-full rounded-[10px] border border-slate-100 bg-[#fbfbfc] p-3.5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-2 block text-[13px] font-bold text-slate-500">What are you moving?</label>
+                      <label className="mb-2 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">What are you moving?</label>
                       <div className="flex flex-wrap gap-2">
                         {INVENTORY_ITEMS.map((item) => {
                           const Icon = item.icon;
@@ -3305,8 +3521,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     </div>
 
                     <div className="flex flex-wrap items-stretch gap-3">
-                      <div className="min-w-[200px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Other Items</label>
+                      <div className="min-w-[130px] sm:min-w-[200px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Other Items</label>
                         <input
                           type="text"
                           value={inventoryExtra}
@@ -3316,8 +3532,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         />
                         <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                       </div>
-                      <div className="min-w-[220px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Estimated Weight</label>
+                      <div className="min-w-[143px] sm:min-w-[220px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Estimated Weight</label>
                         <div className="grid grid-cols-2 gap-1.5">
                           {ESTIMATED_WEIGHT_OPTIONS.map((opt) => (
                             <button
@@ -3333,8 +3549,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           ))}
                         </div>
                       </div>
-                      <div className="min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Heavy Items?</label>
+                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Heavy Items?</label>
                         <YesNoPill value={hasHeavyItems} onChange={setHasHeavyItems} />
                         {hasHeavyItems && (
                           <input
@@ -3346,8 +3562,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           />
                         )}
                       </div>
-                      <div className="min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Fragile Items?</label>
+                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Fragile Items?</label>
                         <YesNoPill value={hasFragileItems} onChange={setHasFragileItems} />
                         {hasFragileItems && (
                           <input
@@ -3383,20 +3599,20 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 ) : (
                   <div className="flex w-full flex-col gap-3">
                     <div className="flex flex-wrap items-stretch gap-3">
-                      <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Packing Help?</label>
+                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Packing Help?</label>
                         <YesNoPill value={needPacking} onChange={setNeedPacking} />
                       </div>
-                      <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Loading Help?</label>
+                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Loading Help?</label>
                         <YesNoPill value={needLoading} onChange={setNeedLoading} />
                       </div>
-                      <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Unloading Help?</label>
+                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Unloading Help?</label>
                         <YesNoPill value={needUnloading} onChange={setNeedUnloading} />
                       </div>
-                      <div className="min-w-[155px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Labour Workers</label>
+                      <div className="min-w-[100px] sm:min-w-[155px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Labour Workers</label>
                         <input
                           type="number"
                           min={1}
@@ -3405,13 +3621,13 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           placeholder="e.g. 2"
                           className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                         />
-                        <span className="mt-0.5 block text-[12.5px] text-slate-400">Optional</span>
+                        <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-stretch gap-3">
-                      <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Truck Type</label>
+                      <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Truck Type</label>
                         <div className="flex gap-1.5">
                           {([
                             { v: 'SHARED', icon: Warehouse, label: 'Shared' },
@@ -3433,12 +3649,12 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           })}
                         </div>
                       </div>
-                      <div className="min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Part Load OK?</label>
+                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Part Load OK?</label>
                         <YesNoPill value={partLoad} onChange={setPartLoad} />
                       </div>
-                      <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Transit Insurance?</label>
+                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Transit Insurance?</label>
                         <YesNoPill value={needInsurance} onChange={setNeedInsurance} />
                         {needInsurance && (
                           <input
@@ -3450,12 +3666,12 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           />
                         )}
                       </div>
-                      <div className="min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Proof of Delivery?</label>
+                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Proof of Delivery?</label>
                         <YesNoPill value={requiresPod} onChange={setRequiresPod} />
                       </div>
-                      <div className="min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 block text-[13px] font-bold text-slate-500">Multiple Stops?</label>
+                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Multiple Stops?</label>
                         <YesNoPill value={multipleStops} onChange={setMultipleStops} />
                         {multipleStops && (
                           <input
@@ -3496,19 +3712,19 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
               ) : activeTab.key === 'equipment' ? (
                 equipmentStep === 1 ? (
                   <>
-                    <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Wrench className="h-3 w-3 text-primary-700" /> Equipment Type
                       </label>
                       <select
                         value={equipmentType}
                         onChange={(e) => setEquipmentType(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                       >
                         <option value="">Select equipment</option>
                         {QUICK_EQUIPMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                       </select>
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Type of equipment</span>
+                      <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Type of equipment</span>
                     </div>
                     <MiniCityInput
                       label="Pickup City"
@@ -3518,8 +3734,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={fromCity?.name ?? ''}
                       onSelect={setFromCity}
                     />
-                    <div className="min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                       </label>
                       <input
@@ -3544,8 +3760,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   </>
                 ) : (
                   <>
-                    <div className="min-w-[220px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1.5 block text-[13px] font-bold text-slate-500">Rental Duration</label>
+                    <div className="min-w-[143px] sm:min-w-[220px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Rental Duration</label>
                       <div className="grid grid-cols-2 gap-1.5">
                         {([
                           { v: '1', label: '1–5 Days' },
@@ -3566,21 +3782,16 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         ))}
                       </div>
                     </div>
-                    <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                        <Calendar className="h-3 w-3 text-primary-700" /> Start Date
-                      </label>
-                      <input
-                        type="date"
-                        min={todayDateStr}
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                      />
-                      <span className="mt-0.5 block text-[12.5px] text-slate-400">Rental start</span>
-                    </div>
-                    <div className="min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                    <MiniDateInput
+                      label="Start Date"
+                      value={date}
+                      onChange={setDate}
+                      min={todayDateStr}
+                      caption="Rental start"
+                      boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
+                    />
+                    <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Wrench className="h-3 w-3 text-primary-700" /> Number of Equipment
                       </label>
                       <div className="flex items-center gap-2.5">
@@ -3615,8 +3826,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         </button>
                       </div>
                     </div>
-                    <div className="min-w-[260px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                      <label className="mb-1.5 block text-[13px] font-bold text-slate-500">What do you need?</label>
+                    <div className="min-w-[170px] sm:min-w-[260px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">What do you need?</label>
                       <div className="flex flex-wrap gap-1.5">
                         {([
                           { v: 'operator', label: 'Operator', on: needOperator, set: setNeedOperator },
@@ -3663,7 +3874,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 )
               ) : (
                 <>
-                  <div className="flex min-w-0 flex-[2] basis-[320px] items-stretch gap-2.5">
+                  <div className="flex min-w-0 flex-[2] flex-wrap basis-[320px] items-stretch gap-2.5">
                     <MiniCityInput
                       label="From"
                       placeholder="Enter pickup location"
@@ -3697,36 +3908,26 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
                   {activeTab.hasTruckFields && (
                     <>
-                      <div className="min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                          <Package className="h-3 w-3 text-primary-700" /> Load Type
-                        </label>
-                        <select
-                          value={loadType}
-                          onChange={(e) => setLoadType(e.target.value)}
-                          className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                        >
-                          <option value="">Select load type</option>
-                          {QUICK_LOAD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                        <span className="mt-0.5 block text-[12.5px] text-slate-400">Type of goods</span>
-                      </div>
-                      <div className="min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                          <Truck className="h-3 w-3 text-primary-700" /> Truck Type
-                        </label>
-                        <select
-                          value={truckType}
-                          onChange={(e) => setTruckType(e.target.value)}
-                          className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                        >
-                          <option value="">Select truck type</option>
-                          {QUICK_TRUCK_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                        <span className="mt-0.5 block text-[12.5px] text-slate-400">Vehicle type</span>
-                      </div>
-                      <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                      <MiniSelectInput
+                        label="Load Type"
+                        icon={Package}
+                        options={QUICK_LOAD_TYPES}
+                        value={loadType}
+                        onChange={setLoadType}
+                        placeholder="Select load type"
+                        caption="Type of goods"
+                      />
+                      <MiniSelectInput
+                        label="Truck Type"
+                        icon={Truck}
+                        options={QUICK_TRUCK_TYPES}
+                        value={truckType}
+                        onChange={setTruckType}
+                        placeholder="Select truck type"
+                        caption="Vehicle type"
+                      />
+                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                           <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                         </label>
                         <input
@@ -3738,8 +3939,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         />
                         <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                       </div>
-                      <div className="min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
+                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                        <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                           <MapPin className="h-3 w-3 text-primary-700" /> Drop Address
                         </label>
                         <input
@@ -3756,71 +3957,46 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
                   {activeTab.hasDateTimeFields ? (
                 <>
-                  <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                      <Calendar className="h-3 w-3 text-primary-700" /> Pickup Date
-                    </label>
-                    <input
-                      type="date"
-                      min={todayDateStr}
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                    />
-                    <span className="mt-0.5 block text-[12.5px] text-slate-400">Journey date</span>
-                  </div>
-                  <div className="min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                      <Clock className="h-3 w-3 text-primary-700" /> Pickup Time
-                    </label>
-                    <input
-                      type="time"
-                      value={pickupTime}
-                      onChange={(e) => setPickupTime(e.target.value)}
-                      className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                    />
-                    <span className="mt-0.5 block text-[12.5px] text-slate-400">Pickup time</span>
-                  </div>
-                  <div className="min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                      <Calendar className="h-3 w-3 text-primary-700" /> Drop-off Date
-                    </label>
-                    <input
-                      type="date"
-                      min={date || todayDateStr}
-                      value={dropoffDate}
-                      onChange={(e) => setDropoffDate(e.target.value)}
-                      className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                    />
-                    <span className="mt-0.5 block text-[12.5px] text-slate-400">Return date</span>
-                  </div>
-                  <div className="min-w-[172px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                    <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                      <Clock className="h-3 w-3 text-primary-700" /> Drop-off Time
-                    </label>
-                    <input
-                      type="time"
-                      value={dropoffTime}
-                      onChange={(e) => setDropoffTime(e.target.value)}
-                      className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                    />
-                    <span className="mt-0.5 block text-[12.5px] text-slate-400">Return time</span>
-                  </div>
+                  <MiniDateInput
+                    label="Pickup Date"
+                    value={date}
+                    onChange={setDate}
+                    min={todayDateStr}
+                    caption="Journey date"
+                    boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
+                  />
+                  <MiniTimeInput
+                    label="Pickup Time"
+                    value={pickupTime}
+                    onChange={setPickupTime}
+                    caption="Pickup time"
+                    boxClassName="min-w-[112px] sm:min-w-[172px] flex-1"
+                  />
+                  <MiniDateInput
+                    label="Drop-off Date"
+                    value={dropoffDate}
+                    onChange={setDropoffDate}
+                    min={date || todayDateStr}
+                    caption="Return date"
+                    boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
+                  />
+                  <MiniTimeInput
+                    label="Drop-off Time"
+                    value={dropoffTime}
+                    onChange={setDropoffTime}
+                    caption="Return time"
+                    boxClassName="min-w-[112px] sm:min-w-[172px] flex-1"
+                  />
                 </>
               ) : (
-                <div className="min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-5 py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                  <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500">
-                    <Calendar className="h-3 w-3 text-primary-700" /> Pickup Date
-                  </label>
-                  <input
-                    type="date"
-                    min={todayDateStr}
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
-                  />
-                  <span className="mt-0.5 block text-[12.5px] text-slate-400">Journey date</span>
-                </div>
+                <MiniDateInput
+                  label="Pickup Date"
+                  value={date}
+                  onChange={setDate}
+                  min={todayDateStr}
+                  caption="Journey date"
+                  boxClassName="min-w-[120px] sm:min-w-[182px] flex-1"
+                />
               )}
                 </>
               )}
@@ -3851,7 +4027,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     {activeTab.key === 'car' ? 'Book Now' : 'Get Quotes Now'} <ArrowRight className="h-4 w-4" />
                   </button>
                   {activeTab.key !== 'car' && (
-                    <span className="whitespace-nowrap text-[12.5px] text-slate-400">It&rsquo;s free &amp; takes less than 2 minutes</span>
+                    <span className="hidden whitespace-nowrap text-[12.5px] text-slate-400 sm:inline">It&rsquo;s free &amp; takes less than 2 minutes</span>
                   )}
                 </div>
               )}
@@ -3859,7 +4035,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
             {formError && <p className="px-5 pb-3 text-xs font-semibold text-red-500">{formError}</p>}
 
             {/* Secondary trust bar — same card, no gap */}
-            <div className="flex flex-wrap items-center gap-y-3 rounded-b-2xl border-t border-slate-100 bg-[#f7f8fa] px-5 py-3 text-xs text-slate-600 sm:text-sm">
+            <div className="mt-3 grid grid-cols-2 items-center gap-x-4 gap-y-3 rounded-b-2xl border-t border-slate-100 bg-[#f7f8fa] px-5 py-3 text-xs text-slate-600 sm:mt-0 sm:flex sm:flex-wrap sm:gap-x-0 sm:text-sm">
               <span className="flex flex-1 items-center gap-2.5 border-slate-200 px-0 sm:border-r sm:px-4">
                 <FileText className="h-[15px] w-[15px] shrink-0 text-primary-700" />
                 <span><b className="block font-semibold text-slate-900">Add GST Invoice</b><span className="mt-px block text-[12.5px] text-slate-400">For business bookings</span></span>
@@ -3868,7 +4044,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 <ShieldCheck className="h-[15px] w-[15px] shrink-0 text-primary-700" />
                 <span><b className="block font-semibold text-slate-900">Price Drop Protection</b><span className="mt-px block text-[12.5px] text-slate-400">Get refund if price drops</span></span>
               </span>
-              <span className="flex flex-1 items-center gap-2.5 border-slate-200 px-0 sm:border-r sm:px-4">
+              <span className="grid grid-cols-1 gap-1.5 border-slate-200 px-0 sm:flex sm:flex-1 sm:items-center sm:gap-2.5 sm:border-r sm:px-4">
                 <div className="flex">
                   {FOOTER_AVATARS.map((src, i) => (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -3940,6 +4116,15 @@ function CarQuoteModal({
   const [isBooking, setIsBooking] = useState(false);
   const [bookingError, setBookingError] = useState('');
   const getBookingDetailsRef = useRef<((vehicleId: string) => CarBookingDraft | null) | null>(null);
+  const step2Ref = useRef<HTMLDivElement>(null);
+
+  // On mobile the modal's content grid stacks to a single column (grid-cols-1
+  // below md), so "Step 2" renders BELOW the vehicle list instead of beside
+  // it — without this, picking a vehicle looked like nothing happened since
+  // the new content appeared off-screen with no scroll cue.
+  useEffect(() => {
+    if (selectedVehicle) step2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [selectedVehicle]);
 
   // Pre-fill + skip asking again if the customer is already logged in
   useEffect(() => {
@@ -4147,7 +4332,7 @@ function CarQuoteModal({
             const p = selectedVehicle.priceData.pricing;
             const tripType = params.tripType;
             return (
-              <div className="border-t border-gray-100 p-6 md:border-l md:border-t-0">
+              <div ref={step2Ref} className="border-t border-gray-100 p-6 md:border-l md:border-t-0">
                 <span className="inline-block rounded-full bg-primary-50 px-3 py-1 text-xs font-bold text-primary-700">
                   Step 2 of 2
                 </span>
