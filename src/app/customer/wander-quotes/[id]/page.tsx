@@ -16,6 +16,7 @@ import QRCode from 'qrcode';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import WanderChat from '@/components/wander/WanderChat';
 import TravelAgentChat from '@/components/travel-agent/chat/TravelAgentChat';
+import { quoteDisplay } from '@/lib/quote-font';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { sanitizeRichText } from '@/lib/utils/sanitize';
 import QuotePaymentSafetyNotice from '@/components/customer/QuotePaymentSafetyNotice';
@@ -165,7 +166,7 @@ export default function CustomerWanderQuoteDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 pt-16`}>
       <CustomerHeader showBackButton />
 
       {/* ══ HERO — full-width image slider ════════════════════════════════════ */}
@@ -256,7 +257,7 @@ export default function CustomerWanderQuoteDetailPage() {
                   {data.listing.category.icon} {data.listing.category.name}
                 </span>
               )}
-              <h1 className="text-2xl md:text-3xl font-black text-white leading-tight mb-2">
+              <h1 className="quote-serif text-[30px] md:text-[40px] font-medium text-white leading-[1.05] mb-2">
                 {data.listing?.title}
               </h1>
               <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-white/50">
@@ -527,7 +528,7 @@ export default function CustomerWanderQuoteDetailPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-indigo-400" />
-                <h3 className="font-bold text-gray-900 text-sm">Your Request</h3>
+                <h3 className="quote-serif font-medium text-gray-900 text-[18px]">Your Request</h3>
               </div>
               <div className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
@@ -639,7 +640,7 @@ export default function CustomerWanderQuoteDetailPage() {
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2 mb-5">
               <MessageSquare className="w-5 h-5 text-indigo-500" />
-              <h2 className="font-bold text-gray-900 text-base">
+              <h2 className="quote-serif font-medium text-gray-900 text-[24px]">
                 {quoteCount === 0 ? 'Vendor Quotes' : `${quoteCount} Quote${quoteCount !== 1 ? 's' : ''} Received`}
               </h2>
             </div>
@@ -710,7 +711,7 @@ export default function CustomerWanderQuoteDetailPage() {
                           {/* Price */}
                           <div className={`sm:col-span-2 rounded-2xl p-4 ${isThisAccepted ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100' : 'bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100'}`}>
                             <p className="text-xs text-gray-400 mb-1">Total Quoted Price</p>
-                            <p className={`text-3xl font-black ${isThisAccepted ? 'text-emerald-700' : 'text-indigo-700'}`}>
+                            <p className={`quote-serif text-[38px] font-medium ${isThisAccepted ? 'text-emerald-700' : 'text-indigo-700'}`}>
                               ₹{Number(quote.amount).toLocaleString('en-IN')}
                             </p>
                             {quote.perPersonAmount && (
@@ -933,7 +934,7 @@ export default function CustomerWanderQuoteDetailPage() {
                 <CheckCircle className="w-7 h-7 text-indigo-600" />
               </div>
 
-              <h2 className="text-xl font-black text-gray-900 text-center mb-1">Accept this quote?</h2>
+              <h2 className="quote-serif text-[26px] font-medium text-gray-900 text-center mb-1">Accept this quote?</h2>
               <p className="text-sm text-gray-400 text-center mb-5 leading-relaxed">
                 This will confirm the quote from <span className="font-semibold text-gray-700">{confirmQuote.vendor?.businessName || 'this vendor'}</span>. All other quotes will be declined.
               </p>
@@ -944,7 +945,7 @@ export default function CustomerWanderQuoteDetailPage() {
                   <span className="text-xs text-gray-400">Total Quoted Price</span>
                   <span className="text-xs text-gray-500 font-medium">{confirmQuote.vendor?.businessName}</span>
                 </div>
-                <p className="text-3xl font-black text-indigo-700">
+                <p className="quote-serif text-[38px] font-medium text-indigo-700">
                   ₹{Number(confirmQuote.amount).toLocaleString('en-IN')}
                 </p>
                 {confirmQuote.perPersonAmount && (
@@ -1156,7 +1157,7 @@ function TourDetailsSection({ listing }: { listing: any }) {
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
         <Compass className="w-4 h-4 text-indigo-500" />
-        <h2 className="font-bold text-gray-900 text-base">Tour Details</h2>
+        <h2 className="quote-serif font-medium text-gray-900 text-[24px]">Tour Details</h2>
       </div>
 
       {/* Highlights */}

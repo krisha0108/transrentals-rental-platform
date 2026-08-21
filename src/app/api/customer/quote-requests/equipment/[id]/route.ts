@@ -50,25 +50,51 @@ export async function GET(
     }
 
     // Transform quotes for frontend
+    // inclusions / exclusions / termsConditions are stored as a JSON string.
+    // Send them as real arrays — handing the raw string to the client left it
+    // splitting on commas, which turned '["A","B"]' into '["A"' + '"B"]'.
+    const toList = (raw) => {
+      if (Array.isArray(raw)) return raw.filter(Boolean);
+      if (typeof raw !== 'string' || !raw.trim()) return [];
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+        if (parsed && typeof parsed === 'object') return Object.values(parsed).filter(Boolean);
+        return [];
+      } catch {
+        // Not JSON — fall back to the comma-separated form.
+        return raw.split(',').map((s) => s.trim()).filter(Boolean);
+      }
+    };
+
     const quotes = quoteRequest.equipment_quotes.map((quote) => ({
       id: quote.id,
+      quoteNumber: quote.quoteNumber,
       vendorId: quote.vendorId,
       vendorName: quote.vendors?.businessName || 'Vendor',
       vendorRating: quote.vendors?.rating || 0,
       vendorTotalRentals: 0,
+      equipmentName: quote.equipmentName,
       equipmentModel: quote.equipmentModel,
       equipmentYear: quote.equipmentYear,
       totalAmount: quote.totalAmount,
+      baseAmount: quote.baseAmount || 0,
       advanceAmount: quote.advanceAmount || 0,
       advancePercent: quote.advancePercent || 0,
       dailyRate: quote.dailyRate || 0,
+      weeklyRate: quote.weeklyRate || 0,
+      monthlyRate: quote.monthlyRate || 0,
       deliveryCharges: quote.deliveryCharges || 0,
+      pickupCharges: quote.pickupCharges || 0,
       operatorCharges: quote.operatorCharges || 0,
+      installationCharges: quote.installationCharges || 0,
       fuelCharges: quote.fuelCharges || 0,
+      gstAmount: quote.gstAmount || 0,
       securityDeposit: quote.securityDeposit || 0,
-      inclusions: quote.inclusions || [],
-      exclusions: quote.exclusions || [],
-      termsConditions: quote.termsConditions || [],
+      viewCount: quote.viewCount || 0,
+      inclusions: toList(quote.inclusions),
+      exclusions: toList(quote.exclusions),
+      termsConditions: toList(quote.termsConditions),
       notes: quote.notes,
       validUntil: quote.validTill,
       status: quote.status,
@@ -88,9 +114,19 @@ export async function GET(
       city: quoteRequest.deliveryCity,
       deliveryAddress: quoteRequest.deliveryAddress,
       startDate: quoteRequest.startDate,
+      endDate: quoteRequest.endDate,
       needOperator: quoteRequest.needOperator,
+      needDelivery: quoteRequest.needDelivery,
+      needInstallation: quoteRequest.needInstallation,
       requirements: quoteRequest.requirements,
       status: quoteRequest.status,
+      totalQuotesReceived: quoteRequest.totalQuotesReceived,
+      quotesOpenTill: quoteRequest.quotesOpenTill,
+      expiresAt: quoteRequest.expiresAt,
+      createdAt: quoteRequest.createdAt,
+      customerName: quoteRequest.customerName,
+      customerEmail: quoteRequest.customerEmail,
+      customerPhone: quoteRequest.customerPhone,
     };
 
     return NextResponse.json({

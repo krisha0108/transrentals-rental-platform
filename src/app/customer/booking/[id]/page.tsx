@@ -41,6 +41,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import InlineBookingChat from '@/components/customer/InlineBookingChat';
+import { quoteDisplay } from '@/lib/quote-font';
 
 interface Vendor {
   id: number;
@@ -570,7 +571,7 @@ export default function BookingDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8FAF9]">
+      <div className={`${quoteDisplay.variable} min-h-screen flex items-center justify-center bg-[#F8FAF9]`}>
         <div className="text-center">
           <Loader2 className="h-10 w-10 animate-spin text-[#09B368] mx-auto mb-3" />
           <p className="text-gray-500 text-sm">Loading booking details...</p>
@@ -583,11 +584,11 @@ export default function BookingDetailsPage() {
     return (
       <>
         <CustomerHeader showBackButton backHref="/customer/dashboard" />
-        <main className="min-h-screen bg-[#F8FAF9] pt-20 md:pt-24 py-8">
+        <main className={`${quoteDisplay.variable} min-h-screen bg-[#F8FAF9] pt-20 md:pt-24 py-8`}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6">
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
               <AlertCircle className="h-14 w-14 text-red-400 mx-auto mb-4" />
-              <h1 className="text-xl font-bold text-gray-900 mb-2">Booking Not Found</h1>
+              <h1 className="quote-serif text-[26px] font-medium text-gray-900 mb-2">Booking Not Found</h1>
               <p className="text-gray-500 mb-6">{error || 'The booking you are looking for does not exist.'}</p>
               <Link
                 href="/customer/dashboard"
@@ -615,7 +616,7 @@ export default function BookingDetailsPage() {
         title={`Booking #TR${bookingId}`}
       />
 
-      <main className="min-h-screen bg-[#F8FAF9] pt-20 md:pt-24 pb-6 md:pb-8">
+      <main className={`${quoteDisplay.variable} min-h-screen bg-[#F8FAF9] pt-20 md:pt-24 pb-6 md:pb-8`}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div>
             {/* Main Content */}
@@ -646,7 +647,7 @@ export default function BookingDetailsPage() {
               <div className="flex items-start gap-4 mb-6">
                 <div className="text-4xl">{getServiceIcon(booking.service_name)}</div>
                 <div className="flex-1">
-                  <h1 className="text-2xl font-bold text-gray-900 mb-1">{booking.service_name}</h1>
+                  <h1 className="quote-serif text-[30px] font-medium text-gray-900 mb-1">{booking.service_name}</h1>
                   <p className="text-gray-500">Booked on {formatDateTime(booking.created_at)}</p>
                 </div>
               </div>
@@ -814,7 +815,7 @@ export default function BookingDetailsPage() {
           {(assignedVehicle || assignedDriver) && (
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
               <div className="px-6 py-4 border-b bg-green-50">
-                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="quote-serif text-[23px] font-medium text-gray-900 flex items-center gap-2">
                   <Car className="h-5 w-5 text-green-600" />
                   Assignment Details
                 </h2>
@@ -894,7 +895,7 @@ export default function BookingDetailsPage() {
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
             <div className="px-6 py-4 border-b">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="quote-serif text-[23px] font-medium text-gray-900 flex items-center gap-2">
                   <IndianRupee className="h-5 w-5 text-green-600" />
                   Received Quotations
                 </h2>
@@ -909,7 +910,7 @@ export default function BookingDetailsPage() {
                 <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Clock className="h-10 w-10 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Waiting for Quotes</h3>
+                <h3 className="quote-serif text-[23px] font-medium text-gray-900 mb-2">Waiting for Quotes</h3>
                 <p className="text-gray-600 max-w-md mx-auto">
                   Vendors are reviewing your booking request. You'll receive quotations soon.
                 </p>
@@ -943,7 +944,7 @@ export default function BookingDetailsPage() {
                             </div>
                             <div>
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <h3 className="font-semibold text-gray-900 text-lg">
+                                <h3 className="quote-serif font-medium text-gray-900 text-[23px]">
                                   {quote.vendors?.company_name || quote.vendors?.name || `Vendor ${index + 1}`}
                                 </h3>
                                 {isConfirmed && (
@@ -1229,7 +1230,7 @@ export default function BookingDetailsPage() {
           <div className="bg-[#09B368] rounded-2xl p-6 text-white relative overflow-hidden"><div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle at 80% 50%, #ffffff 0%, transparent 60%)'}} />
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div>
-                <h3 className="text-xl font-bold mb-1">Need Help?</h3>
+                <h3 className="quote-serif text-[26px] font-medium mb-1">Need Help?</h3>
                 <p className="text-white/80">Our support team is available 24/7 to assist you.</p>
               </div>
               <div className="flex gap-3">
@@ -1340,7 +1341,7 @@ export default function BookingDetailsPage() {
             <div className="p-6 pt-10 text-center">
               {paymentSuccess ? (
                 <>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h2>
+                  <h2 className="quote-serif text-[30px] font-medium text-gray-900 mb-2">Payment Successful!</h2>
                   <p className="text-gray-600 mb-4">Your booking has been confirmed.</p>
 
                   {rewardEarned > 0 && (
@@ -1363,7 +1364,7 @@ export default function BookingDetailsPage() {
                 </>
               ) : (
                 <>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">
+                  <h2 className="quote-serif text-[26px] font-medium text-gray-900 mb-1">
                     Pay Advance to Confirm
                   </h2>
                   <p className="text-3xl font-bold text-green-600 mb-4">

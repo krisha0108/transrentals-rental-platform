@@ -32,6 +32,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 
 // Car booking status types
 type CarBookingStatus =
@@ -229,7 +230,7 @@ export default function CustomerCarBookingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900">
+      <div className={`${quoteDisplay.variable} min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900`}>
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-indigo-400 mx-auto" />
           <p className="text-indigo-200 mt-4">Loading your car bookings...</p>
@@ -239,10 +240,10 @@ export default function CustomerCarBookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 pt-16`}>
       <CustomerHeader showBackButton />
       {/* Header */}
-      <header className="bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 text-white">
+      <header className="bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)] text-white">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
@@ -250,12 +251,12 @@ export default function CustomerCarBookingsPage() {
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                   <Car className="w-6 h-6" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-lg">My Car Rentals</h1>
-                  <p className="text-indigo-300 text-xs">{filteredBookings.length} bookings</p>
+                  <h1 className="quote-serif font-medium text-[23px]">My Car Rentals</h1>
+                  <p className="text-white/70 text-xs">{filteredBookings.length} bookings</p>
                 </div>
               </div>
             </div>
@@ -316,7 +317,7 @@ export default function CustomerCarBookingsPage() {
         {filteredBookings.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center">
             <Car className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No bookings found</h3>
+            <h3 className="quote-serif text-[26px] font-medium text-gray-900 mb-2">No bookings found</h3>
             <p className="text-gray-500 mb-6">
               {searchQuery || statusFilter !== 'all'
                 ? 'Try adjusting your filters'
@@ -364,7 +365,7 @@ export default function CustomerCarBookingsPage() {
                         <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
                           <div>
                             <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-bold text-gray-900">{booking.vehicleName}</h3>
+                              <h3 className="quote-serif font-medium text-gray-900 text-[21px]">{booking.vehicleName}</h3>
                               <span
                                 className={cn(
                                   'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
@@ -543,7 +544,7 @@ export default function CustomerCarBookingsPage() {
             className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-2xl p-6 flex items-center justify-between hover:opacity-90 transition"
           >
             <div>
-              <h3 className="font-bold text-lg mb-1">Rent Another Car</h3>
+              <h3 className="quote-serif font-medium text-[23px] mb-1">Rent Another Car</h3>
               <p className="text-indigo-200 text-sm">Browse self-drive cars</p>
             </div>
             <Car className="w-12 h-12 opacity-50" />
@@ -553,7 +554,7 @@ export default function CustomerCarBookingsPage() {
             className="bg-white border border-gray-200 rounded-2xl p-6 flex items-center justify-between hover:border-indigo-300 transition"
           >
             <div>
-              <h3 className="font-bold text-lg text-gray-900 mb-1">All Bookings</h3>
+              <h3 className="quote-serif font-medium text-[23px] text-gray-900 mb-1">All Bookings</h3>
               <p className="text-gray-500 text-sm">View all your travel bookings</p>
             </div>
             <Calendar className="w-12 h-12 text-gray-300" />

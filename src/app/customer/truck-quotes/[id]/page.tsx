@@ -6,6 +6,7 @@ import Link from 'next/link';
 import {
   Truck,
   ArrowLeft,
+  ArrowRight,
   MapPin,
   Calendar,
   Weight,
@@ -21,6 +22,7 @@ import {
   RefreshCw,
   Loader2,
 } from 'lucide-react';
+import { quoteDisplay } from '@/lib/quote-font';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 import CustomerHeader from '@/components/customer/CustomerHeader';
@@ -32,6 +34,9 @@ interface QuoteRequest {
   requestNumber: string;
   serviceType: string;
   chauffeur_vehicle_categories: string;
+  // The page has always read `vehicle_category` first; the API actually
+  // returns `vehicleCategoryName`, so both stay in the fallback chain.
+  vehicle_category?: string;
   vehicleCategory?: string;
   vehicleCategoryName?: string;
   truckBodyType?: string;
@@ -332,10 +337,59 @@ export default function CustomerTruckQuoteDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F8F6] pb-32 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-[#F4F8F6] pb-32 pt-16`}>
       <CustomerHeader showBackButton />
       {/* Header */}
       <div className="relative overflow-hidden bg-[#012314] text-white">
+        {/* Motion layers, matching the bus-quotes hero. Scoped class names so
+            nothing here can leak into another page's stylesheet. */}
+        <style>{`
+          @keyframes trtkPan{to{background-position-x:-46px}}
+          @keyframes trtkPosts{to{background-position-x:-96px}}
+          @keyframes trtkHaze{to{transform:translate(70px,-26px) scale(1.18);opacity:.78}}
+          @keyframes trtkRing{0%{opacity:.5;transform:scale(.94)}70%,100%{opacity:0;transform:scale(1.18)}}
+          @keyframes trtkTarmac{to{background-position-x:-12px}}
+          @keyframes trtkRide{
+            0%{transform:translateX(0);opacity:0}
+            6%{opacity:1}
+            92%{opacity:1}
+            100%{transform:translateX(calc(100cqw - 26px));opacity:0}}
+          @keyframes trtkUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+          .trtk-up{animation:trtkUp .62s cubic-bezier(.2,.9,.25,1) var(--trtk-d,0s) both}
+          /* A map grid drifting the same way the truck travels, so the whole
+             panel reads as ground moving under the vehicle. Masked to a soft
+             oval so it never looks like plain graph paper. */
+          .trtk-grid{background-image:
+              linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+              linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);
+            background-size:46px 46px;
+            -webkit-mask-image:radial-gradient(130% 105% at 50% 42%,#000 26%,transparent 80%);
+            mask-image:radial-gradient(130% 105% at 50% 42%,#000 26%,transparent 80%);
+            animation:trtkPan 22s linear infinite}
+          /* Roadside posts sliding past in the foreground. Faster than the grid
+             above, so the two speeds read as depth rather than one flat pattern. */
+          .trtk-posts{background-image:repeating-linear-gradient(90deg,
+              rgba(255,255,255,.11) 0 1px, transparent 1px 96px);
+            -webkit-mask-image:linear-gradient(transparent 8%,#000 78%);
+            mask-image:linear-gradient(transparent 8%,#000 78%);
+            animation:trtkPosts 9s linear infinite}
+          .trtk-haze{background:radial-gradient(circle,rgba(42,210,145,.34),transparent 68%);
+            opacity:.5;filter:blur(46px);
+            animation:trtkHaze 14s cubic-bezier(.2,.9,.25,1) infinite alternate}
+          .trtk-tile::after{content:"";position:absolute;inset:-6px;border-radius:20px;
+            border:1px solid rgba(255,255,255,.25);opacity:0;
+            animation:trtkRing 3.4s cubic-bezier(.2,.9,.25,1) infinite}
+          .trtk-lane{container-type:inline-size}
+          /* Steady cruise: linear keeps the speed constant, and the dash rate
+             is scaled to match it. */
+          .trtk-tar{animation:trtkTarmac 1.6s linear infinite}
+          .trtk-truck{animation:trtkRide 10s linear infinite}
+          @media(prefers-reduced-motion:reduce){
+            .trtk-up,.trtk-grid,.trtk-posts,.trtk-haze,.trtk-tile::after,
+            .trtk-tar,.trtk-truck{animation:none!important}
+            .trtk-up{opacity:1!important;transform:none!important}
+          }
+        `}</style>
         <div className="absolute inset-0 bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)]" />
         <div
           className="absolute inset-0 opacity-60"
@@ -346,8 +400,11 @@ export default function CustomerTruckQuoteDetailPage() {
               'repeating-linear-gradient(115deg, rgba(255,255,255,.045) 0 1px, transparent 1px 46px)',
           }}
         />
+        <span className="trtk-grid pointer-events-none absolute inset-0" />
+        <span className="trtk-posts pointer-events-none absolute inset-x-0 bottom-0 h-[42%]" />
+        <span className="trtk-haze pointer-events-none absolute -left-16 top-8 h-[320px] w-[420px] rounded-full" />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-6">
-          <div className="flex items-center justify-between gap-3">
+          <div className="trtk-up flex items-center justify-between gap-3">
             <Link
               href="/customer/truck-quotes"
               className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.16] bg-white/[0.07] py-1 pl-2 pr-3 text-xs font-semibold text-white/[0.74] transition hover:-translate-x-0.5 hover:bg-white/[0.17] hover:text-white"
@@ -360,14 +417,14 @@ export default function CustomerTruckQuoteDetailPage() {
             </span>
           </div>
 
-          <div className="mt-[22px] flex flex-wrap items-end justify-between gap-6">
+          <div className="trtk-up mt-[22px] flex flex-wrap items-end justify-between gap-6" style={{ ['--trtk-d' as any]: '.08s' }}>
             <div className="flex items-center gap-4 min-w-0">
-              <div className="w-14 h-14 bg-white/[0.14] rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/[0.24] shadow-[inset_0_1px_0_rgba(255,255,255,.3)]">
+              <div className="trtk-tile relative w-14 h-14 bg-white/[0.14] rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/[0.24] shadow-[inset_0_1px_0_rgba(255,255,255,.3)]">
                 <Truck className="w-7 h-7" />
               </div>
               <div className="min-w-0">
                 <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/[0.55]">Quote Request</span>
-                <h1 className="mt-0.5 text-2xl sm:text-[30px] font-extrabold leading-[1.1] tracking-tight tabular-nums">{request.requestNumber}</h1>
+                <h1 className="quote-serif mt-0.5 text-[30px] sm:text-[38px] font-medium leading-[1.05] tracking-[-0.01em] tabular-nums">{request.requestNumber}</h1>
                 <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-white/[0.64]">
                   {request.serviceType && <span className="capitalize">{request.serviceType.replace(/-/g, ' ')}</span>}
                   {request.vehicleCategoryName && <span>· {request.vehicleCategoryName}</span>}
@@ -376,31 +433,13 @@ export default function CustomerTruckQuoteDetailPage() {
                 </div>
               </div>
             </div>
-
-            <div className="grid w-full grid-cols-2 overflow-hidden rounded-2xl border border-white/[0.16] bg-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,.12)] sm:grid-cols-4 lg:w-auto">
-              <div className="px-5 py-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/[0.56] whitespace-nowrap">Quotes</p>
-                <p className="mt-1 text-[17px] font-extrabold tabular-nums whitespace-nowrap">{quotes.length}</p>
-              </div>
-              <div className="border-l border-white/[0.12] px-5 py-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/[0.56] whitespace-nowrap">Best Price</p>
-                <p className="mt-1 text-[17px] font-extrabold tabular-nums whitespace-nowrap">{lowestPrice ? `₹${lowestPrice.toLocaleString('en-IN')}` : '—'}</p>
-              </div>
-              <div className="border-t border-white/[0.12] px-5 py-3 sm:border-t-0 sm:border-l">
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/[0.56] whitespace-nowrap">Weight</p>
-                <p className="mt-1 text-[17px] font-extrabold tabular-nums whitespace-nowrap">{request.estimatedWeight ? `${request.estimatedWeight} kg` : '—'}</p>
-              </div>
-              <div className="border-l border-t border-white/[0.12] px-5 py-3 sm:border-t-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/[0.56] whitespace-nowrap">Pickup</p>
-                <p className="mt-1 text-[17px] font-extrabold tabular-nums whitespace-nowrap">
-                  {request.pickupDate ? new Date(request.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}
-                </p>
-              </div>
-            </div>
           </div>
 
           {/* Route strip */}
-          <div className="mt-[22px] flex flex-wrap items-center gap-3.5 rounded-[18px] border border-white/[0.15] bg-white/[0.08] px-[18px] py-4 shadow-[inset_0_1px_0_rgba(255,255,255,.12)]">
+          <div
+            className="trtk-up mt-[22px] flex flex-wrap items-center gap-3.5 rounded-[18px] border border-white/[0.15] bg-white/[0.08] px-[18px] py-4 shadow-[inset_0_1px_0_rgba(255,255,255,.12)]"
+            style={{ ['--trtk-d' as any]: '.16s' }}
+          >
             <div className="min-w-0 flex-[1_1_180px]">
               <p className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-white/50">Pickup</p>
               <p className="mt-0.5 text-[17px] font-extrabold">{request.pickupCity}</p>
@@ -408,9 +447,11 @@ export default function CustomerTruckQuoteDetailPage() {
                 {[request.pickupAddress, request.pickupPincode].filter(Boolean).join(' · ') || '—'}
               </p>
             </div>
-            <div className="relative hidden h-[26px] min-w-[70px] flex-[1_1_90px] sm:block">
-              <span className="absolute left-0 right-0 top-3 h-0.5 bg-[repeating-linear-gradient(90deg,rgba(255,255,255,.42)_0_6px,transparent_6px_12px)]" />
-              <span className="absolute left-0 top-0 grid h-[26px] w-[26px] place-items-center rounded-lg bg-white text-[#056B3E]">
+            {/* Grows faster than the pickup/drop columns so the road reads as
+                the long leg of the journey, not a short connector. */}
+            <div className="trtk-lane relative hidden h-[26px] min-w-[140px] flex-[2_1_200px] sm:block">
+              <span className="trtk-tar absolute left-0 right-0 top-3 h-0.5 bg-[repeating-linear-gradient(90deg,rgba(255,255,255,.42)_0_6px,transparent_6px_12px)]" />
+              <span className="trtk-truck absolute left-0 top-0 grid h-[26px] w-[26px] place-items-center rounded-lg bg-white text-[#056B3E]">
                 <Truck className="h-[15px] w-[15px]" />
               </span>
             </div>
@@ -451,7 +492,7 @@ export default function CustomerTruckQuoteDetailPage() {
         ) : (
           <>
             <div className="flex items-baseline justify-between gap-3">
-              <h2 className="text-[19px] font-extrabold text-gray-900">Compare Quotes</h2>
+              <h2 className="quote-serif text-[26px] font-medium text-gray-900">Compare Quotes</h2>
               <p className="text-[12.5px] text-gray-500">
                 {quotes.length} quote{quotes.length > 1 ? 's' : ''} · sorted by price
               </p>
@@ -497,7 +538,7 @@ export default function CustomerTruckQuoteDetailPage() {
                             <Truck className="w-6 h-6" />
                           </div>
                           <div className="min-w-0">
-                            <h3 className="text-[17px] font-extrabold leading-tight text-gray-900">{quote.vendorName}</h3>
+                            <h3 className="quote-serif text-[21px] font-medium leading-tight text-gray-900">{quote.vendorName}</h3>
                             <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
                               <Star className="w-[13px] h-[13px] text-amber-400 fill-amber-400" />
                               <b className="font-bold text-gray-900">{quote.vendorRating || 'New'}</b>
@@ -508,7 +549,7 @@ export default function CustomerTruckQuoteDetailPage() {
 
                         <div className="flex-none text-right">
                           <p className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-gray-400">Total Amount</p>
-                          <p className="mt-0.5 text-[28px] sm:text-[34px] font-extrabold leading-[1.05] tracking-[-0.03em] tabular-nums text-gray-900">
+                          <p className="quote-serif mt-0.5 text-[34px] sm:text-[42px] font-medium leading-[1.05] tracking-[-0.02em] tabular-nums text-gray-900">
                             ₹{quote.totalAmount.toLocaleString('en-IN')}
                           </p>
                           {quote.advanceAmount > 0 && (
@@ -884,56 +925,170 @@ export default function CustomerTruckQuoteDetailPage() {
         {/* Right rail */}
         <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-20">
         {/* Request Summary */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC] flex items-center justify-between gap-2">
-            <h2 className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Your Request</h2>
-            <span className="rounded-full border border-[#C8F1DF] bg-[#E9FAF2] px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-[#056B3E]">
-              {request.requestNumber}
-            </span>
-          </div>
-          <div className="p-4">
-          {/* Spec sheet — same values as before, laid out as key/value rows */}
-          <div className="flex flex-col gap-px overflow-hidden rounded-xl bg-gray-50">
-            <div className="flex items-start justify-between gap-3 bg-white px-3.5 py-2.5">
-              <span className="flex-none text-xs text-gray-500">Service</span>
-              <span className="text-right text-[12.5px] font-bold capitalize">{request.serviceType?.replace(/-/g, ' ')}</span>
-            </div>
-            <div className="flex items-start justify-between gap-3 bg-white px-3.5 py-2.5">
-              <span className="flex-none text-xs text-gray-500">Truck Type</span>
-              <span className="text-right text-[12.5px] font-bold">{request.vehicle_category}</span>
-            </div>
-            <div className="flex items-start justify-between gap-3 bg-white px-3.5 py-2.5">
-              <span className="flex-none text-xs text-gray-500">Route</span>
-              <span className="text-right text-[12.5px] font-bold break-words">{request.pickupCity} → {request.dropCity}</span>
-            </div>
-            {request.pickupAddress && (
-              <div className="flex items-start justify-between gap-3 bg-white px-3.5 py-2.5">
-                <span className="flex-none text-xs text-gray-500">Pickup Address</span>
-                <span className="text-right text-[12.5px] font-bold break-words">{request.pickupAddress}</span>
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          {/* Dark head, same family as the hero, so the rail reads as a proper
+              document rather than a plain box. */}
+          <div className="relative overflow-hidden bg-[linear-gradient(135deg,#01301B_0%,#056B3E_62%,#078F53_100%)] px-4 py-3.5 text-white">
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                backgroundImage:
+                  'radial-gradient(420px 180px at 100% -40%, rgba(42,210,145,.45), transparent 62%),' +
+                  'repeating-linear-gradient(128deg, rgba(255,255,255,.045) 0 1px, transparent 1px 34px)',
+              }}
+            />
+            <div className="relative z-10 flex items-center justify-between gap-2.5">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[9px] border border-white/[0.22] bg-white/[0.16]">
+                  <Truck className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="quote-serif block text-[18px] font-medium">Your Request</span>
+                  <span className="mt-px flex min-w-0 items-center gap-1 truncate text-[11px] text-white/[0.66]">
+                    {request.pickupCity}
+                    <ArrowRight className="h-3 w-3 flex-none" />
+                    {request.dropCity}
+                  </span>
+                </span>
               </div>
-            )}
-            {request.dropAddress && (
-              <div className="flex items-start justify-between gap-3 bg-white px-3.5 py-2.5">
-                <span className="flex-none text-xs text-gray-500">Drop Address</span>
-                <span className="text-right text-[12.5px] font-bold break-words">{request.dropAddress}</span>
-              </div>
-            )}
-            <div className="flex items-start justify-between gap-3 bg-white px-3.5 py-2.5">
-              <span className="flex-none text-xs text-gray-500">Pickup Date</span>
-              <span className="text-right text-[12.5px] font-bold">
-                {new Date(request.pickupDate).toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })}
+              <span className="flex-none rounded-full border border-white/[0.22] bg-white/[0.14] px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-white/[0.9]">
+                {request.requestNumber}
               </span>
             </div>
           </div>
 
-          {/* Extended truck quotation details */}
-          <div className="mt-3">
-            <TruckRequestDetails data={request as any} hideVehicle variant="rows" />
-          </div>
+          <div className="p-3">
+            {/* Journey window — a compact rail so pickup and delivery read as
+                one span instead of two unrelated rows. */}
+            <div className="relative overflow-hidden rounded-2xl border border-[#C8F1DF] bg-[linear-gradient(140deg,#F1FAF5_0%,#FFFFFF_64%)] px-3.5 py-3">
+              <div className="relative flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-[0.1em] text-gray-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#09B368] shadow-[0_0_0_2.5px_rgba(9,179,104,.18)]" />
+                    Pickup
+                  </p>
+                  <p className="mt-1 truncate text-[13.5px] font-extrabold text-gray-900">
+                    {new Date(request.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                  {request.pickupTime && (
+                    <p className="mt-px truncate text-[11px] tabular-nums text-gray-400">{request.pickupTime}</p>
+                  )}
+                </div>
+                <div className="relative flex flex-none items-center justify-center px-1">
+                  <span className="absolute inset-x-[-14px] top-1/2 h-px -translate-y-1/2 bg-[repeating-linear-gradient(90deg,#CFE4DA_0_4px,transparent_4px_8px)]" />
+                  <span className="relative inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-[#0F1A15] px-2.5 py-1 text-[10px] font-extrabold capitalize text-white shadow-[0_8px_16px_-10px_rgba(1,35,20,.9)]">
+                    <Truck className="h-2.5 w-2.5" />
+                    {request.tripDirection ? request.tripDirection.replace(/_/g, ' ').toLowerCase() : 'Transport'}
+                  </span>
+                </div>
+                <div className="min-w-0 text-right">
+                  <p className="flex items-center justify-end gap-1.5 text-[9px] font-extrabold uppercase tracking-[0.1em] text-gray-400">
+                    Delivery
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#F87171] shadow-[0_0_0_2.5px_rgba(248,113,113,.18)]" />
+                  </p>
+                  <p className="mt-1 truncate text-[13.5px] font-extrabold capitalize text-gray-900">
+                    {request.expectedDeliveryDate
+                      ? new Date(request.expectedDeliveryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : request.expectedDeliveryTime
+                        ? request.expectedDeliveryTime.toLowerCase()
+                        : '—'}
+                  </p>
+                  {request.expectedDeliveryDate && request.expectedDeliveryTime && (
+                    <p className="mt-px truncate text-[11px] capitalize text-gray-400">{request.expectedDeliveryTime.toLowerCase()}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Stat tiles. gap-px over a grey ground draws the hairlines, so the
+                dividers stay correct however the tiles wrap. Tints live on each
+                cell, not on a shared base — Tailwind resolves by stylesheet
+                order, not class-string order. */}
+            <div className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-100 bg-gray-100">
+              {[
+                {
+                  icon: Package,
+                  label: 'Service',
+                  value: <span className="capitalize">{request.serviceType?.replace(/-/g, ' ')}</span>,
+                  tint: 'bg-[#E9FAF2] text-[#056B3E]',
+                },
+                {
+                  icon: Truck,
+                  label: 'Truck Type',
+                  // The page has always read `vehicle_category` first; the API
+                  // actually returns `vehicleCategoryName`, so both stay in the chain.
+                  value:
+                    request.vehicle_category ||
+                    request.vehicleCategoryName ||
+                    request.chauffeur_vehicle_categories ||
+                    '—',
+                  tint: 'bg-blue-50 text-blue-600',
+                },
+                {
+                  icon: Package,
+                  label: 'Goods',
+                  value: request.goodsDescription || request.goodsType || '—',
+                  tint: 'bg-amber-50 text-amber-700',
+                },
+                {
+                  icon: Weight,
+                  label: 'Weight',
+                  value: request.estimatedWeight ? `${request.estimatedWeight} kg` : '—',
+                  tint: 'bg-gray-100 text-gray-600',
+                },
+              ].map(({ icon: Icon, label, value, tint }) => (
+                <div
+                  key={label}
+                  className="group flex items-center gap-2.5 bg-white px-3 py-2.5 transition hover:bg-[#E9FAF2]"
+                >
+                  <span
+                    className={`flex h-8 w-8 flex-none items-center justify-center rounded-[10px] transition group-hover:bg-white group-hover:text-[#056B3E] ${tint}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[9px] font-extrabold uppercase tracking-[0.1em] text-gray-400 transition group-hover:text-[#056B3E]/70">
+                      {label}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[13px] font-extrabold leading-snug text-gray-900 transition group-hover:text-[#056B3E]">
+                      {value}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Addresses */}
+            <div className="mt-3 flex flex-col gap-2">
+              <div className="flex gap-2.5 rounded-2xl border border-gray-100 bg-[#FCFDFC] px-3 py-2.5 transition hover:border-[#C8F1DF] hover:bg-white hover:shadow-[0_10px_24px_-16px_rgba(1,35,20,.45)]">
+                <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[10px] bg-[#E9FAF2] text-[#056B3E]">
+                  <MapPin className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[9px] font-extrabold uppercase tracking-[0.1em] text-gray-400">Pickup Address</span>
+                  <span className="mt-0.5 block break-words text-[12.5px] leading-relaxed text-gray-700">
+                    {[request.pickupCity, request.pickupAddress, request.pickupPincode].filter(Boolean).join(' · ')}
+                  </span>
+                </span>
+              </div>
+              <div className="flex gap-2.5 rounded-2xl border border-gray-100 bg-[#FCFDFC] px-3 py-2.5 transition hover:border-blue-200 hover:bg-white hover:shadow-[0_10px_24px_-16px_rgba(1,35,20,.45)]">
+                <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[10px] bg-blue-50 text-blue-600">
+                  <MapPin className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[9px] font-extrabold uppercase tracking-[0.1em] text-gray-400">Drop Address</span>
+                  <span className="mt-0.5 block break-words text-[12.5px] leading-relaxed text-gray-700">
+                    {[request.dropCity, request.dropAddress, request.dropPincode].filter(Boolean).join(' · ')}
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            {/* Extended truck quotation details */}
+            <div className="mt-3 rounded-2xl border border-gray-100 bg-[#FCFDFC] p-3">
+              <p className="mb-2 text-[9px] font-extrabold uppercase tracking-[0.1em] text-gray-400">Shipment Details</p>
+              <TruckRequestDetails data={request as any} hideVehicle variant="rows" />
+            </div>
           </div>
         </div>
         {/* ══ /Request Summary ══ */}
@@ -943,7 +1098,7 @@ export default function CustomerTruckQuoteDetailPage() {
           {/* Blue header so this card is unmistakable at a glance */}
           <div className="flex items-center gap-2 border-b border-blue-100 bg-blue-50 px-4 py-3">
             <Shield className="w-4 h-4 text-blue-700" />
-            <h4 className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-blue-700">Booking Protection</h4>
+            <h4 className="quote-serif text-[18px] font-medium text-blue-700">Booking Protection</h4>
           </div>
           <ul className="flex flex-col gap-2.5 p-4">
             <li className="flex gap-2.5 text-[12.5px] leading-snug text-gray-600">
@@ -968,7 +1123,7 @@ export default function CustomerTruckQuoteDetailPage() {
         {/* Need a hand */}
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
           <div className="border-b border-gray-50 bg-[#FCFDFC] px-4 py-3">
-            <h4 className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gray-400">Need a hand</h4>
+            <h4 className="quote-serif text-[18px] font-medium text-gray-600">Need a hand</h4>
           </div>
           <div className="flex flex-col gap-2.5 p-4">
             <Link

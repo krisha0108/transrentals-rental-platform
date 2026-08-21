@@ -5,6 +5,7 @@ import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 import {
   Loader2, FileText, Calendar, ExternalLink, CheckCircle, Clock,
   AlertCircle, IndianRupee, ArrowLeft, Filter, CreditCard, Download,
@@ -80,10 +81,10 @@ function CustomerB2BInvoicesContent() {
   }, [invoices]);
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 pt-16`}>
       <CustomerHeader showBackButton />
       {/* Header */}
-      <div className="bg-gradient-to-r from-orange-500 to-amber-600 px-4 sm:px-6 pt-20 pb-6">
+      <div className="bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)] px-4 sm:px-6 pt-20 pb-6">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-3 mt-4 mb-3">
             <Link href={`/customer/b2b-bookings?customer_id=${customerId}`}
@@ -91,8 +92,8 @@ function CustomerB2BInvoicesContent() {
               <ArrowLeft className="w-4 h-4 text-white" />
             </Link>
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-white">Invoices</h1>
-              <p className="text-orange-100 text-sm">All your B2B booking invoices</p>
+              <h1 className="quote-serif text-[30px] font-medium text-white">Invoices</h1>
+              <p className="text-white/75 text-sm">All your B2B booking invoices</p>
             </div>
           </div>
 
@@ -100,7 +101,7 @@ function CustomerB2BInvoicesContent() {
           {invoices.length > 0 && (
             <div className="grid grid-cols-3 gap-3 mt-4">
               <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3.5 text-center">
-                <div className="text-xs text-orange-100">Total Invoiced</div>
+                <div className="text-xs text-white/70">Total Invoiced</div>
                 <div className="text-xl font-bold text-white mt-0.5">{formatCurrency(stats.totalAmount)}</div>
               </div>
               <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3.5 text-center">
@@ -265,7 +266,7 @@ function CustomerB2BInvoicesContent() {
 
 export default function CustomerB2BInvoicesPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+    <Suspense fallback={<div className={`${quoteDisplay.variable} flex items-center justify-center min-h-screen`}><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
       <CustomerB2BInvoicesContent />
     </Suspense>
   );
