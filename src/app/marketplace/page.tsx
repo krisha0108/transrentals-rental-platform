@@ -1863,7 +1863,7 @@ function MiniDateInput({
 
   const displayText = value
     ? ymdToDate(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-    : 'dd/mm/yyyy';
+    : '';
 
   return (
     <div
@@ -2002,7 +2002,7 @@ function MiniTimeInput({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
-        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{value ? formatTimeSlot(value) : '--:-- --'}</span>
+        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{value ? formatTimeSlot(value) : ''}</span>
       </button>
       {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && (
@@ -2825,8 +2825,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     <>
                       <MiniCityInput
                         label="City"
-                        placeholder="Enter city"
-                        caption="Pickup & drop city"
+                        placeholder=""
                         locations={locations}
                         value={fromCity?.name ?? ''}
                         onSelect={setFromCity}
@@ -2875,8 +2874,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       <div className="flex flex-1 flex-wrap basis-[420px] items-stretch gap-2.5">
                         <MiniCityInput
                           label="From"
-                          placeholder="Enter pickup location"
-                          caption="Pickup city"
+                          placeholder=""
                           locations={locations}
                           value={fromCity?.name ?? ''}
                           onSelect={setFromCity}
@@ -2892,8 +2890,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         <div className="relative min-w-[120px] sm:min-w-[182px] flex-1">
                           <MiniCityInput
                             label="To"
-                            placeholder="Enter delivery location"
-                            caption="Delivery city"
+                            placeholder=""
                             locations={locations}
                             value={toCity?.name ?? ''}
                             onSelect={setToCity}
@@ -2915,8 +2912,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         <div key={idx} className="relative min-w-[120px] sm:min-w-[182px] flex-1">
                           <MiniCityInput
                             label={`Via ${viaCities.length > 1 ? idx + 1 : ''}`.trim()}
-                            placeholder="Stop city"
-                            caption="Add a stop"
+                            placeholder=""
                             locations={locations}
                             value={via?.name ?? ''}
                             onSelect={(loc) =>
@@ -2970,8 +2966,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
                       <MiniAirportInput
                         label={airportMode === 'from' ? 'Pickup Airport' : 'Drop Airport'}
-                        placeholder="Search airport by name or code..."
-                        caption={selectedAirport?.city ?? undefined}
+                        placeholder=""
                         airports={airports}
                         value={selectedAirport?.displayName ?? ''}
                         onSelect={setSelectedAirport}
@@ -2979,8 +2974,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       />
                       <MiniCityInput
                         label={airportMode === 'from' ? 'Drop Location' : 'Pickup Location'}
-                        placeholder="Enter city"
-                        caption={airportMode === 'from' ? 'Drop city' : 'Pickup city'}
+                        placeholder=""
                         locations={locations}
                         value={fromCity?.name ?? ''}
                         onSelect={setFromCity}
@@ -2993,7 +2987,6 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     value={date}
                     onChange={setDate}
                     min={todayDateStr}
-                    caption="Journey date"
                     boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
                   />
 
@@ -3003,7 +2996,6 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={dropoffDate}
                       onChange={setDropoffDate}
                       min={date || todayDateStr}
-                      caption="Return date"
                       boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
                     />
                   )}
@@ -3012,7 +3004,6 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     label={carSubTab === 'airport' ? (airportMode === 'from' ? 'Arrival Time' : 'Pickup Time') : 'Pickup Time'}
                     value={pickupTime}
                     onChange={setPickupTime}
-                    caption="Pickup time"
                     boxClassName="min-w-[112px] sm:min-w-[172px] flex-1"
                   />
                 </>
@@ -3022,8 +3013,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     <div className="flex min-w-0 flex-1 flex-wrap basis-[260px] items-stretch gap-2.5">
                       <MiniCityInput
                         label="From"
-                        placeholder="Enter pickup location"
-                        caption="Pickup city"
+                        placeholder=""
                         locations={locations}
                         value={fromCity?.name ?? ''}
                         onSelect={setFromCity}
@@ -3038,8 +3028,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       </button>
                       <MiniCityInput
                         label="To"
-                        placeholder="Enter delivery location"
-                        caption="Delivery city"
+                        placeholder=""
                         locations={locations}
                         value={toCity?.name ?? ''}
                         onSelect={setToCity}
@@ -3053,7 +3042,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         type="text"
                         value={pickupAddress}
                         onChange={(e) => setPickupAddress(e.target.value)}
-                        placeholder="Landmark or address (optional)"
+                        placeholder=""
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
@@ -3066,7 +3055,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         type="text"
                         value={dropAddress}
                         onChange={(e) => setDropAddress(e.target.value)}
-                        placeholder="Landmark or address (optional)"
+                        placeholder=""
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
@@ -3090,7 +3079,6 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={date}
                       onChange={setDate}
                       min={todayDateStr}
-                      caption="Travel date"
                       boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
                     />
                     <MiniDateInput
@@ -3098,14 +3086,12 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={dropoffDate}
                       onChange={setDropoffDate}
                       min={date || todayDateStr}
-                      caption="Optional"
                       boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
                     />
                     <MiniTimeInput
                       label="Pickup Time"
                       value={pickupTime}
                       onChange={setPickupTime}
-                      caption="Pickup time"
                       boxClassName="min-w-[120px] sm:min-w-[182px] flex-1"
                     />
                     <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
@@ -3299,8 +3285,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   <>
                     <MiniCityInput
                       label="Pickup City"
-                      placeholder="Enter pickup location"
-                      caption="Pickup city"
+                      placeholder=""
                       locations={locations}
                       value={fromCity?.name ?? ''}
                       onSelect={setFromCity}
@@ -3313,7 +3298,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         type="text"
                         value={pickupAddress}
                         onChange={(e) => setPickupAddress(e.target.value)}
-                        placeholder="Full pickup address"
+                        placeholder=""
                         className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
@@ -3325,7 +3310,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         maxLength={6}
                         value={pickupPincode}
                         onChange={(e) => setPickupPincode(e.target.value.replace(/\D/g, ''))}
-                        placeholder="6-digit"
+                        placeholder=""
                         className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
@@ -3337,7 +3322,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         min={0}
                         value={pickupFloor}
                         onChange={(e) => setPickupFloor(e.target.value)}
-                        placeholder="0 = ground"
+                        placeholder=""
                         className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
@@ -3370,8 +3355,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   <>
                     <MiniCityInput
                       label="Destination City"
-                      placeholder="Enter delivery location"
-                      caption="Delivery city"
+                      placeholder=""
                       locations={locations}
                       value={toCity?.name ?? ''}
                       onSelect={setToCity}
@@ -3384,7 +3368,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         type="text"
                         value={dropAddress}
                         onChange={(e) => setDropAddress(e.target.value)}
-                        placeholder="Full drop address"
+                        placeholder=""
                         className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
@@ -3396,7 +3380,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         maxLength={6}
                         value={dropPincode}
                         onChange={(e) => setDropPincode(e.target.value.replace(/\D/g, ''))}
-                        placeholder="6-digit"
+                        placeholder=""
                         className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
@@ -3408,7 +3392,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         min={0}
                         value={dropFloor}
                         onChange={(e) => setDropFloor(e.target.value)}
-                        placeholder="0 = ground"
+                        placeholder=""
                         className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
@@ -3444,14 +3428,12 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={date}
                       onChange={setDate}
                       min={todayDateStr}
-                      caption="Moving date"
                       boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
                     />
                     <MiniTimeInput
                       label="Pickup Time"
                       value={pickupTime}
                       onChange={setPickupTime}
-                      caption="Pickup time"
                       boxClassName="min-w-[120px] sm:min-w-[182px] flex-1"
                     />
                     <MiniDateInput
@@ -3459,7 +3441,6 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={expectedDeliveryDate}
                       onChange={setExpectedDeliveryDate}
                       min={date || todayDateStr}
-                      caption="Optional"
                       boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
                     />
 
@@ -3527,7 +3508,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           type="text"
                           value={inventoryExtra}
                           onChange={(e) => setInventoryExtra(e.target.value)}
-                          placeholder="e.g. 3 ACs, treadmill, piano…"
+                          placeholder=""
                           className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                         />
                         <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
@@ -3557,7 +3538,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                             type="text"
                             value={heavyItemsDesc}
                             onChange={(e) => setHeavyItemsDesc(e.target.value)}
-                            placeholder="Describe…"
+                            placeholder=""
                             className="mt-1.5 w-full border-none border-t border-slate-100 bg-transparent p-0 pt-1.5 text-[12px] font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0"
                           />
                         )}
@@ -3570,7 +3551,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                             type="text"
                             value={fragileItemsDesc}
                             onChange={(e) => setFragileItemsDesc(e.target.value)}
-                            placeholder="Describe…"
+                            placeholder=""
                             className="mt-1.5 w-full border-none border-t border-slate-100 bg-transparent p-0 pt-1.5 text-[12px] font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0"
                           />
                         )}
@@ -3618,7 +3599,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           min={1}
                           value={labourCount}
                           onChange={(e) => setLabourCount(e.target.value)}
-                          placeholder="e.g. 2"
+                          placeholder=""
                           className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                         />
                         <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
@@ -3661,7 +3642,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                             type="number"
                             value={insuranceValue}
                             onChange={(e) => setInsuranceValue(e.target.value)}
-                            placeholder="Goods value (₹)"
+                            placeholder=""
                             className="mt-1.5 w-full border-none border-t border-slate-100 bg-transparent p-0 pt-1.5 text-[12px] font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0"
                           />
                         )}
@@ -3678,7 +3659,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                             type="text"
                             value={multipleStopsDesc}
                             onChange={(e) => setMultipleStopsDesc(e.target.value)}
-                            placeholder="Describe the stops…"
+                            placeholder=""
                             className="mt-1.5 w-full border-none border-t border-slate-100 bg-transparent p-0 pt-1.5 text-[12px] font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0"
                           />
                         )}
@@ -3728,8 +3709,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     </div>
                     <MiniCityInput
                       label="Pickup City"
-                      placeholder="Enter pickup location"
-                      caption="Pickup city"
+                      placeholder=""
                       locations={locations}
                       value={fromCity?.name ?? ''}
                       onSelect={setFromCity}
@@ -3742,7 +3722,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         type="text"
                         value={pickupAddress}
                         onChange={(e) => setPickupAddress(e.target.value)}
-                        placeholder="Enter pickup address or landmark"
+                        placeholder=""
                         className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Delivery address</span>
@@ -3787,7 +3767,6 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={date}
                       onChange={setDate}
                       min={todayDateStr}
-                      caption="Rental start"
                       boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
                     />
                     <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
@@ -3877,8 +3856,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   <div className="flex min-w-0 flex-[2] flex-wrap basis-[320px] items-stretch gap-2.5">
                     <MiniCityInput
                       label="From"
-                      placeholder="Enter pickup location"
-                      caption="Pickup city"
+                      placeholder=""
                       locations={locations}
                       value={fromCity?.name ?? ''}
                       onSelect={setFromCity}
@@ -3896,8 +3874,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         </button>
                         <MiniCityInput
                           label="To"
-                          placeholder="Enter delivery location"
-                          caption="Delivery city"
+                          placeholder=""
                           locations={locations}
                           value={toCity?.name ?? ''}
                           onSelect={setToCity}
@@ -3914,8 +3891,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         options={QUICK_LOAD_TYPES}
                         value={loadType}
                         onChange={setLoadType}
-                        placeholder="Select load type"
-                        caption="Type of goods"
+                        placeholder=""
                       />
                       <MiniSelectInput
                         label="Truck Type"
@@ -3923,8 +3899,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         options={QUICK_TRUCK_TYPES}
                         value={truckType}
                         onChange={setTruckType}
-                        placeholder="Select truck type"
-                        caption="Vehicle type"
+                        placeholder=""
                       />
                       <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
@@ -3934,7 +3909,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           type="text"
                           value={pickupAddress}
                           onChange={(e) => setPickupAddress(e.target.value)}
-                          placeholder="Landmark or address (optional)"
+                          placeholder=""
                           className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                         />
                         <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
@@ -3947,7 +3922,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           type="text"
                           value={dropAddress}
                           onChange={(e) => setDropAddress(e.target.value)}
-                          placeholder="Landmark or address (optional)"
+                          placeholder=""
                           className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                         />
                         <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
@@ -3962,14 +3937,12 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     value={date}
                     onChange={setDate}
                     min={todayDateStr}
-                    caption="Journey date"
                     boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
                   />
                   <MiniTimeInput
                     label="Pickup Time"
                     value={pickupTime}
                     onChange={setPickupTime}
-                    caption="Pickup time"
                     boxClassName="min-w-[112px] sm:min-w-[172px] flex-1"
                   />
                   <MiniDateInput
@@ -3977,14 +3950,12 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     value={dropoffDate}
                     onChange={setDropoffDate}
                     min={date || todayDateStr}
-                    caption="Return date"
                     boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
                   />
                   <MiniTimeInput
                     label="Drop-off Time"
                     value={dropoffTime}
                     onChange={setDropoffTime}
-                    caption="Return time"
                     boxClassName="min-w-[112px] sm:min-w-[172px] flex-1"
                   />
                 </>
@@ -3994,7 +3965,6 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   value={date}
                   onChange={setDate}
                   min={todayDateStr}
-                  caption="Journey date"
                   boxClassName="min-w-[120px] sm:min-w-[182px] flex-1"
                 />
               )}
