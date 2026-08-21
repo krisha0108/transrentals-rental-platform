@@ -142,7 +142,7 @@ export default function BookingsListScreen({ navigation, route }) {
   const q = query.trim().toLowerCase();
   const filtered = useMemo(() => svcScoped.filter(b => {
     const statusOk = status === 'completed' ? isCompleted(b.status) : isActive(b.status);
-    const qOk = !q || b.customer.toLowerCase().includes(q) || b.bookingNumber.toLowerCase().includes(q);
+    const qOk = !q || b.customer?.toLowerCase().includes(q) || b.bookingNumber?.toLowerCase().includes(q);
     return statusOk && qOk;
   }), [svcScoped, status, q]);
 
@@ -287,8 +287,8 @@ export default function BookingsListScreen({ navigation, route }) {
                   </View>
                   <View style={st.cardBottom}>
                     <View style={st.customer}>
-                      <View style={st.avatar}><Text style={st.avatarTxt}>{b.customer.charAt(0)}</Text></View>
-                      <Text style={st.customerTxt} numberOfLines={1}>{b.customer}</Text>
+                      <View style={st.avatar}><Text style={st.avatarTxt}>{b.customer?.charAt(0) || '?'}</Text></View>
+                      <Text style={st.customerTxt} numberOfLines={1}>{b.customer || 'Customer'}</Text>
                     </View>
                     <View style={st.metaRight}>
                       {!!b.date && <Text style={st.dateTxt}>{fmtDate(b.date)}</Text>}
