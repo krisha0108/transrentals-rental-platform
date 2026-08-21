@@ -50,6 +50,11 @@ export function BackrTokenSection() {
       <div className="pointer-events-none absolute left-0 top-0 h-[420px] w-[420px] -translate-x-1/3 -translate-y-1/4 rounded-full bg-amber-500/20 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-0 right-0 h-[420px] w-[420px] translate-x-1/3 translate-y-1/4 rounded-full bg-primary-500/15 blur-[120px]" />
 
+      {/* Seam divider — this section sits directly on top of another
+          dark (#0b1420) section (Testimonials) with no gap between them,
+          so without this the two blur into one indistinguishable block. */}
+      <div className="absolute inset-x-0 top-0 mx-auto h-px w-full max-w-4xl bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
       <div className="container-custom relative">
         {/* Header */}
         <motion.div
