@@ -226,14 +226,6 @@ const WHY_CHOOSE_US = [
   },
 ] as const;
 
-// Real, already-published platform stats (BackersSection.tsx / vendor landing
-// page / homepage hero) — reused here, nothing invented.
-const STATS = [
-  { label: 'Verified Vendors', value: '10,000+', icon: ShieldCheck },
-  { label: 'Cities Covered', value: '150+', icon: MapPin },
-  { label: 'Successful Bookings', value: '2,00,000+', icon: TrendingUp },
-];
-
 const HOW_IT_WORKS = [
   {
     step: '01', icon: Search, title: 'Tell us what you need',
@@ -1094,22 +1086,6 @@ export default function MarketplacePage() {
               </div>
             </FadeIn>
           </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════ STATS ══════════════════════════════ */}
-      <section className="relative overflow-hidden bg-slate-900 py-16 text-white">
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, #09B368 0%, transparent 45%), radial-gradient(circle at 80% 70%, #09B368 0%, transparent 45%)' }} />
-        <div className="container relative mx-auto grid grid-cols-3 gap-4 px-4 sm:gap-8">
-          {STATS.map((s, i) => (
-            <FadeIn key={s.label} delay={i * 90}>
-              <div className="text-center">
-                <s.icon className="mx-auto h-6 w-6 text-primary-300" />
-                <p className="mt-2 font-heading text-3xl font-extrabold sm:text-4xl">{s.value}</p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400 sm:text-sm">{s.label}</p>
-              </div>
-            </FadeIn>
-          ))}
         </div>
       </section>
 
