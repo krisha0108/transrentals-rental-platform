@@ -60,22 +60,15 @@ function initialsOf(name: string) {
 
 export function Testimonials() {
   return (
-    <section className="relative overflow-hidden bg-[#0b1420] py-20 text-white sm:py-24">
-      {/* Background texture + glow, matching the loyalty rewards section */}
-      <div
-        className="absolute inset-0 opacity-[0.06]"
-        style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '28px 28px' }}
-      />
-      <div className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[600px] -translate-x-1/2 -translate-y-1/3 rounded-full bg-primary-500/10 blur-[120px]" />
-
+    <section className="relative overflow-hidden bg-slate-50 py-20 sm:py-24">
       <div className="container-custom relative">
         {/* Header */}
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary-300">
-            <Star className="h-3.5 w-3.5 fill-primary-300" /> Loved by thousands
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary-100 bg-primary-50 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary-700">
+            <Star className="h-3.5 w-3.5 fill-primary-600" /> Loved by thousands
           </span>
-          <h2 className="mt-5 font-heading text-3xl font-extrabold sm:text-4xl">What Our Customers Say</h2>
-          <p className="mt-4 text-slate-300">Don&rsquo;t just take our word for it — hear from our happy customers</p>
+          <h2 className="mt-5 font-heading text-3xl font-extrabold text-slate-900 sm:text-4xl">What Our Customers Say</h2>
+          <p className="mt-4 text-slate-500">Don&rsquo;t just take our word for it — hear from our happy customers</p>
         </div>
 
         {/* Testimonial cards */}
@@ -83,9 +76,9 @@ export function Testimonials() {
           {testimonials.map((t) => (
             <div
               key={t.name}
-              className="relative w-[280px] shrink-0 snap-start rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm transition-colors hover:bg-white/[0.06] lg:w-auto"
+              className="relative w-[280px] shrink-0 snap-start rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md lg:w-auto"
             >
-              <Quote className="absolute right-5 top-5 h-8 w-8 text-white/10" />
+              <Quote className="absolute right-5 top-5 h-8 w-8 text-slate-100" />
 
               <div className="flex items-center gap-3">
                 <span
@@ -96,8 +89,8 @@ export function Testimonials() {
                   {initialsOf(t.name)}
                 </span>
                 <div>
-                  <h3 className="text-sm font-bold text-white">{t.name}</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="text-sm font-bold text-slate-900">{t.name}</h3>
+                  <p className="text-xs text-slate-500">
                     {t.service} in {t.location}
                   </p>
                 </div>
@@ -109,9 +102,9 @@ export function Testimonials() {
                 ))}
               </div>
 
-              <p className="mt-3 text-[14px] leading-relaxed text-slate-300">&ldquo;{t.comment}&rdquo;</p>
+              <p className="mt-3 text-[14px] leading-relaxed text-slate-600">&ldquo;{t.comment}&rdquo;</p>
 
-              <p className="mt-4 text-[11px] font-medium uppercase tracking-wide text-slate-500">{t.date}</p>
+              <p className="mt-4 text-[11px] font-medium uppercase tracking-wide text-slate-400">{t.date}</p>
             </div>
           ))}
         </div>
