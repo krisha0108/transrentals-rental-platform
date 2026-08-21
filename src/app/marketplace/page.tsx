@@ -232,7 +232,6 @@ const STATS = [
   { label: 'Verified Vendors', value: '10,000+', icon: ShieldCheck },
   { label: 'Cities Covered', value: '150+', icon: MapPin },
   { label: 'Successful Bookings', value: '2,00,000+', icon: TrendingUp },
-  { label: 'Average Rating', value: '4.8/5', icon: Star },
 ];
 
 const HOW_IT_WORKS = [
@@ -1101,7 +1100,7 @@ export default function MarketplacePage() {
       {/* ══════════════════════════════ STATS ══════════════════════════════ */}
       <section className="relative overflow-hidden bg-slate-900 py-16 text-white">
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, #09B368 0%, transparent 45%), radial-gradient(circle at 80% 70%, #09B368 0%, transparent 45%)' }} />
-        <div className="container relative mx-auto grid grid-cols-2 gap-4 px-4 sm:gap-8 sm:grid-cols-4">
+        <div className="container relative mx-auto grid grid-cols-3 gap-4 px-4 sm:gap-8">
           {STATS.map((s, i) => (
             <FadeIn key={s.label} delay={i * 90}>
               <div className="text-center">
