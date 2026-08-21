@@ -1585,6 +1585,7 @@ function MiniCityInput({
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setQuery(value), [value]);
 
@@ -1626,16 +1627,21 @@ function MiniCityInput({
       : 0;
 
   return (
-    <div className="relative min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
+    <div
+      className="relative min-w-[120px] sm:min-w-[182px] flex-1 cursor-text rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]"
+      ref={boxRef}
+      onClick={() => inputRef.current?.focus()}
+    >
+      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500 sm:text-[15px]">
         <MapPin className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <input
+        ref={inputRef}
         value={query}
         onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
-        className="w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+        className="w-full min-w-0 border-none bg-transparent p-0 text-[19px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0 sm:text-[20px]"
       />
       {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && matches.length > 0 && (
@@ -1870,15 +1876,15 @@ function MiniDateInput({
       className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
       ref={boxRef}
     >
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
-        <Calendar className="h-3 w-3 text-primary-700" /> {label}
-      </label>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+        className="flex w-full flex-col items-start gap-1 border-none bg-transparent p-0 text-left focus:outline-none focus:ring-0"
       >
-        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{displayText}</span>
+        <span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-500 sm:text-[15px]">
+          <Calendar className="h-3 w-3 text-primary-700" /> {label}
+        </span>
+        <span className={`truncate text-[19px] font-bold sm:text-[20px] ${value ? 'text-slate-900' : 'text-slate-400'}`}>{displayText}</span>
       </button>
       {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && (
@@ -1994,15 +2000,15 @@ function MiniTimeInput({
       className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
       ref={boxRef}
     >
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
-        <Clock className="h-3 w-3 text-primary-700" /> {label}
-      </label>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+        className="flex w-full flex-col items-start gap-1 border-none bg-transparent p-0 text-left focus:outline-none focus:ring-0"
       >
-        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{value ? formatTimeSlot(value) : ''}</span>
+        <span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-500 sm:text-[15px]">
+          <Clock className="h-3 w-3 text-primary-700" /> {label}
+        </span>
+        <span className={`truncate text-[19px] font-bold sm:text-[20px] ${value ? 'text-slate-900' : 'text-slate-400'}`}>{value ? formatTimeSlot(value) : ''}</span>
       </button>
       {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && (
