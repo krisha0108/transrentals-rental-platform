@@ -316,9 +316,9 @@ export default function AllInquiriesScreen({ navigation }) {
                   <View style={s.cardBottom}>
                     <View style={s.customer}>
                       <View style={s.avatar}>
-                        <Text style={s.avatarTxt}>{q.customer.charAt(0)}</Text>
+                        <Text style={s.avatarTxt}>{q.customer?.charAt(0) || '?'}</Text>
                       </View>
-                      <Text style={s.customerTxt} numberOfLines={1}>{q.customer}</Text>
+                      <Text style={s.customerTxt} numberOfLines={1}>{q.customer || 'Customer'}</Text>
                     </View>
 
                     {q.quoted ? (

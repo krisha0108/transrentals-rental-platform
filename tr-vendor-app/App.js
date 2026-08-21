@@ -804,26 +804,32 @@ export default function App() {
         null;
       const notifType = remoteMessage?.data?.type || '';
       const { channelId, sound } = getNotifChannelForType(notifType);
-      await notifee.displayNotification({
-        title: remoteMessage.notification?.title || 'New Message',
-        body: remoteMessage.notification?.body || '',
-        data: remoteMessage?.data || {},
-        ios: { sound: 'default' },
-        android: {
-          channelId,
-          importance: AndroidImportance.HIGH,
-          sound,
-          smallIcon: 'ic_notification',
-          pressAction: { id: 'default' },
-          style:
-            image && image !== 'null'
-              ? {
-                  type: AndroidStyle.BIGPICTURE,
-                  picture: image,
-                }
-              : undefined,
-        },
-      });
+      try {
+        await notifee.displayNotification({
+          title: remoteMessage.notification?.title || 'New Message',
+          body: remoteMessage.notification?.body || '',
+          data: remoteMessage?.data || {},
+          ios: { sound: 'default' },
+          android: {
+            channelId,
+            importance: AndroidImportance.HIGH,
+            sound,
+            smallIcon: 'ic_notification',
+            pressAction: { id: 'default' },
+            style:
+              image && image !== 'null'
+                ? {
+                    type: AndroidStyle.BIGPICTURE,
+                    picture: image,
+                  }
+                : undefined,
+          },
+        });
+      } catch (err) {
+        // A malformed/oversized payload (e.g. bad imageUrl) shouldn't crash
+        // the app for every user who receives this push while foregrounded.
+        console.log('Failed to display foreground notification:', err);
+      }
     });
 
     // Handle notification opened from background
