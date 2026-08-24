@@ -154,7 +154,7 @@ export default function NotificationSettingsPage() {
   const totalPossible = settings.length * 4;
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-24">
+    <div className="min-h-dvh bg-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-24">
       <style jsx>{`
         @keyframes fade-up {
           from { opacity: 0; transform: translateY(18px); }

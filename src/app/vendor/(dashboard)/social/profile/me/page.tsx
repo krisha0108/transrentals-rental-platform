@@ -20,7 +20,7 @@ export default function MyProfileRedirect() {
   }, [session, status, router]);
 
   return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+    <div className="min-h-[60dvh] flex flex-col items-center justify-center gap-3">
       <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
       <p className="text-sm text-gray-500 font-medium">Redirecting to your profile...</p>
     </div>

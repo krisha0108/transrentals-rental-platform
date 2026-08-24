@@ -11,18 +11,23 @@ import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { createP2PBooking, updateP2PBooking } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
+import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399', g300: '#6EE7B7',
-  g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F8FAFC', surface: '#FFFFFF',
-  text: '#0F172A', sub: '#334155', muted: '#94A3B8',
-  border: '#E2E8F0', borderMed: '#CBD5E1',
-  amber: '#F59E0B', amberDark: '#D97706', amberBg: '#FFFBEB',
-  red: '#EF4444', redDark: '#DC2626', redBg: '#FEF2F2',
-  blue: '#3B82F6', blueBg: '#EFF6FF', blueDark: '#1D4ED8',
-  purple: '#8B5CF6', purpleBg: '#F5F3FF',
+  g950: T.forestDark, g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald, g300: T.oceanLight,
+  g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, surface: T.card,
+  text: T.ink, sub: T.text, muted: T.subText,
+  border: T.border, borderMed: '#CBD5E1',
+  amber: T.amber, amberDark: shade(T.amber, -15), amberBg: T.amberLight,
+  red: T.red, redDark: shade(T.red, -15), redBg: T.redLight,
+  blue: T.blue, blueBg: T.blueLight, blueDark: '#1D4ED8',
+  purple: T.purple, purpleBg: T.tintPlum,
 };
 
 const TRUCK_VEHICLES = ['Mini Truck', 'LCV', '14ft', '17ft', '19ft', '22ft', '32ft'];
@@ -175,10 +180,10 @@ export default function PostBookingScreen({ navigation, route }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g950} />
 
       {/* ── HEADER ── */}
-      <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.headerGradient}>
-        {/* Decorative circles */}
-        <View style={s.headerCircle1} />
-        <View style={s.headerCircle2} />
+      <LinearGradient colors={G.hero} style={s.headerGradient}>
+        {/* Decorative orbs */}
+        <AnimatedOrb style={s.headerCircle1} />
+        <AnimatedOrb style={s.headerCircle2} delay={1200} dx={-10} dy={8} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -468,7 +473,7 @@ export default function PostBookingScreen({ navigation, route }) {
             <LinearGradient colors={[C.g800, C.g700]} style={s.budgetCard}>
               <Text style={s.budgetCardLabel}>CUSTOMER BUDGET</Text>
               <View style={s.budgetInputRow}>
-                <Text style={s.budgetRupee}>{'\u20B9'}</Text>
+                <Text style={s.budgetRupee}>{'₹'}</Text>
                 <TextInput
                   style={s.budgetInput}
                   placeholder="0"
@@ -495,7 +500,7 @@ export default function PostBookingScreen({ navigation, route }) {
                 keyboardType="number-pad"
               />
               <View style={s.commissionBadge}>
-                <Text style={s.commissionBadgeText}>{'\u20B9'}{commissionAmount.toLocaleString('en-IN')}</Text>
+                <Text style={s.commissionBadgeText}>{'₹'}{commissionAmount.toLocaleString('en-IN')}</Text>
               </View>
             </View>
 
@@ -504,20 +509,20 @@ export default function PostBookingScreen({ navigation, route }) {
               <LinearGradient colors={[C.g900, C.g800]} style={s.previewCard}>
                 <View style={s.previewRow}>
                   <Text style={s.previewLabel}>Customer Budget</Text>
-                  <Text style={s.previewValueWhite}>{'\u20B9'}{budget.toLocaleString('en-IN')}</Text>
+                  <Text style={s.previewValueWhite}>{'₹'}{budget.toLocaleString('en-IN')}</Text>
                 </View>
                 <View style={s.previewRow}>
                   <Text style={s.previewLabel}>Your Commission ({commPct}%)</Text>
-                  <Text style={[s.previewValueWhite, { color: C.g300 }]}>{'\u20B9'}{commissionAmount.toLocaleString('en-IN')}</Text>
+                  <Text style={[s.previewValueWhite, { color: C.g300 }]}>{'₹'}{commissionAmount.toLocaleString('en-IN')}</Text>
                 </View>
                 <View style={s.previewDivider} />
                 <View style={s.previewRow}>
                   <Text style={[s.previewLabel, { fontWeight: '800', color: '#fff', fontSize: 14 }]}>PARTNER EARNS</Text>
-                  <Text style={[s.previewValueWhite, { fontSize: 20, color: C.g300, fontWeight: '800' }]}>{'\u20B9'}{partnerEarning.toLocaleString('en-IN')}</Text>
+                  <Text style={[s.previewValueWhite, { fontSize: 20, color: C.g300, fontWeight: '800' }]}>{'₹'}{partnerEarning.toLocaleString('en-IN')}</Text>
                 </View>
                 <View style={s.previewRow}>
                   <Text style={[s.previewLabel, { fontSize: 11, color: 'rgba(255,255,255,0.4)' }]}>Platform Fee (5%)</Text>
-                  <Text style={[s.previewValueWhite, { fontSize: 11, color: 'rgba(255,255,255,0.4)' }]}>-{'\u20B9'}{platformFee.toLocaleString('en-IN')}</Text>
+                  <Text style={[s.previewValueWhite, { fontSize: 11, color: 'rgba(255,255,255,0.4)' }]}>-{'₹'}{platformFee.toLocaleString('en-IN')}</Text>
                 </View>
               </LinearGradient>
             )}
@@ -596,7 +601,7 @@ export default function PostBookingScreen({ navigation, route }) {
           {/* ── SUBMIT ── */}
           <TouchableOpacity onPress={handleSubmit} disabled={loading} activeOpacity={0.85} style={loading ? { opacity: 0.6 } : {}}>
             <LinearGradient
-              colors={[C.g700, C.g600, C.g500]}
+              colors={G.emerald}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={s.submitBtn}
@@ -655,14 +660,14 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
 
   // Header
-  headerGradient: { paddingBottom: 20, overflow: 'hidden' },
+  headerGradient: { paddingBottom: 20, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
   headerCircle1: {
     position: 'absolute', width: 200, height: 200, borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.04)', top: -60, right: -50,
+    backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -50,
   },
   headerCircle2: {
     position: 'absolute', width: 140, height: 140, borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.04)', bottom: -30, left: -30,
+    backgroundColor: 'rgba(255,255,255,0.045)', bottom: -30, left: -30,
   },
   headerRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -679,7 +684,7 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderColor: 'rgba(139,92,246,0.5)',
     justifyContent: 'center', alignItems: 'center',
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.2 },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.2 },
   headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
 
   // Scroll
@@ -687,9 +692,8 @@ const s = StyleSheet.create({
 
   // Section card
   sectionCard: {
-    backgroundColor: C.surface, borderRadius: 18, overflow: 'hidden',
-    shadowColor: '#0F172A', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07, shadowRadius: 10, elevation: 3,
+    backgroundColor: C.surface, borderRadius: rs(18), overflow: 'hidden',
+    ...cardShadow,
   },
 
   // Step header
@@ -702,14 +706,14 @@ const s = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14,
     justifyContent: 'center', alignItems: 'center',
   },
-  stepNumber: { fontSize: 13, fontWeight: '800', color: '#fff' },
-  stepTitle: { fontSize: 15, fontWeight: '700', color: C.text, letterSpacing: 0.1 },
+  stepNumber: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: '#fff' },
+  stepTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text, letterSpacing: 0.1 },
 
   // Service type
   serviceTypeRow: { flexDirection: 'row', gap: 12, padding: 16 },
   serviceCard: {
     flex: 1, alignItems: 'center', paddingVertical: 20, paddingHorizontal: 12,
-    borderRadius: 14, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface,
+    borderRadius: rs(14), borderWidth: 2, borderColor: C.border, backgroundColor: C.surface,
     gap: 6, position: 'relative', overflow: 'hidden',
   },
   serviceCardActiveGreen: { borderColor: C.g500, backgroundColor: C.g50 },
@@ -745,7 +749,7 @@ const s = StyleSheet.create({
   // Route card (boarding pass style)
   routeCard: {
     marginHorizontal: 16, marginTop: 16, marginBottom: 4,
-    backgroundColor: '#F8FAFC', borderRadius: 14, borderWidth: 1, borderColor: C.border,
+    backgroundColor: '#F8FAFC', borderRadius: rs(14), borderWidth: 1, borderColor: C.border,
     overflow: 'hidden',
   },
   routeHalf: { paddingHorizontal: 16, paddingVertical: 14 },
@@ -753,7 +757,7 @@ const s = StyleSheet.create({
   routeDotGreen: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.g500 },
   routeDotRed: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.red },
   routeCityLabel: { fontSize: 10, fontWeight: '700', color: C.muted, letterSpacing: 1, textTransform: 'uppercase' },
-  routeInput: { fontSize: 16, fontWeight: '700', color: C.text, paddingVertical: 0 },
+  routeInput: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '700', color: C.text, paddingVertical: 0 },
   routeDivider: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
     borderTopWidth: 1, borderBottomWidth: 1, borderStyle: 'dashed', borderColor: C.borderMed,
@@ -770,12 +774,12 @@ const s = StyleSheet.create({
   dateTimeRow: { flexDirection: 'row', gap: 12, padding: 16, paddingTop: 12 },
   dateTimeCard: {
     flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 14, paddingHorizontal: 14, borderRadius: 14,
+    paddingVertical: 14, paddingHorizontal: 14, borderRadius: rs(14),
     borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface,
   },
   dateTimeCardActive: { borderColor: C.g400, backgroundColor: C.g50 },
   dateTimeCardLabel: { fontSize: 10, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  dateTimeCardValue: { fontSize: 13, fontWeight: '600', color: C.muted },
+  dateTimeCardValue: { fontSize: 13, fontWeight: '700', color: C.muted },
 
   // Field card (icon + label + input)
   fieldCard: {
@@ -788,7 +792,7 @@ const s = StyleSheet.create({
     width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
   },
   fieldCardLabel: { fontSize: 10, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
-  fieldCardInput: { fontSize: 14, color: C.text, fontWeight: '500', paddingVertical: 0 },
+  fieldCardInput: { fontSize: 14, color: C.text, fontWeight: '600', paddingVertical: 0 },
 
   // Toggle card (icon + label + switch)
   toggleCard: {
@@ -799,17 +803,17 @@ const s = StyleSheet.create({
   toggleCardIconBox: {
     width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
   },
-  toggleCardLabel: { fontSize: 14, fontWeight: '600', color: C.text },
+  toggleCardLabel: { fontSize: 14, fontWeight: '700', color: C.text },
   toggleCardSub: { fontSize: 12, color: C.muted, marginTop: 1 },
 
   // Budget card
   budgetCard: {
-    marginHorizontal: 16, marginTop: 4, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 16,
+    marginHorizontal: 16, marginTop: 4, borderRadius: rs(14), paddingHorizontal: 18, paddingVertical: 16,
   },
   budgetCardLabel: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 },
   budgetInputRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  budgetRupee: { fontSize: 30, fontWeight: '700', color: 'rgba(255,255,255,0.7)' },
-  budgetInput: { flex: 1, fontSize: 36, fontWeight: '800', color: '#fff', paddingVertical: 0 },
+  budgetRupee: { fontFamily: DISPLAY, fontSize: 30, fontWeight: '700', color: 'rgba(255,255,255,0.7)' },
+  budgetInput: { fontFamily: DISPLAY, flex: 1, fontSize: 36, fontWeight: '900', color: '#fff', paddingVertical: 0 },
 
   // Commission row
   commissionRow: {
@@ -819,7 +823,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 10,
   },
   commissionLabelCol: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
-  commissionLabel: { fontSize: 13, fontWeight: '600', color: C.sub },
+  commissionLabel: { fontSize: 13, fontWeight: '700', color: C.sub },
   commissionInput: {
     width: 56, textAlign: 'center', fontSize: 16, fontWeight: '700', color: C.text,
     backgroundColor: C.surface, borderRadius: 8, borderWidth: 1.5, borderColor: C.border,
@@ -834,23 +838,23 @@ const s = StyleSheet.create({
   // Earnings preview
   previewCard: {
     marginHorizontal: 16, marginTop: 12, marginBottom: 16,
-    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, gap: 8,
-    shadowColor: C.g950, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 5,
+    borderRadius: rs(14), paddingHorizontal: 16, paddingVertical: 14, gap: 8,
+    ...cardShadow,
   },
   previewRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   previewLabel: { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
-  previewValueWhite: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  previewValueWhite: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
   previewDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 4 },
 
   // Urgency
   urgencyRow: { flexDirection: 'row', gap: 10, padding: 16 },
   urgencyCard: {
     flex: 1, alignItems: 'center', paddingVertical: 18,
-    borderRadius: 14, borderWidth: 2, gap: 6,
+    borderRadius: rs(14), borderWidth: 2, gap: 6,
   },
   urgencyDot: { width: 8, height: 8, borderRadius: 4 },
   urgencyLabel: { fontSize: 13, fontWeight: '800' },
-  urgencyDesc: { fontSize: 10, textAlign: 'center', fontWeight: '500' },
+  urgencyDesc: { fontSize: 10, textAlign: 'center', fontWeight: '600' },
 
   // Notes section
   notesSectionHead: {
@@ -859,7 +863,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
   notesIconWrap: { width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: C.g50 },
-  notesSectionTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  notesSectionTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
   notesInput: {
     margin: 16,
     backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border,
@@ -870,16 +874,15 @@ const s = StyleSheet.create({
   // Submit
   submitBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    paddingVertical: 18, borderRadius: 18, marginTop: 4,
-    shadowColor: C.g800, shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
+    paddingVertical: 18, borderRadius: rs(18), marginTop: 4,
+    ...cardShadow,
   },
-  submitBtnText: { fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  submitBtnText: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
 
   cancelBtn: {
-    alignItems: 'center', paddingVertical: 15, borderRadius: 18,
+    alignItems: 'center', paddingVertical: 15, borderRadius: rs(18),
     borderWidth: 2, borderColor: C.border, marginTop: 10,
     backgroundColor: C.surface,
   },
-  cancelBtnText: { fontSize: 14, fontWeight: '600', color: C.muted },
+  cancelBtnText: { fontSize: 14, fontWeight: '700', color: C.muted },
 });

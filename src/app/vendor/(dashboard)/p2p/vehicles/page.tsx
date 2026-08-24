@@ -450,7 +450,7 @@ export default function BrowseVehiclesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+    <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
       <style jsx global>{`
         @keyframes float-slow { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-12px) translateX(8px); } }
         @keyframes float-rev { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(10px) translateX(-6px); } }
@@ -985,7 +985,7 @@ export default function BrowseVehiclesPage() {
             if (e.target === e.currentTarget) closeRequestModal();
           }}
         >
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] overflow-hidden shadow-2xl animate-pop-in flex flex-col">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[92dvh] overflow-hidden shadow-2xl animate-pop-in flex flex-col">
             {/* Modal Header */}
             <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 animate-gradient-x px-6 py-5 text-white flex-shrink-0">
               <div className="absolute -right-6 -top-6 w-28 h-28 bg-white/10 rounded-full blur-2xl animate-float-slow" />

@@ -212,7 +212,7 @@ export default function VendorSelfDriveRequestsPage() {
   /* ── Loading skeleton ── */
   if (isLoading) {
     return (
-      <div className="h-[calc(100vh-80px)] flex rounded-2xl overflow-hidden border border-gray-200/60 bg-white shadow-sm">
+      <div className="h-[calc(100dvh-80px)] flex rounded-2xl overflow-hidden border border-gray-200/60 bg-white shadow-sm">
         {/* Left */}
         <div className="w-full lg:w-[360px] border-r border-gray-100 p-4 space-y-3 animate-pulse">
           <div className="h-8 bg-gray-100 rounded-lg w-2/3" />
@@ -236,7 +236,7 @@ export default function VendorSelfDriveRequestsPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] flex rounded-2xl overflow-hidden border border-gray-200/60 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+    <div className="h-[calc(100dvh-80px)] flex rounded-2xl overflow-hidden border border-gray-200/60 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
 
       {/* ══════════ LEFT PANEL — Request List ══════════ */}
       <div className={`w-full lg:w-[360px] xl:w-[400px] shrink-0 border-r border-gray-100 flex flex-col bg-[#fafbfc] ${selected ? 'hidden lg:flex' : 'flex'}`}>

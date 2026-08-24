@@ -1,3 +1,11 @@
+// screens/vendor/profile/AboutUsScreen.js
+// REDESIGNED — "Elevate" visual language, matching this app's own
+// BusinessProfileScreen.js / BankDetailsScreen.js (hero + AnimatedOrb +
+// rounded bottom corners, shared theme tokens, section-card language).
+//
+// UI ONLY. This is a static informational screen — no data fetching, no
+// state. All behaviour is preserved exactly: same back navigation, same
+// Linking.openURL(c.url) calls with the same URLs, same content.
 import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
@@ -7,15 +15,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already used everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#3B82F6', blueL: '#EFF6FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  amber: T.amber, amberL: T.amberLight,
+  purple: T.purple, purpleL: T.purpleLight,
+  whatsapp: T.whatsapp,
 };
 
 const STATS = [
@@ -55,28 +69,32 @@ const FEATURES = [
 const CONTACTS = [
   { icon: 'call',         color: C.g700,  bg: C.g50,   label: '+91-9737965551',   url: 'tel:+919737965551' },
   { icon: 'mail',         color: C.blue,  bg: C.blueL, label: 'book@transrentals.in', url: 'mailto:book@transrentals.in' },
-  { icon: 'logo-whatsapp', color: '#25D366', bg: '#F0FFF4', label: 'WhatsApp Support', url: 'https://wa.me/919737965551' },
+  { icon: 'logo-whatsapp', color: C.whatsapp, bg: 'rgba(37,211,102,0.10)', label: 'WhatsApp Support', url: 'https://wa.me/919737965551' },
   { icon: 'globe',        color: C.purple, bg: C.purpleL, label: 'www.transrentals.in', url: 'https://transrentals.in' },
 ];
 
 export default function AboutUsScreen({ navigation }) {
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
+    <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      {/* ── HEADER ── */}
-      <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={styles.headerGrad}>
-        <SafeAreaView edges={['top']}>
+      {/* ── HERO — static sibling so it can never be clipped by the
+          ScrollView's own viewport ── */}
+      <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+
+        <SafeAreaView edges={['top']} style={{ paddingHorizontal: rs(16) }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="arrow-back" size={22} color="#fff" />
+              <Ionicons name="arrow-back" size={rs(20)} color="#fff" />
             </TouchableOpacity>
           </View>
 
-          {/* Hero */}
-          <View style={styles.hero}>
+          {/* Hero body */}
+          <View style={styles.heroBody}>
             <View style={styles.heroIconWrap}>
-              <MaterialCommunityIcons name="truck-fast" size={34} color={C.g400} />
+              <MaterialCommunityIcons name="truck-fast" size={rs(32)} color={C.g400} />
             </View>
             <Text style={styles.heroTitle}>TransRentals</Text>
             <Text style={styles.heroSub}>Your Trusted Rental Partner</Text>
@@ -91,16 +109,24 @@ export default function AboutUsScreen({ navigation }) {
               </View>
             ))}
           </View>
+
+          <View style={{ height: rs(8) }} />
         </SafeAreaView>
       </LinearGradient>
 
       <ScrollView
+        style={{ flex: 1 }}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
         {/* ── WHO WE ARE ── */}
-        <Text style={styles.sectionLabel}>Who We Are</Text>
-        <View style={styles.card}>
+        <View style={[styles.section, cardShadow]}>
+          <View style={styles.sectionHead}>
+            <View style={[styles.sectionIconBox, { backgroundColor: C.g50 }]}>
+              <MaterialCommunityIcons name="information-outline" size={rs(18)} color={C.g700} />
+            </View>
+            <Text style={styles.sectionTitle}>Who We Are</Text>
+          </View>
           <Text style={styles.aboutText}>
             TransRentals is India's leading vehicle rental marketplace connecting customers with verified rental providers. We offer a wide range of vehicles — cars, bikes, buses, trucks and more — across major cities.
           </Text>
@@ -110,12 +136,17 @@ export default function AboutUsScreen({ navigation }) {
         </View>
 
         {/* ── WHY CHOOSE US ── */}
-        <Text style={styles.sectionLabel}>Why Choose Us</Text>
-        <View style={styles.card}>
+        <View style={[styles.section, cardShadow]}>
+          <View style={styles.sectionHead}>
+            <View style={[styles.sectionIconBox, { backgroundColor: C.purpleL }]}>
+              <MaterialCommunityIcons name="star-outline" size={rs(18)} color={C.purple} />
+            </View>
+            <Text style={styles.sectionTitle}>Why Choose Us</Text>
+          </View>
           {FEATURES.map((f, i) => (
             <View key={i} style={[styles.featureRow, i < FEATURES.length - 1 && styles.featureBorder]}>
               <View style={[styles.featureIconBox, { backgroundColor: f.bg }]}>
-                <MaterialCommunityIcons name={f.icon} size={22} color={f.color} />
+                <MaterialCommunityIcons name={f.icon} size={rs(22)} color={f.color} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.featureTitle}>{f.label}</Text>
@@ -127,11 +158,14 @@ export default function AboutUsScreen({ navigation }) {
 
         {/* ── OUR MISSION ── */}
         <LinearGradient
-          colors={[C.g900, '#064E3B']}
+          colors={[C.g900, C.g800]}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.missionCard}
+          style={[styles.missionCard, cardShadow]}
         >
-          <MaterialCommunityIcons name="rocket-launch-outline" size={36} color={C.g400} />
+          <AnimatedOrb style={styles.missionOrb} delay={300} dx={10} dy={8} />
+          <View style={styles.missionIconWrap}>
+            <MaterialCommunityIcons name="rocket-launch-outline" size={rs(30)} color={C.g400} />
+          </View>
           <Text style={styles.missionTitle}>Our Mission</Text>
           <Text style={styles.missionText}>
             To revolutionize the vehicle rental industry by providing a seamless, transparent, and technology-driven platform that benefits both customers and vendors.
@@ -139,8 +173,13 @@ export default function AboutUsScreen({ navigation }) {
         </LinearGradient>
 
         {/* ── CONTACT ── */}
-        <Text style={styles.sectionLabel}>Get in Touch</Text>
-        <View style={styles.card}>
+        <View style={[styles.section, cardShadow]}>
+          <View style={styles.sectionHead}>
+            <View style={[styles.sectionIconBox, { backgroundColor: C.blueL }]}>
+              <Ionicons name="chatbubbles-outline" size={rs(17)} color={C.blue} />
+            </View>
+            <Text style={styles.sectionTitle}>Get in Touch</Text>
+          </View>
           {CONTACTS.map((c, i) => (
             <TouchableOpacity
               key={i}
@@ -149,10 +188,10 @@ export default function AboutUsScreen({ navigation }) {
               activeOpacity={0.7}
             >
               <View style={[styles.contactIconBox, { backgroundColor: c.bg }]}>
-                <Ionicons name={c.icon} size={20} color={c.color} />
+                <Ionicons name={c.icon} size={rs(19)} color={c.color} />
               </View>
               <Text style={styles.contactLabel}>{c.label}</Text>
-              <Ionicons name="chevron-forward" size={18} color={C.muted} />
+              <Ionicons name="chevron-forward" size={rs(17)} color={C.muted} />
             </TouchableOpacity>
           ))}
         </View>
@@ -163,49 +202,64 @@ export default function AboutUsScreen({ navigation }) {
           <Text style={styles.footerText}>© 2024 TransRentals. All rights reserved.</Text>
         </View>
 
-        <View style={{ height: 32 }} />
+        <View style={{ height: rs(32) }} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerGrad: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
+  root: { flex: 1, backgroundColor: C.bg },
+
+  /* ── Hero ── */
+  hero: {
+    paddingBottom: rs(20),
+    borderBottomLeftRadius: rs(26),
+    borderBottomRightRadius: rs(26),
+    overflow: 'hidden',
+  },
+  orbA: {
+    position: 'absolute', top: -rs(60), right: -rs(40),
+    width: rs(180), height: rs(180), borderRadius: rs(90),
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  orbB: {
+    position: 'absolute', bottom: -rs(60), left: -rs(40),
+    width: rs(150), height: rs(150), borderRadius: rs(75),
+    backgroundColor: 'rgba(46,158,120,0.16)',
   },
   headerRow: {
     flexDirection: 'row', alignItems: 'center',
-    paddingTop: 8, marginBottom: 20,
+    paddingTop: rs(8), marginBottom: rs(20),
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 20,
+    width: rs(40), height: rs(40), borderRadius: rs(20),
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
   },
-  hero: {
-    alignItems: 'center', marginBottom: 24,
+  heroBody: {
+    alignItems: 'center', marginBottom: rs(24),
   },
   heroIconWrap: {
-    width: 72, height: 72, borderRadius: 36,
+    width: rs(72), height: rs(72), borderRadius: rs(36),
     backgroundColor: 'rgba(52,211,153,0.15)',
     borderWidth: 1.5, borderColor: 'rgba(52,211,153,0.3)',
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: 14,
+    marginBottom: rs(14),
   },
   heroTitle: {
-    fontSize: 26, fontWeight: '800', color: '#fff',
+    fontFamily: DISPLAY, fontSize: rs(26), fontWeight: '800', color: '#fff',
     letterSpacing: -0.4,
   },
   heroSub: {
-    fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 4,
+    fontFamily: DISPLAY, fontSize: rs(13), color: 'rgba(255,255,255,0.65)', marginTop: rs(4),
   },
 
   statsStrip: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16, paddingVertical: 14,
+    borderRadius: rs(16), paddingVertical: rs(14),
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
   statItem: {
@@ -215,85 +269,100 @@ const styles = StyleSheet.create({
     borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.15)',
   },
   statValue: {
-    fontSize: 20, fontWeight: '800', color: C.g400,
+    fontFamily: DISPLAY, fontSize: rs(20), fontWeight: '800', color: C.g400,
   },
   statLabel: {
-    fontSize: 11, color: 'rgba(255,255,255,0.6)',
-    fontWeight: '600', marginTop: 2,
+    fontSize: rs(11), color: 'rgba(255,255,255,0.6)',
+    fontWeight: '600', marginTop: rs(2),
   },
 
-  scroll: { padding: 16 },
+  scroll: { padding: rs(16), paddingTop: rs(18) },
 
-  sectionLabel: {
-    fontSize: 13, fontWeight: '700', color: C.sub,
-    textTransform: 'uppercase', letterSpacing: 0.5,
-    marginBottom: 10, marginTop: 8, marginLeft: 2,
+  /* ── Section cards ── */
+  section: {
+    backgroundColor: C.card, borderRadius: rs(20),
+    borderWidth: 1, borderColor: T.glassBorder,
+    overflow: 'hidden', marginBottom: rs(16),
+    padding: rs(16),
   },
-
-  card: {
-    backgroundColor: C.card, borderRadius: 16,
-    borderWidth: 1, borderColor: C.border,
-    overflow: 'hidden', marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+  sectionHead: {
+    flexDirection: 'row', alignItems: 'center', gap: rs(10),
+    marginBottom: rs(4),
+  },
+  sectionIconBox: {
+    width: rs(34), height: rs(34), borderRadius: rs(11),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  sectionTitle: {
+    fontFamily: DISPLAY, fontSize: rs(15), fontWeight: '700', color: C.text,
   },
 
   aboutText: {
-    fontSize: 14, color: C.sub, lineHeight: 22,
-    padding: 16, paddingBottom: 8,
+    fontSize: rs(14), color: C.sub, lineHeight: rs(22),
+    marginTop: rs(12),
   },
 
   featureRow: {
     flexDirection: 'row', alignItems: 'center',
-    padding: 16, gap: 14,
+    paddingVertical: rs(14), gap: rs(14),
   },
   featureBorder: {
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
   featureIconBox: {
-    width: 46, height: 46, borderRadius: 14,
+    width: rs(46), height: rs(46), borderRadius: rs(14),
     alignItems: 'center', justifyContent: 'center',
   },
   featureTitle: {
-    fontSize: 14, fontWeight: '700', color: C.text,
+    fontSize: rs(14), fontWeight: '700', color: C.text,
   },
   featureDesc: {
-    fontSize: 12, color: C.sub, marginTop: 2, lineHeight: 17,
+    fontSize: rs(12), color: C.sub, marginTop: rs(2), lineHeight: rs(17),
   },
 
   missionCard: {
-    borderRadius: 16, padding: 24, marginBottom: 16,
-    alignItems: 'center',
+    borderRadius: rs(20), padding: rs(24), marginBottom: rs(16),
+    alignItems: 'center', overflow: 'hidden',
+  },
+  missionOrb: {
+    position: 'absolute', top: -rs(40), right: -rs(30),
+    width: rs(140), height: rs(140), borderRadius: rs(70),
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  missionIconWrap: {
+    width: rs(60), height: rs(60), borderRadius: rs(30),
+    backgroundColor: 'rgba(52,211,153,0.15)',
+    borderWidth: 1.5, borderColor: 'rgba(52,211,153,0.3)',
+    alignItems: 'center', justifyContent: 'center',
   },
   missionTitle: {
-    fontSize: 18, fontWeight: '800', color: '#fff',
-    marginTop: 12, marginBottom: 10,
+    fontFamily: DISPLAY, fontSize: rs(18), fontWeight: '800', color: '#fff',
+    marginTop: rs(12), marginBottom: rs(10),
   },
   missionText: {
-    fontSize: 13, color: 'rgba(255,255,255,0.75)',
-    textAlign: 'center', lineHeight: 20,
+    fontSize: rs(13), color: 'rgba(255,255,255,0.75)',
+    textAlign: 'center', lineHeight: rs(20),
   },
 
   contactRow: {
     flexDirection: 'row', alignItems: 'center',
-    padding: 16, gap: 14,
+    paddingVertical: rs(14), gap: rs(14),
   },
   contactBorder: {
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
   contactIconBox: {
-    width: 42, height: 42, borderRadius: 13,
+    width: rs(42), height: rs(42), borderRadius: rs(13),
     alignItems: 'center', justifyContent: 'center',
   },
   contactLabel: {
-    flex: 1, fontSize: 14, fontWeight: '600', color: C.text,
+    flex: 1, fontSize: rs(14), fontWeight: '600', color: C.text,
   },
 
   footer: {
-    alignItems: 'center', paddingVertical: 8,
+    alignItems: 'center', paddingVertical: rs(8),
   },
   footerText: {
-    fontSize: 12, color: C.muted, marginBottom: 3,
+    fontSize: rs(12), color: C.muted, marginBottom: rs(3),
   },
 });

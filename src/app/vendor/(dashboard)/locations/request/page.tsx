@@ -254,7 +254,7 @@ export default function RequestLocationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-24">
+    <div className="min-h-dvh bg-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-24">
       <style jsx>{`
         @keyframes fade-up {
           from { opacity: 0; transform: translateY(16px); }
@@ -768,7 +768,7 @@ export default function RequestLocationPage() {
         {/* Confirm Modal */}
         {showConfirmModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-in border border-gray-100">
+            <div className="bg-white rounded-2xl max-w-lg w-full p-6 max-h-[90dvh] overflow-y-auto shadow-2xl animate-scale-in border border-gray-100">
               <h2 className="text-lg font-bold text-gray-900 mb-4">
                 Request {selectedLocations.length} Location(s)
               </h2>

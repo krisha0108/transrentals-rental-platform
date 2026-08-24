@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, Dimensions, StatusBar, Modal, Linking,
+  Animated, Easing, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
@@ -10,34 +11,45 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
 import axios from 'axios';
-import { getVendorProfile, getVendorBookings, getVendorEarnings, getBaseURL, getSessionToken, apiPatch } from '../../api/client';
+import Svg, { Circle } from 'react-native-svg';
+import { getVendorProfile, getVendorBookings, getVendorEarnings, getVendorFinancials, getBaseURL, getSessionToken, apiPatch } from '../../api/client';
 import { fetchInquiries } from '../../api/inquiriesApi';
 import { showConfirm, showSuccess, showError } from '../../../services/alertService';
 import { NotifBadgeContext } from '../../../contexts/NotifBadgeContext';
 import DeviceInfo from 'react-native-device-info';
 import AppEvents, { EVT_NEW_QUOTE, EVT_QUOTE_SENT } from '../../../utils/AppEvents';
+import { SC as T, G, rs, rf, shade, cardShadow, rowShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
+import SheetHandle from '../_shared/SheetHandle';
 const { width: W } = Dimensions.get('window');
 
+// Fixed top bar's gradient (not in the shared theme file).
+const G_HERO_TOP = [T.forestDark, T.forest];
+
 // ── Design tokens ──────────────────────────────────────────────
+// Same key names the screen already uses everywhere below — only the values
+// now come from the shared "Elevate" theme (../_shared/theme) instead of
+// hardcoded hex, so every C.xxx reference in this file repaints for free.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399',
-  g100: '#D1FAE5', g50:  '#ECFDF5',
-  bg:     '#F1F5F9',
-  card:   '#FFFFFF',
-  border: '#E2E8F0',
-  text:   '#0F172A',
-  sub:    '#475569',
-  muted:  '#94A3B8',
-  blue:    '#2563EB', blueL:   '#EFF6FF',
-  purple:  '#7C3AED', purpleL: '#F5F3FF',
-  amber:   '#D97706', amberL:  '#FFFBEB',
-  red:     '#DC2626', redL:    '#FEF2F2',
-  orange:  '#EA580C', orangeL: '#FFF7ED',
-  indigo:  '#4F46E5', indigoL: '#EEF2FF',
-  teal:    '#0D9488', tealL:   '#F0FDFA',
-  pink:    '#DB2777', pinkL:   '#FDF2F8',
-  cyan:    '#0891B2', cyanL:   '#ECFEFF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald,
+  g100: T.tintEmerald, g50:  T.tintEmerald,
+  bg:     T.bg,
+  card:   T.card,
+  border: T.border,
+  text:   T.ink,
+  sub:    T.text,
+  muted:  T.subText,
+  blue:    T.blue,   blueL:   T.blueLight,
+  purple:  T.purple, purpleL: T.purpleLight,
+  amber:   T.amber,  amberL:  T.amberLight,
+  red:     T.red,    redL:    T.redLight,
+  orange:  T.orange, orangeL: T.orangeL,
+  indigo:  T.indigo, indigoL: T.indigoLight,
+  teal:    T.oceanLight,       tealL: T.tintOcean,
+  pink:    T.rose,             pinkL: T.tintRose,
+  cyan:    shade(T.ocean, 25), cyanL: T.tintOcean,
 };
 
 const VENDOR_STATUS = {
@@ -124,6 +136,206 @@ function Ico({ lib, name, size, color }) {
   return <Icon name={name} size={size} color={color} />;
 }
 
+// ── Animated tile bubble ─────────────────────────────────────────
+// Same "softly breathing corner bubble" travel-agent uses on its compact
+// tiles — a gentle scale/float/opacity pulse, native-driven so it's cheap.
+function AnimatedWash({ color, delay = 0 }) {
+  const a = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 2600, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: 2600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, delay]);
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, 6] });
+  const opacity = a.interpolate({ inputRange: [0, 1], outputRange: [0.6, 0.32] });
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[s.tileWash, { backgroundColor: color, opacity, transform: [{ scale }, { translateY }] }]}
+    />
+  );
+}
+
+// ── Section heading (kicker + title, optional right slot) ────────
+function SectionHeading({ kicker, title, right }) {
+  return (
+    <View style={s.headingRow}>
+      <View>
+        {!!kicker && <Text style={s.headingKicker}>{kicker}</Text>}
+        <Text style={s.headingTitle}>{title}</Text>
+      </View>
+      {right}
+    </View>
+  );
+}
+
+function PreviewPill() {
+  return (
+    <View style={s.previewPill}>
+      <Ionicons name="eye-outline" size={11} color={C.amber} />
+      <Text style={s.previewPillTxt}>Preview</Text>
+    </View>
+  );
+}
+
+// ── Circular progress ring (SVG dasharray/dashoffset technique) ──
+function Ring({ pct = 0, size = 116, stroke = 11 }) {
+  const r = (size - stroke) / 2;
+  const cx = size / 2, cy = size / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c * (1 - Math.min(100, Math.max(0, pct)) / 100);
+  return (
+    <Svg width={size} height={size}>
+      <Circle cx={cx} cy={cy} r={r} stroke="rgba(20,56,46,0.08)" strokeWidth={stroke} fill="none" />
+      <Circle
+        cx={cx} cy={cy} r={r} stroke={C.g600} strokeWidth={stroke} fill="none"
+        strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
+        rotation="-90" origin={`${cx}, ${cy}`}
+      />
+    </Svg>
+  );
+}
+
+// ── Collection ring card — real collected/pending/total split from
+// getVendorFinancials(), with a bottom strip of the vendor's own
+// ongoing/completed/inquiries counts (same numbers the header stat row
+// already shows — no invented data). ─────────────────────────────
+function CollectionRingCard({
+  pct, collected, total, pending, delta, positive,
+  ongoing, completed, inquiries: inqCount,
+  onPressRing, onPressDelta, onPressOngoing, onPressCompleted, onPressInquiries,
+}) {
+  return (
+    <View style={[s.crCard]}>
+      <AnimatedOrb style={s.crOrb1} />
+      <AnimatedOrb style={s.crOrb2} delay={1200} dx={-10} dy={8} />
+
+      <TouchableOpacity activeOpacity={0.9} onPress={onPressRing} style={s.crTop}>
+        <View style={s.crRingWrap}>
+          <Ring pct={pct} />
+          <View style={s.crRingCenter}>
+            <Text style={s.crRingPct}>{pct}</Text>
+            <Text style={s.crRingPctLbl}>PERCENT</Text>
+          </View>
+        </View>
+        <View style={{ flex: 1, marginLeft: 14 }}>
+          <Text style={s.crKicker}>COLLECTION</Text>
+          {delta != null && (
+            <TouchableOpacity onPress={onPressDelta} activeOpacity={0.8}
+              style={[s.crDeltaPill, { backgroundColor: positive ? 'rgba(52,211,153,0.15)' : 'rgba(220,38,38,0.1)' }]}>
+              <Ionicons name={positive ? 'trending-up-outline' : 'trending-down-outline'} size={12} color={positive ? C.g600 : C.red} />
+              <Text style={[s.crDeltaTxt, { color: positive ? C.g600 : C.red }]}>{delta}</Text>
+            </TouchableOpacity>
+          )}
+          <Text style={s.crAmt} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{collected}</Text>
+          <Text style={s.crSub}>of {total} billed</Text>
+        </View>
+      </TouchableOpacity>
+
+      <View style={s.crLegend}>
+        <View style={s.crLegendItem}>
+          <View style={[s.crLegendDot, { backgroundColor: C.g600 }]} />
+          <Text style={s.crLegendLbl}>Received</Text>
+          <Text style={s.crLegendVal}>{collected}</Text>
+        </View>
+        <View style={s.crLegendItem}>
+          <View style={[s.crLegendDot, { backgroundColor: T.gold }]} />
+          <Text style={s.crLegendLbl}>Pending</Text>
+          <Text style={s.crLegendVal}>{pending}</Text>
+        </View>
+      </View>
+
+      <View style={s.crRule} />
+
+      <View style={s.crStrip}>
+        <TouchableOpacity style={s.crStripCell} activeOpacity={0.75} onPress={onPressOngoing}>
+          <Text style={s.crStripVal}>{ongoing}</Text>
+          <Text style={s.crStripLbl}>Ongoing</Text>
+        </TouchableOpacity>
+        <View style={s.crStripDiv} />
+        <TouchableOpacity style={s.crStripCell} activeOpacity={0.75} onPress={onPressCompleted}>
+          <Text style={s.crStripVal}>{completed}</Text>
+          <Text style={s.crStripLbl}>Completed</Text>
+        </TouchableOpacity>
+        <View style={s.crStripDiv} />
+        <TouchableOpacity style={s.crStripCell} activeOpacity={0.75} onPress={onPressInquiries}>
+          <Text style={s.crStripVal}>{inqCount}</Text>
+          <Text style={s.crStripLbl}>Inquiries</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ── Bento tile (Quick Actions) — big feature tile / side stack / row-of-5.
+// Verbatim port of travel-agent's BentoTile: circular icon chip top, label
+// (+ hint on the big tile) pinned to the bottom via the tile's own
+// justifyContent:'space-between' — that split IS the design, not a bug.
+function BentoTile({ w, h, grad, icon, lib = 'ion', label, hint, big, sm, onPress }) {
+  const onGrad = !!grad;
+  const fg = onGrad ? '#fff' : C.text;
+  const chipBg = onGrad ? 'rgba(255,255,255,0.2)' : T.tintEmerald;
+  const iconColor = onGrad ? '#fff' : C.g700;
+  const labelStyle = big ? s.bentoLabelBig : sm ? s.bentoLabelSm : s.bentoLabel;
+  const dims = { width: w, height: h };
+  const inner = (
+    <>
+      <View style={[s.bentoChip, big && s.bentoChipBig, { backgroundColor: chipBg }]}>
+        <Ico lib={lib} name={icon} size={big ? rf(24) : rf(19)} color={iconColor} />
+      </View>
+      <View>
+        <Text style={[labelStyle, sm && { textAlign: 'center' }, { color: fg }]} numberOfLines={big ? 1 : 2}>
+          {label}
+        </Text>
+        {!!hint && (
+          <Text style={[s.bentoHint, { color: onGrad ? 'rgba(255,255,255,0.78)' : C.muted }]} numberOfLines={1}>
+            {hint}
+          </Text>
+        )}
+      </View>
+    </>
+  );
+  if (onGrad) {
+    return (
+      <TouchableOpacity activeOpacity={0.88} onPress={onPress} style={[cardShadow, dims]}>
+        <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.bentoTile, sm && s.bentoTileSm, dims]}>
+          {inner}
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  }
+  return (
+    <TouchableOpacity activeOpacity={0.88} onPress={onPress} style={[cardShadow, s.bentoTile, s.bentoGlass, sm && s.bentoTileSm, dims]}>
+      {inner}
+    </TouchableOpacity>
+  );
+}
+
+// ── Priority card (Action center — horizontal-scroll) ────────────
+function PriorityCard({ tone, icon, title, desc, onPress }) {
+  const grad = tone === 'gold' ? G.gold : tone === 'ocean' ? G.ocean : G.emerald;
+  return (
+    <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={s.priorityCard}>
+      <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.priorityBar} />
+      <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.priorityIcon}>
+        <Ionicons name={icon} size={18} color="#fff" />
+      </LinearGradient>
+      <Text style={s.priorityTitle} numberOfLines={1}>{title}</Text>
+      <Text style={s.priorityDesc} numberOfLines={2}>{desc}</Text>
+      <View style={s.priorityCta}>
+        <Text style={s.priorityCtaTxt}>Resolve now</Text>
+        <Ionicons name="arrow-forward" size={12} color={C.g700} />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 // ── Status config ──────────────────────────────────────────────
 const STATUS_CONFIG = {
   APPROVED:          { color: '#fff',    bg: 'rgba(255,255,255,0.22)', dot: '#34D399', label: 'Active'      },
@@ -142,12 +354,14 @@ export default function DashboardScreen({ navigation }) {
   const [vendor, setVendor]             = useState(null);
   const [profile, setProfile]           = useState(null);
   const [earnings, setEarnings]         = useState(null);
+  const [financials, setFinancials]     = useState(null);
   const [bookingsData, setBookingsData]       = useState(null);
   const [inquiries, setInquiries]             = useState([]);
   const [inquiriesTotal, setInquiriesTotal]   = useState(0);
   const [todayQuoteCounts, setTodayQuoteCounts] = useState({});
   const [updateInfo, setUpdateInfo]           = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [searchQuery, setSearchQuery]         = useState('');
 
   const fetchQuoteCounts = useCallback(async () => {
     try {
@@ -171,13 +385,25 @@ export default function DashboardScreen({ navigation }) {
           const er = await getVendorEarnings();
           if (er?.success) { setEarnings(er.earnings); setBookingsData(er.bookings); }
         } catch (_) {}
+        // Real collected/pending/total split for the collection ring — same
+        // endpoint FinancialsScreen already uses, just also fetched here now.
+        try {
+          const fin = await getVendorFinancials();
+          if (fin?.success !== false) setFinancials(fin?.summary || fin || null);
+        } catch (_) {}
         fetchQuoteCounts();
         // Pull open inquiries only for this vendor's approved services
         const slugs = (p.approvedServiceIds || []).map(id => SVC_ID_TO_SERVICE[id]).filter(Boolean);
         fetchInquiries(slugs, { limit: 5 })
           .then(({ items }) => {
+            // `limit` above is per-service (each approved service is fetched
+            // separately and merged), so a vendor with several approved
+            // services could get well over 5 items here — cap what the
+            // Dashboard preview actually renders to 5, newest-first (already
+            // sorted by fetchInquiries). `inquiriesTotal` stays the real
+            // count so the "N new" pill / header stat isn't misleading.
             const openItems = items.filter(x => !x.quoted);   // only not-yet-quoted
-            setInquiries(openItems);
+            setInquiries(openItems.slice(0, 5));
             setInquiriesTotal(openItems.length);
           })
           .catch(() => {});
@@ -348,38 +574,75 @@ export default function DashboardScreen({ navigation }) {
   ];
   const myServices = SERVICES.filter(s => hasService(s.id));
 
+  const growth   = earnings?.growth ?? 0;
+  const positive = growth >= 0;
+
   // Manage — 2-column grid (no more giant single card)
   const manageItems = [
-    { label: 'Fleet',          sub: `${profile?.fleetsCount ?? 0} vehicles`, icon: 'car-outline',             lib: 'ion', color: C.blue,   route: 'FleetListScreen' },
+    { label: 'Fleet',          sub: `${profile?.fleetsCount ?? 0} vehicles`, icon: 'car-outline',             lib: 'ion', color: C.blue,   route: 'FleetListScreen', value: String(profile?.fleetsCount ?? 0) },
     { label: 'Staff',          sub: 'Manage team',                           icon: 'people-outline',           lib: 'ion', color: C.purple, route: 'StaffListScreen' },
 { label: 'Direct Booking', sub: 'Walk-ins',                              icon: 'book-outline',             lib: 'ion', color: C.orange, route: 'DirectBookings' },
     { label: 'Booking Links',  sub: 'Share & track',                         icon: 'link-outline',             lib: 'ion', color: C.indigo, route: 'BookingLinks' },
     { label: 'Financials',     sub: 'P&L reports',                           icon: 'bar-chart-outline',        lib: 'ion', color: C.purple, route: 'Financials' },
-    { label: 'Earnings',       sub: 'Revenue & payouts',                     icon: 'trending-up-outline',      lib: 'ion', color: C.g600,   route: 'EarningsScreen' },
+    { label: 'Earnings',       sub: 'Revenue & payouts',                     icon: 'trending-up-outline',      lib: 'ion', color: C.g600,   route: 'EarningsScreen', value: earnings ? `${positive ? '+' : '-'}${Math.abs(growth)}%` : null },
     { label: 'P2P Market',     sub: 'Trade fleet',                           icon: 'swap-horizontal-outline',  lib: 'ion', color: C.teal,   route: 'P2PDashboard' },
     { label: 'B2B',            sub: 'Marketplace',                           icon: 'briefcase-outline',        lib: 'ion', color: C.cyan,   route: 'B2BDashboard' },
     { label: 'Live Tracking',  sub: 'Driver GPS',                            icon: 'navigate-outline',         lib: 'ion', color: C.red,    route: 'VendorTracking' },
   ];
 
   const pendingActions = [
-    { name: 'Complete Profile',  desc: 'Business details',  icon: 'person-outline',         lib: 'ion', color: C.blue,   route: 'ProfileScreen' },
-    { name: 'Upload Documents',  desc: 'GST, PAN & more',   icon: 'document-text-outline',  lib: 'ion', color: C.purple, route: 'VendorDocuments' },
-    { name: 'Choose Services',   desc: 'What you offer',    icon: 'grid-outline',            lib: 'ion', color: C.g600,   route: 'VendorServices' },
-    { name: 'Add Locations',     desc: 'Cities you serve',  icon: 'location-outline',        lib: 'ion', color: C.orange, route: 'VendorLocations' },
+    { name: 'Complete Profile',  desc: 'Business details',  icon: 'person-outline',         lib: 'ion', color: C.blue,   grad: [C.blue,   shade(C.blue, -20)],   route: 'ProfileScreen' },
+    { name: 'Upload Documents',  desc: 'GST, PAN & more',   icon: 'document-text-outline',  lib: 'ion', color: C.purple, grad: [C.purple, shade(C.purple, -20)], route: 'VendorDocuments' },
+    { name: 'Choose Services',   desc: 'What you offer',    icon: 'grid-outline',            lib: 'ion', color: C.g600,   grad: [C.g600,   shade(C.g600, -20)],   route: 'VendorServices' },
+    { name: 'Add Locations',     desc: 'Cities you serve',  icon: 'location-outline',        lib: 'ion', color: C.orange, grad: [C.orange, shade(C.orange, -20)], route: 'VendorLocations' },
   ];
-
-  const growth   = earnings?.growth ?? 0;
-  const positive = growth >= 0;
 
   // Header: show the revenue card only once the vendor is actually earning
   // (≥ ₹5K this month). Until then the header is action-focused — what a
   // vendor opens the app for: new inquiries + bookings to act on.
   const showEarnings = (earnings?.thisMonth || 0) >= 5000;
-  const headerStats = [
-    { label: 'Inquiries', value: inquiriesTotal,               icon: 'mail-unread-outline',    route: 'AllInquiries', hot: inquiriesTotal > 0 },
-    { label: 'Ongoing',   value: bookingsData?.active ?? 0,    icon: 'flash-outline',          route: 'AllBookings', params: { initialTab: 'ongoing' } },
-    { label: 'Completed', value: bookingsData?.completed ?? 0, icon: 'checkmark-done-outline', route: 'AllBookings', params: { initialTab: 'completed' } },
-  ];
+
+  // Real collected/pending/total split (getVendorFinancials) for the
+  // collection-ring "Business snapshot" card.
+  const totalRevenue     = financials?.totalRevenue ?? 0;
+  const collectedRevenue = financials?.totalCollected ?? 0;
+  const pendingRevenue   = financials?.totalPending ?? 0;
+  const collectionPct    = totalRevenue > 0 ? Math.round((collectedRevenue / totalRevenue) * 100) : 0;
+
+  // Action center — same conditions that already drive the pending-setup
+  // alert rows, just surfaced as priority cards instead.
+  const docsPending = vendorStatus === VENDOR_STATUS.DOCUMENTS_PENDING;
+
+  // ── Search — live filter over what's actually loaded on this screen
+  // (services, manage shortcuts, quick actions, the open inquiries already
+  // fetched) rather than a fake/placeholder search. ─────────────────
+  const searchResults = React.useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    const out = [];
+    myServices.forEach(svc => {
+      if (svc.name.toLowerCase().includes(q)) {
+        out.push({ key: `svc-${svc.id}`, label: svc.name, sub: 'Service', icon: svc.icon, lib: 'mci', color: svc.color, onPress: () => navigation.navigate(svc.route) });
+      }
+    });
+    manageItems.forEach((m, i) => {
+      if (m.label.toLowerCase().includes(q)) {
+        out.push({ key: `mng-${i}`, label: m.label, sub: m.sub, icon: m.icon, lib: m.lib, color: m.color, onPress: () => navigation.navigate(m.route) });
+      }
+    });
+    quickActions.forEach((qa, i) => {
+      if (qa.label.toLowerCase().includes(q)) {
+        out.push({ key: `qa-${i}`, label: qa.label, sub: 'Quick action', icon: qa.icon, lib: qa.lib, color: qa.color, onPress: () => navigation.navigate(qa.route) });
+      }
+    });
+    inquiries.forEach(inq => {
+      if (inq.title?.toLowerCase().includes(q) || inq.customer?.toLowerCase().includes(q)) {
+        const meta = SVC_META[inq.service] || {};
+        out.push({ key: `inq-${inq.id}`, label: inq.customer, sub: inq.title, icon: meta.icon || 'help-circle', lib: 'mci', color: meta.color || C.muted, onPress: () => openInquiryDetail(inq) });
+      }
+    });
+    return out.slice(0, 8);
+  }, [searchQuery, myServices, manageItems, quickActions, inquiries, navigation, openInquiryDetail]);
 
   // ── Loading skeleton ───────────────────────────────────────────
   if (loading) {
@@ -388,7 +651,7 @@ export default function DashboardScreen({ navigation }) {
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
         {/* Header skeleton — matches real header layout */}
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={sk.hero}>
+        <LinearGradient colors={G.hero} style={sk.hero}>
           <SafeAreaView>
             {/* Top bar: avatar + name/greeting + bell */}
             <View style={sk.topRow}>
@@ -466,6 +729,85 @@ export default function DashboardScreen({ navigation }) {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
+      {/* ══════════════════════════════════════════
+          FIXED TOP BAR — pinned above the scroll, like travel-agent's header
+      ══════════════════════════════════════════ */}
+      <LinearGradient colors={G_HERO_TOP} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={s.heroTop}>
+        <AnimatedOrb style={s.deco1} />
+        <SafeAreaView edges={['top']}>
+          <View style={s.topBar}>
+            <View style={s.topLeft}>
+              <Avatar name={bizName} size={40} onPress={() => navigation.navigate('ProfileScreen')} />
+              <View style={{ marginLeft: 10, flex: 1 }}>
+                <Text style={s.greeting}>Good day 👋</Text>
+                <Text style={s.bizName} numberOfLines={1}>{bizName}</Text>
+                {profile?.vid && <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 2 }}>ID: {profile.vid}</Text>}
+                {/* Status pill — sits below name, no overlap */}
+                <View style={[s.statusPill, { backgroundColor: stCfg.bg, borderColor: 'rgba(255,255,255,0.25)', alignSelf: 'flex-start', marginTop: 4 }]}>
+                  <View style={[s.statusDot, { backgroundColor: stCfg.dot }]} />
+                  <Text style={[s.statusTxt, { color: stCfg.color }]}>{stCfg.label}</Text>
+                </View>
+              </View>
+            </View>
+            <View style={s.topRight}>
+              {/* Bell only — profile is the avatar on the left */}
+              <TouchableOpacity style={s.iconBtn}
+                onPress={() => navigation.navigate('NotificationsScreen')} activeOpacity={0.75}>
+                <Ionicons name="notifications-outline" size={16} color="rgba(255,255,255,0.9)" />
+                {unreadCount > 0 && (
+                  <View style={s.badge}>
+                    <Text style={s.badgeTxt}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* ── Search — live filter over services / manage shortcuts /
+              quick actions / open inquiries already loaded on this screen.
+              Lives in the fixed header so it stays reachable while scrolled. */}
+          <View style={s.heroSearchBar}>
+            <Ionicons name="search-outline" size={16} color="rgba(255,255,255,0.7)" />
+            <TextInput
+              style={s.heroSearchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search services, manage, inquiries..."
+              placeholderTextColor="rgba(255,255,255,0.55)"
+              returnKeyType="search"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* ── Search results dropdown — anchored right under the fixed
+          header's search field, above the scrolling content. ── */}
+      {searchQuery.length > 0 && (
+        <View style={s.searchResults}>
+          {searchResults.length === 0 ? (
+            <Text style={s.searchEmptyTxt}>No matches for "{searchQuery}"</Text>
+          ) : searchResults.map((r, i) => (
+            <TouchableOpacity key={r.key} activeOpacity={0.75}
+              style={[s.searchRow, i < searchResults.length - 1 && s.searchRowDivider]}
+              onPress={() => { setSearchQuery(''); r.onPress(); }}>
+              <View style={[s.searchRowIcon, { backgroundColor: r.color + '14' }]}>
+                <Ico lib={r.lib} name={r.icon} size={16} color={r.color} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.searchRowLabel} numberOfLines={1}>{r.label}</Text>
+                {!!r.sub && <Text style={s.searchRowSub} numberOfLines={1}>{r.sub}</Text>}
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -474,69 +816,18 @@ export default function DashboardScreen({ navigation }) {
         }
       >
         {/* ══════════════════════════════════════════
-            HEADER — Emerald Green
+            PANEL — no longer part of the header gradient; blends into the
+            body. Earnings/progress render as their own light cards below.
+            Only rendered when one of them actually has something to show.
         ══════════════════════════════════════════ */}
-        <LinearGradient
-          colors={[C.g900, '#064E3B', C.g700]}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={s.hero}
-        >
-          {/* Decorative circles */}
-          <View style={s.deco1} />
-          <View style={s.deco2} />
+        {((isApproved && showEarnings) || !isApproved) && (
+        <View style={s.heroRevPanel}>
 
-          <SafeAreaView>
-            {/* Top bar */}
-            <View style={s.topBar}>
-              <View style={s.topLeft}>
-                <Avatar name={bizName} size={40} onPress={() => navigation.navigate('ProfileScreen')} />
-                <View style={{ marginLeft: 10, flex: 1 }}>
-                  <Text style={s.greeting}>Good day 👋</Text>
-                  <Text style={s.bizName} numberOfLines={1}>{bizName}</Text>
-                  {profile?.vid && <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 2 }}>ID: {profile.vid}</Text>}
-                  {/* Status pill — sits below name, no overlap */}
-                  <View style={[s.statusPill, { backgroundColor: stCfg.bg, borderColor: 'rgba(255,255,255,0.25)', alignSelf: 'flex-start', marginTop: 4 }]}>
-                    <View style={[s.statusDot, { backgroundColor: stCfg.dot }]} />
-                    <Text style={[s.statusTxt, { color: stCfg.color }]}>{stCfg.label}</Text>
-                  </View>
-                </View>
-              </View>
-              <View style={s.topRight}>
-                {/* Bell only — profile is the avatar on the left */}
-                <TouchableOpacity style={s.iconBtn}
-                  onPress={() => navigation.navigate('NotificationsScreen')} activeOpacity={0.75}>
-                  <Ionicons name="notifications-outline" size={16} color="rgba(255,255,255,0.9)" />
-                  {unreadCount > 0 && (
-                    <View style={s.badge}>
-                      <Text style={s.badgeTxt}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Action stats (approved, revenue still ramping) — vendor's
-                first-glance: inquiries to quote + bookings to run. */}
-            {isApproved && !showEarnings && (
-              <View style={s.statRow}>
-                {headerStats.map((st, i) => (
-                  <TouchableOpacity key={i} style={s.statCard} activeOpacity={0.8}
-                    onPress={() => navigation.navigate(st.route, st.params)}>
-                    <View style={s.statTop}>
-                      <Ionicons name={st.icon} size={15} color="rgba(255,255,255,0.85)" />
-                      {st.hot && <View style={s.statHotDot} />}
-                    </View>
-                    <Text style={s.statVal}>{st.value}</Text>
-                    <Text style={s.statLbl}>{st.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {/* Earnings (approved, ₹5K+ this month) */}
-            {isApproved && showEarnings && (
-              <TouchableOpacity onPress={() => navigation.navigate('EarningsScreen')}
-                activeOpacity={0.88} style={s.earningsCard}>
+          {/* Earnings (approved, ₹5K+ this month) */}
+          {isApproved && showEarnings && (
+            <TouchableOpacity onPress={() => navigation.navigate('EarningsScreen')}
+              activeOpacity={0.88} style={s.earningsCardWrap}>
+              <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.earningsCard}>
                 <View style={s.earningsTop}>
                   <View>
                     <Text style={s.earningsLbl}>THIS MONTH</Text>
@@ -568,45 +859,69 @@ export default function DashboardScreen({ navigation }) {
                     </React.Fragment>
                   ))}
                 </View>
-              </TouchableOpacity>
-            )}
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
-            {/* Progress (pending) */}
-            {!isApproved && (
-              <View style={s.progressBlock}>
-                <View style={s.progressHeader}>
-                  <Text style={s.progressTitle}>Complete setup to go live</Text>
-                  <Text style={s.progressCount}>{doneCount}/{steps.length} done</Text>
-                </View>
-                <View style={s.progressBarBg}>
-                  <View style={[s.progressBarFill, { width: `${(doneCount / steps.length) * 100}%` }]} />
-                </View>
-                <View style={s.stepRow}>
-                  {steps.map((st, i) => (
-                    <React.Fragment key={st.id}>
-                      <View style={[s.stepDot, st.done && s.stepDotDone, st.current && s.stepDotActive]}>
-                        {st.done
-                          ? <Ionicons name="checkmark" size={9} color="#fff" />
-                          : <Text style={[s.stepNum, st.current && { color: '#fff' }]}>{st.id}</Text>}
-                      </View>
-                      {i < steps.length - 1 && (
-                        <View style={[s.stepLine, st.done && { backgroundColor: C.g400 }]} />
-                      )}
-                    </React.Fragment>
-                  ))}
-                  <Text style={s.stepCurrent}>
-                    {steps.find(st => st.current)?.name || (doneCount === steps.length ? 'All done!' : steps[doneCount]?.name)}
-                  </Text>
-                </View>
+          {/* Progress (pending) */}
+          {!isApproved && (
+            <View style={s.progressBlock}>
+              <View style={s.progressHeader}>
+                <Text style={s.progressTitle}>Complete setup to go live</Text>
+                <Text style={s.progressCount}>{doneCount}/{steps.length} done</Text>
               </View>
-            )}
-          </SafeAreaView>
-        </LinearGradient>
+              <View style={s.progressBarBg}>
+                <View style={[s.progressBarFill, { width: `${(doneCount / steps.length) * 100}%` }]} />
+              </View>
+              <View style={s.stepRow}>
+                {steps.map((st, i) => (
+                  <React.Fragment key={st.id}>
+                    <View style={[s.stepDot, st.done && s.stepDotDone, st.current && s.stepDotActive]}>
+                      {st.done
+                        ? <Ionicons name="checkmark" size={9} color="#fff" />
+                        : <Text style={[s.stepNum, st.current && { color: '#fff' }]}>{st.id}</Text>}
+                    </View>
+                    {i < steps.length - 1 && (
+                      <View style={[s.stepLine, st.done && { backgroundColor: C.g400 }]} />
+                    )}
+                  </React.Fragment>
+                ))}
+                <Text style={s.stepCurrent}>
+                  {steps.find(st => st.current)?.name || (doneCount === steps.length ? 'All done!' : steps[doneCount]?.name)}
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+        )}
 
         {/* ══════════════════════════════════════════
             BODY
         ══════════════════════════════════════════ */}
         <View style={s.body}>
+
+          {/* ── Business snapshot — real collected/pending/total ring ── */}
+          {isApproved && (
+            <View style={s.section}>
+              <SectionHeading kicker="Today" title="Business snapshot" />
+              <CollectionRingCard
+                pct={collectionPct}
+                collected={fmt(collectedRevenue)}
+                total={fmt(totalRevenue)}
+                pending={fmt(pendingRevenue)}
+                delta={earnings ? `${positive ? '+' : '-'}${Math.abs(growth)}%` : null}
+                positive={positive}
+                ongoing={bookingsData?.active ?? 0}
+                completed={bookingsData?.completed ?? 0}
+                inquiries={inquiriesTotal}
+                onPressRing={() => navigation.navigate('Financials')}
+                onPressDelta={() => navigation.navigate('EarningsScreen')}
+                onPressOngoing={() => navigation.navigate('AllBookings', { initialTab: 'ongoing' })}
+                onPressCompleted={() => navigation.navigate('AllBookings', { initialTab: 'completed' })}
+                onPressInquiries={() => navigation.navigate('AllInquiries')}
+              />
+            </View>
+          )}
 
           {/* ── New Inquiries ───────────────────────────────────────
               Sits first so vendors see action items "at first sight".
@@ -614,13 +929,12 @@ export default function DashboardScreen({ navigation }) {
               services, merged + newest-first (see api/inquiriesApi). */}
           {isApproved && inquiries.length > 0 && (
             <View style={s.section}>
-              <View style={s.sectionRow}>
-                <Text style={s.sectionTitle}>New Inquiries</Text>
+              <SectionHeading kicker="Today" title="New Inquiries" right={(
                 <View style={s.inqCountPill}>
                   <View style={s.inqLiveDot} />
                   <Text style={s.inqCountTxt}>{inquiriesTotal} new</Text>
                 </View>
-              </View>
+              )} />
 
               <View style={{ gap: 10 }}>
                 {inquiries.map((q) => {
@@ -675,30 +989,44 @@ export default function DashboardScreen({ navigation }) {
             </View>
           )}
 
+          {/* ── Action center (priority, resolve-now items) ─────── */}
+          {!isApproved && docsPending && (
+            <View style={s.section}>
+              <SectionHeading kicker="Priority" title="Action center" />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }}>
+                <PriorityCard tone="gold" icon="document-text-outline" title="Upload documents"
+                  desc="GST, PAN & more to complete verification"
+                  onPress={() => navigation.navigate('VendorDocuments')} />
+              </ScrollView>
+            </View>
+          )}
+
           {/* ── Pending setup ─────────────────────────── */}
           {!isApproved && (
             <View style={s.section}>
-              <Text style={s.sectionTitle}>Complete Setup</Text>
-              <View style={s.pendingGrid}>
+              <SectionHeading kicker="Get ready" title="Complete setup" />
+              <View style={{ gap: 10, marginBottom: 12 }}>
                 {pendingActions.map((a, i) => (
-                  <TouchableOpacity key={i} style={s.pendingCard}
-                    onPress={() => navigation.navigate(a.route)} activeOpacity={0.75}>
-                    <View style={[s.pendingIconBox, { backgroundColor: a.color + '15' }]}>
-                      <Ico lib={a.lib} name={a.icon} size={18} color={a.color} />
+                  <TouchableOpacity key={i} style={s.setupRow}
+                    onPress={() => navigation.navigate(a.route)} activeOpacity={0.85}>
+                    <LinearGradient colors={a.grad} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={s.setupAccent} />
+                    <LinearGradient colors={a.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.setupIcon}>
+                      <Ico lib={a.lib} name={a.icon} size={18} color="#fff" />
+                    </LinearGradient>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.setupName} numberOfLines={1}>{a.name}</Text>
+                      <Text style={s.setupDesc} numberOfLines={1}>
+                        <Text style={s.setupStepInline}>Step {i + 1}</Text>{'  ·  ' + a.desc}
+                      </Text>
                     </View>
-                    <Text style={s.pendingName}>{a.name}</Text>
-                    <Text style={s.pendingDesc}>{a.desc}</Text>
+                    <View style={s.setupStart}>
+                      <Text style={s.setupStartTxt}>Start</Text>
+                      <Ionicons name="arrow-forward" size={12} color={C.g700} />
+                    </View>
                   </TouchableOpacity>
                 ))}
               </View>
-              {vendorStatus === VENDOR_STATUS.DOCUMENTS_PENDING && (
-                <TouchableOpacity style={[s.alertRow, { backgroundColor: C.amberL, borderColor: '#FDE68A' }]}
-                  onPress={() => navigation.navigate('VendorDocuments')} activeOpacity={0.8}>
-                  <Ionicons name="warning-outline" size={15} color={C.amber} />
-                  <Text style={[s.alertTxt, { color: '#92400E', flex: 1, marginLeft: 9 }]}>Upload documents to continue</Text>
-                  <Ionicons name="chevron-forward" size={13} color={C.amber} />
-                </TouchableOpacity>
-              )}
               {vendorStatus === VENDOR_STATUS.UNDER_REVIEW && (
                 <View style={[s.alertRow, { backgroundColor: C.blueL, borderColor: '#BFDBFE' }]}>
                   <Ionicons name="time-outline" size={15} color={C.blue} />
@@ -715,7 +1043,7 @@ export default function DashboardScreen({ navigation }) {
               )}
               {/* Getting started */}
               <View style={s.guideCard}>
-                <Text style={[s.sectionTitle, { marginBottom: 12 }]}>Getting Started</Text>
+                <SectionHeading kicker="Journey" title="Getting Started" />
                 {[
                   { n: 1, t: 'Complete your profile',       d: 'Business name, logo and contact info' },
                   { n: 2, t: 'Upload documents',             d: 'GST certificate, PAN card and more' },
@@ -745,30 +1073,34 @@ export default function DashboardScreen({ navigation }) {
           )}
 
 
-          {/* ── Quick Actions ─────────────────────────── */}
+          {/* ── Quick Actions (bento: big feature + side stack + row of 5) ── */}
           {/* Visible to pending vendors too — write actions inside each
               destination screen are gated by VerificationGate, so they
               can browse the app without being trapped on the onboarding
               card. */}
           <View style={s.section}>
-            <View style={s.sectionRow}>
-              <Text style={s.sectionTitle}>Quick Actions</Text>
-              {!isApproved && (
-                <View style={s.previewPill}>
-                  <Ionicons name="eye-outline" size={11} color={C.amber} />
-                  <Text style={s.previewPillTxt}>Preview</Text>
-                </View>
-              )}
+            <SectionHeading kicker="Toolkit" title="Quick Actions" right={!isApproved ? <PreviewPill /> : null} />
+
+            <View style={{ flexDirection: 'row', gap: BENTO_GAP }}>
+              <BentoTile big w={BENTO_BIG_W} h={BENTO_BIG_H} grad={G.hero}
+                icon={quickActions[0].icon} lib={quickActions[0].lib} label={quickActions[0].label}
+                hint="Get started fast" onPress={() => navigation.navigate(quickActions[0].route)} />
+              <View style={{ width: BENTO_SIDE_W, gap: BENTO_GAP }}>
+                <BentoTile w={BENTO_SIDE_W} h={BENTO_ROW_H}
+                  icon={quickActions[1].icon} lib={quickActions[1].lib} label={quickActions[1].label}
+                  onPress={() => navigation.navigate(quickActions[1].route)} />
+                <BentoTile w={BENTO_SIDE_W} h={BENTO_ROW_H} grad={[quickActions[2].color, shade(quickActions[2].color, -20)]}
+                  icon={quickActions[2].icon} lib={quickActions[2].lib} label={quickActions[2].label}
+                  onPress={() => navigation.navigate(quickActions[2].route)} />
+              </View>
             </View>
-            <View style={s.qaRow}>
-              {quickActions.map((qa, i) => (
-                <TouchableOpacity key={i} style={s.qaItem}
-                  onPress={() => navigation.navigate(qa.route)} activeOpacity={0.7}>
-                  <View style={[s.qaCircle, { backgroundColor: qa.color + '14' }]}>
-                    <Ico lib={qa.lib} name={qa.icon} size={26} color={qa.color} />
-                  </View>
-                  <Text style={s.qaLabel} numberOfLines={2}>{qa.label}</Text>
-                </TouchableOpacity>
+
+            <View style={{ flexDirection: 'row', gap: BENTO_GAP, marginTop: BENTO_GAP }}>
+              {quickActions.slice(3).map((qa, i) => (
+                <BentoTile key={i} sm w={BENTO_5W} h={rs(92)}
+                  grad={i % 2 === 0 ? [qa.color, shade(qa.color, -20)] : null}
+                  icon={qa.icon} lib={qa.lib} label={qa.label}
+                  onPress={() => navigation.navigate(qa.route)} />
               ))}
             </View>
           </View>
@@ -776,12 +1108,11 @@ export default function DashboardScreen({ navigation }) {
           {/* ── Your Services ─────────────────────────── */}
           {isApproved && myServices.length > 0 && (
             <View style={s.section}>
-              <View style={s.sectionRow}>
-                <Text style={s.sectionTitle}>Your Services</Text>
+              <SectionHeading kicker="Operate" title="Your Services" right={(
                 <View style={s.countPill}>
                   <Text style={s.countPillTxt}>{myServices.length} active</Text>
                 </View>
-              </View>
+              )} />
               <View style={s.svcGrid}>
                 {myServices.map((svc, i) => {
                   const svcKey = SVC_ID_TO_SERVICE[svc.id];
@@ -808,47 +1139,65 @@ export default function DashboardScreen({ navigation }) {
             </View>
           )}
 
-          {/* ── Manage — 2-column grid ────────────────── */}
+          {/* ── Manage ─────────────────────────────────── */}
           {/* Visible to pending vendors too. Browsing is free; write
               actions inside each destination screen are gated. */}
           <View style={s.section}>
-            <View style={s.sectionRow}>
-              <Text style={s.sectionTitle}>Manage</Text>
-              {!isApproved && (
-                <View style={s.previewPill}>
-                  <Ionicons name="eye-outline" size={11} color={C.amber} />
-                  <Text style={s.previewPillTxt}>Preview</Text>
-                </View>
-              )}
-            </View>
-            <View style={s.manageGrid}>
-              {manageItems.map((m, i) => (
-                <TouchableOpacity key={i} style={s.manageCard}
-                  onPress={() => navigation.navigate(m.route)} activeOpacity={0.75}>
-                  <View style={[s.manageIconBox, { backgroundColor: m.color + '14' }]}>
-                    <Ico lib={m.lib} name={m.icon} size={20} color={m.color} />
+            <SectionHeading kicker="Operate" title="Management" right={!isApproved ? <PreviewPill /> : null} />
+
+            {/* Payments — big gradient card, vendor's own real numbers */}
+            {isApproved && earnings && (
+              <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('EarningsScreen')}
+                style={{ marginBottom: BENTO_GAP }}>
+                <LinearGradient colors={[C.g800, C.g600]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.payCard}>
+                  <View style={s.payOrb} />
+                  <Text style={s.payKicker}>THIS MONTH</Text>
+                  <Text style={s.payAmt} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{fmt(earnings?.thisMonth || 0)}</Text>
+                  <View style={s.payStrip}>
+                    {[
+                      { l: 'Today',   v: fmt(earnings?.today || 0),        c: '#7CE0B8' },
+                      { l: 'Pending', v: fmt(earnings?.pendingPayout || 0), c: T.goldLight },
+                      { l: 'Trips',   v: `${bookingsData?.completed || 0}`, c: 'rgba(255,255,255,0.85)' },
+                    ].map((m, i) => (
+                      <React.Fragment key={i}>
+                        {i > 0 && <View style={s.payDivider} />}
+                        <View style={s.payCell}>
+                          <View style={s.payCellTop}>
+                            <View style={[s.payCellDot, { backgroundColor: m.c }]} />
+                            <Text style={s.payCellLbl}>{m.l}</Text>
+                          </View>
+                          <Text style={s.payCellVal}>{m.v}</Text>
+                        </View>
+                      </React.Fragment>
+                    ))}
                   </View>
-                  <Text style={s.manageLabel}>{m.label}</Text>
-                  <Text style={s.manageSub}>{m.sub}</Text>
-                  <Ionicons name="chevron-forward" size={12} color={C.muted} style={s.manageArrow} />
-                </TouchableOpacity>
-              ))}
-            </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+
+            {/* Single dark "hub" card — compact icon strip inside, same
+                visual weight as the Payments card above it. */}
+            <LinearGradient colors={[C.g800, C.g600]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hubCard}>
+              <Text style={s.hubKicker}>Quick access</Text>
+              <View style={s.hubGrid}>
+                {manageItems.map((m, i) => (
+                  <TouchableOpacity key={i} style={s.hubItem}
+                    onPress={() => navigation.navigate(m.route)} activeOpacity={0.7}>
+                    <View style={s.hubCircle}>
+                      <Ico lib={m.lib} name={m.icon} size={21} color="#fff" />
+                    </View>
+                    <Text style={s.hubLabel} numberOfLines={1}>{m.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </LinearGradient>
           </View>
 
           {/* ── Community / Social ───────────────────── */}
           {/* Visible to pending vendors too — browsing the feed/messages
               is allowed; posting / sending is gated inside each screen. */}
           <View style={s.section}>
-            <View style={s.sectionRow}>
-              <Text style={s.sectionTitle}>Community</Text>
-              {!isApproved && (
-                <View style={s.previewPill}>
-                  <Ionicons name="eye-outline" size={11} color={C.amber} />
-                  <Text style={s.previewPillTxt}>Preview</Text>
-                </View>
-              )}
-            </View>
+            <SectionHeading kicker="Community" title="Stay in the loop" right={!isApproved ? <PreviewPill /> : null} />
             <View style={s.manageGrid}>
                 {[
                   { label: 'Social Feed',  sub: 'Posts & updates',  icon: 'newspaper-outline',     lib: 'ion', color: C.pink,   route: 'SocialFeed' },
@@ -856,6 +1205,7 @@ export default function DashboardScreen({ navigation }) {
                 ].map((m, i) => (
                   <TouchableOpacity key={i} style={s.manageCard}
                     onPress={() => navigation.navigate(m.route)} activeOpacity={0.75}>
+                    <AnimatedWash color={shade(m.color, 75)} delay={i * 300} />
                     <View style={[s.manageIconBox, { backgroundColor: m.color + '14' }]}>
                       <Ico lib={m.lib} name={m.icon} size={20} color={m.color} />
                     </View>
@@ -876,7 +1226,7 @@ export default function DashboardScreen({ navigation }) {
         onRequestClose={() => { if (!updateInfo?.forceUpdate) setShowUpdateModal(false); }}>
         <View style={s.modalOverlay}>
           <View style={s.modalSheet}>
-            <View style={s.modalHandle} />
+            <SheetHandle />
             {!updateInfo?.forceUpdate && (
               <TouchableOpacity style={s.modalClose} onPress={() => setShowUpdateModal(false)}>
                 <Ionicons name="close" size={20} color={C.sub} />
@@ -947,23 +1297,37 @@ const sk = StyleSheet.create({
 const CARD_W = (W - 32 - 10) / 2;   // 2-col grid with 10 gap
 const QA_W   = (W - 32 - 18) / 4;   // 4 per row (16+16 padding, 3 gaps of 6 → 8 actions = balanced 4+4)
 
+// Bento (Quick Actions) — big feature tile + 2-tile side stack (8 vendor
+// quick actions total) + 5-across bottom row.
+const BENTO_GAP  = 10;
+const BENTO_FULLW = W - 32;
+const BENTO_BIG_W  = Math.round(BENTO_FULLW * 0.62);
+const BENTO_SIDE_W = BENTO_FULLW - BENTO_BIG_W - BENTO_GAP;
+const BENTO_ROW_H  = rs(104);
+const BENTO_BIG_H  = BENTO_ROW_H * 2 + BENTO_GAP;
+const BENTO_5W     = Math.floor((BENTO_FULLW - BENTO_GAP * 4) / 5);
+
 const s = StyleSheet.create({
 
-  // ── Header ───────────────────────────────────────────────────
+  // ── Header (fixed top bar only — the panel below it is a plain,
+  // non-gradient section that blends into the body) ────
   hero: { paddingHorizontal: 16, paddingBottom: 14, overflow: 'hidden' },
+  heroTop: {
+    paddingHorizontal: 16, paddingBottom: rs(12), overflow: 'hidden',
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
+  },
+  heroRevPanel: {
+    backgroundColor: C.bg, paddingHorizontal: 16, paddingTop: rs(14), paddingBottom: rs(2),
+  },
   deco1: {
     position: 'absolute', width: 200, height: 200, borderRadius: 100,
-    backgroundColor: 'rgba(52,211,153,0.07)', top: -60, right: -40,
+    backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40,
   },
-  deco2: {
-    position: 'absolute', width: 130, height: 130, borderRadius: 65,
-    backgroundColor: 'rgba(16,185,129,0.05)', bottom: 0, left: W * 0.35,
-  },
-  topBar:   { flexDirection: 'row', alignItems: 'center', paddingTop: 8, marginBottom: 12 },
+  topBar:   { flexDirection: 'row', alignItems: 'center', paddingTop: 4, marginBottom: 16 },
   topLeft:  { flexDirection: 'row', alignItems: 'center', flex: 1 },
   topRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   greeting: { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: '600', letterSpacing: 0.3 },
-  bizName:  { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.3, marginTop: 2 },
+  bizName:  { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.3, marginTop: 2 },
 
   // Status pill — white text + white border so it's always visible on green
   statusPill: {
@@ -988,18 +1352,18 @@ const s = StyleSheet.create({
   },
   badgeTxt: { fontSize: 7, fontWeight: '900', color: '#fff' },
 
-  // ── Earnings card ──────────────────────────────────────────
+  // ── Earnings card — now its own dark accent card on the light body
+  // (used to be translucent-on-gradient; the gradient panel is gone) ────
+  earningsCardWrap: { borderRadius: rs(18), ...cardShadow },
   earningsCard: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 16, padding: 14,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)',
+    borderRadius: rs(18), padding: 16, overflow: 'hidden',
   },
   earningsTop: {
     flexDirection: 'row', alignItems: 'flex-end',
     justifyContent: 'space-between', marginBottom: 12,
   },
   earningsLbl: { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 3 },
-  earningsAmt: { fontSize: 36, fontWeight: '900', color: '#fff', letterSpacing: -1 },
+  earningsAmt: { fontFamily: DISPLAY, fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -1 },
   growthPill:  { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
   growthTxt:   { fontSize: 13, fontWeight: '800' },
   miniStrip: {
@@ -1012,41 +1376,150 @@ const s = StyleSheet.create({
   miniVal:  { fontSize: 15, fontWeight: '800', color: '#fff', marginBottom: 2 },
   miniLbl:  { fontSize: 9.5, fontWeight: '600', color: 'rgba(255,255,255,0.5)' },
 
-  // ── Header action stat cards (shown until revenue ≥ ₹5K) ────
-  statRow:    { flexDirection: 'row', gap: 8 },
-  statCard:   { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
-  statTop:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, minHeight: 15 },
-  statHotDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#FCA5A5' },
-  statVal:    { fontSize: 24, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
-  statLbl:    { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.55)', marginTop: 2 },
-
-  // ── Progress (pending) ──────────────────────────────────────
-  progressBlock:  { marginBottom: 2 },
+  // ── Progress (pending) — now a light card on the body ──────
+  progressBlock: {
+    backgroundColor: C.card, borderRadius: rs(18), padding: 16,
+    borderWidth: 1, borderColor: C.border, marginBottom: 2, ...cardShadow,
+  },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  progressTitle:  { fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: '700' },
-  progressCount:  { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
-  progressBarBg:  { height: 4, backgroundColor: 'rgba(255,255,255,0.13)', borderRadius: 2, marginBottom: 12 },
-  progressBarFill:{ height: 4, backgroundColor: '#34D399', borderRadius: 2 },
+  progressTitle:  { fontSize: 13, color: C.text, fontWeight: '700' },
+  progressCount:  { fontSize: 11, color: C.muted, fontWeight: '600' },
+  progressBarBg:  { height: 4, backgroundColor: C.bg, borderRadius: 2, marginBottom: 12 },
+  progressBarFill:{ height: 4, backgroundColor: C.g500, borderRadius: 2 },
   stepRow:    { flexDirection: 'row', alignItems: 'center' },
   stepDot: {
     width: 22, height: 22, borderRadius: 11,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: C.bg,
+    borderWidth: 1.5, borderColor: C.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  stepDotDone:   { backgroundColor: '#059669', borderColor: '#059669' },
-  stepDotActive: { backgroundColor: '#2563EB', borderColor: '#2563EB' },
-  stepNum:       { fontSize: 9, fontWeight: '800', color: 'rgba(255,255,255,0.4)' },
-  stepLine:      { flex: 1, height: 1.5, backgroundColor: 'rgba(255,255,255,0.12)', maxWidth: 28 },
-  stepCurrent:   { fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: '600', marginLeft: 10 },
+  stepDotDone:   { backgroundColor: C.g600, borderColor: C.g600 },
+  stepDotActive: { backgroundColor: C.blue, borderColor: C.blue },
+  stepNum:       { fontSize: 9, fontWeight: '800', color: C.muted },
+  stepLine:      { flex: 1, height: 1.5, backgroundColor: C.border, maxWidth: 28 },
+  stepCurrent:   { fontSize: 10, color: C.muted, fontWeight: '600', marginLeft: 10 },
 
   // ── Body ────────────────────────────────────────────────────
   body: { paddingHorizontal: 16, paddingTop: 18 },
+
+  // ── Search — lives inside the header (glass field on the gradient,
+  // same treatment as the search box on the Bookings screen's hero)
+  // instead of floating as a separate card below it.
+  heroSearchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: rs(12), paddingHorizontal: 14, height: 38,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', marginBottom: 10,
+  },
+  heroSearchInput: { flex: 1, fontSize: 12.5, color: '#fff', fontWeight: '600', padding: 0 },
+  // Results dropdown — docked right under the fixed header's search field,
+  // above the scrolling content (not inside s.body, so needs its own margins).
+  searchResults: {
+    backgroundColor: C.card, borderRadius: rs(15), marginHorizontal: 16, marginTop: 10,
+    borderWidth: 1, borderColor: C.border, overflow: 'hidden',
+    ...cardShadow,
+  },
+  searchEmptyTxt: { fontSize: 12, color: C.muted, textAlign: 'center', paddingVertical: 16 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
+  searchRowDivider: { borderBottomWidth: 1, borderBottomColor: C.border },
+  searchRowIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  searchRowLabel: { fontSize: 12.5, fontWeight: '700', color: C.text },
+  searchRowSub: { fontSize: 10.5, color: C.muted, marginTop: 1 },
 
   // ── Section ─────────────────────────────────────────────────
   section:      { marginBottom: 22 },
   sectionRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   sectionTitle: { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: -0.2, marginBottom: 10 },
+  // SectionHeading — kicker (small caps label) + serif title, TA's convention.
+  headingRow:     { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 },
+  headingKicker:  { fontSize: 10, fontWeight: '800', color: C.g600, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
+  headingTitle:   { fontFamily: DISPLAY, fontSize: rf(17), fontWeight: '800', color: C.text, letterSpacing: -0.2 },
+
+  // ── Collection ring card (Business snapshot) ──────────────────
+  crCard: {
+    backgroundColor: C.card, borderRadius: rs(22), padding: rs(16),
+    borderWidth: 1, borderColor: C.border, overflow: 'hidden',
+    ...cardShadow,
+  },
+  crOrb1: { position: 'absolute', top: -30, right: -30, width: rs(110), height: rs(110), borderRadius: rs(55), backgroundColor: T.tintEmerald },
+  crOrb2: { position: 'absolute', bottom: -20, left: -20, width: rs(80), height: rs(80), borderRadius: rs(40), backgroundColor: T.tintGold },
+  crTop: { flexDirection: 'row', alignItems: 'center' },
+  crRingWrap: { width: 116, height: 116, alignItems: 'center', justifyContent: 'center' },
+  crRingCenter: { position: 'absolute', alignItems: 'center' },
+  crRingPct: { fontFamily: DISPLAY, fontSize: rf(26), fontWeight: '800', color: C.text },
+  crRingPctLbl: { fontSize: 8, fontWeight: '700', color: C.muted, letterSpacing: 1 },
+  crKicker: { fontSize: 10, fontWeight: '800', color: C.muted, letterSpacing: 1, marginBottom: 4 },
+  crDeltaPill: { flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-start', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10, marginBottom: 4 },
+  crDeltaTxt: { fontSize: 10, fontWeight: '800' },
+  crAmt: { fontFamily: DISPLAY, fontSize: rf(24), fontWeight: '800', color: C.text },
+  crSub: { fontSize: 10.5, color: C.muted, marginTop: 1 },
+  crLegend: { flexDirection: 'row', gap: 18, marginTop: 14 },
+  crLegendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  crLegendDot: { width: 7, height: 7, borderRadius: 3.5 },
+  crLegendLbl: { fontSize: 10.5, color: C.muted, fontWeight: '600' },
+  crLegendVal: { fontSize: 10.5, color: C.text, fontWeight: '800' },
+  crRule: { height: 1, backgroundColor: C.border, marginVertical: 14 },
+  crStrip: { flexDirection: 'row', alignItems: 'center' },
+  crStripCell: { flex: 1, alignItems: 'center' },
+  crStripVal: { fontFamily: DISPLAY, fontSize: rf(15), fontWeight: '800', color: C.text },
+  crStripLbl: { fontSize: 9.5, color: C.muted, fontWeight: '600', marginTop: 1 },
+  crStripDiv: { width: 1, height: 24, backgroundColor: C.border },
+
+  // ── Bento tiles (Quick Actions) ────────────────────────────────
+  // flex-start (not space-between) so the label sits right under the icon
+  // chip instead of being stretched toward the tile's bottom edge; overflow
+  // hidden so long labels never visually spill past the rounded corners.
+  // Icon chip pinned top, label(+hint) pinned bottom via space-between —
+  // fills the tile height by design (travel-agent's own bento layout).
+  bentoTile: { borderRadius: rs(22), padding: rs(12), justifyContent: 'space-between', overflow: 'hidden' },
+  bentoTileSm: { alignItems: 'center', justifyContent: 'center', gap: rs(7), padding: rs(9) },
+  bentoGlass: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
+  bentoChip: { width: rs(36), height: rs(36), borderRadius: rs(18), alignItems: 'center', justifyContent: 'center' },
+  bentoChipBig: { width: rs(46), height: rs(46), borderRadius: rs(23) },
+  bentoLabel: { fontFamily: DISPLAY, fontSize: rf(14), fontWeight: '600' },
+  bentoLabelSm: { fontFamily: DISPLAY, fontSize: rf(11.5), fontWeight: '600' },
+  bentoLabelBig: { fontFamily: DISPLAY, fontSize: rf(21), fontWeight: '600', letterSpacing: -0.3 },
+  bentoHint: { fontFamily: DISPLAY, fontSize: rf(11.5), marginTop: rs(2), fontWeight: '500' },
+
+  // ── Priority cards (Action center) ─────────────────────────────
+  priorityCard: {
+    width: rs(200), backgroundColor: C.card, borderRadius: rs(18), padding: rs(14),
+    borderWidth: 1, borderColor: C.border, overflow: 'hidden',
+    ...cardShadow,
+  },
+  priorityBar: { position: 'absolute', top: 0, left: 0, right: 0, height: 4 },
+  priorityIcon: { width: rs(38), height: rs(38), borderRadius: rs(13), alignItems: 'center', justifyContent: 'center', marginTop: 6, marginBottom: 10 },
+  priorityTitle: { fontSize: 13, fontWeight: '800', color: C.text, marginBottom: 3 },
+  priorityDesc: { fontSize: 10.5, color: C.muted, lineHeight: 14, marginBottom: 10 },
+  priorityCta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  priorityCtaTxt: { fontSize: 11, fontWeight: '800', color: C.g700 },
+
+  // ── Setup list rows (Pending setup, list not grid) ─────────────
+  setupRow: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: C.card,
+    borderRadius: rs(16), padding: rs(12), paddingLeft: rs(16),
+    borderWidth: 1, borderColor: C.border, overflow: 'hidden',
+    ...rowShadow,
+  },
+  setupAccent: { position: 'absolute', top: 0, left: 0, bottom: 0, width: 4 },
+  setupIcon: { width: rs(40), height: rs(40), borderRadius: rs(13), alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  setupName: { fontSize: 13, fontWeight: '800', color: C.text, marginBottom: 2 },
+  setupDesc: { fontSize: 10.5, color: C.muted },
+  setupStepInline: { fontSize: 10.5, color: C.g700, fontWeight: '800' },
+  setupStart: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.g50, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, marginLeft: 8 },
+  setupStartTxt: { fontSize: 11, fontWeight: '800', color: C.g700 },
+
+  // ── Payments card (Management) ─────────────────────────────────
+  payCard: { borderRadius: rs(22), padding: rs(18), overflow: 'hidden' },
+  payOrb: { position: 'absolute', top: -40, right: -40, width: rs(140), height: rs(140), borderRadius: rs(70), backgroundColor: 'rgba(255,255,255,0.06)' },
+  payKicker: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.6)', letterSpacing: 1.5, marginBottom: 4 },
+  payAmt: { fontFamily: DISPLAY, fontSize: rf(30), fontWeight: '800', color: '#fff', marginBottom: 14 },
+  payStrip: { flexDirection: 'row', alignItems: 'center' },
+  payCell: { flex: 1, alignItems: 'center' },
+  payCellTop: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
+  payCellDot: { width: 6, height: 6, borderRadius: 3 },
+  payCellLbl: { fontSize: 9.5, color: 'rgba(255,255,255,0.65)', fontWeight: '600' },
+  payCellVal: { fontSize: 13, color: '#fff', fontWeight: '800' },
+  payDivider: { width: 1, height: 26, backgroundColor: 'rgba(255,255,255,0.15)' },
   countPill:    { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 20, backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100 },
   countPillTxt: { fontSize: 10, fontWeight: '700', color: C.g700 },
   // "Preview" badge — sits next to Quick Actions / Manage section titles
@@ -1072,10 +1545,9 @@ const s = StyleSheet.create({
   inqLiveDot:   { width: 6, height: 6, borderRadius: 3, backgroundColor: C.red },
   inqCountTxt:  { fontSize: 10, fontWeight: '800', color: C.red },
   inqCard: {
-    backgroundColor: C.card, borderRadius: 14, padding: 13,
+    backgroundColor: C.card, borderRadius: rs(18), padding: 13,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    ...cardShadow,
   },
   inqTop:     { flexDirection: 'row', alignItems: 'center', gap: 10 },
   inqIconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
@@ -1104,11 +1576,10 @@ const s = StyleSheet.create({
   // ── Services ──────────────────────────────────────────────────
   svcGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   svcCard: {
-    width: CARD_W, backgroundColor: C.card, borderRadius: 14, padding: 13,
+    width: CARD_W, backgroundColor: C.card, borderRadius: rs(18), padding: 13,
     flexDirection: 'row', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
     borderWidth: 1, borderColor: C.border,
+    ...rowShadow,
   },
   svcIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   svcName:    { flex: 1, fontSize: 11.5, fontWeight: '700', color: C.text, marginLeft: 9, lineHeight: 15 },
@@ -1124,23 +1595,43 @@ const s = StyleSheet.create({
   // ── Manage — 2-column grid (NO single giant card) ─────────────
   manageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   manageCard: {
-    width: CARD_W, backgroundColor: C.card, borderRadius: 14, padding: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    width: CARD_W, backgroundColor: C.card, borderRadius: rs(18), padding: 14,
+    overflow: 'hidden',
     borderWidth: 1, borderColor: C.border,
+    ...rowShadow,
   },
-  manageIconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  manageTop:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  manageIconBox: { width: rs(38), height: rs(38), borderRadius: rs(13), alignItems: 'center', justifyContent: 'center' },
+  managePill:    { minWidth: 30, height: rs(24), paddingHorizontal: rs(8), borderRadius: rs(12), alignItems: 'center', justifyContent: 'center' },
+  managePillTxt: { fontFamily: DISPLAY, fontSize: rf(12), fontWeight: '800' },
+  manageChev:    { width: rs(24), height: rs(24), borderRadius: rs(12), alignItems: 'center', justifyContent: 'center' },
   manageLabel:   { fontSize: 12.5, fontWeight: '800', color: C.text, marginBottom: 2 },
   manageSub:     { fontSize: 10, color: C.muted, lineHeight: 14 },
+
+  // ── Management section tiles — 3-column variant (9 items divide evenly) ──
+  // ── Management section — simple list rows (same idiom as "Complete Setup") ──
+  // ── Management — round icon grid, 3 per row (9 items fit evenly) ──
+  // ── Management — single dark "hub" card with a compact icon strip ──
+  hubCard: { borderRadius: rs(20), padding: rs(16) },
+  hubKicker: { fontFamily: DISPLAY, fontSize: rf(13), fontWeight: '700', color: '#fff', marginBottom: 14 },
+  hubGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  // 3 per row — 9 items divide evenly, no lonely leftover in the last row.
+  hubItem: { width: '33.33%', alignItems: 'center', marginBottom: 14 },
+  hubCircle: {
+    width: rs(50), height: rs(50), borderRadius: rs(16),
+    backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 7,
+  },
+  hubLabel: { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.85)', textAlign: 'center' },
+  // Still used by the (unchanged) Community grid's plain chevron-in-corner tiles.
   manageArrow:   { position: 'absolute', bottom: 12, right: 12 },
 
   // ── Pending setup ─────────────────────────────────────────────
   pendingGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 },
   pendingCard: {
-    width: CARD_W, backgroundColor: C.card, borderRadius: 14, padding: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    width: CARD_W, backgroundColor: C.card, borderRadius: rs(18), padding: 14,
     borderWidth: 1, borderColor: C.border,
+    ...rowShadow,
   },
   pendingIconBox: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   pendingName:    { fontSize: 12, fontWeight: '800', color: C.text, marginBottom: 3 },
@@ -1155,10 +1646,9 @@ const s = StyleSheet.create({
 
   // ── Getting started ───────────────────────────────────────────
   guideCard: {
-    backgroundColor: C.card, borderRadius: 14, padding: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    backgroundColor: C.card, borderRadius: rs(18), padding: 16,
     borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
   },
   guideRow:    { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 10 },
   guideNum:    { width: 26, height: 26, borderRadius: 13, backgroundColor: C.border, alignItems: 'center', justifyContent: 'center' },
@@ -1167,17 +1657,19 @@ const s = StyleSheet.create({
   guideDesc:   { fontSize: 11, color: C.muted, lineHeight: 15 },
   guideLine:   { height: 1, backgroundColor: C.border, marginLeft: 38 },
 
+  // ── Animated tile bubble (top-right corner of Service/Manage/Pending tiles)
+  tileWash: { position: 'absolute', top: -30, right: -30, width: rs(96), height: rs(96), borderRadius: rs(48) },
+
   // ── Update modal ──────────────────────────────────────────────
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: C.card, borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    backgroundColor: C.card, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     padding: 24, paddingBottom: 40, alignItems: 'center',
   },
-  modalHandle:   { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, marginBottom: 20 },
   modalClose:    { position: 'absolute', top: 20, right: 20 },
   modalIconWrap: { marginBottom: 16 },
   modalIconGrad: { width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  modalTitle:    { fontSize: 22, fontWeight: '900', color: C.text, marginBottom: 4 },
+  modalTitle:    { fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: C.text, marginBottom: 4 },
   modalVersion:  { fontSize: 13, color: C.sub, marginBottom: 12 },
   modalMsg:      { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 21, marginBottom: 24 },
   modalBtn: {

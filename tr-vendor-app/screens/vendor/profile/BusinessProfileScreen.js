@@ -9,19 +9,25 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorProfile, getBaseURL } from '../../api/client';
+import { SC as T, G, rs, shade, cardShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#3B82F6', blueL: '#EFF6FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  orange: '#EA580C', orangeL: '#FFF7ED',
-  indigo: '#4F46E5', indigoL: '#EEF2FF',
-  teal: '#0D9488', tealL: '#F0FDFA',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald,
+  g100: T.tintEmerald, g50:  T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  purple: T.purple, purpleL: T.purpleLight,
+  orange: T.orange, orangeL: T.orangeL,
+  indigo: T.indigo, indigoL: T.indigoLight,
+  teal: T.emerald, tealL: T.tintEmerald,
 };
 
 export default function BusinessProfileScreen({ navigation }) {
@@ -86,37 +92,46 @@ export default function BusinessProfileScreen({ navigation }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={st.safe} edges={['top']}>
+      <View style={st.root}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.heroLoading}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
-            <Icon name="arrow-left" size={20} color="#fff" />
-          </TouchableOpacity>
-          <Text style={st.heroTitle}>Business Profile</Text>
-          <View style={{ width: 40 }} />
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.heroLoading}>
+          <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
+          <SafeAreaView edges={['top']} style={{ paddingHorizontal: 16 }}>
+            <View style={st.heroNav}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
+                <Icon name="arrow-left" size={20} color="#fff" />
+              </TouchableOpacity>
+              <View style={st.heroMid}>
+                <View style={st.heroBadge}>
+                  <MaterialCommunityIcons name="domain" size={11} color={C.g400} />
+                  <Text style={st.heroBadgeTxt}>Vendor Portal</Text>
+                </View>
+                <Text style={st.heroTitle}>Business Profile</Text>
+              </View>
+              <View style={{ width: 40 }} />
+            </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={st.loaderWrap}>
           <ActivityIndicator size="large" color={C.g600} />
           <Text style={st.loaderTxt}>Loading profile...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={st.safe} edges={['top']}>
+    <View style={st.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={st.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
-      >
-        {/* ── HERO HEADER ── */}
-        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.hero}>
-          <View style={[st.blob, { width: 180, height: 180, top: -70, right: -50, opacity: 0.07 }]} />
-          <View style={[st.blob, { width: 80,  height: 80,  bottom: 10, left: -20, opacity: 0.05 }]} />
+      {/* ── HERO HEADER — static sibling so it can never be clipped by the
+          ScrollView's own viewport (the bug fixed elsewhere this session) ── */}
+      <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.hero}>
+        <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
 
+        <SafeAreaView edges={['top']} style={{ paddingHorizontal: 16 }}>
           {/* Top nav */}
           <View style={st.heroNav}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
@@ -156,8 +171,15 @@ export default function BusinessProfileScreen({ navigation }) {
               )}
             </View>
           </View>
-        </LinearGradient>
+        </SafeAreaView>
+      </LinearGradient>
 
+      <ScrollView
+        style={st.scroll}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={st.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
+      >
         {/* ── CONTACT INFO ── */}
         <View style={st.section}>
           <View style={st.sectionHead}>
@@ -257,20 +279,36 @@ export default function BusinessProfileScreen({ navigation }) {
 
         <View style={{ height: 120 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const st = StyleSheet.create({
-  safe:          { flex: 1, backgroundColor: C.bg },
-  scrollContent: { paddingBottom: 20 },
+  root:          { flex: 1, backgroundColor: C.bg },
+  scroll:        { flex: 1 },
+  scrollContent: { paddingTop: 16, paddingBottom: 20 },
 
   /* ── Hero ── */
-  hero: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 24, overflow: 'hidden' },
-  heroLoading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 18 },
-  blob: { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
+  hero: {
+    paddingBottom: rs(22),
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
+    overflow: 'hidden',
+  },
+  heroLoading: {
+    paddingBottom: rs(18),
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
+    overflow: 'hidden',
+  },
+  orbA: {
+    position: 'absolute', top: -rs(50), right: -rs(40), width: rs(180), height: rs(180),
+    borderRadius: rs(90), backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  orbB: {
+    position: 'absolute', top: rs(10), left: -rs(55), width: rs(140), height: rs(140),
+    borderRadius: rs(70), backgroundColor: 'rgba(46,158,119,0.14)',
+  },
 
-  heroNav: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 20 },
+  heroNav: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 6, marginBottom: 20 },
   backBtn: {
     width: 38, height: 38, borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.12)',
@@ -281,11 +319,12 @@ const st = StyleSheet.create({
   heroMid:      { flex: 1 },
   heroBadge:    {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.1)', alignSelf: 'flex-start',
+    backgroundColor: 'rgba(82, 231, 122, 0.2)', alignSelf: 'flex-start',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 5,
+    borderWidth: 1, borderColor: 'rgba(82, 231, 122, 0.35)',
   },
-  heroBadgeTxt: { fontSize: 11, fontWeight: '600', color: C.g400 },
-  heroTitle:    { fontSize: 24, fontWeight: '800', color: '#fff' },
+  heroBadgeTxt: { fontFamily: DISPLAY, fontSize: 11, fontWeight: '700', color: '#52e77a' },
+  heroTitle:    { fontFamily: DISPLAY, fontSize: 24, fontWeight: '800', color: '#fff' },
 
   /* Logo + name */
   heroBody:        { flexDirection: 'row', alignItems: 'center', gap: 16 },
@@ -299,9 +338,9 @@ const st = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 3, borderColor: 'rgba(255,255,255,0.2)',
   },
-  logoInitial:     { fontSize: 30, fontWeight: '800', color: '#fff' },
+  logoInitial:     { fontFamily: DISPLAY, fontSize: 30, fontWeight: '800', color: '#fff' },
   heroTextBox:     { flex: 1 },
-  heroName:        { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 6 },
+  heroName:        { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 6 },
   typeChip:        {
     flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
     backgroundColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 10, paddingVertical: 4,
@@ -313,21 +352,21 @@ const st = StyleSheet.create({
   /* ── Sections ── */
   section: {
     backgroundColor: C.card, marginHorizontal: 16, marginTop: 14,
-    borderRadius: 18, borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
+    borderRadius: rs(18), borderWidth: 1, borderColor: C.border,
     overflow: 'hidden',
+    ...cardShadow,
   },
   sectionHead: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 16, paddingVertical: 14,
     borderBottomWidth: 1, borderBottomColor: C.border,
-    backgroundColor: '#FAFBFC',
+    backgroundColor: shade(C.card, -1.5),
   },
   sectionIconBox: {
     width: 34, height: 34, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
   },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  sectionTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '700', color: C.text },
 
   /* Info Row */
   infoRow: {
@@ -342,7 +381,7 @@ const st = StyleSheet.create({
   },
   infoContent: { flex: 1 },
   infoLabel:   { fontSize: 11, fontWeight: '600', color: C.muted, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.4 },
-  infoValue:   { fontSize: 14, fontWeight: '600', color: C.text },
+  infoValue:   { fontFamily: DISPLAY, fontSize: 14, fontWeight: '600', color: C.text },
 
   /* City + Pincode chips */
   chipRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border },
@@ -351,7 +390,7 @@ const st = StyleSheet.create({
     padding: 12, borderRadius: 12, borderWidth: 1,
   },
   chipLabel: { fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
-  chipValue: { fontSize: 14, fontWeight: '700' },
+  chipValue: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '700' },
 
   /* Loader */
   loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },

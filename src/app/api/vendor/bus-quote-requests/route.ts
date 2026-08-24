@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     } else if (type === 'won') {
       // Requests where vendor's quote was accepted
       whereClause = {
-        bus_quotes: {
+        bus_quotes_bus_quotes_requestIdTobus_quote_requests: {
           some: {
             vendorId: vendorId,
             status: 'ACCEPTED',
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
       // Requests where another vendor was chosen
       whereClause = {
         status: 'QUOTE_ACCEPTED',
-        bus_quotes: {
+        bus_quotes_bus_quotes_requestIdTobus_quote_requests: {
           some: {
             vendorId: vendorId,
             status: 'REJECTED',

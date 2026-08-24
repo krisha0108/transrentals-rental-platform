@@ -206,7 +206,7 @@ export default function BookingLinksPage() {
   /* ── Skeleton ── */
   if (loading) {
     return (
-      <div className="space-y-5 pb-8 bg-[#F9FAFB] min-h-screen">
+      <div className="space-y-5 pb-8 bg-[#F9FAFB] min-h-dvh">
         <div className="bg-gradient-to-br from-emerald-600 via-emerald-600 to-emerald-700 rounded-2xl p-6 pb-5 animate-pulse">
           <div className="flex items-center gap-3.5 mb-6">
             <div className="h-12 w-12 rounded-2xl bg-white/15 ring-1 ring-white/20" />
@@ -251,7 +251,7 @@ export default function BookingLinksPage() {
   }
 
   return (
-    <div className="space-y-5 pb-8 bg-[#F9FAFB] min-h-screen">
+    <div className="space-y-5 pb-8 bg-[#F9FAFB] min-h-dvh">
 
       {/* ══════════ Header ══════════ */}
       <FadeIn>

@@ -237,7 +237,7 @@ export default function VendorBookingFormClient({ vendorSlug, serviceType, servi
   /* ── SUCCESS ────────────────────────────────────────────────────────────── */
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700">
+      <div className="min-h-dvh flex items-center justify-center p-4 bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700">
         <style dangerouslySetInnerHTML={{ __html: styles }} />
         <div className="w-full max-w-sm fade-up">
           <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
@@ -281,7 +281,7 @@ export default function VendorBookingFormClient({ vendorSlug, serviceType, servi
   /* ── SERVICE PICKER ─────────────────────────────────────────────────────── */
   if (screen === 'pick') {
     return (
-      <div className="min-h-screen relative overflow-hidden bg-[#0F0F1A]">
+      <div className="min-h-dvh relative overflow-hidden bg-[#0F0F1A]">
         <style dangerouslySetInnerHTML={{ __html: styles }} />
         {/* Floating orbs */}
         <div className="fa pointer-events-none absolute -top-20 -left-20 w-80 h-80 rounded-full bg-violet-600/20 blur-3xl" />
@@ -358,7 +358,7 @@ export default function VendorBookingFormClient({ vendorSlug, serviceType, servi
   const formTitle = link?.formTitle || (serviceType === 'all' ? `Book with ${vendor.businessName}` : `${serviceName} – ${vendor.businessName}`);
 
   return (
-    <div className="min-h-screen relative bg-[#0F0F1A] overflow-x-hidden">
+    <div className="min-h-dvh relative bg-[#0F0F1A] overflow-x-hidden">
       <style dangerouslySetInnerHTML={{ __html: styles }} />
 
       {/* Background orbs */}

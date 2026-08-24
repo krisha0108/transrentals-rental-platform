@@ -11,19 +11,24 @@ import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { createP2PVehicle, updateP2PVehicle, getVendorFleet, getStaffDrivers } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
+import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399', g300: '#6EE7B7',
-  g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F8FAFC', surface: '#FFFFFF',
-  text: '#0F172A', sub: '#334155', muted: '#94A3B8',
-  border: '#E2E8F0', borderMed: '#CBD5E1',
-  amber: '#F59E0B', amberBg: '#FFFBEB',
-  red: '#EF4444', redBg: '#FEF2F2',
-  blue: '#3B82F6', blueBg: '#EFF6FF', blueDark: '#1D4ED8',
-  purple: '#8B5CF6', purpleBg: '#F5F3FF',
-  teal: '#14B8A6', tealBg: '#F0FDFA',
+  g950: T.forestDark, g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald, g300: T.oceanLight,
+  g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, surface: T.card,
+  text: T.ink, sub: T.text, muted: T.subText,
+  border: T.border, borderMed: '#CBD5E1',
+  amber: T.amber, amberBg: T.amberLight,
+  red: T.red, redBg: T.redLight,
+  blue: T.blue, blueBg: T.blueLight, blueDark: '#1D4ED8',
+  purple: T.purple, purpleBg: T.tintPlum,
+  teal: T.ocean, tealBg: T.tintOcean,
 };
 
 const BODY_TYPES = ['Open', 'Closed', 'Container', 'Flatbed', 'Tanker'];
@@ -261,10 +266,10 @@ export default function PostVehicleScreen({ navigation, route }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g950} />
 
       {/* ── HEADER ── */}
-      <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.headerGradient}>
-        {/* Decorative circles */}
-        <View style={s.decCircle1} />
-        <View style={s.decCircle2} />
+      <LinearGradient colors={G.hero} style={s.headerGradient}>
+        {/* Decorative orbs */}
+        <AnimatedOrb style={s.decCircle1} />
+        <AnimatedOrb style={s.decCircle2} delay={1200} dx={-10} dy={8} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerInner}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -836,7 +841,7 @@ export default function PostVehicleScreen({ navigation, route }) {
           {/* ── SUBMIT ── */}
           <TouchableOpacity onPress={handleSubmit} disabled={loading} activeOpacity={0.85} style={loading ? { opacity: 0.6 } : {}}>
             <LinearGradient
-              colors={[C.g700, C.g600, C.g500]}
+              colors={G.emerald}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={s.submitBtn}
@@ -883,7 +888,7 @@ export default function PostVehicleScreen({ navigation, route }) {
       <Modal visible={fleetDropdownOpen} transparent animationType="slide">
         <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setFleetDropdownOpen(false)}>
           <TouchableOpacity style={s.modalSheet} activeOpacity={1} onPress={() => {}}>
-            <LinearGradient colors={[C.g950, C.g800]} style={s.modalGradHeader}>
+            <LinearGradient colors={[T.forestDark, T.forest]} style={s.modalGradHeader}>
               <View style={s.modalHandle} />
               <View style={s.modalHeaderRow}>
                 <View style={s.modalHeaderIconBox}>
@@ -936,7 +941,7 @@ export default function PostVehicleScreen({ navigation, route }) {
       <Modal visible={driverDropdownOpen} transparent animationType="slide">
         <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setDriverDropdownOpen(false)}>
           <TouchableOpacity style={s.modalSheet} activeOpacity={1} onPress={() => {}}>
-            <LinearGradient colors={[C.g950, C.g800]} style={s.modalGradHeader}>
+            <LinearGradient colors={[T.forestDark, T.forest]} style={s.modalGradHeader}>
               <View style={s.modalHandle} />
               <View style={s.modalHeaderRow}>
                 <View style={s.modalHeaderIconBox}>
@@ -1068,14 +1073,14 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
 
   /* Header */
-  headerGradient: { paddingBottom: 20, position: 'relative', overflow: 'hidden' },
+  headerGradient: { paddingBottom: 20, position: 'relative', overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
   decCircle1: {
     position: 'absolute', width: 200, height: 200, borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.04)', top: -60, right: -50,
+    backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -50,
   },
   decCircle2: {
     position: 'absolute', width: 140, height: 140, borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.04)', bottom: -40, left: -30,
+    backgroundColor: 'rgba(255,255,255,0.045)', bottom: -40, left: -30,
   },
   headerInner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -1093,7 +1098,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(16,185,129,0.2)',
     justifyContent: 'center', alignItems: 'center',
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.3 },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.3 },
   headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.2 },
 
   /* Scroll */
@@ -1102,15 +1107,11 @@ const s = StyleSheet.create({
   /* Section Card */
   sectionCard: {
     backgroundColor: C.surface,
-    borderRadius: 20,
+    borderRadius: rs(20),
     borderWidth: 1,
     borderColor: C.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
     overflow: 'hidden',
+    ...cardShadow,
   },
   sectionHeaderBar: {
     flexDirection: 'row',
@@ -1126,15 +1127,15 @@ const s = StyleSheet.create({
     width: 32, height: 32, borderRadius: 16,
     justifyContent: 'center', alignItems: 'center',
   },
-  stepNumber: { fontSize: 14, fontWeight: '800', color: '#fff' },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  stepNumber: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
+  sectionTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
   sectionSubtitle: { fontSize: 11, color: C.muted, marginTop: 1 },
   sectionContent: { padding: 16 },
 
   /* Service Type */
   serviceTypeRow: { flexDirection: 'row', gap: 12 },
   serviceCard: {
-    flex: 1, paddingVertical: 20, borderRadius: 16, borderWidth: 2,
+    flex: 1, paddingVertical: 20, borderRadius: rs(16), borderWidth: 2,
     borderColor: C.border, backgroundColor: C.surface,
     alignItems: 'center', justifyContent: 'center', gap: 6,
     position: 'relative', overflow: 'hidden',
@@ -1169,7 +1170,7 @@ const s = StyleSheet.create({
   /* Dropdown trigger */
   dropdownTrigger: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 14, borderRadius: 14, borderWidth: 1.5, borderColor: C.border,
+    padding: 14, borderRadius: rs(14), borderWidth: 1.5, borderColor: C.border,
     backgroundColor: '#F8FAFC',
   },
   dropdownTriggerActive: { borderColor: C.g500, backgroundColor: C.g50 },
@@ -1178,21 +1179,21 @@ const s = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     justifyContent: 'center', alignItems: 'center',
   },
-  dropdownVal: { fontSize: 14, fontWeight: '600', color: C.text },
+  dropdownVal: { fontSize: 14, fontWeight: '700', color: C.text },
   dropdownValSub: { fontSize: 12, color: C.muted, marginTop: 1 },
   dropdownPlaceholder: { fontSize: 14, color: C.muted },
 
   /* Selected badge */
   selectedBadge: {
     marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 14, borderRadius: 14, borderWidth: 2, borderColor: C.g400,
+    padding: 14, borderRadius: rs(14), borderWidth: 2, borderColor: C.g400,
     backgroundColor: C.g50,
   },
   selectedBadgeIconBox: {
     width: 40, height: 40, borderRadius: 12,
     backgroundColor: C.g100, justifyContent: 'center', alignItems: 'center',
   },
-  selectedBadgeName: { fontSize: 15, fontWeight: '700', color: C.text },
+  selectedBadgeName: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
   selectedBadgeNum: { fontSize: 12, color: C.blue, fontFamily: 'monospace', marginTop: 2 },
   selectedBadgeClear: {
     width: 28, height: 28, borderRadius: 14,
@@ -1218,7 +1219,7 @@ const s = StyleSheet.create({
 
   /* Route card */
   routeCard: {
-    borderRadius: 16, borderWidth: 1.5, borderColor: C.borderMed,
+    borderRadius: rs(16), borderWidth: 1.5, borderColor: C.borderMed,
     backgroundColor: '#F8FAFC', overflow: 'hidden',
   },
   routeHalf: { padding: 16 },
@@ -1229,7 +1230,7 @@ const s = StyleSheet.create({
     textTransform: 'uppercase', letterSpacing: 1,
   },
   routeInput: {
-    fontSize: 16, fontWeight: '600', color: C.text,
+    fontFamily: DISPLAY, fontSize: 16, fontWeight: '700', color: C.text,
     paddingVertical: 4, padding: 0,
   },
   routeDividerWrap: { position: 'relative', height: 1 },
@@ -1247,7 +1248,7 @@ const s = StyleSheet.create({
   /* Date tiles */
   dateGrid: { flexDirection: 'row', gap: 10 },
   dateTile: {
-    flex: 1, backgroundColor: C.surface, borderRadius: 14, padding: 14,
+    flex: 1, backgroundColor: C.surface, borderRadius: rs(14), padding: 14,
     borderWidth: 1.5, borderColor: C.border,
   },
   dateTileActive: { borderColor: C.g400, backgroundColor: C.g50 },
@@ -1256,12 +1257,12 @@ const s = StyleSheet.create({
     textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8,
   },
   dateTileRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dateTileValue: { fontSize: 13, fontWeight: '600', color: C.text, flex: 1 },
+  dateTileValue: { fontSize: 13, fontWeight: '700', color: C.text, flex: 1 },
   dateTilePlaceholder: { color: C.muted, fontWeight: '400' },
 
   /* Price display card */
   priceDisplayCard: {
-    borderRadius: 16, padding: 20,
+    borderRadius: rs(16), padding: 20,
     alignItems: 'flex-start',
   },
   priceDisplayLabel: {
@@ -1271,14 +1272,14 @@ const s = StyleSheet.create({
   priceDisplayRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, width: '100%' },
   priceDisplaySymbol: { fontSize: 18, fontWeight: '700', color: C.g300, marginBottom: 6 },
   priceDisplayInput: {
-    flex: 1, fontSize: 36, fontWeight: '800', color: '#fff',
+    fontFamily: DISPLAY, flex: 1, fontSize: 36, fontWeight: '900', color: '#fff',
     padding: 0, textAlign: 'right',
   },
   priceDisplaySub: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
 
   /* Part load price mini card */
   partLoadPriceCard: {
-    borderRadius: 14, padding: 16,
+    borderRadius: rs(14), padding: 16,
     borderWidth: 1, borderColor: '#FDE68A',
   },
   partLoadPriceLabel: {
@@ -1295,7 +1296,7 @@ const s = StyleSheet.create({
   /* Field card */
   fieldCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: C.surface, borderRadius: 14,
+    backgroundColor: C.surface, borderRadius: rs(14),
     borderWidth: 1.5, borderColor: C.border, padding: 14,
   },
   fieldIconBox: {
@@ -1335,7 +1336,7 @@ const s = StyleSheet.create({
   /* Toggle card */
   toggleCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: C.surface, borderRadius: 14,
+    backgroundColor: C.surface, borderRadius: rs(14),
     borderWidth: 1.5, borderColor: C.border, padding: 14,
   },
   toggleCardIconBox: {
@@ -1358,7 +1359,7 @@ const s = StyleSheet.create({
 
   /* Notes */
   notesCard: {
-    backgroundColor: '#F8FAFC', borderRadius: 14,
+    backgroundColor: '#F8FAFC', borderRadius: rs(14),
     borderWidth: 1.5, borderColor: C.border, padding: 14,
   },
   notesInput: {
@@ -1369,21 +1370,20 @@ const s = StyleSheet.create({
   /* Submit / Cancel */
   submitBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    paddingVertical: 18, borderRadius: 18, marginTop: 8,
-    shadowColor: C.g800, shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3, shadowRadius: 15, elevation: 8,
+    paddingVertical: 18, borderRadius: rs(18), marginTop: 8,
+    ...cardShadow,
   },
-  submitBtnText: { fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  submitBtnText: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
   cancelBtn: { alignItems: 'center', paddingVertical: 16, marginTop: 4 },
-  cancelBtnText: { fontSize: 14, fontWeight: '600', color: C.muted },
+  cancelBtnText: { fontSize: 14, fontWeight: '700', color: C.muted },
 
   /* Modal */
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(1,27,20,0.6)', justifyContent: 'flex-end',
+    flex: 1, backgroundColor: T.scrim, justifyContent: 'flex-end',
   },
   modalSheet: {
     backgroundColor: C.surface,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     overflow: 'hidden', maxHeight: '65%',
   },
   modalGradHeader: { paddingTop: 10, paddingHorizontal: 20, paddingBottom: 18 },
@@ -1398,7 +1398,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center', alignItems: 'center',
   },
-  modalTitle: { fontSize: 17, fontWeight: '800', color: '#fff', flex: 1 },
+  modalTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff', flex: 1 },
   modalCloseBtn: {
     width: 32, height: 32, borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -1408,7 +1408,7 @@ const s = StyleSheet.create({
 
   modalListItem: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 14, borderRadius: 14, borderWidth: 1.5,
+    padding: 14, borderRadius: rs(14), borderWidth: 1.5,
     borderColor: C.border, backgroundColor: C.surface,
     marginBottom: 8, marginHorizontal: 14,
   },
@@ -1420,7 +1420,7 @@ const s = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     justifyContent: 'center', alignItems: 'center',
   },
-  modalListName: { fontSize: 14, fontWeight: '700', color: C.text },
+  modalListName: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text },
   modalListReg: { fontSize: 12, color: C.blue, fontFamily: 'monospace', marginTop: 2 },
   modalListCat: { fontSize: 11, color: C.muted, marginTop: 1 },
   modalEmpty: { textAlign: 'center', color: C.muted, padding: 24, fontSize: 14 },

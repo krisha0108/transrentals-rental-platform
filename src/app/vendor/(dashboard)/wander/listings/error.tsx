@@ -15,7 +15,7 @@ export default function WanderListingsError({
   }, [error]);
 
   return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center p-8">
+    <div className="min-h-[60dvh] flex flex-col items-center justify-center p-8">
       <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-4">
         <span className="text-3xl">⚠️</span>
       </div>

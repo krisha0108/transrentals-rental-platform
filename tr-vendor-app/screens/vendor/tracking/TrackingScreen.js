@@ -11,15 +11,20 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { apiGet, getBaseURL } from '../../api/client';
 import LiveMap from './LiveMap';
+import { SC as T, G, rs, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already used — only the values now come from
+// the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
 };
 
 const POLL_MS = 12000;
@@ -119,13 +124,16 @@ export default function TrackingScreen({ navigation }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* Header */}
-      <LinearGradient colors={[C.g900, '#064E3B', C.g700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+      <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+        <AnimatedOrb style={s.orbA} />
+        <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerRow}>
             <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
               <Ionicons name="chevron-back" size={20} color="#fff" />
             </TouchableOpacity>
             <View style={{ flex: 1 }}>
+              <Text style={s.headerEyebrow}>FLEET TRACKING</Text>
               <Text style={s.headerTitle}>Live Tracking</Text>
               <Text style={s.headerSub}>{stats.sharing} of {stats.total} drivers sharing location</Text>
             </View>
@@ -138,12 +146,13 @@ export default function TrackingScreen({ navigation }) {
           {/* Stat strip */}
           <View style={s.statRow}>
             {[
-              { v: stats.onTrip,  l: 'On Trip', c: C.g400 },
-              { v: stats.moving,  l: 'Moving',  c: C.g400 },
-              { v: stats.idle,    l: 'Idle',    c: '#FCD34D' },
-              { v: stats.offline, l: 'Offline', c: 'rgba(255,255,255,0.6)' },
+              { v: stats.onTrip,  l: 'On Trip', c: C.g400, icon: 'car-sport-outline' },
+              { v: stats.moving,  l: 'Moving',  c: C.g400, icon: 'speedometer-outline' },
+              { v: stats.idle,    l: 'Idle',    c: '#FCD34D', icon: 'pause-circle-outline' },
+              { v: stats.offline, l: 'Offline', c: 'rgba(255,255,255,0.6)', icon: 'cloud-offline-outline' },
             ].map((m, i) => (
               <View key={i} style={s.statBox}>
+                <Ionicons name={m.icon} size={14} color={m.c} style={{ marginBottom: 3 }} />
                 <Text style={[s.statVal, { color: m.c }]}>{m.v}</Text>
                 <Text style={s.statLbl}>{m.l}</Text>
               </View>
@@ -288,19 +297,31 @@ export default function TrackingScreen({ navigation }) {
 }
 
 const s = StyleSheet.create({
-  hero:        { paddingHorizontal: 16, paddingBottom: 14 },
+  hero:        {
+    paddingHorizontal: 16, paddingBottom: 14, overflow: 'hidden',
+    borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22),
+  },
+  orbA: {
+    position: 'absolute', top: -46, right: -30, width: 150, height: 150,
+    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  orbB: {
+    position: 'absolute', bottom: -40, left: -34, width: 120, height: 120,
+    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
+  },
   headerRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 8, marginBottom: 16 },
   backBtn:     { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
+  headerEyebrow: { fontSize: 10, color: 'rgba(255,255,255,0.65)', fontWeight: '700', letterSpacing: 1.2, fontFamily: DISPLAY, marginBottom: 1 },
+  headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: -0.3, fontFamily: DISPLAY },
   headerSub:   { fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: '600', marginTop: 2 },
   liveBtn:     { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
   liveBtnOn:   { borderColor: 'rgba(52,211,153,0.5)' },
   liveDot:     { width: 7, height: 7, borderRadius: 4 },
   liveTxt:     { fontSize: 11, fontWeight: '800', color: '#fff' },
 
-  statRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 12 },
+  statRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: rs(14), padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 12 },
   statBox: { flex: 1, alignItems: 'center' },
-  statVal: { fontSize: 20, fontWeight: '900', marginBottom: 2 },
+  statVal: { fontSize: 20, fontWeight: '900', marginBottom: 2, fontFamily: DISPLAY },
   statLbl: { fontSize: 9.5, fontWeight: '600', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.3 },
 
   searchBox:   { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
@@ -308,7 +329,7 @@ const s = StyleSheet.create({
 
   mapWrap:  { borderBottomWidth: 1, borderBottomColor: C.border, position: 'relative' },
   mapCtrls: { position: 'absolute', top: 10, right: 10, gap: 8 },
-  mapBtn:   { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.95)', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 3 },
+  mapBtn:   { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.95)', alignItems: 'center', justifyContent: 'center', ...cardShadow },
   mapEmpty:    { position: 'absolute', top: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.95)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   mapEmptyTxt: { fontSize: 11, fontWeight: '700', color: C.sub },
 
@@ -325,11 +346,11 @@ const s = StyleSheet.create({
 
   body: { paddingHorizontal: 16, paddingTop: 14, gap: 10 },
 
-  card:    { backgroundColor: C.card, borderRadius: 14, padding: 13, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  card:    { backgroundColor: C.card, borderRadius: rs(14), padding: 13, borderWidth: 1, borderColor: C.border, ...cardShadow },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar:  { width: 40, height: 40, borderRadius: 20, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
-  avatarTxt: { fontSize: 16, fontWeight: '800', color: C.g700 },
-  name:    { fontSize: 14, fontWeight: '800', color: C.text },
+  avatarTxt: { fontSize: 16, fontWeight: '800', color: C.g700, fontFamily: DISPLAY },
+  name:    { fontSize: 14, fontWeight: '800', color: C.text, fontFamily: DISPLAY },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
   statusTxt: { fontSize: 11, fontWeight: '700' },
@@ -354,6 +375,6 @@ const s = StyleSheet.create({
 
   empty:      { alignItems: 'center', paddingTop: 60, gap: 6 },
   emptyIcon:  { width: 60, height: 60, borderRadius: 30, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  emptyTitle: { fontSize: 15, fontWeight: '800', color: C.text },
+  emptyTitle: { fontSize: 15, fontWeight: '800', color: C.text, fontFamily: DISPLAY },
   emptySub:   { fontSize: 12, color: C.muted, textAlign: 'center', paddingHorizontal: 30 },
 });

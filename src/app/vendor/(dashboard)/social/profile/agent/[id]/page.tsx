@@ -117,7 +117,7 @@ export default function AgentProfilePage({
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="min-h-[60dvh] flex items-center justify-center">
         <Loader2 className="h-8 w-8 text-emerald-600 animate-spin" />
       </div>
     );
@@ -125,7 +125,7 @@ export default function AgentProfilePage({
 
   if (notFound || !profile) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6">
+      <div className="min-h-[60dvh] flex flex-col items-center justify-center text-center px-6">
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
           <Building2 className="h-8 w-8 text-gray-400" />
         </div>

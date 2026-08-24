@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { VendorSidebar } from './VendorSidebar';
 import { Menu, Loader2, AlertTriangle, Lock, CheckCircle2, ArrowRight, X, FileText, MapPin, Wrench, Home } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -231,41 +231,25 @@ export function VendorLayout({ children }: VendorLayoutProps) {
   useVendorWebNotifications();
   useVendorActivityHeartbeat(status === 'authenticated');
 
-  useEffect(() => {
+  // skipCache=true bypasses the sessionStorage snapshot entirely — used by
+  // the vendor-approved-services-changed listener below so toggling a
+  // service on /vendor/services updates the sidebar immediately instead of
+  // waiting out CACHE_TTL (this effect only re-runs on [status, session],
+  // neither of which changes when a service is toggled).
+  const fetchVendorStatus = useCallback(async (opts?: { skipCache?: boolean }) => {
+    if (status !== 'authenticated') return;
+
     const vendorId = (session?.user as any)?.id || (session?.user as any)?.email || 'unknown';
     const CACHE_KEY = `vendor_profile_cache_${vendorId}`;
     const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-    const fetchVendorStatus = async () => {
-      if (status === 'authenticated') {
-        // Try sessionStorage cache first
-        try {
-          const cached = sessionStorage.getItem(CACHE_KEY);
-          if (cached) {
-            const { data, ts } = JSON.parse(cached);
-            if (Date.now() - ts < CACHE_TTL) {
-              setVendorStatus(data.status);
-              setApprovedServiceIds(data.approvedServiceIds || []);
-              setApprovedServiceSlugs(data.approvedServiceSlugs || []);
-              setOnboardingCounts({
-                docs:      data.documentsCount        || 0,
-                locations: data.locationRequestsCount || 0,
-                services:  data.serviceRequestsCount  || 0,
-              });
-              setHasAddress(!!(data.address && String(data.address).trim()));
-              setStatusLoading(false);
-              return;
-            }
-          }
-        } catch {
-          // sessionStorage not available — fall through to fetch
-        }
-
-        // Cache miss or expired — fetch from API
-        try {
-          const res = await fetch('/api/vendor/profile');
-          if (res.ok) {
-            const data = await res.json();
+    if (!opts?.skipCache) {
+      // Try sessionStorage cache first
+      try {
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const { data, ts } = JSON.parse(cached);
+          if (Date.now() - ts < CACHE_TTL) {
             setVendorStatus(data.status);
             setApprovedServiceIds(data.approvedServiceIds || []);
             setApprovedServiceSlugs(data.approvedServiceSlugs || []);
@@ -275,22 +259,53 @@ export function VendorLayout({ children }: VendorLayoutProps) {
               services:  data.serviceRequestsCount  || 0,
             });
             setHasAddress(!!(data.address && String(data.address).trim()));
-            // Save to cache
-            try {
-              sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
-            } catch { /* ignore quota errors */ }
-          } else {
-            setVendorStatus((session?.user as any)?.status);
+            setStatusLoading(false);
+            return;
           }
-        } catch {
-          setVendorStatus((session?.user as any)?.status);
-        } finally {
-          setStatusLoading(false);
         }
+      } catch {
+        // sessionStorage not available — fall through to fetch
       }
-    };
-    fetchVendorStatus();
+    }
+
+    // Cache miss/expired/skipped — fetch from API
+    try {
+      const res = await fetch('/api/vendor/profile');
+      if (res.ok) {
+        const data = await res.json();
+        setVendorStatus(data.status);
+        setApprovedServiceIds(data.approvedServiceIds || []);
+        setApprovedServiceSlugs(data.approvedServiceSlugs || []);
+        setOnboardingCounts({
+          docs:      data.documentsCount        || 0,
+          locations: data.locationRequestsCount || 0,
+          services:  data.serviceRequestsCount  || 0,
+        });
+        setHasAddress(!!(data.address && String(data.address).trim()));
+        // Save to cache
+        try {
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+        } catch { /* ignore quota errors */ }
+      } else {
+        setVendorStatus((session?.user as any)?.status);
+      }
+    } catch {
+      setVendorStatus((session?.user as any)?.status);
+    } finally {
+      setStatusLoading(false);
+    }
   }, [status, session]);
+
+  useEffect(() => { fetchVendorStatus(); }, [fetchVendorStatus]);
+
+  // /vendor/services dispatches this after activating/deactivating a
+  // service (see toggleServiceActive) so the sidebar reflects it instantly
+  // instead of on the next 5min cache expiry.
+  useEffect(() => {
+    const onServicesChanged = () => fetchVendorStatus({ skipCache: true });
+    window.addEventListener('vendor-approved-services-changed', onServicesChanged);
+    return () => window.removeEventListener('vendor-approved-services-changed', onServicesChanged);
+  }, [fetchVendorStatus]);
 
   const isApproved = vendorStatus === 'APPROVED';
 
@@ -323,7 +338,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
 
   if (status === 'loading' || (status === 'authenticated' && statusLoading)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-dvh flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading...</p>
@@ -339,7 +354,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
 
   if (showAccessDenied) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-dvh bg-gray-50">
         <VendorSidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
@@ -348,7 +363,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
           approvedServiceSlugs={approvedServiceSlugs}
         />
         <div className="lg:pl-64">
-          <div className="min-h-screen flex items-center justify-center p-6">
+          <div className="min-h-dvh flex items-center justify-center p-6">
             <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
               <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle className="w-8 h-8 text-yellow-600" />
@@ -368,7 +383,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
   return (
     <VendorVerificationContext.Provider value={contextValue}>
       <ToastProvider>
-        <div className="min-h-screen bg-[#f5f6fa]">
+        <div className="min-h-dvh bg-[#f5f6fa]">
           <VendorSidebar
             isOpen={sidebarOpen}
             onClose={() => setSidebarOpen(false)}

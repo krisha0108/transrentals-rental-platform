@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, ActivityIndicator, Linking, Modal, FlatList,
-  StatusBar,
+  StatusBar, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -14,16 +14,31 @@ import {
   getBookingById, acceptBooking, rejectBooking, assignOperator, getStaffDrivers,
   getBaseURL, getSessionToken,
 } from '../../../api/client';
+import { SC as T, G, rs, shade, cardShadow, SHEET_RADIUS } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
+import SheetHandle from '../../_shared/SheetHandle';
 
+const { width: W } = Dimensions.get('window');
+
+// How far the ticket summary card rides up over the hero's rounded bottom
+// edge. Same technique/constant role as the bike/bus/luxury/equipment/truck/
+// self-drive sibling detail screens' ticket card — the hero's own bottom
+// padding is shortened by the same amount and the scroll content gets it
+// back as paddingTop, so the gap stays the same, only the overlap changes.
+const TICKET_OVERLAP = 40;
+
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  purple: T.purple, purpleL: T.purpleLight,
 };
 
 const STATUS_CONFIG = {
@@ -46,6 +61,19 @@ const STATUS_CONFIG = {
   COMPLETED:        { color: '#047857', bg: '#D1FAE5', label: 'Completed',               icon: 'trophy-outline'       },
   CANCELLED:        { color: '#DC2626', bg: '#FEF2F2', label: 'Cancelled',               icon: 'close-circle'         },
 };
+
+/* ── Section wrapper — icon + title header inside one bordered card ────── */
+function Section({ icon, title, iconBg, children }) {
+  return (
+    <View style={s.card}>
+      <View style={s.cardHead}>
+        <View style={[s.cardIcon, iconBg && { backgroundColor: iconBg }]}>{icon}</View>
+        <Text style={s.cardTitle}>{title}</Text>
+      </View>
+      {children}
+    </View>
+  );
+}
 
 export default function PackersBookingDetailScreen({ route, navigation }) {
   const { bookingId } = route.params || {};
@@ -173,29 +201,26 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
   const canAssignDriver = () => ['ADVANCE_PAID', 'ACCEPTED', 'PAYMENT_VERIFIED', 'VEHICLE_ASSIGNED', 'TEAM_ASSIGNED'].includes(booking?.status) && !booking?.teamLeaderName;
   const canChangeDriver = () => ['VEHICLE_ASSIGNED', 'TEAM_ASSIGNED', 'ACCEPTED', 'PAYMENT_VERIFIED'].includes(booking?.status) && booking?.teamLeaderName;
 
-  const GradientHeader = ({ title }) => (
-    <LinearGradient colors={[C.g900, '#064E3B', C.g700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroPlain}>
-      <View style={s.deco1} /><View style={s.deco2} />
-      <View style={s.topBar}>
-        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-          <Icon name="arrow-left" size={18} color="#fff" />
-        </TouchableOpacity>
-        <View style={s.titleWrap}>
-          <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
-          <Text style={s.heroTitle}>{title}</Text>
-        </View>
-        <View style={{ width: 36 }} />
-      </View>
-    </LinearGradient>
-  );
-
   if (loading) {
     return (
       <View style={s.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <SafeAreaView edges={['top']}>
-          <GradientHeader title="Booking Detail" />
-        </SafeAreaView>
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+          <AnimatedOrb style={s.deco1} />
+          <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+          <SafeAreaView edges={['top']}>
+            <View style={s.topBar}>
+              <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-left" size={18} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.titleWrap}>
+                <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
+                <Text style={s.heroTitle}>Booking Detail</Text>
+              </View>
+              <View style={{ width: 36 }} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
         <View style={s.centered}>
           <ActivityIndicator size="large" color={C.g600} />
           <Text style={s.centeredTxt}>Loading booking...</Text>
@@ -208,9 +233,22 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
     return (
       <View style={s.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <SafeAreaView edges={['top']}>
-          <GradientHeader title="Booking Detail" />
-        </SafeAreaView>
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+          <AnimatedOrb style={s.deco1} />
+          <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+          <SafeAreaView edges={['top']}>
+            <View style={s.topBar}>
+              <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-left" size={18} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.titleWrap}>
+                <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
+                <Text style={s.heroTitle}>Booking Detail</Text>
+              </View>
+              <View style={{ width: 36 }} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
         <View style={s.centered}>
           <Ionicons name="alert-circle-outline" size={56} color={C.muted} />
           <Text style={s.centeredTxt}>Booking not found</Text>
@@ -221,16 +259,34 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
 
   const sc = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING_PAYMENT;
 
+  /* ── Status progression: Quoted → Accepted → Pickup OTP ── */
+  const st = booking.status;
+  const acceptedDone = ['ACCEPTED', 'CONFIRMED', 'READY_FOR_PICKUP', 'IN_PROGRESS', 'COMPLETED', 'PAYMENT_VERIFIED'].includes(st);
+  const otpDone      = ['IN_PROGRESS', 'COMPLETED'].includes(st);
+  const steps = [
+    { key: 'quoted',   label: 'Quoted',     done: true },
+    { key: 'accepted', label: 'Accepted',   done: acceptedDone },
+    { key: 'otp',      label: 'Pickup OTP', done: otpDone },
+  ];
+  const curIdx = steps.findIndex(x => !x.done);
+  steps.forEach((x, i) => { x.current = i === curIdx; });
+
+  // Same "shifting type" meta the hero used to carry — now rides alongside
+  // the created date on the ticket card, preserving the exact conditional.
+  const shiftSuffix = booking.shiftingType ? ` • ${booking.shiftingType}` : '';
+
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
+      {/* ══ Hero ═════════════════════════════════════════════════════════ */}
       <LinearGradient
-        colors={[C.g900, '#064E3B', C.g700]}
+        colors={G.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.hero}
       >
-        <View style={s.deco1} /><View style={s.deco2} />
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
 
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -245,28 +301,15 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
 
-        <View style={s.heroCard}>
-          <View style={s.heroCardTop}>
-            <View>
-              <Text style={s.heroLabel}>BOOKING #</Text>
-              <Text style={s.heroNumber}>{booking.bookingNumber || String(booking.id).slice(-8)}</Text>
-            </View>
-            <View style={[s.statusPill, { backgroundColor: sc.color + '22', borderColor: sc.color + '40' }]}>
-              <Ionicons name={sc.icon} size={12} color={sc.color} />
-              <Text style={[s.statusPillTxt, { color: sc.color }]}>{sc.label}</Text>
-            </View>
+        {/* Identity block — booking # + customer, mirrors sibling detail screens */}
+        <View style={s.identityBlock}>
+          <View style={s.identityIcon}>
+            <MaterialCommunityIcons name="truck-delivery" size={24} color="#fff" />
           </View>
-          <View style={s.heroMeta}>
-            <View style={s.heroMetaItem}>
-              <Ionicons name="calendar-outline" size={11} color="rgba(255,255,255,0.4)" />
-              <Text style={s.heroMetaTxt}>Created {formatDate(booking.createdAt)}</Text>
-            </View>
-            {booking.shiftingType && (
-              <View style={s.heroMetaItem}>
-                <MaterialCommunityIcons name="home-switch-outline" size={11} color="rgba(255,255,255,0.4)" />
-                <Text style={s.heroMetaTxt}>{booking.shiftingType}</Text>
-              </View>
-            )}
+          <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12) }}>
+            <Text style={s.identityLabel}>BOOKING #</Text>
+            <Text style={s.identityName} numberOfLines={1}>{booking.bookingNumber || String(booking.id).slice(-8)}</Text>
+            <Text style={s.identitySub} numberOfLines={1}>{booking.customerName || 'Customer'}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -277,42 +320,69 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g400} colors={[C.g600]} />}
       >
-        {/* ── Status progression: Quoted → Accepted → Pickup OTP ── */}
-        {(() => {
-          const st = booking.status;
-          const acceptedDone = ['ACCEPTED', 'CONFIRMED', 'READY_FOR_PICKUP', 'IN_PROGRESS', 'COMPLETED', 'PAYMENT_VERIFIED'].includes(st);
-          const otpDone      = ['IN_PROGRESS', 'COMPLETED'].includes(st);
-          const steps = [
-            { key: 'quoted',   label: 'Quoted',     done: true },
-            { key: 'accepted', label: 'Accepted',   done: acceptedDone },
-            { key: 'otp',      label: 'Pickup OTP', done: otpDone },
-          ];
-          const curIdx = steps.findIndex(x => !x.done);
-          steps.forEach((x, i) => { x.current = i === curIdx; });
-          return (
-            <View style={s.statusStrip}>
-              {steps.map((stp, i) => (
-                <React.Fragment key={stp.key}>
-                  {i > 0 && <View style={[s.statusLine, steps[i - 1].done && { backgroundColor: C.g500 }]} />}
-                  <View style={s.statusStep}>
-                    <View style={[s.statusDot, stp.done && s.statusDotDone, stp.current && s.statusDotCurrent]}>
-                      {stp.done
-                        ? <Ionicons name="checkmark" size={11} color="#fff" />
-                        : <Text style={[s.statusDotNum, stp.current && { color: '#fff' }]}>{i + 1}</Text>}
-                    </View>
-                    <Text style={[s.statusStepLbl, (stp.done || stp.current) && { color: C.text, fontWeight: '700' }]}>{stp.label}</Text>
-                  </View>
-                </React.Fragment>
-              ))}
+        {/* ── Ticket summary — status, created date & total, floated over the hero ── */}
+        <View style={s.ticketWrap}>
+          <LinearGradient
+            colors={[sc.color, shade(sc.color, -18)]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={s.ticketRail}
+          />
+          <View style={s.ticketUpperStub}>
+            <View style={s.ticketIconBox}>
+              <Ionicons name="calendar-outline" size={20} color={C.g700} />
             </View>
-          );
-        })()}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.ticketLabel}>CREATED</Text>
+              <Text style={s.ticketNumber} numberOfLines={1}>{formatDate(booking.createdAt)}{shiftSuffix}</Text>
+            </View>
+            <View style={[s.statusPill, { backgroundColor: sc.bg, borderColor: sc.color + '40' }]}>
+              <Ionicons name={sc.icon} size={12} color={sc.color} />
+              <Text style={[s.statusPillTxt, { color: sc.color }]}>{sc.label}</Text>
+            </View>
+          </View>
+
+          {/* Perforation — torn-ticket edge, echoes the bike/bus/luxury/equipment/truck/self-drive sibling ticket cards */}
+          <View style={s.perforationRow}>
+            <View style={s.notchLeft} />
+            <View style={s.dashLine} />
+            <View style={s.notchRight} />
+          </View>
+
+          <View style={s.ticketLowerStub}>
+            <View style={s.moneyIconWrap}>
+              <Ionicons name="cash" size={16} color={C.g700} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.ticketAmountLabel}>TOTAL AMOUNT</Text>
+              <Text style={s.ticketAmountVal}>
+                ₹{(booking.totalAmount || booking.amount || 0).toLocaleString()}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ── Status progression stepper ── */}
+        <View style={s.statusStrip}>
+          {steps.map((stp, i) => (
+            <React.Fragment key={stp.key}>
+              {i > 0 && <View style={[s.statusLine, steps[i - 1].done && { backgroundColor: C.g500 }]} />}
+              <View style={s.statusStep}>
+                <View style={[s.statusDot, stp.done && s.statusDotDone, stp.current && s.statusDotCurrent]}>
+                  {stp.done
+                    ? <Ionicons name="checkmark" size={11} color="#fff" />
+                    : <Text style={[s.statusDotNum, stp.current && { color: '#fff' }]}>{i + 1}</Text>}
+                </View>
+                <Text style={[s.statusStepLbl, (stp.done || stp.current) && { color: C.text, fontWeight: '700' }]}>{stp.label}</Text>
+              </View>
+            </React.Fragment>
+          ))}
+        </View>
 
         {/* ── Quote Details (collapsible) ── */}
         <View style={s.card}>
           <TouchableOpacity style={s.quoteHead} activeOpacity={0.7} onPress={() => setShowQuote(v => !v)}>
             <View style={s.cardHead0}>
-              <View style={[s.cardIconBox, { backgroundColor: C.g50 }]}>
+              <View style={[s.cardIcon, { backgroundColor: C.g50 }]}>
                 <Ionicons name="document-text-outline" size={15} color={C.g700} />
               </View>
               <Text style={s.cardTitle}>Quote Details</Text>
@@ -331,9 +401,9 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
             return (
               <View style={s.quoteBody}>
                 {/* Pricing */}
-                <View style={s.payRow}>
-                  <Text style={[s.payLabel, { fontWeight: '700', color: C.text }]}>Total</Text>
-                  <Text style={[s.payVal, { color: C.g700 }]}>{money(total)}</Text>
+                <View style={s.totalRow}>
+                  <Text style={s.totalLabel}>Total</Text>
+                  <Text style={[s.totalVal, { fontSize: 18 }]}>{money(total)}</Text>
                 </View>
                 {advance > 0 ? (
                   <View style={s.payRow}>
@@ -346,36 +416,46 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
                 {inc.length > 0 && (
                   <View style={s.quoteSub}>
                     <Text style={s.quoteSubTitle}>Inclusions</Text>
-                    {inc.map((t, i) => (
-                      <View key={i} style={s.quoteLi}>
-                        <Ionicons name="checkmark-circle" size={13} color={C.g600} />
-                        <Text style={s.quoteLiTxt}>{t}</Text>
-                      </View>
-                    ))}
+                    <View style={s.pillWrap}>
+                      {inc.map((t, i) => (
+                        <View key={i} style={[s.pill, { backgroundColor: C.g100 }]}>
+                          <View style={[s.pillPip, { backgroundColor: C.g700 }]}>
+                            <Ionicons name="checkmark" size={10} color="#fff" />
+                          </View>
+                          <Text style={[s.pillTxt, { color: C.g700 }]}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
                 {/* Exclusions */}
                 {exc.length > 0 && (
                   <View style={s.quoteSub}>
                     <Text style={s.quoteSubTitle}>Exclusions</Text>
-                    {exc.map((t, i) => (
-                      <View key={i} style={s.quoteLi}>
-                        <Ionicons name="close-circle" size={13} color={C.red} />
-                        <Text style={s.quoteLiTxt}>{t}</Text>
-                      </View>
-                    ))}
+                    <View style={s.pillWrap}>
+                      {exc.map((t, i) => (
+                        <View key={i} style={[s.pill, { backgroundColor: C.redL }]}>
+                          <View style={[s.pillPip, { backgroundColor: C.red }]}>
+                            <Ionicons name="close" size={10} color="#fff" />
+                          </View>
+                          <Text style={[s.pillTxt, { color: C.red }]}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
                 {/* Terms */}
                 {terms.length > 0 && (
                   <View style={s.quoteSub}>
                     <Text style={s.quoteSubTitle}>Terms & Conditions</Text>
-                    {terms.map((t, i) => (
-                      <View key={i} style={s.quoteLi}>
-                        <Text style={s.quoteBullet}>•</Text>
-                        <Text style={s.quoteLiTxt}>{t}</Text>
-                      </View>
-                    ))}
+                    <View style={s.termsCard}>
+                      {terms.map((t, i) => (
+                        <View key={i} style={[s.termLine, i === terms.length - 1 && { marginBottom: 0 }]}>
+                          <Text style={s.termNum}>{i + 1}.</Text>
+                          <Text style={s.termTxt}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
                 {q.validTill ? (
@@ -386,15 +466,8 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
           })()}
         </View>
 
-        {/* Shifting Details */}
-        <View style={s.card}>
-          <View style={s.cardTitleRow}>
-            <View style={[s.cardIconBox, { backgroundColor: C.g50 }]}>
-              <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g600} />
-            </View>
-            <Text style={s.cardTitle}>Packers & Movers</Text>
-          </View>
-
+        {/* ── Packers & Movers ── */}
+        <Section icon={<MaterialCommunityIcons name="truck-delivery" size={15} color={C.g700} />} title="Packers & Movers" iconBg={C.g50}>
           {booking.teamSize && (
             <View style={s.infoRow}>
               <Text style={s.infoLabel}>Team Size</Text>
@@ -402,28 +475,28 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
             </View>
           )}
 
-          <View style={s.locationBlock}>
-            <View style={s.locationRow}>
-              <View style={[s.locationDot, { backgroundColor: C.g600 }]} />
-              <View style={s.locationContent}>
-                <Text style={s.locationLabel}>FROM</Text>
-                <Text style={s.locationCity}>{booking.pickupCity || 'Not specified'}</Text>
-                {booking.pickupAddress && <Text style={s.locationAddress}>{booking.pickupAddress}</Text>}
-                {booking.pickupFloor && <Text style={s.locationSub}>Floor: {booking.pickupFloor}</Text>}
-              </View>
+          {/* Route — connected from → to rail, mirrors the bike/bus/luxury/equipment/truck/self-drive siblings */}
+          <View style={s.routeCard}>
+            <View style={s.routeRail}>
+              <View style={[s.routeDot, { backgroundColor: C.g600 }]} />
+              {booking.dropCity && <View style={s.routeLine} />}
+              {booking.dropCity && <View style={[s.routeDot, { backgroundColor: C.red }]} />}
             </View>
-            <View style={s.locationLine} />
-            {booking.dropCity && (
-              <View style={s.locationRow}>
-                <View style={[s.locationDot, { backgroundColor: C.red }]} />
-                <View style={s.locationContent}>
-                  <Text style={s.locationLabel}>TO</Text>
-                  <Text style={s.locationCity}>{booking.dropCity}</Text>
-                  {booking.dropAddress && <Text style={s.locationAddress}>{booking.dropAddress}</Text>}
-                  {booking.dropFloor && <Text style={s.locationSub}>Floor: {booking.dropFloor}</Text>}
-                </View>
-              </View>
-            )}
+            <View style={{ flex: 1 }}>
+              <Text style={s.routeLabel}>FROM</Text>
+              <Text style={s.routeValue} numberOfLines={1}>{booking.pickupCity || 'Not specified'}</Text>
+              {booking.pickupAddress && <Text style={s.routeAddress}>{booking.pickupAddress}</Text>}
+              {booking.pickupFloor && <Text style={s.routeSub}>Floor: {booking.pickupFloor}</Text>}
+              {booking.dropCity && (
+                <>
+                  <View style={{ height: rs(12) }} />
+                  <Text style={s.routeLabel}>TO</Text>
+                  <Text style={s.routeValue} numberOfLines={1}>{booking.dropCity}</Text>
+                  {booking.dropAddress && <Text style={s.routeAddress}>{booking.dropAddress}</Text>}
+                  {booking.dropFloor && <Text style={s.routeSub}>Floor: {booking.dropFloor}</Text>}
+                </>
+              )}
+            </View>
           </View>
 
           <View style={s.divider} />
@@ -437,42 +510,41 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
               <Text style={s.infoValue}>{booking.scheduledTime}</Text>
             </View>
           )}
-        </View>
+        </Section>
 
-        {/* Customer Info */}
-        <View style={s.card}>
-          <View style={s.cardTitleRow}>
-            <View style={[s.cardIconBox, { backgroundColor: C.blueL }]}>
-              <Ionicons name="person-outline" size={18} color={C.blue} />
-            </View>
-            <Text style={s.cardTitle}>Customer</Text>
-          </View>
+        {/* ── Customer ── */}
+        <Section icon={<Ionicons name="person-outline" size={18} color={C.blue} />} title="Customer" iconBg={C.blueL}>
           <View style={s.customerRow}>
-            <View style={s.customerAvatar}>
-              <Icon name="user" size={22} color={C.blue} />
+            <View style={s.avatar}>
+              <Text style={s.avatarTxt}>{(booking.customerName || 'C')[0].toUpperCase()}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.customerName}>{booking.customerName || 'Customer'}</Text>
             </View>
+          </View>
+
+          <View style={s.contactRow}>
             {booking.customerPhone && (
-              <TouchableOpacity style={[s.iconBtn, { backgroundColor: '#F0FDFA', marginRight: 6 }]} onPress={() => handleCustomerCall(booking.customerPhone, booking.id)}>
-                <Ionicons name="call" size={18} color="#0D9488" />
+              <TouchableOpacity
+                style={[s.contactBtn, { backgroundColor: '#F0FDFA', borderColor: '#99F6E4' }]}
+                onPress={() => handleCustomerCall(booking.customerPhone, booking.id)}
+              >
+                <Ionicons name="call" size={15} color="#0D9488" />
+                <Text style={[s.contactTxt, { color: '#0D9488' }]}>Call</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={[s.iconBtn, { backgroundColor: C.blueL }]} onPress={handleChat}>
-              <Icon name="message-circle" size={18} color={C.blue} />
+            <TouchableOpacity
+              style={[s.contactBtn, { flex: 1, backgroundColor: C.blueL, borderColor: C.blue + '25' }]}
+              onPress={handleChat}
+            >
+              <Icon name="message-circle" size={15} color={C.blue} />
+              <Text style={[s.contactTxt, { color: C.blue }]}>Chat</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Section>
 
-        {/* Payment Summary */}
-        <View style={s.card}>
-          <View style={s.cardTitleRow}>
-            <View style={[s.cardIconBox, { backgroundColor: C.g50 }]}>
-              <Ionicons name="receipt-outline" size={18} color={C.g600} />
-            </View>
-            <Text style={s.cardTitle}>Payment Summary</Text>
-          </View>
+        {/* ── Payment Summary ── */}
+        <Section icon={<Ionicons name="receipt-outline" size={18} color={C.g600} />} title="Payment Summary" iconBg={C.g50}>
           <View style={s.infoRow}>
             <Text style={s.infoLabel}>Total Amount</Text>
             <Text style={[s.infoValue, { fontSize: 18, color: C.g700 }]}>
@@ -498,23 +570,25 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
               </View>
             </>
           )}
-        </View>
+        </Section>
 
         {/* Assign Team Leader */}
         {canAssignDriver() && (
-          <TouchableOpacity style={s.assignBtn} onPress={handleAssignDriverPress} disabled={actionLoading}>
-            <Icon name="user-plus" size={20} color="#fff" />
-            <Text style={s.assignBtnTxt}>Assign Team Leader</Text>
+          <TouchableOpacity style={s.assignBtnWrap} onPress={handleAssignDriverPress} disabled={actionLoading} activeOpacity={0.9}>
+            <LinearGradient colors={G.emerald} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.assignBtnInner}>
+              <Icon name="user-plus" size={18} color="#fff" />
+              <Text style={s.assignBtnTxt}>Assign Team Leader</Text>
+            </LinearGradient>
           </TouchableOpacity>
         )}
 
         {/* Team Leader Card */}
         {booking?.teamLeaderName && (
           <View style={[s.card, { backgroundColor: C.blueL, borderColor: '#BFDBFE' }]}>
-            <View style={s.cardTitleRowSpaced}>
-              <View style={s.cardTitleRow}>
-                <View style={[s.cardIconBox, { backgroundColor: C.card }]}>
-                  <Ionicons name="people-outline" size={18} color={C.blue} />
+            <View style={s.cardHeadSpaced}>
+              <View style={s.cardHead0}>
+                <View style={[s.cardIcon, { backgroundColor: C.card }]}>
+                  <Ionicons name="people-outline" size={15} color={C.blue} />
                 </View>
                 <Text style={s.cardTitle}>Team Leader</Text>
               </View>
@@ -611,25 +685,27 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        <View style={{ height: 90 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       {(canAccept() || canReject()) && (
         <View style={s.actionBar}>
           {canReject() && (
-            <TouchableOpacity style={[s.actionBtn, s.rejectBtn]} onPress={handleReject} disabled={actionLoading}>
+            <TouchableOpacity style={s.rejectBtn} onPress={handleReject} disabled={actionLoading}>
               <Icon name="x" size={18} color={C.red} />
-              <Text style={[s.actionBtnTxt, { color: C.red }]}>Decline</Text>
+              <Text style={s.rejectTxt}>Decline</Text>
             </TouchableOpacity>
           )}
           {canAccept() && (
-            <TouchableOpacity style={[s.actionBtn, s.acceptBtn]} onPress={handleAccept} disabled={actionLoading}>
-              {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : (
-                <>
-                  <Icon name="check-circle" size={18} color="#fff" />
-                  <Text style={[s.actionBtnTxt, { color: '#fff' }]}>Accept Booking</Text>
-                </>
-              )}
+            <TouchableOpacity style={s.acceptBtnWrap} onPress={handleAccept} disabled={actionLoading} activeOpacity={0.9}>
+              <LinearGradient colors={G.emerald} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.acceptBtnInner}>
+                {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : (
+                  <>
+                    <Icon name="check-circle" size={18} color="#fff" />
+                    <Text style={s.acceptTxt}>Accept Booking</Text>
+                  </>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           )}
         </View>
@@ -638,7 +714,7 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
       <Modal visible={showDriverModal} animationType="slide" transparent onRequestClose={() => setShowDriverModal(false)}>
         <View style={s.modalOverlay}>
           <View style={s.modalSheet}>
-            <View style={s.modalHandle} />
+            <SheetHandle />
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>{booking?.teamLeaderName ? 'Change Team Leader' : 'Select Team Leader'}</Text>
               <TouchableOpacity onPress={() => setShowDriverModal(false)} style={s.modalClose}>
@@ -681,87 +757,184 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  centeredTxt: { fontSize: 15, color: C.muted, marginTop: 8 },
+  safe:   { flex: 1, backgroundColor: C.bg },
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: TICKET_OVERLAP, paddingBottom: 40 },
+  centered:    { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10, paddingHorizontal: 32 },
+  centeredTxt: { fontSize: 14, color: C.muted },
 
-  hero: { paddingHorizontal: 16, paddingBottom: 20 },
-  heroPlain: { paddingHorizontal: 16, paddingBottom: 16 },
-  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(52,211,153,0.08)' },
-  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(52,211,153,0.06)' },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, marginBottom: 16 },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  // ── Hero ──────────────────────────────────────────────────────────────
+  hero: {
+    paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden',
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
+  },
+  deco1: {
+    position: 'absolute', width: W * 0.55, height: W * 0.55,
+    borderRadius: W * 0.275, backgroundColor: 'rgba(52,211,153,0.06)',
+    top: -W * 0.18, right: -W * 0.1,
+  },
+  deco2: {
+    position: 'absolute', width: W * 0.32, height: W * 0.32,
+    borderRadius: W * 0.16, backgroundColor: 'rgba(16,185,129,0.05)',
+    bottom: 0, left: W * 0.38,
+  },
+  topBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 16 },
+  backBtn:   { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  heroTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
-  heroCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  heroCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  heroLabel: { fontSize: 10, fontWeight: '700', color: C.g400, letterSpacing: 1, marginBottom: 4 },
-  heroNumber: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  identityBlock: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 2 },
+  identityIcon: {
+    width: rs(48), height: rs(48), borderRadius: rs(14),
+    backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  identityLabel: { fontSize: 9.5, color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: 1.4, marginBottom: 3 },
+  identityName:  { fontFamily: DISPLAY, fontSize: 19, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
+  identitySub:   { fontSize: 12.5, color: 'rgba(255,255,255,0.65)', fontWeight: '600', marginTop: 3 },
+
+  // ── Ticket summary card — status, created date, total amount ──
+  ticketWrap: {
+    marginTop: -TICKET_OVERLAP, backgroundColor: C.card,
+    borderRadius: rs(16), overflow: 'hidden', borderWidth: 1, borderColor: C.border,
+    marginBottom: 12, ...cardShadow,
+  },
+  ticketRail: { height: 3, width: '100%' },
+  ticketUpperStub: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingBottom: 14 },
+  ticketIconBox: {
+    width: rs(44), height: rs(44), borderRadius: rs(12),
+    backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
+  },
+  ticketLabel: { fontSize: 9.5, color: C.muted, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
+  ticketNumber: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '900', color: C.text, letterSpacing: -0.3 },
+
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
   statusPillTxt: { fontSize: 11, fontWeight: '700' },
-  heroMeta: { flexDirection: 'row', gap: 16 },
-  heroMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  heroMetaTxt: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
 
-  scroll: { flex: 1 },
-  scrollContent: { padding: 16 },
+  perforationRow: { height: 2, justifyContent: 'center' },
+  dashLine: { marginHorizontal: 20, borderTopWidth: 1, borderColor: C.border, borderStyle: 'dashed' },
+  notchLeft: { position: 'absolute', left: -9, top: -8, width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg },
+  notchRight: { position: 'absolute', right: -9, top: -8, width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg },
 
-  card: {
-    backgroundColor: C.card, borderRadius: 16, padding: 16, marginBottom: 12,
-    borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2,
+  ticketLowerStub: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, paddingTop: 14 },
+  moneyIconWrap: {
+    width: rs(30), height: rs(30), borderRadius: rs(9),
+    backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
   },
-  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
-  cardTitleRowSpaced: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  cardIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  ticketAmountLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
+  ticketAmountVal: { fontFamily: DISPLAY, fontSize: 24, fontWeight: '900', color: C.g700, letterSpacing: -0.4 },
+
+  // ── Status progression strip ──
+  statusStrip: {
+    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
+    backgroundColor: C.card, borderRadius: rs(16), borderWidth: 1, borderColor: C.border,
+    paddingVertical: 14, paddingHorizontal: 14, marginBottom: 12, ...cardShadow,
+  },
+  statusStep:  { alignItems: 'center', width: 66 },
+  statusLine:  { flex: 1, height: 2, backgroundColor: C.border, marginTop: 11 },
+  statusDot:   { width: 24, height: 24, borderRadius: 12, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  statusDotDone:    { backgroundColor: C.g600, borderColor: C.g600 },
+  statusDotCurrent: { backgroundColor: C.blue, borderColor: C.blue },
+  statusDotNum:     { fontSize: 11, fontWeight: '800', color: C.muted },
+  statusStepLbl:    { fontSize: 10, fontWeight: '600', color: C.muted, textAlign: 'center' },
+
+  // ── Cards ──
+  card: {
+    backgroundColor: C.card, borderRadius: rs(16), padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
+  },
+  cardHead:       { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  cardHead0:      { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  cardHeadSpaced: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  cardIcon:  { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
 
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7 },
   infoLabel: { fontSize: 13, color: C.muted },
   infoValue: { fontSize: 14, fontWeight: '600', color: C.text, textAlign: 'right', flex: 1, marginLeft: 12 },
   divider: { height: 1, backgroundColor: C.border, marginVertical: 8 },
 
-  locationBlock: { marginTop: 12 },
-  locationRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 4 },
-  locationDot: { width: 10, height: 10, borderRadius: 5, marginTop: 5 },
-  locationLine: { width: 2, height: 16, backgroundColor: C.border, marginLeft: 4, marginVertical: 2 },
-  locationContent: { flex: 1 },
-  locationLabel: { fontSize: 10, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
-  locationCity: { fontSize: 14, fontWeight: '600', color: C.text },
-  locationAddress: { fontSize: 12, color: C.sub, marginTop: 3, lineHeight: 17 },
-  locationSub: { fontSize: 11, color: C.muted, marginTop: 2 },
+  // Collapsible quote details
+  quoteHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  quoteBody: { marginTop: 14, gap: 10 },
+  quoteSub:      { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, gap: 8 },
+  quoteSubTitle: { fontSize: 11, fontWeight: '800', color: C.sub, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
+  pillWrap:      { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  pill:          { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingRight: 12, paddingLeft: 7, borderRadius: 20 },
+  pillPip:       { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  pillTxt:       { fontSize: 12, fontWeight: '600' },
+  termsCard:     { backgroundColor: C.bg, borderRadius: rs(12), padding: 11 },
+  termLine:      { flexDirection: 'row', gap: 8, marginBottom: 7 },
+  termNum:       { fontSize: 12, fontWeight: '800', color: C.text },
+  termTxt:       { flex: 1, fontSize: 12, color: C.sub, lineHeight: 18 },
+  quoteValid:    { fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 6 },
+  totalRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: C.g50, borderRadius: rs(12), padding: 14,
+    borderWidth: 1, borderColor: C.g100, marginBottom: 10,
+  },
+  totalLabel: { fontSize: 14, fontWeight: '700', color: C.g800 },
+  totalVal:   { fontFamily: DISPLAY, fontSize: 18, fontWeight: '900', color: C.g700 },
+  payRow:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  payLabel:      { fontSize: 13, color: C.sub },
+  payVal:        { fontSize: 13, fontWeight: '600', color: C.text },
 
-  customerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  customerAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: C.blueL, alignItems: 'center', justifyContent: 'center' },
-  customerName: { fontSize: 15, fontWeight: '700', color: C.text },
-  iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  // Route rail (from → to), mirrors the bike/bus/luxury/equipment/truck/self-drive siblings
+  routeCard: {
+    flexDirection: 'row', gap: 12,
+    backgroundColor: C.bg, borderRadius: rs(12), padding: 14,
+    marginBottom: 14,
+  },
+  routeRail:    { alignItems: 'center', paddingTop: 3 },
+  routeDot:     { width: 10, height: 10, borderRadius: 5 },
+  routeLine:    { width: 2, flex: 1, minHeight: rs(28), backgroundColor: C.border, marginVertical: 4 },
+  routeLabel:   { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
+  routeValue:   { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '700', color: C.text, marginTop: 2 },
+  routeAddress: { fontSize: 12, color: C.sub, marginTop: 3, lineHeight: 17 },
+  routeSub:     { fontSize: 11, color: C.muted, marginTop: 2 },
+
+  customerRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  avatar:        { width: 46, height: 46, borderRadius: 23, backgroundColor: C.blueL, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.blue + '20' },
+  avatarTxt:     { fontSize: 18, fontWeight: '800', color: C.blue },
+  customerName:  { fontSize: 15, fontWeight: '700', color: C.text },
+
+  contactRow: { flexDirection: 'row', gap: 8 },
+  contactBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 10, borderWidth: 1 },
+  contactTxt: { fontSize: 12, fontWeight: '700' },
 
   changeBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: C.card, borderRadius: 8 },
   changeBtnTxt: { fontSize: 13, fontWeight: '600', color: C.blue },
 
-  statusBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 12 },
+  statusBanner: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14,
+    borderRadius: rs(14), borderWidth: 1, marginBottom: 12,
+  },
   statusBannerTxt: { fontSize: 14, fontWeight: '600' },
   statusBannerSub: { fontSize: 12, color: C.sub, marginTop: 4 },
 
-  assignBtn: { backgroundColor: C.g600, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15, borderRadius: 12, marginBottom: 12 },
-  assignBtnTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  // Gradient-primary CTA (Assign Team Leader)
+  assignBtnWrap:  { borderRadius: rs(14), overflow: 'hidden', marginBottom: 12 },
+  assignBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15 },
+  assignBtnTxt:   { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: '#fff' },
 
   actionBar: {
-    flexDirection: 'row', gap: 12, padding: 16,
+    flexDirection: 'row', gap: 10, padding: 14,
     backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: -3 }, elevation: 12,
+    ...cardShadow,
   },
-  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, borderWidth: 1 },
-  rejectBtn: { backgroundColor: C.card, borderColor: '#FECACA' },
-  acceptBtn: { backgroundColor: C.g600, borderColor: C.g600 },
-  actionBtnTxt: { fontSize: 14, fontWeight: '700' },
+  // Tonal-destructive CTA (Decline)
+  rejectBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14, borderRadius: rs(14), borderWidth: 2, borderColor: C.red, backgroundColor: C.redL },
+  rejectTxt: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.red },
+  // Gradient-primary CTA (Accept)
+  acceptBtnWrap:  { flex: 2, borderRadius: rs(14), overflow: 'hidden' },
+  acceptBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14 },
+  acceptTxt: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalSheet: { backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%', paddingBottom: 24 },
-  modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginTop: 12, marginBottom: 4 },
+  modalOverlay: { flex: 1, backgroundColor: T.scrim, justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: C.card, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS, maxHeight: '80%', paddingBottom: 24 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: C.border },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: C.text },
+  modalTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text },
   modalClose: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
   modalLoader: { padding: 40, alignItems: 'center' },
   modalEmpty: { padding: 40, alignItems: 'center', gap: 10 },
@@ -771,28 +944,4 @@ const s = StyleSheet.create({
   driverAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center' },
   driverName: { fontSize: 15, fontWeight: '600', color: C.text, marginBottom: 3 },
   driverPhone: { fontSize: 13, color: C.muted },
-
-  // Status progression strip
-  statusStrip: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingVertical: 14, paddingHorizontal: 14, marginBottom: 14 },
-  statusStep:  { alignItems: 'center', width: 66 },
-  statusLine:  { flex: 1, height: 2, backgroundColor: C.border, marginTop: 11 },
-  statusDot:   { width: 24, height: 24, borderRadius: 12, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  statusDotDone:    { backgroundColor: C.g600, borderColor: C.g600 },
-  statusDotCurrent: { backgroundColor: C.blue, borderColor: C.blue },
-  statusDotNum:     { fontSize: 11, fontWeight: '800', color: C.muted },
-  statusStepLbl:    { fontSize: 10, fontWeight: '600', color: C.muted, textAlign: 'center' },
-
-  // Collapsible quote details
-  quoteHead:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardHead0:     { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  quoteBody:     { marginTop: 14, gap: 10 },
-  quoteSub:      { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, gap: 7 },
-  quoteSubTitle: { fontSize: 12, fontWeight: '800', color: C.text, marginBottom: 2 },
-  quoteLi:       { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  quoteLiTxt:    { flex: 1, fontSize: 12.5, color: C.sub, lineHeight: 18 },
-  quoteBullet:   { fontSize: 13, color: C.muted, lineHeight: 18, width: 13, textAlign: 'center' },
-  quoteValid:    { fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 6 },
-  payRow:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  payLabel:      { fontSize: 13, color: C.sub },
-  payVal:        { fontSize: 13, fontWeight: '600', color: C.text },
 });

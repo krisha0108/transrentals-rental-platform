@@ -176,7 +176,7 @@ function PreviewGallery({ images, title }) {
             </button>
           </div>
           <div className="flex-1 flex items-center justify-center relative px-14 min-h-0" onClick={e => e.stopPropagation()}>
-            <img src={images[lightboxIdx]} alt={title} className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" style={{ maxHeight: 'calc(100vh - 180px)' }} />
+            <img src={images[lightboxIdx]} alt={title} className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" style={{ maxHeight: 'calc(100dvh - 180px)' }} />
             {images.length > 1 && (
               <>
                 <button onClick={() => setLightboxIdx(i => (i - 1 + images.length) % images.length)} className="absolute left-3 w-11 h-11 bg-white/10 hover:bg-white/25 rounded-full flex items-center justify-center text-white transition-all"><ChevronLeft className="w-5 h-5" /></button>

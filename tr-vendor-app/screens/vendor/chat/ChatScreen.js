@@ -19,6 +19,9 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getChatMessages, sendChatMessage } from '../../api/client';
+import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 // KeyboardAvoidingView comes from react-native-keyboard-controller, NOT from
 // react-native. RN's Android implementation reads the keyboard frame from the
 // JS `Keyboard` events and compares it against its own measured frame, which
@@ -34,16 +37,18 @@ import { getChatMessages, sendChatMessage } from '../../api/client';
 // KeyboardProvider is already mounted at the root in App.js.
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#3B82F6',  blueL: '#EFF6FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626',   redL: '#FEF2F2',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  orange: '#EA580C', orangeL: '#FFF7ED',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue,  blueL: T.blueLight,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red,   redL: T.redLight,
+  purple: T.purple, purpleL: T.tintPlum,
+  orange: T.orange, orangeL: T.orangeL,
 };
 
 const SERVICE_MAP = {
@@ -211,7 +216,7 @@ export default function ChatScreen({ route, navigation }) {
           {/* Trigger button */}
           <TouchableOpacity style={st.dropdownBtn} onPress={() => setShowDropdown(true)} activeOpacity={0.8}>
             <View style={[st.dropdownBtnIcon, { backgroundColor: activeSvc.bg }]}>
-              <MaterialCommunityIcons name={activeSvc.icon || 'car-side'} size={13} color={activeSvc.color} />
+              <MaterialCommunityIcons name={activeSvc.icon || 'car-side'} size={14} color={activeSvc.color} />
             </View>
             <View style={st.dropdownBtnMid}>
               <Text style={st.dropdownBtnLabel} numberOfLines={1}>
@@ -223,7 +228,7 @@ export default function ChatScreen({ route, navigation }) {
             </View>
             <View style={st.dropdownBtnRight}>
               <Text style={st.dropdownBtnCount}>{allBookings.length} bookings</Text>
-              <MaterialCommunityIcons name="chevron-down" size={15} color={C.g700} />
+              <MaterialCommunityIcons name="chevron-down" size={16} color={C.g700} />
             </View>
           </TouchableOpacity>
 
@@ -232,10 +237,10 @@ export default function ChatScreen({ route, navigation }) {
             <TouchableOpacity style={st.bsOverlay} activeOpacity={1} onPress={() => setShowDropdown(false)}>
               <TouchableOpacity activeOpacity={1} style={st.bsSheet} onPress={() => {}}>
                 {/* Handle */}
-                <View style={st.bsHandle} />
+                <View style={st.bsHandleWrap}><View style={st.bsHandle} /></View>
                 {/* Title row */}
                 <View style={st.bsTitleRow}>
-                  <View>
+                  <View style={st.bsTitleTextWrap}>
                     <Text style={st.bsTitle}>Switch Booking</Text>
                     <Text style={st.bsSub}>{customerName} · {allBookings.length} bookings</Text>
                   </View>
@@ -397,37 +402,49 @@ export default function ChatScreen({ route, navigation }) {
   };
 
   const Header = () => (
-    <LinearGradient colors={[C.g900, C.g800]} style={[st.header, { paddingTop: insets.top + 10 }]}>
-      {/* Back */}
-      <TouchableOpacity style={st.headerBack} onPress={() => navigation.goBack()}>
-        <Icon name="arrow-left" size={20} color="#fff" />
-      </TouchableOpacity>
+    <LinearGradient
+      colors={G.hero}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[st.header, { paddingTop: insets.top + 10 }]}
+    >
+      <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
+      <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
 
-      {/* Customer avatar */}
-      {customerAvatar ? (
-        <Image source={{ uri: customerAvatar }} style={st.headerAvatarImg} />
-      ) : (
-        <View style={[st.headerAvatar, { backgroundColor: svc.color }]}>
-          <Text style={st.headerAvatarTxt}>{customerInitial}</Text>
+      <View style={st.headerRow}>
+        {/* Back */}
+        <TouchableOpacity style={st.headerBack} onPress={() => navigation.goBack()}>
+          <Icon name="arrow-left" size={20} color="#fff" />
+        </TouchableOpacity>
+
+        {/* Customer avatar */}
+        <View style={st.headerAvatarRing}>
+          {customerAvatar ? (
+            <Image source={{ uri: customerAvatar }} style={st.headerAvatarImg} />
+          ) : (
+            <View style={[st.headerAvatar, { backgroundColor: svc.color }]}>
+              <Text style={st.headerAvatarTxt}>{customerInitial}</Text>
+            </View>
+          )}
         </View>
-      )}
 
-      {/* Info */}
-      <View style={st.headerInfo}>
-        <Text style={st.headerName} numberOfLines={1}>{customerName || 'Customer'}</Text>
-        <View style={st.headerMeta}>
-          <View style={[st.svcChip, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-            <MaterialCommunityIcons name={svc.icon} size={10} color="#fff" style={{ marginRight: 3 }} />
-            <Text style={st.svcChipTxt}>{svc.label}</Text>
+        {/* Info */}
+        <View style={st.headerInfo}>
+          <Text style={st.headerName} numberOfLines={1}>{customerName || 'Customer'}</Text>
+          <View style={st.headerMeta}>
+            <View style={st.svcChip}>
+              <MaterialCommunityIcons name={svc.icon} size={10} color="#fff" style={{ marginRight: 3 }} />
+              <Text style={st.svcChipTxt}>{svc.label}</Text>
+            </View>
+            <Text style={st.headerBkNum} numberOfLines={1}>#{activeBooking?.bookingNumber || bookingNumber || ''}</Text>
           </View>
-          <Text style={st.headerBkNum}>#{activeBooking?.bookingNumber || bookingNumber || ''}</Text>
         </View>
-      </View>
 
-      {/* View Booking */}
-      <TouchableOpacity style={st.headerAction} onPress={handleViewBooking}>
-        <MaterialCommunityIcons name="calendar-text-outline" size={20} color="rgba(255,255,255,0.85)" />
-      </TouchableOpacity>
+        {/* View Booking */}
+        <TouchableOpacity style={st.headerAction} onPress={handleViewBooking} activeOpacity={0.8}>
+          <MaterialCommunityIcons name="calendar-text-outline" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
     </LinearGradient>
   );
 
@@ -489,6 +506,7 @@ export default function ChatScreen({ route, navigation }) {
             />
           </View>
           <TouchableOpacity
+            style={st.sendBtnWrap}
             onPress={handleSend}
             disabled={!inputText.trim() || sending}
             activeOpacity={0.85}
@@ -496,6 +514,8 @@ export default function ChatScreen({ route, navigation }) {
             {inputText.trim() ? (
               <LinearGradient
                 colors={[C.g700, C.g500]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
                 style={st.sendBtn}
               >
                 {sending
@@ -524,32 +544,50 @@ const st = StyleSheet.create({
 
   /* ── Header ── */
   header: {
+    borderBottomLeftRadius: rs(24),
+    borderBottomRightRadius: rs(24),
+    overflow: 'hidden',
+    paddingBottom: 14,
+  },
+  orbA: {
+    position: 'absolute', top: -rs(50), right: -rs(30),
+    width: rs(160), height: rs(160), borderRadius: rs(80),
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  orbB: {
+    position: 'absolute', bottom: -rs(48), left: -rs(36),
+    width: rs(130), height: rs(130), borderRadius: rs(65),
+    backgroundColor: 'rgba(46,158,120,0.16)',
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingBottom: 14,
     paddingHorizontal: 14,
     gap: 10,
   },
   headerBack: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center', justifyContent: 'center',
+  },
+  headerAvatarRing: {
+    borderRadius: 24, padding: 2,
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)',
   },
   headerAvatar: {
-    width: 44, height: 44, borderRadius: 22,
+    width: 42, height: 42, borderRadius: 21,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)',
   },
   headerAvatarImg: {
-    width: 44, height: 44, borderRadius: 22,
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)',
+    width: 42, height: 42, borderRadius: 21,
   },
   headerAvatarTxt: {
-    fontSize: 18, fontWeight: '800', color: '#fff',
+    fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff',
   },
-  headerInfo: { flex: 1 },
+  headerInfo: { flex: 1, minWidth: 0 },
   headerName: {
-    fontSize: 16, fontWeight: '700', color: '#fff',
+    fontSize: 16, fontWeight: '700', color: '#fff', fontFamily: DISPLAY,
   },
   headerMeta: {
     flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3,
@@ -558,16 +596,18 @@ const st = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 7, paddingVertical: 2,
     borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.16)',
   },
   svcChipTxt: {
-    fontSize: 10, fontWeight: '600', color: '#fff',
+    fontSize: 10, fontWeight: '700', color: '#fff',
   },
   headerBkNum: {
-    fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '500',
+    fontSize: 11, color: 'rgba(255,255,255,0.68)', fontWeight: '600', flexShrink: 1,
   },
   headerAction: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center', justifyContent: 'center',
   },
 
@@ -587,8 +627,8 @@ const st = StyleSheet.create({
   switcherTab: {
     flex: 1,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
+    paddingVertical: 7,
+    borderRadius: rs(12),
     borderWidth: 1.5,
     borderColor: C.border,
     backgroundColor: C.bg,
@@ -597,8 +637,9 @@ const st = StyleSheet.create({
   switcherTabActive: {
     backgroundColor: C.g50,
     borderColor: C.g500,
+    ...cardShadow,
   },
-  switcherTabType: { fontSize: 11, fontWeight: '700', color: C.muted },
+  switcherTabType: { fontFamily: DISPLAY, fontSize: 11, fontWeight: '700', color: C.muted },
   switcherTabTypeActive: { color: C.g700 },
   switcherTabNum: { fontSize: 10, color: C.muted, marginTop: 1 },
   switcherTabNumActive: { color: C.g600, fontWeight: '600' },
@@ -609,7 +650,7 @@ const st = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     backgroundColor: C.g50,
-    borderRadius: 12,
+    borderRadius: rs(14),
     borderWidth: 1.5,
     borderColor: C.g100,
     paddingHorizontal: 12,
@@ -618,52 +659,50 @@ const st = StyleSheet.create({
   dropdownBtnIcon: {
     width: 28,
     height: 28,
-    borderRadius: 8,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  dropdownBtnMid: { flex: 1 },
-  dropdownBtnLabel: { fontSize: 13, fontWeight: '700', color: C.g800 },
+  dropdownBtnMid: { flex: 1, minWidth: 0 },
+  dropdownBtnLabel: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '700', color: C.g800 },
   dropdownBtnNum: { fontSize: 11, color: C.g600, marginTop: 1 },
   dropdownBtnRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  dropdownBtnCount: { fontSize: 11, color: C.muted, fontWeight: '500' },
+  dropdownBtnCount: { fontSize: 11, color: C.muted, fontWeight: '600' },
 
   // Bottom sheet
   bsOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(2,44,34,0.45)',
+    backgroundColor: T.scrim,
     justifyContent: 'flex-end',
   },
   bsSheet: {
     backgroundColor: C.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: SHEET_RADIUS,
+    borderTopRightRadius: SHEET_RADIUS,
     paddingBottom: 30,
     maxHeight: '70%',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 12,
+    overflow: 'hidden',
+    ...cardShadow,
   },
+  bsHandleWrap: { alignItems: 'center', paddingTop: 12 },
   bsHandle: {
     width: 40,
     height: 4,
     borderRadius: 2,
     backgroundColor: C.border,
-    alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 4,
   },
   bsTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingTop: 10,
+    paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
-  bsTitle: { fontSize: 17, fontWeight: '800', color: C.text },
+  bsTitleTextWrap: { flex: 1, minWidth: 0 },
+  bsTitle: { fontSize: 17, fontWeight: '800', color: C.text, fontFamily: DISPLAY },
   bsSub: { fontSize: 12, color: C.muted, marginTop: 2 },
   bsClose: {
     width: 34, height: 34, borderRadius: 17,
@@ -684,8 +723,8 @@ const st = StyleSheet.create({
     width: 44, height: 44, borderRadius: 12,
     justifyContent: 'center', alignItems: 'center',
   },
-  bsItemInfo: { flex: 1 },
-  bsItemType: { fontSize: 15, fontWeight: '700', color: C.text },
+  bsItemInfo: { flex: 1, minWidth: 0 },
+  bsItemType: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '700', color: C.text },
   bsItemNum: { fontSize: 12, color: C.muted, marginTop: 2 },
   bsUnreadBadge: {
     minWidth: 20, height: 20, borderRadius: 10,
@@ -728,13 +767,10 @@ const st = StyleSheet.create({
     paddingVertical: 5,
     borderWidth: 1,
     borderColor: C.border,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    ...cardShadow,
   },
   datePillTxt: {
-    fontSize: 11, fontWeight: '600', color: C.sub,
+    fontSize: 11, fontWeight: '700', color: C.sub,
   },
 
   /* ── Message row ── */
@@ -760,7 +796,7 @@ const st = StyleSheet.create({
     flexShrink: 0,
   },
   msgAvatarTxt: {
-    fontSize: 13, fontWeight: '800', color: '#fff',
+    fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: '#fff',
   },
 
   /* ── Bubbles ── */
@@ -773,8 +809,9 @@ const st = StyleSheet.create({
   bubbleVendor: {
     borderBottomRightRadius: 4,
     shadowColor: C.g700,
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.22,
     shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
   bubbleCustomer: {
@@ -782,16 +819,17 @@ const st = StyleSheet.create({
     borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: C.border,
-    shadowColor: '#000',
+    shadowColor: T.shadow,
     shadowOpacity: 0.05,
     shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
   bubbleTxtVendor: {
-    fontSize: 14, color: '#fff', lineHeight: 21,
+    fontFamily: DISPLAY, fontSize: 14, color: '#fff', lineHeight: 21,
   },
   bubbleTxtCustomer: {
-    fontSize: 14, color: C.text, lineHeight: 21,
+    fontFamily: DISPLAY, fontSize: 14, color: C.text, lineHeight: 21,
   },
   bubbleFooter: {
     flexDirection: 'row',
@@ -800,10 +838,10 @@ const st = StyleSheet.create({
     marginTop: 3,
   },
   timeTxtVendor: {
-    fontSize: 9, color: 'rgba(255,255,255,0.7)',
+    fontSize: 9, color: 'rgba(255,255,255,0.75)', fontWeight: '600',
   },
   timeTxtCustomer: {
-    fontSize: 9, color: C.muted,
+    fontSize: 9, color: C.muted, fontWeight: '600',
   },
 
   /* ── Empty state ── */
@@ -821,7 +859,7 @@ const st = StyleSheet.create({
     borderWidth: 1, borderColor: C.g100,
   },
   emptyTitle: {
-    fontSize: 16, fontWeight: '700', color: C.text,
+    fontSize: 16, fontWeight: '700', color: C.text, fontFamily: DISPLAY,
   },
   emptySub: {
     fontSize: 13, color: C.muted,
@@ -844,7 +882,7 @@ const st = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: C.bg,
-    borderRadius: 24,
+    borderRadius: rs(24),
     borderWidth: 1,
     borderColor: C.border,
     minHeight: 44,
@@ -852,15 +890,25 @@ const st = StyleSheet.create({
   },
   input: {
     flex: 1,
+    fontFamily: DISPLAY,
     fontSize: 14,
     color: C.text,
     paddingHorizontal: 14,
     paddingVertical: 10,
     maxHeight: 110,
   },
-  sendBtn: {
+  sendBtnWrap: {
     width: 44, height: 44,
     borderRadius: 22,
+    overflow: 'hidden',
+    shadowColor: C.g600,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  sendBtn: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

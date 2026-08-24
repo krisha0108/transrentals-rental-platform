@@ -1,75 +1,109 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput,
-  RefreshControl, Animated, LayoutAnimation, Platform, UIManager, StatusBar,
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  RefreshControl, ActivityIndicator, LayoutAnimation,
+  Platform, UIManager, StatusBar, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import Icon from 'react-native-vector-icons/Feather';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getBookings } from '../../../api/client';
 import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
 import DateFilterModal from '../../../../components/DateFilterModal';
+import { SC as T, G, rs, shade, cardShadow } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+// Same key names this screen already used — only the values now come from
+// the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399',
-  g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  amber: '#D97706', amberL: '#FFFBEB',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  red: '#DC2626', redL: '#FEF2F2',
-  orange: '#EA580C', orangeL: '#FFF7ED',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  amber: T.amber, amberL: T.amberLight,
+  blue: T.blue, blueL: T.blueLight,
+  red: T.red,
+  purple: T.purple,
+  ivory: T.ivory, sand: T.sand, glassBorder: T.glassBorder,
 };
 
 const STATUS_CONFIG = {
-  PENDING_PAYMENT:   { label: 'Payment Pending',  color: C.amber,  bg: C.amberL  },
-  PAYMENT_SUBMITTED: { label: 'Payment Submitted', color: C.amber,  bg: C.amberL  },
-  ADVANCE_PAID:      { label: 'Advance Paid',      color: C.g600,   bg: C.g50     },
-  PAYMENT_VERIFIED:  { label: 'Payment Verified',  color: C.g600,   bg: C.g50     },
-  BROADCASTED:       { label: 'Open',              color: C.blue,   bg: C.blueL   },
-  PENDING_VENDOR:    { label: 'Pending',           color: C.amber,  bg: C.amberL  },
-  ACCEPTED:          { label: 'Accepted',          color: C.g600,   bg: C.g50     },
-  DRIVER_ASSIGNED:   { label: 'Driver Assigned',   color: C.blue,   bg: C.blueL   },
-  IN_PROGRESS:       { label: 'In Progress',       color: C.purple, bg: C.purpleL },
-  COMPLETED:         { label: 'Completed',         color: C.g700,   bg: C.g100    },
-  CANCELLED:         { label: 'Cancelled',         color: C.red,    bg: C.redL    },
+  PENDING_PAYMENT:   { label: 'Payment Pending',   color: C.amber  },
+  PAYMENT_SUBMITTED: { label: 'Payment Submitted', color: C.amber  },
+  ADVANCE_PAID:      { label: 'Advance Paid',      color: C.g600   },
+  PAYMENT_VERIFIED:  { label: 'Payment Verified',  color: C.g600   },
+  BROADCASTED:       { label: 'Open',              color: C.blue   },
+  PENDING_VENDOR:    { label: 'Pending',           color: C.amber  },
+  ACCEPTED:          { label: 'Accepted',          color: C.g600   },
+  DRIVER_ASSIGNED:   { label: 'Driver Assigned',   color: C.blue   },
+  IN_PROGRESS:       { label: 'In Progress',       color: C.purple },
+  COMPLETED:         { label: 'Completed',         color: C.g700   },
+  CANCELLED:         { label: 'Cancelled',         color: C.red    },
 };
-
-const fmt = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '--';
-
-function SkeletonCard() {
-  const anim = useRef(new Animated.Value(0.3)).current;
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(anim, { toValue: 1, duration: 800, useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
-  return (
-    <Animated.View style={[s.skCard, { opacity: anim }]}>
-      <View style={s.skRow}>
-        <View style={[s.skBox, { width: 90, height: 16 }]} />
-        <View style={[s.skBox, { width: 70, height: 22, borderRadius: 11 }]} />
-      </View>
-      <View style={[s.skBox, { width: '75%', height: 13, marginTop: 14 }]} />
-      <View style={[s.skBox, { width: '55%', height: 13, marginTop: 8 }]} />
-      <View style={[s.skBox, { width: '65%', height: 13, marginTop: 8 }]} />
-      <View style={[s.skBox, { width: '40%', height: 18, marginTop: 14 }]} />
-    </Animated.View>
-  );
-}
 
 const COMPLETED_STATUSES = ['COMPLETED', 'CANCELLED'];
 
+const fmt = (d) =>
+  d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '--';
+
+/* ── Expanded info row ─────────────────────────────────────────────────── */
+const ERow = ({ iconName, label, value }) => (
+  <View style={styles.eRow}>
+    <View style={styles.eIconWrap}>
+      <Icon name={iconName} size={10} color={C.sub} />
+    </View>
+    <Text style={styles.eLabel}>{label}</Text>
+    <Text style={styles.eVal}>{value}</Text>
+  </View>
+);
+
+/* ── Illustrated empty state ──────────────────────────────────────────── */
+const EmptyState = ({ filtered, selectedFilter, onClearSearch }) => (
+  <View style={styles.emptyCardWrap}>
+    <View style={styles.emptyArt}>
+      <View style={styles.emptyArtCardBack} />
+      <View style={styles.emptyArtCard}>
+        <Ionicons name={filtered ? 'search' : 'car-outline'} size={rs(40)} color={C.g400} />
+      </View>
+      <View style={styles.emptyArtDot} />
+      <View style={styles.emptyArtTag}>
+        <Text style={styles.emptyArtTagTxt}>
+          {filtered ? 'NO MATCH' : (selectedFilter === 'completed' ? 'DONE' : selectedFilter === 'active' ? 'ACTIVE' : 'ALL')}
+        </Text>
+      </View>
+    </View>
+
+    <Text style={styles.emptyTitle}>
+      {filtered
+        ? 'No matches found'
+        : (selectedFilter === 'completed' ? 'No completed bookings' : selectedFilter === 'active' ? 'No active bookings' : 'No bookings found')}
+    </Text>
+    <Text style={styles.emptyBody}>
+      {filtered
+        ? 'Try a different name, booking number or city.'
+        : (selectedFilter === 'completed'
+            ? 'Completed bookings will appear here'
+            : 'Your car rental bookings will appear here')}
+    </Text>
+
+    {filtered && (
+      <TouchableOpacity style={styles.emptyCtaWrap} onPress={onClearSearch} activeOpacity={0.9}>
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyCta}>
+          <Icon name="x" size={14} color="#fff" />
+          <Text style={styles.emptyCtaText}>Clear Search</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    )}
+  </View>
+);
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
 export default function CarRentalBookingsScreen({ navigation, route }) {
   const { filter } = route.params || {};
   const [showDateFilter,  setShowDateFilter]  = useState(false);
@@ -77,8 +111,10 @@ export default function CarRentalBookingsScreen({ navigation, route }) {
   const [selectedFilter,  setSelectedFilter]  = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: allBookings, loading, refreshing, hasMore, loadMore, refresh, initialLoad, applyDateFilter, dateFilter } =
-    useInfiniteScroll(getBookings, { service: 'car', type: filter });
+  const {
+    data: allBookings, loading, refreshing, hasMore,
+    loadMore, refresh, initialLoad, applyDateFilter, dateFilter,
+  } = useInfiniteScroll(getBookings, { service: 'car', type: filter });
 
   useEffect(() => { initialLoad(); }, []);
 
@@ -102,207 +138,191 @@ export default function CarRentalBookingsScreen({ navigation, route }) {
 
   const toggleExpand = (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedId(prev => prev === id ? null : id);
+    setExpandedId(prev => (prev === id ? null : id));
   };
 
+  /* ── Booking card ──────────────────────────────────────────────────────── */
   const renderBooking = ({ item }) => {
-    const sc = STATUS_CONFIG[item.status] || { label: item.status, color: C.muted, bg: C.bg };
+    const sc = STATUS_CONFIG[item.status] || { label: item.status, color: C.muted };
     const isExpanded = expandedId === item.id;
+
     return (
-      <View style={s.card}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate('CarRentalBookingDetail', { bookingId: item.id, serviceType: 'car' })}
-        >
-          <LinearGradient colors={[C.g700, C.g500]} style={s.cardAccentBar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
-          {/* Card top */}
-          <View style={s.cardTop}>
-            <View style={s.cardTopLeft}>
-              <Text style={s.num}>#{item.bookingNumber}</Text>
-              {item.tripType && (
-                <View style={s.tripChip}>
-                  <Text style={s.tripChipText}>{item.tripType.replace(/_/g, ' ')}</Text>
+      <View style={styles.card}>
+        {/* Tonal accent rail — stretches to the card's full height, including
+            the expanded section, because the parent row uses default stretch. */}
+        <LinearGradient
+          colors={[sc.color, shade(sc.color, -20)]}
+          start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+          style={styles.cardRail}
+        />
+
+        <View style={styles.cardInner}>
+          {/* Tappable top area → BookingDetail */}
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('CarRentalBookingDetail', { bookingId: item.id, serviceType: 'car' })}
+          >
+            {/* Top stripe: icon box + booking number + status */}
+            <View style={styles.cardTopStripe}>
+              <LinearGradient colors={[C.g600, C.g700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.iconBox}>
+                <Ionicons name="car" size={rs(13)} color="#fff" />
+              </LinearGradient>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <View style={styles.cardTopLeft}>
+                  <Text style={styles.bookingNum} numberOfLines={1}>#{item.bookingNumber}</Text>
+                  {!!item.tripType && (
+                    <View style={styles.tripChip}>
+                      <Text style={styles.tripChipText}>{item.tripType.replace(/_/g, ' ')}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+              <View style={[styles.statusPill, { backgroundColor: `${sc.color}18` }]}>
+                <Text style={[styles.statusText, { color: sc.color }]} numberOfLines={1}>{sc.label}</Text>
+              </View>
+            </View>
+
+            {/* Primary name */}
+            <Text style={styles.cardName} numberOfLines={1}>{item.customerName}</Text>
+
+            {/* Route: pickup → drop */}
+            <View style={styles.routeRow}>
+              <View style={styles.routeStop}>
+                <View style={[styles.routeDot, { backgroundColor: C.g600 }]} />
+                <Text style={styles.routeCity} numberOfLines={1}>{item.pickupCity || '--'}</Text>
+              </View>
+              <View style={styles.routeLine} />
+              <View style={styles.routeStop}>
+                <View style={[styles.routeDot, { backgroundColor: C.red }]} />
+                <Text style={styles.routeCity} numberOfLines={1}>{item.dropCity || 'Local'}</Text>
+              </View>
+            </View>
+
+            {/* Meta row */}
+            <View style={styles.metaRow}>
+              <View style={styles.metaItem}>
+                <Icon name="calendar" size={10} color={C.muted} />
+                <Text style={styles.metaText}>
+                  {fmt(item.pickupDate)}
+                  {item.pickupTime ? `  ${item.pickupTime.slice(0, 5)}` : ''}
+                </Text>
+              </View>
+            </View>
+
+            {/* Footer: amount + expand toggle */}
+            <View style={styles.cardFooter}>
+              <View>
+                <Text style={styles.amtLabel}>Total Amount</Text>
+                <Text style={styles.amtValue}>
+                  ₹{(item.grandTotal || item.totalAmount || 0).toLocaleString('en-IN')}
+                </Text>
+              </View>
+              <View style={styles.footerRight}>
+                <TouchableOpacity
+                  onPress={() => toggleExpand(item.id)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <View style={[styles.expandCircle, isExpanded && styles.expandCircleActive]}>
+                    <Icon
+                      name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                      size={12}
+                      color={isExpanded ? '#fff' : C.sub}
+                    />
+                  </View>
+                </TouchableOpacity>
+                <View style={styles.arrowCircle}>
+                  <Icon name="arrow-right" size={12} color={C.g700} />
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Expanded section */}
+          {isExpanded && (
+            <View style={styles.expandedSection}>
+              <View style={styles.expandDivider} />
+              {item.vehicleName && (
+                <ERow iconName="truck" label="Vehicle" value={item.vehicleName} />
+              )}
+              {item.pickupAddress && (
+                <ERow iconName="map-pin" label="Pickup Addr." value={item.pickupAddress} />
+              )}
+              {item.dropAddress && (
+                <ERow iconName="map-pin" label="Drop Addr." value={item.dropAddress} />
+              )}
+              {item.returnDate && (
+                <ERow iconName="calendar" label="Return" value={fmt(item.returnDate)} />
+              )}
+              {item.totalDays && (
+                <ERow iconName="clock" label="Duration" value={`${item.totalDays} days`} />
+              )}
+              {item.driverName && (
+                <ERow iconName="user-check" label="Driver" value={item.driverName} />
+              )}
+              {item.customerNotes && (
+                <View style={[styles.eRow, { alignItems: 'flex-start' }]}>
+                  <View style={styles.eIconWrap}>
+                    <Icon name="file-text" size={10} color={C.sub} />
+                  </View>
+                  <Text style={styles.eLabel}>Notes</Text>
+                  <Text style={[styles.eVal, { flex: 1 }]}>{item.customerNotes}</Text>
                 </View>
               )}
-            </View>
-            <View style={[s.badge, { backgroundColor: sc.bg }]}>
-              <Text style={[s.badgeText, { color: sc.color }]}>{sc.label}</Text>
-            </View>
-          </View>
-
-          {/* Card body */}
-          <View style={s.body}>
-            <View style={s.row}>
-              <Icon name="user" size={14} color={C.muted} />
-              <Text style={s.rowText} numberOfLines={1}>{item.customerName}</Text>
-            </View>
-            <View style={s.routeRow}>
-              <View style={s.routeStop}>
-                <View style={[s.dot, { backgroundColor: C.g500 }]} />
-                <Text style={s.routeCity} numberOfLines={1}>{item.pickupCity || '--'}</Text>
-              </View>
-              <View style={s.routeLine} />
-              <View style={s.routeStop}>
-                <View style={[s.dot, { backgroundColor: C.red }]} />
-                <Text style={s.routeCity} numberOfLines={1}>{item.dropCity || 'Local'}</Text>
-              </View>
-            </View>
-            <View style={s.row}>
-              <Icon name="calendar" size={14} color={C.muted} />
-              <Text style={s.rowText}>
-                {fmt(item.pickupDate)}{item.pickupTime ? `  ${item.pickupTime.slice(0, 5)}` : ''}
-              </Text>
-            </View>
-          </View>
-
-          {/* Card footer */}
-          <View style={s.footer}>
-            <View>
-              <Text style={s.amtLabel}>Total Amount</Text>
-              <Text style={s.amt}>₹{(item.grandTotal || item.totalAmount || 0).toLocaleString('en-IN')}</Text>
-            </View>
-            <View style={s.footerRight}>
               <TouchableOpacity
-                style={s.expandBtn}
-                onPress={() => toggleExpand(item.id)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={styles.viewDetailsBtn}
+                onPress={() => navigation.navigate('CarRentalBookingDetail', { bookingId: item.id, serviceType: 'car' })}
               >
-                <View style={[s.expandCircle, isExpanded && s.expandCircleActive]}>
-                  <Icon name={isExpanded ? 'chevron-up' : 'chevron-down'} size={14} color={isExpanded ? '#fff' : C.sub} />
-                </View>
+                <Text style={styles.viewDetailsBtnText}>View Full Details</Text>
+                <Icon name="arrow-right" size={12} color={C.g700} />
               </TouchableOpacity>
-              <View style={s.arrowCircle}>
-                <Icon name="arrow-right" size={14} color={C.g700} />
-              </View>
             </View>
-          </View>
-        </TouchableOpacity>
-
-        {/* Expanded section */}
-        {isExpanded && (
-          <View style={s.expanded}>
-            <View style={s.expandDivider} />
-            {item.vehicleName && (
-              <View style={s.eRow}>
-                <Icon name="truck" size={13} color={C.muted} />
-                <Text style={s.eLabel}>Vehicle</Text>
-                <Text style={s.eVal}>{item.vehicleName}</Text>
-              </View>
-            )}
-            {item.pickupAddress && (
-              <View style={s.eRow}>
-                <Icon name="map-pin" size={13} color={C.g500} />
-                <Text style={s.eLabel}>Pickup Addr.</Text>
-                <Text style={s.eVal}>{item.pickupAddress}</Text>
-              </View>
-            )}
-            {item.dropAddress && (
-              <View style={s.eRow}>
-                <Icon name="map-pin" size={13} color={C.red} />
-                <Text style={s.eLabel}>Drop Addr.</Text>
-                <Text style={s.eVal}>{item.dropAddress}</Text>
-              </View>
-            )}
-            {item.returnDate && (
-              <View style={s.eRow}>
-                <Icon name="calendar" size={13} color={C.muted} />
-                <Text style={s.eLabel}>Return</Text>
-                <Text style={s.eVal}>{fmt(item.returnDate)}</Text>
-              </View>
-            )}
-            {item.totalDays && (
-              <View style={s.eRow}>
-                <Icon name="clock" size={13} color={C.muted} />
-                <Text style={s.eLabel}>Duration</Text>
-                <Text style={s.eVal}>{item.totalDays} days</Text>
-              </View>
-            )}
-            {item.driverName && (
-              <View style={s.eRow}>
-                <Icon name="user-check" size={13} color={C.g600} />
-                <Text style={s.eLabel}>Driver</Text>
-                <Text style={[s.eVal, { color: C.g700 }]}>{item.driverName}</Text>
-              </View>
-            )}
-            {item.customerNotes && (
-              <View style={[s.eRow, { alignItems: 'flex-start' }]}>
-                <Icon name="file-text" size={13} color={C.muted} />
-                <Text style={s.eLabel}>Notes</Text>
-                <Text style={[s.eVal, { flex: 1 }]}>{item.customerNotes}</Text>
-              </View>
-            )}
-            <TouchableOpacity
-              style={s.viewBtn}
-              onPress={() => navigation.navigate('CarRentalBookingDetail', { bookingId: item.id, serviceType: 'car' })}
-            >
-              <Text style={s.viewBtnText}>View Full Details</Text>
-              <Icon name="arrow-right" size={14} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        )}
+          )}
+        </View>
       </View>
     );
   };
 
+  const isFiltered = q.length > 0;
+
+  /* ── Render ── */
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <View style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-      {/* Gradient Header */}
-      <LinearGradient
-        colors={[C.g900, '#064E3B', C.g700]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={s.header}
-      >
-        <View style={s.decCircle1} />
-        <View style={s.decCircle2} />
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
-        </TouchableOpacity>
-        <View style={s.headerCenter}>
-          <Ionicons name="car" size={18} color="rgba(255,255,255,0.8)" style={{ marginBottom: 2 }} />
-          <Text style={s.headerTitle}>Car Rental Bookings</Text>
-        </View>
-        <TouchableOpacity onPress={() => setShowDateFilter(true)} style={s.filterBtn}>
-          <Ionicons
-            name="calendar-outline"
-            size={20}
-            color={dateFilter.start ? C.g400 : 'rgba(255,255,255,0.8)'}
-          />
-          {dateFilter.start && <View style={s.filterDot} />}
-        </TouchableOpacity>
+
+      {/* Hero header */}
+      <LinearGradient colors={G.hero} style={styles.header}>
+        <AnimatedOrb style={styles.orbA} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={['top']} style={styles.headerSafe}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity
+              onPress={() => setShowDateFilter(true)}
+              style={[styles.dateCircle, cardShadow]}
+              activeOpacity={0.85}
+            >
+              <Icon name="calendar" size={20} color={C.g700} />
+              {dateFilter.start && <View style={styles.filterDot} />}
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.headerEyebrow}>CAR RENTAL</Text>
+          <Text style={styles.bigTitle}>Bookings</Text>
+          <Text style={styles.bigSub}>Track and manage all your car rental bookings.</Text>
+
+          <View style={{ height: rs(28) }} />
+        </SafeAreaView>
       </LinearGradient>
 
-      {/* Active / All / Completed tabs */}
-      <View style={s.tabBar}>
-        {[
-          { key: 'all',       label: 'All',       count: allBookings.length, icon: 'list'         },
-          { key: 'active',    label: 'Active',    count: activeCount,        icon: 'activity'     },
-          { key: 'completed', label: 'Done',      count: completedCount,     icon: 'check-circle' },
-        ].map(tab => {
-          const isActive = selectedFilter === tab.key;
-          return (
-            <TouchableOpacity
-              key={tab.key}
-              style={[s.tabPill, isActive && s.tabPillActive]}
-              onPress={() => setSelectedFilter(tab.key)}
-            >
-              <Icon name={tab.icon} size={13} color={isActive ? '#fff' : C.muted} />
-              <Text style={[s.tabLabel, isActive && s.tabLabelActive]}>{tab.label}</Text>
-              <View style={[s.tabBadge, isActive && s.tabBadgeActive]}>
-                <Text style={[s.tabBadgeText, isActive && s.tabBadgeTextActive]}>{tab.count}</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Search Bar */}
-      <View style={s.searchWrap}>
-        <View style={s.searchBox}>
-          <Icon name="search" size={16} color={C.muted} style={{ marginRight: 8 }} />
+      {/* Floating search — tucks into the hero's bottom curve */}
+      <View style={styles.searchBarWrap}>
+        <View style={styles.searchCard}>
+          <Icon name="search" size={16} color={C.muted} />
           <TextInput
-            style={s.searchInput}
+            style={styles.searchInput}
             placeholder="Search by name, booking #, city…"
             placeholderTextColor={C.muted}
             value={searchQuery}
@@ -319,17 +339,46 @@ export default function CarRentalBookingsScreen({ navigation, route }) {
         </View>
       </View>
 
+      {/* Fixed filter pills — kept OUTSIDE the FlatList so switching tabs
+          doesn't reset scroll position. */}
+      <View style={styles.filtersFixed}>
+        {[
+          { key: 'all',       label: 'All',       count: allBookings.length, icon: 'list'         },
+          { key: 'active',    label: 'Active',    count: activeCount,        icon: 'activity'     },
+          { key: 'completed', label: 'Done',      count: completedCount,     icon: 'check-circle' },
+        ].map(tab => {
+          const isActive = selectedFilter === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.chip, isActive && styles.chipActive]}
+              onPress={() => setSelectedFilter(tab.key)}
+              activeOpacity={0.85}
+            >
+              <Icon name={tab.icon} size={13} color={isActive ? '#fff' : C.sub} />
+              <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{tab.label}</Text>
+              <View style={[styles.chipBadge, isActive && styles.chipBadgeActive]}>
+                <Text style={[styles.chipBadgeText, isActive && styles.chipBadgeTextActive]}>
+                  {tab.count}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* List */}
       {loading && allBookings.length === 0 ? (
-        <View style={s.skeletonWrap}>
-          <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={C.g600} />
         </View>
       ) : (
         <FlatList
           data={bookings}
-          showsVerticalScrollIndicator={false}
           renderItem={renderBooking}
           keyExtractor={i => i.id}
-          contentContainerStyle={s.list}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           refreshControl={
@@ -337,19 +386,17 @@ export default function CarRentalBookingsScreen({ navigation, route }) {
           }
           ListFooterComponent={
             loading && hasMore ? (
-              <View style={s.skeletonWrap}>
-                <SkeletonCard />
+              <View style={{ paddingVertical: 20 }}>
+                <ActivityIndicator size="small" color={C.g600} />
               </View>
             ) : null
           }
           ListEmptyComponent={
-            <View style={s.empty}>
-              <View style={s.emptyIconBox}>
-                <Ionicons name="car-outline" size={40} color={C.g400} />
-              </View>
-              <Text style={s.emptyTitle}>No bookings found</Text>
-              <Text style={s.emptySub}>Car rental bookings will appear here</Text>
-            </View>
+            <EmptyState
+              filtered={isFiltered}
+              selectedFilter={selectedFilter}
+              onClearSearch={() => setSearchQuery('')}
+            />
           }
         />
       )}
@@ -362,209 +409,212 @@ export default function CarRentalBookingsScreen({ navigation, route }) {
         currentEndDate={dateFilter.end}
         currentFilterType={dateFilter.type}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  skeletonWrap: { padding: 16, gap: 12 },
-  skCard: { backgroundColor: C.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: C.border, marginBottom: 12 },
-  skRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  skBox: { backgroundColor: '#E2E8F0', borderRadius: 8, height: 14 },
+const styles = StyleSheet.create({
+  safe:    { flex: 1, backgroundColor: C.bg },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  /* Header */
+  /* Hero header */
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
     overflow: 'hidden',
+    borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
+    paddingBottom: rs(8),
   },
-  decCircle1: {
-    position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    top: -50,
-    right: 20,
+  headerSafe: { paddingHorizontal: 16 },
+  orbA: {
+    position: 'absolute', top: -46, right: -30, width: 150, height: 150,
+    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  decCircle2: {
-    position: 'absolute',
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    bottom: -30,
-    left: 60,
+  orbB: {
+    position: 'absolute', bottom: -40, left: -34, width: 120, height: 120,
+    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
   },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(10) },
+  backCircle: {
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
   },
-  headerCenter: {
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  filterBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  dateCircle: {
+    width: rs(48), height: rs(48), borderRadius: rs(24),
+    backgroundColor: C.ivory,
+    justifyContent: 'center', alignItems: 'center',
+    transform: [{ translateY: rs(14) }],
   },
   filterDot: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: C.g400,
+    position: 'absolute', top: 6, right: 6,
+    width: 9, height: 9, borderRadius: 4.5,
+    backgroundColor: C.g600, borderWidth: 1.5, borderColor: C.ivory,
   },
+  headerEyebrow: { fontSize: 10, color: 'rgba(255,255,255,0.65)', fontWeight: '700', letterSpacing: 1.2, fontFamily: DISPLAY, marginBottom: 2 },
+  bigTitle: { fontSize: 28, fontWeight: '700', color: '#fff', fontFamily: DISPLAY },
+  bigSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', marginTop: 4, fontFamily: DISPLAY },
 
-  /* List */
-  list: { padding: 16, gap: 12, backgroundColor: C.bg },
-
-  /* Tabs */
-  tabBar: {
-    flexDirection: 'row', backgroundColor: C.card,
-    paddingHorizontal: 16, paddingVertical: 12, gap: 10,
-    borderBottomWidth: 1, borderBottomColor: C.border,
+  /* Floating search */
+  searchBarWrap: { marginHorizontal: 16, marginTop: -rs(24) },
+  searchCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 9,
+    backgroundColor: C.card, borderRadius: rs(15),
+    paddingHorizontal: 14, height: rs(46),
+    borderWidth: 1, borderColor: C.glassBorder,
+    ...cardShadow,
   },
-  tabPill: {
+  searchInput: { flex: 1, fontSize: 14, color: C.text, padding: 0 },
+
+  /* Filter pills */
+  filtersFixed: {
+    flexDirection: 'row', gap: 8,
+    paddingHorizontal: 16, paddingTop: rs(14), paddingBottom: rs(10),
+  },
+  chip: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'center', gap: 5,
-    paddingVertical: 9, borderRadius: 12,
-    backgroundColor: C.bg, borderWidth: 1, borderColor: C.border,
+    justifyContent: 'center', gap: 6,
+    paddingVertical: 10, borderRadius: 999,
+    backgroundColor: C.card,
+    borderWidth: 1, borderColor: C.border,
   },
-  tabPillActive:      { backgroundColor: C.g700, borderColor: C.g700 },
-  tabLabel:           { fontSize: 12, fontWeight: '600', color: C.muted },
-  tabLabelActive:     { color: '#fff' },
-  tabBadge: {
-    minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5,
-    backgroundColor: C.card, justifyContent: 'center', alignItems: 'center',
+  chipActive: { backgroundColor: C.g700, borderColor: C.g700 },
+  chipText:       { fontSize: 13, fontWeight: '700', color: C.sub, fontFamily: DISPLAY },
+  chipTextActive: { color: '#fff' },
+  chipBadge: {
+    minWidth: 22, height: 22, borderRadius: 11,
+    paddingHorizontal: 6,
+    backgroundColor: C.g50,
+    justifyContent: 'center', alignItems: 'center',
   },
-  tabBadgeActive:     { backgroundColor: 'rgba(255,255,255,0.25)' },
-  tabBadgeText:       { fontSize: 10, fontWeight: '700', color: C.g700 },
-  tabBadgeTextActive: { color: '#fff' },
+  chipBadgeActive:     { backgroundColor: 'rgba(255,255,255,0.25)' },
+  chipBadgeText:       { fontSize: 11, fontWeight: '700', color: C.g700 },
+  chipBadgeTextActive: { color: '#fff' },
+
+  listContent: { paddingHorizontal: 16, paddingBottom: 40, gap: 12 },
 
   /* Card */
   card: {
+    flexDirection: 'row',
     backgroundColor: C.card,
-    borderRadius: 16,
+    borderRadius: rs(14),
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: C.glassBorder,
     overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
+    ...cardShadow,
   },
-  cardAccentBar: { height: 4, width: '100%' },
-  cardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 14,
-    paddingTop: 14,
-    paddingBottom: 10,
+  cardRail: { width: 3 },
+  cardInner: { flex: 1, padding: 11, minWidth: 0 },
+
+  cardTopStripe: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  iconBox: {
+    width: rs(26), height: rs(26), borderRadius: rs(8),
+    justifyContent: 'center', alignItems: 'center',
   },
-  cardTopLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  num: { fontSize: 15, fontWeight: '700', color: C.text },
+  cardTopLeft:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  bookingNum:   { fontSize: 12.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
   tripChip: {
-    backgroundColor: C.g50,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: C.g100,
+    backgroundColor: C.g50, paddingHorizontal: 7, paddingVertical: 1.5,
+    borderRadius: 7, borderWidth: 1, borderColor: C.g100,
   },
-  tripChipText: { fontSize: 11, color: C.g700, fontWeight: '600', textTransform: 'capitalize' },
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  badgeText: { fontSize: 11, fontWeight: '700' },
+  tripChipText: { fontSize: 9.5, color: C.g700, fontWeight: '600', textTransform: 'capitalize' },
+  statusPill:  { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  statusText:  { fontSize: 9.5, fontWeight: '700' },
 
-  body: { paddingHorizontal: 14, gap: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  rowText: { fontSize: 13, color: C.sub, flex: 1 },
-  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  routeStop: { flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  routeCity: { fontSize: 13, color: C.text, fontWeight: '600', flex: 1 },
-  routeLine: { width: 24, height: 1, backgroundColor: C.border, marginHorizontal: 2 },
+  cardName: { fontSize: 14.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY, marginBottom: 6 },
 
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
+  /* Route: pickup → drop */
+  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 7 },
+  routeStop: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 },
+  routeDot: { width: 6, height: 6, borderRadius: 3 },
+  routeCity: { fontSize: 11.5, color: C.text, fontWeight: '600', flex: 1 },
+  routeLine: { width: 16, height: 1, backgroundColor: C.border, marginHorizontal: 2 },
+
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 7 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  metaText: { fontSize: 10.5, color: C.sub, fontWeight: '600' },
+
+  cardFooter: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingTop: 9,
+    borderTopWidth: 1, borderTopColor: C.border,
   },
-  amtLabel: { fontSize: 11, color: C.muted, marginBottom: 1 },
-  amt: { fontSize: 17, fontWeight: '800', color: C.g700 },
-  footerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  expandBtn: {},
+  amtLabel: { fontSize: 10, color: C.muted, marginBottom: 1 },
+  amtValue: { fontSize: 15, fontWeight: '800', color: C.g700, fontFamily: DISPLAY },
+  footerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   expandCircle: {
-    width: 30, height: 30, borderRadius: 15,
-    backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center',
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: C.bg,
+    justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderColor: C.border,
   },
   expandCircleActive: { backgroundColor: C.g700, borderColor: C.g700 },
   arrowCircle: {
-    width: 30, height: 30, borderRadius: 15,
-    backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center',
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: C.g50,
+    justifyContent: 'center', alignItems: 'center',
   },
 
   /* Expanded */
-  expanded: { paddingHorizontal: 14, paddingBottom: 14 },
-  expandDivider: { height: 1, backgroundColor: C.border, marginBottom: 10 },
-  eRow: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 5 },
-  eLabel: { fontSize: 12, color: C.muted, width: 80 },
-  eVal: { fontSize: 13, color: C.text, fontWeight: '500', flex: 1 },
-  viewBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 10,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: C.g700,
+  expandedSection: { paddingTop: 3 },
+  expandDivider:   { height: 1, backgroundColor: C.border, marginBottom: 9, marginTop: 6 },
+  eRow: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 4 },
+  eIconWrap: {
+    width: 20, height: 20, borderRadius: 6,
+    backgroundColor: C.bg,
+    justifyContent: 'center', alignItems: 'center',
   },
-  viewBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-
-  /* Empty */
-  empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 72, gap: 12 },
-  emptyIconBox: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: C.g50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: C.g100,
+  eLabel: { fontSize: 11, color: C.muted, width: 72 },
+  eVal:   { fontSize: 12, color: C.text, fontWeight: '500', flex: 1 },
+  viewDetailsBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    marginTop: 9, paddingVertical: 8, borderRadius: 9,
+    backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
   },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text },
-  emptySub: { fontSize: 13, color: C.muted },
+  viewDetailsBtnText: { fontSize: 11.5, fontWeight: '700', color: C.g700 },
 
-  /* Search */
-  searchWrap: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
-  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.bg, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: C.border },
-  searchInput: { flex: 1, fontSize: 14, color: C.text, padding: 0 },
+  /* Elaborate empty state */
+  emptyCardWrap: {
+    alignItems: 'center',
+    backgroundColor: C.card, borderRadius: rs(24),
+    borderWidth: 1, borderColor: C.glassBorder,
+    paddingHorizontal: 20, paddingVertical: rs(30),
+    marginTop: rs(10),
+  },
+  emptyArt: {
+    width: rs(140), height: rs(112), marginBottom: rs(16),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyArtCardBack: {
+    position: 'absolute', top: rs(12), right: rs(20),
+    width: rs(88), height: rs(64), borderRadius: rs(14),
+    backgroundColor: C.g50, transform: [{ rotate: '8deg' }],
+  },
+  emptyArtCard: {
+    width: rs(88), height: rs(78), borderRadius: rs(16),
+    backgroundColor: C.bg, borderWidth: 1, borderColor: C.g50,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyArtDot: {
+    position: 'absolute', top: rs(4), right: rs(16),
+    width: rs(20), height: rs(20), borderRadius: rs(10), backgroundColor: C.g400,
+    borderWidth: rs(3), borderColor: C.card,
+  },
+  emptyArtTag: {
+    position: 'absolute', bottom: rs(8), left: rs(4),
+    backgroundColor: C.card, borderRadius: rs(8),
+    paddingHorizontal: rs(8), paddingVertical: rs(3),
+    borderWidth: 1, borderColor: C.g50,
+    transform: [{ rotate: '-8deg' }],
+  },
+  emptyArtTagTxt: { fontSize: 8.5, fontWeight: '700', color: C.g700, letterSpacing: 0.6, fontFamily: DISPLAY },
+  emptyTitle:    { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 6, fontFamily: DISPLAY, textAlign: 'center' },
+  emptyBody: {
+    fontSize: 13, color: C.muted, textAlign: 'center',
+    lineHeight: 19, maxWidth: rs(260),
+  },
+  emptyCtaWrap: { marginTop: rs(16) },
+  emptyCta: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 11, paddingHorizontal: 24, borderRadius: rs(14),
+  },
+  emptyCtaText: { fontSize: 13.5, fontWeight: '700', color: '#fff', fontFamily: DISPLAY },
 });

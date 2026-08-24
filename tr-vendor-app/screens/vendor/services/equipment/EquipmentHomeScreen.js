@@ -10,23 +10,28 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getBookingsByService, getVendorQuotes, getQuoteRequests } from '../../../api/client';
+import { SC as T, G, rs, shade, cardShadow, alpha } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
 const { width: W } = Dimensions.get('window');
 const CARD_W  = (W - 32 - 10) / 2;
 const CHART_W = W - 32 - 32;
 
+// Same key names this screen already used — only the values now come from
+// the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399',
-  g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  amber: '#D97706', amberL: '#FFFBEB', amberM: '#FEF3C7',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  orange: '#EA580C', orangeL: '#FFF7ED',
-  red: '#DC2626', redL: '#FEF2F2',
-  indigo: '#4F46E5', indigoL: '#EEF2FF',
+  g900: T.forestDark, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald,
+  g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  amber: T.amber, amberL: T.amberLight, amberM: shade(T.amber, 25),
+  blue: T.blue, blueL: T.blueLight,
+  purple: T.purple,
+  orange: T.orange, orangeL: T.orangeL,
+  red: T.red, redL: T.redLight,
+  indigo: T.indigo, indigoL: T.indigoLight,
 };
 
 const STATUS_CFG = {
@@ -197,10 +202,10 @@ export default function EquipmentHomeScreen({ navigation }) {
   ];
 
   const miniData = [
-    { v: String(stats.bookings),    l: 'Bookings' },
-    { v: String(stats.activeTrips), l: 'Active'   },
-    { v: fmtAmt(stats.earnings),    l: 'Earned'   },
-    { v: 'View All →',              l: 'Requests', accent: true },
+    { v: String(stats.bookings),    l: 'Bookings', icon: 'calendar-outline' },
+    { v: String(stats.activeTrips), l: 'Active',   icon: 'flash-outline' },
+    { v: fmtAmt(stats.earnings),    l: 'Earned',   icon: 'cash-outline' },
+    { v: 'View All →',              l: 'Requests', accent: true, icon: 'arrow-forward-circle-outline' },
   ];
 
   const totalForPeriod = useMemo(() => Math.round(chartData.data.reduce((a, b) => a + b, 0)), [chartData]);
@@ -210,7 +215,7 @@ export default function EquipmentHomeScreen({ navigation }) {
     backgroundGradientFrom: '#fff', backgroundGradientTo: '#fff',
     backgroundGradientFromOpacity: 0, backgroundGradientToOpacity: 0,
     decimalPlaces: 0,
-    color:      (o = 1) => `rgba(5,150,105,${o})`,
+    color:      (o = 1) => alpha(C.g600, o),
     labelColor: ()      => C.muted,
     barPercentage: 0.55,
     propsForBackgroundLines: { stroke: C.border, strokeWidth: 0.6, strokeDasharray: '3,3' },
@@ -221,7 +226,7 @@ export default function EquipmentHomeScreen({ navigation }) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg }}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
           <SafeAreaView>
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, marginBottom: 16 }}>
               <Bone w={34} h={34} r={10} />
@@ -282,16 +287,19 @@ export default function EquipmentHomeScreen({ navigation }) {
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <LinearGradient colors={[C.g900, '#064E3B', C.g700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
-        <View style={s.deco1} /><View style={s.deco2} />
+      <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+        <AnimatedOrb style={s.deco1} /><AnimatedOrb style={s.deco2} delay={900} dx={-12} dy={10} />
         <SafeAreaView>
           <View style={s.topBar}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
               <Icon name="arrow-left" size={18} color="rgba(255,255,255,0.9)" />
             </TouchableOpacity>
             <View style={s.titleWrap}>
-              <MaterialCommunityIcons name={SERVICE_ICON} size={20} color={C.amber} />
-              <Text style={s.headerTitle}>{SERVICE_NAME}</Text>
+              <Text style={s.headerEyebrow}>EQUIPMENT RENTALS</Text>
+              <View style={s.titleRow}>
+                <MaterialCommunityIcons name={SERVICE_ICON} size={20} color={C.amber} />
+                <Text style={s.headerTitle}>{SERVICE_NAME}</Text>
+              </View>
             </View>
             <View style={{ width: 34 }} />
           </View>
@@ -312,6 +320,12 @@ export default function EquipmentHomeScreen({ navigation }) {
                 <React.Fragment key={i}>
                   {i > 0 && <View style={s.vLine} />}
                   <View style={s.miniCell}>
+                    <Ionicons
+                      name={m.icon}
+                      size={13}
+                      color={m.accent ? C.g400 : 'rgba(255,255,255,0.55)'}
+                      style={{ marginBottom: 3 }}
+                    />
                     <Text style={[s.miniVal, m.accent && { color: C.g400, fontSize: 11 }]}>{m.v}</Text>
                     <Text style={s.miniLbl}>{m.l}</Text>
                   </View>
@@ -522,74 +536,79 @@ export default function EquipmentHomeScreen({ navigation }) {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  hero: { paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden' },
-  deco1: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(52,211,153,0.07)', top: -60, right: -40 },
-  deco2: { position: 'absolute', width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(16,185,129,0.05)', bottom: 0, left: W * 0.35 },
+  hero: {
+    paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden',
+    borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22),
+  },
+  deco1: { position: 'absolute', top: -46, right: -30, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)' },
+  deco2: { position: 'absolute', bottom: -40, left: -34, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 18 },
   backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerTitle: { fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
-  quoteCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
+  titleWrap: { alignItems: 'center' },
+  headerEyebrow: { fontSize: 10, color: 'rgba(255,255,255,0.65)', fontWeight: '700', letterSpacing: 1.2, fontFamily: DISPLAY, marginBottom: 2 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerTitle: { fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.2, fontFamily: DISPLAY },
+  quoteCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: rs(16), padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
   quoteTop: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 14 },
   quoteLbl: { fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 4 },
-  quoteNum: { fontSize: 38, fontWeight: '900', color: '#fff', letterSpacing: -1 },
+  quoteNum: { fontSize: 38, fontWeight: '900', color: '#fff', letterSpacing: -1, fontFamily: DISPLAY },
   pendingPill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(217,119,6,0.25)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(217,119,6,0.35)' },
   pendingDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.amber },
   pendingTxt: { fontSize: 10, fontWeight: '700', color: C.amber },
   miniStrip: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.13)', borderRadius: 10, paddingVertical: 9, paddingHorizontal: 10 },
   vLine: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 6 },
   miniCell: { flex: 1, alignItems: 'center' },
-  miniVal: { fontSize: 12, fontWeight: '800', color: '#fff', marginBottom: 1 },
+  miniVal: { fontSize: 12, fontWeight: '800', color: '#fff', marginBottom: 1, fontFamily: DISPLAY },
   miniLbl: { fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.38)' },
   body: { paddingHorizontal: 16, paddingTop: 16 },
-  sectionTitle: { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: -0.2, marginBottom: 10, marginTop: 18 },
+  sectionTitle: { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: -0.2, marginBottom: 10, marginTop: 18, fontFamily: DISPLAY },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, marginBottom: 10 },
   seeAll: { fontSize: 12, fontWeight: '600', color: C.g600 },
-  tipCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.amberM, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#FDE68A' },
+  tipCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.amberM, borderRadius: rs(14), padding: 14, borderWidth: 1, borderColor: '#FDE68A' },
   tipIconWrap: { width: 34, height: 34, borderRadius: 10, backgroundColor: C.amberL, alignItems: 'center', justifyContent: 'center' },
   tipText: { flex: 1, fontSize: 12, color: '#78350F', lineHeight: 17 },
   tipBold: { fontWeight: '700' },
-  activeCard: { borderRadius: 16, overflow: 'hidden', marginTop: 10 },
+  activeCard: { borderRadius: rs(16), overflow: 'hidden', marginTop: 10 },
   activeGrad: { flexDirection: 'row', alignItems: 'center', padding: 16 },
   activeLiveDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#fff', position: 'absolute', left: 18 },
   activeLiveDotPulse: { width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.3)', position: 'absolute', left: 13 },
-  activeTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  activeTitle: { fontSize: 15, fontWeight: '800', color: '#fff', fontFamily: DISPLAY },
   activeSub: { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   activeCountBadge: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  activeCountNum: { fontSize: 18, fontWeight: '900', color: '#fff' },
+  activeCountNum: { fontSize: 18, fontWeight: '900', color: '#fff', fontFamily: DISPLAY },
   perfRow: { flexDirection: 'row', gap: 10 },
-  perfCard: { flex: 1, backgroundColor: C.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  perfCard: { flex: 1, backgroundColor: C.card, borderRadius: rs(14), padding: 14, borderWidth: 1, borderColor: C.border, ...cardShadow },
   perfLbl: { fontSize: 8, fontWeight: '700', color: C.muted, letterSpacing: 1.2, marginBottom: 6 },
-  perfAmt: { fontSize: 22, fontWeight: '900', color: C.text, letterSpacing: -0.5 },
+  perfAmt: { fontSize: 22, fontWeight: '900', color: C.text, letterSpacing: -0.5, fontFamily: DISPLAY },
   perfSub: { fontSize: 10, color: C.muted, marginTop: 6 },
   growthRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   growthTxt: { fontSize: 11, fontWeight: '700' },
-  chartCard: { backgroundColor: C.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3, marginTop: 18 },
+  chartCard: { backgroundColor: C.card, borderRadius: rs(16), padding: 16, borderWidth: 1, borderColor: C.border, ...cardShadow, marginTop: 18 },
   chartHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  chartTitle: { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: -0.2 },
+  chartTitle: { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: -0.2, fontFamily: DISPLAY },
   chartSub: { fontSize: 11, color: C.muted, marginTop: 3 },
   periodRow: { flexDirection: 'row', gap: 3, backgroundColor: C.bg, borderRadius: 20, padding: 3 },
   periodBtn: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 16 },
   periodBtnActive: { backgroundColor: C.g900 },
   periodTxt: { fontSize: 11, fontWeight: '700', color: C.muted },
   periodTxtActive: { color: '#fff' },
-  bookingCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 14, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
+  bookingCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: rs(14), padding: 12, marginBottom: 8, borderWidth: 1, borderColor: C.border, ...cardShadow },
   bookingLeft: { marginRight: 12 },
   bookingDateBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   bookingDateDay: { fontSize: 16, fontWeight: '900', lineHeight: 20 },
   bookingDateMon: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase' },
   bookingMid: { flex: 1 },
-  bookingName: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 2 },
+  bookingName: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 2, fontFamily: DISPLAY },
   bookingTime: { fontSize: 11, color: C.sub },
   bookingVehicle: { fontSize: 10, color: C.muted, marginTop: 2 },
   bookingRight: { alignItems: 'flex-end', gap: 6, marginLeft: 8 },
   statusChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
   statusChipTxt: { fontSize: 10, fontWeight: '700' },
-  bookingAmt: { fontSize: 13, fontWeight: '800', color: C.g600 },
+  bookingAmt: { fontSize: 13, fontWeight: '800', color: C.g600, fontFamily: DISPLAY },
   manageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  manageCard: { width: CARD_W, backgroundColor: C.card, borderRadius: 14, padding: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: C.border },
+  manageCard: { width: CARD_W, backgroundColor: C.card, borderRadius: rs(14), padding: 14, ...cardShadow, borderWidth: 1, borderColor: C.border },
   manageIconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  manageLabel: { fontSize: 12.5, fontWeight: '800', color: C.text, marginBottom: 2 },
+  manageLabel: { fontSize: 12.5, fontWeight: '800', color: C.text, marginBottom: 2, fontFamily: DISPLAY },
   manageSub: { fontSize: 10, color: C.muted, lineHeight: 14 },
   manageArrow: { position: 'absolute', bottom: 12, right: 12 },
 });
