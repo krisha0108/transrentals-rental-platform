@@ -2124,13 +2124,13 @@ const POPULAR_TRANSPORT_SEARCHES = [
 ];
 
 const TRANSPORT_TABS = [
-  { key: 'bike', label: 'Bike', icon: Bike, basePath: '/bike-on-rent', fleetSegment: 'bikes' as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: true, hasEquipmentFields: false },
-  { key: 'self-drive', label: 'Self Drive Car', icon: Key, basePath: '/self-drive-car-rentals', fleetSegment: 'cars' as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: true, hasEquipmentFields: false },
-  { key: 'car', label: 'Car', icon: Car, basePath: '/car-rental', fleetSegment: null as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false },
-  { key: 'bus', label: 'Bus', icon: Bus, basePath: '/bus-rental', fleetSegment: null as string | null, needsTo: true, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false },
-  { key: 'truck', label: 'Truck', icon: Truck, basePath: '/transporter', fleetSegment: null as string | null, needsTo: true, hasTruckFields: true, hasDateTimeFields: false, hasEquipmentFields: false },
-  { key: 'packers', label: 'Packers & Movers', icon: Package, basePath: '/packers-and-movers', fleetSegment: null as string | null, needsTo: true, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false },
-  { key: 'equipment', label: 'Equipment', icon: Wrench, basePath: '/equipment-rental', fleetSegment: null as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: true },
+  { key: 'bike', label: 'Bike', icon: Bike, basePath: '/bike-on-rent', fleetSegment: 'bikes' as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: true, hasEquipmentFields: false, chip: 'bg-sky-100 text-sky-600', chipSolid: 'bg-sky-500' },
+  { key: 'self-drive', label: 'Self Drive Car', icon: Key, basePath: '/self-drive-car-rentals', fleetSegment: 'cars' as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: true, hasEquipmentFields: false, chip: 'bg-violet-100 text-violet-600', chipSolid: 'bg-violet-500' },
+  { key: 'car', label: 'Car', icon: Car, basePath: '/car-rental', fleetSegment: null as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false, chip: 'bg-emerald-100 text-emerald-600', chipSolid: 'bg-emerald-500' },
+  { key: 'bus', label: 'Bus', icon: Bus, basePath: '/bus-rental', fleetSegment: null as string | null, needsTo: true, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false, chip: 'bg-amber-100 text-amber-600', chipSolid: 'bg-amber-500' },
+  { key: 'truck', label: 'Truck', icon: Truck, basePath: '/transporter', fleetSegment: null as string | null, needsTo: true, hasTruckFields: true, hasDateTimeFields: false, hasEquipmentFields: false, chip: 'bg-rose-100 text-rose-600', chipSolid: 'bg-rose-500' },
+  { key: 'packers', label: 'Packers & Movers', icon: Package, basePath: '/packers-and-movers', fleetSegment: null as string | null, needsTo: true, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false, chip: 'bg-teal-100 text-teal-600', chipSolid: 'bg-teal-500' },
+  { key: 'equipment', label: 'Equipment', icon: Wrench, basePath: '/equipment-rental', fleetSegment: null as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: true, chip: 'bg-orange-100 text-orange-600', chipSolid: 'bg-orange-500' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2778,7 +2778,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
         {/* Search panel */}
         <div className="flex flex-col items-stretch">
           {variant === 'compact' ? (
-            <div className="flex gap-6 overflow-x-auto border-b border-slate-200 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex gap-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {TRANSPORT_TABS.map((tab) => {
                 const Icon = tab.icon;
                 const active = activeTab.key === tab.key;
@@ -2787,11 +2787,20 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                     key={tab.key}
                     type="button"
                     onClick={() => setActiveTab(tab)}
-                    className={`flex shrink-0 items-center gap-2 border-b-2 px-1 py-4 text-[15px] font-semibold transition-colors ${
-                      active ? 'border-primary text-primary-700' : 'border-transparent text-slate-500 hover:text-slate-900'
+                    className={`flex shrink-0 flex-col items-center gap-1.5 rounded-2xl px-4 py-3 transition-all duration-200 ${
+                      active ? `${tab.chipSolid} shadow-lg scale-[1.04]` : 'bg-slate-50 hover:bg-slate-100'
                     }`}
                   >
-                    <Icon className="h-4 w-4" /> {tab.label}
+                    <span
+                      className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                        active ? 'bg-white/25' : tab.chip
+                      }`}
+                    >
+                      <Icon className={`h-5 w-5 ${active ? 'text-white' : ''}`} />
+                    </span>
+                    <span className={`whitespace-nowrap text-[12.5px] font-bold ${active ? 'text-white' : 'text-slate-700'}`}>
+                      {tab.label}
+                    </span>
                   </button>
                 );
               })}
@@ -2819,7 +2828,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
             </div>
           )}
 
-          <div className={variant === 'compact' ? 'bg-white pt-5' : 'rounded-2xl bg-white shadow-[0_16px_34px_rgba(0,0,0,0.28)]'}>
+          <div className={variant === 'compact' ? 'border-t border-slate-100 bg-white pt-5 mt-4' : 'rounded-2xl bg-white shadow-[0_16px_34px_rgba(0,0,0,0.28)]'}>
             {activeTab.key === 'car' && (
               <div className="flex flex-wrap gap-2 px-3.5 pt-3.5 sm:px-5 sm:pt-5">
                 {(['local', 'outstation', 'airport'] as const).map((mode) => (
