@@ -2705,7 +2705,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
   ];
 
   return (
-    <section className={variant === 'compact' ? 'border-b border-slate-200 bg-white py-4 sm:py-6' : 'relative bg-[#0b1420] pb-14 pt-16 text-white sm:pt-20'}>
+    <section className={variant === 'compact' ? 'border-b border-slate-200 bg-white pb-4 pt-14 sm:pb-6 sm:pt-16' : 'relative bg-[#0b1420] pb-14 pt-16 text-white sm:pt-20'}>
       {variant === 'hero' && (
         <div className="absolute inset-0 overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
