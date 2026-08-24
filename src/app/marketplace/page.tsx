@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -1568,6 +1568,11 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Lets the Mini*Input field components below pick up styling for the
+// compact (ixigo-style) hero without threading a prop through every one of
+// their ~30 call sites — TransportSearchHero provides its own `variant`.
+const HeroVariantContext = createContext<'hero' | 'compact'>('hero');
+
 // ─────────────────────────────────────────────────────────────────────────
 // Compact city autocomplete shared by the From/To fields below — same
 // dropdown-on-focus, filter-as-you-type behaviour as CategoryFormPanel's
@@ -1585,6 +1590,7 @@ function MiniCityInput({
   onSelect: (loc: Location) => void;
   fromLocation?: Location | null;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -1630,7 +1636,7 @@ function MiniCityInput({
 
   return (
     <div className="relative min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <MapPin className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <input
@@ -1638,9 +1644,9 @@ function MiniCityInput({
         onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
-        className="w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+        className={`w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0 ${variant === 'compact' ? 'placeholder:font-normal placeholder:text-slate-600' : 'placeholder:font-medium placeholder:text-slate-400'}`}
       />
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && matches.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
           {nearbyCount > 0 && (
@@ -1691,6 +1697,7 @@ function MiniAirportInput({
   onSelect: (a: AirportOption) => void;
   loading?: boolean;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -1715,7 +1722,7 @@ function MiniAirportInput({
 
   return (
     <div className="relative min-w-[117px] sm:min-w-[180px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <Plane className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <input
@@ -1723,9 +1730,9 @@ function MiniAirportInput({
         onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         placeholder={loading ? 'Loading airports…' : placeholder}
-        className="w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+        className={`w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0 ${variant === 'compact' ? 'placeholder:font-normal placeholder:text-slate-600' : 'placeholder:font-medium placeholder:text-slate-400'}`}
       />
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && matches.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
           {matches.map((a) => (
@@ -1761,6 +1768,7 @@ function MiniSelectInput({
   caption?: string;
   boxClassName?: string;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -1777,7 +1785,7 @@ function MiniSelectInput({
       className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
       ref={boxRef}
     >
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <Icon className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <button
@@ -1785,7 +1793,7 @@ function MiniSelectInput({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-2 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
-        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{value || placeholder}</span>
+        <span className={`truncate ${value ? '' : variant === 'compact' ? 'font-normal text-slate-600' : 'font-medium text-slate-400'}`}>{value || placeholder}</span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
@@ -1805,7 +1813,7 @@ function MiniSelectInput({
           ))}
         </div>
       )}
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
     </div>
   );
 }
@@ -1835,6 +1843,7 @@ function MiniDateInput({
   caption?: string;
   boxClassName?: string;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [open, setOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState(() => {
     const base = value ? ymdToDate(value) : min ? ymdToDate(min) : new Date();
@@ -1873,7 +1882,7 @@ function MiniDateInput({
       className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
       ref={boxRef}
     >
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <Calendar className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <button
@@ -1881,9 +1890,9 @@ function MiniDateInput({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
-        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{displayText}</span>
+        <span className={`truncate ${value ? '' : variant === 'compact' ? 'font-normal text-slate-600' : 'font-medium text-slate-400'}`}>{displayText}</span>
       </button>
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && (
         <div className="absolute left-0 top-full z-[60] mt-1.5 w-64 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-2xl">
           <div className="flex items-center justify-between">
@@ -1970,6 +1979,7 @@ function MiniTimeInput({
   caption?: string;
   boxClassName?: string;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -1997,7 +2007,7 @@ function MiniTimeInput({
       className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
       ref={boxRef}
     >
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <Clock className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <button
@@ -2005,9 +2015,9 @@ function MiniTimeInput({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
-        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{value ? formatTimeSlot(value) : '--:-- --'}</span>
+        <span className={`truncate ${value ? '' : variant === 'compact' ? 'font-normal text-slate-600' : 'font-medium text-slate-400'}`}>{value ? formatTimeSlot(value) : '--:-- --'}</span>
       </button>
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && (
         <div ref={listRef} className="absolute left-0 top-full z-[60] mt-1.5 max-h-64 w-40 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
           {TIME_SLOTS.map((t) => {
@@ -2705,6 +2715,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
   ];
 
   return (
+    <HeroVariantContext.Provider value={variant}>
     <section className={variant === 'compact' ? 'border-b border-slate-200 bg-white pb-4 pt-14 sm:pb-6 sm:pt-16' : 'relative bg-[#0b1420] pb-14 pt-16 text-white sm:pt-20'}>
       {variant === 'hero' && (
         <div className="absolute inset-0 overflow-hidden">
@@ -4117,6 +4128,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
         )}
       </AnimatePresence>
     </section>
+    </HeroVariantContext.Provider>
   );
 }
 
