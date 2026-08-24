@@ -605,11 +605,11 @@ export default function MarketplacePage() {
       </section>
       )}
 
-      {/* ══════════════════════ TRANSPORT SEARCH HERO ══════════════════════ */}
-      <TransportSearchHero locations={locations} />
+      {/* ══════════════════════ TRANSPORT SEARCH HERO (ixigo-style, no banner) ══════════════════════ */}
+      <TransportSearchHero locations={locations} variant="compact" />
 
       {/* ══════════════════════ TRANSPORT SEARCH HERO (duplicate) ══════════════════════ */}
-      <TransportSearchHero locations={locations} />
+      <TransportSearchHero locations={locations} variant="hero" />
 
       {/* ═══════════════════ EXPLORE TOP CATEGORIES ═══════════════════ */}
       <section className="bg-white py-16 sm:py-20">
@@ -2143,7 +2143,7 @@ function getTodayLocalDateString() {
   return `${year}-${month}-${day}`;
 }
 
-function TransportSearchHero({ locations }: { locations: Location[] }) {
+function TransportSearchHero({ locations, variant = 'hero' }: { locations: Location[]; variant?: 'hero' | 'compact' }) {
   const todayDateStr = getTodayLocalDateString();
   const router = useRouter();
   const { customer, isAuthenticated } = useCustomerAuth();
@@ -2705,63 +2705,69 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
   ];
 
   return (
-    <section className="relative bg-[#0b1420] pb-14 pt-16 text-white sm:pt-20">
-      <div className="absolute inset-0 overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/categories/hero-fleet.png"
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-90"
-          style={{ objectPosition: 'center 30%' }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              'linear-gradient(90deg, #0a1220 0%, rgba(10,18,32,.92) 22%, rgba(10,18,32,.55) 45%, rgba(10,18,32,.25) 62%, rgba(10,18,32,.65) 100%), linear-gradient(180deg, rgba(6,11,20,.35) 0%, rgba(6,11,20,.15) 35%, rgba(7,12,22,.65) 78%, #0a0f18 100%)',
-          }}
-        />
-      </div>
-
-      <div className="container relative z-10 mx-auto px-4">
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.04] px-4 py-1.5 text-xs font-semibold text-white/90">
-          <ShieldCheck className="h-3.5 w-3.5 text-primary-400" />
-          THE MOBILITY TRAVEL MARKETPLACE
-        </span>
-
-        <div className="mb-14 mt-7 flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-start">
-          <div>
-            <h2 className="max-w-2xl font-heading text-2xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-4xl lg:text-5xl">
-              Everything You Need to<br />
-              <span className="text-primary-400">Ride, Move &amp; Travel.</span>
-            </h2>
-
-            <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-slate-300">
-              Rent vehicles. Book tours &amp; trips. Find trusted rental providers. Or grow your mobility business — all from one place.
-            </p>
-          </div>
-
-          <div className="flex w-full flex-wrap items-center gap-2.5 rounded-2xl border border-white/[0.18] bg-slate-900/70 px-4 py-3 backdrop-blur-sm sm:w-fit sm:shrink-0 sm:flex-nowrap sm:gap-3.5 sm:px-5 sm:py-4">
-            <div className="flex shrink-0">
-              {HERO_AVATARS.map((src, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={src} src={src} alt="" className={`h-9 w-9 rounded-full border-2 border-[#16202f] object-cover ${i > 0 ? '-ml-2.5' : ''}`} />
-              ))}
-            </div>
-            <div className="shrink-0 border-r border-white/[0.18] pr-4">
-              <div className="flex items-center gap-1.5 text-[15px] font-bold text-white">
-                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> 4.8/5
-              </div>
-              <p className="mt-0.5 whitespace-nowrap text-xs text-slate-400">From 20,000+ reviews</p>
-            </div>
-            <p className="w-full text-[13px] font-medium text-slate-200 sm:w-auto sm:whitespace-nowrap">Trusted by Thousands of Customers</p>
-          </div>
+    <section className={variant === 'compact' ? 'border-b border-slate-200 bg-white py-4 sm:py-6' : 'relative bg-[#0b1420] pb-14 pt-16 text-white sm:pt-20'}>
+      {variant === 'hero' && (
+        <div className="absolute inset-0 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/categories/hero-fleet.png"
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover opacity-90"
+            style={{ objectPosition: 'center 30%' }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                'linear-gradient(90deg, #0a1220 0%, rgba(10,18,32,.92) 22%, rgba(10,18,32,.55) 45%, rgba(10,18,32,.25) 62%, rgba(10,18,32,.65) 100%), linear-gradient(180deg, rgba(6,11,20,.35) 0%, rgba(6,11,20,.15) 35%, rgba(7,12,22,.65) 78%, #0a0f18 100%)',
+            }}
+          />
         </div>
+      )}
+
+      <div className={variant === 'compact' ? 'container mx-auto px-4' : 'container relative z-10 mx-auto px-4'}>
+        {variant === 'hero' && (
+          <>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.04] px-4 py-1.5 text-xs font-semibold text-white/90">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary-400" />
+              THE MOBILITY TRAVEL MARKETPLACE
+            </span>
+
+            <div className="mb-14 mt-7 flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-start">
+              <div>
+                <h2 className="max-w-2xl font-heading text-2xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-4xl lg:text-5xl">
+                  Everything You Need to<br />
+                  <span className="text-primary-400">Ride, Move &amp; Travel.</span>
+                </h2>
+
+                <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-slate-300">
+                  Rent vehicles. Book tours &amp; trips. Find trusted rental providers. Or grow your mobility business — all from one place.
+                </p>
+              </div>
+
+              <div className="flex w-full flex-wrap items-center gap-2.5 rounded-2xl border border-white/[0.18] bg-slate-900/70 px-4 py-3 backdrop-blur-sm sm:w-fit sm:shrink-0 sm:flex-nowrap sm:gap-3.5 sm:px-5 sm:py-4">
+                <div className="flex shrink-0">
+                  {HERO_AVATARS.map((src, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={src} src={src} alt="" className={`h-9 w-9 rounded-full border-2 border-[#16202f] object-cover ${i > 0 ? '-ml-2.5' : ''}`} />
+                  ))}
+                </div>
+                <div className="shrink-0 border-r border-white/[0.18] pr-4">
+                  <div className="flex items-center gap-1.5 text-[15px] font-bold text-white">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> 4.8/5
+                  </div>
+                  <p className="mt-0.5 whitespace-nowrap text-xs text-slate-400">From 20,000+ reviews</p>
+                </div>
+                <p className="w-full text-[13px] font-medium text-slate-200 sm:w-auto sm:whitespace-nowrap">Trusted by Thousands of Customers</p>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Search panel */}
         <div className="flex flex-col items-stretch">
-          <div className="ml-1 w-fit max-w-full overflow-x-auto rounded-xl bg-white px-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:ml-5 sm:rounded-t-lg sm:rounded-b-none sm:px-6 [&::-webkit-scrollbar]:hidden">
-            <div className="flex gap-1">
+          {variant === 'compact' ? (
+            <div className="flex gap-6 overflow-x-auto border-b border-slate-200 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {TRANSPORT_TABS.map((tab) => {
                 const Icon = tab.icon;
                 const active = activeTab.key === tab.key;
@@ -2770,18 +2776,39 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     key={tab.key}
                     type="button"
                     onClick={() => setActiveTab(tab)}
-                    className={`mt-2 flex shrink-0 items-center gap-1.5 rounded-lg border-b-2 px-3 py-2.5 text-[13px] font-semibold transition-colors ${
-                      active ? 'border-primary bg-primary-50 text-primary-700' : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                    className={`flex shrink-0 items-center gap-2 border-b-2 px-1 py-4 text-[15px] font-semibold transition-colors ${
+                      active ? 'border-primary text-primary-700' : 'border-transparent text-slate-500 hover:text-slate-900'
                     }`}
                   >
-                    <Icon className="h-3.5 w-3.5" /> {tab.label}
+                    <Icon className="h-4 w-4" /> {tab.label}
                   </button>
                 );
               })}
             </div>
-          </div>
+          ) : (
+            <div className="ml-1 w-fit max-w-full overflow-x-auto rounded-xl bg-white px-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:ml-5 sm:rounded-t-lg sm:rounded-b-none sm:px-6 [&::-webkit-scrollbar]:hidden">
+              <div className="flex gap-1">
+                {TRANSPORT_TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  const active = activeTab.key === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={`mt-2 flex shrink-0 items-center gap-1.5 rounded-lg border-b-2 px-3 py-2.5 text-[13px] font-semibold transition-colors ${
+                        active ? 'border-primary bg-primary-50 text-primary-700' : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" /> {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-          <div className="rounded-2xl bg-white shadow-[0_16px_34px_rgba(0,0,0,0.28)]">
+          <div className={variant === 'compact' ? 'bg-white pt-5' : 'rounded-2xl bg-white shadow-[0_16px_34px_rgba(0,0,0,0.28)]'}>
             {activeTab.key === 'car' && (
               <div className="flex flex-wrap gap-2 px-3.5 pt-3.5 sm:px-5 sm:pt-5">
                 {(['local', 'outstation', 'airport'] as const).map((mode) => (
