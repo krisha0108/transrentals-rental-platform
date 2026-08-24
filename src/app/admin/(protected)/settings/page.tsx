@@ -43,7 +43,20 @@ export default function SettingsPage() {
         const response = await fetch('/api/admin/settings');
         if (response.ok) {
           const data = await response.json();
-          setSettings((prev) => ({ ...prev, ...data }));
+          // The settings table is a shared key-value store also used for
+          // unrelated data (tracking scripts, notification queues, FCM
+          // tokens, etc.) — only pick the fields this page actually owns
+          // and edits. Spreading the whole response in meant this page's
+          // Save button silently re-sent every other key in the table too,
+          // so one oversized value elsewhere (e.g. a base64 image pasted
+          // into Custom Scripts) bloated every save here into a 413.
+          setSettings((prev) => {
+            const next = { ...prev };
+            (Object.keys(prev) as (keyof typeof prev)[]).forEach((key) => {
+              if (data[key] !== undefined) next[key] = data[key];
+            });
+            return next;
+          });
         }
       } catch (err) {
         console.error('Failed to fetch settings:', err);
