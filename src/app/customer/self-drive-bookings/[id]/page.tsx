@@ -37,6 +37,7 @@ import { Button } from '@/components/ui/button';
 import CustomerBookingChat from '@/components/customer/CustomerBookingChat';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 
 interface BankAccount {
   id: string;
@@ -344,7 +345,7 @@ export default function CustomerSelfDriveBookingPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 flex items-center justify-center`}>
         <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
       </div>
     );
@@ -352,10 +353,10 @@ export default function CustomerSelfDriveBookingPage() {
 
   if (error || !booking) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 flex items-center justify-center p-4`}>
         <div className="bg-white rounded-xl p-8 text-center border max-w-md">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h3 className="font-medium text-gray-900 mb-2">Booking Not Found</h3>
+          <h3 className="quote-serif font-medium text-gray-900 mb-2 text-[21px]">Booking Not Found</h3>
           <p className="text-gray-600 mb-4">{error || 'This booking could not be loaded'}</p>
           <Link
             href="/customer/bookings"
@@ -376,7 +377,7 @@ export default function CustomerSelfDriveBookingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 pt-16`}>
       <CustomerHeader showBackButton />
       {/* Header */}
       <div className="relative overflow-hidden bg-[#012314] text-white">
@@ -410,7 +411,7 @@ export default function CustomerSelfDriveBookingPage() {
                 <Car className="w-7 h-7" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-2xl sm:text-[28px] font-extrabold leading-tight tracking-tight">
+                <h1 className="quote-serif text-[30px] sm:text-[38px] font-medium leading-tight tracking-[-0.01em]">
                   {booking.assignedVehicleName || booking.requestedVehicleName}
                 </h1>
                 <div className="mt-2 flex flex-wrap items-center gap-2.5">
@@ -609,7 +610,7 @@ export default function CustomerSelfDriveBookingPage() {
             {/* Vehicle Details */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="flex items-center justify-between gap-2 border-b border-gray-50 bg-[#FCFDFC] px-4 py-3">
-                <h2 className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Vehicle Details</h2>
+                <h2 className="quote-serif text-[17px] font-medium text-gray-400">Vehicle Details</h2>
                 {booking.requestedCategory && (
                   <span className="rounded-full border border-[#C8F1DF] bg-[#E9FAF2] px-2.5 py-0.5 text-[11px] font-bold text-[#056B3E]">
                     {booking.requestedCategory}
@@ -623,7 +624,7 @@ export default function CustomerSelfDriveBookingPage() {
                     <Car className="h-[52px] w-[52px]" strokeWidth={1.4} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-[17px] font-extrabold tracking-tight text-gray-900">
+                    <h3 className="quote-serif text-[21px] font-medium tracking-[-0.01em] text-gray-900">
                       {booking.assignedVehicleName || booking.requestedVehicleName}
                     </h3>
                     <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -703,7 +704,7 @@ export default function CustomerSelfDriveBookingPage() {
             {/* Trip Details */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="flex items-center justify-between gap-2 border-b border-gray-50 bg-[#FCFDFC] px-4 py-3">
-                <h2 className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Trip Details</h2>
+                <h2 className="quote-serif text-[17px] font-medium text-gray-400">Trip Details</h2>
                 {booking.isDeliveryRequested && (
                   <span className="rounded-full border border-[#C8F1DF] bg-[#E9FAF2] px-2.5 py-0.5 text-[11px] font-bold text-[#056B3E]">
                     Home Delivery
@@ -792,7 +793,7 @@ export default function CustomerSelfDriveBookingPage() {
             {/* Trip OTP - Show when waiting for pickup */}
             {booking.tripStartOtp && ['READY_FOR_PICKUP', 'ACCEPTED'].includes(booking.status) && (
               <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl p-6 text-white">
-                <h3 className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5 opacity-80">
+                <h3 className="quote-serif text-[17px] font-medium mb-2 flex items-center gap-1.5 opacity-80">
                   <Shield className="w-3.5 h-3.5" />
                   Trip Start OTP
                 </h3>
@@ -826,7 +827,7 @@ export default function CustomerSelfDriveBookingPage() {
             {/* Trip In Progress */}
             {booking.status === 'IN_PROGRESS' && (
               <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white">
-                <h3 className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5 opacity-80">
+                <h3 className="quote-serif text-[17px] font-medium mb-2 flex items-center gap-1.5 opacity-80">
                   <Car className="w-3.5 h-3.5" />
                   Trip In Progress
                 </h3>
@@ -855,7 +856,7 @@ export default function CustomerSelfDriveBookingPage() {
             {/* Trip Completed */}
             {booking.status === 'COMPLETED' && (
               <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-6 text-white">
-                <h3 className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5 opacity-80">
+                <h3 className="quote-serif text-[17px] font-medium mb-2 flex items-center gap-1.5 opacity-80">
                   <CheckCircle className="w-3.5 h-3.5" />
                   Trip Completed
                 </h3>
@@ -872,7 +873,7 @@ export default function CustomerSelfDriveBookingPage() {
             {/* Cancel Booking Button */}
             {['PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'READY_FOR_PICKUP', 'PENDING_PAYMENT', 'PAYMENT_SUBMITTED'].includes(booking.status) && (
               <div className="bg-white rounded-xl border border-red-100 p-4">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Cancel Booking</h3>
+                <h3 className="quote-serif text-[17px] font-medium text-gray-400 mb-1">Cancel Booking</h3>
                 <p className="text-sm text-gray-500 mb-3">
                   Once cancelled, refund will be processed as per vendor's cancellation policy.
                 </p>
@@ -892,7 +893,7 @@ export default function CustomerSelfDriveBookingPage() {
             {/* Pricing */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="flex items-center justify-between gap-2 border-b border-gray-50 bg-[#FCFDFC] px-4 py-3">
-                <h2 className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Pricing Details</h2>
+                <h2 className="quote-serif text-[17px] font-medium text-gray-400">Pricing Details</h2>
                 {booking.paymentStatus && (
                   <span className="rounded-full border border-gray-100 bg-gray-50 px-2.5 py-0.5 text-[11px] font-bold capitalize text-gray-600">
                     {booking.paymentStatus.toLowerCase()}
@@ -970,7 +971,7 @@ export default function CustomerSelfDriveBookingPage() {
             {/* Refund Info - after cancellation */}
             {booking.status === 'CANCELLED' && booking.refundAmount != null && booking.refundAmount > 0 && (
               <div className="bg-orange-50 rounded-xl border border-orange-200 p-4">
-                <p className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <p className="quote-serif text-[17px] font-medium text-orange-600 mb-3 flex items-center gap-1.5">
                   <IndianRupee className="w-3.5 h-3.5" />
                   Refund Information
                 </p>
@@ -997,7 +998,7 @@ export default function CustomerSelfDriveBookingPage() {
             {booking.vendor && (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="border-b border-gray-50 bg-[#FCFDFC] px-4 py-3">
-                  <h3 className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Vendor Details</h3>
+                  <h3 className="quote-serif text-[17px] font-medium text-gray-400">Vendor Details</h3>
                 </div>
                 <div className="p-4">
                   <div className="flex items-center gap-3">
@@ -1040,7 +1041,7 @@ export default function CustomerSelfDriveBookingPage() {
               <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
                 <div className="flex items-center gap-2 border-b border-blue-100 bg-blue-50 px-4 py-3">
                   <FileText className="w-4 h-4 text-blue-700" />
-                  <h3 className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-blue-700">Your Notes</h3>
+                  <h3 className="quote-serif text-[17px] font-medium text-blue-700">Your Notes</h3>
                 </div>
                 <p className="p-4 text-[13px] leading-relaxed text-gray-700">{booking.customerNotes}</p>
               </div>
@@ -1051,7 +1052,7 @@ export default function CustomerSelfDriveBookingPage() {
               <div className="overflow-hidden rounded-2xl border border-[#C8F1DF] bg-white shadow-sm">
                 <div className="flex items-center gap-2 border-b border-[#C8F1DF] bg-[#E9FAF2] px-4 py-3">
                   <FileText className="w-4 h-4 text-[#056B3E]" />
-                  <h3 className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[#056B3E]">Vendor Notes</h3>
+                  <h3 className="quote-serif text-[17px] font-medium text-[#056B3E]">Vendor Notes</h3>
                 </div>
                 <p className="p-4 text-[13px] leading-relaxed text-gray-700">{booking.vendorNotes}</p>
               </div>
@@ -1060,7 +1061,7 @@ export default function CustomerSelfDriveBookingPage() {
             {/* Cancellation Details */}
             {booking.status === 'CANCELLED' && booking.cancelledAt && (
               <div className="bg-red-50 rounded-xl border border-red-200 p-4">
-                <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <p className="quote-serif text-[17px] font-medium text-red-600 mb-3 flex items-center gap-1.5">
                   <XCircle className="w-3.5 h-3.5" />
                   Cancellation Details
                 </p>
@@ -1091,7 +1092,7 @@ export default function CustomerSelfDriveBookingPage() {
             <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
               <div className="flex items-center gap-2 border-b border-blue-100 bg-blue-50 px-4 py-3">
                 <Shield className="w-4 h-4 text-blue-700" />
-                <h3 className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-blue-700">Need Help?</h3>
+                <h3 className="quote-serif text-[17px] font-medium text-blue-700">Need Help?</h3>
               </div>
               <div className="p-4">
                 <p className="mb-3.5 text-[13px] leading-relaxed text-gray-600">
@@ -1137,7 +1138,7 @@ export default function CustomerSelfDriveBookingPage() {
             <div className="p-6 pt-10">
               {paymentSuccess ? (
                 <div className="text-center">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Submitted!</h2>
+                  <h2 className="quote-serif text-[30px] font-medium text-gray-900 mb-2">Payment Submitted!</h2>
                   <p className="text-gray-600 mb-4">
                     Your payment is being verified. You'll receive a confirmation shortly.
                   </p>
@@ -1162,7 +1163,7 @@ export default function CustomerSelfDriveBookingPage() {
               ) : !bankDetails ? (
                 <div className="text-center py-8">
                   <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Payment Details Unavailable</h3>
+                  <h3 className="quote-serif text-[23px] font-medium text-gray-900 mb-2">Payment Details Unavailable</h3>
                   <p className="text-gray-600 mb-4">
                     Please contact support for payment instructions.
                   </p>
@@ -1177,7 +1178,7 @@ export default function CustomerSelfDriveBookingPage() {
               ) : (
                 <>
                   <div className="text-center mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-1">
+                    <h2 className="quote-serif text-[26px] font-medium text-gray-900 mb-1">
                       Pay Advance Amount
                     </h2>
                     <p className="text-3xl font-bold text-blue-600">
@@ -1329,7 +1330,7 @@ export default function CustomerSelfDriveBookingPage() {
             <div className="flex items-center justify-between p-5 border-b">
               <div className="flex items-center gap-2">
                 <XCircle className="w-5 h-5 text-red-500" />
-                <h2 className="font-bold text-gray-900">Cancel Booking</h2>
+                <h2 className="quote-serif font-medium text-gray-900 text-[21px]">Cancel Booking</h2>
               </div>
               <button
                 onClick={() => setShowCancelModal(false)}
@@ -1354,7 +1355,7 @@ export default function CustomerSelfDriveBookingPage() {
               {/* Vendor T&C from accepted quote */}
               {booking.acceptedQuote?.termsConditions && (
                 <div className="border border-amber-200 bg-amber-50 rounded-xl p-4">
-                  <p className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <p className="quote-serif text-[17px] font-medium text-amber-700 mb-2 flex items-center gap-1.5">
                     <FileText className="w-3.5 h-3.5" />
                     Vendor Cancellation Policy
                   </p>

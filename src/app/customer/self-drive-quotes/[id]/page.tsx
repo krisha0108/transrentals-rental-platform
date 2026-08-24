@@ -23,7 +23,15 @@ import {
   Truck,
   RefreshCw,
   Loader2,
+  ChevronDown,
+  CreditCard,
+  FileText,
+  StickyNote,
+  ShieldCheck,
+  Lock,
+  RotateCcw,
 } from 'lucide-react';
+import { quoteDisplay } from '@/lib/quote-font';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import { formatBookingDuration } from '@/lib/utils/duration';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
@@ -33,6 +41,9 @@ import QuotePaymentSafetyNotice from '@/components/customer/QuotePaymentSafetyNo
 interface QuoteRequest {
   id: string;
   requestNumber: string;
+  // The page has always read `vehicle_modelsName` first; the API actually
+  // returns `vehicleModelName`, so both stay in the fallback chain.
+  vehicle_modelsName?: string;
   vehicleModelName?: string;
   vehicleBrand?: string;
   vehicle_category?: string;
@@ -53,6 +64,13 @@ interface QuoteRequest {
   isDeliveryRequested?: boolean;
   customerNotes?: string;
   status: string;
+  totalQuotesReceived?: number;
+  quotesOpenTill?: string;
+  expiresAt?: string;
+  createdAt?: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
 }
 
 interface VendorQuote {
@@ -326,282 +344,472 @@ export default function CustomerSelfDriveQuoteDetailPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 pb-32 pt-16">
-      <CustomerHeader showBackButton />
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-6">
-        <div className="container mx-auto px-4">
-          <Link
-            href="/customer/self-drive-quotes"
-            className="inline-flex items-center gap-2 text-blue-100 hover:text-white mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Requests
-          </Link>
-          <h1 className="text-xl font-bold">#{request.requestNumber}</h1>
-          <p className="text-blue-100">{quotes.length} quotes received</p>
-        </div>
+  /* ────────────────────────────────────────────────────────────────
+     Presentation helpers. Everything below derives from the state
+     already fetched above — no new requests, no new state.
+     ──────────────────────────────────────────────────────────────── */
+
+  const CARD = 'overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm';
+  const CARD_HEAD = 'flex items-center justify-between gap-3 border-b border-gray-50 bg-[#FCFDFC] px-4 py-3';
+  const CARD_LABEL = 'quote-serif text-[18px] font-medium text-gray-600';
+  const BTN = 'flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-bold transition active:translate-y-px';
+  const DARK_HEAD = 'relative overflow-hidden bg-[linear-gradient(135deg,#01301B_0%,#056B3E_62%,#078F53_100%)] px-4 py-3.5 text-white';
+  const DARK_TEXTURE =
+    'radial-gradient(420px 180px at 100% -40%, rgba(42,210,145,.45), transparent 62%),' +
+    'repeating-linear-gradient(128deg, rgba(255,255,255,.045) 0 1px, transparent 1px 34px)';
+
+  const STATUS_CHIP: Record<string, { label: string; cls: string }> = {
+    PENDING: { label: 'Awaiting Quotes', cls: 'bg-[#FEF3C7] text-[#92400E]' },
+    QUOTES_RECEIVED: { label: 'Quotes Received', cls: 'bg-[#D1FAE5] text-[#065F46]' },
+    BOOKED: { label: 'Booked', cls: 'bg-gray-100 text-gray-700' },
+    CANCELLED: { label: 'Cancelled', cls: 'bg-[#FEE2E2] text-[#991B1B]' },
+    EXPIRED: { label: 'Quotes Expired', cls: 'bg-[#FEE2E2] text-[#991B1B]' },
+  };
+  const statusChip =
+    STATUS_CHIP[request.status] || { label: request.status.replace(/_/g, ' '), cls: 'bg-gray-100 text-gray-700' };
+
+  const fmtShort = (d?: string | null) =>
+    d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+  const fmtLong = (d?: string | null) =>
+    d ? new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : null;
+  const fmtDateTime = (d?: string | null) =>
+    d
+      ? new Date(d).toLocaleString('en-IN', {
+          day: 'numeric', month: 'short', year: 'numeric',
+          hour: 'numeric', minute: '2-digit', hour12: true,
+        })
+      : null;
+
+  // The page has always read `vehicle_modelsName` first; the API actually
+  // returns `vehicleModelName`, so both stay in the fallback chain.
+  const vehicleLabel =
+    request.vehicle_modelsName || request.vehicleModelName || request.vehicleCategoryName || 'Any Car';
+  const selectedQ = quotes.find(q => q.id === selectedQuote);
+
+  /** One row in a quote's price breakdown. */
+  const FareRow = ({ label, value, variant }: { label: string; value: string; variant?: 'total' | 'advance' }) => (
+    <div
+      className={`flex items-center justify-between gap-3 bg-white ${variant === 'total' ? 'px-3.5 py-3' : 'px-3.5 py-2.5'} ${
+        variant === 'advance' ? '!bg-[#E9FAF2]' : ''
+      }`}
+    >
+      <span
+        className={
+          variant === 'total'
+            ? 'text-[13.5px] font-extrabold text-gray-900'
+            : variant === 'advance'
+              ? 'text-[12.5px] font-extrabold text-[#056B3E]'
+              : 'text-[12.5px] text-gray-500'
+        }
+      >
+        {label}
+      </span>
+      <span
+        className={
+          variant === 'total'
+            ? 'text-[17px] font-extrabold tabular-nums text-gray-900'
+            : variant === 'advance'
+              ? 'text-[13px] font-extrabold tabular-nums text-[#056B3E]'
+              : 'text-[13px] font-bold tabular-nums text-gray-800'
+        }
+      >
+        {value}
+      </span>
+    </div>
+  );
+
+  /** Section heading inside an expanded quote. */
+  const DetailHead = ({ icon: Icon, label, tone }: { icon: any; label: string; tone: 'ok' | 'no' | 'neutral' }) => (
+    <div className="mb-2.5 flex items-center gap-2">
+      <span
+        className={`flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded-[7px] ${
+          tone === 'ok' ? 'bg-[#E9FAF2] text-[#056B3E]' : tone === 'no' ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'
+        }`}
+      >
+        <Icon className="h-3 w-3" />
+      </span>
+      <span className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gray-500">{label}</span>
+    </div>
+  );
+
+  /** One key/value line in the right-rail info card. */
+  const MetaRow = ({ label, value }: { label: string; value: React.ReactNode }) => {
+    if (value === null || value === undefined || value === '') return null;
+    return (
+      <div className="flex items-center justify-between gap-3 border-b border-gray-50 py-2.5 last:border-b-0">
+        <span className="text-xs text-gray-400">{label}</span>
+        <span className="break-words text-right text-[12.5px] font-semibold text-gray-800">{value}</span>
       </div>
+    );
+  };
 
-      <div className="container mx-auto px-4 py-6">
-        {/* Error Display */}
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            {error}
+  return (
+    // pt-16 clears the fixed CustomerHeader
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 pt-16 ${selectedQuote ? 'pb-32' : 'pb-10'}`}>
+      <CustomerHeader showBackButton />
+
+      {/* ══════════════ Hero ══════════════ */}
+      <section className="relative overflow-hidden bg-[#012314] text-white">
+        {/* Motion layers. Scoped class names so nothing here can leak into
+            another page's stylesheet. */}
+        <style>{`
+          @keyframes trsdPan{to{background-position-x:-46px}}
+          @keyframes trsdPosts{to{background-position-x:-96px}}
+          @keyframes trsdHaze{to{transform:translate(70px,-26px) scale(1.18);opacity:.78}}
+          @keyframes trsdRing{0%{opacity:.5;transform:scale(.94)}70%,100%{opacity:0;transform:scale(1.18)}}
+          @keyframes trsdTarmac{to{background-position-x:-12px}}
+          @keyframes trsdRide{
+            0%{transform:translateX(0);opacity:0}
+            6%{opacity:1}
+            92%{opacity:1}
+            100%{transform:translateX(calc(100cqw - 26px));opacity:0}}
+          @keyframes trsdUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+          .trsd-up{animation:trsdUp .62s cubic-bezier(.2,.9,.25,1) var(--trsd-d,0s) both}
+          /* A map grid drifting the same way the car travels, so the whole panel
+             reads as ground moving under the vehicle. Masked to a soft oval so
+             it never looks like plain graph paper. */
+          .trsd-grid{background-image:
+              linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+              linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);
+            background-size:46px 46px;
+            -webkit-mask-image:radial-gradient(130% 105% at 50% 42%,#000 26%,transparent 80%);
+            mask-image:radial-gradient(130% 105% at 50% 42%,#000 26%,transparent 80%);
+            animation:trsdPan 22s linear infinite}
+          /* Roadside posts sliding past in the foreground. Faster than the grid
+             above, so the two speeds read as depth rather than one flat pattern. */
+          .trsd-posts{background-image:repeating-linear-gradient(90deg,
+              rgba(255,255,255,.11) 0 1px, transparent 1px 96px);
+            -webkit-mask-image:linear-gradient(transparent 8%,#000 78%);
+            mask-image:linear-gradient(transparent 8%,#000 78%);
+            animation:trsdPosts 9s linear infinite}
+          .trsd-haze{background:radial-gradient(circle,rgba(42,210,145,.34),transparent 68%);
+            opacity:.5;filter:blur(46px);
+            animation:trsdHaze 14s cubic-bezier(.2,.9,.25,1) infinite alternate}
+          .trsd-tile::after{content:"";position:absolute;inset:-6px;border-radius:20px;
+            border:1px solid rgba(255,255,255,.25);opacity:0;
+            animation:trsdRing 3.4s cubic-bezier(.2,.9,.25,1) infinite}
+          .trsd-lane{container-type:inline-size}
+          /* Steady cruise: linear keeps the speed constant, and the dash rate
+             is scaled to match it. */
+          .trsd-tar{animation:trsdTarmac 1.6s linear infinite}
+          .trsd-car{animation:trsdRide 10s linear infinite}
+          @media(prefers-reduced-motion:reduce){
+            .trsd-up,.trsd-grid,.trsd-posts,.trsd-haze,.trsd-tile::after,
+            .trsd-tar,.trsd-car{animation:none!important}
+            .trsd-up{opacity:1!important;transform:none!important}
+          }
+        `}</style>
+
+        <div className="absolute inset-0 bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)]" />
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{
+            backgroundImage:
+              'radial-gradient(680px 300px at 92% -30%, rgba(42,210,145,.34), transparent 60%),' +
+              'radial-gradient(460px 240px at 2% 130%, rgba(1,20,11,.7), transparent 58%),' +
+              'repeating-linear-gradient(115deg, rgba(255,255,255,.045) 0 1px, transparent 1px 46px)',
+          }}
+        />
+        <span className="trsd-grid pointer-events-none absolute inset-0" />
+        <span className="trsd-posts pointer-events-none absolute inset-x-0 bottom-0 h-[42%]" />
+        <span className="trsd-haze pointer-events-none absolute -left-16 top-8 h-[320px] w-[420px] rounded-full" />
+
+        <div className="relative z-10 mx-auto max-w-7xl px-4 pb-6 pt-5 sm:px-6 lg:px-8">
+          {/* Back link + status */}
+          <div className="trsd-up flex items-center justify-between gap-3">
+            <Link
+              href="/customer/self-drive-quotes"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.16] bg-white/[0.07] py-1 pl-2 pr-3 text-xs font-semibold text-white/[0.74] transition hover:-translate-x-0.5 hover:bg-white/[0.17] hover:text-white"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to Requests
+            </Link>
+            <div className={`flex-shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-[11.5px] font-extrabold shadow-lg shadow-black/20 ${statusChip.cls}`}>
+              {statusChip.label}
+            </div>
           </div>
-        )}
 
-        {/* Request Summary */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-3">Your Request</h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="flex items-center gap-2 text-sm">
-              <Car className="w-4 h-4 text-blue-500" />
-              <span>
-                {request.vehicle_modelsName || request.vehicleCategoryName || 'Any Car'}
-                {request.vehicleBrand && ` (${request.vehicleBrand})`}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-blue-500" />
-              <span>{request.locationName}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="w-4 h-4 text-blue-500" />
-              <span>
-                {new Date(request.pickupDate).toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })}
-                {' → '}
-                {new Date(request.dropDate).toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="w-4 h-4 text-blue-500" />
-              <span>{formatBookingDuration(request)}</span>
-              {request.pickupTime && <span className="text-gray-400">• {request.pickupTime}</span>}
+          {/* Title */}
+          <div className="trsd-up mt-6 flex min-w-0 items-center gap-4" style={{ ['--trsd-d' as any]: '.08s' }}>
+            <span className="trsd-tile relative flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl border border-white/[0.24] bg-white/[0.14] shadow-[inset_0_1px_0_rgba(255,255,255,.3)]">
+              <Car className="h-7 w-7" />
+            </span>
+            <div className="min-w-0">
+              <h1 className="quote-serif text-[30px] font-medium leading-[1.05] tracking-[-0.01em] sm:text-[38px]">{vehicleLabel}</h1>
+              <div className="mt-2 flex flex-wrap items-center gap-2.5">
+                <span className="rounded-md border border-white/[0.14] bg-white/10 px-2.5 py-1 text-xs font-bold tabular-nums text-white/80">
+                  {request.requestNumber}
+                </span>
+                <span className="flex items-center gap-1.5 text-xs text-white/[0.62]">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {request.locationName}
+                </span>
+                {(request.vehicleCategoryName || request.vehicleBrand) && (
+                  <span className="text-xs text-white/[0.62]">
+                    {[request.vehicleCategoryName, request.vehicleBrand].filter(Boolean).join(' · ')}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Vehicle Preferences */}
-          <div className="flex flex-wrap gap-2 mt-3">
-            {request.transmission && (
-              <span className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
-                <Settings2 className="w-3 h-3" />
-                {request.transmission}
+          {/* Rental window — same shape as the other quote heroes */}
+          <div
+            className="trsd-up mt-[22px] flex flex-wrap items-center gap-3.5 rounded-[18px] border border-white/[0.15] bg-white/[0.08] px-[18px] py-4 shadow-[inset_0_1px_0_rgba(255,255,255,.12)]"
+            style={{ ['--trsd-d' as any]: '.16s' }}
+          >
+            <div className="min-w-0 flex-[1_1_180px]">
+              <p className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-white/50">Pickup</p>
+              <p className="mt-0.5 text-[17px] font-extrabold">{fmtLong(request.pickupDate)}</p>
+              <p className="mt-px text-[11.5px] text-white/[0.6]">
+                {[request.pickupTime, request.locationName].filter(Boolean).join(' · ') || '—'}
+              </p>
+            </div>
+            <div className="trsd-lane relative hidden h-[26px] min-w-[140px] flex-[2_1_200px] sm:block">
+              <span className="trsd-tar absolute left-0 right-0 top-3 h-0.5 bg-[repeating-linear-gradient(90deg,rgba(255,255,255,.42)_0_6px,transparent_6px_12px)]" />
+              <span className="trsd-car absolute left-0 top-0 grid h-[26px] w-[26px] place-items-center rounded-lg bg-white text-[#056B3E]">
+                <Car className="h-[15px] w-[15px]" />
               </span>
-            )}
-            {request.fuelType && (
-              <span className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 text-xs rounded-full">
-                <Fuel className="w-3 h-3" />
-                {request.fuelType}
-              </span>
-            )}
-            {request.minSeats && (
-              <span className="flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full">
-                <Users className="w-3 h-3" />
-                {request.minSeats}+ seats
-              </span>
-            )}
-            {request.numberOfVehicles && request.numberOfVehicles > 1 && (
-              <span className="flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 text-xs rounded-full">
-                <Car className="w-3 h-3" />
-                {request.numberOfVehicles} cars required
-              </span>
-            )}
-            {request.isDeliveryRequested && (
-              <span className="flex items-center gap-1 px-2 py-1 bg-yellow-50 text-yellow-700 text-xs rounded-full">
-                <Truck className="w-3 h-3" />
-                Delivery Requested
-              </span>
-            )}
+            </div>
+            <div className="min-w-0 flex-[1_1_180px] sm:text-right">
+              <p className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-white/50">Drop</p>
+              <p className="mt-0.5 text-[17px] font-extrabold">{fmtLong(request.dropDate)}</p>
+              <p className="mt-px text-[11.5px] text-white/[0.6]">
+                {[request.dropTime, formatBookingDuration(request)].filter(Boolean).join(' · ')}
+              </p>
+            </div>
           </div>
+        </div>
+      </section>
 
-          {request.customerNotes && (
-            <div className="mt-3 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
-              <strong>Notes:</strong> {request.customerNotes}
+      {/* ══════════════ Body ══════════════ */}
+      <div className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-4 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_372px] lg:gap-5 lg:px-8">
+        {/* ══ Left column ══ */}
+        <div className="flex min-w-0 flex-col gap-4">
+          {/* Error Display */}
+          {error && (
+            <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <XCircle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
             </div>
           )}
 
-          {/* Cancel Request Button */}
-          {(request.status === 'PENDING' || request.status === 'QUOTES_RECEIVED') && (
-            <div className="mt-4 pt-3 border-t flex justify-end">
-              <button
-                onClick={() => setShowCancelConfirm(true)}
-                className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition"
-              >
-                Cancel Request
-              </button>
-            </div>
-          )}
-        </div>
+          {/* Quotes */}
+          {quotes.length === 0 ? (
+            <section className={CARD}>
+              <div className="px-5 py-11 text-center">
+                <span className="mx-auto mb-3.5 flex h-14 w-14 items-center justify-center rounded-[18px] border border-amber-200 bg-amber-50 text-amber-700">
+                  <AlertCircle className="h-6 w-6" />
+                </span>
+                <h3 className="text-base font-extrabold text-gray-900">Awaiting Quotes</h3>
+                <p className="mx-auto mt-1.5 max-w-[340px] text-[13px] text-gray-500">
+                  Vendors are reviewing your request. You'll receive quotes within 24-48 hours.
+                </p>
+              </div>
+            </section>
+          ) : (
+            <>
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="quote-serif text-[26px] font-medium text-gray-900">
+                  Compare Quotes <span className="text-gray-400">({quotes.length})</span>
+                </h2>
+                <span className="text-[11.5px] text-gray-400">Sorted by price</span>
+              </div>
 
-        {/* Payment safety notice — stays visible whether quotes are still
-            pending or have already arrived */}
-        <div className="mb-4">
-          <QuotePaymentSafetyNotice />
-        </div>
+              <div className="flex flex-col gap-4">
+                {sortedQuotes.map((quote) => {
+                  const isExpanded = expandedQuote === quote.id;
+                  const isSelected = selectedQuote === quote.id;
+                  const isLowestPrice = quote.grandTotal === lowestPrice;
+                  const isExpired = quote.validTill && new Date(quote.validTill).getTime() < Date.now();
+                  const isExpiringSoon =
+                    !isExpired && new Date(quote.validTill).getTime() - Date.now() < 24 * 3600000;
+                  const inclusions = parseJsonSafe(quote.inclusions);
+                  const exclusions = parseJsonSafe(quote.exclusions);
+                  const terms = parseJsonSafe(quote.termsConditions);
 
-        {/* Quotes */}
-        {quotes.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center">
-            <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-            <h3 className="text-base font-medium text-gray-900 mb-1">Awaiting Quotes</h3>
-            <p className="text-sm text-gray-500">
-              Vendors are reviewing your request. You'll receive quotes within 24-48 hours.
-            </p>
-          </div>
-        ) : (
-          <>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Compare Quotes ({quotes.length})
-            </h2>
+                  const vendorName = quote.vendors?.businessName || 'Vendor';
+                  const grand = quote.grandTotal + (quote.securityDeposit || 0);
+                  const kmLabel =
+                    quote.unlimitedKm || quote.kmLimitPerDay === 0
+                      ? 'Unlimited KM'
+                      : quote.kmLimitPerDay
+                        ? `${quote.kmLimitPerDay} km/day`
+                        : 'No KM limit set';
 
-            <div className="space-y-4">
-              {sortedQuotes.map((quote) => {
-                const isExpanded = expandedQuote === quote.id;
-                const isSelected = selectedQuote === quote.id;
-                const isLowestPrice = quote.grandTotal === lowestPrice;
-                const isExpired = quote.validTill && new Date(quote.validTill).getTime() < Date.now();
-                const isExpiringSoon =
-                  !isExpired && new Date(quote.validTill).getTime() - Date.now() < 24 * 3600000;
-                const inclusions = parseJsonSafe(quote.inclusions);
-                const exclusions = parseJsonSafe(quote.exclusions);
-                const terms = parseJsonSafe(quote.termsConditions);
+                  return (
+                    <article
+                      key={quote.id}
+                      className={`overflow-hidden rounded-[18px] border-2 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-22px_rgba(1,35,20,.4)] ${
+                        isExpired
+                          ? '!bg-gray-50 border-gray-200 opacity-[.78]'
+                          : isSelected
+                            ? 'border-[#09B368] shadow-[0_0_0_4px_#E9FAF2,0_18px_40px_-22px_rgba(1,35,20,.4)]'
+                            : 'border-gray-100'
+                      }`}
+                    >
+                      {/* Badges */}
+                      {isExpired ? (
+                        <div className="flex items-center gap-2 bg-[linear-gradient(90deg,#B91C1C,#EF4444)] px-4 py-[7px] text-[11px] font-extrabold tracking-wide text-white">
+                          <XCircle className="h-3 w-3" />
+                          Quote Expired
+                        </div>
+                      ) : isLowestPrice ? (
+                        <div className="flex items-center gap-2 bg-[linear-gradient(90deg,#056B3E,#09B368)] px-4 py-[7px] text-[11px] font-extrabold tracking-wide text-white">
+                          <ThumbsUp className="h-3 w-3" />
+                          Best Price
+                        </div>
+                      ) : null}
 
-                return (
-                  <div
-                    key={quote.id}
-                    className={`rounded-xl shadow-sm border-2 overflow-hidden transition ${
-                      isExpired ? 'bg-gray-50 opacity-75 border-gray-200' : isSelected ? 'bg-white border-blue-500 ring-2 ring-blue-100' : 'bg-white border-transparent'
-                    }`}
-                  >
-                    {/* Badges */}
-                    {isExpired ? (
-                      <div className="px-4 py-1.5 bg-red-500 text-white text-xs font-medium flex items-center gap-2">
-                        <XCircle className="w-3 h-3" />
-                        Quote Expired
-                      </div>
-                    ) : isLowestPrice ? (
-                      <div className="px-4 py-1.5 bg-green-500 text-white text-xs font-medium flex items-center gap-2">
-                        <ThumbsUp className="w-3 h-3" />
-                        Best Price
-                      </div>
-                    ) : null}
-
-                    <div className="p-4">
                       {/* Vendor Info */}
-                      <div className="flex items-start justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                            <Car className="w-6 h-6 text-blue-600" />
-                          </div>
-                          <div>
-                            <h3 className="text-base font-bold text-gray-900">
-                              {quote.vendors?.businessName || 'Vendor'}
-                            </h3>
-                            <div className="flex items-center gap-2 text-sm">
-                              <div className="flex items-center gap-1">
-                                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                                <span className="font-medium">
-                                  {quote.vendors?.rating?.toFixed(1) || 'New'}
-                                </span>
-                              </div>
-                              {quote.vendors?.totalTrips && quote.vendors.totalTrips > 0 && (
+                      <div className="flex flex-wrap items-start justify-between gap-3.5 p-4">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="flex h-[52px] w-[52px] flex-none items-center justify-center rounded-2xl border border-[#C8F1DF] bg-[linear-gradient(135deg,#E9FAF2,#C8F1DF)] text-base font-extrabold text-[#056B3E]">
+                            {vendorName.slice(0, 2).toUpperCase()}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="quote-serif text-[21px] font-medium leading-tight text-gray-900">{vendorName}</p>
+                            <div className="mt-1.5 flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map(i => (
+                                <Star
+                                  key={i}
+                                  className={`h-[13px] w-[13px] ${
+                                    quote.vendors?.rating && i <= Math.round(quote.vendors.rating)
+                                      ? 'fill-amber-400 text-amber-400'
+                                      : 'fill-gray-200 text-gray-200'
+                                  }`}
+                                />
+                              ))}
+                              <b className="ml-1.5 text-xs font-bold text-gray-700">
+                                {quote.vendors?.rating?.toFixed(2) || 'New'}
+                              </b>
+                              {(quote.vendors?.totalTrips || 0) > 0 && (
                                 <>
-                                  <span className="text-gray-400">•</span>
-                                  <span className="text-gray-500">
-                                    {quote.vendors.totalTrips} trips
-                                  </span>
+                                  <span className="text-xs text-gray-400">·</span>
+                                  <span className="text-xs text-gray-400">{quote.vendors.totalTrips} trips</span>
                                 </>
                               )}
                             </div>
                           </div>
                         </div>
 
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-blue-600">
+                        <div className="flex-none text-right">
+                          <p className="quote-serif text-[36px] font-medium leading-none tracking-[-0.02em] tabular-nums text-[#056B3E]">
                             ₹{quote.grandTotal.toLocaleString()}
                           </p>
-                          <p className="text-xs text-gray-500">
-                            for {request.totalDays} days
+                          <p className="mt-1 text-[11.5px] tabular-nums text-gray-400">
+                            ₹{quote.dailyRate.toLocaleString()}/day · {request.totalDays} days
                           </p>
                           {isExpiringSoon && (
-                            <p className="text-xs text-red-500 mt-1">Expires soon!</p>
+                            <span className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10.5px] font-extrabold text-red-700">
+                              <AlertCircle className="h-2.5 w-2.5" />
+                              Expires soon!
+                            </span>
                           )}
                         </div>
                       </div>
 
-                      {/* Vehicle Info */}
-                      <div className="flex flex-wrap gap-3 text-sm text-gray-600 mb-3">
-                        <span className="font-medium text-gray-900">{quote.vehicleName}</span>
-                        {quote.vehicleBrand && (
-                          <span className="text-gray-400">• {quote.vehicleBrand}</span>
-                        )}
+                      {/* Vehicle line */}
+                      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
+                        <span className="text-sm font-extrabold text-gray-900">{quote.vehicleName}</span>
+                        {quote.vehicleBrand && <span className="text-[12.5px] text-gray-400">· {quote.vehicleBrand}</span>}
                         {quote.registrationNumber && (
-                          <span className="text-gray-400">({quote.registrationNumber})</span>
-                        )}
-                      </div>
-
-                      {/* Vehicle Specs */}
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {quote.transmission && (
-                          <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full">
-                            <Settings2 className="w-3 h-3" />
-                            {quote.transmission}
+                          <span className="rounded-md border border-gray-200 bg-gray-100 px-2 py-0.5 font-mono text-[11.5px] font-bold text-gray-700">
+                            {quote.registrationNumber}
                           </span>
                         )}
-                        {quote.fuelType && (
-                          <span className="flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full">
-                            <Fuel className="w-3 h-3" />
-                            {quote.fuelType}
-                          </span>
-                        )}
-                        {quote.seatingCapacity && (
-                          <span className="flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 text-xs rounded-full">
-                            <Users className="w-3 h-3" />
-                            {quote.seatingCapacity} seats
+                        {quote.quoteNumber && (
+                          <span className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-gray-500">
+                            {quote.quoteNumber}
                           </span>
                         )}
                       </div>
 
-                      {/* Quick Info */}
-                      <div className="flex flex-wrap gap-3 text-sm text-gray-500 mb-4">
-                        <span className="flex items-center gap-1">
-                          <Gauge className="w-4 h-4 text-blue-500" />
-                          {quote.unlimitedKm || quote.kmLimitPerDay === 0 ? 'Unlimited KM' : quote.kmLimitPerDay ? `${quote.kmLimitPerDay} km/day` : 'No KM limit set'}
+                      {/* Spec strip. One bordered container with gap-px hairlines
+                          instead of four separate boxes. */}
+                      <div className="mx-4 mb-3.5 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-100 bg-gray-100 sm:grid-cols-4">
+                        {[
+                          { icon: Settings2, label: 'Transmission', value: quote.transmission || '—' },
+                          { icon: Fuel, label: 'Fuel', value: quote.fuelType || '—' },
+                          { icon: Gauge, label: 'KM Limit', value: kmLabel },
+                          {
+                            icon: Users,
+                            label: 'Seats',
+                            value: quote.seatingCapacity ? `${quote.seatingCapacity} seats` : '—',
+                          },
+                        ].map(({ icon: Icon, label, value }) => (
+                          <div key={label} className="bg-white px-3 py-2.5">
+                            <p className="flex items-center gap-1.5 text-[9.5px] font-extrabold uppercase tracking-[0.1em] text-gray-400">
+                              <Icon className="h-2.5 w-2.5" />
+                              {label}
+                            </p>
+                            <p className="mt-0.5 truncate text-[13px] font-bold tabular-nums text-gray-900">{value}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Money line — quiet, since every figure is itemised under
+                          "View Details". */}
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 px-4 pb-3.5 text-[11.5px] text-gray-400">
+                        <span className="inline-flex items-center gap-1.5">
+                          Advance
+                          <b className="font-bold tabular-nums text-gray-700">
+                            {quote.advancePercent > 0 ? `${quote.advancePercent}% · ` : ''}₹{quote.advanceAmount.toLocaleString()}
+                          </b>
                         </span>
-                        {quote.extraKmRate && (
-                          <span>+₹{quote.extraKmRate}/extra km</span>
+                        {quote.securityDeposit > 0 && (
+                          <>
+                            <span className="text-gray-300">·</span>
+                            <span className="inline-flex items-center gap-1.5">
+                              Deposit
+                              <b className="font-bold tabular-nums text-gray-700">₹{quote.securityDeposit.toLocaleString()}</b>
+                            </span>
+                          </>
                         )}
-                        <span>Deposit: ₹{quote.securityDeposit.toLocaleString()}</span>
-                        <span>Advance: {quote.advancePercent}%</span>
-                        {quote.deliveryCharge > 0 && (
-                          <span>Delivery: ₹{quote.deliveryCharge}</span>
+                        {quote.extraKmRate ? (
+                          <>
+                            <span className="text-gray-300">·</span>
+                            <span className="inline-flex items-center gap-1.5">
+                              Extra KM
+                              <b className="font-bold tabular-nums text-gray-700">₹{quote.extraKmRate.toLocaleString()}/km</b>
+                            </span>
+                          </>
+                        ) : null}
+                        {quote.deliveryCharge ? (
+                          <>
+                            <span className="text-gray-300">·</span>
+                            <span className="inline-flex items-center gap-1.5">
+                              Delivery
+                              <b className="font-bold tabular-nums text-gray-700">₹{quote.deliveryCharge.toLocaleString()}</b>
+                            </span>
+                          </>
+                        ) : null}
+                        {quote.validTill && (
+                          <>
+                            <span className="text-gray-300">·</span>
+                            <span className="inline-flex items-center gap-1.5">
+                              Valid till
+                              <b className="font-bold tabular-nums text-gray-700">
+                                {new Date(quote.validTill).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                              </b>
+                            </span>
+                          </>
                         )}
                       </div>
 
                       {/* Quick Inclusions */}
                       {inclusions.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-4">
-                          {inclusions.slice(0, 4).map((item, i) => (
+                        <div className="flex flex-wrap gap-1.5 px-4 pb-3.5">
+                          {inclusions.slice(0, 3).map((item, i) => (
                             <span
                               key={i}
-                              className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full"
+                              className="inline-flex items-center gap-1.5 rounded-full border border-[#C8F1DF] bg-[#E9FAF2] px-2.5 py-1 text-[11px] font-bold text-[#056B3E]"
                             >
-                              {item}
+                              <CheckCircle className="h-2.5 w-2.5" /> {item}
                             </span>
                           ))}
-                          {inclusions.length > 4 && (
-                            <span className="text-xs text-gray-500">
-                              +{inclusions.length - 4} more
+                          {inclusions.length > 3 && (
+                            <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-bold text-gray-400">
+                              +{inclusions.length - 3} more
                             </span>
                           )}
                         </div>
@@ -609,45 +817,35 @@ export default function CustomerSelfDriveQuoteDetailPage() {
 
                       {/* Expanded Details */}
                       {isExpanded && (
-                        <div className="border-t pt-4 mt-4 space-y-4">
+                        <div className="flex flex-col gap-4 border-t border-gray-100 bg-[#FCFDFC] p-4">
                           {/* Price Breakdown */}
-                          <div className="bg-gray-50 p-3 rounded-lg">
-                            <h4 className="text-sm font-semibold text-gray-900 mb-2">Price Breakdown</h4>
-                            <div className="space-y-1 text-sm">
-                              <div className="flex justify-between">
-                                <span>Rental ({request.totalDays} days)</span>
-                                <span>₹{quote.totalAmount.toLocaleString()}</span>
-                              </div>
-                              {quote.deliveryCharge > 0 && (
-                                <div className="flex justify-between">
-                                  <span>Delivery Charge</span>
-                                  <span>₹{quote.deliveryCharge.toLocaleString()}</span>
-                                </div>
+                          <div>
+                            <DetailHead icon={CreditCard} label="Price Breakdown" tone="neutral" />
+                            <div className="flex flex-col gap-px overflow-hidden rounded-xl bg-gray-100">
+                              <FareRow label={`Rental (${request.totalDays} days)`} value={`₹${quote.totalAmount.toLocaleString()}`} />
+                              {quote.dailyRate > 0 && (
+                                <FareRow label="Daily Rate" value={`₹${quote.dailyRate.toLocaleString()}/day`} />
                               )}
-                              {quote.gstAmount > 0 && (
-                                <div className="flex justify-between">
-                                  <span>GST</span>
-                                  <span>₹{quote.gstAmount.toLocaleString()}</span>
-                                </div>
-                              )}
+                              {quote.gstAmount > 0 && <FareRow label="GST" value={`₹${quote.gstAmount.toLocaleString()}`} />}
+                              {quote.deliveryCharge ? (
+                                <FareRow label="Delivery Charge" value={`₹${quote.deliveryCharge.toLocaleString()}`} />
+                              ) : null}
                               {quote.securityDeposit > 0 && (
-                                <div className="flex justify-between">
-                                  <span>Security Deposit (Refundable)</span>
-                                  <span>₹{quote.securityDeposit.toLocaleString()}</span>
-                                </div>
+                                <FareRow label="Security Deposit (Refundable)" value={`₹${quote.securityDeposit.toLocaleString()}`} />
                               )}
-                              <div className="flex justify-between font-semibold border-t pt-1 mt-1">
-                                <span>Total Amount to Pay</span>
-                                <span>₹{(quote.grandTotal + (quote.securityDeposit || 0)).toLocaleString()}</span>
-                              </div>
-                              <div className="flex justify-between text-blue-600">
-                                <span>Advance {quote.advancePercent > 0 ? `(${quote.advancePercent}%)` : ''}</span>
-                                <span>₹{quote.advanceAmount.toLocaleString()}</span>
-                              </div>
-                              <div className="flex justify-between text-gray-500">
-                                <span>Remaining at pickup</span>
-                                <span>₹{(quote.grandTotal + (quote.securityDeposit || 0) - quote.advanceAmount).toLocaleString()}</span>
-                              </div>
+                              {quote.extraKmRate ? (
+                                <FareRow label="Extra KM Rate" value={`₹${quote.extraKmRate.toLocaleString()}/km`} />
+                              ) : null}
+                              <FareRow label="Total Amount to Pay" value={`₹${grand.toLocaleString()}`} variant="total" />
+                              <FareRow
+                                label={`Advance ${quote.advancePercent > 0 ? `(${quote.advancePercent}%)` : ''}`.trim()}
+                                value={`₹${quote.advanceAmount.toLocaleString()}`}
+                                variant="advance"
+                              />
+                              <FareRow
+                                label="Remaining at pickup"
+                                value={`₹${(grand - quote.advanceAmount).toLocaleString()}`}
+                              />
                             </div>
                           </div>
 
@@ -660,17 +858,13 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                           {/* All Inclusions */}
                           {inclusions.length > 0 && (
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                Inclusions
-                              </h4>
-                              <ul className="grid md:grid-cols-2 gap-1">
+                              <DetailHead icon={CheckCircle} label="Inclusions" tone="ok" />
+                              <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                                 {inclusions.map((item, i) => (
-                                  <li
-                                    key={i}
-                                    className="text-sm text-gray-600 flex items-start gap-2"
-                                  >
-                                    <span className="text-green-500">✓</span>
+                                  <li key={i} className="flex gap-2 text-[12.5px] leading-normal text-gray-700">
+                                    <span className="mt-px flex h-4 w-4 flex-none items-center justify-center rounded-[5px] bg-[#E9FAF2] text-[#056B3E]">
+                                      <CheckCircle className="h-2.5 w-2.5" />
+                                    </span>
                                     {item}
                                   </li>
                                 ))}
@@ -681,17 +875,13 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                           {/* Exclusions */}
                           {exclusions.length > 0 && (
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                                <XCircle className="w-4 h-4 text-red-500" />
-                                Exclusions
-                              </h4>
-                              <ul className="grid md:grid-cols-2 gap-1">
+                              <DetailHead icon={XCircle} label="Exclusions" tone="no" />
+                              <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                                 {exclusions.map((item, i) => (
-                                  <li
-                                    key={i}
-                                    className="text-sm text-gray-600 flex items-start gap-2"
-                                  >
-                                    <span className="text-red-500">✗</span>
+                                  <li key={i} className="flex gap-2 text-[12.5px] leading-normal text-gray-700">
+                                    <span className="mt-px flex h-4 w-4 flex-none items-center justify-center rounded-[5px] bg-red-50 text-red-600">
+                                      <XCircle className="h-2.5 w-2.5" />
+                                    </span>
                                     {item}
                                   </li>
                                 ))}
@@ -702,11 +892,14 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                           {/* Terms */}
                           {terms.length > 0 && (
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-900 mb-2">Terms & Conditions</h4>
-                              <ul className="space-y-1">
+                              <DetailHead icon={FileText} label="Terms & Conditions" tone="neutral" />
+                              <ul className="flex flex-col gap-1.5">
                                 {terms.map((item, i) => (
-                                  <li key={i} className="text-sm text-gray-600">
-                                    • {item}
+                                  <li key={i} className="flex gap-2.5 text-[12.5px] leading-relaxed text-gray-500">
+                                    <span className="mt-px flex h-[18px] w-[18px] flex-none items-center justify-center rounded-md bg-gray-100 text-[10px] font-extrabold text-gray-500">
+                                      {i + 1}
+                                    </span>
+                                    {item}
                                   </li>
                                 ))}
                               </ul>
@@ -715,17 +908,18 @@ export default function CustomerSelfDriveQuoteDetailPage() {
 
                           {/* Vendor Notes */}
                           {quote.vendorMessage && (
-                            <div className="bg-blue-50 p-3 rounded-lg">
-                              <h4 className="text-sm font-semibold text-blue-800 mb-1 flex items-center gap-2">
-                                <MessageSquare className="w-4 h-4" />
+                            <div className="rounded-2xl border border-[#C8F1DF] bg-[#E9FAF2] px-3.5 py-3">
+                              <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#056B3E]">
+                                <MessageSquare className="h-[11px] w-[11px]" />
                                 Message from Vendor
-                              </h4>
-                              <p className="text-sm text-blue-700">{quote.vendorMessage}</p>
+                              </p>
+                              <p className="quote-serif text-[16px] italic leading-relaxed text-[#064E3B]">{quote.vendorMessage}</p>
                             </div>
                           )}
 
-                          <div className={`text-xs ${isExpired ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
-                            {isExpired ? 'Expired on: ' : 'Valid until: '}
+                          <div className={`flex items-center gap-1.5 text-[11.5px] ${isExpired ? 'font-bold text-red-600' : 'text-gray-400'}`}>
+                            <Clock className="h-3 w-3 flex-none" />
+                            {isExpired ? 'Expired on ' : 'Valid until '}
                             {new Date(quote.validTill).toLocaleString('en-IN', {
                               day: 'numeric',
                               month: 'short',
@@ -734,70 +928,75 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                               minute: '2-digit',
                               hour12: true,
                             })}
+                            {quote.validityDays > 0 && ` · ${quote.validityDays} day validity`}
+                            {quote.viewCount > 0 && ` · viewed ${quote.viewCount} time${quote.viewCount === 1 ? '' : 's'}`}
                           </div>
                         </div>
                       )}
 
                       {/* Actions */}
-                      <div className="flex gap-2 mt-4 pt-4 border-t">
+                      <div className="flex gap-2.5 border-t border-gray-100 p-4">
                         <button
                           onClick={() => setExpandedQuote(isExpanded ? null : quote.id)}
-                          className="flex-1 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition text-sm"
+                          className={`${BTN} flex-1 border border-gray-200 bg-white text-gray-700 hover:-translate-y-0.5 hover:bg-gray-50`}
                         >
-                          {isExpanded ? 'Show Less' : 'View Details'}
+                          <span>{isExpanded ? 'Show Less' : 'View Details'}</span>
+                          <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </button>
                         {isExpired ? (
-                          <div className="flex-1 py-2 text-center font-medium rounded-lg text-sm bg-red-50 text-red-500 cursor-not-allowed">
-                            Quote Expired
-                          </div>
+                          <div className={`${BTN} flex-1 cursor-not-allowed bg-red-50 text-red-600`}>Quote Expired</div>
                         ) : (
                           <button
                             onClick={() => setSelectedQuote(quote.id)}
-                            className={`flex-1 py-2 font-medium rounded-lg transition text-sm ${
+                            className={`${BTN} flex-1 ${
                               isSelected
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                ? 'bg-[#09B368] text-white shadow-[0_10px_15px_-3px_rgba(9,179,104,.25)] hover:-translate-y-0.5 hover:bg-[#078F53]'
+                                : 'border border-[#C8F1DF] bg-[#E9FAF2] text-[#056B3E] hover:-translate-y-0.5 hover:bg-[#C8F1DF]'
                             }`}
                           >
-                            {isSelected ? '✓ Selected' : 'Select This Quote'}
+                            {isSelected && <CheckCircle className="h-4 w-4" />}
+                            {isSelected ? 'Selected' : 'Select This Quote'}
                           </button>
                         )}
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
+                    </article>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
-        {/* Re-Request Quotes Banner */}
-        {allQuotesExpired && bookingDateInFuture && request?.status !== 'BOOKED' && !reRequestSuccess && (
-          <div className="mt-6 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl overflow-hidden border border-amber-200">
-            <div className="p-5">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <AlertCircle className="w-5 h-5 text-amber-600" />
-                </div>
+          {/* Payment safety notice — sits under the quote cards, i.e. right
+              where the customer is about to pick one. Outside the branch above
+              so it stays visible while quotes are still pending too. */}
+          <QuotePaymentSafetyNotice />
+
+          {/* Re-Request Quotes Banner */}
+          {allQuotesExpired && bookingDateInFuture && request?.status !== 'BOOKED' && !reRequestSuccess && (
+            <div className="overflow-hidden rounded-2xl border border-amber-200 bg-[linear-gradient(120deg,#FFFBEB,#FFF7ED)]">
+              <div className="flex items-start gap-3.5 p-[18px]">
+                <span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                  <AlertCircle className="h-5 w-5" />
+                </span>
                 <div className="flex-1">
-                  <h4 className="text-base font-semibold text-gray-900">All quotes have expired</h4>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <h4 className="text-[15px] font-extrabold text-gray-900">All quotes have expired</h4>
+                  <p className="mt-1 text-[13px] leading-relaxed text-gray-600">
                     Your booking date is still upcoming. You can re-open this request so vendors can send fresh quotes.
                   </p>
                   {remainingAttempts > 0 ? (
                     <button
                       onClick={handleReRequestQuotes}
                       disabled={isReRequesting}
-                      className="mt-3 inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 transition disabled:opacity-50 shadow-sm"
+                      className={`${BTN} mt-3 inline-flex bg-amber-500 px-[18px] text-white shadow-sm hover:-translate-y-0.5 hover:bg-amber-600 disabled:opacity-50`}
                     >
                       {isReRequesting ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                           Sending request...
                         </>
                       ) : (
                         <>
-                          <RefreshCw className="w-4 h-4" />
+                          <RefreshCw className="h-4 w-4" />
                           Request Fresh Quotes
                         </>
                       )}
@@ -809,89 +1008,354 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                   )}
                 </div>
               </div>
+              {remainingAttempts > 0 && (
+                <div className="flex items-center justify-between gap-2.5 border-t border-amber-200 bg-amber-100/60 px-[18px] py-2.5">
+                  <span className="text-[11.5px] font-semibold text-amber-700">
+                    {remainingAttempts} of 3 re-request{remainingAttempts !== 1 ? 's' : ''} remaining
+                  </span>
+                  <div className="flex gap-1.5">
+                    {[1, 2, 3].map(i => (
+                      <span key={i} className={`h-2 w-2 rounded-full ${i <= (3 - remainingAttempts) ? 'bg-amber-500' : 'bg-amber-300'}`} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            {remainingAttempts > 0 && (
-              <div className="px-5 py-2.5 bg-amber-100/60 border-t border-amber-200 flex items-center justify-between">
-                <span className="text-xs text-amber-700">
-                  {remainingAttempts} of 3 re-request{remainingAttempts !== 1 ? 's' : ''} remaining
-                </span>
-                <div className="flex gap-1">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className={`w-2 h-2 rounded-full ${i <= (3 - remainingAttempts) ? 'bg-amber-500' : 'bg-amber-300'}`} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
-        {reRequestSuccess && (
-          <div className="mt-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl overflow-hidden border border-green-200">
-            <div className="p-5">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                </div>
+          {reRequestSuccess && (
+            <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-[linear-gradient(120deg,#ECFDF5,#E9FAF2)]">
+              <div className="flex items-start gap-3.5 p-[18px]">
+                <span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-[#D1FAE5] text-emerald-700">
+                  <CheckCircle className="h-5 w-5" />
+                </span>
                 <div className="flex-1">
-                  <h4 className="text-base font-semibold text-green-800">Request sent successfully!</h4>
-                  <p className="text-sm text-green-700 mt-1">{reRequestSuccess}</p>
+                  <h4 className="text-[15px] font-extrabold text-emerald-800">Request sent successfully!</h4>
+                  <p className="mt-1 text-[13px] leading-relaxed text-emerald-700">{reRequestSuccess}</p>
                 </div>
               </div>
+              {remainingAttempts > 0 && (
+                <div className="border-t border-emerald-200 bg-emerald-100/60 px-[18px] py-2.5">
+                  <span className="text-[11.5px] font-semibold text-emerald-700">
+                    {remainingAttempts} re-request{remainingAttempts !== 1 ? 's' : ''} remaining
+                  </span>
+                </div>
+              )}
             </div>
-            {remainingAttempts > 0 && (
-              <div className="px-5 py-2.5 bg-green-100/60 border-t border-green-200">
-                <span className="text-xs text-green-700">
-                  {remainingAttempts} re-request{remainingAttempts !== 1 ? 's' : ''} remaining
+          )}
+        </div>
+
+        {/* ══ Right rail ══ */}
+        <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-20">
+          {/* ── REQUEST DETAILS ── */}
+          <section className={CARD}>
+            <div className={DARK_HEAD}>
+              <div className="pointer-events-none absolute inset-0" style={{ backgroundImage: DARK_TEXTURE }} />
+              <div className="relative z-10 flex items-center justify-between gap-2.5">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[9px] border border-white/[0.22] bg-white/[0.16]">
+                    <Car className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="quote-serif block text-[18px] font-medium">Request Details</span>
+                    <span className="mt-px flex min-w-0 items-center gap-1 truncate text-[11px] text-white/[0.66]">
+                      <MapPin className="h-3 w-3 flex-none" />
+                      {request.locationName}
+                    </span>
+                  </span>
+                </div>
+                <span className="flex-none rounded-full border border-white/[0.22] bg-white/[0.14] px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-white/[0.9]">
+                  {request.requestNumber}
                 </span>
               </div>
-            )}
-          </div>
-        )}
+            </div>
 
-        {/* Help */}
-        <div className="bg-blue-50 rounded-xl p-4 mt-6 border border-blue-100">
-          <h4 className="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
-            <Shield className="w-5 h-5" />
-            Booking Protection
-          </h4>
-          <ul className="text-sm text-blue-700 space-y-1">
-            <li>• Verified vendors with ratings</li>
-            <li>• Secure advance payment</li>
-            <li>• Security deposit refunded after return</li>
-            <li>• Valid driving license (1+ year) required at pickup</li>
-          </ul>
-        </div>
+            <div className="p-3">
+              {/* Rental window — a compact rail so the two dates read as one
+                  span instead of two unrelated tiles. */}
+              <div className="relative overflow-hidden rounded-2xl border border-[#C8F1DF] bg-[linear-gradient(140deg,#F1FAF5_0%,#FFFFFF_64%)] px-3.5 py-3">
+                <div className="relative flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-[0.1em] text-gray-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#09B368] shadow-[0_0_0_2.5px_rgba(9,179,104,.18)]" />
+                      Pickup
+                    </p>
+                    <p className="mt-1 truncate text-[13.5px] font-extrabold text-gray-900">{fmtShort(request.pickupDate)}</p>
+                    {request.pickupTime && (
+                      <p className="mt-px truncate text-[11px] tabular-nums text-gray-400">{request.pickupTime}</p>
+                    )}
+                  </div>
+                  <div className="relative flex flex-none items-center justify-center px-1">
+                    <span className="absolute inset-x-[-14px] top-1/2 h-px -translate-y-1/2 bg-[repeating-linear-gradient(90deg,#CFE4DA_0_4px,transparent_4px_8px)]" />
+                    <span className="relative inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-[#0F1A15] px-2.5 py-1 text-[10px] font-extrabold text-white shadow-[0_8px_16px_-10px_rgba(1,35,20,.9)]">
+                      <Clock className="h-2.5 w-2.5" />
+                      {formatBookingDuration(request)}
+                    </span>
+                  </div>
+                  <div className="min-w-0 text-right">
+                    <p className="flex items-center justify-end gap-1.5 text-[9px] font-extrabold uppercase tracking-[0.1em] text-gray-400">
+                      Drop
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#F87171] shadow-[0_0_0_2.5px_rgba(248,113,113,.18)]" />
+                    </p>
+                    <p className="mt-1 truncate text-[13.5px] font-extrabold text-gray-900">{fmtShort(request.dropDate)}</p>
+                    {request.dropTime && (
+                      <p className="mt-px truncate text-[11px] tabular-nums text-gray-400">{request.dropTime}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Vehicle identity spans the full width — the name plus brand
+                  never fits a half-width cell, and truncating it there hid the
+                  most important line in the card. */}
+              <div className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-100 bg-gray-100">
+                <div className="group col-span-2 flex items-center gap-3 bg-white px-3 py-3 transition hover:bg-[#E9FAF2]">
+                  <span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-[#E9FAF2] text-[#056B3E] transition group-hover:bg-white">
+                    <Car className="h-[22px] w-[22px]" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[9px] font-extrabold uppercase tracking-[0.1em] text-gray-400 transition group-hover:text-[#056B3E]/70">
+                      Vehicle
+                    </span>
+                    <span className="mt-0.5 block break-words text-[15px] font-extrabold leading-tight text-gray-900 transition group-hover:text-[#056B3E]">
+                      {vehicleLabel}
+                    </span>
+                    {(request.vehicleBrand || request.vehicleCategoryName) && (
+                      <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                        {request.vehicleBrand && (
+                          <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10.5px] font-bold text-gray-600">
+                            {request.vehicleBrand}
+                          </span>
+                        )}
+                        {request.vehicleCategoryName && (
+                          <span className="rounded-full border border-[#C8F1DF] bg-[#E9FAF2] px-2 py-0.5 text-[10.5px] font-bold text-[#056B3E]">
+                            {request.vehicleCategoryName}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Remaining specs. Tints live on each cell, not on a shared
+                    base — Tailwind resolves by stylesheet order, not
+                    class-string order. */}
+                {[
+                  request.transmission
+                    ? { icon: Settings2, label: 'Transmission', value: request.transmission, tint: 'bg-blue-50 text-blue-600' }
+                    : null,
+                  request.fuelType
+                    ? { icon: Fuel, label: 'Fuel', value: request.fuelType, tint: 'bg-amber-50 text-amber-700' }
+                    : null,
+                  request.minSeats
+                    ? { icon: Users, label: 'Min Seats', value: `${request.minSeats}+ seats`, tint: 'bg-violet-50 text-violet-600' }
+                    : null,
+                  request.numberOfVehicles
+                    ? {
+                        icon: Car,
+                        label: 'Vehicles',
+                        value: `${request.numberOfVehicles} vehicle${request.numberOfVehicles > 1 ? 's' : ''}`,
+                        tint: 'bg-rose-50 text-rose-600',
+                      }
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .map((t: any) => {
+                    const Icon = t.icon;
+                    return (
+                      <div
+                        key={t.label}
+                        className="group flex items-center gap-2.5 bg-white px-3 py-2.5 transition hover:bg-[#E9FAF2]"
+                      >
+                        <span
+                          className={`flex h-8 w-8 flex-none items-center justify-center rounded-[10px] transition group-hover:bg-white group-hover:text-[#056B3E] ${t.tint}`}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[9px] font-extrabold uppercase tracking-[0.1em] text-gray-400 transition group-hover:text-[#056B3E]/70">
+                            {t.label}
+                          </span>
+                          <span className="mt-0.5 block truncate text-[13px] font-extrabold leading-snug text-gray-900 transition group-hover:text-[#056B3E]">
+                            {t.value}
+                          </span>
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              {/* Addresses */}
+              <div className="mt-3 flex flex-col gap-2">
+                <div className="flex gap-2.5 rounded-2xl border border-gray-100 bg-[#FCFDFC] px-3 py-2.5 transition hover:border-[#C8F1DF] hover:bg-white hover:shadow-[0_10px_24px_-16px_rgba(1,35,20,.45)]">
+                  <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[10px] bg-[#E9FAF2] text-[#056B3E]">
+                    <MapPin className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[9px] font-extrabold uppercase tracking-[0.1em] text-gray-400">Pickup Address</span>
+                    <span
+                      className={`mt-0.5 block break-words text-[12.5px] leading-relaxed ${
+                        request.pickupAddress ? 'text-gray-700' : 'text-gray-400'
+                      }`}
+                    >
+                      {[request.locationName, request.pickupAddress || 'Not specified'].filter(Boolean).join(' · ')}
+                    </span>
+                  </span>
+                </div>
+                <div className="flex gap-2.5 rounded-2xl border border-gray-100 bg-[#FCFDFC] px-3 py-2.5 transition hover:border-blue-200 hover:bg-white hover:shadow-[0_10px_24px_-16px_rgba(1,35,20,.45)]">
+                  <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[10px] bg-blue-50 text-blue-600">
+                    <MapPin className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[9px] font-extrabold uppercase tracking-[0.1em] text-gray-400">Drop Address</span>
+                    <span
+                      className={`mt-0.5 block break-words text-[12.5px] leading-relaxed ${
+                        request.dropAddress ? 'text-gray-700' : 'text-gray-400'
+                      }`}
+                    >
+                      {request.dropAddress || 'Not specified'}
+                    </span>
+                  </span>
+                </div>
+              </div>
+
+              {/* What the customer asked for */}
+              <div className="mt-3">
+                <p className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.1em] text-gray-400">Asked for</p>
+                <div
+                  className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2 transition ${
+                    request.isDeliveryRequested ? 'border-[#C8F1DF] bg-[#E9FAF2]' : 'border-gray-100 bg-white'
+                  }`}
+                >
+                  <span
+                    className={`flex h-7 w-7 flex-none items-center justify-center rounded-[9px] ${
+                      request.isDeliveryRequested ? 'bg-white text-[#056B3E]' : 'bg-gray-100 text-gray-400'
+                    }`}
+                  >
+                    <Truck className="h-3.5 w-3.5" />
+                  </span>
+                  <span
+                    className={`flex-1 text-[12.5px] font-bold ${
+                      request.isDeliveryRequested ? 'text-[#056B3E]' : 'text-gray-400'
+                    }`}
+                  >
+                    Doorstep delivery
+                  </span>
+                  {request.isDeliveryRequested ? (
+                    <CheckCircle className="h-4 w-4 flex-none text-[#09B368]" />
+                  ) : (
+                    <XCircle className="h-4 w-4 flex-none text-gray-300" />
+                  )}
+                </div>
+              </div>
+
+              {request.customerNotes && (
+                <div className="mt-3 flex gap-2.5 rounded-2xl border border-amber-200 bg-[linear-gradient(120deg,#FFFBEB,#FFF7ED)] px-3 py-2.5">
+                  <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[10px] border border-amber-200 bg-white text-amber-700">
+                    <StickyNote className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[9px] font-extrabold uppercase tracking-[0.1em] text-amber-700">Your Notes</span>
+                    <span className="mt-0.5 block break-words text-[12.5px] leading-relaxed text-amber-800">{request.customerNotes}</span>
+                  </span>
+                </div>
+              )}
+
+              {(request.status === 'PENDING' || request.status === 'QUOTES_RECEIVED') && (
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  className={`${BTN} mt-3 w-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100`}
+                >
+                  <XCircle className="h-4 w-4" />
+                  Cancel Request
+                </button>
+              )}
+            </div>
+          </section>
+
+          <section className={CARD}>
+            <div className={CARD_HEAD}>
+              <p className={CARD_LABEL}>Request Info</p>
+            </div>
+            <div className="px-4 py-1">
+              {/* Request number, status and the quote count all appear above —
+                  in the hero chips and the "Compare Quotes" heading — so only
+                  the dates live here. */}
+              <div className="flex flex-col">
+                <MetaRow label="Requested On" value={fmtDateTime(request.createdAt)} />
+                <MetaRow label="Quotes Open Till" value={fmtDateTime(request.quotesOpenTill)} />
+                <MetaRow label="Request Expires" value={fmtDateTime(request.expiresAt)} />
+              </div>
+            </div>
+          </section>
+
+          {/* ── BOOKING PROTECTION ── */}
+          <section className={CARD}>
+            <div className={DARK_HEAD}>
+              <div className="pointer-events-none absolute inset-0" style={{ backgroundImage: DARK_TEXTURE }} />
+              <div className="relative z-10 flex items-center gap-2.5">
+                <span className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[9px] border border-white/[0.22] bg-white/[0.16]">
+                  <ShieldCheck className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="quote-serif block text-[18px] font-medium">Booking Protection</span>
+                  <span className="mt-px block text-[11px] text-white/[0.66]">Every quote on this page is covered</span>
+                </span>
+              </div>
+            </div>
+            {/* Colours live on the rows, not on a shared base class, because
+                Tailwind resolves by stylesheet order. */}
+            <div className="flex flex-col gap-2 p-3">
+              {[
+                { icon: Shield, text: 'Verified vendors with ratings', tint: 'bg-[#E9FAF2] text-[#056B3E]' },
+                { icon: Lock, text: 'Secure advance payment', tint: 'bg-blue-50 text-blue-600' },
+                { icon: RotateCcw, text: 'Security deposit refunded after return', tint: 'bg-amber-50 text-amber-700' },
+                { icon: FileText, text: 'Valid driving license (1+ year) required at pickup', tint: 'bg-gray-100 text-gray-600' },
+              ].map(({ icon: Icon, text, tint }) => (
+                <div
+                  key={text}
+                  className="flex items-center gap-2.5 rounded-xl border border-gray-100 bg-white px-2.5 py-2 transition hover:-translate-y-0.5 hover:border-[#C8F1DF] hover:bg-[#FCFDFC] hover:shadow-[0_10px_24px_-14px_rgba(1,35,20,.45)]"
+                >
+                  <span className={`flex h-8 w-8 flex-none items-center justify-center rounded-[10px] ${tint}`}>
+                    <Icon className="h-[15px] w-[15px]" />
+                  </span>
+                  <span className="text-[12.5px] font-semibold leading-snug text-gray-700">{text}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </aside>
       </div>
 
       {/* Cancel Confirmation Modal */}
       {showCancelConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <XCircle className="w-5 h-5 text-red-600" />
-              </div>
-              <h3 className="text-base font-semibold text-gray-900">Cancel Quote Request?</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-[4px]">
+          <div className="w-full max-w-[420px] rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,.45)]">
+            <div className="flex items-center gap-3 p-4">
+              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-red-100 text-red-600">
+                <XCircle className="h-5 w-5" />
+              </span>
+              <h3 className="text-[15.5px] font-extrabold text-gray-900">Cancel Quote Request?</h3>
             </div>
-            <p className="text-sm text-gray-600 mb-5">
+            <p className="px-4 text-[13px] leading-relaxed text-gray-500">
               Are you sure you want to cancel this quote request? This action cannot be undone and all received quotes will be discarded.
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-2.5 p-4">
               <button
                 onClick={() => setShowCancelConfirm(false)}
                 disabled={isCancelling}
-                className="flex-1 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition text-sm"
+                className={`${BTN} flex-1 border border-gray-200 bg-white text-gray-700 hover:bg-gray-50`}
               >
                 Keep Request
               </button>
               <button
                 onClick={handleCancelRequest}
                 disabled={isCancelling}
-                className="flex-1 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                className={`${BTN} flex-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50`}
               >
                 {isCancelling ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Cancelling...
                   </>
                 ) : (
@@ -904,30 +1368,36 @@ export default function CustomerSelfDriveQuoteDetailPage() {
       )}
 
       {/* Accept Button */}
-      {selectedQuote && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg">
-          <div className="container mx-auto flex items-center justify-between gap-4">
-            <div>
-              <p className="font-semibold text-gray-900">
-                {quotes.find((q) => q.id === selectedQuote)?.vendors?.businessName}
+      {selectedQuote && selectedQ && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 py-3 shadow-[0_-12px_30px_-18px_rgba(1,35,20,.4)] backdrop-blur-[14px]">
+          <div className="mx-auto flex max-w-7xl items-center gap-3.5 px-4 sm:px-6 lg:px-8">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-gray-400">Selected quote</p>
+              <p className="quote-serif mt-0.5 truncate text-[19px] font-medium text-gray-900">{selectedQ.vendors?.businessName}</p>
+              <p className="mt-px truncate text-[11px] tabular-nums text-gray-400">
+                {selectedQ.vehicleName && `${selectedQ.vehicleName} · `}
+                advance ₹{(selectedQ.advanceAmount || 0).toLocaleString()}
               </p>
-              <p className="text-lg font-bold text-blue-600">
-                ₹{quotes.find((q) => q.id === selectedQuote)?.grandTotal.toLocaleString()}
+            </div>
+            <div className="flex-none text-right">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-gray-400">Total</p>
+              <p className="quote-serif text-[30px] font-medium leading-tight tabular-nums text-[#056B3E]">
+                ₹{selectedQ.grandTotal.toLocaleString()}
               </p>
             </div>
             <button
               onClick={handleAcceptQuote}
               disabled={isAccepting}
-              className="px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2"
+              className={`${BTN} flex-none bg-[#09B368] px-6 py-3.5 text-sm text-white shadow-[0_10px_15px_-3px_rgba(9,179,104,.25)] hover:-translate-y-0.5 hover:bg-[#078F53] disabled:opacity-50`}
             >
               {isAccepting ? (
                 <>
-                  <span className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   Processing...
                 </>
               ) : (
                 <>
-                  <CheckCircle className="w-5 h-5" />
+                  <CheckCircle className="h-5 w-5" />
                   Accept & Book
                 </>
               )}

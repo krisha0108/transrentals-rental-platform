@@ -11,10 +11,12 @@ import {
   X,
   User,
   ArrowLeft,
+  ArrowRight,
   HelpCircle,
   BarChart3,
   Home,
   ChevronDown,
+  ChevronRight,
   Bell,
 } from 'lucide-react';
 
@@ -36,6 +38,19 @@ interface ChatBooking {
   conversation_id?: string;
   participant_type?: string;
 }
+
+/**
+ * Per-destination accent for the mobile drawer, keyed by href so navLinks
+ * itself stays untouched. The five hues are the same family the dashboard's
+ * account band uses: green, teal, sky and amber.
+ */
+const DRAWER_ACCENTS: Record<string, { text: string; tile: string; tileHover: string }> = {
+  '/customer/dashboard': { text: 'text-[#056B3E]', tile: 'bg-[#EAF8F1] text-[#0E8552]', tileHover: 'group-hover:bg-[#D3F0E2]' },
+  '/customer/chat': { text: 'text-[#0B7C74]', tile: 'bg-[#F0FDFA] text-[#0B7C74]', tileHover: 'group-hover:bg-[#DCF5F1]' },
+  '/customer/financials': { text: 'text-[#056B3E]', tile: 'bg-[#EAF8F1] text-[#0E8552]', tileHover: 'group-hover:bg-[#D3F0E2]' },
+  '/customer/helpdesk': { text: 'text-[#0369A1]', tile: 'bg-[#F0F9FF] text-[#0369A1]', tileHover: 'group-hover:bg-[#DDF0FE]' },
+  '/': { text: 'text-[#B4700F]', tile: 'bg-[#FEF8EA] text-[#B4700F]', tileHover: 'group-hover:bg-[#FDF0D5]' },
+};
 
 export default function CustomerHeader({
   showBackButton = false,
@@ -172,23 +187,26 @@ export default function CustomerHeader({
               {showChatDropdown && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowChatDropdown(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
-                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                  {/* Teal — the same accent Messages carries in the dashboard's
+                      Get in touch card, so the two read as one thing. */}
+                  <div className="absolute right-0 top-full z-50 mt-2 w-[340px] overflow-hidden rounded-2xl border border-[#BFE7E2] bg-white shadow-[0_20px_44px_-14px_rgba(4,48,44,.28)]">
+                    <div className="flex items-end justify-between gap-3 border-b border-[#BFE7E2] bg-gradient-to-r from-[#E2F6F4] to-[#F6FCFB] px-4 py-3.5">
                       <div>
-                        <p className="font-semibold text-gray-900 text-sm">Messages</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Vendor & driver chats</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[#0B7C74]">Conversations</p>
+                        <p className="quote-serif mt-[3px] text-[21px] font-semibold leading-none text-[#04302C]">Messages</p>
                       </div>
                       {totalUnreadChats > 0 && (
-                        <span className="bg-[#09B368] text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
+                        <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#0B7C74] px-1.5 text-[10px] font-bold text-white">
                           {totalUnreadChats}
                         </span>
                       )}
                     </div>
-                    <div className="max-h-64 overflow-y-auto">
+                    <div className="max-h-[280px] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                       {chatBookings.length === 0 ? (
-                        <div className="p-8 text-center">
-                          <MessageCircle className="h-8 w-8 mx-auto mb-2 text-gray-200" />
-                          <p className="text-sm text-gray-500">No messages yet</p>
+                        <div className="flex flex-col items-center px-4 py-9">
+                          <MessageCircle className="mb-2.5 h-5 w-5 text-[#BFE7E2]" />
+                          <p className="text-[13px] font-semibold text-[#78857C]">No messages yet</p>
+                          <p className="mt-1 text-[11.5px] text-[#A6B1AA]">Your vendor and driver chats land here.</p>
                         </div>
                       ) : (
                         chatBookings.map((chat) => {
@@ -200,35 +218,36 @@ export default function CustomerHeader({
                             key={`${chat.vendor_id}-${chat.booking_id}-${chat.conversation_id}`}
                             href={chatHref}
                             onClick={() => setShowChatDropdown(false)}
-                            className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition border-b border-gray-50 last:border-0"
+                            className="group relative flex items-start gap-3 overflow-hidden border-b border-[#EDF3F2] px-4 py-3 text-[#0B7C74] transition last:border-b-0 after:absolute after:inset-y-0 after:left-0 after:w-[3px] after:origin-center after:scale-y-0 after:bg-current after:transition-transform after:duration-200 hover:bg-[#F4F8F5] hover:after:scale-y-100"
                           >
-                            <div className="w-8 h-8 bg-[#09B368]/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <User className="h-4 w-4 text-[#09B368]" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="font-semibold text-gray-900 text-sm truncate">{chat.vendor_name}</p>
+                            <span className="mt-0.5 grid h-[34px] w-[34px] flex-none place-items-center rounded-[11px] border border-[#CCEDE9] bg-[#F0FDFA] text-[#0B7C74] transition group-hover:bg-[#DCF5F1]">
+                              <User className="h-4 w-4" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-center justify-between gap-2">
+                                <span className="truncate text-[13px] font-semibold text-[#0B1610]">{chat.vendor_name}</span>
                                 {(chat.unread_count || 0) > 0 && (
-                                  <span className="bg-[#09B368] text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center flex-shrink-0">
+                                  <span className="flex h-[17px] min-w-[17px] flex-shrink-0 items-center justify-center rounded-full bg-[#0B7C74] px-1 text-[9.5px] font-bold text-white">
                                     {chat.unread_count}
                                   </span>
                                 )}
-                              </div>
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isDriver ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                              </span>
+                              <span className="mt-1 flex items-center gap-1.5">
+                                <span className={`rounded-full px-1.5 py-px text-[9px] font-bold uppercase tracking-[0.06em] ${isDriver ? 'bg-[#EAF8F1] text-[#056B3E]' : 'bg-[#F0FDFA] text-[#0B7C74]'}`}>
                                   {isDriver ? 'Driver' : 'Vendor'}
                                 </span>
-                                <p className="text-xs text-gray-400 truncate">{chat.last_message || 'Tap to view'}</p>
-                              </div>
-                            </div>
+                                <span className="truncate text-[11.5px] text-[#A6B1AA]">{chat.last_message || 'Tap to view'}</span>
+                              </span>
+                            </span>
                           </Link>
                           );
                         })
                       )}
                     </div>
-                    <div className="border-t border-gray-100 px-4 py-2.5">
-                      <Link href="/customer/chat" onClick={() => setShowChatDropdown(false)} className="text-xs font-semibold text-[#09B368] hover:underline">
-                        View all messages →
+                    <div className="border-t border-[#E7EEE9] px-4 py-2.5">
+                      <Link href="/customer/chat" onClick={() => setShowChatDropdown(false)} className="group inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#0B7C74] transition hover:text-[#04302C]">
+                        View all messages
+                        <ArrowRight className="h-3 w-3 transition group-hover:translate-x-[3px]" />
                       </Link>
                     </div>
                   </div>
@@ -262,29 +281,71 @@ export default function CustomerHeader({
               {showUserDropdown && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowUserDropdown(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden py-1">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="font-semibold text-gray-900 text-sm">{customer?.name}</p>
-                      <p className="text-xs text-gray-400 mt-0.5 truncate">{customer?.email || customer?.phone}</p>
+                  {/* Green — the identity accent, matching the dashboard's
+                      Your profile card. Same four links, same sign-out. */}
+                  <div className="absolute right-0 top-full z-50 mt-2 w-[272px] overflow-hidden rounded-2xl border border-[#C6E7D8] bg-white shadow-[0_20px_44px_-14px_rgba(4,50,31,.28)]">
+                    <div className="flex items-center gap-3 border-b border-[#C6E7D8] bg-gradient-to-r from-[#E4F6EE] to-[#F7FCFA] px-4 py-3.5">
+                      <span className="relative flex-none">
+                        <span className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-[#09B368] to-[#056040] text-white">
+                          {customer?.image ? (
+                            <Image src={customer.image} alt={customer?.name || ''} width={44} height={44} className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="quote-serif text-[21px] font-medium">{initial}</span>
+                          )}
+                        </span>
+                        <span className="absolute -bottom-0.5 -right-0.5 z-20 h-[13px] w-[13px] rounded-full border-2 border-white bg-[#4ADE80]" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="quote-serif truncate text-[20px] font-medium leading-none text-[#04321F]">{customer?.name}</p>
+                        <p className="mt-1 truncate text-[11px] text-[#0E8552]">{customer?.email || customer?.phone}</p>
+                      </div>
                     </div>
-                    <Link href="/customer/dashboard" onClick={() => setShowUserDropdown(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
-                      <BarChart3 className="h-4 w-4 text-gray-400" /> Dashboard
-                    </Link>
-                    <Link href="/customer/chat" onClick={() => setShowUserDropdown(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
-                      <MessageCircle className="h-4 w-4 text-gray-400" /> Messages
-                    </Link>
-                    <Link href="/customer/financials" onClick={() => setShowUserDropdown(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
-                      <BarChart3 className="h-4 w-4 text-gray-400" /> Financials
-                    </Link>
-                    <Link href="/customer/helpdesk" onClick={() => setShowUserDropdown(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
-                      <HelpCircle className="h-4 w-4 text-gray-400" /> Helpdesk
-                    </Link>
-                    <div className="border-t border-gray-100 mt-1 pt-1">
+
+                    {/* Each row carries its accent as currentColor, so the icon
+                        tile and the bar that wipes in on hover stay in step. */}
+                    <div className="flex flex-col py-1">
+                      <Link href="/customer/dashboard" onClick={() => setShowUserDropdown(false)} className="group relative flex items-center gap-3 overflow-hidden px-4 py-2.5 text-[#056B3E] transition after:absolute after:inset-y-0 after:left-0 after:w-[3px] after:origin-center after:scale-y-0 after:bg-current after:transition-transform after:duration-200 hover:bg-[#F4F8F5] hover:after:scale-y-100">
+                        <span className="grid h-[30px] w-[30px] flex-none place-items-center rounded-[10px] bg-[#EAF8F1] text-[#0E8552] transition group-hover:bg-[#D3F0E2]">
+                          <BarChart3 className="h-[15px] w-[15px]" />
+                        </span>
+                        <span className="text-[13px] font-medium text-[#0B1610]">Dashboard</span>
+                        <ChevronRight className="ml-auto h-3.5 w-3.5 text-[#D4DFD8] transition group-hover:translate-x-[3px] group-hover:text-[#09B368]" />
+                      </Link>
+                      <Link href="/customer/chat" onClick={() => setShowUserDropdown(false)} className="group relative flex items-center gap-3 overflow-hidden px-4 py-2.5 text-[#0B7C74] transition after:absolute after:inset-y-0 after:left-0 after:w-[3px] after:origin-center after:scale-y-0 after:bg-current after:transition-transform after:duration-200 hover:bg-[#F4F8F5] hover:after:scale-y-100">
+                        <span className="grid h-[30px] w-[30px] flex-none place-items-center rounded-[10px] bg-[#F0FDFA] text-[#0B7C74] transition group-hover:bg-[#DCF5F1]">
+                          <MessageCircle className="h-[15px] w-[15px]" />
+                        </span>
+                        <span className="text-[13px] font-medium text-[#0B1610]">Messages</span>
+                        {totalUnreadChats > 0 && (
+                          <span className="flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#0B7C74] px-1 text-[9.5px] font-bold text-white">{totalUnreadChats}</span>
+                        )}
+                        <ChevronRight className="ml-auto h-3.5 w-3.5 text-[#D4DFD8] transition group-hover:translate-x-[3px] group-hover:text-[#09B368]" />
+                      </Link>
+                      <Link href="/customer/financials" onClick={() => setShowUserDropdown(false)} className="group relative flex items-center gap-3 overflow-hidden px-4 py-2.5 text-[#056B3E] transition after:absolute after:inset-y-0 after:left-0 after:w-[3px] after:origin-center after:scale-y-0 after:bg-current after:transition-transform after:duration-200 hover:bg-[#F4F8F5] hover:after:scale-y-100">
+                        <span className="grid h-[30px] w-[30px] flex-none place-items-center rounded-[10px] bg-[#EAF8F1] text-[#0E8552] transition group-hover:bg-[#D3F0E2]">
+                          <BarChart3 className="h-[15px] w-[15px]" />
+                        </span>
+                        <span className="text-[13px] font-medium text-[#0B1610]">Financials</span>
+                        <ChevronRight className="ml-auto h-3.5 w-3.5 text-[#D4DFD8] transition group-hover:translate-x-[3px] group-hover:text-[#09B368]" />
+                      </Link>
+                      <Link href="/customer/helpdesk" onClick={() => setShowUserDropdown(false)} className="group relative flex items-center gap-3 overflow-hidden px-4 py-2.5 text-[#0369A1] transition after:absolute after:inset-y-0 after:left-0 after:w-[3px] after:origin-center after:scale-y-0 after:bg-current after:transition-transform after:duration-200 hover:bg-[#F4F8F5] hover:after:scale-y-100">
+                        <span className="grid h-[30px] w-[30px] flex-none place-items-center rounded-[10px] bg-[#F0F9FF] text-[#0369A1] transition group-hover:bg-[#DDF0FE]">
+                          <HelpCircle className="h-[15px] w-[15px]" />
+                        </span>
+                        <span className="text-[13px] font-medium text-[#0B1610]">Helpdesk</span>
+                        <ChevronRight className="ml-auto h-3.5 w-3.5 text-[#D4DFD8] transition group-hover:translate-x-[3px] group-hover:text-[#09B368]" />
+                      </Link>
+                    </div>
+
+                    <div className="border-t border-[#E7EEE9]">
                       <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition w-full text-left"
+                        className="group relative flex w-full items-center gap-3 overflow-hidden px-4 py-3 text-left text-[#DC2626] transition after:absolute after:inset-y-0 after:left-0 after:w-[3px] after:origin-center after:scale-y-0 after:bg-current after:transition-transform after:duration-200 hover:bg-[#FEF2F2] hover:after:scale-y-100"
                       >
-                        <LogOut className="h-4 w-4" /> Sign out
+                        <span className="grid h-[30px] w-[30px] flex-none place-items-center rounded-[10px] bg-[#FEF2F2] text-[#DC2626] transition group-hover:bg-[#FEE2E2]">
+                          <LogOut className="h-[15px] w-[15px]" />
+                        </span>
+                        <span className="text-[13px] font-semibold text-[#DC2626]">Sign out</span>
                       </button>
                     </div>
                   </div>
@@ -303,39 +364,68 @@ export default function CustomerHeader({
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer — same language as the two dropdowns: a green identity
+          band on top, rows with tinted icon tiles and an accent bar that wipes
+          in, and sign-out separated at the bottom. Same links, same handlers. */}
       {showMobileMenu && (
-        <div className="lg:hidden border-t border-gray-100 bg-white">
-          <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setShowMobileMenu(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition ${
-                  isActive(link.href)
-                    ? 'bg-[#09B368]/10 text-[#09B368]'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <link.icon className="h-4 w-4" />
-                {link.label}
-              </Link>
-            ))}
-            <div className="pt-2 border-t border-gray-100 mt-2">
-              <div className="flex items-center gap-3 px-4 py-3">
-                <div className="w-9 h-9 rounded-full bg-[#09B368] flex items-center justify-center flex-shrink-0">
-                  <span className="text-white font-bold text-sm">{initial}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm">{customer?.name}</p>
-                  <p className="text-xs text-gray-400 truncate">{customer?.phone}</p>
-                </div>
-                <button onClick={handleLogout} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition">
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
+        <div className="border-t border-[#C6E7D8] bg-white lg:hidden">
+          <div className="flex items-center gap-3 border-b border-[#C6E7D8] bg-gradient-to-r from-[#E4F6EE] to-[#F7FCFA] px-4 py-3.5">
+            <span className="relative flex-none">
+              <span className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-[#09B368] to-[#056040] text-white">
+                {customer?.image ? (
+                  <Image src={customer.image} alt={customer?.name || ''} width={44} height={44} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="quote-serif text-[21px] font-medium">{initial}</span>
+                )}
+              </span>
+              <span className="absolute -bottom-0.5 -right-0.5 z-20 h-[13px] w-[13px] rounded-full border-2 border-white bg-[#4ADE80]" />
+            </span>
+            <div className="min-w-0">
+              <p className="quote-serif truncate text-[20px] font-medium leading-none text-[#04321F]">{customer?.name}</p>
+              <p className="mt-1 truncate text-[11px] text-[#0E8552]">{customer?.email || customer?.phone}</p>
             </div>
+          </div>
+
+          <div className="flex flex-col py-1">
+            {navLinks.map((link) => {
+              const a = DRAWER_ACCENTS[link.href] || DRAWER_ACCENTS['/customer/dashboard'];
+              const on = isActive(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setShowMobileMenu(false)}
+                  // The active row simply holds the hover state open, so there is
+                  // one visual idea here rather than two.
+                  className={`group relative flex items-center gap-3 overflow-hidden px-4 py-3 transition after:absolute after:inset-y-0 after:left-0 after:w-[3px] after:origin-center after:bg-current after:transition-transform after:duration-200 hover:bg-[#F4F8F5] hover:after:scale-y-100 ${a.text} ${
+                    on ? 'bg-[#F4F8F5] after:scale-y-100' : 'after:scale-y-0'
+                  }`}
+                >
+                  <span className={`grid h-[30px] w-[30px] flex-none place-items-center rounded-[10px] transition ${a.tile} ${a.tileHover}`}>
+                    <link.icon className="h-[15px] w-[15px]" />
+                  </span>
+                  <span className={`text-[13.5px] ${on ? 'font-semibold' : 'font-medium text-[#0B1610]'}`}>{link.label}</span>
+                  {link.href === '/customer/chat' && totalUnreadChats > 0 && (
+                    <span className="flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#0B7C74] px-1 text-[9.5px] font-bold text-white">
+                      {totalUnreadChats}
+                    </span>
+                  )}
+                  <ChevronRight className="ml-auto h-4 w-4 text-[#D4DFD8] transition group-hover:translate-x-[3px] group-hover:text-[#09B368]" />
+                </Link>
+              );
+            })}
+          </div>
+
+          <div className="border-t border-[#E7EEE9]">
+            <button
+              onClick={handleLogout}
+              className="group relative flex w-full items-center gap-3 overflow-hidden px-4 py-3.5 text-left text-[#DC2626] transition after:absolute after:inset-y-0 after:left-0 after:w-[3px] after:origin-center after:scale-y-0 after:bg-current after:transition-transform after:duration-200 hover:bg-[#FEF2F2] hover:after:scale-y-100"
+            >
+              <span className="grid h-[30px] w-[30px] flex-none place-items-center rounded-[10px] bg-[#FEF2F2] text-[#DC2626] transition group-hover:bg-[#FEE2E2]">
+                <LogOut className="h-[15px] w-[15px]" />
+              </span>
+              <span className="text-[13.5px] font-semibold text-[#DC2626]">Sign out</span>
+            </button>
           </div>
         </div>
       )}

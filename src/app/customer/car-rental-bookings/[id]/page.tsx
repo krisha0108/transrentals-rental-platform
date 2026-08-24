@@ -28,6 +28,7 @@ import { DriverBookingChat } from '@/components/driver/DriverBookingChat';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 
 interface BookingDetails {
   id: string;
@@ -233,7 +234,7 @@ export default function CarRentalBookingDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className={`${quoteDisplay.variable} min-h-screen flex items-center justify-center`}>
         <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full" />
       </div>
     );
@@ -241,10 +242,10 @@ export default function CarRentalBookingDetailPage() {
 
   if (!booking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className={`${quoteDisplay.variable} min-h-screen flex items-center justify-center`}>
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Booking not found</h2>
+          <h2 className="quote-serif text-[26px] font-medium mb-2">Booking not found</h2>
           <Link href="/customer/car-rental-bookings" className="text-emerald-600 hover:underline">
             Back to bookings
           </Link>
@@ -282,14 +283,14 @@ export default function CarRentalBookingDetailPage() {
 
   const cardCls = 'overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm';
   const headCls = 'flex items-center justify-between gap-3 border-b border-gray-50 bg-[#FCFDFC] px-4 py-3';
-  const labelCls = 'text-[11px] font-extrabold uppercase tracking-[0.1em] text-gray-400';
+  const labelCls = 'quote-serif text-[17px] font-medium text-gray-400';
   const actionRowCls =
     'group flex w-full items-center gap-3 rounded-2xl border border-gray-100 bg-white px-3 py-2.5 text-left transition hover:border-[#C8F1DF] hover:bg-[#FCFDFC] hover:shadow-[0_8px_20px_-12px_rgba(1,35,20,.35)]';
   const actionIconCls =
     'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition group-hover:bg-[#E9FAF2] group-hover:text-[#056B3E]';
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 pt-16`}>
       <CustomerHeader showBackButton />
 
       {/* Success Banner for new booking */}
@@ -304,7 +305,7 @@ export default function CarRentalBookingDetailPage() {
 
       {/* ══════════════ Hero header ══════════════ */}
       <div className="relative overflow-hidden bg-[#012314] text-white">
-        <div className="absolute inset-0 bg-[linear-gradient(118deg,#056B3E_0%,#078F53_42%,#09B368_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)]" />
         <div
           className="absolute inset-0 opacity-60"
           style={{
@@ -336,7 +337,7 @@ export default function CarRentalBookingDetailPage() {
                 <Car className="w-7 h-7" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-2xl sm:text-[28px] font-extrabold leading-tight tracking-tight capitalize">
+                <h1 className="quote-serif text-[30px] sm:text-[38px] font-medium leading-tight tracking-[-0.01em] capitalize">
                   {booking.carCategoryName} · {booking.tripType.replace(/_/g, ' ').toLowerCase()}
                 </h1>
                 <div className="mt-2 flex flex-wrap items-center gap-2.5">
@@ -705,7 +706,7 @@ export default function CarRentalBookingDetailPage() {
                   <Navigation className="w-4 h-4 text-amber-700" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10.5px] font-extrabold uppercase tracking-[0.1em] text-amber-700">Trip Start OTP</p>
+                  <p className="quote-serif text-[10.5px] font-medium text-amber-700">Trip Start OTP</p>
                   <p className="text-[12.5px] text-amber-800 mt-0.5">Waiting for driver to assign vehicle. OTP will appear here.</p>
                 </div>
                 <button onClick={() => fetchBooking(true)}
@@ -888,7 +889,7 @@ export default function CarRentalBookingDetailPage() {
             <div className="overflow-hidden rounded-2xl border border-[#C8F1DF] bg-white shadow-sm">
               <div className="flex items-center gap-2 border-b border-[#C8F1DF] bg-[#E9FAF2] px-4 py-3">
                 <MessageCircle className="w-3.5 h-3.5 text-[#056B3E]" />
-                <p className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[#056B3E]">Message from Vendor</p>
+                <p className="quote-serif text-[17px] font-medium text-[#056B3E]">Message from Vendor</p>
               </div>
               <div className="p-4 flex flex-col gap-3">
                 {(() => {
@@ -919,7 +920,7 @@ export default function CarRentalBookingDetailPage() {
             <div className="overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm">
               <div className="flex items-center gap-2 border-b border-red-100 bg-red-50 px-4 py-3">
                 <XCircle className="w-3.5 h-3.5 text-red-700" />
-                <p className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-red-700">Cancellation Details</p>
+                <p className="quote-serif text-[17px] font-medium text-red-700">Cancellation Details</p>
               </div>
               <div className="p-4">
                 <div className="flex flex-col">
@@ -1126,7 +1127,7 @@ export default function CarRentalBookingDetailPage() {
                 <XCircle className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h3 className="text-[15px] font-extrabold text-gray-900">Cancel Booking</h3>
+                <h3 className="quote-serif text-[19px] font-medium text-gray-900">Cancel Booking</h3>
                 <p className="text-[11.5px] text-gray-400">This action cannot be undone</p>
               </div>
             </div>
@@ -1174,7 +1175,7 @@ export default function CarRentalBookingDetailPage() {
               <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
                 <Star className="w-5 h-5 text-amber-700 fill-amber-700" />
               </div>
-              <h3 className="text-[15px] font-extrabold text-gray-900">Rate Your Trip</h3>
+              <h3 className="quote-serif text-[19px] font-medium text-gray-900">Rate Your Trip</h3>
             </div>
 
             <div className="p-4">

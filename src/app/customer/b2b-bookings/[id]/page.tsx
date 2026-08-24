@@ -6,6 +6,7 @@ const B2BBookingChat = lazy(() => import('@/components/b2b/B2BBookingChat'));
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 import {
   Loader2, ArrowLeft, Calendar, MapPin, Clock, CheckCircle,
   Copy, ExternalLink, Share2, Building2, Car, Users, Route,
@@ -281,7 +282,7 @@ export default function CustomerB2BBookingDetailPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#F8FAF9] flex justify-center items-center pt-24">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-[#F8FAF9] flex justify-center items-center pt-24`}>
       <div className="flex flex-col items-center gap-3">
         <Loader2 className="w-10 h-10 animate-spin text-[#09B368]" />
         <p className="text-sm text-gray-500">Loading booking details...</p>
@@ -289,7 +290,7 @@ export default function CustomerB2BBookingDetailPage() {
     </div>
   );
   if (!booking) return (
-    <div className="min-h-screen bg-[#F8FAF9] flex justify-center items-center pt-24">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-[#F8FAF9] flex justify-center items-center pt-24`}>
       <div className="text-center">
         <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
         <p className="text-gray-500 font-medium">Booking not found</p>
@@ -315,10 +316,10 @@ export default function CustomerB2BBookingDetailPage() {
     <>
       <CustomerHeader showBackButton backHref={`/customer/b2b-bookings?customer_id=${customerId}`} title="Booking Detail" />
 
-      <div className="min-h-screen bg-[#F8FAF9] pb-12">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-[#F8FAF9] pb-12`}>
 
         {/* ── Hero Banner ── */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#022B1A] via-[#045030] to-[#09B368] pt-24 pb-14">
+        <div className="relative overflow-hidden bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)] pt-24 pb-14">
           {/* checkered grid overlay */}
           <div className="absolute inset-0 opacity-[0.06]"
             style={{backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px'}} />
@@ -338,7 +339,7 @@ export default function CustomerB2BBookingDetailPage() {
                     B2B Corporate Booking
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-2xl font-black text-white tracking-tight">{booking.bookingNumber}</h1>
+                    <h1 className="quote-serif text-[30px] font-medium text-white tracking-[-0.01em]">{booking.bookingNumber}</h1>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold border ${STATUS_COLORS[booking.status] || 'bg-gray-100 text-gray-700'}`}>
                       {STATUS_LABELS[booking.status] || booking.status}
                     </span>
@@ -401,7 +402,7 @@ export default function CustomerB2BBookingDetailPage() {
         {booking.status !== 'CANCELLED' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 overflow-x-auto">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Booking Progress</p>
+              <p className="quote-serif text-[17px] font-medium text-gray-400 mb-4">Booking Progress</p>
               <div className="flex items-center justify-between min-w-[560px]">
                 {STATUS_STEPS.slice(0, 7).map((step, i) => {
                   const isCompleted = i <= currentStepIndex;
@@ -446,14 +447,14 @@ export default function CustomerB2BBookingDetailPage() {
                   <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center">
                     <Building2 className="w-4 h-4 text-teal-600" />
                   </div>
-                  <h2 className="text-base font-bold text-gray-900">Booking Details</h2>
+                  <h2 className="quote-serif text-[21px] font-medium text-gray-900">Booking Details</h2>
                 </div>
 
                 <div className="p-6">
                   {/* Self-Drive: Vehicle Preference Card */}
                   {isSelfDrive && selfDrivePref && (selfDrivePref.vehicleModelName || selfDrivePref.vehicleBrand) && (
                     <div className="bg-gradient-to-r from-sky-50 to-blue-50 border border-sky-200 rounded-xl p-4 mb-5">
-                      <p className="text-xs text-sky-600 font-bold uppercase tracking-wider mb-3">Preferred Vehicle</p>
+                      <p className="quote-serif text-[17px] text-sky-600 font-medium mb-3">Preferred Vehicle</p>
                       <div className="flex items-center gap-4">
                         <div className="w-14 h-14 bg-white rounded-xl border border-sky-100 shadow-sm flex items-center justify-center flex-shrink-0">
                           <Car className="w-8 h-8 text-sky-500" />
@@ -636,7 +637,7 @@ export default function CustomerB2BBookingDetailPage() {
                     <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
                       <Car className="w-4 h-4 text-emerald-600" />
                     </div>
-                    <h2 className="text-base font-bold text-gray-900">
+                    <h2 className="quote-serif text-[21px] font-medium text-gray-900">
                       {booking.serviceType === 'self-drive' ? 'Assigned Vehicles' : 'Assigned Vehicles & Drivers'}
                     </h2>
                   </div>
@@ -713,7 +714,7 @@ export default function CustomerB2BBookingDetailPage() {
                       <FileText className="w-5 h-5 text-violet-600" />
                     </div>
                     <div>
-                      <h3 className="font-black text-violet-900 text-lg">Quote Ready for Approval</h3>
+                      <h3 className="quote-serif font-medium text-violet-900 text-[23px]">Quote Ready for Approval</h3>
                       <p className="text-xs text-violet-500">Review and confirm your corporate booking</p>
                     </div>
                   </div>
@@ -767,7 +768,7 @@ export default function CustomerB2BBookingDetailPage() {
                       <div className="space-y-3 mb-4">
                         {/* Service Info */}
                         <div className="bg-white rounded-xl p-4 shadow-sm">
-                          <p className="text-xs text-violet-600 font-bold uppercase tracking-wider mb-3">Service Details</p>
+                          <p className="quote-serif text-[17px] text-violet-600 font-medium mb-3">Service Details</p>
                           <div className="grid grid-cols-2 gap-3">
                             <div className="flex items-center gap-2 text-sm">
                               <SvcIcon className="w-4 h-4 text-teal-600" />
@@ -826,7 +827,7 @@ export default function CustomerB2BBookingDetailPage() {
 
                           return (
                             <div className="bg-white rounded-xl p-4 shadow-sm">
-                              <p className="text-xs text-violet-600 font-bold uppercase tracking-wider mb-3 flex items-center gap-1">
+                              <p className="quote-serif text-[17px] text-violet-600 font-medium mb-3 flex items-center gap-1">
                                 <IndianRupee className="w-3.5 h-3.5" /> Cost Breakdown (per vehicle)
                               </p>
                               <div className="space-y-2">
@@ -851,7 +852,7 @@ export default function CustomerB2BBookingDetailPage() {
                                 {(pkm > 0 || pday > 0 || nc > 0 || ekm > 0) && (
                                   <>
                                     <div className="border-t mt-2 pt-2">
-                                      <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Rate Information</p>
+                                      <p className="quote-serif text-[17px] text-gray-400 font-medium mb-1.5">Rate Information</p>
                                     </div>
                                     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                                       {pkm > 0 && <div className="flex justify-between text-xs"><span className="text-gray-500">Per KM Rate</span><span className="text-gray-700 font-medium">₹{pkm}/km</span></div>}
@@ -869,7 +870,7 @@ export default function CustomerB2BBookingDetailPage() {
                         {/* Inclusions */}
                         {allInclusions.length > 0 && (
                           <div className="bg-white rounded-xl p-4 shadow-sm">
-                            <p className="text-xs text-green-600 font-bold uppercase tracking-wider mb-3 flex items-center gap-1">
+                            <p className="quote-serif text-[17px] text-green-600 font-medium mb-3 flex items-center gap-1">
                               <CheckCircle className="w-3.5 h-3.5" /> What's Included
                             </p>
                             <div className="grid sm:grid-cols-2 gap-1.5">
@@ -886,7 +887,7 @@ export default function CustomerB2BBookingDetailPage() {
                         {/* Exclusions */}
                         {allExclusions.length > 0 && (
                           <div className="bg-white rounded-xl p-4 shadow-sm">
-                            <p className="text-xs text-red-500 font-bold uppercase tracking-wider mb-3 flex items-center gap-1">
+                            <p className="quote-serif text-[17px] text-red-500 font-medium mb-3 flex items-center gap-1">
                               <AlertCircle className="w-3.5 h-3.5" /> What's Not Included
                             </p>
                             <div className="grid sm:grid-cols-2 gap-1.5">
@@ -903,7 +904,7 @@ export default function CustomerB2BBookingDetailPage() {
                         {/* Terms & Conditions */}
                         {allTerms.length > 0 && (
                           <div className="bg-white rounded-xl p-4 shadow-sm">
-                            <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-3 flex items-center gap-1">
+                            <p className="quote-serif text-[17px] text-gray-500 font-medium mb-3 flex items-center gap-1">
                               <FileText className="w-3.5 h-3.5" /> Terms & Conditions
                             </p>
                             <div className="space-y-1.5">
@@ -920,7 +921,7 @@ export default function CustomerB2BBookingDetailPage() {
                         {/* Vendor Message */}
                         {quoteDetails.some((d: any) => d.vendorMessage) && (
                           <div className="bg-white rounded-xl p-4 shadow-sm">
-                            <p className="text-xs text-violet-500 font-bold uppercase tracking-wider mb-2">Vendor Notes</p>
+                            <p className="quote-serif text-[17px] text-violet-500 font-medium mb-2">Vendor Notes</p>
                             {quoteDetails.filter((d: any) => d.vendorMessage).map((d: any, i: number) => (
                               <p key={i} className="text-sm text-gray-600 italic">"{d.vendorMessage}"</p>
                             ))}
@@ -948,7 +949,7 @@ export default function CustomerB2BBookingDetailPage() {
                         <CheckCircle className="w-5 h-5 text-emerald-600" />
                       </div>
                       <div>
-                        <h3 className="font-black text-emerald-900 text-lg">Quote Confirmed</h3>
+                        <h3 className="quote-serif font-medium text-emerald-900 text-[23px]">Quote Confirmed</h3>
                         <p className="text-xs text-emerald-600">Your booking is locked in</p>
                       </div>
                     </div>
@@ -999,7 +1000,7 @@ export default function CustomerB2BBookingDetailPage() {
                     return (
                       <div className="space-y-3 mt-3">
                         <div className="bg-white rounded-xl p-4 shadow-sm">
-                          <p className="text-xs text-emerald-600 font-bold uppercase tracking-wider mb-3">Service Details</p>
+                          <p className="quote-serif text-[17px] text-emerald-600 font-medium mb-3">Service Details</p>
                           <div className="grid grid-cols-2 gap-3">
                             <div className="flex items-center gap-2 text-sm">
                               <SvcIcon className="w-4 h-4 text-teal-600" />
@@ -1041,7 +1042,7 @@ export default function CustomerB2BBookingDetailPage() {
 
                           return (
                             <div className="bg-white rounded-xl p-4 shadow-sm">
-                              <p className="text-xs text-emerald-600 font-bold uppercase tracking-wider mb-3 flex items-center gap-1">
+                              <p className="quote-serif text-[17px] text-emerald-600 font-medium mb-3 flex items-center gap-1">
                                 <IndianRupee className="w-3.5 h-3.5" /> Cost Breakdown (per vehicle)
                               </p>
                               <div className="space-y-2">
@@ -1066,7 +1067,7 @@ export default function CustomerB2BBookingDetailPage() {
                                 {(pkm > 0 || pday > 0 || nc > 0 || ekm > 0) && (
                                   <>
                                     <div className="border-t mt-2 pt-2">
-                                      <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Rate Information</p>
+                                      <p className="quote-serif text-[17px] text-gray-400 font-medium mb-1.5">Rate Information</p>
                                     </div>
                                     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                                       {pkm > 0 && <div className="flex justify-between text-xs"><span className="text-gray-500">Per KM Rate</span><span className="text-gray-700 font-medium">₹{pkm}/km</span></div>}
@@ -1083,7 +1084,7 @@ export default function CustomerB2BBookingDetailPage() {
 
                         {allInclusions.length > 0 && (
                           <div className="bg-white rounded-xl p-4 shadow-sm">
-                            <p className="text-xs text-green-600 font-bold uppercase tracking-wider mb-3 flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> What's Included</p>
+                            <p className="quote-serif text-[17px] text-green-600 font-medium mb-3 flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> What's Included</p>
                             <div className="grid sm:grid-cols-2 gap-1.5">
                               {allInclusions.map((item: string, i: number) => (
                                 <div key={i} className="flex items-start gap-2 text-sm text-gray-700"><span className="text-green-500 mt-0.5 font-bold">✓</span><span>{item}</span></div>
@@ -1093,7 +1094,7 @@ export default function CustomerB2BBookingDetailPage() {
                         )}
                         {allExclusions.length > 0 && (
                           <div className="bg-white rounded-xl p-4 shadow-sm">
-                            <p className="text-xs text-red-500 font-bold uppercase tracking-wider mb-3 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> What's Not Included</p>
+                            <p className="quote-serif text-[17px] text-red-500 font-medium mb-3 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> What's Not Included</p>
                             <div className="grid sm:grid-cols-2 gap-1.5">
                               {allExclusions.map((item: string, i: number) => (
                                 <div key={i} className="flex items-start gap-2 text-sm text-gray-700"><span className="text-red-400 mt-0.5 font-bold">✗</span><span>{item}</span></div>
@@ -1103,7 +1104,7 @@ export default function CustomerB2BBookingDetailPage() {
                         )}
                         {allTerms.length > 0 && (
                           <div className="bg-white rounded-xl p-4 shadow-sm">
-                            <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-3 flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> Terms & Conditions</p>
+                            <p className="quote-serif text-[17px] text-gray-500 font-medium mb-3 flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> Terms & Conditions</p>
                             <div className="space-y-1.5">
                               {allTerms.map((item: string, i: number) => (
                                 <div key={i} className="flex items-start gap-2 text-sm text-gray-600"><span className="text-gray-400 mt-0.5 text-xs font-bold">{i + 1}.</span><span>{item}</span></div>
@@ -1113,7 +1114,7 @@ export default function CustomerB2BBookingDetailPage() {
                         )}
                         {quoteDetails.some((d: any) => d.vendorMessage) && (
                           <div className="bg-white rounded-xl p-4 shadow-sm">
-                            <p className="text-xs text-purple-500 font-bold uppercase tracking-wider mb-2">Vendor Notes</p>
+                            <p className="quote-serif text-[17px] text-purple-500 font-medium mb-2">Vendor Notes</p>
                             {quoteDetails.filter((d: any) => d.vendorMessage).map((d: any, i: number) => (
                               <p key={i} className="text-sm text-gray-600 italic">"{d.vendorMessage}"</p>
                             ))}
@@ -1151,7 +1152,7 @@ export default function CustomerB2BBookingDetailPage() {
                       <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
                         <Route className="w-4 h-4 text-blue-600" />
                       </div>
-                      <h3 className="text-base font-bold text-gray-900">Trip Details</h3>
+                      <h3 className="quote-serif text-[21px] font-medium text-gray-900">Trip Details</h3>
                       <span className="ml-auto text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-bold">{booking.trips?.length}</span>
                     </div>
                     <div className="divide-y divide-gray-50 max-h-[480px] overflow-y-auto">
@@ -1223,7 +1224,7 @@ export default function CustomerB2BBookingDetailPage() {
                     <div className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center">
                       <MessageCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <h3 className="text-base font-bold text-gray-900">Contact Vendor</h3>
+                    <h3 className="quote-serif text-[21px] font-medium text-gray-900">Contact Vendor</h3>
                   </div>
                   <div className="p-4">
                     <Suspense fallback={<div className="h-12 bg-gray-100 rounded-xl animate-pulse" />}>
@@ -1247,7 +1248,7 @@ export default function CustomerB2BBookingDetailPage() {
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                   <div className="relative overflow-hidden bg-gradient-to-br from-[#022B1A] via-[#045030] to-[#09B368] px-5 py-4">
                     <div className="absolute inset-0 opacity-[0.06]" style={{backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '20px 20px'}} />
-                    <p className="relative text-xs text-white/70 font-bold uppercase tracking-wider mb-2">Booking Summary</p>
+                    <p className="quote-serif relative text-[17px] text-white/70 font-medium mb-2">Booking Summary</p>
                     <div className="relative flex items-center gap-2">
                       <span className={`px-3 py-1 rounded-full text-xs font-black border ${STATUS_COLORS[booking.status] || 'bg-gray-100 text-gray-700'}`}>
                         {STATUS_LABELS[booking.status] || booking.status}
@@ -1319,7 +1320,7 @@ export default function CustomerB2BBookingDetailPage() {
 
                 {/* Quick Info Card */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Contact Info</p>
+                  <p className="quote-serif text-[17px] font-medium text-gray-400 mb-3">Contact Info</p>
                   <div className="space-y-2.5">
                     <div className="flex items-center gap-2.5 text-sm">
                       <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
@@ -1382,7 +1383,7 @@ export default function CustomerB2BBookingDetailPage() {
 
             {/* Content */}
             <div className="text-center">
-              <h3 className="text-xl font-black text-gray-900">{modal.title}</h3>
+              <h3 className="quote-serif text-[26px] font-medium text-gray-900">{modal.title}</h3>
               <p className="text-sm text-gray-500 mt-2 leading-relaxed">{modal.message}</p>
             </div>
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail, UserCog, Bell, MapPinPlus, Layers, MapPinOff } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
@@ -66,11 +66,18 @@ function ManagerSidebar({
   notificationsBadgeCount: number;
 }) {
   const { data: session } = useSession();
+  const pathname = usePathname();
   const badgeCountByHref: Record<string, number> = {
     '/manager/vendors': vendorBadgeCount,
     '/manager/notifications': notificationsBadgeCount,
     '/manager/contact-inquiries': contactInquiryBadgeCount,
   };
+  // Longest-prefix match so a nested route (e.g. /manager/vendors/by-location)
+  // highlights its own link instead of also lighting up the shorter parent link.
+  const activeHref = SIDEBAR_LINKS
+    .map((l) => l.href)
+    .filter((href) => pathname === href || pathname?.startsWith(`${href}/`))
+    .sort((a, b) => b.length - a.length)[0];
 
   return (
     <>
@@ -111,12 +118,17 @@ function ManagerSidebar({
             {SIDEBAR_LINKS.map((link) => {
               const Icon = link.icon;
               const badgeCount = badgeCountByHref[link.href] || 0;
+              const isActive = link.href === activeHref;
               return (
                 <Link
                   key={link.href}
                   href={link.href}
                   onClick={onClose}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+                    isActive
+                      ? 'bg-white/20 font-semibold shadow-sm'
+                      : 'hover:bg-white/10'
+                  }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="flex-1">{link.label}</span>

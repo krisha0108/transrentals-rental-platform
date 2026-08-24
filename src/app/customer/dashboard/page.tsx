@@ -41,6 +41,10 @@ import {
   ShieldCheck,
   Compass,
   Truck,
+  Bike,
+  Bus,
+  Tractor,
+  Caravan,
   Package,
   Wrench,
   Users,
@@ -52,6 +56,7 @@ import {
 } from 'lucide-react';
 import B2BDashboard from './B2BDashboard';
 import TourDashboard from './TourDashboard';
+import { quoteDisplay } from '@/lib/quote-font';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import NotificationPanel from '@/components/customer/NotificationPanel';
 import BackrCard from '@/components/backr/BackrCard';
@@ -61,6 +66,32 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
   currency: 'INR',
   maximumFractionDigits: 0,
 });
+
+/**
+ * Side-view luxury sedan. Drawn to match lucide's grid and stroke weight —
+ * 24x24 box, 1.8 stroke, round caps — because it sits in the same row as their
+ * bike, bus and truck on the hero road.
+ */
+const LuxuryCar = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.7}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden
+  >
+    {/* boot, raked screens, long bonnet — one silhouette */}
+    <path d="M2.6 15.3v-1.8c0-.6.4-1.1.9-1.3l3.6-1.1 2.2-2.6c.4-.4.9-.7 1.5-.7h3.4c.6 0 1.2.3 1.5.7l2.3 2.7 3.1 1c.6.2 1 .7 1 1.3v1.8" />
+    {/* ground line, broken by the wheels */}
+    <path d="M2.6 15.3h2.5M9 15.3h6M18.9 15.3h2.5" />
+    {/* wheels */}
+    <circle cx="7" cy="15.5" r="2" />
+    <circle cx="17" cy="15.5" r="2" />
+  </svg>
+);
 
 const formatDetailDate = (value?: string) => {
   if (!value) return '';
@@ -562,7 +593,34 @@ export default function CustomerDashboardPage() {
     }
   };
 
-  const fetchBookings = async (identifier: string, status: string, customerId?: string | number) => {
+  // /api/customer/bookings fans out to 16 tables, so one tab costs 9-23s even
+  // though the payload is ~15KB. The answer for a given tab doesn't change while
+  // you sit on the page, so remember it: re-visiting a tab is then instant and
+  // the server isn't asked the same question again. Refresh clears this.
+  const bookingsCache = useRef<Record<string, Booking[]>>({});
+
+  // Clicking through tabs stacks 10-20s requests that finish out of order — the
+  // last one to land would win, which need not be the tab you're looking at.
+  // Only the newest request may write.
+  const bookingsReq = useRef(0);
+
+  const fetchBookings = async (
+    identifier: string,
+    status: string,
+    customerId?: string | number,
+    opts?: { force?: boolean }
+  ) => {
+    const cacheKey = `${status}|${identifier}|${customerId ?? ''}`;
+    const seq = ++bookingsReq.current;
+
+    const cached = opts?.force ? undefined : bookingsCache.current[cacheKey];
+    if (cached) {
+      // Straight from memory — no skeleton, no request.
+      setBookings(cached);
+      setIsLoadingBookings(false);
+      return;
+    }
+
     setIsLoadingBookings(true);
     try {
       // Use local API (Prisma/trans_cms database)
@@ -576,18 +634,22 @@ export default function CustomerDashboardPage() {
       const response = await fetch(`/api/customer/bookings?${params.toString()}`);
       const data = await response.json();
 
-      if (data.success && data.bookings) {
-        setBookings(data.bookings);
-      } else if (Array.isArray(data.bookings)) {
-        setBookings(data.bookings);
-      } else {
-        setBookings([]);
-      }
+      const rows: Booking[] =
+        data.success && data.bookings
+          ? data.bookings
+          : Array.isArray(data.bookings)
+            ? data.bookings
+            : [];
+
+      if (seq !== bookingsReq.current) return; // a newer tab has taken over
+      bookingsCache.current[cacheKey] = rows;
+      setBookings(rows);
     } catch (err) {
       console.error('Failed to fetch bookings:', err);
+      if (seq !== bookingsReq.current) return;
       setBookings([]);
     } finally {
-      setIsLoadingBookings(false);
+      if (seq === bookingsReq.current) setIsLoadingBookings(false);
     }
   };
 
@@ -681,11 +743,14 @@ export default function CustomerDashboardPage() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    // Refresh is the one place that must ignore the per-tab cache — drop it all,
+    // so the other tabs are re-read from the server next time they're opened.
+    bookingsCache.current = {};
     const identifier = customer?.phone || customer?.email || '';
     const customerId = customer?.id;
     const refreshTasks = [
       fetchStats(identifier, customerId),
-      fetchBookings(identifier, activeTab, customerId),
+      fetchBookings(identifier, activeTab, customerId, { force: true }),
       fetchLiveChats(),
       fetchBusData(identifier),
     ];
@@ -1164,9 +1229,114 @@ export default function CustomerDashboardPage() {
   ];
   const recentExpenses = financials.expenses.slice(0, 6);
 
+  // ── View-only derivations ────────────────────────────────────────────────
+  // Everything below reads state that already exists in this component. No new
+  // state, no effect, no fetch — purely how the same data is presented.
+
+  // "Waiting on your decision" — the same bookings, filtered by what they need.
+  const quotesReady = bookings.find((b) => b.is_quote_request && (b.quote_count ?? b.quotations?.length ?? 0) > 0);
+  const paymentDue = bookings.find((b) => b.status === 'PENDING_PAYMENT');
+  const quotesLapsed = bookings.find(
+    (b) => b.all_quotes_expired || (b.status === 'QUOTES_RECEIVED' && (b.quote_count ?? 0) === 0)
+  );
+  const actionCount = [quotesReady, paymentDue, quotesLapsed].filter(Boolean).length;
+
+  // Group the current page of bookings by month for the ledger.
+  const ledgerGroups: { key: string; label: string; items: Booking[] }[] = [];
+  paginatedBookings.forEach((b) => {
+    const d = new Date(b.journey_datetime);
+    const label = Number.isNaN(d.getTime())
+      ? 'Scheduled'
+      : d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    const last = ledgerGroups[ledgerGroups.length - 1];
+    if (last && last.key === label) last.items.push(b);
+    else ledgerGroups.push({ key: label, label, items: [b] });
+  });
+
+  // The eight fleets. Hrefs are unchanged from the previous Quick Book grid;
+  // the copy and the "from" figures are marketing text, not live pricing.
+  const FLEETS = [
+    { label: 'Bike', href: '/bike-on-rent', desc: 'Daily & monthly rentals', from: '₹349', unit: '/day', icon: 'bike' },
+    { label: 'Car', href: '/car-rental', desc: 'With a professional driver', from: '₹12', unit: '/km', icon: 'car' },
+    { label: 'Bus', href: '/bus-rental', desc: 'Group & wedding travel', from: '₹38', unit: '/km', icon: 'bus' },
+    { label: 'Truck', href: '/', desc: 'Goods & part-load transport', from: '₹26', unit: '/km', icon: 'truck' },
+    { label: 'Luxury', href: '/luxury-car-rental', desc: 'Premium chauffeured fleet', from: '₹4,500', unit: '/day', icon: 'luxury' },
+    { label: 'Equipment', href: '/', desc: 'JCB, cranes, generators', from: '₹1,200', unit: '/hr', icon: 'equipment' },
+    { label: 'Packers', href: '/', desc: 'Home & office shifting', from: '₹8,500', unit: '', icon: 'packers' },
+    { label: 'Self Drive', href: '/', desc: 'Take the wheel yourself', from: '₹1,899', unit: '/day', icon: 'selfdrive' },
+  ] as const;
+
+  // The road wants vehicles, not category symbols — a star or a wrench driving
+  // past reads wrong. The marketplace cards keep their own icons.
+  const roadIcon = (kind: string, cls: string) => {
+    if (kind === 'bike') return <Bike className={cls} />;
+    if (kind === 'bus') return <Bus className={cls} />;
+    if (kind === 'truck') return <Truck className={cls} />;
+    if (kind === 'luxury') return <LuxuryCar className={cls} />;
+    if (kind === 'equipment') return <Tractor className={cls} />;
+    if (kind === 'packers') return <Caravan className={cls} />;
+    return <Car className={cls} />;  // car, self drive
+  };
+
+  const fleetIcon = (kind: string, cls: string) => {
+    if (kind === 'bike') return <Bike className={cls} />;
+    if (kind === 'bus') return <Bus className={cls} />;
+    if (kind === 'truck') return <Truck className={cls} />;
+    if (kind === 'luxury') return <Star className={cls} />;
+    if (kind === 'equipment') return <Wrench className={cls} />;
+    if (kind === 'packers') return <Package className={cls} />;
+    return <Car className={cls} />;
+  };
+
+  const GUTTER = { paddingLeft: 'max(24px, calc((100vw - 1240px) / 2))' } as const;
+  const GUTTER_R = { paddingRight: 'max(24px, calc((100vw - 1240px) / 2))' } as const;
+
   return (
-    <div className="min-h-screen bg-[#F8FAF9]">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-white`}>
       <CustomerHeader onRefresh={handleRefresh} isRefreshing={isRefreshing} />
+
+      {/* Scoped to this page so nothing here can leak into another stylesheet. */}
+      <style>{`
+        @keyframes cdbGlow{to{transform:translate(-70px,50px) scale(1.2);opacity:.62}}
+        .cdb-glow{animation:cdbGlow 15s ease-in-out infinite alternate}
+        .cdb-perf{background:repeating-linear-gradient(180deg,rgba(255,255,255,.26) 0 6px,transparent 6px 12px)}
+        .cdb-perf::before,.cdb-perf::after{content:"";position:absolute;left:-9px;width:18px;height:18px;border-radius:9999px;background:#fff}
+        .cdb-perf::before{top:-9px}
+        .cdb-perf::after{bottom:-9px}
+        .cdb-dash{background:repeating-linear-gradient(90deg,rgba(255,255,255,.32) 0 5px,transparent 5px 10px)}
+        .cdb-fleet::before{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%;background:#09B368;transform:scaleX(0);transform-origin:left;transition:transform .28s}
+        .cdb-fleet:hover::before{transform:scaleX(1)}
+        @keyframes cdbPan{to{background-position:-40px -40px}}
+        .cdb-grid{animation:cdbPan 26s linear infinite}
+        @keyframes cdbRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+        .cdb-rise{animation:cdbRise .66s cubic-bezier(.2,.9,.25,1) var(--d,0s) both}
+        @keyframes cdbTar{to{background-position-x:-14px}}
+        .cdb-tar{animation:cdbTar 2.8s linear infinite}
+        @keyframes cdbPosts{to{background-position-x:-110px}}
+        .cdb-posts{animation:cdbPosts 14s linear infinite}
+        .cdb-lane{container-type:inline-size}
+        /* Eight 30s slots inside one 240s loop — each vehicle drives across
+           during its own slot and stays hidden for the other seven. */
+        @keyframes cdbCycle{
+          0%{transform:translateX(-70px);opacity:0}
+          0.6%{opacity:1}
+          11.9%{opacity:1}
+          12.5%{transform:translateX(100cqw);opacity:0}
+          12.51%{transform:translateX(-70px);opacity:0}
+          100%{transform:translateX(-70px);opacity:0}}
+        .cdb-veh{animation:cdbCycle 240s linear infinite backwards}
+        @keyframes cdbPing{0%{transform:scale(1);opacity:.55}70%,100%{transform:scale(2.6);opacity:0}}
+        .cdb-ping::after{content:"";position:absolute;inset:0;border-radius:9999px;background:currentColor;animation:cdbPing 2.4s cubic-bezier(0,0,.2,1) infinite}
+        @keyframes cdbHalo{0%,100%{opacity:.30;transform:scale(1)}50%{opacity:.55;transform:scale(1.06)}}
+        .cdb-halo{animation:cdbHalo 6s ease-in-out infinite}
+        @media(prefers-reduced-motion:reduce){
+          .cdb-glow,.cdb-grid,.cdb-halo,.cdb-tar,.cdb-posts{animation:none}
+          .cdb-veh{animation:none;opacity:0}
+          .cdb-veh:first-of-type{opacity:1}
+          .cdb-ping::after{animation:none;opacity:0}
+          .cdb-rise{animation:none;opacity:1;transform:none}
+        }
+      `}</style>
 
       {/* Main Content with top padding for fixed header */}
       <div className="pt-16">
@@ -1175,16 +1345,14 @@ export default function CustomerDashboardPage() {
              customer login to place bookings). Quick way back to the agent
              dashboard. */}
         {(customer as any)?.linkedTravelAgentId && (
-          <div className="bg-gradient-to-r from-indigo-600 via-emerald-600 to-teal-600 text-white">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-start gap-2.5 flex-1">
-                <div className="w-8 h-8 bg-white/15 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Sparkles className="w-4 h-4 text-white" />
-                </div>
+          <div className="bg-[#061A11] text-white">
+            <div className="mx-auto flex max-w-[1320px] flex-col items-start justify-between gap-3 px-10 py-3 sm:flex-row sm:items-center">
+              <div className="flex flex-1 items-start gap-3">
+                <Sparkles className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#3BE39F]" />
                 <div className="flex-1">
-                  <p className="text-sm font-semibold">You&apos;re signed in as a Travel Agent</p>
-                  <p className="text-[11px] text-white/85 leading-relaxed">
-                    <span className="font-semibold">Car Rental</span> supports full TA modes (Personal &amp; Company with manager review).
+                  <p className="text-[12.5px] font-semibold">You&apos;re signed in as a Travel Agent</p>
+                  <p className="text-[11.5px] leading-relaxed text-white/60">
+                    <span className="font-semibold text-[#3BE39F]">Car Rental</span> supports full TA modes (Personal &amp; Company with manager review).
                     Other transport services book as standard customer.
                     Non-transport services (packers, equipment, group trips) are not available for company booking — they use standard flow.
                     All bookings auto-appear on your agent dashboard.
@@ -1193,9 +1361,9 @@ export default function CustomerDashboardPage() {
               </div>
               <Link
                 href="/travel-agent/bookings"
-                className="inline-flex items-center gap-1.5 bg-white text-indigo-700 hover:bg-indigo-50 text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0"
+                className="flex-shrink-0 border-b border-white/40 pb-0.5 text-[11.5px] font-semibold text-white"
               >
-                Open Agent Dashboard <ChevronRight className="w-3.5 h-3.5" />
+                Open Agent Dashboard
               </Link>
             </div>
           </div>
@@ -1203,76 +1371,64 @@ export default function CustomerDashboardPage() {
 
         {/* B2B Approval Pending Banner */}
         {customer?.isB2B && customer?.b2bStatus !== 'APPROVED' && (
-          <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-5 h-5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-amber-800">B2B Account — Approval In Review</p>
-                  <p className="text-xs text-amber-600">
-                    Your corporate account{customer?.companyName ? ` for ${customer.companyName}` : ''} is under review by the admin team. You'll be able to access B2B features once approved.
-                  </p>
-                </div>
+          <div className="border-b border-amber-200 bg-[#FFFBEB]">
+            <div className="mx-auto flex max-w-[1320px] items-center gap-3 px-10 py-3">
+              <Clock className="h-4 w-4 flex-shrink-0 text-[#B45309]" />
+              <div>
+                <p className="text-[12.5px] font-semibold text-[#92400E]">B2B Account — Approval In Review</p>
+                <p className="text-[11.5px] text-[#B45309]">
+                  Your corporate account{customer?.companyName ? ` for ${customer.companyName}` : ''} is under review by the admin team. You&apos;ll be able to access B2B features once approved.
+                </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Dashboard Tab Toggle */}
-        <div className="bg-white border-b border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-0.5">
-                {customer?.isB2B && customer?.b2bStatus === 'APPROVED' && (
-                  <button
-                    onClick={() => setDashboardView('b2b')}
-                    className={`px-4 py-3 text-sm font-medium transition flex items-center gap-2 border-b-2 ${
-                      dashboardView === 'b2b'
-                        ? 'border-[#09B368] text-[#09B368]'
-                        : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
-                    }`}
-                  >
-                    <Building2 className="w-4 h-4" /> B2B Dashboard
-                  </button>
-                )}
-                <button
-                  onClick={() => setDashboardView('personal')}
-                  className={`px-4 py-3 text-sm font-medium transition flex items-center gap-2 border-b-2 ${
-                    dashboardView === 'personal'
-                      ? 'border-[#09B368] text-[#09B368]'
-                      : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
-                  }`}
-                >
-                  <Car className="w-4 h-4" /> {customer?.isB2B ? 'Personal' : 'My Bookings'}
-                </button>
-                <button
-                  onClick={() => setDashboardView('tour')}
-                  className={`px-4 py-3 text-sm font-medium transition flex items-center gap-2 border-b-2 ${
-                    dashboardView === 'tour'
-                      ? 'border-[#09B368] text-[#09B368]'
-                      : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
-                  }`}
-                >
-                  <Compass className="w-4 h-4" /> Tours
-                </button>
-              </div>
+        {/* Dashboard view switch — same three views, as a segmented control */}
+        <div className="mx-auto max-w-[1320px] px-5 sm:px-8 lg:px-10 pt-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="inline-flex rounded-full border border-[#D4DFD8] bg-[#F4F8F5] p-[3px]">
               {customer?.isB2B && customer?.b2bStatus === 'APPROVED' && (
                 <button
-                  onClick={() => setShowCompanyModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-[#09B368] hover:bg-[#09B368]/10 border border-[#09B368]/30 transition"
+                  onClick={() => setDashboardView('b2b')}
+                  className={`inline-flex items-center gap-2 rounded-full px-[18px] py-2 text-[12.5px] transition ${
+                    dashboardView === 'b2b' ? 'bg-[#061A11] font-semibold text-white' : 'font-medium text-[#78857C] hover:text-[#0B1610]'
+                  }`}
                 >
-                  <Edit3 className="w-4 h-4" /> Manage Company
+                  <Building2 className="h-3.5 w-3.5" /> B2B Dashboard
                 </button>
               )}
+              <button
+                onClick={() => setDashboardView('personal')}
+                className={`inline-flex items-center gap-2 rounded-full px-[18px] py-2 text-[12.5px] transition ${
+                  dashboardView === 'personal' ? 'bg-[#061A11] font-semibold text-white' : 'font-medium text-[#78857C] hover:text-[#0B1610]'
+                }`}
+              >
+                <Car className="h-3.5 w-3.5" /> {customer?.isB2B ? 'Personal' : 'My Bookings'}
+              </button>
+              <button
+                onClick={() => setDashboardView('tour')}
+                className={`inline-flex items-center gap-2 rounded-full px-[18px] py-2 text-[12.5px] transition ${
+                  dashboardView === 'tour' ? 'bg-[#061A11] font-semibold text-white' : 'font-medium text-[#78857C] hover:text-[#0B1610]'
+                }`}
+              >
+                <Compass className="h-3.5 w-3.5" /> Tours
+              </button>
             </div>
+            {customer?.isB2B && customer?.b2bStatus === 'APPROVED' && (
+              <button
+                onClick={() => setShowCompanyModal(true)}
+                className="inline-flex items-center gap-2 text-[12.5px] font-semibold text-[#056B3E]"
+              >
+                <Edit3 className="h-3.5 w-3.5" /> Manage Company
+              </button>
+            )}
           </div>
         </div>
 
         {/* B2B Dashboard View */}
         {dashboardView === 'b2b' && customer?.isB2B ? (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          <div className="mx-auto max-w-[1320px] px-5 sm:px-8 lg:px-10 py-6">
             <B2BDashboard
               customerId={String(customer.id)}
               customerName={customer.name}
@@ -1280,524 +1436,1087 @@ export default function CustomerDashboardPage() {
             />
           </div>
         ) : dashboardView === 'tour' ? (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-            <TourDashboard customerId={String(customer?.id)} />
-          </div>
+          // No wrapper: the tours hero is full-bleed like the bookings one, so
+          // the component carries its own gutters below it.
+          <TourDashboard customerId={String(customer?.id)} />
         ) : (
         <>
-        {/* ── HERO BANNER ── */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#022B1A] via-[#045030] to-[#09B368]">
-          {/* grid overlay */}
-          <div className="absolute inset-0 opacity-[0.06]"
+
+        {/* ══════════════ GREEN HERO — full-bleed ticket ══════════════ */}
+        {/* Same ticket shape as before (full-bleed panel, 3-column split,
+            perforated divider with punched notches, ambient glow). The content
+            is the old dashboard hero: avatar, greeting, name, portal line, and
+            the three headline stats. */}
+        <div className="relative mt-8 grid grid-cols-1 overflow-hidden bg-gradient-to-br from-[#022B1A] via-[#045030] to-[#09B368] text-white lg:grid-cols-[0.74fr_auto_1.26fr]">
+          {/* drifting grid */}
+          <div className="cdb-grid pointer-events-none absolute inset-0 opacity-[0.07]"
             style={{backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px'}} />
+          {/* key light from the top right, and a soft floor shadow */}
+          <div className="pointer-events-none absolute inset-0"
+            style={{backgroundImage: 'radial-gradient(760px 340px at 88% -25%, rgba(255,255,255,.20), transparent 62%), radial-gradient(520px 260px at 8% 130%, rgba(1,35,20,.55), transparent 60%)'}} />
           {/* glow blobs */}
-          <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-[#09B368]/30 blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 w-56 h-56 rounded-full bg-[#056040]/40 blur-2xl" />
+          <div className="cdb-glow pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-[#09B368]/30 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-[#056040]/40 blur-2xl" />
+          {/* lit top edge */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
-          <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-              {/* Left: greeting */}
-              <div className="flex items-center gap-4">
-                <div className="relative flex-shrink-0">
-                  <div className="w-14 h-14 rounded-2xl border-2 border-white/30 bg-white/10 overflow-hidden backdrop-blur-sm shadow-lg">
-                    {customer?.avatar || customer?.image ? (
-                      <img src={customer.avatar || customer.image} className="w-full h-full object-cover" alt="" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <span className="text-white font-bold text-2xl">{customer?.name?.charAt(0)?.toUpperCase()}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#4ADE80] rounded-full border-2 border-[#022B1A]" />
+          {/* ── road along the bottom ── */}
+          <div className="cdb-lane pointer-events-none absolute inset-x-0 bottom-0 z-[5] h-[44px] overflow-hidden">
+            {/* roadside posts, drifting faster than the grid for depth */}
+            <div className="cdb-posts absolute inset-x-0 bottom-[22px] h-4"
+              style={{
+                backgroundImage: 'repeating-linear-gradient(90deg, rgba(255,255,255,.16) 0 1px, transparent 1px 110px)',
+                WebkitMaskImage: 'linear-gradient(transparent 10%, #000 90%)',
+                maskImage: 'linear-gradient(transparent 10%, #000 90%)',
+              }} />
+            {/* tarmac */}
+            <div className="absolute inset-x-0 bottom-0 h-[22px] border-t border-white/[0.18] bg-[#01230F]/55" />
+            {/* centre line */}
+            <div className="cdb-tar absolute inset-x-0 bottom-[10px] h-[2px]"
+              style={{ backgroundImage: 'repeating-linear-gradient(90deg, rgba(255,255,255,.42) 0 8px, transparent 8px 14px)' }} />
+            {/* one vehicle per pass, cycling through all eight services */}
+            {FLEETS.map((f, i) => (
+              <span
+                key={f.label}
+                className="cdb-veh absolute bottom-[18px] left-0 text-[#E4FBEF] drop-shadow-[0_3px_6px_rgba(0,0,0,.45)]"
+                style={{ animationDelay: `${i * 30}s` }}
+                aria-hidden
+              >
+                {roadIcon(f.icon, 'h-[26px] w-[26px]')}
+              </span>
+            ))}
+          </div>
+
+          <div className="relative z-10 flex items-center pb-[66px] pr-6 pt-8 lg:pr-[46px]" style={GUTTER}>
+            <div className="cdb-rise flex items-center gap-5">
+              <div className="relative flex-shrink-0">
+                {/* halo */}
+                <div className="cdb-halo pointer-events-none absolute -inset-3 rounded-full bg-[#4ADE80]/25 blur-xl" />
+                <div className="relative grid h-16 w-16 place-items-center overflow-hidden rounded-2xl border-2 border-white/30 bg-white/10 shadow-[0_10px_30px_-12px_rgba(0,0,0,.6)] backdrop-blur-sm [&>img]:relative [&>img]:z-10">
+                  {customer?.avatar || customer?.image ? (
+                    <img
+                      src={customer.avatar || customer.image}
+                      className="h-full w-full object-cover"
+                      alt=""
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : null}
+                  <span className="quote-serif absolute text-[30px] font-medium">{customer?.name?.charAt(0)?.toUpperCase()}</span>
                 </div>
-                <div>
-                  <p className="text-white/60 text-xs font-medium">{getGreeting()}</p>
-                  <h1 className="text-white font-bold text-xl leading-tight mt-0.5">{customer?.name || 'Customer'}</h1>
-                  <p className="text-white/50 text-xs mt-0.5">Vehicle rental portal</p>
-                </div>
+                <div className="absolute -bottom-1 -right-1 h-[15px] w-[15px] rounded-full border-[3px] border-[#022B1A] bg-[#4ADE80]" />
               </div>
-
-              {/* Right: 3 key stats */}
-              <div className="flex items-center gap-3">
-                {[
-                  { label: 'Total Bookings', value: stats?.total ?? 0, icon: Calendar },
-                  { label: 'Active', value: (stats?.open ?? 0) + (stats?.confirmed ?? 0) + (stats?.ongoing ?? 0), icon: Car },
-                  { label: 'Total Spent', value: formatCurrency(financials.totalExpense), icon: IndianRupee, isText: true },
-                ].map(({ label, value, icon: Icon, isText }) => (
-                  <div key={label} className="text-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3 min-w-[90px]">
-                    <Icon className="w-3.5 h-3.5 text-white/60 mx-auto mb-1" />
-                    <p className="text-white font-bold text-lg leading-none">{isText ? value : value.toLocaleString()}</p>
-                    <p className="text-white/50 text-[10px] mt-1">{label}</p>
-                  </div>
-                ))}
+              <div className="min-w-0">
+                <p className="flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/[0.55]">
+                  <span className="h-px w-6 bg-white/30" />
+                  {getGreeting()}
+                </p>
+                <h1 className="quote-serif mt-1.5 text-[36px] font-medium leading-[1] tracking-[-0.02em] [text-shadow:0_2px_20px_rgba(0,0,0,.28)] sm:text-[42px]">
+                  {customer?.name || 'Customer'}
+                </h1>
+                <p className="mt-1.5 text-[12.5px] tracking-[0.02em] text-white/[0.55]">Vehicle rental portal</p>
               </div>
             </div>
           </div>
 
+          <div className="cdb-perf relative z-10 hidden w-px lg:block" />
+
+          <div className="relative z-10 flex items-center pb-[66px] pl-6 pt-8 lg:pl-10" style={GUTTER_R}>
+            <div className="cdb-rise grid w-full grid-cols-3 gap-3" style={{ ['--d' as any]: '.12s' }}>
+              {[
+                {
+                  label: 'Total Bookings',
+                  value: formatCount(stats?.total ?? 0),
+                  caption: 'All time',
+                  icon: Calendar,
+                },
+                {
+                  label: 'Active',
+                  value: formatCount((stats?.open ?? 0) + (stats?.confirmed ?? 0) + (stats?.ongoing ?? 0)),
+                  caption: 'Waiting, confirmed & ongoing',
+                  icon: Car,
+                },
+                {
+                  label: 'Total Spent',
+                  value: formatCurrency(financials.totalExpense),
+                  caption: 'Across all bookings',
+                  icon: IndianRupee,
+                },
+              ].map(({ label, value, caption, icon: Icon }) => (
+                <div
+                  key={label}
+                  className="relative overflow-hidden rounded-2xl border border-white/[0.16] bg-white/[0.08] px-3 pb-3 pt-3 backdrop-blur-sm sm:px-4"
+                >
+                  {/* lit top edge, same trick as the panel itself */}
+                  <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+                  <div className="flex items-center gap-2">
+                    <span className="grid h-[22px] w-[22px] flex-none place-items-center rounded-lg border border-white/20 bg-white/[0.14]">
+                      <Icon className="h-3 w-3" />
+                    </span>
+                    <p className="min-w-0 text-[9px] uppercase leading-[1.4] tracking-[0.08em] text-white/[0.66] sm:tracking-[0.16em]">{label}</p>
+                  </div>
+                  <p className="quote-serif mt-2 text-[32px] font-medium leading-none tabular-nums [text-shadow:0_2px_14px_rgba(0,0,0,.25)]">
+                    {value}
+                  </p>
+                  <p className="mt-1.5 text-[10px] leading-tight text-white/[0.5]">{caption}</p>
+                </div>
+              ))}
+
+              {/* How those bookings split, drawn from the same counts. */}
+              {(stats?.total ?? 0) > 0 && (() => {
+                const total = stats?.total || 1;
+                const mix = [
+                  { k: 'Waiting', v: stats?.open ?? 0, c: '#FCD34D' },
+                  { k: 'Confirmed', v: stats?.confirmed ?? 0, c: '#4ADE80' },
+                  { k: 'Ongoing', v: stats?.ongoing ?? 0, c: '#7DD3FC' },
+                  { k: 'Completed', v: stats?.completed ?? 0, c: 'rgba(255,255,255,.6)' },
+                  { k: 'Dropped', v: stats?.dropped ?? 0, c: '#FCA5A5' },
+                ].filter((x) => x.v > 0);
+                return (
+                  <div className="col-span-3 mt-4">
+                    <div className="mb-2 flex items-baseline justify-between gap-3">
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/[0.5]">Booking mix</p>
+                      <p className="text-[10px] text-white/[0.5]">
+                        <span className="tabular-nums text-white/85">{formatCount(stats?.total ?? 0)}</span> total
+                      </p>
+                    </div>
+
+                    <div className="flex h-2 w-full gap-[3px]">
+                      {mix.map((x) => (
+                        <span
+                          key={x.k}
+                          className="relative overflow-hidden rounded-full"
+                          style={{ width: `${(x.v / total) * 100}%`, background: x.c }}
+                          title={`${x.k}: ${x.v}`}
+                        >
+                          {/* lit top edge, same as the panels above */}
+                          <span className="absolute inset-x-0 top-0 h-1/2 rounded-full bg-white/25" />
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5">
+                      {mix.map((x) => (
+                        <span key={x.k} className="flex items-baseline gap-2 text-[10.5px] text-white/[0.55]">
+                          <span className="h-1.5 w-1.5 flex-none translate-y-[-1px] rounded-full" style={{ background: x.c }} />
+                          {x.k}
+                          <span className="tabular-nums font-semibold text-white/90">{x.v}</span>
+                          <span className="tabular-nums text-white/40">{Math.round((x.v / total) * 100)}%</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
         </div>
 
-        {/* ── MAIN CONTENT AREA ── */}
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        {/* ══════════════ NEEDS YOU — waiting on your decision ══════════════ */}
+        {/* First thing under the hero: what the customer has to act on. */}
+        {actionCount > 0 && (
+          <div className="mx-auto max-w-[1320px] px-5 sm:px-8 lg:px-10 pt-[60px]">
+            <div className="flex flex-wrap items-end justify-between gap-6 border-b border-[#E7EEE9] pb-[18px]">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#A6B1AA]">Needs you</p>
+                <h2 className="quote-serif mt-2 text-[40px] font-medium leading-none">Waiting on your decision</h2>
+              </div>
+              <span className="text-[12.5px] text-[#78857C]">{actionCount} item{actionCount !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="grid grid-cols-1 border-b border-[#E7EEE9] lg:auto-rows-fr lg:grid-cols-3">
+              {quotesReady && (
+                <a
+                  href={getBookingUrl(quotesReady)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-start gap-4 border-b border-[#E7EEE9] py-[26px] pr-7 transition hover:bg-[#F4F8F5] lg:border-b-0 lg:border-r"
+                >
+                  <span className="grid h-[38px] w-[38px] flex-none place-items-center rounded-lg bg-[#EAF8F1] text-[#056B3E]">
+                    <IndianRupee className="h-[18px] w-[18px]" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="quote-serif block text-[21px] font-medium leading-[1.35]">
+                      {(() => {
+                        const c = quotesReady.quote_count ?? quotesReady.quotations?.length ?? 0;
+                        return `${c} quote${c !== 1 ? 's' : ''} ready to compare`;
+                      })()}
+                    </span>
+                    <span className="mt-1.5 block text-[12px] leading-relaxed text-[#78857C]">
+                      {quotesReady.service_name} · {quotesReady.location_name}
+                      {quotesReady.destination && quotesReady.destination !== quotesReady.location_name ? ` → ${quotesReady.destination}` : ''}
+                      {quotesReady.lowest_quote_amount ? `. Lowest is ₹${Number(quotesReady.lowest_quote_amount).toLocaleString('en-IN')}.` : '.'}
+                    </span>
+                    <span className="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#056B3E]">
+                      Compare quotes <ChevronRight className="h-3 w-3" />
+                    </span>
+                  </span>
+                </a>
+              )}
+              {paymentDue && (
+                <a
+                  href={getBookingUrl(paymentDue)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-start gap-4 border-b border-[#E7EEE9] py-[26px] pr-7 transition hover:bg-[#F4F8F5] lg:border-b-0 lg:border-r lg:pl-7"
+                >
+                  <span className="grid h-[38px] w-[38px] flex-none place-items-center rounded-lg bg-[#FFFBEB] text-[#B45309]">
+                    <Clock className="h-[18px] w-[18px]" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="quote-serif block text-[21px] font-medium leading-[1.35]">Payment pending</span>
+                    <span className="mt-1.5 block text-[12px] leading-relaxed text-[#78857C]">
+                      {paymentDue.service_name}
+                      {paymentDue.booking_number ? ` #${paymentDue.booking_number}` : ''} · {formatDate(paymentDue.journey_datetime)}. Pay to keep the vehicle held.
+                    </span>
+                    <span className="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#B45309]">
+                      Complete payment <ChevronRight className="h-3 w-3" />
+                    </span>
+                  </span>
+                </a>
+              )}
+              {quotesLapsed && (
+                <a
+                  href={getBookingUrl(quotesLapsed)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-start gap-4 py-[26px] transition hover:bg-[#F4F8F5] lg:pl-7"
+                >
+                  <span className="grid h-[38px] w-[38px] flex-none place-items-center rounded-lg bg-red-50 text-red-600">
+                    <AlertCircle className="h-[18px] w-[18px]" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="quote-serif block text-[21px] font-medium leading-[1.35]">Quotes expired</span>
+                    <span className="mt-1.5 block text-[12px] leading-relaxed text-[#78857C]">
+                      {quotesLapsed.service_name} · {quotesLapsed.location_name}
+                      {quotesLapsed.destination && quotesLapsed.destination !== quotesLapsed.location_name ? ` → ${quotesLapsed.destination}` : ''}. Re-request to get fresh vendor pricing.
+                    </span>
+                    <span className="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-red-600">
+                      Re-request quotes <ChevronRight className="h-3 w-3" />
+                    </span>
+                  </span>
+                </a>
+              )}
+            </div>
+          </div>
+        )}
 
-          {/* KPI stat cards — overlapping hero */}
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 -mt-0 pt-6">
-            {tabConfig.map((stat) => {
-              const Icon = stat.icon;
+        {/* ══════════════ YOUR RECORD — journeys ledger ══════════════ */}
+        <div className="mx-auto max-w-[1320px] px-5 sm:px-8 lg:px-10 pt-[76px]">
+          <div className="flex flex-wrap items-end justify-between gap-6 border-b border-[#E7EEE9] pb-[18px]">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#A6B1AA]">Your record</p>
+              <h2 className="quote-serif mt-2 text-[40px] font-medium leading-none">Journeys</h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {/* Service Filter */}
+              <div className="relative">
+                <button
+                  onClick={() => { setShowServiceFilter(prev => !prev); setShowLocationFilter(false); }}
+                  className="inline-flex items-center gap-2 rounded-full border border-[#D4DFD8] bg-white px-[13px] py-2 text-[12px] text-[#46524A] transition hover:border-[#09B368] hover:text-[#056B3E]"
+                >
+                  <Filter className="h-3 w-3" />
+                  {selectedService === 'all' ? 'All Services' : selectedService}
+                  <ChevronDown className={`h-3 w-3 transition-transform ${showServiceFilter ? 'rotate-180' : ''}`} />
+                </button>
+                {showServiceFilter && (
+                  <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-[#D4DFD8] bg-white shadow-[0_18px_40px_-18px_rgba(6,26,17,.5)]">
+                    <div className="space-y-1 p-2">
+                      <input type="text" value={serviceSearch} onChange={(e) => setServiceSearch(e.target.value)} placeholder="Search services..."
+                        className="w-full rounded-lg border border-[#D4DFD8] px-3 py-2 text-xs transition focus:border-[#09B368] focus:outline-none" />
+                      <button onClick={() => { setSelectedService('all'); setShowServiceFilter(false); setServiceSearch(''); }}
+                        className={`w-full rounded-lg px-3 py-2 text-left text-xs transition ${selectedService === 'all' ? 'bg-[#EAF8F1] font-semibold text-[#056B3E]' : 'text-[#46524A] hover:bg-[#F4F8F5]'}`}>
+                        All Services
+                      </button>
+                      <div className="max-h-48 space-y-0.5 overflow-y-auto">
+                        {filteredServiceOptions.length === 0 ? (
+                          <p className="px-3 py-2 text-xs text-[#A6B1AA]">{serviceOptions.length === 0 ? 'No services yet' : 'No match'}</p>
+                        ) : filteredServiceOptions.map(service => (
+                          <button key={service} onClick={() => { setSelectedService(service); setShowServiceFilter(false); setServiceSearch(''); }}
+                            className={`w-full rounded-lg px-3 py-2 text-left text-xs transition ${selectedService === service ? 'bg-[#EAF8F1] font-semibold text-[#056B3E]' : 'text-[#46524A] hover:bg-[#F4F8F5]'}`}>
+                            {service}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {/* Location Filter */}
+              <div className="relative">
+                <button
+                  onClick={() => { setShowLocationFilter(prev => !prev); setShowServiceFilter(false); }}
+                  className="inline-flex items-center gap-2 rounded-full border border-[#D4DFD8] bg-white px-[13px] py-2 text-[12px] text-[#46524A] transition hover:border-[#09B368] hover:text-[#056B3E]"
+                >
+                  <MapPin className="h-3 w-3" />
+                  {selectedLocation === 'all' ? 'All Cities' : selectedLocation}
+                  <ChevronDown className={`h-3 w-3 transition-transform ${showLocationFilter ? 'rotate-180' : ''}`} />
+                </button>
+                {showLocationFilter && (
+                  <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-[#D4DFD8] bg-white shadow-[0_18px_40px_-18px_rgba(6,26,17,.5)]">
+                    <div className="space-y-1 p-2">
+                      <input type="text" value={locationSearch} onChange={(e) => setLocationSearch(e.target.value)} placeholder="Search cities..."
+                        className="w-full rounded-lg border border-[#D4DFD8] px-3 py-2 text-xs transition focus:border-[#09B368] focus:outline-none" />
+                      <button onClick={() => { setSelectedLocation('all'); setLocationSearch(''); setShowLocationFilter(false); }}
+                        className={`w-full rounded-lg px-3 py-2 text-left text-xs transition ${selectedLocation === 'all' ? 'bg-[#EAF8F1] font-semibold text-[#056B3E]' : 'text-[#46524A] hover:bg-[#F4F8F5]'}`}>
+                        All Cities
+                      </button>
+                      <div className="max-h-48 space-y-0.5 overflow-y-auto">
+                        {filteredLocationOptions.length === 0 ? (
+                          <p className="px-3 py-2 text-xs text-[#A6B1AA]">{locationOptions.length === 0 ? 'No locations yet' : 'No match'}</p>
+                        ) : filteredLocationOptions.map(location => (
+                          <button key={location} onClick={() => { setSelectedLocation(location); setShowLocationFilter(false); setLocationSearch(''); }}
+                            className={`w-full rounded-lg px-3 py-2 text-left text-xs transition ${selectedLocation === location ? 'bg-[#EAF8F1] font-semibold text-[#056B3E]' : 'text-[#46524A] hover:bg-[#F4F8F5]'}`}>
+                            {location}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {/* Quotes Expired Filter */}
+              <button
+                onClick={() => setShowExpiredQuotesOnly(prev => !prev)}
+                className={`inline-flex items-center gap-2 rounded-full border px-[13px] py-2 text-[12px] transition ${showExpiredQuotesOnly ? 'border-red-200 bg-red-50 text-red-600' : 'border-[#D4DFD8] bg-white text-[#46524A] hover:border-red-300'}`}
+              >
+                <Clock className="h-3 w-3" />
+                Quotes Expired
+              </button>
+              <button onClick={handleRefresh} disabled={isRefreshing}
+                className="inline-flex items-center gap-2 rounded-full border border-[#D4DFD8] bg-white px-3 py-2 text-[12px] text-[#46524A] transition hover:border-[#09B368]">
+                <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin text-[#09B368]' : ''}`} />
+              </button>
+            </div>
+          </div>
+
+          {/* Status filter — one strip, a column per status. The count sits in
+              the display face so the numbers, not the chrome, carry the row. */}
+          <div className="my-[22px] grid grid-cols-3 overflow-hidden rounded-2xl border border-[#E7EEE9] sm:grid-cols-6">
+            {tabConfig.map((stat, idx) => {
               const isActive = activeTab === stat.key;
-              const colorMap: Record<string, { bg: string; text: string; border: string }> = {
-                All:       { bg: 'bg-violet-50',       text: 'text-violet-600',    border: 'border-violet-200' },
-                Open:      { bg: 'bg-amber-50',         text: 'text-amber-600',     border: 'border-amber-200' },
-                Confirmed: { bg: 'bg-[#09B368]/10',     text: 'text-[#09B368]',     border: 'border-[#09B368]/30' },
-                Ongoing:   { bg: 'bg-blue-50',          text: 'text-blue-600',      border: 'border-blue-200' },
-                Completed: { bg: 'bg-gray-100',         text: 'text-gray-600',      border: 'border-gray-200' },
-                Dropped:   { bg: 'bg-red-50',           text: 'text-red-500',       border: 'border-red-200' },
+              const dot: Record<string, string> = {
+                All: 'bg-[#0B1610]',
+                Open: 'bg-[#F59E0B]',
+                Confirmed: 'bg-[#09B368]',
+                Ongoing: 'bg-[#0284C7]',
+                Completed: 'bg-[#A6B1AA]',
+                Dropped: 'bg-[#DC2626]',
               };
-              const colors = colorMap[stat.key] || colorMap.All;
               return (
                 <button
                   key={stat.key}
                   onClick={() => handleTabChange(stat.key)}
-                  className={`bg-white border rounded-2xl p-4 text-left transition-all hover:shadow-md ${
-                    isActive
-                      ? `${colors.border} shadow-sm ring-2 ring-[#09B368]/10`
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className={`relative border-[#E7EEE9] px-3 py-3.5 text-left transition sm:px-4 ${
+                    idx % 3 !== 2 ? 'border-r' : ''
+                  } sm:border-r sm:[&:nth-child(6)]:border-r-0 ${
+                    idx < 3 ? 'border-b sm:border-b-0' : ''
+                  } ${isActive ? 'bg-[#F4F8F5]' : 'bg-white hover:bg-[#FAFCFB]'}`}
                 >
-                  <div className={`w-9 h-9 ${isActive ? colors.bg : 'bg-gray-50'} rounded-xl flex items-center justify-center mb-3 transition-colors`}>
-                    <Icon className={`h-4 w-4 ${isActive ? colors.text : 'text-gray-400'}`} />
-                  </div>
-                  <p className={`text-2xl font-bold leading-none ${isActive ? 'text-gray-900' : 'text-gray-700'}`}>{stat.count}</p>
-                  <p className={`text-xs font-semibold mt-1.5 ${isActive ? colors.text : 'text-gray-400'}`}>{stat.label}</p>
+                  <span className="flex items-center gap-2">
+                    <span className={`h-1.5 w-1.5 flex-none rounded-full ${dot[stat.key] || 'bg-[#A6B1AA]'}`} />
+                    <span
+                      className={`min-w-0 text-[9.5px] uppercase tracking-[0.06em] sm:tracking-[0.16em] ${
+                        isActive ? 'font-semibold text-[#0B1610]' : 'font-medium text-[#A6B1AA]'
+                      }`}
+                    >
+                      {stat.label}
+                    </span>
+                  </span>
+                  <span
+                    className={`quote-serif mt-1.5 block text-[28px] font-medium leading-none tabular-nums ${
+                      isActive ? 'text-[#0B1610]' : 'text-[#78857C]'
+                    }`}
+                  >
+                    {stat.count}
+                  </span>
+                  {isActive && <span className="absolute inset-x-0 bottom-0 h-[2px] bg-[#09B368]" />}
                 </button>
               );
             })}
           </div>
 
-          {/* ── NOTIFICATIONS (mobile only) ── */}
-          <div className="mt-6 lg:hidden">
-            <NotificationPanel />
-          </div>
-
-          {/* ── TWO COLUMN: main + right sidebar ── */}
-          <div className="mt-6 flex gap-6 items-start pb-10">
-
-            {/* ── BOOKINGS TABLE (main, left) ── */}
-            <div className="flex-1 min-w-0">
-
-              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-                {/* Header */}
-                <div className="px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Ledger */}
+          {isLoadingBookings ? (
+            <div className="border-t border-[#E7EEE9]" aria-label="Loading bookings">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="grid grid-cols-[44px_1fr] items-center gap-x-4 gap-y-3 border-b border-[#E7EEE9] py-4 lg:grid-cols-[40px_minmax(0,200px)_minmax(0,1fr)_minmax(0,190px)_138px_104px_14px] lg:gap-y-0"
+                >
+                  <span className="h-9 w-9 animate-pulse rounded-xl bg-[#EAF0EC]" />
                   <div>
-                    <h2 className="font-bold text-gray-900 text-sm">My Bookings</h2>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {filteredBookings.length} {activeTab === 'All' ? 'total' : activeTab.toLowerCase()} booking{filteredBookings.length !== 1 ? 's' : ''}
-                    </p>
+                    <span className="block h-3.5 w-4/5 animate-pulse rounded bg-[#EAF0EC]" />
+                    <span className="mt-2 block h-2.5 w-2/5 animate-pulse rounded bg-[#F1F5F2]" />
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {/* Service Filter */}
-                    <div className="relative">
-                      <button
-                        onClick={() => { setShowServiceFilter(prev => !prev); setShowLocationFilter(false); }}
-                        className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl hover:border-[#09B368]/50 transition text-xs font-medium text-gray-700 shadow-sm"
-                      >
-                        <Filter className="h-3.5 w-3.5 text-gray-400" />
-                        {selectedService === 'all' ? 'All Services' : selectedService}
-                        <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform ${showServiceFilter ? 'rotate-180' : ''}`} />
-                      </button>
-                      {showServiceFilter && (
-                        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
-                          <div className="p-2 space-y-1">
-                            <input type="text" value={serviceSearch} onChange={(e) => setServiceSearch(e.target.value)} placeholder="Search services..."
-                              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#09B368]/40 transition" />
-                            <button onClick={() => { setSelectedService('all'); setShowServiceFilter(false); setServiceSearch(''); }}
-                              className={`w-full text-left px-3 py-2 rounded-lg text-xs transition ${selectedService === 'all' ? 'bg-[#09B368]/10 text-[#09B368] font-medium' : 'hover:bg-[#09B368]/5 text-gray-700'}`}>
-                              All Services
-                            </button>
-                            <div className="max-h-48 overflow-y-auto space-y-0.5">
-                              {filteredServiceOptions.length === 0 ? (
-                                <p className="px-3 py-2 text-xs text-gray-400">{serviceOptions.length === 0 ? 'No services yet' : 'No match'}</p>
-                              ) : filteredServiceOptions.map(service => (
-                                <button key={service} onClick={() => { setSelectedService(service); setShowServiceFilter(false); setServiceSearch(''); }}
-                                  className={`w-full text-left px-3 py-2 rounded-lg text-xs transition ${selectedService === service ? 'bg-[#09B368]/10 text-[#09B368] font-medium' : 'hover:bg-[#09B368]/5 text-gray-700'}`}>
-                                  {service}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    {/* Location Filter */}
-                    <div className="relative">
-                      <button
-                        onClick={() => { setShowLocationFilter(prev => !prev); setShowServiceFilter(false); }}
-                        className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl hover:border-[#09B368]/50 transition text-xs font-medium text-gray-700 shadow-sm"
-                      >
-                        <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                        {selectedLocation === 'all' ? 'All Cities' : selectedLocation}
-                        <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform ${showLocationFilter ? 'rotate-180' : ''}`} />
-                      </button>
-                      {showLocationFilter && (
-                        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
-                          <div className="p-2 space-y-1">
-                            <input type="text" value={locationSearch} onChange={(e) => setLocationSearch(e.target.value)} placeholder="Search cities..."
-                              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#09B368]/40 transition" />
-                            <button onClick={() => { setSelectedLocation('all'); setLocationSearch(''); setShowLocationFilter(false); }}
-                              className={`w-full text-left px-3 py-2 rounded-lg text-xs transition ${selectedLocation === 'all' ? 'bg-[#09B368]/10 text-[#09B368] font-medium' : 'hover:bg-[#09B368]/5 text-gray-700'}`}>
-                              All Cities
-                            </button>
-                            <div className="max-h-48 overflow-y-auto space-y-0.5">
-                              {filteredLocationOptions.length === 0 ? (
-                                <p className="px-3 py-2 text-xs text-gray-400">{locationOptions.length === 0 ? 'No locations yet' : 'No match'}</p>
-                              ) : filteredLocationOptions.map(location => (
-                                <button key={location} onClick={() => { setSelectedLocation(location); setShowLocationFilter(false); setLocationSearch(''); }}
-                                  className={`w-full text-left px-3 py-2 rounded-lg text-xs transition ${selectedLocation === location ? 'bg-[#09B368]/10 text-[#09B368] font-medium' : 'hover:bg-[#09B368]/5 text-gray-700'}`}>
-                                  {location}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    {/* Quotes Expired Filter */}
-                    <button
-                      onClick={() => setShowExpiredQuotesOnly(prev => !prev)}
-                      className={`flex items-center gap-1.5 px-3 py-2 border rounded-xl text-xs font-medium transition shadow-sm ${showExpiredQuotesOnly ? 'bg-red-50 border-red-300 text-red-600' : 'bg-white border-gray-200 text-gray-700 hover:border-red-300'}`}
-                    >
-                      <Clock className="h-3.5 w-3.5" />
-                      Quotes Expired
-                    </button>
-                    <button onClick={handleRefresh} disabled={isRefreshing}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50 transition shadow-sm">
-                      <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin text-[#09B368]' : ''}`} />
-                    </button>
+                  <div className="col-span-2 lg:col-span-1">
+                    <span className="block h-3 w-3/4 animate-pulse rounded bg-[#EAF0EC]" />
+                    <span className="mt-2 block h-2.5 w-1/2 animate-pulse rounded bg-[#F1F5F2]" />
                   </div>
+                  <div className="hidden lg:block">
+                    <span className="block h-3 w-3/5 animate-pulse rounded bg-[#EAF0EC]" />
+                    <span className="mt-2 block h-2.5 w-2/5 animate-pulse rounded bg-[#F1F5F2]" />
+                  </div>
+                  <div className="hidden lg:block">
+                    <span className="block h-3 w-3/5 animate-pulse rounded bg-[#EAF0EC]" />
+                    <span className="mt-2.5 block h-[3px] w-[100px] animate-pulse rounded-full bg-[#F1F5F2]" />
+                  </div>
+                  <span className="ml-auto hidden h-4 w-20 animate-pulse rounded bg-[#F1F5F2] lg:block" />
+                  <span className="hidden lg:block" />
+                </div>
+              ))}
+            </div>
+          ) : filteredBookings.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 border-t border-[#E7EEE9] py-20">
+              <Calendar className="h-7 w-7 text-[#09B368]" />
+              <p className="quote-serif text-[24px] font-medium text-[#0B1610]">No {activeTab.toLowerCase()} bookings</p>
+              <p className="max-w-xs text-center text-xs text-[#A6B1AA]">
+                {activeTab === 'Open' ? 'Create a new booking to get started!' : `No ${activeTab.toLowerCase()} bookings yet.`}
+              </p>
+              <Link href="/" className="mt-1 inline-flex items-center gap-2 rounded-full bg-[#09B368] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#078F53]">
+                <Sparkles className="h-3.5 w-3.5" /> Book Now
+              </Link>
+            </div>
+          ) : (
+            <div className="border-t border-[#E7EEE9]">
+              {ledgerGroups.map((group) => (
+                <div key={group.key}>
+                  <div className="flex items-center gap-4 pb-3 pt-7">
+                    <span className="whitespace-nowrap rounded-full bg-[#F4F8F5] px-3 py-1 text-[9.5px] font-semibold uppercase tracking-[0.2em] text-[#78857C]">{group.label}</span>
+                    <span className="h-px flex-1 bg-[#E7EEE9]" />
+                    <span className="whitespace-nowrap text-[10.5px] tabular-nums text-[#A6B1AA]">{group.items.length} booking{group.items.length !== 1 ? 's' : ''}</span>
+                  </div>
+
+                  {group.items.map((booking) => {
+                    const serviceBadge = getServiceBadge(booking.service_type, booking.service_name);
+                    // The API sends the live quote count and cheapest price directly;
+                    // `quotations` is only populated for legacy payloads, so fall back to it.
+                    const quoteCount = booking.quote_count
+                      ?? booking.quotations?.length
+                      ?? 0;
+                    const lowestQuote = booking.lowest_quote_amount
+                      ?? booking.quotations?.reduce((min, q) => {
+                        const price = q.price || q.amount || 0;
+                        return price < min ? price : min;
+                      }, Infinity)
+                      ?? Infinity;
+                    // The request stays QUOTES_RECEIVED once a vendor has quoted, even
+                    // after every quote lapsed — say "expired" rather than showing a
+                    // green "Quotes Received" badge with nothing left to act on.
+                    const displayStatus =
+                      booking.status === 'QUOTES_RECEIVED' && quoteCount === 0
+                        ? 'QUOTES_EXPIRED'
+                        : booking.status;
+                    const statusConfig = getStatusConfig(displayStatus);
+                    return (
+                      <div
+                        key={booking.id}
+                        onClick={() => window.open(getBookingUrl(booking), '_blank')}
+                        className="group relative grid cursor-pointer grid-cols-[44px_1fr] lg:grid-cols-[40px_minmax(0,200px)_minmax(0,1fr)_minmax(0,190px)_138px_104px_14px] items-center gap-x-4 gap-y-3 border-b border-[#E7EEE9] py-4 pr-2 transition lg:gap-y-0"
+                      >
+                        <span className="absolute -inset-x-4 inset-y-0 z-0 rounded-lg bg-[#F4F8F5] opacity-0 transition group-hover:opacity-100" />
+
+                        <span className={`relative z-10 grid h-9 w-9 place-items-center rounded-xl border ${serviceBadge.bg} ${serviceBadge.border}`}>
+                          {(() => {
+                            const iconType = getServiceIcon(booking.service_name, booking.service_type);
+                            const cls = `h-4 w-4 ${serviceBadge.text}`;
+                            if (iconType === 'truck') return <Truck className={cls} />;
+                            if (iconType === 'luxury') return <Star className={cls} />;
+                            if (iconType === 'packers') return <Package className={cls} />;
+                            if (iconType === 'equipment') return <Wrench className={cls} />;
+                            if (iconType === 'bus') return <Bus className={cls} />;
+                            return <Car className={cls} />;
+                          })()}
+                        </span>
+
+                        <div className="relative z-10 min-w-0">
+                          <p className="quote-serif truncate text-[18px] font-medium leading-[1.2] transition-colors group-hover:text-[#056B3E]">{booking.service_name}</p>
+                          {booking.booking_number && (
+                            <p className="mt-1 text-[10px] tracking-[0.06em] tabular-nums text-[#A6B1AA]">#{booking.booking_number}</p>
+                          )}
+                        </div>
+
+                        <div className="relative z-10 col-span-2 min-w-0 lg:col-span-1">
+                          <p className="flex flex-wrap items-center gap-2.5 text-[13px] font-medium text-[#0B1610]">
+                            <span className="truncate">{booking.location_name}</span>
+                            {booking.destination && booking.destination !== booking.location_name && (
+                              <>
+                                <span className="h-px w-5 flex-none bg-[#D4DFD8]" />
+                                <span className="truncate">{booking.destination}</span>
+                              </>
+                            )}
+                          </p>
+                          <p className="mt-1.5 text-[10.5px] uppercase tracking-[0.1em] text-[#C3CEC7] lg:hidden">Schedule</p>
+                        </div>
+
+                        {/* Schedule — its own column, so the row's spare width
+                            carries information instead of sitting empty. */}
+                        <div className="relative z-10 col-span-2 min-w-0 lg:col-span-1">
+                          <p className="flex flex-wrap items-center gap-x-2 text-[12.5px] text-[#46524A] lg:justify-end">
+                            <span className="tabular-nums">{formatDate(booking.journey_datetime)}</span>
+                            <span className="text-[#D4DFD8]">·</span>
+                            <span className="tabular-nums">{formatTime(booking.journey_datetime)}</span>
+                          </p>
+                          {(!!booking.passengers || booking.goods_type) && (
+                            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[11px] text-[#A6B1AA] lg:justify-end">
+                              {!!booking.passengers && (
+                                <span><span className="tabular-nums">{booking.passengers}</span> passengers</span>
+                              )}
+                              {!!booking.passengers && booking.goods_type && <span className="text-[#D4DFD8]">·</span>}
+                              {booking.goods_type && <span className="truncate">{booking.goods_type}</span>}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="relative z-10">
+                          {(() => {
+                            // Where this booking sits in its lifecycle.
+                            const STEP: Record<string, number> = {
+                              PENDING: 1,
+                              QUOTES_RECEIVED: 2,
+                              PENDING_PAYMENT: 3,
+                              PAYMENT_SUBMITTED: 3,
+                              CONFIRMED: 3,
+                              IN_PROGRESS: 3,
+                              COMPLETED: 4,
+                            };
+                            const STOPPED = ['QUOTES_EXPIRED', 'CANCELLED', 'EXPIRED', 'REFUNDED', 'DROPPED'];
+                            const stopped = STOPPED.includes(displayStatus);
+                            const step = stopped ? 0 : (STEP[displayStatus] ?? 1);
+                            const needsAction =
+                              displayStatus === 'QUOTES_RECEIVED' || displayStatus === 'PENDING_PAYMENT';
+                            return (
+                              <>
+                                <p className={`flex items-center gap-1.5 text-[12.5px] font-semibold ${statusConfig.text}`}>
+                                  {needsAction && (
+                                    <span className={`cdb-ping relative h-1.5 w-1.5 flex-none rounded-full ${statusConfig.dot}`} />
+                                  )}
+                                  {getStatusLabel(displayStatus)}
+                                </p>
+
+                                <span className="mt-2 flex gap-[3px]" title={stopped ? 'Stopped' : ['Requested', 'Quoted', 'Confirmed', 'Completed'][step - 1]}>
+                                  {[1, 2, 3, 4].map((seg) => (
+                                    <span
+                                      key={seg}
+                                      className={`h-[3px] w-[22px] rounded-full ${
+                                        stopped ? 'bg-[#F0D8D8]' : seg <= step ? statusConfig.dot : 'bg-[#E7EEE9]'
+                                      }`}
+                                    />
+                                  ))}
+                                </span>
+
+                              </>
+                            );
+                          })()}
+
+                          {booking.is_quote_request && (
+                            quoteCount > 0 ? (
+                              <p className="mt-2 text-[10px] font-medium text-[#056B3E]">
+                                {quoteCount} quote{quoteCount !== 1 ? 's' : ''} received
+                              </p>
+                            ) : booking.all_quotes_expired ? (
+                              <p className="mt-2 text-[10.5px] font-medium text-red-500">Quotes expired</p>
+                            ) : (
+                              <p className="mt-2 text-[10.5px] font-medium text-[#A6B1AA]">Awaiting quotes</p>
+                            )
+                          )}
+                        </div>
+
+                        <div className="relative z-10 text-right">
+                          {quoteCount > 0 ? (
+                            <>
+                              <p className="quote-serif text-[21px] font-medium leading-none tabular-nums text-[#056B3E]">
+                                ₹{lowestQuote !== Infinity ? lowestQuote.toLocaleString('en-IN') : '—'}
+                              </p>
+                              <p className="mt-1 text-[10px] text-[#A6B1AA]">lowest of {quoteCount}</p>
+                            </>
+                          ) : (
+                            <span className="text-[10.5px] text-[#C3CEC7]">Not quoted yet</span>
+                          )}
+                        </div>
+
+                        <ChevronRight className="relative z-10 hidden h-4 w-4 text-[#D4DFD8] transition-colors group-hover:text-[#09B368] lg:block" />
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {filteredBookings.length > 0 && (
+            <div className="flex items-center justify-between py-[26px] text-[12px] text-[#78857C]">
+              <span className="tabular-nums">Page {currentPage} of {totalPages} · showing {paginatedBookings.length} of {filteredBookings.length}</span>
+              <div className="flex gap-2.5">
+                <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}
+                  className={`rounded-full border px-[18px] py-2 text-[12px] font-semibold transition ${currentPage === 1 ? 'cursor-not-allowed border-[#E7EEE9] text-[#D4DFD8]' : 'border-[#D4DFD8] text-[#46524A] hover:border-[#09B368] hover:text-[#056B3E]'}`}>
+                  Previous
+                </button>
+                <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}
+                  className={`rounded-full border px-[18px] py-2 text-[12px] font-semibold transition ${currentPage === totalPages ? 'cursor-not-allowed border-[#E7EEE9] text-[#D4DFD8]' : 'border-[#D4DFD8] text-[#46524A] hover:border-[#09B368] hover:text-[#056B3E]'}`}>
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ══════════════ THE MARKETPLACE — eight fleets ══════════════ */}
+        <div className="mx-auto max-w-[1320px] px-5 sm:px-8 lg:px-10 pt-[72px]">
+          <div className="flex flex-wrap items-end justify-between gap-6 border-b border-[#E7EEE9] pb-[18px]">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#A6B1AA]">The marketplace</p>
+              <h2 className="quote-serif mt-2 text-[40px] font-medium leading-none">Book from eight fleets</h2>
+              <p className="mt-2 max-w-[520px] text-[13px] text-[#78857C]">
+                Verified vendors across India. Post a request, compare real quotes, pay only through TransRentals.
+              </p>
+            </div>
+            <Link href="/" className="inline-flex items-center gap-2 text-[12.5px] font-semibold text-[#056B3E]">
+              Browse all services <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4">
+            {FLEETS.map((f) => (
+              <Link
+                key={f.label}
+                href={f.href}
+                className="cdb-fleet group relative flex flex-col overflow-hidden border-b border-r border-[#E7EEE9] px-5 pb-3.5 pt-4 transition last:border-r-0 hover:bg-[#F4F8F5] lg:[&:nth-child(4n)]:border-r-0"
+              >
+                <span className="pointer-events-none absolute bottom-2.5 right-3.5 text-[#EDF3EF] transition-all duration-300 group-hover:-translate-x-1 group-hover:text-[#D6F0E3]">
+                  {fleetIcon(f.icon, 'h-[52px] w-[52px] stroke-[0.9]')}
+                </span>
+                <p className="quote-serif relative text-[21px] font-medium leading-[1.1]">{f.label}</p>
+                <p className="relative mt-1 min-h-[30px] text-[11px] leading-[1.35] text-[#78857C]">{f.desc}</p>
+                <p className="relative mt-2.5 text-[10.5px] tracking-[0.03em] text-[#A6B1AA]">
+                  from <b className="text-[12px] font-semibold text-[#0B1610]">{f.from}</b>{f.unit}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* ══════════════ WALLET BAND — disabled ══════════════ */}
+        {/* Temporarily switched off. Change `false` to `true` to bring the
+            Lifetime spend band back; the markup below is untouched. */}
+        {false && (
+          <>
+          <section className="relative mt-[72px] overflow-hidden bg-gradient-to-br from-[#09B368] to-[#056040] text-white">
+            {/* same drifting grid as the hero, so the two bands read as a pair */}
+            <div className="cdb-grid pointer-events-none absolute inset-0 opacity-[0.07]"
+              style={{backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px'}} />
+            <div className="pointer-events-none absolute inset-0"
+              style={{backgroundImage: 'radial-gradient(760px 320px at 88% -20%, rgba(255,255,255,.18), transparent 60%), radial-gradient(520px 260px at 6% 125%, rgba(1,48,27,.42), transparent 58%)'}} />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+
+            <div className="relative z-10 mx-auto grid max-w-[1320px] grid-cols-1 items-start gap-x-14 gap-y-8 px-10 py-9 lg:grid-cols-[1.05fr_1fr]">
+
+              {/* the headline figure */}
+              <div>
+                <p className="flex items-center gap-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/[0.7]">
+                  <span className="h-px w-6 bg-white/40" />
+                  Lifetime spend
+                </p>
+                <p className="quote-serif mt-3 text-[44px] font-medium leading-none tabular-nums [text-shadow:0_2px_20px_rgba(0,0,0,.22)] sm:text-[52px]">
+                  {formatCurrency(financials.totalExpense)}
+                </p>
+
+                <div className="mt-5 grid grid-cols-3 gap-2.5">
+                  {[
+                    { k: 'Journeys', v: formatCount(stats?.total ?? 0), icon: Calendar },
+                    {
+                      k: 'Avg / journey',
+                      v: formatCurrency(Math.round(financials.totalExpense / Math.max(stats?.total ?? 0, 1))),
+                      icon: TrendingUp,
+                    },
+                    { k: 'Payments', v: formatCount(financials.expenses.length), icon: IndianRupee },
+                  ].map(({ k, v, icon: Icon }) => (
+                    <div key={k} className="relative overflow-hidden rounded-2xl border border-white/[0.2] bg-white/[0.12] px-3 py-2.5 backdrop-blur-sm">
+                      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+                      <p className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.14em] text-white/[0.66]">
+                        <Icon className="h-3 w-3 flex-none" /> {k}
+                      </p>
+                      <p className="mt-1 text-[16px] font-semibold tabular-nums">{v}</p>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Table */}
-                {isLoadingBookings ? (
-                  <div className="py-16 flex flex-col items-center gap-3">
-                    <Loader2 className="h-7 w-7 animate-spin text-[#09B368]" />
-                    <p className="text-gray-400 text-sm">Loading bookings...</p>
+                <Link
+                  href="/customer/financials"
+                  className="mt-5 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[12.5px] font-semibold text-[#056B3E] transition hover:bg-white/90"
+                >
+                  View full expense report <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+
+              {/* what the money actually went on */}
+              <div className="relative overflow-hidden rounded-2xl border border-white/[0.2] bg-white/[0.1] backdrop-blur-sm">
+                <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+
+                <div className="flex items-baseline justify-between gap-3 border-b border-white/[0.18] px-5 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/[0.72]">Recent payments</p>
+                  {financials.expenses.length > 3 && (
+                    <Link href="/customer/financials" className="text-[11px] font-semibold text-white/80 hover:text-white">
+                      See all {financials.expenses.length}
+                    </Link>
+                  )}
+                </div>
+
+                {isLoadingFinancials ? (
+                  <div className="px-5" aria-label="Loading payments">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="flex items-start justify-between gap-5 border-b border-white/[0.14] py-3.5 last:border-b-0">
+                        <div className="min-w-0 flex-1">
+                          <span className="block h-3 w-3/5 animate-pulse rounded bg-white/25" />
+                          <span className="mt-2 block h-2.5 w-2/5 animate-pulse rounded bg-white/15" />
+                        </div>
+                        <span className="h-5 w-20 flex-none animate-pulse rounded bg-white/25" />
+                      </div>
+                    ))}
                   </div>
-                ) : filteredBookings.length === 0 ? (
-                  <div className="py-16 flex flex-col items-center gap-3">
-                    <div className="w-14 h-14 bg-[#09B368]/10 rounded-2xl flex items-center justify-center">
-                      <Calendar className="h-6 w-6 text-[#09B368]" />
-                    </div>
-                    <p className="font-semibold text-gray-700 text-sm">No {activeTab.toLowerCase()} bookings</p>
-                    <p className="text-xs text-gray-400 max-w-xs text-center">
-                      {activeTab === 'Open' ? 'Create a new booking to get started!' : `No ${activeTab.toLowerCase()} bookings yet.`}
+                ) : financials.expenses.length === 0 ? (
+                  <div className="px-5 py-7 text-center">
+                    <span className="mx-auto grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-white/[0.12]">
+                      <IndianRupee className="h-5 w-5" />
+                    </span>
+                    <p className="mx-auto mt-3.5 max-w-[300px] text-[12.5px] leading-relaxed text-white/[0.7]">
+                      {financialsError || 'No payments yet. Accept a quote and pay through TransRentals — every payment shows up here.'}
                     </p>
-                    <Link href="/" className="mt-1 inline-flex items-center gap-2 bg-[#09B368] text-white px-4 py-2 rounded-xl font-medium hover:bg-[#078F53] transition text-xs">
-                      <Sparkles className="h-3.5 w-3.5" /> Book Now
+                    <Link
+                      href="/"
+                      className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/30 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-white/10"
+                    >
+                      Browse services <ChevronRight className="h-3.5 w-3.5" />
                     </Link>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-gray-100 bg-gray-50/60">
-                          <th className="px-5 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Service</th>
-                          <th className="px-5 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-widest hidden md:table-cell">Route</th>
-                          <th className="px-5 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-widest hidden lg:table-cell">Date</th>
-                          <th className="px-5 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Status</th>
-                          <th className="px-5 py-3 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-widest hidden sm:table-cell">Amount</th>
-                          <th className="px-4 py-3" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paginatedBookings.map((booking) => {
-                          const serviceBadge = getServiceBadge(booking.service_type, booking.service_name);
-                          // The API sends the live quote count and cheapest price directly;
-                          // `quotations` is only populated for legacy payloads, so fall back to it.
-                          const quoteCount = booking.quote_count
-                            ?? booking.quotations?.length
-                            ?? 0;
-                          const lowestQuote = booking.lowest_quote_amount
-                            ?? booking.quotations?.reduce((min, q) => {
-                              const price = q.price || q.amount || 0;
-                              return price < min ? price : min;
-                            }, Infinity)
-                            ?? Infinity;
-                          // The request stays QUOTES_RECEIVED once a vendor has quoted, even
-                          // after every quote lapsed — say "expired" rather than showing a
-                          // green "Quotes Received" badge with nothing left to act on.
-                          const displayStatus =
-                            booking.status === 'QUOTES_RECEIVED' && quoteCount === 0
-                              ? 'QUOTES_EXPIRED'
-                              : booking.status;
-                          const statusConfig = getStatusConfig(displayStatus);
-                          return (
-                            <tr key={booking.id}
-                              className="border-b border-gray-50 last:border-0 hover:bg-[#09B368]/[0.02] transition-colors cursor-pointer group"
-                              onClick={() => window.open(getBookingUrl(booking), '_blank')}>
-                              <td className="px-5 py-3.5">
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-9 h-9 ${serviceBadge.bg} border ${serviceBadge.border} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                                    {(() => {
-                                      const iconType = getServiceIcon(booking.service_name, booking.service_type);
-                                      const cls = `h-4 w-4 ${serviceBadge.text}`;
-                                      if (iconType === 'truck') return <Truck className={cls} />;
-                                      if (iconType === 'luxury') return <Star className={cls} />;
-                                      if (iconType === 'packers') return <Package className={cls} />;
-                                      if (iconType === 'equipment') return <Wrench className={cls} />;
-                                      if (iconType === 'bus') return <Users className={cls} />;
-                                      return <Car className={cls} />;
-                                    })()}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="font-semibold text-gray-900 text-sm truncate group-hover:text-[#09B368] transition-colors">{booking.service_name}</p>
-                                    {booking.booking_number && <p className="text-xs text-gray-400">#{booking.booking_number}</p>}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-5 py-3.5 hidden md:table-cell">
-                                <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                                  <MapPin className="h-3 w-3 text-gray-300 flex-shrink-0" />
-                                  <span className="truncate max-w-[150px]">
-                                    {booking.location_name}
-                                    {booking.destination && booking.destination !== booking.location_name && (
-                                      <span className="text-gray-300"> → {booking.destination}</span>
-                                    )}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-5 py-3.5 hidden lg:table-cell">
-                                <p className="text-xs text-gray-700">{formatDate(booking.journey_datetime)}</p>
-                                <p className="text-[10px] text-gray-400 mt-0.5">{formatTime(booking.journey_datetime)}</p>
-                              </td>
-                              <td className="px-5 py-3.5">
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${statusConfig.bg} ${statusConfig.text}`}>
-                                  <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`} />
-                                  {getStatusLabel(displayStatus)}
-                                </span>
-                                {booking.is_quote_request && (
-                                  quoteCount > 0 ? (
-                                    <p className="text-[9px] text-[#09B368] font-medium mt-0.5">
-                                      {quoteCount} quote{quoteCount !== 1 ? 's' : ''} received
-                                    </p>
-                                  ) : booking.all_quotes_expired ? (
-                                    <p className="text-[9px] text-red-600 font-medium mt-0.5">Quotes expired</p>
-                                  ) : (
-                                    <p className="text-[9px] text-amber-600 font-medium mt-0.5">Awaiting quotes</p>
-                                  )
-                                )}
-                              </td>
-                              <td className="px-5 py-3.5 text-right hidden sm:table-cell">
-                                {quoteCount > 0 ? (
-                                  <div>
-                                    <p className="text-sm font-bold text-[#09B368]">
-                                      ₹{lowestQuote !== Infinity ? lowestQuote.toLocaleString('en-IN') : '—'}
-                                    </p>
-                                    <p className="text-[10px] text-gray-400">{quoteCount} quote{quoteCount !== 1 ? 's' : ''}</p>
-                                  </div>
-                                ) : (
-                                  <span className="text-gray-300 text-xs">—</span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3.5">
-                                <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-[#09B368] transition-colors" />
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                  <div className="px-5">
+                    {financials.expenses.slice(0, 3).map((item, idx) => (
+                      <div
+                        key={item.id ?? idx}
+                        className="flex items-start justify-between gap-5 border-b border-white/[0.14] py-3 last:border-b-0"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-[13px] font-medium">{item.title}</p>
+                          <p className="mt-1 text-[11px] text-white/[0.6]">
+                            {item.date ? formatDetailDate(item.date) : 'Date not recorded'}
+                            {item.description ? ` · ${item.description}` : ''}
+                          </p>
+                        </div>
+                        <p className="quote-serif flex-none text-[22px] font-medium leading-none tabular-nums">
+                          {formatCurrency(item.amount)}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 )}
-
-                {/* Pagination */}
-                {filteredBookings.length > 0 && (
-                  <div className="border-t border-gray-100 px-5 py-3 flex items-center justify-between text-xs text-gray-500">
-                    <span>Page {currentPage} of {totalPages} · {paginatedBookings.length} of {filteredBookings.length}</span>
-                    <div className="flex gap-2">
-                      <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}
-                        className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition ${currentPage === 1 ? 'border-gray-100 text-gray-300 cursor-not-allowed' : 'border-[#09B368]/30 text-[#09B368] hover:border-[#09B368]'}`}>
-                        Previous
-                      </button>
-                      <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}
-                        className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition ${currentPage === totalPages ? 'border-gray-100 text-gray-300 cursor-not-allowed' : 'border-[#09B368]/30 text-[#09B368] hover:border-[#09B368]'}`}>
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* App Download Banner */}
-              <div className="mt-4 bg-gradient-to-r from-[#033D26] to-[#09B368] rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden">
-                <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle at 80% 50%, #ffffff 0%, transparent 60%)'}} />
-                <div className="relative">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Gift className="h-4 w-4 text-white/80" />
-                    <span className="text-white/80 text-xs font-semibold uppercase tracking-wide">Earn Rewards</span>
-                  </div>
-                  <h3 className="text-base font-bold text-white">Download the TransRentals App</h3>
-                  <p className="text-white/60 text-xs mt-0.5">Track bookings, chat with vendors & earn ₹50 tokens</p>
-                </div>
-                <a href="https://play.google.com/store/apps/details?id=com.transrentals.customer"
-                  className="relative flex-shrink-0 flex items-center gap-2 bg-white text-[#09B368] hover:bg-white/90 px-4 py-2.5 rounded-xl font-semibold text-xs whitespace-nowrap transition shadow-lg">
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-                    <path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.198l2.807 1.626a1 1 0 010 1.73l-2.808 1.626L15.206 12l2.492-2.491zM5.864 2.658L16.8 8.99l-2.302 2.302-8.634-8.634z"/>
-                  </svg>
-                  Google Play
-                </a>
               </div>
             </div>
 
-            {/* ── RIGHT SIDEBAR ── */}
-            <aside className="hidden lg:flex flex-col gap-4 w-[280px] flex-shrink-0 sticky top-20">
+            {/* The promise that sits behind every figure above. */}
+            <div className="relative z-10 border-t border-white/[0.16]">
+              <div className="mx-auto flex max-w-[1320px] flex-wrap items-center gap-x-8 gap-y-2 px-10 py-3">
+                <p className="flex items-center gap-2.5 text-[12px] font-semibold">
+                  <ShieldCheck className="h-4 w-4 flex-none" />
+                  Every payment runs through TransRentals
+                </p>
+                <p className="text-[11.5px] text-white/[0.7]">
+                  Funds stay protected until your trip completes — never pay a vendor directly.
+                </p>
+              </div>
+            </div>
+          </section>
+          </>
+        )}
 
-              {/* Account Card */}
-              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                <div className="bg-gradient-to-br from-[#056040] to-[#09B368] px-5 py-4 relative overflow-hidden">
-                  <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
-                  <div className="absolute -bottom-6 -left-2 w-16 h-16 bg-white/10 rounded-full" />
-                  <div className="relative flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl border-2 border-white/40 bg-white/20 overflow-hidden flex-shrink-0">
+        {/* ══════════════ ACCOUNT BAND ══════════════ */}
+        <div className="mx-auto max-w-[1320px] px-5 sm:px-8 lg:px-10 pt-[72px]">
+          <div className="border-b border-[#E7EEE9] pb-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#A6B1AA]">Your account</p>
+            <h2 className="quote-serif mt-2 text-[40px] font-medium leading-none">Profile &amp; support</h2>
+          </div>
+
+          {/* The three columns stretch to a shared height. Column one puts its
+              slack into My inquiries, so all three end on the same line. */}
+          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.12fr_1fr]">
+
+            {/* ── profile + inquiries ── */}
+            <div className="flex flex-col gap-4">
+              {/* Each card in this section carries one accent — green here, then
+                  teal, sky and amber — so the band reads as a family rather than
+                  four unrelated colours. */}
+              <div className="overflow-hidden rounded-2xl border border-[#C6E7D8] bg-white transition-colors hover:border-[#9FD8BE]">
+                <div className="flex items-end justify-between gap-3 border-b border-[#C6E7D8] bg-gradient-to-r from-[#E4F6EE] to-[#F7FCFA] px-5 py-4">
+                  <div>
+                    <p className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-[#0E8552]">Signed in as</p>
+                    <h3 className="quote-serif mt-[3px] text-[23px] font-semibold leading-none text-[#04321F]">Your profile</h3>
+                  </div>
+                  {/* the action lives in the header, so the body stays a clean
+                      identity block instead of ending on a stub button */}
+                  <button
+                    onClick={() => setShowProfileModal(true)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#A9DCC5] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-[#056B3E] transition hover:border-[#09B368] hover:bg-[#EAF8F1]"
+                  >
+                    <Edit3 className="h-3 w-3" /> Edit
+                  </button>
+                </div>
+
+                <div className="group/id flex items-center gap-4 px-5 py-5">
+                  <span className="relative flex-none">
+                    <span className="relative grid h-16 w-16 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#09B368] to-[#056040] text-white ring-[#09B368]/0 transition duration-300 group-hover/id:ring-[6px] group-hover/id:ring-[#09B368]/15">
                       {customer?.avatar || customer?.image ? (
-                        <img src={customer.avatar || customer.image} className="w-full h-full object-cover" alt="" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-white font-bold text-xl">{customer?.name?.charAt(0)?.toUpperCase()}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-white font-bold text-sm truncate">{customer?.name}</p>
-                      <p className="text-white/70 text-xs truncate">{customer?.email}</p>
-                      <p className="text-white/60 text-xs mt-0.5">{customer?.phone}</p>
-                    </div>
+                        <img
+                          src={customer.avatar || customer.image}
+                          className="relative z-10 h-full w-full object-cover"
+                          alt=""
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ) : null}
+                      <span className="quote-serif absolute text-[28px] font-medium">{customer?.name?.charAt(0)?.toUpperCase()}</span>
+                    </span>
+                    {/* Signed-in marker. Outside the tile so the avatar can still
+                        clip, and above z-10 because the avatar image carries it. */}
+                    <span className="absolute -bottom-[3px] -right-[3px] z-20 h-4 w-4 rounded-full border-[3px] border-white bg-[#4ADE80]" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="quote-serif truncate text-[26px] font-medium leading-[1.05]">{customer?.name}</p>
+                    <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#EAF8F1] px-2.5 py-[3px] text-[9.5px] font-semibold uppercase tracking-[0.1em] text-[#056B3E]">
+                      <ShieldCheck className="h-2.5 w-2.5" /> Verified member
+                    </span>
                   </div>
                 </div>
-                <div className="p-3">
-                  <button onClick={() => setShowProfileModal(true)}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition">
-                    <Edit3 className="w-3.5 h-3.5" /> Edit Profile
-                  </button>
+
+                {/* Contact rows carry their own accent as `currentColor`, so the
+                    icon tile and the bar that wipes in on hover stay in step. */}
+                <div className="flex flex-col border-t border-[#E7EEE9]">
+                  <a
+                    href={customer?.email ? `mailto:${customer.email}` : undefined}
+                    className="group relative flex items-center gap-3.5 overflow-hidden border-b border-[#E7EEE9] px-5 py-3.5 text-[#056B3E] transition after:absolute after:inset-y-0 after:left-0 after:w-[3px] after:origin-center after:scale-y-0 after:bg-current after:transition-transform after:duration-200 hover:bg-[#F4F8F5] hover:after:scale-y-100"
+                  >
+                    <span className="grid h-[34px] w-[34px] flex-none place-items-center rounded-[11px] bg-[#EAF8F1] text-[#0E8552] transition group-hover:bg-[#D3F0E2] group-hover:text-[#04321F]">
+                      <Mail className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[9.5px] uppercase tracking-[0.14em] text-[#A6B1AA]">Email</span>
+                      <span className="mt-0.5 block truncate text-[12.5px] text-[#0B1610]">{customer?.email}</span>
+                    </span>
+                    <ChevronRight className="ml-auto h-4 w-4 flex-none text-[#D4DFD8] transition group-hover:translate-x-[3px] group-hover:text-[#09B368]" />
+                  </a>
+                  <a
+                    href={customer?.phone ? `tel:${customer.phone}` : undefined}
+                    className="group relative flex items-center gap-3.5 overflow-hidden px-5 py-3.5 text-[#056B3E] transition after:absolute after:inset-y-0 after:left-0 after:w-[3px] after:origin-center after:scale-y-0 after:bg-current after:transition-transform after:duration-200 hover:bg-[#F4F8F5] hover:after:scale-y-100"
+                  >
+                    <span className="grid h-[34px] w-[34px] flex-none place-items-center rounded-[11px] bg-[#EAF8F1] text-[#0E8552] transition group-hover:bg-[#D3F0E2] group-hover:text-[#04321F]">
+                      <Phone className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[9.5px] uppercase tracking-[0.14em] text-[#A6B1AA]">Phone</span>
+                      <span className="mt-0.5 block truncate text-[12.5px] tabular-nums text-[#0B1610]">{customer?.phone}</span>
+                    </span>
+                    <ChevronRight className="ml-auto h-4 w-4 flex-none text-[#D4DFD8] transition group-hover:translate-x-[3px] group-hover:text-[#09B368]" />
+                  </a>
                 </div>
               </div>
 
-              {/* BACKR Rewards Card */}
-              <BackrCard type="customer" uid={customer?.id ? String(customer.id) : undefined} />
+              {/* `grow` (not flex-1) so the card takes the column's leftover
+                  height without ever being squeezed under its own content. */}
+              <div className="flex grow flex-col overflow-hidden rounded-2xl border border-[#F0E3C4] bg-white transition-colors hover:border-[#E3CE99]">
+                <div className="flex items-end justify-between gap-2.5 border-b border-[#F0E3C4] bg-gradient-to-r from-[#FEF8EA] to-[#FFFDF7] px-5 py-4">
+                  <div>
+                    <p className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-[#B4700F]">Raised by you</p>
+                    <h3 className="quote-serif mt-[3px] text-[23px] font-semibold leading-none text-[#3D2408]">My inquiries</h3>
+                  </div>
+                  {contactInquiries.length > 0 && (
+                    <span className="rounded-full bg-[#B45309] px-2.5 py-[2px] text-[10px] font-bold text-white">{contactInquiries.length}</span>
+                  )}
+                </div>
 
-              {/* Notifications */}
-              <NotificationPanel />
-
-              {/* Quick Book */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Book a Vehicle</p>
-                <div className="grid grid-cols-4 gap-1">
-                  {([
-                    { label: 'Bike', href: '/bike-on-rent', bg: 'bg-blue-50', clr: 'text-blue-600', IconEl: Car },
-                    { label: 'Car', href: '/car-rental', bg: 'bg-[#09B368]/10', clr: 'text-[#09B368]', IconEl: Car },
-                    { label: 'Bus', href: '/bus-rental', bg: 'bg-orange-50', clr: 'text-orange-600', IconEl: Users },
-                    { label: 'Truck', href: '/', bg: 'bg-red-50', clr: 'text-red-500', IconEl: Truck },
-                    { label: 'Luxury', href: '/luxury-car-rental', bg: 'bg-amber-50', clr: 'text-amber-600', IconEl: Star },
-                    { label: 'Equip.', href: '/', bg: 'bg-cyan-50', clr: 'text-cyan-600', IconEl: Wrench },
-                    { label: 'Packers', href: '/', bg: 'bg-teal-50', clr: 'text-teal-600', IconEl: Package },
-                    { label: 'Drive', href: '/', bg: 'bg-sky-50', clr: 'text-sky-600', IconEl: Car },
-                  ] as const).map(({ label, href, bg, clr, IconEl }) => (
-                    <Link key={label} href={href}
-                      className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-gray-50 transition-colors">
-                      <div className={`w-8 h-8 ${bg} rounded-lg flex items-center justify-center`}>
-                        <IconEl className={`w-3.5 h-3.5 ${clr}`} />
-                      </div>
-                      <span className="text-[9px] font-medium text-gray-500 text-center leading-tight">{label}</span>
+                {contactInquiries.length === 0 ? (
+                  <div className="flex flex-1 flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+                    <p className="flex items-center gap-2.5 text-[12px] text-[#A6B1AA]">
+                      <Inbox className="h-4 w-4 flex-none text-[#E5C075]" />
+                      No inquiries raised yet.
+                    </p>
+                    <Link href="/contact"
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-[#EBD5A3] px-4 py-2 text-[12px] font-semibold text-[#A9600C] transition hover:border-[#B45309] hover:bg-[#FEF8EA]">
+                      <Mail className="h-3.5 w-3.5" /> New inquiry
                     </Link>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-col">
+                      {contactInquiries.slice(0, 4).map((inq: any) => {
+                        // Status reads as a dot + word rather than a filled pill, so
+                        // four stacked rows don't turn into four blocks of colour.
+                        const statusMap: Record<string, { label: string; dot: string; text: string }> = {
+                          NEW: { label: 'New', dot: 'bg-blue-600', text: 'text-blue-700' },
+                          IN_PROGRESS: { label: 'In Progress', dot: 'bg-yellow-500', text: 'text-yellow-700' },
+                          RESOLVED: { label: 'Resolved', dot: 'bg-[#09B368]', text: 'text-[#056B3E]' },
+                          CLOSED: { label: 'Closed', dot: 'bg-[#A6B1AA]', text: 'text-[#78857C]' },
+                        };
+                        const st = statusMap[inq.status] || statusMap.NEW;
+                        return (
+                          <div
+                            key={inq.id}
+                            className="group relative flex items-center gap-3.5 overflow-hidden border-b border-[#E7EEE9] px-5 py-3.5 text-[#B45309] transition last:border-b-0 after:absolute after:inset-y-0 after:left-0 after:w-[3px] after:origin-center after:scale-y-0 after:bg-current after:transition-transform after:duration-200 hover:bg-[#F4F8F5] hover:after:scale-y-100"
+                          >
+                            <span className="grid h-[38px] w-[38px] flex-none place-items-center rounded-xl border border-[#FDE9B5] bg-[#FFFBEB] text-[#B45309]">
+                              <Inbox className="h-[17px] w-[17px]" />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="quote-serif truncate text-[17px] font-semibold leading-[1.2] text-[#0B1610] transition group-hover:text-[#056B3E]">
+                                {inq.subject}
+                              </p>
+                              <div className="mt-1 flex items-center justify-between gap-3">
+                                <span className="text-[10.5px] tabular-nums text-[#A6B1AA]">
+                                  {new Date(inq.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </span>
+                                <span className={`flex flex-none items-center gap-[7px] text-[11.5px] font-semibold ${st.text}`}>
+                                  <i className={`h-[6px] w-[6px] rounded-full ${st.dot}`} />
+                                  {st.label}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {/* mt-auto pins the footer to the bottom edge when the rows
+                        don't fill the stretched card */}
+                    <div className="mt-auto flex items-center justify-between gap-3 border-t border-[#E7EEE9] px-5 py-3.5">
+                      <p className="text-[11px] text-[#A6B1AA]">Closed inquiries stay here for your records.</p>
+                      <Link href="/contact"
+                        className="inline-flex flex-none items-center justify-center gap-2 rounded-full border border-[#EBD5A3] px-4 py-2 text-[12px] font-semibold text-[#A9600C] transition hover:border-[#B45309] hover:bg-[#FEF8EA]">
+                        <Mail className="h-3.5 w-3.5" /> New inquiry
+                      </Link>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* ── notifications (renders its own card) ── */}
+            <NotificationPanel />
+
+            {/* ── support + inquiries ── */}
+            <div className="flex flex-col gap-4">
+              <div className="overflow-hidden rounded-2xl border border-[#BFE7E2] bg-white">
+                <div className="border-b border-[#BFE7E2] bg-gradient-to-r from-[#E2F6F4] to-[#F6FCFB] px-5 py-4">
+                  <p className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-[#0B7C74]">Need a hand</p>
+                  <h3 className="quote-serif mt-[3px] text-[23px] font-semibold leading-none text-[#04302C]">Get in touch</h3>
+                </div>
+                {/* Each row carries its own accent as `currentColor`: the icon tile
+                    tints from it and the bar that wipes in on hover uses the same
+                    value, so a row reads as one colour without repeating the hex. */}
+                <div className="flex flex-col">
+                  <Link
+                    href="/customer/chat"
+                    className="group relative flex items-center gap-3.5 overflow-hidden border-b border-[#E7EEE9] px-5 py-4 text-teal-600 transition after:absolute after:inset-y-0 after:left-0 after:w-[3px] after:origin-center after:scale-y-0 after:bg-current after:transition-transform after:duration-200 hover:bg-[#F4F8F5] hover:after:scale-y-100"
+                  >
+                    <span className="relative grid h-[42px] w-[42px] flex-none place-items-center rounded-[13px] bg-teal-50">
+                      <MessageCircle className="h-[19px] w-[19px]" />
+                      {totalUnreadChats > 0 && (
+                        <span className="absolute -right-[5px] -top-[5px] flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-white bg-teal-600 px-1 text-[9px] font-bold text-white">{totalUnreadChats}</span>
+                      )}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[13.5px] font-semibold text-[#0B1610]">Messages</span>
+                      <span className="mt-px block text-[11.5px] text-[#A6B1AA]">Chat with your vendors</span>
+                    </span>
+                    <ChevronRight className="ml-auto h-4 w-4 flex-none text-[#D4DFD8] transition group-hover:translate-x-[3px] group-hover:text-[#09B368]" />
+                  </Link>
+                  <Link
+                    href="/customer/helpdesk"
+                    className="group relative flex items-center gap-3.5 overflow-hidden border-b border-[#E7EEE9] px-5 py-4 text-sky-600 transition after:absolute after:inset-y-0 after:left-0 after:w-[3px] after:origin-center after:scale-y-0 after:bg-current after:transition-transform after:duration-200 hover:bg-[#F4F8F5] hover:after:scale-y-100"
+                  >
+                    <span className="grid h-[42px] w-[42px] flex-none place-items-center rounded-[13px] bg-sky-50">
+                      <HelpCircle className="h-[19px] w-[19px]" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[13.5px] font-semibold text-[#0B1610]">Help &amp; Support</span>
+                      <span className="mt-px block text-[11.5px] text-[#A6B1AA]">Raise a support ticket</span>
+                    </span>
+                    <ChevronRight className="ml-auto h-4 w-4 flex-none text-[#D4DFD8] transition group-hover:translate-x-[3px] group-hover:text-[#09B368]" />
+                  </Link>
+                  <Link
+                    href="/customer/financials"
+                    className="group relative flex items-center gap-3.5 overflow-hidden px-5 py-4 text-[#056B3E] transition after:absolute after:inset-y-0 after:left-0 after:w-[3px] after:origin-center after:scale-y-0 after:bg-current after:transition-transform after:duration-200 hover:bg-[#F4F8F5] hover:after:scale-y-100"
+                  >
+                    <span className="grid h-[42px] w-[42px] flex-none place-items-center rounded-[13px] bg-[#EAF8F1]">
+                      <IndianRupee className="h-[19px] w-[19px]" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[13.5px] font-semibold text-[#0B1610]">Financials</span>
+                      <span className="mt-px block text-[11.5px] text-[#A6B1AA]">Payments and invoices</span>
+                    </span>
+                    <ChevronRight className="ml-auto h-4 w-4 flex-none text-[#D4DFD8] transition group-hover:translate-x-[3px] group-hover:text-[#09B368]" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* BACKR rewards — same component and props as before, moved here
+                  so the three columns end at roughly the same height. */}
+              <BackrCard type="customer" uid={customer?.id ? String(customer.id) : undefined} variant="editorial" />
+            </div>
+          </div>
+
+          {/* App download strip */}
+          <div className="relative my-10 overflow-hidden rounded-2xl bg-gradient-to-br from-[#056040] via-[#09B368] to-[#01301B] text-white">
+            {/* drifting grid + key light, same as the other green bands */}
+            <div className="cdb-grid pointer-events-none absolute inset-0 opacity-[0.07]"
+              style={{backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px'}} />
+            <div className="pointer-events-none absolute inset-0"
+              style={{backgroundImage: 'radial-gradient(620px 280px at 88% -25%, rgba(255,255,255,.20), transparent 62%), radial-gradient(420px 220px at 4% 130%, rgba(1,35,20,.5), transparent 58%)'}} />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+
+            <div className="relative grid grid-cols-1 items-center gap-6 px-8 py-7 lg:grid-cols-[1fr_auto]">
+              <div>
+                <p className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/[0.72]">
+                  <Gift className="h-3 w-3" /> Earn rewards
+                </p>
+                <h3 className="quote-serif mt-2.5 text-[32px] font-medium leading-[1.1] [text-shadow:0_2px_16px_rgba(0,0,0,.25)]">
+                  Download the TransRentals App
+                </h3>
+
+                <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                  {[
+                    { icon: Calendar, t: 'Track bookings', s: 'Live trip status' },
+                    { icon: MessageCircle, t: 'Chat with vendors', s: 'Straight from your phone' },
+                    { icon: Coins, t: 'Earn tokens', s: 'On every booking' },
+                  ].map(({ icon: Icon, t, s: sub }) => (
+                    <div key={t} className="relative overflow-hidden rounded-lg border border-white/[0.2] bg-white/[0.12] px-3 py-2.5 backdrop-blur-sm">
+                      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+                      <span className="flex items-start gap-2.5">
+                        <span className="grid h-7 w-7 flex-none place-items-center rounded-lg border border-white/25 bg-white/[0.14]">
+                          <Icon className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[12px] font-semibold leading-tight">{t}</span>
+                          <span className="mt-0.5 block text-[10.5px] leading-tight text-white/[0.66]">{sub}</span>
+                        </span>
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>
 
-              {/* Total Spent */}
-              <Link href="/customer/financials"
-                className="block bg-gradient-to-br from-[#09B368] to-[#056040] rounded-2xl p-4 text-white hover:opacity-95 transition group shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
-                      <IndianRupee className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="text-xs font-semibold text-white/90">Total Spent</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-white/50 group-hover:text-white transition" />
-                </div>
-                <p className="text-2xl font-bold leading-none">{formatCurrency(financials.totalExpense)}</p>
-                <p className="text-white/60 text-[10px] mt-1.5">View full expense report →</p>
-              </Link>
+              <a
+                href="https://play.google.com/store/apps/details?id=com.transrentals.customer"
+                className="inline-flex items-center gap-2.5 self-start whitespace-nowrap rounded-full bg-white px-[22px] py-3.5 text-[12.5px] font-semibold text-[#056B3E] transition hover:bg-white/90 lg:self-center"
+              >
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor">
+                  <path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.198l2.807 1.626a1 1 0 010 1.73l-2.808 1.626L15.206 12l2.492-2.491zM5.864 2.658L16.8 8.99l-2.302 2.302-8.634-8.634z"/>
+                </svg>
+                Google Play
+              </a>
+            </div>
+          </div>
+        </div>
 
-              {/* Messages */}
-              <Link href="/customer/chat"
-                className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl p-3.5 hover:border-teal-400/40 hover:shadow-sm transition group shadow-sm">
-                <div className="w-9 h-9 bg-teal-50 rounded-xl flex items-center justify-center flex-shrink-0 relative">
-                  <MessageCircle className="w-4 h-4 text-teal-500" />
-                  {totalUnreadChats > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-teal-600 text-white text-[9px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">{totalUnreadChats}</span>
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">Messages</p>
-                  <p className="text-xs text-gray-400">Chat with your vendors</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-teal-500 ml-auto transition" />
-              </Link>
-
-              {/* Help */}
-              <Link href="/customer/helpdesk"
-                className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl p-3.5 hover:border-[#09B368]/40 hover:shadow-sm transition group shadow-sm">
-                <div className="w-9 h-9 bg-sky-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <HelpCircle className="w-4 h-4 text-sky-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">Help & Support</p>
-                  <p className="text-xs text-gray-400">Raise a support ticket</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#09B368] ml-auto transition" />
-              </Link>
-
-              {/* My Contact Inquiries */}
-              {contactInquiries.length > 0 && (
-                <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">My Inquiries</p>
-                    <span className="text-[10px] bg-orange-50 text-orange-600 border border-orange-200 rounded-full px-2 py-0.5 font-semibold">
-                      {contactInquiries.length}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {contactInquiries.slice(0, 4).map((inq: any) => {
-                      const statusMap: Record<string, { label: string; cls: string }> = {
-                        NEW: { label: 'New', cls: 'bg-blue-50 text-blue-600' },
-                        IN_PROGRESS: { label: 'In Progress', cls: 'bg-yellow-50 text-yellow-600' },
-                        RESOLVED: { label: 'Resolved', cls: 'bg-green-50 text-green-600' },
-                        CLOSED: { label: 'Closed', cls: 'bg-gray-50 text-gray-500' },
-                      };
-                      const s = statusMap[inq.status] || statusMap.NEW;
-                      return (
-                        <div key={inq.id} className="flex items-start gap-2 p-2.5 rounded-xl bg-gray-50 hover:bg-orange-50/50 transition">
-                          <Inbox className="w-3.5 h-3.5 text-orange-400 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-gray-800 truncate">{inq.subject}</p>
-                            <p className="text-[10px] text-gray-400 mt-0.5">
-                              {new Date(inq.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                            </p>
-                          </div>
-                          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${s.cls}`}>
-                            {s.label}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <Link href="/contact"
-                    className="mt-3 flex items-center justify-center gap-1.5 w-full py-2 rounded-xl border border-dashed border-orange-200 text-orange-500 text-[10px] font-semibold hover:bg-orange-50 transition">
-                    <Mail className="w-3 h-3" /> New Inquiry
-                  </Link>
-                </div>
-              )}
-
-            </aside>
+        {/* closing line */}
+        <div className="mx-auto max-w-[1320px] px-5 sm:px-8 lg:px-10">
+          <div className="border-t border-[#E7EEE9] py-7">
+            <p className="text-[11.5px] text-[#A6B1AA]">
+              TransRentals &middot; verified vendors, real quotes, protected payments.
+            </p>
           </div>
         </div>
         </>
@@ -1806,121 +2525,99 @@ export default function CustomerDashboardPage() {
 
       {/* Profile Edit Modal */}
       {showProfileModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="bg-[#09B368] p-6 text-white flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold">Edit Profile</h3>
-                  <p className="text-white/80 text-sm mt-1">Update your personal information</p>
-                </div>
-                <button
-                  onClick={() => setShowProfileModal(false)}
-                  className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[#E7EEE9] bg-white">
+
+            {/* Header */}
+            <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-[#E7EEE9] bg-[#F4F8F5] px-6 py-4">
+              <div>
+                <h3 className="quote-serif text-[26px] font-medium text-[#0B1610]">Edit Profile</h3>
+                <p className="mt-0.5 text-[12px] text-[#78857C]">Update your personal information</p>
               </div>
+              <button
+                onClick={() => setShowProfileModal(false)}
+                className="grid h-8 w-8 place-items-center rounded-lg border border-[#D4DFD8] bg-white text-[#78857C] transition hover:border-[#09B368] hover:text-[#056B3E]"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-6 space-y-5 flex-1 overflow-y-auto">
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-5">
               {profileError && (
-                <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm">
-                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                <div className="mb-4 flex items-center gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[12.5px] text-red-700">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
                   {profileError}
                 </div>
               )}
 
               {profileSuccess && (
-                <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-100 rounded-xl text-green-700 text-sm">
-                  <CheckCircle className="h-5 w-5 flex-shrink-0" />
+                <div className="mb-4 flex items-center gap-2.5 rounded-lg border border-[#BEE9D3] bg-[#EAF8F1] px-4 py-3 text-[12.5px] text-[#056B3E]">
+                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
                   Profile updated successfully!
                 </div>
               )}
 
-              <div className="flex flex-col gap-5 md:flex-row">
-                <div className="flex-shrink-0">
-                  <div className="relative">
-                    <div className="h-28 w-28 rounded-2xl border border-dashed border-gray-300 bg-white flex items-center justify-center overflow-hidden">
-                      {profileForm.avatar ? (
-                        <img
-                          src={profileForm.avatar}
-                          alt="Profile preview"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-lg font-semibold text-gray-400">
-                          {profileForm.name?.charAt(0)?.toUpperCase() || 'U'}
-                        </span>
-                      )}
-                    </div>
-                    <input
-                      ref={fileInputRef}
-                      id="profile-image"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                          setProfileForm((prev) => ({
-                            ...prev,
-                            avatar: reader.result as string,
-                          }));
-                        };
-                        reader.readAsDataURL(file);
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-600 hover:border-gray-400 transition"
-                    >
-                      Change Image
-                    </button>
-                  </div>
+              {/* Avatar */}
+              <div className="flex items-center gap-4 border-b border-[#E7EEE9] pb-5">
+                <div className="grid h-16 w-16 flex-none place-items-center overflow-hidden rounded-lg border border-[#BEE9D3] bg-[#EAF8F1]">
+                  {profileForm.avatar ? (
+                    <img src={profileForm.avatar} alt="Profile preview" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="quote-serif text-[26px] font-medium text-[#056B3E]">
+                      {profileForm.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  )}
                 </div>
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    id="profile-image"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        setProfileForm((prev) => ({
+                          ...prev,
+                          avatar: reader.result as string,
+                        }));
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="rounded-full border border-[#D4DFD8] px-4 py-2 text-[12px] font-semibold text-[#46524A] transition hover:border-[#09B368] hover:text-[#056B3E]"
+                  >
+                    Change photo
+                  </button>
+                  <p className="mt-1.5 text-[11px] text-[#A6B1AA]">JPG or PNG</p>
+                </div>
+              </div>
 
-                <div className="flex-1 space-y-4">
+              {/* Personal */}
+              <div className="pt-5">
+                <p className="mb-3.5 border-b border-[#E7EEE9] pb-2.5 text-[9.5px] font-semibold uppercase tracking-[0.2em] text-[#A6B1AA]">Personal</p>
+                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <User className="h-4 w-4 inline mr-2" />
-                      Full Name
-                    </label>
+                    <label className="mb-1.5 block text-[10.5px] font-semibold tracking-[0.03em] text-[#78857C]">Full Name</label>
                     <input
                       type="text"
                       value={profileForm.name}
                       onChange={(e) =>
                         setProfileForm((prev) => ({ ...prev, name: e.target.value }))
                       }
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
+                      className="w-full rounded-lg border border-[#D4DFD8] bg-white px-3.5 py-2.5 text-[13px] text-[#0B1610] outline-none transition placeholder:text-[#A6B1AA] focus:border-[#09B368]"
                       placeholder="Enter your name"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Mail className="h-4 w-4 inline mr-2" />
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      value={profileForm.email}
-                      onChange={(e) =>
-                        setProfileForm((prev) => ({ ...prev, email: e.target.value }))
-                      }
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
-                      placeholder="Enter your email"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Phone className="h-4 w-4 inline mr-2" />
-                      Phone Number
-                    </label>
+                    <label className="mb-1.5 block text-[10.5px] font-semibold tracking-[0.03em] text-[#78857C]">Phone Number</label>
                     <input
                       type="tel"
                       value={profileForm.phone}
@@ -1928,52 +2625,62 @@ export default function CustomerDashboardPage() {
                         const val = e.target.value.replace(/\D/g, '');
                         if (val.length <= 10) setProfileForm((prev) => ({ ...prev, phone: val }));
                       }}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
+                      className="w-full rounded-lg border border-[#D4DFD8] bg-white px-3.5 py-2.5 text-[13px] text-[#0B1610] outline-none transition placeholder:text-[#A6B1AA] focus:border-[#09B368] tabular-nums"
                       placeholder="10-digit mobile number"
                       maxLength={10}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1.5 block text-[10.5px] font-semibold tracking-[0.03em] text-[#78857C]">Email Address</label>
+                    <input
+                      type="email"
+                      value={profileForm.email}
+                      onChange={(e) =>
+                        setProfileForm((prev) => ({ ...prev, email: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-[#D4DFD8] bg-white px-3.5 py-2.5 text-[13px] text-[#0B1610] outline-none transition placeholder:text-[#A6B1AA] focus:border-[#09B368]"
+                      placeholder="Enter your email"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-100 space-y-4">
-                <p className="text-sm font-semibold text-gray-700">Address</p>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
-                    <MapPin className="h-3.5 w-3.5 inline mr-1.5" />
-                    Address
-                  </label>
-                  <textarea
-                    value={profileForm.address}
-                    onChange={(e) => setProfileForm((prev) => ({ ...prev, address: e.target.value }))}
-                    rows={2}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition resize-none"
-                    placeholder="House / Flat, Street, Landmark"
-                  />
-                </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {/* Address */}
+              <div className="pt-6">
+                <p className="mb-3.5 border-b border-[#E7EEE9] pb-2.5 text-[9.5px] font-semibold uppercase tracking-[0.2em] text-[#A6B1AA]">Address</p>
+                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+                  <div className="sm:col-span-3">
+                    <label className="mb-1.5 block text-[10.5px] font-semibold tracking-[0.03em] text-[#78857C]">Address</label>
+                    <textarea
+                      value={profileForm.address}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, address: e.target.value }))}
+                      rows={2}
+                      className="w-full rounded-lg border border-[#D4DFD8] bg-white px-3.5 py-2.5 text-[13px] text-[#0B1610] outline-none transition placeholder:text-[#A6B1AA] focus:border-[#09B368] resize-none"
+                      placeholder="House / Flat, Street, Landmark"
+                    />
+                  </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">City</label>
+                    <label className="mb-1.5 block text-[10.5px] font-semibold tracking-[0.03em] text-[#78857C]">City</label>
                     <input
                       type="text"
                       value={profileForm.city}
                       onChange={(e) => setProfileForm((prev) => ({ ...prev, city: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
+                      className="w-full rounded-lg border border-[#D4DFD8] bg-white px-3.5 py-2.5 text-[13px] text-[#0B1610] outline-none transition placeholder:text-[#A6B1AA] focus:border-[#09B368]"
                       placeholder="City"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">State</label>
+                    <label className="mb-1.5 block text-[10.5px] font-semibold tracking-[0.03em] text-[#78857C]">State</label>
                     <input
                       type="text"
                       value={profileForm.state}
                       onChange={(e) => setProfileForm((prev) => ({ ...prev, state: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
+                      className="w-full rounded-lg border border-[#D4DFD8] bg-white px-3.5 py-2.5 text-[13px] text-[#0B1610] outline-none transition placeholder:text-[#A6B1AA] focus:border-[#09B368]"
                       placeholder="State"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Pincode</label>
+                    <label className="mb-1.5 block text-[10.5px] font-semibold tracking-[0.03em] text-[#78857C]">Pincode</label>
                     <input
                       type="text"
                       value={profileForm.pincode}
@@ -1982,63 +2689,62 @@ export default function CustomerDashboardPage() {
                         if (val.length <= 6) setProfileForm((prev) => ({ ...prev, pincode: val }));
                       }}
                       maxLength={6}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
+                      className="w-full rounded-lg border border-[#D4DFD8] bg-white px-3.5 py-2.5 text-[13px] text-[#0B1610] outline-none transition placeholder:text-[#A6B1AA] focus:border-[#09B368] tabular-nums"
                       placeholder="123456"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-100 space-y-4">
-                <p className="text-sm font-semibold text-gray-700">Account Details</p>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {/* Bank & payout */}
+              <div className="pt-6">
+                <p className="mb-3.5 border-b border-[#E7EEE9] pb-2.5 text-[9.5px] font-semibold uppercase tracking-[0.2em] text-[#A6B1AA]">Bank &amp; payout</p>
+                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Bank Name</label>
+                    <label className="mb-1.5 block text-[10.5px] font-semibold tracking-[0.03em] text-[#78857C]">Bank Name</label>
                     <input
                       type="text"
                       value={profileForm.bank_name}
                       onChange={(e) =>
                         setProfileForm((prev) => ({ ...prev, bank_name: e.target.value }))
                       }
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
+                      className="w-full rounded-lg border border-[#D4DFD8] bg-white px-3.5 py-2.5 text-[13px] text-[#0B1610] outline-none transition placeholder:text-[#A6B1AA] focus:border-[#09B368]"
                       placeholder="Enter your bank"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
-                      Account Number
-                    </label>
+                    <label className="mb-1.5 block text-[10.5px] font-semibold tracking-[0.03em] text-[#78857C]">Account Number</label>
                     <input
                       type="text"
                       value={profileForm.account_number}
                       onChange={(e) =>
                         setProfileForm((prev) => ({ ...prev, account_number: e.target.value }))
                       }
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
+                      className="w-full rounded-lg border border-[#D4DFD8] bg-white px-3.5 py-2.5 text-[13px] text-[#0B1610] outline-none transition placeholder:text-[#A6B1AA] focus:border-[#09B368] tabular-nums"
                       placeholder="Enter account number"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">IFSC Code</label>
+                    <label className="mb-1.5 block text-[10.5px] font-semibold tracking-[0.03em] text-[#78857C]">IFSC Code</label>
                     <input
                       type="text"
                       value={profileForm.ifsc_code}
                       onChange={(e) =>
                         setProfileForm((prev) => ({ ...prev, ifsc_code: e.target.value }))
                       }
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
+                      className="w-full rounded-lg border border-[#D4DFD8] bg-white px-3.5 py-2.5 text-[13px] text-[#0B1610] outline-none transition placeholder:text-[#A6B1AA] focus:border-[#09B368] tabular-nums"
                       placeholder="Enter IFSC code"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">UPI ID</label>
+                    <label className="mb-1.5 block text-[10.5px] font-semibold tracking-[0.03em] text-[#78857C]">UPI ID</label>
                     <input
                       type="text"
                       value={profileForm.upi_id}
                       onChange={(e) =>
                         setProfileForm((prev) => ({ ...prev, upi_id: e.target.value }))
                       }
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
+                      className="w-full rounded-lg border border-[#D4DFD8] bg-white px-3.5 py-2.5 text-[13px] text-[#0B1610] outline-none transition placeholder:text-[#A6B1AA] focus:border-[#09B368]"
                       placeholder="Enter UPI ID"
                     />
                   </div>
@@ -2046,69 +2752,66 @@ export default function CustomerDashboardPage() {
               </div>
 
               {/* Password Section */}
-              <div className="pt-4 border-t border-gray-100">
+              <div className="pt-6">
                 <button
                   type="button"
                   onClick={() => setShowPasswordSection(v => !v)}
-                  className="flex items-center justify-between w-full text-sm font-semibold text-gray-700 hover:text-[#09B368] transition"
+                  className="mb-3.5 flex w-full items-center justify-between border-b border-[#E7EEE9] pb-2.5 text-[9.5px] font-semibold uppercase tracking-[0.2em] text-[#A6B1AA] transition hover:text-[#056B3E]"
                 >
-                  <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                    {customer?.hasPassword ? 'Change Password' : 'Set Password'}
-                  </span>
-                  <svg className={`w-4 h-4 transition-transform ${showPasswordSection ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  <span>{customer?.hasPassword ? 'Change password' : 'Set password'}</span>
+                  <svg className={`h-3.5 w-3.5 transition-transform ${showPasswordSection ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                 </button>
 
                 {showPasswordSection && (
-                  <div className="mt-4 space-y-3">
+                  <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">New Password</label>
+                      <label className="mb-1.5 block text-[10.5px] font-semibold tracking-[0.03em] text-[#78857C]">New Password</label>
                       <div className="relative">
                         <input
                           type={showPasswords.new ? 'text' : 'password'}
                           value={passwordForm.newPassword}
                           onChange={e => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))}
-                          className="w-full px-4 py-3 pr-10 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
+                          className="w-full rounded-lg border border-[#D4DFD8] bg-white px-3.5 py-2.5 text-[13px] text-[#0B1610] outline-none transition placeholder:text-[#A6B1AA] focus:border-[#09B368] pr-10"
                           placeholder="Min. 8 characters"
                         />
-                        <button type="button" onClick={() => setShowPasswords(p => ({ ...p, new: !p.new }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                          {showPasswords.new ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
+                        <button type="button" onClick={() => setShowPasswords(p => ({ ...p, new: !p.new }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A6B1AA] hover:text-[#46524A]">
+                          {showPasswords.new ? <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg> : <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
                         </button>
                       </div>
                       {passwordForm.newPassword && (
-                        <div className="mt-1.5 flex gap-1">
+                        <div className="mt-2 flex gap-1">
                           {[...Array(4)].map((_, i) => (
                             <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${
                               passwordForm.newPassword.length >= [8,10,12,14][i]
                                 ? ['bg-red-400','bg-yellow-400','bg-blue-400','bg-[#09B368]'][i]
-                                : 'bg-gray-200'
+                                : 'bg-[#E7EEE9]'
                             }`} />
                           ))}
                         </div>
                       )}
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Confirm New Password</label>
+                      <label className="mb-1.5 block text-[10.5px] font-semibold tracking-[0.03em] text-[#78857C]">Confirm New Password</label>
                       <div className="relative">
                         <input
                           type={showPasswords.confirm ? 'text' : 'password'}
                           value={passwordForm.confirmPassword}
                           onChange={e => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
-                          className={`w-full px-4 py-3 pr-10 border rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition ${
+                          className={`w-full rounded-lg border bg-white px-3.5 py-2.5 pr-10 text-[13px] text-[#0B1610] outline-none transition placeholder:text-[#A6B1AA] focus:border-[#09B368] ${
                             passwordForm.confirmPassword && passwordForm.confirmPassword !== passwordForm.newPassword
                               ? 'border-red-300 bg-red-50'
                               : passwordForm.confirmPassword && passwordForm.confirmPassword === passwordForm.newPassword
-                              ? 'border-green-300 bg-green-50'
-                              : 'border-gray-200'
+                              ? 'border-[#BEE9D3] bg-[#EAF8F1]'
+                              : 'border-[#D4DFD8]'
                           }`}
                           placeholder="Re-enter new password"
                         />
-                        <button type="button" onClick={() => setShowPasswords(p => ({ ...p, confirm: !p.confirm }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                          {showPasswords.confirm ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
+                        <button type="button" onClick={() => setShowPasswords(p => ({ ...p, confirm: !p.confirm }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A6B1AA] hover:text-[#46524A]">
+                          {showPasswords.confirm ? <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg> : <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
                         </button>
                       </div>
                       {passwordForm.confirmPassword && passwordForm.confirmPassword !== passwordForm.newPassword && (
-                        <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                        <p className="mt-1.5 text-[11px] text-red-500">Passwords do not match</p>
                       )}
                     </div>
                   </div>
@@ -2116,27 +2819,27 @@ export default function CustomerDashboardPage() {
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="p-6 pt-4 flex gap-3 flex-shrink-0 border-t border-gray-100 bg-white">
+            {/* Footer */}
+            <div className="flex flex-shrink-0 justify-end gap-2.5 border-t border-[#E7EEE9] bg-white px-6 py-4">
               <button
                 onClick={() => setShowProfileModal(false)}
-                className="flex-1 px-6 py-3 border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition"
+                className="rounded-full border border-[#D4DFD8] px-6 py-2.5 text-[12.5px] font-semibold text-[#46524A] transition hover:border-[#09B368] hover:text-[#056B3E]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveProfile}
                 disabled={isSavingProfile}
-                className="flex-1 px-6 py-3 bg-[#09B368] hover:bg-[#078F53] text-white rounded-xl font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#09B368] px-6 py-2.5 text-[12.5px] font-semibold text-white transition hover:bg-[#078F53] disabled:opacity-50"
               >
                 {isSavingProfile ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Saving...
                   </>
                 ) : (
                   <>
-                    <Save className="h-5 w-5" />
+                    <Save className="h-4 w-4" />
                     Save Changes
                   </>
                 )}
@@ -2176,137 +2879,150 @@ export default function CustomerDashboardPage() {
         return null;
       })()}
       {showCompanyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => { setShowCompanyModal(false); setCompanyDetails(null); }}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-[#09B368] text-white p-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Building2 className="w-6 h-6" />
-                  <div>
-                    <h2 className="font-bold text-lg">Company Details</h2>
-                    <p className="text-white/70 text-sm">B2B Corporate Account</p>
-                  </div>
-                </div>
-                <button onClick={() => { setShowCompanyModal(false); setCompanyDetails(null); }} className="p-2 hover:bg-white/20 rounded-full transition">
-                  <X className="w-5 h-5" />
-                </button>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => { setShowCompanyModal(false); setCompanyDetails(null); }}
+        >
+          <div
+            className="flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-[#E7EEE9] bg-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-[#E7EEE9] bg-[#F4F8F5] px-6 py-4">
+              <div>
+                <h2 className="quote-serif text-[26px] font-medium text-[#0B1610]">Company Details</h2>
+                <p className="mt-0.5 text-[12px] text-[#78857C]">B2B Corporate Account</p>
               </div>
+              <button
+                onClick={() => { setShowCompanyModal(false); setCompanyDetails(null); }}
+                className="grid h-8 w-8 place-items-center rounded-lg border border-[#D4DFD8] bg-white text-[#78857C] transition hover:border-[#09B368] hover:text-[#056B3E]"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <div className="p-5 space-y-4">
+
+            <div className="flex-1 overflow-y-auto px-6 py-5">
               {isLoadingCompany ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-[#09B368]" />
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin text-[#09B368]" />
                 </div>
               ) : (
                 <>
                   {/* Company Name + Status */}
-                  <div className="bg-[#09B368]/8 border border-[#09B368]/20 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <ShieldCheck className="w-4 h-4 text-[#09B368]" />
-                      <span className="text-xs font-semibold text-[#09B368] uppercase tracking-wider">
+                  <div className="border-b border-[#E7EEE9] pb-5">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EAF8F1] px-2.5 py-[3px] text-[10px] font-semibold uppercase tracking-[0.1em] text-[#056B3E]">
+                        <ShieldCheck className="h-2.5 w-2.5" />
                         {companyDetails?.b2bStatus || customer?.b2bStatus || 'Approved'}
                       </span>
                       {companyDetails?.b2bApprovedAt && (
-                        <span className="text-[10px] text-[#09B368]/60 ml-auto">
+                        <span className="text-[11px] text-[#A6B1AA]">
                           since {new Date(companyDetails.b2bApprovedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>
                       )}
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mt-1">{companyDetails?.companyName || customer?.companyName || 'Company Name'}</h3>
+                    <h3 className="quote-serif mt-2.5 text-[30px] font-medium leading-[1.05] text-[#0B1610]">
+                      {companyDetails?.companyName || customer?.companyName || 'Company Name'}
+                    </h3>
                   </div>
 
-                  {/* Company Details Section */}
-                  <div className="bg-green-50 rounded-xl p-4 space-y-2">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Building2 className="w-4 h-4 text-green-600" />
-                      <span className="text-sm font-semibold text-green-800">Company Information</span>
-                    </div>
-                    <div className="flex items-start gap-3 p-2.5 bg-white rounded-lg">
-                      <Hash className="w-4 h-4 text-gray-400 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-gray-500 font-medium">GSTIN</p>
-                        <p className="font-semibold text-gray-900 font-mono">{companyDetails?.gstin || 'Not provided'}</p>
+                  {/* Company Information */}
+                  <div className="pt-5">
+                    <p className="mb-3.5 border-b border-[#E7EEE9] pb-2.5 text-[9.5px] font-semibold uppercase tracking-[0.2em] text-[#A6B1AA]">Company information</p>
+                    <div className="flex items-start gap-3 border-b border-[#E7EEE9] py-3 last:border-b-0">
+                      <Hash className="mt-[3px] h-4 w-4 flex-none text-[#A6B1AA]" />
+                      <div className="min-w-0">
+                        <p className="text-[10.5px] font-semibold text-[#78857C]">GSTIN</p>
+                        <p className="mt-0.5 font-mono text-[13.5px] font-semibold text-[#0B1610]">{companyDetails?.gstin || 'Not provided'}</p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3 p-2.5 bg-white rounded-lg">
-                      <Briefcase className="w-4 h-4 text-gray-400 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-gray-500 font-medium">Business Type</p>
-                        <p className="font-semibold text-gray-900">{companyDetails?.businessType || 'Not specified'}</p>
+                    <div className="flex items-start gap-3 border-b border-[#E7EEE9] py-3 last:border-b-0">
+                      <Briefcase className="mt-[3px] h-4 w-4 flex-none text-[#A6B1AA]" />
+                      <div className="min-w-0">
+                        <p className="text-[10.5px] font-semibold text-[#78857C]">Business Type</p>
+                        <p className="mt-0.5 text-[13.5px] font-semibold text-[#0B1610]">{companyDetails?.businessType || 'Not specified'}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Contact Person */}
-                  <div className="space-y-2">
-                    <span className="text-sm font-semibold text-gray-700">Contact Person</span>
-                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <User className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-gray-500 font-medium">Full Name</p>
-                        <p className="font-semibold text-gray-900">{customer?.name}</p>
+                  <div className="pt-6">
+                    <p className="mb-3.5 border-b border-[#E7EEE9] pb-2.5 text-[9.5px] font-semibold uppercase tracking-[0.2em] text-[#A6B1AA]">Contact person</p>
+                    <div className="flex items-start gap-3 border-b border-[#E7EEE9] py-3 last:border-b-0">
+                      <User className="mt-[3px] h-4 w-4 flex-none text-[#A6B1AA]" />
+                      <div className="min-w-0">
+                        <p className="text-[10.5px] font-semibold text-[#78857C]">Full Name</p>
+                        <p className="mt-0.5 text-[13.5px] font-semibold text-[#0B1610]">{customer?.name}</p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Mail className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-gray-500 font-medium">Email</p>
-                        <p className="font-semibold text-gray-900">{customer?.email}</p>
+                    <div className="flex items-start gap-3 border-b border-[#E7EEE9] py-3 last:border-b-0">
+                      <Mail className="mt-[3px] h-4 w-4 flex-none text-[#A6B1AA]" />
+                      <div className="min-w-0">
+                        <p className="text-[10.5px] font-semibold text-[#78857C]">Email</p>
+                        <p className="mt-0.5 truncate text-[13.5px] font-semibold text-[#0B1610]">{customer?.email}</p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Phone className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-gray-500 font-medium">Phone</p>
-                        <p className="font-semibold text-gray-900">{customer?.phone}</p>
+                    <div className="flex items-start gap-3 border-b border-[#E7EEE9] py-3 last:border-b-0">
+                      <Phone className="mt-[3px] h-4 w-4 flex-none text-[#A6B1AA]" />
+                      <div className="min-w-0">
+                        <p className="text-[10.5px] font-semibold text-[#78857C]">Phone</p>
+                        <p className="mt-0.5 text-[13.5px] font-semibold tabular-nums text-[#0B1610]">{customer?.phone}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Account Type */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-xs text-blue-600 font-medium mb-1">Account Type</p>
-                    <p className="text-sm font-semibold text-blue-800">B2B Corporate — Post-Paid Billing</p>
+                  <div className="mt-6 rounded-lg border border-[#E7EEE9] bg-[#F4F8F5] px-4 py-3.5">
+                    <p className="text-[9.5px] font-semibold uppercase tracking-[0.2em] text-[#A6B1AA]">Account type</p>
+                    <p className="mt-1.5 text-[13.5px] font-semibold text-[#0B1610]">B2B Corporate — Post-Paid Billing</p>
                   </div>
 
-                  <p className="text-xs text-gray-400 text-center">To update company details, contact support at <a href="mailto:book@transrentals.in" className="text-[#09B368] font-medium">book@transrentals.in</a></p>
+                  <p className="mt-5 text-center text-[11.5px] text-[#A6B1AA]">
+                    To update company details, contact support at{' '}
+                    <a href="mailto:book@transrentals.in" className="font-semibold text-[#056B3E]">book@transrentals.in</a>
+                  </p>
                 </>
               )}
             </div>
           </div>
         </div>
       )}
-      {/* Logout Confirmation Modal */}
+
+      {/* Logout Confirmation Modal — the markup is here and styled, but nothing
+          opens it: handleLogout is still uncalled, exactly as before. The header
+          continues to sign out directly. */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-[90%] max-w-sm p-6 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-100 mx-auto mb-4">
-              <LogOut className="w-7 h-7 text-red-600" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[#E7EEE9] bg-white">
+            <div className="px-8 py-8 text-center">
+              <span className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-red-50 text-red-600">
+                <LogOut className="h-5 w-5" />
+              </span>
+              <h3 className="quote-serif text-[26px] font-medium text-[#0B1610]">Log out of your account?</h3>
+              <p className="mx-auto mt-2 max-w-[320px] text-[12.5px] leading-relaxed text-[#78857C]">
+                You&apos;ll need to sign in again to view your bookings and quotes.
+              </p>
             </div>
-            <h3 className="text-lg font-bold text-slate-900 text-center">Logout</h3>
-            <p className="text-sm text-slate-500 text-center mt-2">
-              Are you sure you want to logout? You will need to login again to access your account.
-            </p>
-            <div className="flex gap-3 mt-6">
+            <div className="flex justify-center gap-2.5 border-t border-[#E7EEE9] px-6 py-4">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
                 disabled={loggingOut}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
+                className="rounded-full border border-[#D4DFD8] px-6 py-2.5 text-[12.5px] font-semibold text-[#46524A] transition hover:border-[#09B368] hover:text-[#056B3E] disabled:opacity-50"
               >
-                Cancel
+                Stay signed in
               </button>
               <button
                 onClick={confirmLogout}
                 disabled={loggingOut}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-80 flex items-center justify-center gap-2"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-red-600 px-6 py-2.5 text-[12.5px] font-semibold text-white transition hover:bg-red-700 disabled:opacity-80"
               >
                 {loggingOut ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                     Logging out...
                   </>
                 ) : (
-                  'Yes, Logout'
+                  'Log Out'
                 )}
               </button>
             </div>

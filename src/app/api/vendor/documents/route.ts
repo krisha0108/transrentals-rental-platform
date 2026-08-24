@@ -213,8 +213,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (uploadedDocs.length >= requiredTypes.length) {
-      await prisma.vendors.update({
-        where: { id: vendorId },
+      // Only move a vendor into review from a pre-approval state — never
+      // knock an already-APPROVED/REJECTED/SUSPENDED/BLOCKED vendor back
+      // to UNDER_REVIEW just because a document was re-uploaded.
+      await prisma.vendors.updateMany({
+        where: { id: vendorId, status: { in: ['PENDING', 'DOCUMENTS_PENDING'] } },
         data: { status: 'UNDER_REVIEW' },
       });
     }

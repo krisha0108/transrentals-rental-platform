@@ -965,9 +965,9 @@ export default function DashboardScreen({ navigation }) {
                       <View style={s.inqBottom}>
                         <View style={s.inqCustomer}>
                           <View style={s.inqAvatar}>
-                            <Text style={s.inqAvatarTxt}>{q.customer.charAt(0)}</Text>
+                            <Text style={s.inqAvatarTxt}>{q.customer?.charAt(0) || '?'}</Text>
                           </View>
-                          <Text style={s.inqCustomerTxt} numberOfLines={1}>{q.customer}</Text>
+                          <Text style={s.inqCustomerTxt} numberOfLines={1}>{q.customer || 'Customer'}</Text>
                         </View>
                         <TouchableOpacity activeOpacity={0.85}
                           style={[s.inqBtn, q.accept && { backgroundColor: C.blue }]}

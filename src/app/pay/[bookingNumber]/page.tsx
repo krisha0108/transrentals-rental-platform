@@ -287,7 +287,7 @@ export default function PaymentPage() {
               }
             }
           `}</style>
-          <div className="absolute inset-0 bg-[linear-gradient(118deg,#056B3E_0%,#078F53_42%,#09B368_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)]" />
           {/* slow light sweep */}
           <span
             aria-hidden

@@ -49,9 +49,28 @@ export async function GET(
       );
     }
 
+    // inclusions / exclusions / termsConditions are stored as a JSON string.
+    // Send them as real arrays — handing the raw string to the client left it
+    // splitting on commas, which turned '["A","B"]' into '["A"' + '"B"]' and an
+    // empty '[]' into a single literal "[]" item.
+    const toList = (raw: any): string[] => {
+      if (Array.isArray(raw)) return raw.filter(Boolean);
+      if (typeof raw !== 'string' || !raw.trim()) return [];
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+        if (parsed && typeof parsed === 'object') return Object.values(parsed).filter(Boolean) as string[];
+        return [];
+      } catch {
+        // Not JSON — fall back to the comma-separated form.
+        return raw.split(',').map((s) => s.trim()).filter(Boolean);
+      }
+    };
+
     // Transform quotes for frontend
     const quotes = (quoteRequest.bus_quotes_bus_quotes_requestIdTobus_quote_requests || []).map((quote) => ({
       id: quote.id,
+      quoteNumber: quote.quoteNumber,
       vendorId: quote.vendorId,
       vendorName: quote.vendors?.businessName || 'Vendor',
       vendorRating: quote.vendors?.rating || 0,
@@ -60,14 +79,22 @@ export async function GET(
       vehicleName: quote.vehicleName,
       vehicleNumber: quote.vehicleNumber,
       seats: quote.seats,
+      vehicleImages: quote.vehicleImages,
       totalAmount: quote.totalAmount,
       baseRate: quote.baseAmount, // Frontend expects baseRate
       driverAllowance: quote.driverAllowance || 0,
+      nightHaltCharges: quote.nightHaltCharges || 0,
       tollCharges: quote.tollEstimate || 0, // Frontend expects tollCharges
+      permitCharges: quote.permitCharges || 0,
       parkingCharges: quote.parkingEstimate || 0, // Frontend expects parkingCharges
-      inclusions: quote.inclusions || [],
-      exclusions: quote.exclusions || [],
-      termsConditions: quote.termsConditions || [],
+      gstAmount: quote.gstAmount || 0,
+      advanceAmount: quote.advanceAmount || 0,
+      advancePercent: quote.advancePercent || 0,
+      isNegotiable: quote.isNegotiable,
+      viewCount: quote.viewCount,
+      inclusions: toList(quote.inclusions),
+      exclusions: toList(quote.exclusions),
+      termsConditions: toList(quote.termsConditions),
       notes: quote.vendorMessage, // Frontend expects notes
       validUntil: quote.validTill, // Frontend expects validUntil
       status: quote.status,
@@ -89,8 +116,17 @@ export async function GET(
       journeyDate: quoteRequest.pickupDate, // Frontend expects journeyDate
       pickupTime: quoteRequest.pickupTime,
       returnDate: quoteRequest.returnDate,
+      returnTime: quoteRequest.returnTime,
+      tripDays: quoteRequest.tripDays,
       requirements: quoteRequest.requirements || '',
+      needAC: quoteRequest.needAC,
+      needLuxury: quoteRequest.needLuxury,
+      needSleeper: quoteRequest.needSleeper,
       status: quoteRequest.status,
+      totalQuotesReceived: quoteRequest.totalQuotesReceived,
+      quotesOpenTill: quoteRequest.quotesOpenTill,
+      expiresAt: quoteRequest.expiresAt,
+      createdAt: quoteRequest.createdAt,
       customerName: quoteRequest.customerName,
       customerEmail: quoteRequest.customerEmail,
       customerPhone: quoteRequest.customerPhone,

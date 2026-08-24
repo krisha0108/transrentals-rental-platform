@@ -348,10 +348,10 @@ export default function AllInquiriesScreen({ navigation }) {
                   {/* Identity row — avatar + customer + service/title */}
                   <View style={s.cardTop}>
                     <View style={[s.avatar, isUrgent && { backgroundColor: C.redL, borderColor: '#FECACA' }]}>
-                      <Text style={[s.avatarTxt, isUrgent && { color: C.red }]}>{q.customer.charAt(0)}</Text>
+                      <Text style={[s.avatarTxt, isUrgent && { color: C.red }]}>{q.customer?.charAt(0) || '?'}</Text>
                     </View>
                     <View style={{ flex: 1, marginLeft: 10 }}>
-                      <Text style={s.customerTxt} numberOfLines={1}>{q.customer}</Text>
+                      <Text style={s.customerTxt} numberOfLines={1}>{q.customer || 'Customer'}</Text>
                       <View style={s.cardMetaRow}>
                         <MaterialCommunityIcons name={meta.icon} size={11} color={meta.color} />
                         <Text style={s.cardTitle} numberOfLines={1}>

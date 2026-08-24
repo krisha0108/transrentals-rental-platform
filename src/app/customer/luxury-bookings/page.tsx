@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 import {
   Car,
   Calendar,
@@ -131,7 +132,7 @@ export default function CustomerLuxuryBookingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 flex items-center justify-center`}>
         <div className="text-center">
           <div className="animate-spin w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-gray-500">Loading your luxury bookings...</p>
@@ -142,7 +143,7 @@ export default function CustomerLuxuryBookingsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 flex items-center justify-center p-4`}>
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center max-w-md">
           <p className="text-red-600 mb-4">{error}</p>
           <button
@@ -157,7 +158,7 @@ export default function CustomerLuxuryBookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 pt-16`}>
       <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-gray-900 via-amber-900 to-gray-900 text-white py-8">
@@ -166,7 +167,7 @@ export default function CustomerLuxuryBookingsPage() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <Crown className="w-8 h-8 text-amber-400" />
-                <h1 className="text-2xl font-bold">My Luxury Bookings</h1>
+                <h1 className="quote-serif text-[30px] font-medium">My Luxury Bookings</h1>
               </div>
               <p className="text-amber-200">Your premium chauffeur-driven experiences</p>
             </div>
@@ -208,7 +209,7 @@ export default function CustomerLuxuryBookingsPage() {
           {filteredBookings.length === 0 ? (
             <div className="bg-white rounded-xl p-8 text-center">
               <Crown className="w-12 h-12 text-amber-400 mx-auto mb-4" />
-              <h3 className="font-medium text-gray-900 mb-1">No bookings found</h3>
+              <h3 className="quote-serif font-medium text-gray-900 mb-1 text-[21px]">No bookings found</h3>
               <p className="text-sm text-gray-500 mb-4">
                 {filter !== 'all'
                   ? 'No bookings match this filter'
@@ -257,7 +258,7 @@ export default function CustomerLuxuryBookingsPage() {
                           <Car className="w-6 h-6 text-amber-600" />
                         </div>
                         <div>
-                          <h3 className="font-bold text-gray-900">
+                          <h3 className="quote-serif font-medium text-gray-900 text-[21px]">
                             {booking.assignedVehicle || booking.vehiclePreference || booking.vehicle_category}
                           </h3>
                           <p className="text-sm text-gray-500 flex items-center gap-1">

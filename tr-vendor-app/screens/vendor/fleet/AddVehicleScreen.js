@@ -233,7 +233,7 @@ export default function AddVehicleScreen({ route, navigation }) {
   const updatePricing = (key, value) => setPricing(prev => ({ ...prev, [key]: value }));
 
   const pickImage = async (imageType) => {
-    const result = await launchImageLibrary({ mediaType: 'photo', selectionLimit: 1, quality: 0.8, includeBase64: true });
+    const result = await launchImageLibrary({ mediaType: 'photo', selectionLimit: 1, quality: 0.8, includeBase64: true, maxWidth: 1920, maxHeight: 1920 });
     if (result.assets && result.assets[0]) {
       const asset = result.assets[0];
       setVehicleImages(prev => ({

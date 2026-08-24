@@ -256,8 +256,6 @@ export default function VendorFleetPage() {
     total: fleet.length,
     active: fleet.filter((v) => v.isActive).length,
     available: fleet.filter((v) => v.isAvailable && v.isActive).length,
-    verified: fleet.filter((v) => v.isVerified).length,
-    pending: fleet.filter((v) => !v.isVerified).length,
   };
 
   if (loading) {
@@ -269,8 +267,8 @@ export default function VendorFleetPage() {
           <div className="h-10 bg-gray-200 rounded-xl w-32"></div>
         </div>
         {/* Stat boxes */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
-          {[...Array(5)].map((_, i) => (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+          {[...Array(3)].map((_, i) => (
             <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2">
               <div className="h-4 bg-gray-200 rounded w-2/3"></div>
               <div className="h-6 bg-gray-100 rounded w-1/2"></div>
@@ -314,8 +312,6 @@ export default function VendorFleetPage() {
     { label: 'Total Vehicles', value: stats.total, icon: Car, gradient: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-50', text: 'text-emerald-600' },
     { label: 'Active', value: stats.active, icon: ToggleRight, gradient: 'from-emerald-500 to-emerald-600', bg: 'bg-green-50', text: 'text-green-600' },
     { label: 'Available', value: stats.available, icon: CheckCircle, gradient: 'from-emerald-500 to-teal-600', bg: 'bg-emerald-50', text: 'text-emerald-600' },
-    { label: 'Verified', value: stats.verified, icon: CheckCircle, gradient: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-50', text: 'text-emerald-600' },
-    { label: 'Pending', value: stats.pending, icon: AlertCircle, gradient: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-50', text: 'text-emerald-600' },
   ];
 
   return (
@@ -341,7 +337,7 @@ export default function VendorFleetPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           {statCards.map((stat) => {
             const Icon = stat.icon;
             return (
@@ -472,21 +468,6 @@ export default function VendorFleetPage() {
 
                     {/* Gradient overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-                    {/* Status Badges */}
-                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                      {vehicle.isVerified ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/95 backdrop-blur-sm text-green-700 rounded-full text-xs font-semibold shadow-sm">
-                          <CheckCircle className="w-3 h-3" />
-                          Verified
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/95 backdrop-blur-sm text-emerald-700 rounded-full text-xs font-semibold shadow-sm">
-                          <AlertCircle className="w-3 h-3" />
-                          Pending
-                        </span>
-                      )}
-                    </div>
 
                     <div className="absolute top-3 right-3">
                       {!vehicle.isActive ? (

@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { quoteDisplay } from '@/lib/quote-font';
 import {
   Wrench,
   ArrowLeft,
@@ -131,7 +132,7 @@ function EquipmentBookingsContent() {
 
   if (isLoading || !customer) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 flex items-center justify-center`}>
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-amber-500 mx-auto mb-4" />
           <p className="text-gray-600">
@@ -144,7 +145,7 @@ function EquipmentBookingsContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 p-4`}>
         <div className="max-w-2xl mx-auto">
           <Link href="/customer/dashboard" className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6">
             <ArrowLeft className="w-4 h-4" />
@@ -152,7 +153,7 @@ function EquipmentBookingsContent() {
           </Link>
           <div className="bg-white rounded-xl p-8 text-center shadow-sm">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Error</h2>
+            <h2 className="quote-serif text-[26px] font-medium text-gray-900 mb-2">Error</h2>
             <p className="text-gray-600">{error}</p>
           </div>
         </div>
@@ -161,10 +162,10 @@ function EquipmentBookingsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 pt-16`}>
       <CustomerHeader showBackButton />
       {/* Header */}
-      <div className="bg-gradient-to-r from-amber-600 to-yellow-600 text-white">
+      <div className="bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)] text-white">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <Link href="/customer/dashboard" className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-4">
             <ArrowLeft className="w-4 h-4" />
@@ -175,7 +176,7 @@ function EquipmentBookingsContent() {
               <Wrench className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Equipment Bookings</h1>
+              <h1 className="quote-serif text-[30px] font-medium">Equipment Bookings</h1>
               <p className="text-white/80">View all your equipment rental bookings</p>
             </div>
           </div>
@@ -186,7 +187,7 @@ function EquipmentBookingsContent() {
         {bookings.length === 0 ? (
           <div className="bg-white rounded-xl p-8 text-center shadow-sm">
             <Wrench className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">No Bookings Yet</h2>
+            <h2 className="quote-serif text-[26px] font-medium text-gray-900 mb-2">No Bookings Yet</h2>
             <p className="text-gray-600 mb-6">You haven't made any equipment rental bookings yet.</p>
             <Link
               href="/equipment-rental"
@@ -249,7 +250,7 @@ function EquipmentBookingsContent() {
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 flex items-center justify-center`}>
       <div className="text-center">
         <Loader2 className="w-8 h-8 animate-spin text-amber-500 mx-auto mb-4" />
         <p className="text-gray-600">Loading...</p>

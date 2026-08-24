@@ -31,6 +31,7 @@ import CustomerHeader from '@/components/customer/CustomerHeader';
 import { useSocket } from '@/hooks/useSocket';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import { BikeBookingChat } from '@/components/bike/BikeBookingChat';
+import { quoteDisplay } from '@/lib/quote-font';
 
 type BikeBookingStatus =
   | 'PENDING'
@@ -481,7 +482,7 @@ export default function BikeBookingDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className={`${quoteDisplay.variable} min-h-screen flex items-center justify-center bg-gray-50`}>
         <Loader2 className="h-12 w-12 animate-spin text-purple-500" />
       </div>
     );
@@ -489,10 +490,10 @@ export default function BikeBookingDetailPage() {
 
   if (!booking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className={`${quoteDisplay.variable} min-h-screen flex items-center justify-center bg-gray-50`}>
         <div className="text-center">
           <Bike className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Booking Not Found</h1>
+          <h1 className="quote-serif text-[30px] font-medium text-gray-900 mb-2">Booking Not Found</h1>
           <p className="text-gray-600 mb-6">
             We couldn&apos;t find a booking with number: <strong>{params.id}</strong>
           </p>
@@ -516,12 +517,12 @@ export default function BikeBookingDetailPage() {
   const showPaymentConfirmation = booking.status === 'PENDING_PAYMENT' && !!booking.advanceAmount;
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className={`${quoteDisplay.variable} min-h-screen bg-gray-50 pt-16`}>
       <CustomerHeader showBackButton />
 
       {/* Hero Header */}
       <div className="relative overflow-hidden bg-[#012314] text-white">
-        <div className="absolute inset-0 bg-[linear-gradient(118deg,#056B3E_0%,#078F53_42%,#09B368_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(118deg,#01301B_0%,#056B3E_46%,#078F53_100%)]" />
         <div
           className="absolute inset-0 opacity-60"
           style={{
@@ -553,7 +554,7 @@ export default function BikeBookingDetailPage() {
                 <Bike className="w-7 h-7" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-2xl sm:text-[28px] font-extrabold leading-tight tracking-tight">{booking.vehicleName}</h1>
+                <h1 className="quote-serif text-[30px] sm:text-[38px] font-medium leading-tight tracking-[-0.01em]">{booking.vehicleName}</h1>
                 <div className="mt-2 flex flex-wrap items-center gap-2.5">
                   <span className="rounded-md border border-white/[0.14] bg-white/10 px-2.5 py-1 text-xs font-bold tabular-nums text-white/80">
                     {booking.bookingNumber}
@@ -819,7 +820,7 @@ export default function BikeBookingDetailPage() {
         {/* ── Vehicle Card ── */}
         <div className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC] flex items-center justify-between">
-            <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Vehicle Details</p>
+            <p className="quote-serif text-[17px] font-medium text-gray-400">Vehicle Details</p>
             {booking.helmetIncluded && (
               <span className="rounded-full border border-[#C8F1DF] bg-[#E9FAF2] px-2.5 py-0.5 text-[11px] font-bold text-[#056B3E]">
                 Helmet included
@@ -850,7 +851,7 @@ export default function BikeBookingDetailPage() {
         {/* ── Trip Details ── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
-            <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Trip Details</p>
+            <p className="quote-serif text-[17px] font-medium text-gray-400">Trip Details</p>
           </div>
           <div className="p-4">
             <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
@@ -902,7 +903,7 @@ export default function BikeBookingDetailPage() {
         {/* ── Payment Summary ── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
-            <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Payment Summary</p>
+            <p className="quote-serif text-[17px] font-medium text-gray-400">Payment Summary</p>
           </div>
           <div className="p-4">
             <div className="flex flex-col gap-px overflow-hidden rounded-xl bg-gray-50">
@@ -951,7 +952,7 @@ export default function BikeBookingDetailPage() {
         {/* ── Cancellation Details ── */}
         {booking.status === 'CANCELLED' && booking.cancellationReason && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-            <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <p className="quote-serif text-[17px] font-medium text-red-500 mb-2 flex items-center gap-1.5">
               <XCircle className="w-3.5 h-3.5" />
               Cancellation Details
             </p>
@@ -964,7 +965,7 @@ export default function BikeBookingDetailPage() {
         {isActive && (
           <div className="bg-white rounded-2xl border border-red-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-red-100 bg-red-50">
-              <p className="text-[11px] font-extrabold text-red-700 uppercase tracking-[0.1em]">Cancel Booking</p>
+              <p className="quote-serif text-[17px] font-medium text-red-700">Cancel Booking</p>
             </div>
             <div className="p-4">
               <p className="text-[12.5px] leading-relaxed text-gray-500 mb-3">
@@ -991,7 +992,7 @@ export default function BikeBookingDetailPage() {
           {booking.vendorName && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
-                <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Vendor Details</p>
+                <p className="quote-serif text-[17px] font-medium text-gray-400">Vendor Details</p>
               </div>
               <div className="p-4">
                 <div className="flex items-center gap-3">
@@ -1040,7 +1041,7 @@ export default function BikeBookingDetailPage() {
           {/* ── Booking Info ── */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
-              <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Booking Info</p>
+              <p className="quote-serif text-[17px] font-medium text-gray-400">Booking Info</p>
             </div>
             <div className="p-4">
               <div className="flex flex-col gap-px overflow-hidden rounded-xl bg-gray-50">
@@ -1079,7 +1080,7 @@ export default function BikeBookingDetailPage() {
           {/* ── Actions ── */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC]">
-              <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.1em]">Need a hand</p>
+              <p className="quote-serif text-[17px] font-medium text-gray-400">Need a hand</p>
             </div>
             <div className="p-4 flex flex-col gap-2.5">
               {booking.status === 'COMPLETED' && !booking.rating && (
@@ -1117,7 +1118,7 @@ export default function BikeBookingDetailPage() {
             <div className="flex items-center justify-between p-5 border-b">
               <div className="flex items-center gap-2">
                 <XCircle className="w-5 h-5 text-red-500" />
-                <h2 className="font-bold text-gray-900">Cancel Booking</h2>
+                <h2 className="quote-serif font-medium text-gray-900 text-[21px]">Cancel Booking</h2>
               </div>
               <button onClick={() => setShowCancelModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5 text-gray-500" />
@@ -1197,7 +1198,7 @@ export default function BikeBookingDetailPage() {
               <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Star className="w-7 h-7 text-amber-500 fill-amber-500" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Rate Your Experience</h2>
+              <h2 className="quote-serif text-[26px] font-medium text-gray-900">Rate Your Experience</h2>
               <p className="text-sm text-gray-500 mt-1">How was your bike rental?</p>
             </div>
             <div className="flex justify-center gap-3 mb-5">
