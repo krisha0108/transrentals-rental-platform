@@ -2836,7 +2836,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
               </div>
             )}
 
-            <div className={`flex flex-wrap items-stretch gap-2.5 p-3 sm:gap-4 sm:p-8 ${activeTab.key === 'car' || activeTab.key === 'bus' || activeTab.key === 'truck' || activeTab.key === 'packers' || activeTab.key === 'equipment' ? '' : 'md:flex-nowrap'}`}>
+            <div className={`flex flex-wrap items-stretch gap-2.5 p-3 sm:gap-4 sm:p-8 ${activeTab.key === 'car' || activeTab.key === 'bus' || activeTab.key === 'truck' || activeTab.key === 'packers' || activeTab.key === 'equipment' || activeTab.hasDateTimeFields ? '' : 'md:flex-nowrap'}`}>
               {activeTab.key === 'car' ? (
                 <>
                   {carSubTab === 'local' && (
@@ -3892,7 +3892,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 )
               ) : (
                 <>
-                  <div className="flex min-w-0 flex-[2] flex-wrap basis-[320px] items-stretch gap-2.5 rounded-[10px] border border-slate-100 bg-[#fbfbfc] shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:gap-0 sm:divide-x sm:divide-slate-200">
+                  <div className={`flex min-w-0 flex-wrap items-stretch gap-2.5 rounded-[10px] border border-slate-100 bg-[#fbfbfc] shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:gap-0 sm:divide-x sm:divide-slate-200 ${activeTab.needsTo ? 'flex-[2] basis-[320px]' : 'basis-full'}`}>
                     <MiniCityInput
                       label="From"
                       placeholder="Enter pickup location"
