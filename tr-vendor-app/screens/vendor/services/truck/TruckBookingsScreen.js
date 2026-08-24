@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput,
   RefreshControl, ActivityIndicator, LayoutAnimation,
-  Platform, UIManager, StatusBar,
+  Platform, UIManager, StatusBar, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -13,27 +12,34 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { getBookings } from '../../../api/client';
 import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
 import DateFilterModal from '../../../../components/DateFilterModal';
+import { SC as T, G, rs, shade, cardShadow } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+// Same key names this screen already used — only the values now come from
+// the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A',
-  sub: '#475569', muted: '#94A3B8', blue: '#2563EB', blueL: '#EFF6FF',
-  amber: '#D97706', amberL: '#FFFBEB', red: '#DC2626', redL: '#FEF2F2',
-  orange: '#EA580C', orangeL: '#FFF7ED', indigo: '#4F46E5', indigoL: '#EEF2FF',
-  teal: '#0D9488', tealL: '#F0FDFA', pink: '#DB2777', pinkL: '#FDF2F8',
-  cyan: '#0891B2', cyanL: '#ECFEFF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  amber: T.amber, amberL: T.amberLight,
+  blue: T.blue, blueL: T.blueLight,
+  red: T.red,
+  indigo: T.indigo,
+  cyan: shade(T.ocean, 25),
+  ivory: T.ivory, sand: T.sand, glassBorder: T.glassBorder,
 };
 
 const STATUS_CONFIG = {
   PENDING_PAYMENT:  { label: 'Payment Pending',   color: C.amber  },
   PAYMENT_VERIFIED: { label: 'Payment Verified',  color: C.g600   },
   BROADCASTED:      { label: 'Open',              color: C.blue   },
-  PENDING_VENDOR:   { label: 'Pending',           color: C.amber  },
+  PENDING_VENDOR:   { label: 'Pending',            color: C.amber  },
   ACCEPTED:         { label: 'Accepted',          color: C.g600   },
   CONFIRMED:        { label: 'Confirmed',         color: C.g600   },
   READY_FOR_PICKUP: { label: 'Ready for Pickup',  color: C.cyan   },
@@ -45,22 +51,66 @@ const STATUS_CONFIG = {
 const fmt = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '--';
 
+/* ── Expanded info row ─────────────────────────────────────────────────── */
 const ERow = ({ iconName, label, value }) => (
   <View style={styles.eRow}>
     <View style={styles.eIconWrap}>
-      <Icon name={iconName} size={12} color={C.sub} />
+      <Icon name={iconName} size={10} color={C.sub} />
     </View>
     <Text style={styles.eLabel}>{label}</Text>
     <Text style={styles.eVal}>{value}</Text>
   </View>
 );
 
+/* ── Illustrated empty state ──────────────────────────────────────────── */
+const EmptyState = ({ filtered, selectedFilter, onClearSearch }) => (
+  <View style={styles.emptyCardWrap}>
+    <View style={styles.emptyArt}>
+      <View style={styles.emptyArtCardBack} />
+      <View style={styles.emptyArtCard}>
+        {filtered
+          ? <Ionicons name="search" size={rs(40)} color={C.g400} />
+          : <MaterialCommunityIcons name="truck-delivery-outline" size={rs(40)} color={C.g400} />}
+      </View>
+      <View style={styles.emptyArtDot} />
+      <View style={styles.emptyArtTag}>
+        <Text style={styles.emptyArtTagTxt}>
+          {filtered ? 'NO MATCH' : (selectedFilter === 'completed' ? 'DONE' : 'ACTIVE')}
+        </Text>
+      </View>
+    </View>
+
+    <Text style={styles.emptyTitle}>
+      {filtered
+        ? 'No matches found'
+        : (selectedFilter === 'completed' ? 'No completed bookings' : 'No active bookings')}
+    </Text>
+    <Text style={styles.emptyBody}>
+      {filtered
+        ? 'Try a different name, booking number or city.'
+        : (selectedFilter === 'completed'
+            ? 'Completed truck bookings will appear here'
+            : 'Your current truck bookings will appear here')}
+    </Text>
+
+    {filtered && (
+      <TouchableOpacity style={styles.emptyCtaWrap} onPress={onClearSearch} activeOpacity={0.9}>
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyCta}>
+          <Icon name="x" size={14} color="#fff" />
+          <Text style={styles.emptyCtaText}>Clear Search</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    )}
+  </View>
+);
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
 export default function TruckBookingsScreen({ navigation, route }) {
   const { filter } = route.params || {};
   const [showDateFilter,  setShowDateFilter]  = useState(false);
   const [selectedFilter,  setSelectedFilter]  = useState('active');
   const [expandedId,      setExpandedId]      = useState(null);
-  const [searchQuery,     setSearchQuery]     = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const {
     data: allBookings, loading, refreshing, hasMore,
@@ -90,187 +140,192 @@ export default function TruckBookingsScreen({ navigation, route }) {
     setExpandedId(prev => (prev === id ? null : id));
   };
 
+  /* ── Booking card ──────────────────────────────────────────────────────── */
   const renderBooking = ({ item }) => {
     const sc = STATUS_CONFIG[item.status] || { label: item.status, color: C.muted };
     const isExpanded = expandedId === item.id;
 
     return (
       <View style={styles.card}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate('TruckBookingDetail', { bookingId: item.id, serviceType: 'truck' })}
-        >
-          <View style={styles.cardTop}>
-            <View style={styles.cardTopLeft}>
-              <Text style={styles.bookingNum}>#{item.bookingNumber}</Text>
-              {item.totalDays && (
-                <View style={styles.daysChip}>
-                  <Text style={styles.daysChipText}>{item.totalDays}d rental</Text>
+        {/* Tonal accent rail — stretches to the card's full height, including
+            the expanded section, because the parent row uses default stretch. */}
+        <LinearGradient
+          colors={[sc.color, shade(sc.color, -20)]}
+          start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+          style={styles.cardRail}
+        />
+
+        <View style={styles.cardInner}>
+          {/* Tappable top area → BookingDetail */}
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('TruckBookingDetail', { bookingId: item.id, serviceType: 'truck' })}
+          >
+            {/* Top stripe: icon box + booking number + status */}
+            <View style={styles.cardTopStripe}>
+              <LinearGradient colors={[C.g600, C.g700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.iconBox}>
+                <MaterialCommunityIcons name="truck-delivery" size={rs(13)} color="#fff" />
+              </LinearGradient>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <View style={styles.cardTopLeft}>
+                  <Text style={styles.bookingNum} numberOfLines={1}>#{item.bookingNumber}</Text>
+                  {!!item.totalDays && (
+                    <View style={styles.daysChip}>
+                      <Text style={styles.daysChipText}>{item.totalDays}d</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+              <View style={[styles.statusPill, { backgroundColor: `${sc.color}18` }]}>
+                <Text style={[styles.statusText, { color: sc.color }]} numberOfLines={1}>{sc.label}</Text>
+              </View>
+            </View>
+
+            {/* Primary name */}
+            <Text style={styles.cardName} numberOfLines={1}>{item.customerName}</Text>
+
+            {/* Meta row */}
+            <View style={styles.metaRow}>
+              <View style={styles.metaItem}>
+                <Icon name="map-pin" size={10} color={C.muted} />
+                <Text style={styles.metaText} numberOfLines={1}>
+                  {item.pickupCity || item.locationName || 'N/A'}
+                </Text>
+              </View>
+              <View style={styles.metaItem}>
+                <Icon name="calendar" size={10} color={C.muted} />
+                <Text style={styles.metaText}>
+                  {fmt(item.pickupDate)}
+                  {item.pickupTime ? `  ${item.pickupTime.slice(0, 5)}` : ''}
+                </Text>
+              </View>
+              {!!item.vehicleName && (
+                <View style={styles.metaItem}>
+                  <MaterialCommunityIcons name="truck-delivery" size={10} color={C.muted} />
+                  <Text style={[styles.metaText, { fontWeight: '700' }]} numberOfLines={1}>
+                    {item.vehicleName}
+                  </Text>
                 </View>
               )}
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: `${sc.color}18` }]}>
-              <Text style={[styles.statusText, { color: sc.color }]}>{sc.label}</Text>
-            </View>
-          </View>
 
-          <View style={styles.cardBody}>
-            <View style={styles.infoRow}>
-              <View style={[styles.infoIconWrap, { backgroundColor: C.g50 }]}>
-                <Icon name="user" size={13} color={C.g700} />
-              </View>
-              <Text style={styles.infoText} numberOfLines={1}>{item.customerName}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <View style={[styles.infoIconWrap, { backgroundColor: C.blueL }]}>
-                <Icon name="map-pin" size={13} color={C.blue} />
-              </View>
-              <Text style={styles.infoText} numberOfLines={1}>
-                {item.pickupCity || item.locationName || 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <View style={[styles.infoIconWrap, { backgroundColor: C.amberL }]}>
-                <Icon name="calendar" size={13} color={C.amber} />
-              </View>
-              <Text style={styles.infoText}>
-                {fmt(item.pickupDate)}
-                {item.pickupTime ? `  ${item.pickupTime.slice(0, 5)}` : ''}
-              </Text>
-            </View>
-            {item.vehicleName && (
-              <View style={styles.infoRow}>
-                <View style={[styles.infoIconWrap, { backgroundColor: C.g50 }]}>
-                  <MaterialCommunityIcons name="truck-delivery" size={13} color={C.g700} />
-                </View>
-                <Text style={[styles.infoText, { fontWeight: '600' }]} numberOfLines={1}>
-                  {item.vehicleName}
+            {/* Footer: amount + expand toggle */}
+            <View style={styles.cardFooter}>
+              <View>
+                <Text style={styles.amtLabel}>Total Amount</Text>
+                <Text style={styles.amtValue}>
+                  ₹{(item.grandTotal || item.totalAmount || 0).toLocaleString('en-IN')}
                 </Text>
               </View>
-            )}
-          </View>
-
-          <View style={styles.cardFooter}>
-            <View>
-              <Text style={styles.amtLabel}>Total Amount</Text>
-              <Text style={styles.amtValue}>
-                ₹{(item.grandTotal || item.totalAmount || 0).toLocaleString('en-IN')}
-              </Text>
+              <View style={styles.footerRight}>
+                <TouchableOpacity
+                  onPress={() => toggleExpand(item.id)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <View style={[styles.expandCircle, isExpanded && styles.expandCircleActive]}>
+                    <Icon
+                      name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                      size={12}
+                      color={isExpanded ? '#fff' : C.sub}
+                    />
+                  </View>
+                </TouchableOpacity>
+                <View style={styles.arrowCircle}>
+                  <Icon name="arrow-right" size={12} color={C.g700} />
+                </View>
+              </View>
             </View>
-            <View style={styles.footerRight}>
+          </TouchableOpacity>
+
+          {/* Expanded section */}
+          {isExpanded && (
+            <View style={styles.expandedSection}>
+              <View style={styles.expandDivider} />
+              {item.vehicleBrand && (
+                <ERow iconName="zap" label="Brand" value={item.vehicleBrand} />
+              )}
+              {item.pickupAddress && (
+                <ERow iconName="map-pin" label="Pickup Addr." value={item.pickupAddress} />
+              )}
+              {item.dropDate && (
+                <ERow
+                  iconName="calendar"
+                  label="Drop Date"
+                  value={`${fmt(item.dropDate)}${item.dropTime ? `  ${item.dropTime.slice(0, 5)}` : ''}`}
+                />
+              )}
+              {item.securityDeposit > 0 && (
+                <ERow
+                  iconName="shield"
+                  label="Security Dep."
+                  value={`₹${(item.securityDeposit || 0).toLocaleString('en-IN')}`}
+                />
+              )}
+              {item.dailyRate && (
+                <ERow iconName="tag" label="Daily Rate" value={`₹${item.dailyRate}/day`} />
+              )}
+              {item.customerNotes && (
+                <View style={[styles.eRow, { alignItems: 'flex-start' }]}>
+                  <View style={styles.eIconWrap}>
+                    <Icon name="file-text" size={10} color={C.sub} />
+                  </View>
+                  <Text style={styles.eLabel}>Notes</Text>
+                  <Text style={[styles.eVal, { flex: 1 }]}>{item.customerNotes}</Text>
+                </View>
+              )}
               <TouchableOpacity
-                style={styles.expandBtn}
-                onPress={() => toggleExpand(item.id)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={styles.viewDetailsBtn}
+                onPress={() => navigation.navigate('TruckBookingDetail', { bookingId: item.id, serviceType: 'truck' })}
               >
-                <View style={[styles.expandCircle, isExpanded && styles.expandCircleActive]}>
-                  <Icon
-                    name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                    size={14}
-                    color={isExpanded ? '#fff' : C.sub}
-                  />
-                </View>
+                <Text style={styles.viewDetailsBtnText}>View Full Details</Text>
+                <Icon name="arrow-right" size={12} color={C.g700} />
               </TouchableOpacity>
-              <View style={styles.arrowCircle}>
-                <Icon name="arrow-right" size={14} color={C.g700} />
-              </View>
             </View>
-          </View>
-        </TouchableOpacity>
-
-        {isExpanded && (
-          <View style={styles.expandedSection}>
-            <View style={styles.expandDivider} />
-            {item.vehicleBrand && (
-              <ERow iconName="zap" label="Brand" value={item.vehicleBrand} />
-            )}
-            {item.pickupAddress && (
-              <ERow iconName="map-pin" label="Pickup Addr." value={item.pickupAddress} />
-            )}
-            {item.dropDate && (
-              <ERow
-                iconName="calendar"
-                label="Drop Date"
-                value={`${fmt(item.dropDate)}${item.dropTime ? `  ${item.dropTime.slice(0, 5)}` : ''}`}
-              />
-            )}
-            {item.securityDeposit > 0 && (
-              <ERow
-                iconName="shield"
-                label="Security Dep."
-                value={`₹${(item.securityDeposit || 0).toLocaleString('en-IN')}`}
-              />
-            )}
-            {item.dailyRate && (
-              <ERow iconName="tag" label="Daily Rate" value={`₹${item.dailyRate}/day`} />
-            )}
-            {item.customerNotes && (
-              <View style={[styles.eRow, { alignItems: 'flex-start' }]}>
-                <View style={styles.eIconWrap}>
-                  <Icon name="file-text" size={12} color={C.sub} />
-                </View>
-                <Text style={styles.eLabel}>Notes</Text>
-                <Text style={[styles.eVal, { flex: 1 }]}>{item.customerNotes}</Text>
-              </View>
-            )}
-            <TouchableOpacity
-              style={styles.viewDetailsBtn}
-              onPress={() => navigation.navigate('TruckBookingDetail', { bookingId: item.id, serviceType: 'truck' })}
-            >
-              <Text style={styles.viewDetailsBtnText}>View Full Details</Text>
-              <Icon name="arrow-right" size={14} color={C.g700} />
-            </TouchableOpacity>
-          </View>
-        )}
+          )}
+        </View>
       </View>
     );
   };
 
+  const isFiltered = q.length > 0;
+
+  /* ── Render ── */
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color="#fff" />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Truck Bookings</Text>
-        </View>
-        <TouchableOpacity onPress={() => setShowDateFilter(true)} style={styles.filterBtn}>
-          <Icon name="calendar" size={20} color="#fff" />
-          {dateFilter.start && <View style={styles.filterDot} />}
-        </TouchableOpacity>
+      {/* Hero header */}
+      <LinearGradient colors={G.hero} style={styles.header}>
+        <AnimatedOrb style={styles.orbA} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={['top']} style={styles.headerSafe}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity
+              onPress={() => setShowDateFilter(true)}
+              style={[styles.dateCircle, cardShadow]}
+              activeOpacity={0.85}
+            >
+              <Icon name="calendar" size={20} color={C.g700} />
+              {dateFilter.start && <View style={styles.filterDot} />}
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.headerEyebrow}>TRUCK RENTALS</Text>
+          <Text style={styles.bigTitle}>Bookings</Text>
+          <Text style={styles.bigSub}>Track and manage all your truck rental bookings.</Text>
+
+          <View style={{ height: rs(28) }} />
+        </SafeAreaView>
       </LinearGradient>
 
-      <View style={styles.tabBar}>
-        {[
-          { key: 'active',    label: 'Active',    count: activeCount,    icon: 'activity'      },
-          { key: 'completed', label: 'Completed', count: completedCount, icon: 'check-circle'  },
-        ].map(tab => {
-          const isActive = selectedFilter === tab.key;
-          return (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tabPill, isActive && styles.tabPillActive]}
-              onPress={() => setSelectedFilter(tab.key)}
-            >
-              <Icon name={tab.icon} size={14} color={isActive ? '#fff' : C.muted} />
-              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
-              <View style={[styles.tabBadge, isActive && styles.tabBadgeActive]}>
-                <Text style={[styles.tabBadgeText, isActive && styles.tabBadgeTextActive]}>
-                  {tab.count}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchWrap}>
-        <View style={styles.searchBox}>
-          <Icon name="search" size={16} color={C.muted} style={{ marginRight: 8 }} />
+      {/* Floating search — tucks into the hero's bottom curve */}
+      <View style={styles.searchBarWrap}>
+        <View style={styles.searchCard}>
+          <Icon name="search" size={16} color={C.muted} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search by name, booking #, city…"
@@ -289,6 +344,34 @@ export default function TruckBookingsScreen({ navigation, route }) {
         </View>
       </View>
 
+      {/* Fixed filter pills — kept OUTSIDE the FlatList so switching tabs
+          doesn't reset scroll position. */}
+      <View style={styles.filtersFixed}>
+        {[
+          { key: 'active',    label: 'Active',    count: activeCount,    icon: 'activity'      },
+          { key: 'completed', label: 'Completed', count: completedCount, icon: 'check-circle'  },
+        ].map(tab => {
+          const isActive = selectedFilter === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.chip, isActive && styles.chipActive]}
+              onPress={() => setSelectedFilter(tab.key)}
+              activeOpacity={0.85}
+            >
+              <Icon name={tab.icon} size={13} color={isActive ? '#fff' : C.sub} />
+              <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{tab.label}</Text>
+              <View style={[styles.chipBadge, isActive && styles.chipBadgeActive]}>
+                <Text style={[styles.chipBadgeText, isActive && styles.chipBadgeTextActive]}>
+                  {tab.count}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* List */}
       {loading && allBookings.length === 0 ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={C.g600} />
@@ -313,19 +396,11 @@ export default function TruckBookingsScreen({ navigation, route }) {
             ) : null
           }
           ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIconWrap}>
-                <Ionicons name="truck-outline" size={44} color={C.g400} />
-              </View>
-              <Text style={styles.emptyTitle}>
-                {selectedFilter === 'completed' ? 'No completed bookings' : 'No active bookings'}
-              </Text>
-              <Text style={styles.emptySubtitle}>
-                {selectedFilter === 'completed'
-                  ? 'Completed truck bookings will appear here'
-                  : 'Your current truck bookings will appear here'}
-              </Text>
-            </View>
+            <EmptyState
+              filtered={isFiltered}
+              selectedFilter={selectedFilter}
+              onClearSearch={() => setSearchQuery('')}
+            />
           }
         />
       )}
@@ -338,7 +413,7 @@ export default function TruckBookingsScreen({ navigation, route }) {
         currentEndDate={dateFilter.end}
         currentFilterType={dateFilter.type}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -346,145 +421,197 @@ const styles = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: C.bg },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
+  /* Hero header */
   header: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 14,
+    overflow: 'hidden',
+    borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
+    paddingBottom: rs(8),
   },
-  backBtn: {
+  headerSafe: { paddingHorizontal: 16 },
+  orbA: {
+    position: 'absolute', top: -46, right: -30, width: 150, height: 150,
+    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  orbB: {
+    position: 'absolute', bottom: -40, left: -34, width: 120, height: 120,
+    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
+  },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(10) },
+  backCircle: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center', alignItems: 'center',
   },
-  headerCenter: { alignItems: 'center', flex: 1 },
-  headerTitle:  { fontSize: 18, fontWeight: '700', color: '#fff' },
-  filterBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+  dateCircle: {
+    width: rs(48), height: rs(48), borderRadius: rs(24),
+    backgroundColor: C.ivory,
     justifyContent: 'center', alignItems: 'center',
-    position: 'relative',
+    transform: [{ translateY: rs(14) }],
   },
   filterDot: {
-    position: 'absolute', top: 8, right: 8,
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: C.g400,
+    position: 'absolute', top: 6, right: 6,
+    width: 9, height: 9, borderRadius: 4.5,
+    backgroundColor: C.g600, borderWidth: 1.5, borderColor: C.ivory,
   },
+  headerEyebrow: { fontSize: 10, color: 'rgba(255,255,255,0.65)', fontWeight: '700', letterSpacing: 1.2, fontFamily: DISPLAY, marginBottom: 2 },
+  bigTitle: { fontSize: 28, fontWeight: '700', color: '#fff', fontFamily: DISPLAY },
+  bigSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', marginTop: 4, fontFamily: DISPLAY },
 
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: C.card,
-    paddingHorizontal: 16, paddingVertical: 12,
-    gap: 10,
-    borderBottomWidth: 1, borderBottomColor: C.border,
+  /* Floating search */
+  searchBarWrap: { marginHorizontal: 16, marginTop: -rs(24) },
+  searchCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 9,
+    backgroundColor: C.card, borderRadius: rs(15),
+    paddingHorizontal: 14, height: rs(46),
+    borderWidth: 1, borderColor: C.glassBorder,
+    ...cardShadow,
   },
-  tabPill: {
+  searchInput: { flex: 1, fontSize: 14, color: C.text, padding: 0 },
+
+  /* Filter pills */
+  filtersFixed: {
+    flexDirection: 'row', gap: 10,
+    paddingHorizontal: 16, paddingTop: rs(14), paddingBottom: rs(10),
+  },
+  chip: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center', gap: 6,
-    paddingVertical: 10, borderRadius: 12,
-    backgroundColor: C.bg,
+    paddingVertical: 10, borderRadius: 999,
+    backgroundColor: C.card,
     borderWidth: 1, borderColor: C.border,
   },
-  tabPillActive: { backgroundColor: C.g700, borderColor: C.g700 },
-  tabLabel:       { fontSize: 13, fontWeight: '600', color: C.muted },
-  tabLabelActive: { color: '#fff' },
-  tabBadge: {
+  chipActive: { backgroundColor: C.g700, borderColor: C.g700 },
+  chipText:       { fontSize: 13, fontWeight: '700', color: C.sub, fontFamily: DISPLAY },
+  chipTextActive: { color: '#fff' },
+  chipBadge: {
     minWidth: 22, height: 22, borderRadius: 11,
     paddingHorizontal: 6,
-    backgroundColor: C.card,
+    backgroundColor: C.g50,
     justifyContent: 'center', alignItems: 'center',
   },
-  tabBadgeActive:    { backgroundColor: 'rgba(255,255,255,0.25)' },
-  tabBadgeText:      { fontSize: 11, fontWeight: '700', color: C.g700 },
-  tabBadgeTextActive:{ color: '#fff' },
+  chipBadgeActive:     { backgroundColor: 'rgba(255,255,255,0.25)' },
+  chipBadgeText:       { fontSize: 11, fontWeight: '700', color: C.g700 },
+  chipBadgeTextActive: { color: '#fff' },
 
-  listContent: { padding: 16, paddingBottom: 40, gap: 12 },
+  listContent: { paddingHorizontal: 16, paddingBottom: 40, gap: 12 },
 
+  /* Card */
   card: {
+    flexDirection: 'row',
     backgroundColor: C.card,
-    borderRadius: 16,
+    borderRadius: rs(14),
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: C.glassBorder,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    ...cardShadow,
   },
-  cardTop: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10,
-  },
-  cardTopLeft:  { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  bookingNum:   { fontSize: 15, fontWeight: '700', color: C.text },
-  daysChip: {
-    backgroundColor: C.g50, paddingHorizontal: 8, paddingVertical: 2,
-    borderRadius: 8, borderWidth: 1, borderColor: C.g100,
-  },
-  daysChipText: { fontSize: 11, color: C.g700, fontWeight: '600' },
-  statusBadge:  { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  statusText:   { fontSize: 11, fontWeight: '700' },
+  cardRail: { width: 3 },
+  cardInner: { flex: 1, padding: 11, minWidth: 0 },
 
-  cardBody: { paddingHorizontal: 14, gap: 8, paddingBottom: 10 },
-  infoRow:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  infoIconWrap: {
-    width: 26, height: 26, borderRadius: 7,
+  cardTopStripe: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  iconBox: {
+    width: rs(26), height: rs(26), borderRadius: rs(8),
     justifyContent: 'center', alignItems: 'center',
   },
-  infoText: { fontSize: 13, color: C.sub, flex: 1 },
+  cardTopLeft:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  bookingNum:   { fontSize: 12.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
+  daysChip: {
+    backgroundColor: C.g50, paddingHorizontal: 7, paddingVertical: 1.5,
+    borderRadius: 7, borderWidth: 1, borderColor: C.g100,
+  },
+  daysChipText: { fontSize: 10, color: C.g700, fontWeight: '600' },
+  statusPill:  { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  statusText:  { fontSize: 9.5, fontWeight: '700' },
+
+  cardName: { fontSize: 14.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY, marginBottom: 4 },
+
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 7 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  metaText: { fontSize: 10.5, color: C.sub, fontWeight: '600' },
 
   cardFooter: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 14, paddingVertical: 12,
+    paddingTop: 9,
     borderTopWidth: 1, borderTopColor: C.border,
   },
-  amtLabel: { fontSize: 11, color: C.muted, marginBottom: 2 },
-  amtValue: { fontSize: 17, fontWeight: '800', color: C.g700 },
-  footerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  expandBtn: {},
+  amtLabel: { fontSize: 10, color: C.muted, marginBottom: 1 },
+  amtValue: { fontSize: 15, fontWeight: '800', color: C.g700, fontFamily: DISPLAY },
+  footerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   expandCircle: {
-    width: 30, height: 30, borderRadius: 15,
+    width: 26, height: 26, borderRadius: 13,
     backgroundColor: C.bg,
     justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderColor: C.border,
   },
   expandCircleActive: { backgroundColor: C.g700, borderColor: C.g700 },
   arrowCircle: {
-    width: 30, height: 30, borderRadius: 15,
+    width: 26, height: 26, borderRadius: 13,
     backgroundColor: C.g50,
     justifyContent: 'center', alignItems: 'center',
   },
 
-  expandedSection: { paddingHorizontal: 14, paddingBottom: 14, backgroundColor: '#FAFCFF' },
-  expandDivider:   { height: 1, backgroundColor: C.border, marginBottom: 12 },
-  eRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 5 },
+  /* Expanded */
+  expandedSection: { paddingTop: 3 },
+  expandDivider:   { height: 1, backgroundColor: C.border, marginBottom: 9, marginTop: 6 },
+  eRow: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 4 },
   eIconWrap: {
-    width: 22, height: 22, borderRadius: 6,
+    width: 20, height: 20, borderRadius: 6,
     backgroundColor: C.bg,
     justifyContent: 'center', alignItems: 'center',
   },
-  eLabel: { fontSize: 12, color: C.muted, width: 80 },
-  eVal:   { fontSize: 13, color: C.text, fontWeight: '500', flex: 1 },
+  eLabel: { fontSize: 11, color: C.muted, width: 72 },
+  eVal:   { fontSize: 12, color: C.text, fontWeight: '500', flex: 1 },
   viewDetailsBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    marginTop: 12, paddingVertical: 10, borderRadius: 10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    marginTop: 9, paddingVertical: 8, borderRadius: 9,
     backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
   },
-  viewDetailsBtnText: { fontSize: 13, fontWeight: '700', color: C.g700 },
+  viewDetailsBtnText: { fontSize: 11.5, fontWeight: '700', color: C.g700 },
 
-  emptyState:    { alignItems: 'center', paddingVertical: 80 },
-  emptyIconWrap: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: C.g50,
-    justifyContent: 'center', alignItems: 'center',
-    marginBottom: 16,
+  /* Elaborate empty state */
+  emptyCardWrap: {
+    alignItems: 'center',
+    backgroundColor: C.card, borderRadius: rs(24),
+    borderWidth: 1, borderColor: C.glassBorder,
+    paddingHorizontal: 20, paddingVertical: rs(30),
+    marginTop: rs(10),
   },
-  emptyTitle:    { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 6 },
-  emptySubtitle: { fontSize: 13, color: C.muted, textAlign: 'center' },
-
-  /* Search */
-  searchWrap: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
-  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.bg, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: C.border },
-  searchInput: { flex: 1, fontSize: 14, color: C.text, padding: 0 },
+  emptyArt: {
+    width: rs(140), height: rs(112), marginBottom: rs(16),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyArtCardBack: {
+    position: 'absolute', top: rs(12), right: rs(20),
+    width: rs(88), height: rs(64), borderRadius: rs(14),
+    backgroundColor: C.g50, transform: [{ rotate: '8deg' }],
+  },
+  emptyArtCard: {
+    width: rs(88), height: rs(78), borderRadius: rs(16),
+    backgroundColor: C.bg, borderWidth: 1, borderColor: C.g50,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyArtDot: {
+    position: 'absolute', top: rs(4), right: rs(16),
+    width: rs(20), height: rs(20), borderRadius: rs(10), backgroundColor: C.g400,
+    borderWidth: rs(3), borderColor: C.card,
+  },
+  emptyArtTag: {
+    position: 'absolute', bottom: rs(8), left: rs(4),
+    backgroundColor: C.card, borderRadius: rs(8),
+    paddingHorizontal: rs(8), paddingVertical: rs(3),
+    borderWidth: 1, borderColor: C.g50,
+    transform: [{ rotate: '-8deg' }],
+  },
+  emptyArtTagTxt: { fontSize: 8.5, fontWeight: '700', color: C.g700, letterSpacing: 0.6, fontFamily: DISPLAY },
+  emptyTitle:    { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 6, fontFamily: DISPLAY, textAlign: 'center' },
+  emptyBody: {
+    fontSize: 13, color: C.muted, textAlign: 'center',
+    lineHeight: 19, maxWidth: rs(260),
+  },
+  emptyCtaWrap: { marginTop: rs(16) },
+  emptyCta: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 11, paddingHorizontal: 24, borderRadius: rs(14),
+  },
+  emptyCtaText: { fontSize: 13.5, fontWeight: '700', color: '#fff', fontFamily: DISPLAY },
 });

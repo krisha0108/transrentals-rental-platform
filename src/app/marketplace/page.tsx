@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -605,8 +605,11 @@ export default function MarketplacePage() {
       </section>
       )}
 
-      {/* ══════════════════════ TRANSPORT SEARCH HERO ══════════════════════ */}
-      <TransportSearchHero locations={locations} />
+      {/* ══════════════════════ TRANSPORT SEARCH HERO (ixigo-style, no banner) ══════════════════════ */}
+      <TransportSearchHero locations={locations} variant="compact" />
+
+      {/* ══════════════════════ TRANSPORT SEARCH HERO (duplicate) ══════════════════════ */}
+      <TransportSearchHero locations={locations} variant="hero" />
 
       {/* ═══════════════════ EXPLORE TOP CATEGORIES ═══════════════════ */}
       <section className="bg-white py-16 sm:py-20">
@@ -1565,6 +1568,11 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Lets the Mini*Input field components below pick up styling for the
+// compact (ixigo-style) hero without threading a prop through every one of
+// their ~30 call sites — TransportSearchHero provides its own `variant`.
+const HeroVariantContext = createContext<'hero' | 'compact'>('hero');
+
 // ─────────────────────────────────────────────────────────────────────────
 // Compact city autocomplete shared by the From/To fields below — same
 // dropdown-on-focus, filter-as-you-type behaviour as CategoryFormPanel's
@@ -1582,6 +1590,7 @@ function MiniCityInput({
   onSelect: (loc: Location) => void;
   fromLocation?: Location | null;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -1627,7 +1636,7 @@ function MiniCityInput({
 
   return (
     <div className="relative min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <MapPin className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <input
@@ -1635,9 +1644,9 @@ function MiniCityInput({
         onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
-        className="w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+        className={`w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0 ${variant === 'compact' ? 'placeholder:font-normal placeholder:text-slate-600' : 'placeholder:font-medium placeholder:text-slate-400'}`}
       />
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && matches.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
           {nearbyCount > 0 && (
@@ -1688,6 +1697,7 @@ function MiniAirportInput({
   onSelect: (a: AirportOption) => void;
   loading?: boolean;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -1712,7 +1722,7 @@ function MiniAirportInput({
 
   return (
     <div className="relative min-w-[117px] sm:min-w-[180px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <Plane className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <input
@@ -1720,9 +1730,9 @@ function MiniAirportInput({
         onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         placeholder={loading ? 'Loading airports…' : placeholder}
-        className="w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+        className={`w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0 ${variant === 'compact' ? 'placeholder:font-normal placeholder:text-slate-600' : 'placeholder:font-medium placeholder:text-slate-400'}`}
       />
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && matches.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
           {matches.map((a) => (
@@ -1758,6 +1768,7 @@ function MiniSelectInput({
   caption?: string;
   boxClassName?: string;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -1774,7 +1785,7 @@ function MiniSelectInput({
       className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
       ref={boxRef}
     >
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <Icon className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <button
@@ -1782,7 +1793,7 @@ function MiniSelectInput({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-2 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
-        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{value || placeholder}</span>
+        <span className={`truncate ${value ? '' : variant === 'compact' ? 'font-normal text-slate-600' : 'font-medium text-slate-400'}`}>{value || placeholder}</span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
@@ -1802,7 +1813,7 @@ function MiniSelectInput({
           ))}
         </div>
       )}
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
     </div>
   );
 }
@@ -1832,6 +1843,7 @@ function MiniDateInput({
   caption?: string;
   boxClassName?: string;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [open, setOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState(() => {
     const base = value ? ymdToDate(value) : min ? ymdToDate(min) : new Date();
@@ -1870,7 +1882,7 @@ function MiniDateInput({
       className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
       ref={boxRef}
     >
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <Calendar className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <button
@@ -1878,9 +1890,9 @@ function MiniDateInput({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
-        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{displayText}</span>
+        <span className={`truncate ${value ? '' : variant === 'compact' ? 'font-normal text-slate-600' : 'font-medium text-slate-400'}`}>{displayText}</span>
       </button>
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && (
         <div className="absolute left-0 top-full z-[60] mt-1.5 w-64 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-2xl">
           <div className="flex items-center justify-between">
@@ -1967,6 +1979,7 @@ function MiniTimeInput({
   caption?: string;
   boxClassName?: string;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -1994,7 +2007,7 @@ function MiniTimeInput({
       className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
       ref={boxRef}
     >
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <Clock className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <button
@@ -2002,9 +2015,9 @@ function MiniTimeInput({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
-        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{value ? formatTimeSlot(value) : '--:-- --'}</span>
+        <span className={`truncate ${value ? '' : variant === 'compact' ? 'font-normal text-slate-600' : 'font-medium text-slate-400'}`}>{value ? formatTimeSlot(value) : '--:-- --'}</span>
       </button>
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && (
         <div ref={listRef} className="absolute left-0 top-full z-[60] mt-1.5 max-h-64 w-40 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
           {TIME_SLOTS.map((t) => {
@@ -2140,7 +2153,7 @@ function getTodayLocalDateString() {
   return `${year}-${month}-${day}`;
 }
 
-function TransportSearchHero({ locations }: { locations: Location[] }) {
+function TransportSearchHero({ locations, variant = 'hero' }: { locations: Location[]; variant?: 'hero' | 'compact' }) {
   const todayDateStr = getTodayLocalDateString();
   const router = useRouter();
   const { customer, isAuthenticated } = useCustomerAuth();
@@ -2702,63 +2715,70 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
   ];
 
   return (
-    <section className="relative bg-[#0b1420] pb-14 pt-16 text-white sm:pt-20">
-      <div className="absolute inset-0 overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/categories/hero-fleet.png"
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-90"
-          style={{ objectPosition: 'center 30%' }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              'linear-gradient(90deg, #0a1220 0%, rgba(10,18,32,.92) 22%, rgba(10,18,32,.55) 45%, rgba(10,18,32,.25) 62%, rgba(10,18,32,.65) 100%), linear-gradient(180deg, rgba(6,11,20,.35) 0%, rgba(6,11,20,.15) 35%, rgba(7,12,22,.65) 78%, #0a0f18 100%)',
-          }}
-        />
-      </div>
-
-      <div className="container relative z-10 mx-auto px-4">
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.04] px-4 py-1.5 text-xs font-semibold text-white/90">
-          <ShieldCheck className="h-3.5 w-3.5 text-primary-400" />
-          THE MOBILITY TRAVEL MARKETPLACE
-        </span>
-
-        <div className="mb-14 mt-7 flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-start">
-          <div>
-            <h2 className="max-w-2xl font-heading text-2xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-4xl lg:text-5xl">
-              Everything You Need to<br />
-              <span className="text-primary-400">Ride, Move &amp; Travel.</span>
-            </h2>
-
-            <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-slate-300">
-              Rent vehicles. Book tours &amp; trips. Find trusted rental providers. Or grow your mobility business — all from one place.
-            </p>
-          </div>
-
-          <div className="flex w-full flex-wrap items-center gap-2.5 rounded-2xl border border-white/[0.18] bg-slate-900/70 px-4 py-3 backdrop-blur-sm sm:w-fit sm:shrink-0 sm:flex-nowrap sm:gap-3.5 sm:px-5 sm:py-4">
-            <div className="flex shrink-0">
-              {HERO_AVATARS.map((src, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={src} src={src} alt="" className={`h-9 w-9 rounded-full border-2 border-[#16202f] object-cover ${i > 0 ? '-ml-2.5' : ''}`} />
-              ))}
-            </div>
-            <div className="shrink-0 border-r border-white/[0.18] pr-4">
-              <div className="flex items-center gap-1.5 text-[15px] font-bold text-white">
-                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> 4.8/5
-              </div>
-              <p className="mt-0.5 whitespace-nowrap text-xs text-slate-400">From 20,000+ reviews</p>
-            </div>
-            <p className="w-full text-[13px] font-medium text-slate-200 sm:w-auto sm:whitespace-nowrap">Trusted by Thousands of Customers</p>
-          </div>
+    <HeroVariantContext.Provider value={variant}>
+    <section className={variant === 'compact' ? 'border-b border-slate-200 bg-white pb-4 pt-14 sm:pb-6 sm:pt-16' : 'relative bg-[#0b1420] pb-14 pt-16 text-white sm:pt-20'}>
+      {variant === 'hero' && (
+        <div className="absolute inset-0 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/categories/hero-fleet.png"
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover opacity-90"
+            style={{ objectPosition: 'center 30%' }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                'linear-gradient(90deg, #0a1220 0%, rgba(10,18,32,.92) 22%, rgba(10,18,32,.55) 45%, rgba(10,18,32,.25) 62%, rgba(10,18,32,.65) 100%), linear-gradient(180deg, rgba(6,11,20,.35) 0%, rgba(6,11,20,.15) 35%, rgba(7,12,22,.65) 78%, #0a0f18 100%)',
+            }}
+          />
         </div>
+      )}
+
+      <div className={variant === 'compact' ? 'container mx-auto px-4' : 'container relative z-10 mx-auto px-4'}>
+        {variant === 'hero' && (
+          <>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.04] px-4 py-1.5 text-xs font-semibold text-white/90">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary-400" />
+              THE MOBILITY TRAVEL MARKETPLACE
+            </span>
+
+            <div className="mb-14 mt-7 flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-start">
+              <div>
+                <h2 className="max-w-2xl font-heading text-2xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-4xl lg:text-5xl">
+                  Everything You Need to<br />
+                  <span className="text-primary-400">Ride, Move &amp; Travel.</span>
+                </h2>
+
+                <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-slate-300">
+                  Rent vehicles. Book tours &amp; trips. Find trusted rental providers. Or grow your mobility business — all from one place.
+                </p>
+              </div>
+
+              <div className="flex w-full flex-wrap items-center gap-2.5 rounded-2xl border border-white/[0.18] bg-slate-900/70 px-4 py-3 backdrop-blur-sm sm:w-fit sm:shrink-0 sm:flex-nowrap sm:gap-3.5 sm:px-5 sm:py-4">
+                <div className="flex shrink-0">
+                  {HERO_AVATARS.map((src, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={src} src={src} alt="" className={`h-9 w-9 rounded-full border-2 border-[#16202f] object-cover ${i > 0 ? '-ml-2.5' : ''}`} />
+                  ))}
+                </div>
+                <div className="shrink-0 border-r border-white/[0.18] pr-4">
+                  <div className="flex items-center gap-1.5 text-[15px] font-bold text-white">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> 4.8/5
+                  </div>
+                  <p className="mt-0.5 whitespace-nowrap text-xs text-slate-400">From 20,000+ reviews</p>
+                </div>
+                <p className="w-full text-[13px] font-medium text-slate-200 sm:w-auto sm:whitespace-nowrap">Trusted by Thousands of Customers</p>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Search panel */}
         <div className="flex flex-col items-stretch">
-          <div className="ml-1 w-fit max-w-full overflow-x-auto rounded-xl bg-white px-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:ml-5 sm:rounded-t-lg sm:rounded-b-none sm:px-6 [&::-webkit-scrollbar]:hidden">
-            <div className="flex gap-1">
+          {variant === 'compact' ? (
+            <div className="flex gap-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {TRANSPORT_TABS.map((tab) => {
                 const Icon = tab.icon;
                 const active = activeTab.key === tab.key;
@@ -2767,18 +2787,48 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     key={tab.key}
                     type="button"
                     onClick={() => setActiveTab(tab)}
-                    className={`mt-2 flex shrink-0 items-center gap-1.5 rounded-lg border-b-2 px-3 py-2.5 text-[13px] font-semibold transition-colors ${
-                      active ? 'border-primary bg-primary-50 text-primary-700' : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                    className={`flex shrink-0 flex-col items-center gap-1.5 rounded-2xl px-4 py-3 transition-all duration-200 ${
+                      active ? 'bg-primary shadow-lg scale-[1.04]' : 'bg-slate-50 hover:bg-slate-100'
                     }`}
                   >
-                    <Icon className="h-3.5 w-3.5" /> {tab.label}
+                    <span
+                      className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                        active ? 'bg-white/25' : 'bg-slate-200 text-slate-500'
+                      }`}
+                    >
+                      <Icon className={`h-5 w-5 ${active ? 'text-white' : ''}`} />
+                    </span>
+                    <span className={`whitespace-nowrap text-[12.5px] font-bold ${active ? 'text-white' : 'text-slate-700'}`}>
+                      {tab.label}
+                    </span>
                   </button>
                 );
               })}
             </div>
-          </div>
+          ) : (
+            <div className="ml-1 w-fit max-w-full overflow-x-auto rounded-xl bg-white px-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:ml-5 sm:rounded-t-lg sm:rounded-b-none sm:px-6 [&::-webkit-scrollbar]:hidden">
+              <div className="flex gap-1">
+                {TRANSPORT_TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  const active = activeTab.key === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={`mt-2 flex shrink-0 items-center gap-1.5 rounded-lg border-b-2 px-3 py-2.5 text-[13px] font-semibold transition-colors ${
+                        active ? 'border-primary bg-primary-50 text-primary-700' : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" /> {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-          <div className="rounded-2xl bg-white shadow-[0_16px_34px_rgba(0,0,0,0.28)]">
+          <div className={variant === 'compact' ? 'border-t border-slate-100 bg-white pt-5 mt-4' : 'rounded-2xl bg-white shadow-[0_16px_34px_rgba(0,0,0,0.28)]'}>
             {activeTab.key === 'car' && (
               <div className="flex flex-wrap gap-2 px-3.5 pt-3.5 sm:px-5 sm:pt-5">
                 {(['local', 'outstation', 'airport'] as const).map((mode) => (
@@ -4087,6 +4137,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
         )}
       </AnimatePresence>
     </section>
+    </HeroVariantContext.Provider>
   );
 }
 

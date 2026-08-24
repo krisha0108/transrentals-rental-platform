@@ -12,20 +12,23 @@ import { getDirectBookings } from '../../api/client';
 import DateFilterModal from '../../../components/DateFilterModal';
 import { ListSkeleton } from '../../../components/SkeletonLoader';
 import { useVerificationGate, VerificationBanner } from '../../../components/VerificationGate';
+import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const { width: SW } = Dimensions.get('window');
-
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#064E3B', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g300: '#6EE7B7', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F0FDF9', surface: '#FFFFFF',
-  text: '#1E293B', subtext: '#475569', muted: '#94A3B8', border: '#D1FAE5',
-  blue: '#3B82F6', indigo: '#6366F1', purple: '#8B5CF6',
-  amber: '#F59E0B', orange: '#F97316', red: '#EF4444', teal: '#14B8A6',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g300: shade(T.emerald, 20), g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, surface: T.card,
+  text: T.ink, subtext: T.text, muted: T.subText, border: T.border,
+  blue: T.blue, indigo: T.indigo, purple: T.purple,
+  amber: T.amber, orange: T.orange, red: T.red, teal: T.ocean,
 };
 
 const STATUS_CONFIG = {
@@ -124,57 +127,61 @@ export default function DirectBookingsScreen({ navigation }) {
   const confirmedCount= bookings.filter(b => b.status === 'confirmed').length;
   const totalRevenue  = bookings.reduce((s, b) => s + (b.paidAmount || 0), 0);
 
+  const FixedHero = () => (
+    <LinearGradient colors={G.hero} style={s.grad}>
+      <AnimatedOrb style={s.deco1} />
+      <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+      <SafeAreaView edges={['top']}>
+        <View style={s.gradTop}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+            <Icon name="arrow-left" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={s.gradTitle}>Direct Bookings</Text>
+            <Text style={s.gradSub}>Walk-in & offline bookings</Text>
+          </View>
+          <TouchableOpacity onPress={() => setShowSearch(v => !v)} style={s.hBtn}>
+            <Icon name="search" size={20} color={showSearch ? C.g300 : 'rgba(255,255,255,0.75)'} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowDateFilter(true)} style={s.hBtn}>
+            <Icon name="calendar" size={20} color={dateFilter.start ? C.g300 : 'rgba(255,255,255,0.75)'} />
+            {dateFilter.start && <View style={s.filterDot} />}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={gate(() => navigation.navigate('AddDirectBooking'), 'create direct bookings')} style={s.addBtn}>
+            <Icon name={vendorStatus === 'APPROVED' ? 'plus' : 'lock'} size={22} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Stats strip */}
+        <View style={s.statsStrip}>
+          <View style={s.statItem}>
+            <Text style={s.statNum}>{total}</Text>
+            <Text style={s.statLbl}>Total</Text>
+          </View>
+          <View style={s.statDiv} />
+          <View style={s.statItem}>
+            <Text style={[s.statNum, { color: C.g400 }]}>{activeCount}</Text>
+            <Text style={s.statLbl}>Active</Text>
+          </View>
+          <View style={s.statDiv} />
+          <View style={s.statItem}>
+            <Text style={[s.statNum, { color: '#93C5FD' }]}>{confirmedCount}</Text>
+            <Text style={s.statLbl}>Confirmed</Text>
+          </View>
+          <View style={s.statDiv} />
+          <View style={s.statItem}>
+            <Text style={[s.statNum, { color: '#86EFAC' }]}>
+              ₹{totalRevenue > 9999 ? `${(totalRevenue / 1000).toFixed(1)}K` : totalRevenue.toLocaleString('en-IN')}
+            </Text>
+            <Text style={s.statLbl}>Collected</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
+  );
+
   const ListHeader = () => (
     <>
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.grad}>
-        <SafeAreaView edges={['top']}>
-          <View style={s.gradTop}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-              <Icon name="arrow-left" size={22} color="#fff" />
-            </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={s.gradTitle}>Direct Bookings</Text>
-              <Text style={s.gradSub}>Walk-in & offline bookings</Text>
-            </View>
-            <TouchableOpacity onPress={() => setShowSearch(v => !v)} style={s.hBtn}>
-              <Icon name="search" size={20} color={showSearch ? C.g300 : 'rgba(255,255,255,0.75)'} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowDateFilter(true)} style={s.hBtn}>
-              <Icon name="calendar" size={20} color={dateFilter.start ? C.g300 : 'rgba(255,255,255,0.75)'} />
-              {dateFilter.start && <View style={s.filterDot} />}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={gate(() => navigation.navigate('AddDirectBooking'), 'create direct bookings')} style={s.addBtn}>
-              <Icon name={vendorStatus === 'APPROVED' ? 'plus' : 'lock'} size={22} color="#fff" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Stats strip */}
-          <View style={s.statsStrip}>
-            <View style={s.statItem}>
-              <Text style={s.statNum}>{total}</Text>
-              <Text style={s.statLbl}>Total</Text>
-            </View>
-            <View style={s.statDiv} />
-            <View style={s.statItem}>
-              <Text style={[s.statNum, { color: C.g400 }]}>{activeCount}</Text>
-              <Text style={s.statLbl}>Active</Text>
-            </View>
-            <View style={s.statDiv} />
-            <View style={s.statItem}>
-              <Text style={[s.statNum, { color: '#93C5FD' }]}>{confirmedCount}</Text>
-              <Text style={s.statLbl}>Confirmed</Text>
-            </View>
-            <View style={s.statDiv} />
-            <View style={s.statItem}>
-              <Text style={[s.statNum, { color: '#86EFAC' }]}>
-                ₹{totalRevenue > 9999 ? `${(totalRevenue / 1000).toFixed(1)}K` : totalRevenue.toLocaleString('en-IN')}
-              </Text>
-              <Text style={s.statLbl}>Collected</Text>
-            </View>
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
-
       <VerificationBanner status={vendorStatus} navigation={navigation} />
 
       {/* Search */}
@@ -246,68 +253,49 @@ export default function DirectBookingsScreen({ navigation }) {
         <View style={[s.cardAccent, { backgroundColor: sc.color }]} />
         <View style={s.cardInner}>
           <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('DirectBookingDetail', { bookingId: item.id })}>
-            {/* Top */}
-            <View style={s.cardTop}>
+            {/* Top stripe: service icon + booking # + status — compact, agent-card density */}
+            <View style={s.cardTopStripe}>
               <View style={[s.svcIcon, { backgroundColor: svcMeta.color + '18' }]}>
-                <MaterialCommunityIcons name={svcMeta.icon} size={20} color={svcMeta.color} />
+                <MaterialCommunityIcons name={svcMeta.icon} size={rs(15)} color={svcMeta.color} />
               </View>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={s.bookingNum}>#{item.bookingNumber}</Text>
-                {svcLabel ? <Text style={[s.svcLabel, { color: svcMeta.color }]}>{svcLabel}</Text> : null}
+              <View style={{ flex: 1, minWidth: 0 }}>
+                {svcLabel ? <Text style={[s.svcLabel, { color: svcMeta.color }]} numberOfLines={1}>{svcLabel.toUpperCase()}</Text> : null}
+                <Text style={s.bookingNum} numberOfLines={1}>#{item.bookingNumber}</Text>
               </View>
               <View style={[s.statusPill, { backgroundColor: sc.color + '18' }]}>
-                <View style={[s.statusDot, { backgroundColor: sc.color }]} />
                 <Text style={[s.statusPillText, { color: sc.color }]}>{sc.label}</Text>
               </View>
             </View>
 
-            {/* Customer + route */}
-            <View style={s.cardBody}>
-              <View style={s.infoRow}>
-                <Icon name="user" size={13} color={C.g600} />
-                <Text style={s.infoText} numberOfLines={1}>{item.customerName}</Text>
-              </View>
-              <View style={s.infoRow}>
-                <Icon name="phone" size={13} color={C.muted} />
-                <Text style={s.infoText}>{item.customerPhone}</Text>
-              </View>
+            {/* Customer */}
+            <Text style={s.cardName} numberOfLines={1}>{item.customerName}</Text>
+            <Text style={s.cardPhone} numberOfLines={1}>{item.customerPhone}</Text>
 
-              {(item.pickupLocation || item.dropLocation) && (
-                <View style={s.routeBox}>
-                  {item.pickupLocation ? (
-                    <View style={s.routeRow}>
-                      <View style={[s.routeDot, { backgroundColor: C.g500 }]} />
-                      <Text style={s.routeText} numberOfLines={1}>{item.pickupLocation}</Text>
-                    </View>
-                  ) : null}
-                  {item.pickupLocation && item.dropLocation && <View style={s.routeConnector} />}
-                  {item.dropLocation ? (
-                    <View style={s.routeRow}>
-                      <View style={[s.routeDot, { backgroundColor: C.red }]} />
-                      <Text style={s.routeText} numberOfLines={1}>{item.dropLocation}</Text>
-                    </View>
-                  ) : null}
-                </View>
-              )}
-
-              <View style={s.infoRow}>
-                <Icon name="calendar" size={13} color={C.muted} />
-                <Text style={s.infoText}>
+            {/* Meta row: date range + route, single-line icons like agent cards */}
+            <View style={s.cardMetaRow}>
+              <View style={s.metaItem}>
+                <Icon name="calendar" size={rs(11)} color={C.muted} />
+                <Text style={s.metaText}>
                   {fmt(item.pickupDate)}{item.returnDate ? `  →  ${fmt(item.returnDate)}` : ''}
                 </Text>
               </View>
+              {(item.pickupLocation || item.dropLocation) && (
+                <View style={s.metaItem}>
+                  <Icon name="map-pin" size={rs(11)} color={C.muted} />
+                  <Text style={s.metaText} numberOfLines={1}>
+                    {item.pickupLocation || '—'}{item.dropLocation ? `  →  ${item.dropLocation}` : ''}
+                  </Text>
+                </View>
+              )}
             </View>
 
-            {/* Footer */}
-            <View style={s.cardFooter}>
-              <View>
-                <Text style={s.amtLbl}>TOTAL</Text>
-                <Text style={s.amtVal}>₹{(item.totalAmount || 0).toLocaleString('en-IN')}</Text>
-              </View>
+            {/* Money row */}
+            <View style={s.moneyBlock}>
+              <Text style={s.amtVal}>₹{(item.totalAmount || 0).toLocaleString('en-IN')}</Text>
               <View style={s.footerRight}>
                 {isPaid ? (
                   <View style={s.paidChip}>
-                    <Icon name="check-circle" size={11} color={C.g600} />
+                    <Icon name="check-circle" size={10} color={C.g600} />
                     <Text style={[s.chipTxt, { color: C.g600 }]}>Paid</Text>
                   </View>
                 ) : !isTerminal && item.paymentStatus ? (
@@ -316,11 +304,8 @@ export default function DirectBookingsScreen({ navigation }) {
                   </View>
                 ) : null}
                 <TouchableOpacity style={s.expandBtn} onPress={() => toggleExpand(item.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Icon name={isExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={C.muted} />
+                  <Icon name={isExpanded ? 'chevron-up' : 'chevron-down'} size={15} color={C.muted} />
                 </TouchableOpacity>
-                <View style={s.arrowCircle}>
-                  <Icon name="chevron-right" size={15} color={C.g600} />
-                </View>
               </View>
             </View>
           </TouchableOpacity>
@@ -371,12 +356,13 @@ export default function DirectBookingsScreen({ navigation }) {
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+      <FixedHero />
+      <ListHeader />
       <FlatList
         data={bookings}
         renderItem={renderBooking}
         keyExtractor={i => String(i.id)}
         contentContainerStyle={s.list}
-        ListHeaderComponent={<ListHeader />}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -393,13 +379,13 @@ export default function DirectBookingsScreen({ navigation }) {
             </View>
           ) : (
             <View style={s.emptyWrap}>
-              <LinearGradient colors={[C.g100, C.g50]} style={s.emptyIconWrap}>
+              <View style={s.emptyIconWrap}>
                 <MaterialCommunityIcons name="book-open-variant" size={44} color={C.g600} />
-              </LinearGradient>
+              </View>
               <Text style={s.emptyTitle}>No bookings found</Text>
               <Text style={s.emptySub}>Direct bookings will appear here</Text>
               <TouchableOpacity style={s.emptyBtn} onPress={gate(() => navigation.navigate('AddDirectBooking'), 'create direct bookings')}>
-                <LinearGradient colors={[C.g700, C.g600]} style={s.emptyBtnGrad}>
+                <LinearGradient colors={G.emerald} style={s.emptyBtnGrad}>
                   <Icon name={vendorStatus === 'APPROVED' ? 'plus' : 'lock'} size={16} color="#fff" />
                   <Text style={s.emptyBtnTxt}>Add First Booking</Text>
                 </LinearGradient>
@@ -430,10 +416,18 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
 
   /* ── Gradient header ── */
-  grad: { paddingBottom: 18 },
+  grad: { paddingBottom: rs(18), overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
+  deco1: {
+    position: 'absolute', width: 190, height: 190, borderRadius: 95,
+    backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40,
+  },
+  deco2: {
+    position: 'absolute', width: 120, height: 120, borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.045)', bottom: -10, left: 40,
+  },
   gradTop: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14, gap: 8 },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
-  gradTitle: { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
+  gradTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
   gradSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
   hBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center', position: 'relative' },
   filterDot: { position: 'absolute', top: 8, right: 8, width: 7, height: 7, borderRadius: 3.5, backgroundColor: C.g400, borderWidth: 1.5, borderColor: C.g900 },
@@ -442,77 +436,85 @@ const s = StyleSheet.create({
   /* Stats strip */
   statsStrip: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
   statItem: { flex: 1, paddingVertical: 13, alignItems: 'center' },
-  statNum: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  statNum: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff' },
   statLbl: { fontSize: 9, color: 'rgba(255,255,255,0.55)', fontWeight: '700', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
   statDiv: { width: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 10 },
 
   /* Search */
-  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border },
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 16, marginTop: 10, marginBottom: 4,
+    paddingHorizontal: 14, height: rs(46),
+    backgroundColor: C.surface, borderRadius: rs(15),
+    borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
+  },
   searchInput: { flex: 1, fontSize: 14, color: C.text, paddingVertical: 0 },
 
   /* Tabs */
-  tabsWrap: { backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border },
+  tabsWrap: { backgroundColor: C.bg },
   tabsContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
-  tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: C.g50, borderWidth: 1.5, borderColor: C.g100 },
+  tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border, ...cardShadow },
   tabActive: { backgroundColor: C.g700, borderColor: C.g700 },
-  tabText: { fontSize: 13, fontWeight: '600', color: C.subtext },
+  tabText: { fontSize: 13, fontWeight: '700', color: C.subtext },
   tabTextActive: { color: '#fff' },
 
   /* Date filter bar */
   dateBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: C.g50, borderBottomWidth: 1, borderBottomColor: C.g100 },
-  dateBarText: { flex: 1, fontSize: 12, color: C.g700, fontWeight: '600' },
+  dateBarText: { flex: 1, fontSize: 12, color: C.g700, fontWeight: '700' },
 
   /* List */
-  list: { paddingBottom: 30, gap: 12 },
+  list: { paddingTop: 12, paddingBottom: 30, gap: 12 },
 
-  /* Card */
-  card: { marginHorizontal: 14, backgroundColor: C.surface, borderRadius: 18, flexDirection: 'row', overflow: 'hidden', shadowColor: C.g900, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 3, borderWidth: 1, borderColor: C.border },
-  cardAccent: { width: 4 },
-  cardInner: { flex: 1, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 12 },
+  /* Card — compact, agent-side density */
+  card: {
+    marginHorizontal: 14, backgroundColor: C.surface, borderRadius: rs(14), flexDirection: 'row', overflow: 'hidden',
+    borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
+  },
+  cardAccent: { width: 3 },
+  cardInner: { flex: 1, padding: 10 },
 
-  cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, marginBottom: 12 },
-  svcIcon: { width: 44, height: 44, borderRadius: 13, justifyContent: 'center', alignItems: 'center' },
-  bookingNum: { fontSize: 15, fontWeight: '800', color: C.text, letterSpacing: -0.2 },
-  svcLabel: { fontSize: 11, fontWeight: '700' },
-  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusPillText: { fontSize: 11, fontWeight: '700' },
+  cardTopStripe: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 6 },
+  svcIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  svcLabel: { fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5 },
+  bookingNum: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text, marginTop: 1 },
+  statusPill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20 },
+  statusPillText: { fontSize: 10, fontWeight: '700' },
 
-  cardBody: { gap: 6, marginBottom: 12 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  infoText: { fontSize: 13, color: C.subtext, flex: 1 },
+  cardName: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '700', color: C.text },
+  cardPhone: { fontSize: 11.5, color: C.muted, marginTop: 1, fontWeight: '600' },
 
-  routeBox: { backgroundColor: C.g50, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, gap: 4, marginVertical: 2, borderWidth: 1, borderColor: C.g100 },
-  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  routeDot: { width: 8, height: 8, borderRadius: 4 },
-  routeText: { fontSize: 13, color: C.text, fontWeight: '600', flex: 1 },
-  routeConnector: { width: 1, height: 8, backgroundColor: C.border, marginLeft: 4 },
+  cardMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 7, alignItems: 'center' },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
+  metaText: { fontSize: 11, color: C.subtext, fontWeight: '600' },
 
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border },
-  amtLbl: { fontSize: 9, color: C.muted, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 1 },
-  amtVal: { fontSize: 19, fontWeight: '800', color: C.g700, letterSpacing: -0.5 },
-  footerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  paidChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8, backgroundColor: C.g100 },
-  payChip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },
-  chipTxt: { fontSize: 10, fontWeight: '700' },
+  moneyBlock: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: C.border },
+  amtVal: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.g700, letterSpacing: -0.3 },
+  footerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  paidChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: C.g100 },
+  payChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  chipTxt: { fontSize: 9.5, fontWeight: '700' },
   expandBtn: { padding: 4 },
-  arrowCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.g100 },
 
   /* Expanded */
   expanded: {},
   expandDivider: { height: 1, backgroundColor: C.border, marginTop: 4, marginBottom: 10 },
   eRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
   eLabel: { fontSize: 12, color: C.muted, width: 66 },
-  eVal: { fontSize: 13, color: C.text, fontWeight: '600', flex: 1 },
-  viewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10, paddingVertical: 10, borderRadius: 10, backgroundColor: C.g50, borderWidth: 1.5, borderColor: C.g100 },
+  eVal: { fontSize: 13, color: C.text, fontWeight: '700', flex: 1 },
+  viewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10, paddingVertical: 10, borderRadius: rs(10), backgroundColor: C.g50, borderWidth: 1.5, borderColor: C.g100 },
   viewBtnTxt: { fontSize: 13, fontWeight: '700', color: C.g700 },
 
   /* Empty */
   emptyWrap: { alignItems: 'center', paddingVertical: 64, paddingHorizontal: 32, gap: 8 },
-  emptyIconWrap: { width: 96, height: 96, borderRadius: 48, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text },
+  emptyIconWrap: {
+    width: 96, height: 96, borderRadius: 48, justifyContent: 'center', alignItems: 'center', marginBottom: 6,
+    backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
+  },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text },
   emptySub: { fontSize: 13, color: C.muted, textAlign: 'center' },
-  emptyBtn: { marginTop: 16, borderRadius: 14, overflow: 'hidden' },
+  emptyBtn: { marginTop: 16, borderRadius: rs(14), overflow: 'hidden' },
   emptyBtnGrad: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 14 },
-  emptyBtnTxt: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  emptyBtnTxt: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
 });

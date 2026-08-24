@@ -164,7 +164,7 @@ export default function StaffDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+      <div className="min-h-[60dvh] flex flex-col items-center justify-center gap-3">
         <div className="relative">
           <div className="w-14 h-14 rounded-full border-4 border-emerald-100"></div>
           <div className="w-14 h-14 animate-spin border-4 border-emerald-600 border-t-transparent rounded-full absolute inset-0"></div>
@@ -176,7 +176,7 @@ export default function StaffDetailPage() {
 
   if (!staff) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6 flex items-center justify-center">
+      <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6 flex items-center justify-center">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center max-w-md">
           <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-red-100 to-rose-100 flex items-center justify-center">
             <AlertTriangle className="w-10 h-10 text-red-500" />
@@ -194,7 +194,7 @@ export default function StaffDetailPage() {
   const isLicenseExpired = staff.licenseExpiry && new Date(staff.licenseExpiry) < new Date();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+    <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
       <style jsx global>{`
         @keyframes float-slow { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-12px) translateX(8px); } }
         @keyframes float-rev { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(10px) translateX(-6px); } }

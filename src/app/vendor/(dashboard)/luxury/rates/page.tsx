@@ -245,7 +245,7 @@ export default function VendorLuxuryRatesPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-dvh flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-gray-500">Loading your luxury rates...</p>
@@ -452,7 +452,7 @@ export default function VendorLuxuryRatesPage() {
       {/* Add/Edit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90dvh] overflow-y-auto">
             <div className="p-6 border-b">
               <h2 className="text-xl font-bold text-gray-900">
                 {editingRate ? 'Edit Rate' : 'Add New Rate'}

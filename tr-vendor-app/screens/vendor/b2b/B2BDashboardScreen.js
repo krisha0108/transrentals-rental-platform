@@ -9,16 +9,21 @@ import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getB2BStats, getB2BMyQuotes } from '../../api/client';
+import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g300: '#6EE7B7', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F8FAFC', surface: '#FFFFFF',
-  text: '#1E293B', sub: '#475569', muted: '#94A3B8', border: '#E2E8F0',
-  amber: '#F59E0B', amberBg: '#FFFBEB', amberDark: '#D97706',
-  red: '#EF4444', redBg: '#FEF2F2',
-  blue: '#3B82F6', blueBg: '#EFF6FF',
-  purple: '#8B5CF6', purpleBg: '#F5F3FF',
+  g950: T.forestDark, g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g300: T.oceanLight, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, surface: T.card,
+  text: T.ink, sub: T.text, muted: T.subText, border: T.border,
+  amber: T.amber, amberBg: T.amberLight, amberDark: shade(T.amber, -15),
+  red: T.red, redBg: T.redLight,
+  blue: T.blue, blueBg: T.blueLight,
+  purple: T.purple, purpleBg: T.tintPlum,
 };
 
 const QUOTE_STATUS = {
@@ -77,50 +82,51 @@ export default function B2BDashboardScreen({ navigation }) {
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g950} />
+
+      {/* ── Fixed header (does not scroll) ── */}
+      <LinearGradient colors={G.hero} style={[s.headerGrad, { paddingTop: insets.top + 12 }]}>
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+
+        <View style={s.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.headerBtn} activeOpacity={0.8}>
+            <Icon name="arrow-left" size={20} color="#fff" />
+          </TouchableOpacity>
+          <View style={s.headerCenter}>
+            <Text style={s.headerTitle}>B2B Module</Text>
+            <Text style={s.headerSub}>Corporate Bookings &amp; Quotes</Text>
+          </View>
+          <View style={{ width: 36 }} />
+        </View>
+
+        {/* Stats strip */}
+        <View style={s.statsStrip}>
+          {[
+            { label: 'Open Requests', value: stats.openBookings, icon: 'briefcase-outline',     route: 'B2BOpenBookings' },
+            { label: 'My Quotes',     value: stats.myQuotes,     icon: 'file-document-outline', route: 'B2BMyQuotes'     },
+          ].map((item, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && <View style={s.stripDiv} />}
+              <TouchableOpacity
+                style={s.stripItem}
+                onPress={() => navigation.navigate(item.route)}
+                activeOpacity={0.7}
+              >
+                <MCI name={item.icon} size={15} color="rgba(255,255,255,0.55)" style={{ marginBottom: 4 }} />
+                <Text style={s.stripValue}>{loading ? '—' : item.value}</Text>
+                <Text style={s.stripLabel}>{item.label}</Text>
+              </TouchableOpacity>
+            </React.Fragment>
+          ))}
+        </View>
+      </LinearGradient>
+
       <ScrollView
         style={s.scroll}
         contentContainerStyle={[s.scrollContent, { paddingBottom: tabBarHeight + 20 }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g600} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Header inside ScrollView ── */}
-        <LinearGradient colors={[C.g950, C.g900, C.g800]} style={[s.headerGrad, { paddingTop: insets.top + 12 }]}>
-          <View style={s.deco1} />
-          <View style={s.deco2} />
-
-          <View style={s.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={s.headerBtn} activeOpacity={0.8}>
-              <Icon name="arrow-left" size={20} color="#fff" />
-            </TouchableOpacity>
-            <View style={s.headerCenter}>
-              <Text style={s.headerTitle}>B2B Module</Text>
-              <Text style={s.headerSub}>Corporate Bookings &amp; Quotes</Text>
-            </View>
-            <View style={{ width: 36 }} />
-          </View>
-
-          {/* Stats strip */}
-          <View style={s.statsStrip}>
-            {[
-              { label: 'Open Requests', value: stats.openBookings, icon: 'briefcase-outline',     route: 'B2BOpenBookings' },
-              { label: 'My Quotes',     value: stats.myQuotes,     icon: 'file-document-outline', route: 'B2BMyQuotes'     },
-            ].map((item, i) => (
-              <React.Fragment key={i}>
-                {i > 0 && <View style={s.stripDiv} />}
-                <TouchableOpacity
-                  style={s.stripItem}
-                  onPress={() => navigation.navigate(item.route)}
-                  activeOpacity={0.7}
-                >
-                  <MCI name={item.icon} size={15} color="rgba(255,255,255,0.55)" style={{ marginBottom: 4 }} />
-                  <Text style={s.stripValue}>{loading ? '—' : item.value}</Text>
-                  <Text style={s.stripLabel}>{item.label}</Text>
-                </TouchableOpacity>
-              </React.Fragment>
-            ))}
-          </View>
-        </LinearGradient>
-
         {/* ── Body content ── */}
         {loading ? (
           <View style={s.loadingWrap}>
@@ -282,17 +288,17 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700', fontFamily: DISPLAY },
   headerSub: { color: 'rgba(255,255,255,0.6)', fontSize: 11, marginTop: 2 },
 
   statsStrip: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: rs(14),
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
   stripDiv: { width: 1, backgroundColor: 'rgba(255,255,255,0.15)', marginVertical: 10 },
   stripItem: { flex: 1, alignItems: 'center', paddingVertical: 12 },
-  stripValue: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  stripValue: { color: '#fff', fontSize: 22, fontWeight: '800', fontFamily: DISPLAY },
   stripLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 10, marginTop: 2, textAlign: 'center' },
 
   /* Section */
@@ -303,9 +309,9 @@ const s = StyleSheet.create({
 
   /* Card */
   card: {
-    backgroundColor: C.surface, borderRadius: 14,
+    backgroundColor: C.surface, borderRadius: rs(14),
     borderWidth: 1, borderColor: C.border,
-    elevation: 1, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
+    ...cardShadow,
   },
   divider: { height: 1, backgroundColor: C.border, marginHorizontal: 14 },
 
@@ -313,14 +319,14 @@ const s = StyleSheet.create({
   actionsGrid: { gap: 10 },
   actionCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.surface, borderRadius: 14,
+    backgroundColor: C.surface, borderRadius: rs(14),
     borderWidth: 1, borderColor: C.border, borderLeftWidth: 3,
     paddingHorizontal: 14, paddingVertical: 13, gap: 12,
-    elevation: 1, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, shadowOffset: { width: 0, height: 1 },
+    ...cardShadow,
   },
   actionIconBox: { width: 42, height: 42, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   actionText: { flex: 1 },
-  actionTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  actionTitle: { fontSize: 14, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
   actionSub: { fontSize: 12, color: C.muted, marginTop: 1 },
   actionBadge: { minWidth: 28, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 },
   actionBadgeText: { fontSize: 12, fontWeight: '800' },
@@ -331,7 +337,7 @@ const s = StyleSheet.create({
   quoteBody: { flex: 1 },
   quoteTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 },
   quoteNum: { fontSize: 12, fontWeight: '700', color: C.text },
-  quotePrice: { fontSize: 13, fontWeight: '800', color: C.g600 },
+  quotePrice: { fontSize: 13, fontWeight: '800', color: C.g600, fontFamily: DISPLAY },
   quoteBotRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 },
   quoteCompany: { fontSize: 12, color: C.sub, flex: 1, marginRight: 8 },
   statusChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
@@ -340,11 +346,11 @@ const s = StyleSheet.create({
 
   /* Empty */
   emptyCard: {
-    backgroundColor: C.surface, borderRadius: 14,
+    backgroundColor: C.surface, borderRadius: rs(14),
     borderWidth: 1, borderColor: C.border,
     alignItems: 'center', paddingVertical: 28, paddingHorizontal: 20, gap: 6,
   },
-  emptyTitle: { fontSize: 14, fontWeight: '700', color: C.text, marginTop: 4 },
+  emptyTitle: { fontSize: 14, fontWeight: '700', color: C.text, marginTop: 4, fontFamily: DISPLAY },
   emptySub: { fontSize: 12, color: C.sub, textAlign: 'center', lineHeight: 18 },
   emptyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -361,7 +367,7 @@ const s = StyleSheet.create({
   howNumText: { fontSize: 13, fontWeight: '800' },
   howLine: { width: 1.5, height: 24, backgroundColor: C.border, marginTop: 4 },
   howContent: { flex: 1, paddingBottom: 8 },
-  howTitle: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 3 },
+  howTitle: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 3, fontFamily: DISPLAY },
   howDesc: { fontSize: 12, color: C.sub, lineHeight: 18 },
 
   /* Loading */

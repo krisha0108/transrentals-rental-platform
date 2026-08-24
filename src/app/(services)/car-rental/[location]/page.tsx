@@ -322,8 +322,10 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
         citySlug={params.location.toLowerCase()}
         serviceSlug="car-rental"
         serviceTitle="Car Rental"
-        headingLine1="Car Rental in"
+        headingLine1="Drive Your Way,"
         headingLine2={locationName}
+        heroVariant="aurora"
+        heroImage="/images/sections/car-rental-hero-bg.png"
       />
 
       {/* Packages Grid - Fetched from Database */}

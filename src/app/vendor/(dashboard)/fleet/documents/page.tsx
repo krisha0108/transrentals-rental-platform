@@ -198,7 +198,7 @@ export default function FleetDocumentsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+      <div className="min-h-[60dvh] flex flex-col items-center justify-center gap-3">
         <div className="relative">
           <div className="w-14 h-14 rounded-full border-4 border-emerald-100"></div>
           <Loader2 className="w-14 h-14 animate-spin text-emerald-600 absolute inset-0" />
@@ -228,7 +228,7 @@ export default function FleetDocumentsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+    <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
       <style jsx global>{`
         @keyframes float-slow { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-12px) translateX(8px); } }
         @keyframes float-rev { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(10px) translateX(-6px); } }
@@ -444,7 +444,7 @@ export default function FleetDocumentsPage() {
         {/* Add Document Modal */}
         {showModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90dvh] overflow-y-auto shadow-2xl">
               <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30 flex items-center justify-between sticky top-0 z-10">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-sm">
@@ -549,7 +549,7 @@ export default function FleetDocumentsPage() {
         {/* View Document Image Modal */}
         {viewImage && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setViewImage(null)}>
-            <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90dvh] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
               <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30 flex items-center justify-between">
                 <h3 className="font-bold text-gray-900">{viewImage.title}</h3>
                 <button onClick={() => setViewImage(null)} className="p-2 hover:bg-white rounded-lg transition-colors"><X className="w-5 h-5" /></button>
@@ -567,7 +567,7 @@ export default function FleetDocumentsPage() {
                     </a>
                   </div>
                 ) : (
-                  <img src={viewImage.url} alt={viewImage.title} className="max-w-full max-h-[70vh] object-contain rounded-lg" />
+                  <img src={viewImage.url} alt={viewImage.title} className="max-w-full max-h-[70dvh] object-contain rounded-lg" />
                 )}
               </div>
             </div>

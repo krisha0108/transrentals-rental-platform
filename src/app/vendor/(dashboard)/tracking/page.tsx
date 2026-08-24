@@ -109,7 +109,7 @@ export default function GPSTrackingPage() {
   const selected = drivers.find((d) => d.id === selectedId) || null;
 
   return (
-    <div className="h-[calc(100vh-80px)] flex flex-col">
+    <div className="h-[calc(100dvh-80px)] flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 bg-white">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">

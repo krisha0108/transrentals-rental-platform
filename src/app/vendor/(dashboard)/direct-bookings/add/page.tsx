@@ -415,7 +415,7 @@ function Skeleton() {
   const shimmer = 'animate-pulse bg-gray-200 rounded-xl';
   const block = 'animate-pulse bg-gray-200 rounded-2xl';
   return (
-    <div className="min-h-screen -m-6 bg-gray-50">
+    <div className="min-h-dvh -m-6 bg-gray-50">
       {/* Header skeleton */}
       <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 pt-5 pb-16">
         <div className="h-4 w-28 bg-white/20 rounded-lg mb-5" />
@@ -635,7 +635,7 @@ export default function AddDirectBookingPage() {
   const hasServiceFields = !['general'].includes(form.serviceType);
 
   return (
-    <div className="min-h-screen -m-6 bg-gray-50">
+    <div className="min-h-dvh -m-6 bg-gray-50">
 
       {/* ── Header ── */}
       <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 pt-5 pb-16">

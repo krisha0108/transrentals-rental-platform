@@ -10,21 +10,27 @@ import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getBookings, getVendorProfile } from '../../api/client';
+import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#2563EB',   blueL: '#EFF6FF',
-  amber: '#D97706',  amberL: '#FFFBEB',
-  red: '#DC2626',    redL: '#FEF2F2',
-  orange: '#EA580C', orangeL: '#FFF7ED',
-  indigo: '#4F46E5', indigoL: '#EEF2FF',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  pink: '#DB2777',   pinkL: '#FDF2F8',
-  teal: '#0D9488',   tealL: '#F0FDFA',
-  cyan: '#0891B2',   cyanL: '#ECFEFF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald,
+  g100: T.tintEmerald, g50:  T.tintEmerald,
+  bg:     T.bg, card: T.card, border: T.border,
+  text:   T.ink, sub: T.text, muted: T.subText,
+  blue:    T.blue,   blueL:   T.blueLight,
+  amber:   T.amber,  amberL:  T.amberLight,
+  red:     T.red,    redL:    T.redLight,
+  orange:  T.orange, orangeL: T.orangeL,
+  indigo:  T.indigo, indigoL: T.indigoLight,
+  purple:  T.purple, purpleL: T.purpleLight,
+  pink:    T.rose,             pinkL: T.tintRose,
+  teal:    T.oceanLight,       tealL: T.tintOcean,
+  cyan:    shade(T.ocean, 25), cyanL: T.tintOcean,
 };
 
 // service config keyed by app id. apiService → getBookings; detail/st → BookingDetail nav
@@ -79,6 +85,29 @@ function normalize(svc, b) {
     location: b.locationName || [b.pickupCity, b.dropCity].filter(Boolean).join(' → ') || '',
     amount: b.grandTotal ?? b.totalAmount ?? b.amount ?? 0,
   };
+}
+
+// Illustrated empty state — layered card shapes + rotated tag, matching the
+// motif used across the rest of this session's Elevate redesign.
+function EmptyState({ icon, title, sub, tag }) {
+  return (
+    <View style={st.empty}>
+      <View style={st.emptyArt}>
+        <View style={st.emptyArtCardBack} />
+        <View style={st.emptyArtCard}>
+          <Ionicons name={icon} size={rs(36)} color={C.g600} />
+        </View>
+        <View style={st.emptyArtDot} />
+        {!!tag && (
+          <View style={st.emptyArtTag}>
+            <Text style={st.emptyArtTagTxt}>{tag}</Text>
+          </View>
+        )}
+      </View>
+      <Text style={st.emptyTitle}>{title}</Text>
+      <Text style={st.emptySub}>{sub}</Text>
+    </View>
+  );
 }
 
 export default function BookingsListScreen({ navigation, route }) {
@@ -154,95 +183,107 @@ export default function BookingsListScreen({ navigation, route }) {
   };
 
   return (
-    <SafeAreaView style={st.safe} edges={['top']}>
+    <View style={st.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      {/* Header */}
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.hero}>
-        <View style={st.heroTop}>
-          <View style={{ flex: 1 }}>
-            <Text style={st.heroTitle}>Bookings</Text>
-            <Text style={st.heroSub}>
-              {loading ? 'Loading…' : `${bookings.length} bookings · ${count} service${count !== 1 ? 's' : ''}`}
-            </Text>
+      {/* ── Green hero header ── */}
+      <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.hero}>
+        <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={['top']} style={{ paddingHorizontal: 16 }}>
+          <View style={st.heroTop}>
+            <View style={{ flex: 1 }}>
+              <Text style={st.heroTitle}>Bookings</Text>
+              <Text style={st.heroSub}>
+                {loading ? 'Loading…' : `${bookings.length} bookings · ${count} service${count !== 1 ? 's' : ''}`}
+              </Text>
+            </View>
+            <TouchableOpacity style={st.refreshBtn} onPress={onRefresh} activeOpacity={0.75}>
+              <Icon name="refresh-cw" size={17} color="rgba(255,255,255,0.85)" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={st.refreshBtn} onPress={onRefresh} activeOpacity={0.75}>
-            <Icon name="refresh-cw" size={17} color="rgba(255,255,255,0.85)" />
-          </TouchableOpacity>
-        </View>
+          {/* spacer so the floating search card can tuck into the curve */}
+          <View style={{ height: rs(26) }} />
+        </SafeAreaView>
+      </LinearGradient>
 
-        {/* Search */}
-        <View style={st.searchBox}>
-          <Icon name="search" size={15} color="rgba(255,255,255,0.6)" style={{ marginRight: 8 }} />
+      {/* Floating search — tucks into the hero's bottom curve */}
+      <View style={st.searchWrap}>
+        <View style={st.searchCard}>
+          <Icon name="search" size={15} color={C.muted} style={{ marginRight: 8 }} />
           <TextInput
             style={st.searchInput}
             placeholder="Search customer or booking #"
-            placeholderTextColor="rgba(255,255,255,0.5)"
+            placeholderTextColor={C.muted}
             value={query} onChangeText={setQuery}
             returnKeyType="search" autoCorrect={false}
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Icon name="x" size={15} color="rgba(255,255,255,0.6)" />
+              <Icon name="x" size={15} color={C.muted} />
             </TouchableOpacity>
           )}
         </View>
-      </LinearGradient>
+      </View>
 
-      {/* ── Service selector (adaptive by count) ── */}
-      {count === 2 && (
-        <View style={st.tabsWrap}>
-          {approvedServices.map(svc => {
-            const on = selectedSvc === svc.id;
+      {/* Fixed filters — kept OUTSIDE the scrollable list so switching tabs
+          doesn't reset scroll position. */}
+      <View style={st.filtersFixed}>
+        {/* ── Service selector (adaptive by count) ── */}
+        {count === 2 && (
+          <View style={st.tabsWrap}>
+            {approvedServices.map(svc => {
+              const on = selectedSvc === svc.id;
+              return (
+                <TouchableOpacity key={svc.id} style={[st.tab, on && st.tabOn]} activeOpacity={0.8}
+                  onPress={() => setSelectedSvc(svc.id)}>
+                  <MaterialCommunityIcons name={svc.icon} size={16} color={on ? svc.color : C.muted} />
+                  <Text style={[st.tabTxt, on && st.tabTxtOn]}>{svc.name}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        {count >= 3 && (
+          <View style={st.cardsWrap}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.cardsRow}>
+              {[{ id: 'all', name: 'All', icon: 'view-grid', color: C.g700 }, ...approvedServices].map(svc => {
+                const on  = selectedSvc === svc.id;
+                const cnt = svc.id === 'all' ? bookings.filter(b => isActive(b.status)).length : svcActiveCount(svc.id);
+                return (
+                  <TouchableOpacity key={svc.id} style={[st.svcCard, on && st.svcCardOn]} activeOpacity={0.85}
+                    onPress={() => setSelectedSvc(svc.id)}>
+                    <View style={[st.svcCardIcon, { backgroundColor: on ? 'rgba(255,255,255,0.22)' : svc.color + '14' }]}>
+                      <MaterialCommunityIcons name={svc.icon} size={20} color={on ? '#fff' : svc.color} />
+                    </View>
+                    <Text style={[st.svcCardName, on && { color: '#fff' }]} numberOfLines={1}>{svc.name}</Text>
+                    <Text style={[st.svcCardCnt, on && { color: 'rgba(255,255,255,0.85)' }]}>{cnt} active</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* ── Active / Completed filter ── */}
+        <View style={st.statusWrap}>
+          {[
+            { key: 'active',    label: 'Active',    count: activeCount },
+            { key: 'completed', label: 'Completed', count: completedCount },
+          ].map(t => {
+            const on = status === t.key;
             return (
-              <TouchableOpacity key={svc.id} style={[st.tab, on && st.tabOn]} activeOpacity={0.8}
-                onPress={() => setSelectedSvc(svc.id)}>
-                <MaterialCommunityIcons name={svc.icon} size={16} color={on ? svc.color : C.muted} />
-                <Text style={[st.tabTxt, on && st.tabTxtOn]}>{svc.name}</Text>
+              <TouchableOpacity key={t.key} style={[st.statusBtn, on && st.statusBtnOn]} activeOpacity={0.8}
+                onPress={() => setStatus(t.key)}>
+                <Text style={[st.statusTxt, on && st.statusTxtOn]}>{t.label}</Text>
+                <View style={[st.statusPill, on && st.statusPillOn]}>
+                  <Text style={[st.statusPillTxt, on && st.statusPillTxtOn]}>{t.count}</Text>
+                </View>
               </TouchableOpacity>
             );
           })}
         </View>
-      )}
-
-      {count >= 3 && (
-        <View style={st.cardsWrap}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.cardsRow}>
-            {[{ id: 'all', name: 'All', icon: 'view-grid', color: C.g700 }, ...approvedServices].map(svc => {
-              const on  = selectedSvc === svc.id;
-              const cnt = svc.id === 'all' ? bookings.filter(b => isActive(b.status)).length : svcActiveCount(svc.id);
-              return (
-                <TouchableOpacity key={svc.id} style={[st.svcCard, on && st.svcCardOn]} activeOpacity={0.85}
-                  onPress={() => setSelectedSvc(svc.id)}>
-                  <View style={[st.svcCardIcon, { backgroundColor: on ? 'rgba(255,255,255,0.22)' : svc.color + '14' }]}>
-                    <MaterialCommunityIcons name={svc.icon} size={20} color={on ? '#fff' : svc.color} />
-                  </View>
-                  <Text style={[st.svcCardName, on && { color: '#fff' }]} numberOfLines={1}>{svc.name}</Text>
-                  <Text style={[st.svcCardCnt, on && { color: 'rgba(255,255,255,0.85)' }]}>{cnt} active</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* ── Active / Completed filter ── */}
-      <View style={st.statusWrap}>
-        {[
-          { key: 'active',    label: 'Active',    count: activeCount },
-          { key: 'completed', label: 'Completed', count: completedCount },
-        ].map(t => {
-          const on = status === t.key;
-          return (
-            <TouchableOpacity key={t.key} style={[st.statusBtn, on && st.statusBtnOn]} activeOpacity={0.8}
-              onPress={() => setStatus(t.key)}>
-              <Text style={[st.statusTxt, on && st.statusTxtOn]}>{t.label}</Text>
-              <View style={[st.statusPill, on && st.statusPillOn]}>
-                <Text style={[st.statusPillTxt, on && st.statusPillTxtOn]}>{t.count}</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
       </View>
 
       {/* ── List ── */}
@@ -252,48 +293,75 @@ export default function BookingsListScreen({ navigation, route }) {
           <Text style={[st.emptySub, { marginTop: 12 }]}>Loading bookings…</Text>
         </View>
       ) : count === 0 ? (
-        <View style={st.empty}>
-          <View style={st.emptyIcon}><Ionicons name="cube-outline" size={28} color={C.muted} /></View>
-          <Text style={st.emptyTitle}>No approved services yet</Text>
-          <Text style={st.emptySub}>Bookings appear once your services go live.</Text>
-        </View>
+        <EmptyState
+          icon="cube-outline"
+          title="No approved services yet"
+          sub="Bookings appear once your services go live."
+          tag="PENDING"
+        />
       ) : (
         <ScrollView contentContainerStyle={st.body} showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}>
           {filtered.length === 0 ? (
-            <View style={st.empty}>
-              <View style={st.emptyIcon}><Ionicons name={status === 'completed' ? 'checkmark-done-outline' : 'time-outline'} size={28} color={C.muted} /></View>
-              <Text style={st.emptyTitle}>No {status} bookings</Text>
-              <Text style={st.emptySub}>{q ? `Nothing matches "${query}"` : (status === 'active' ? 'Active bookings will show up here.' : 'Completed trips will appear here.')}</Text>
-            </View>
+            <EmptyState
+              icon={status === 'completed' ? 'checkmark-done-outline' : 'time-outline'}
+              title={`No ${status} bookings`}
+              sub={q ? `Nothing matches "${query}"` : (status === 'active' ? 'Active bookings will show up here.' : 'Completed trips will appear here.')}
+              tag={status === 'completed' ? 'DONE' : 'ACTIVE'}
+            />
           ) : (
             filtered.map(b => {
               const svc = SERVICES[b.service] || { name: b.service, icon: 'cube', color: C.muted };
               const sm  = STATUS_META[b.status] || { label: b.status, color: C.muted };
               return (
-                <TouchableOpacity key={`${b.service}:${b.id}`} style={st.card} activeOpacity={0.85}
+                <TouchableOpacity key={`${b.service}:${b.id}`} style={[st.card, st.cardShadow]} activeOpacity={0.85}
                   onPress={() => openDetail(b)}>
-                  <View style={st.cardTop}>
-                    <View style={[st.cardIcon, { backgroundColor: svc.color + '14' }]}>
-                      <MaterialCommunityIcons name={svc.icon} size={20} color={svc.color} />
+                  {/* Tonal accent rail — instant service recognition down the card edge */}
+                  <View style={[st.cardRail, { backgroundColor: svc.color }]} />
+
+                  <View style={st.cardInner}>
+                    {/* Top: service icon + booking number + status */}
+                    <View style={st.cardTopStripe}>
+                      <View style={[st.typeIconBox, { backgroundColor: svc.color + '18' }]}>
+                        <MaterialCommunityIcons name={svc.icon} size={17} color={svc.color} />
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={[st.typeLabel, { color: svc.color }]} numberOfLines={1}>{svc.name.toUpperCase()}</Text>
+                        {!!b.bookingNumber && <Text style={st.bookingNumber} numberOfLines={1}>{b.bookingNumber}</Text>}
+                      </View>
+                      <View style={[st.statusPillCard, { backgroundColor: sm.color + '18' }]}>
+                        <Text style={[st.statusPillCardTxt, { color: sm.color }]}>{sm.label}</Text>
+                      </View>
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={st.cardTitle} numberOfLines={1}>{svc.name}{b.bookingNumber ? ` · ${b.bookingNumber}` : ''}</Text>
-                      {!!b.location && <Text style={st.cardSub} numberOfLines={1}>{b.location}</Text>}
-                    </View>
-                    <View style={[st.badge, { backgroundColor: sm.color + '14' }]}>
-                      <Text style={[st.badgeTxt, { color: sm.color }]}>{sm.label}</Text>
-                    </View>
-                  </View>
-                  <View style={st.cardBottom}>
-                    <View style={st.customer}>
+
+                    {/* Customer */}
+                    <View style={st.customerRow}>
                       <View style={st.avatar}><Text style={st.avatarTxt}>{b.customer?.charAt(0) || '?'}</Text></View>
-                      <Text style={st.customerTxt} numberOfLines={1}>{b.customer || 'Customer'}</Text>
+                      <Text style={st.cardName} numberOfLines={1}>{b.customer || 'Customer'}</Text>
                     </View>
-                    <View style={st.metaRight}>
-                      {!!b.date && <Text style={st.dateTxt}>{fmtDate(b.date)}</Text>}
-                      {b.amount > 0 && <Text style={st.amountTxt}>{money(b.amount)}</Text>}
+
+                    {/* Meta row */}
+                    <View style={st.cardMetaRow}>
+                      {!!b.date && (
+                        <View style={st.metaItem}>
+                          <Icon name="calendar" size={11} color={C.muted} />
+                          <Text style={st.metaText}>{fmtDate(b.date)}</Text>
+                        </View>
+                      )}
+                      {!!b.location && (
+                        <View style={st.metaItem}>
+                          <Icon name="map-pin" size={11} color={C.muted} />
+                          <Text style={st.metaText} numberOfLines={1}>{b.location}</Text>
+                        </View>
+                      )}
                     </View>
+
+                    {/* Money row */}
+                    {b.amount > 0 && (
+                      <View style={st.moneyBlock}>
+                        <Text style={st.moneyTotal}>{money(b.amount)}</Text>
+                      </View>
+                    )}
                   </View>
                 </TouchableOpacity>
               );
@@ -302,41 +370,67 @@ export default function BookingsListScreen({ navigation, route }) {
           <View style={{ height: 100 }} />
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const st = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
+  root: { flex: 1, backgroundColor: C.bg },
+  cardShadow: { ...cardShadow },
 
-  hero:      { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14 },
-  heroTop:   { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  heroTitle: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.4 },
-  heroSub:   { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600', marginTop: 2 },
-  refreshBtn:{ width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
+  // ── Green hero header ──
+  hero: {
+    paddingBottom: rs(8),
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
+    overflow: 'hidden',
+  },
+  orbA: {
+    position: 'absolute', top: -rs(50), right: -rs(30),
+    width: rs(170), height: rs(170), borderRadius: rs(85),
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  orbB: {
+    position: 'absolute', bottom: -rs(60), left: -rs(40),
+    width: rs(150), height: rs(150), borderRadius: rs(75),
+    backgroundColor: 'rgba(46,158,120,0.16)',
+  },
+  heroTop:   { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4) },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 24, color: '#fff', letterSpacing: -0.2 },
+  heroSub:   { fontSize: 12, color: 'rgba(255,255,255,0.62)', fontWeight: '600', marginTop: 2 },
+  refreshBtn:{ width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', justifyContent: 'center', alignItems: 'center' },
 
-  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  searchInput: { flex: 1, fontSize: 14, color: '#fff', padding: 0 },
+  // Floating search card — tucks into the hero's bottom curve.
+  searchWrap: { marginHorizontal: 16, marginTop: -rs(22) },
+  searchCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.card, borderRadius: rs(15),
+    paddingHorizontal: 14, height: rs(44),
+    borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
+  },
+  searchInput: { flex: 1, fontSize: 14, color: C.text, padding: 0, fontWeight: '600' },
+
+  filtersFixed: { flexShrink: 0 },
 
   // 2-service tabs
-  tabsWrap: { flexDirection: 'row', backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border, paddingHorizontal: 16, paddingTop: 12, gap: 8 },
-  tab:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, borderRadius: 10, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, marginBottom: 12 },
+  tabsWrap: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 14, gap: 8 },
+  tab:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, borderRadius: rs(12), backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
   tabOn:    { backgroundColor: C.g50, borderColor: C.g500 },
   tabTxt:   { fontSize: 13, fontWeight: '700', color: C.muted },
   tabTxtOn: { color: C.text },
 
   // 3+ service cards (filter)
-  cardsWrap: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
-  cardsRow:  { paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
-  svcCard:   { width: 96, padding: 11, borderRadius: 14, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, alignItems: 'flex-start' },
+  cardsWrap: { paddingTop: 12 },
+  cardsRow:  { paddingHorizontal: 16, gap: 10 },
+  svcCard:   { width: 96, padding: 11, borderRadius: rs(14), backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'flex-start', ...cardShadow },
   svcCardOn: { backgroundColor: C.g600, borderColor: C.g600 },
   svcCardIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  svcCardName: { fontSize: 12, fontWeight: '800', color: C.text },
+  svcCardName: { fontFamily: DISPLAY, fontSize: 12, fontWeight: '800', color: C.text },
   svcCardCnt:  { fontSize: 10, fontWeight: '600', color: C.muted, marginTop: 2 },
 
   // Active / Completed
-  statusWrap:    { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
-  statusBtn:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 9, borderRadius: 10, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
+  statusWrap:    { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 14 },
+  statusBtn:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 10, borderRadius: rs(12), backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
   statusBtnOn:   { backgroundColor: C.g900, borderColor: C.g900 },
   statusTxt:     { fontSize: 13, fontWeight: '800', color: C.sub },
   statusTxtOn:   { color: '#fff' },
@@ -345,27 +439,67 @@ const st = StyleSheet.create({
   statusPillTxt: { fontSize: 10, fontWeight: '800', color: C.sub },
   statusPillTxtOn: { color: '#fff' },
 
-  body: { paddingHorizontal: 16, paddingTop: 14, gap: 10 },
+  body: { paddingHorizontal: 16, paddingTop: 4, gap: 12 },
 
-  card: { backgroundColor: C.card, borderRadius: 14, padding: 13, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
-  cardTop:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  cardIcon:  { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontSize: 12.5, fontWeight: '800', color: C.text },
-  cardSub:   { fontSize: 11, color: C.sub, marginTop: 2 },
-  badge:     { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  badgeTxt:  { fontSize: 9.5, fontWeight: '800' },
+  // ── Card ──
+  card: {
+    backgroundColor: C.card,
+    borderRadius: rs(18),
+    borderWidth: 1, borderColor: C.border,
+    overflow: 'hidden',
+    flexDirection: 'row',
+  },
+  cardRail: { width: 4 },
+  cardInner: { flex: 1, padding: 12, minWidth: 0 },
 
-  cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 11, borderTopWidth: 1, borderTopColor: C.border },
-  customer:    { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  avatar:      { width: 26, height: 26, borderRadius: 13, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
-  avatarTxt:   { fontSize: 11, fontWeight: '800', color: C.g700 },
-  customerTxt: { fontSize: 12, fontWeight: '600', color: C.text, flex: 1 },
-  metaRight:   { alignItems: 'flex-end' },
-  dateTxt:     { fontSize: 10, color: C.muted, fontWeight: '600' },
-  amountTxt:   { fontSize: 13, fontWeight: '800', color: C.g700, marginTop: 1 },
+  cardTopStripe: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  typeIconBox: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  typeLabel: { fontSize: 9.5, fontWeight: '800', letterSpacing: 0.6 },
+  bookingNumber: { fontFamily: DISPLAY, fontSize: 11.5, color: C.sub, fontWeight: '700', marginTop: 1 },
+  statusPillCard: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20 },
+  statusPillCardTxt: { fontSize: 9.5, fontWeight: '800' },
 
-  empty:      { alignItems: 'center', paddingTop: 70, gap: 6 },
-  emptyIcon:  { width: 60, height: 60, borderRadius: 30, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  emptyTitle: { fontSize: 15, fontWeight: '800', color: C.text, textTransform: 'capitalize' },
-  emptySub:   { fontSize: 12, color: C.muted, textAlign: 'center', paddingHorizontal: 30 },
+  customerRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  avatar:      { width: 28, height: 28, borderRadius: 10, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
+  avatarTxt:   { fontSize: 12, fontWeight: '800', color: C.g700 },
+  cardName:    { fontFamily: DISPLAY, fontSize: 16, color: C.text, flex: 1 },
+
+  cardMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8, alignItems: 'center' },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
+  metaText: { fontSize: 11, color: C.sub, fontWeight: '600' },
+
+  moneyBlock: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border },
+  moneyTotal: { fontFamily: DISPLAY, fontSize: 18, color: C.g700 },
+
+  // ── Empty ──
+  empty:      { alignItems: 'center', paddingTop: 56, paddingHorizontal: 30 },
+  emptyArt: {
+    width: rs(140), height: rs(112), marginBottom: rs(16),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyArtCardBack: {
+    position: 'absolute', top: rs(12), right: rs(20),
+    width: rs(88), height: rs(64), borderRadius: rs(14),
+    backgroundColor: C.g100, transform: [{ rotate: '8deg' }],
+  },
+  emptyArtCard: {
+    width: rs(88), height: rs(78), borderRadius: rs(16),
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.g100,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyArtDot: {
+    position: 'absolute', top: rs(4), right: rs(16),
+    width: rs(20), height: rs(20), borderRadius: rs(10), backgroundColor: C.g500,
+    borderWidth: rs(3), borderColor: C.bg,
+  },
+  emptyArtTag: {
+    position: 'absolute', bottom: rs(8), left: rs(4),
+    backgroundColor: C.card, borderRadius: rs(8),
+    paddingHorizontal: rs(8), paddingVertical: rs(3),
+    borderWidth: 1, borderColor: C.g100,
+    transform: [{ rotate: '-8deg' }],
+  },
+  emptyArtTagTxt: { fontSize: 8.5, fontWeight: '800', color: C.g700, letterSpacing: 0.6 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 16, color: C.text, textTransform: 'capitalize', textAlign: 'center' },
+  emptySub:   { fontSize: 12, color: C.muted, textAlign: 'center', marginTop: 4 },
 });

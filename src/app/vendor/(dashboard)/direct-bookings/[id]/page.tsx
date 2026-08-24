@@ -302,7 +302,7 @@ export default function DirectBookingDetailPage() {
 
   /* ── Loading ── */
   if (loading) return (
-    <div className="min-h-screen -m-6 bg-gray-50 flex items-center justify-center">
+    <div className="min-h-dvh -m-6 bg-gray-50 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
         <div className="w-10 h-10 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
         <p className="text-sm text-gray-400">Loading booking…</p>
@@ -311,7 +311,7 @@ export default function DirectBookingDetailPage() {
   );
 
   if (!booking) return (
-    <div className="min-h-screen -m-6 bg-gray-50 flex items-center justify-center">
+    <div className="min-h-dvh -m-6 bg-gray-50 flex items-center justify-center">
       <div className="text-center">
         <p className="text-gray-600 font-medium">Booking not found</p>
         <Link href="/vendor/direct-bookings" className="text-blue-600 text-sm mt-2 block hover:underline">← Back to bookings</Link>
@@ -338,7 +338,7 @@ export default function DirectBookingDetailPage() {
   const filteredVehicles = (assignOptions?.vehicles ?? []).filter(v => (v.displayName + (v.registrationNumber ?? '')).toLowerCase().includes(q));
 
   return (
-    <div className="min-h-screen -m-6 bg-gray-50">
+    <div className="min-h-dvh -m-6 bg-gray-50">
 
       {/* ── Color hero header ── */}
       <div className={`bg-gradient-to-r ${sc.headerGrad} px-6 pt-5 pb-16`}>
@@ -993,7 +993,7 @@ export default function DirectBookingDetailPage() {
           onClick={e => { if (e.target === e.currentTarget) setAssignModal(null); }}
         >
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl flex flex-col"
-               style={{ maxHeight: 'min(85vh, 600px)' }}>
+               style={{ maxHeight: 'min(85dvh, 600px)' }}>
 
             {/* Header */}
             <div className={`rounded-t-3xl px-5 pt-5 pb-4 flex items-center justify-between border-b border-gray-100 shrink-0 ${assignModal === 'driver' ? 'bg-blue-50' : 'bg-violet-50'}`}>

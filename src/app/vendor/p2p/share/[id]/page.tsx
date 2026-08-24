@@ -64,7 +64,7 @@ export default function P2PSharePage({ params }: { params: { id: string } }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50">
+      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
       </div>
     );
@@ -72,7 +72,7 @@ export default function P2PSharePage({ params }: { params: { id: string } }) {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-gray-100 p-6">
+      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-50 to-gray-100 p-6">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-red-600" />
@@ -96,7 +96,7 @@ export default function P2PSharePage({ params }: { params: { id: string } }) {
   const timeValue = isVehicle ? posting.departureTime : posting.tripTime;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-teal-50 py-8 px-4">
+    <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-emerald-50 to-teal-50 py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-4">
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">

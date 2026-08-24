@@ -311,7 +311,7 @@ export default function PayrollPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+      <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
         <div className="animate-pulse space-y-6">
           <div className="h-10 bg-gray-200 rounded-xl w-1/3"></div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -326,7 +326,7 @@ export default function PayrollPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+    <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
       <style jsx global>{`
         @keyframes float-slow { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-12px) translateX(8px); } }
         @keyframes float-rev { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(10px) translateX(-6px); } }
@@ -839,7 +839,7 @@ export default function PayrollPage() {
       {/* Payslip Modal */}
       {showSlipModal && slipItem && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-pop-in">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90dvh] overflow-y-auto shadow-2xl animate-pop-in">
             <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 animate-gradient-x p-6">
               <div className="absolute -right-8 -top-8 w-28 h-28 bg-white/10 rounded-full blur-2xl animate-float-slow"></div>
               <div className="absolute -left-8 -bottom-8 w-28 h-28 bg-pink-300/20 rounded-full blur-2xl animate-float-rev"></div>

@@ -8,7 +8,7 @@ import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { EquipmentBookingHero } from '@/components/equipment-rental/EquipmentBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
@@ -318,29 +318,11 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
 
       <B2BServiceNote serviceName="Equipment Rental" />
 
-      <ServiceHeroWithChat
+      <EquipmentBookingHero
+        city={locationName}
+        citySlug={params.location.toLowerCase()}
         pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
         pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
-        badge={`Equipment Rental in ${locationName}`}
-        title="Construction & Event Equipment"
-        titleHighlight="Verified Operators Available"
-        description={`Rent quality construction and event equipment in ${locationName}. Excavators, cranes, generators, DJ systems, and more. Professional operators available.`}
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Quality Equipment', color: 'text-yellow-600' },
-          { icon: 'zap', text: 'Quick Delivery', color: 'text-orange-600' },
-        ]}
-        gradientFrom="yellow-50"
-        gradientTo="orange-50"
-        showQuickForm
-        cityName={locationName}
-        bookingVariant="equipment"
-        priceAnchor="JCB Backhoe from ₹2,999/day"
-        heroHighlights={[
-          `Certified operator included on all equipment in ${locationName}`,
-          'JCB, Crane, Excavator, Generator, Hydra & more',
-          '500+ verified operators, instant quote',
-        ]}
       />
 
       <VehicleGrid

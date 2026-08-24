@@ -214,7 +214,7 @@ export default function AttendancePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+    <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
       <style jsx global>{`
         @keyframes float-slow { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-12px) translateX(8px); } }
         @keyframes float-rev { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(10px) translateX(-6px); } }
@@ -469,7 +469,7 @@ export default function AttendancePage() {
         {/* Mark Attendance Modal */}
         {showMarkModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-up">
-            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden shadow-2xl animate-pop-in">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85dvh] overflow-hidden shadow-2xl animate-pop-in">
               {/* Gradient Header */}
               <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 animate-gradient-x p-5">
                 <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl animate-float-slow"></div>
@@ -492,7 +492,7 @@ export default function AttendancePage() {
                 </div>
               </div>
 
-              <div className="p-5 max-h-[50vh] overflow-y-auto bg-gradient-to-br from-slate-50/50 to-emerald-50/30">
+              <div className="p-5 max-h-[50dvh] overflow-y-auto bg-gradient-to-br from-slate-50/50 to-emerald-50/30">
                 <div className="space-y-2.5">
                   {staff.map((member) => (
                     <div

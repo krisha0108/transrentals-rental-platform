@@ -20,16 +20,24 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMessages, sendMessage } from '../../api/socialApi';
 import { getFullImageURL } from '../../api/client';
+import { SC as T, G, rs } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
-const G = {
-  bg: '#F8FAFC', surface: '#FFFFFF', text: '#1E293B', muted: '#64748B',
-  border: '#E2E8F0', violet: '#059669', violetL: '#ECFDF5',
-  red: '#EF4444', redL: '#FEF2F2', green: '#059669', greenL: '#ECFDF5',
-  sentBg: '#D1FAE5', receivedBg: '#FFFFFF',
-  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g600: '#059669',
+// Same key names this screen already used everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex,
+// mirroring the mapping convention used in CreatePostScreen.js. Renamed from
+// the original local `G` to `C` so it doesn't collide with the theme's `G`
+// gradients export.
+const C = {
+  bg: T.bg, surface: T.card, text: T.ink, muted: T.subText,
+  border: T.border, violet: T.emerald600, violetL: T.tintEmerald,
+  red: T.red, redL: T.redLight, green: T.emerald600, greenL: T.tintEmerald,
+  sentBg: T.tintEmerald, receivedBg: T.card,
+  g950: T.forestDark, g900: T.forest, g800: T.emeraldDeep, g600: T.emerald600,
 };
 
-const AVATAR_COLORS = ['#059669', '#DC2626', '#16A34A', '#F97316', '#0891B2', '#DB2777', '#D97706'];
+const AVATAR_COLORS = [T.emerald600, T.red, T.ocean, T.gold, T.oceanLight, T.rose, T.orange];
 const getAvatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
 const formatTime = (dateStr) => {
@@ -71,13 +79,13 @@ function AvatarCircle({ name, logo, size = 36 }) {
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
       {logo && uri && !imgErr ? (
-        <Image 
-          source={{ uri }} 
-          style={{ width: size, height: size, borderRadius: size / 2 }} 
+        <Image
+          source={{ uri }}
+          style={{ width: size, height: size, borderRadius: size / 2 }}
           onError={() => setImgErr(true)}
         />
       ) : (
-        <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.38 }}>{letter}</Text>
+        <Text style={{ fontFamily: DISPLAY, color: '#fff', fontWeight: '700', fontSize: size * 0.38 }}>{letter}</Text>
       )}
     </View>
   );
@@ -85,7 +93,7 @@ function AvatarCircle({ name, logo, size = 36 }) {
 
 // ── Post Card Message ─────────────────────────────────────────────────
 function PostCardMessage({ data, isSent }) {
-  const headerBg = isSent ? '#059669' : '#047857';
+  const headerBg = isSent ? C.violet : C.g900;
   return (
     <View style={[styles.postCardMsg, { borderColor: headerBg + '40' }]}>
       <View style={[styles.postCardMsgHeader, { backgroundColor: headerBg }]}>
@@ -213,7 +221,9 @@ export default function SocialChatScreen({ route, navigation }) {
       return (
         <View style={styles.dateSepRow}>
           <View style={styles.dateSepLine} />
-          <Text style={styles.dateSepText}>{formatDateLabel(item.date)}</Text>
+          <View style={styles.dateSepPill}>
+            <Text style={styles.dateSepText}>{formatDateLabel(item.date)}</Text>
+          </View>
           <View style={styles.dateSepLine} />
         </View>
       );
@@ -224,10 +234,21 @@ export default function SocialChatScreen({ route, navigation }) {
     const isRead = !!(item.isRead || item.readAt);
     const isOptimistic = !!item.isOptimistic;
 
+    // Sent bubbles get a decorative gradient fill; received bubbles stay a
+    // plain surface. Only the wrapper component is swapped — everything
+    // inside it, including the meta row, is rendered exactly once.
+    const BubbleWrapper = isSent ? LinearGradient : View;
+    const bubbleWrapperProps = isSent
+      ? { colors: [C.violet, C.g800], start: { x: 0, y: 0 }, end: { x: 1, y: 1 } }
+      : {};
+
     return (
       <View style={[styles.msgRow, isSent ? styles.msgRowSent : styles.msgRowReceived]}>
         {!isSent && <AvatarCircle name={otherVendor?.businessName} logo={otherVendor?.logo} size={28} />}
-        <View style={[styles.msgBubble, isSent ? styles.msgBubbleSent : styles.msgBubbleReceived, isOptimistic && styles.msgBubbleOptimistic]}>
+        <BubbleWrapper
+          {...bubbleWrapperProps}
+          style={[styles.msgBubble, isSent ? styles.msgBubbleSent : styles.msgBubbleReceived, isOptimistic && styles.msgBubbleOptimistic]}
+        >
           {parsed.isPostCard ? (
             <PostCardMessage data={parsed.data} isSent={isSent} />
           ) : (
@@ -241,42 +262,48 @@ export default function SocialChatScreen({ route, navigation }) {
               </Text>
             )}
           </View>
-        </View>
+        </BubbleWrapper>
       </View>
     );
   };
 
   useFocusEffect(useCallback(() => {
     StatusBar.setBarStyle('light-content');
-    if (Platform.OS === 'android') StatusBar.setBackgroundColor(G.g950);
+    if (Platform.OS === 'android') StatusBar.setBackgroundColor(C.g950);
   }, []));
 
   return (
     <View style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={G.g950} translucent={false} />
+      <StatusBar barStyle="light-content" backgroundColor={C.g950} translucent={false} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         {/* Header */}
-        <LinearGradient colors={[G.g950, G.g900, G.g800]} style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={20} color="#fff" />
-          </TouchableOpacity>
-          <AvatarCircle name={otherVendor?.businessName} logo={otherVendor?.logo} size={38} />
-          <View style={styles.headerInfo}>
-            <Text style={styles.headerName} numberOfLines={1}>{otherVendor?.businessName || 'Vendor'}</Text>
-            {otherVendor?.city && <Text style={styles.headerSub}>{otherVendor.city}</Text>}
+        <LinearGradient colors={G.hero} style={[styles.hero, { paddingTop: insets.top + 8 }]}>
+          <AnimatedOrb style={styles.orbA} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.headerAvatarRing}>
+              <AvatarCircle name={otherVendor?.businessName} logo={otherVendor?.logo} size={38} />
+            </View>
+            <View style={styles.headerInfo}>
+              <Text style={styles.headerName} numberOfLines={1}>{otherVendor?.businessName || 'Vendor'}</Text>
+              {otherVendor?.city && <Text style={styles.headerSub}>{otherVendor.city}</Text>}
+            </View>
+            <TouchableOpacity
+              style={styles.headerProfileBtn}
+              onPress={() => navigation.navigate('SocialProfileScreen', { vendorId: otherVendor?.id })}
+            >
+              <Icon name="user" size={18} color="#fff" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={styles.headerProfileBtn}
-            onPress={() => navigation.navigate('SocialProfileScreen', { vendorId: otherVendor?.id })}
-          >
-            <Icon name="user" size={18} color="#fff" />
-          </TouchableOpacity>
         </LinearGradient>
 
         {/* Messages */}
         {loading ? (
           <View style={styles.center}>
-            <ActivityIndicator color={G.violet} size="large" />
+            <ActivityIndicator color={C.violet} size="large" />
             <Text style={styles.loadingText}>Loading messages...</Text>
           </View>
         ) : (
@@ -291,7 +318,9 @@ export default function SocialChatScreen({ route, navigation }) {
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
             ListEmptyComponent={
               <View style={styles.emptyChat}>
-                <AvatarCircle name={otherVendor?.businessName} logo={otherVendor?.logo} size={64} />
+                <View style={styles.emptyChatAvatarRing}>
+                  <AvatarCircle name={otherVendor?.businessName} logo={otherVendor?.logo} size={64} />
+                </View>
                 <Text style={styles.emptyChatTitle}>{otherVendor?.businessName || 'Vendor'}</Text>
                 <Text style={styles.emptyChatText}>Say hello! Start the conversation.</Text>
               </View>
@@ -304,7 +333,7 @@ export default function SocialChatScreen({ route, navigation }) {
           <TextInput
             style={styles.textInput}
             placeholder="Type a message..."
-            placeholderTextColor={G.muted}
+            placeholderTextColor={C.muted}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -312,13 +341,20 @@ export default function SocialChatScreen({ route, navigation }) {
             onSubmitEditing={handleSend}
           />
           <TouchableOpacity
-            style={[styles.sendBtn, (!inputText.trim() || sending) && styles.sendBtnDisabled]}
+            style={styles.sendBtnWrap}
             onPress={handleSend}
             disabled={!inputText.trim() || sending}
+            activeOpacity={0.85}
           >
-            {sending
-              ? <ActivityIndicator size="small" color="#fff" />
-              : <Icon name="send" size={18} color="#fff" />}
+            <LinearGradient
+              colors={(!inputText.trim() || sending) ? [C.border, C.border] : [C.violet, C.g800]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.sendBtn}
+            >
+              {sending
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Icon name="send" size={18} color="#fff" />}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -327,78 +363,103 @@ export default function SocialChatScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: G.bg },
+  safe: { flex: 1, backgroundColor: C.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { color: G.muted, fontSize: 14, marginTop: 10 },
+  loadingText: { fontFamily: DISPLAY, color: C.muted, fontSize: rs(14), marginTop: rs(10), fontWeight: '600' },
 
-  // Header
+  // Hero header
+  hero: { borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24), overflow: 'hidden' },
+  orbA: {
+    position: 'absolute', top: -rs(50), right: -rs(34), width: rs(165), height: rs(165), borderRadius: rs(83),
+    backgroundColor: 'rgba(228,192,102,0.10)',
+  },
+  orbB: {
+    position: 'absolute', bottom: -rs(40), left: -rs(38), width: rs(135), height: rs(135), borderRadius: rs(68),
+    backgroundColor: 'rgba(23,166,124,0.14)',
+  },
   header: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 12, paddingVertical: 12, gap: 10,
+    paddingHorizontal: rs(12), paddingVertical: rs(12), paddingBottom: rs(16), gap: rs(10),
   },
-  backBtn: { padding: 4 },
-  headerInfo: { flex: 1 },
-  headerName: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
+  backBtn: {
+    width: rs(38), height: rs(38), borderRadius: rs(19),
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  headerAvatarRing: {
+    borderRadius: rs(23), padding: rs(2), borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)',
+  },
+  headerInfo: { flex: 1, minWidth: 0 },
+  headerName: { fontFamily: DISPLAY, fontSize: rs(16), fontWeight: 'bold', color: '#fff', includeFontPadding: false },
+  headerSub: { fontFamily: DISPLAY, fontSize: rs(12), color: 'rgba(255,255,255,0.75)', marginTop: rs(2), fontWeight: '600', includeFontPadding: false },
   headerProfileBtn: {
-    width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.15)',
+    width: rs(36), height: rs(36), borderRadius: rs(18), backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
   },
 
   // Messages list
-  msgList: { padding: 12, paddingBottom: 8 },
+  msgList: { padding: rs(12), paddingBottom: rs(8) },
 
   // Date separator
-  dateSepRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 12, gap: 8 },
-  dateSepLine: { flex: 1, height: 1, backgroundColor: G.border },
-  dateSepText: { fontSize: 11, color: G.muted, fontWeight: '600', paddingHorizontal: 4 },
+  dateSepRow: { flexDirection: 'row', alignItems: 'center', marginVertical: rs(12), gap: rs(8) },
+  dateSepLine: { flex: 1, height: 1, backgroundColor: C.border },
+  dateSepPill: {
+    paddingHorizontal: rs(11), paddingVertical: rs(4), borderRadius: rs(999),
+    backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
+  },
+  dateSepText: { fontFamily: DISPLAY, fontSize: rs(9.5), color: C.muted, fontWeight: 'bold', letterSpacing: 0.5, textTransform: 'uppercase', includeFontPadding: false },
 
   // Message row
-  msgRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 6, gap: 6 },
+  msgRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: rs(6), gap: rs(6) },
   msgRowSent: { justifyContent: 'flex-end' },
   msgRowReceived: { justifyContent: 'flex-start' },
   msgBubble: {
-    maxWidth: '78%', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 2, elevation: 1,
+    maxWidth: '78%', borderRadius: rs(18), paddingHorizontal: rs(13), paddingVertical: rs(9),
+    shadowColor: T.shadow, shadowOffset: { width: 0, height: rs(2) }, shadowOpacity: 0.06, shadowRadius: rs(5), elevation: 1,
   },
-  msgBubbleSent: { backgroundColor: G.sentBg, borderBottomRightRadius: 4 },
-  msgBubbleReceived: { backgroundColor: G.receivedBg, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: G.border },
+  msgBubbleSent: { borderBottomRightRadius: rs(6) },
+  msgBubbleReceived: { backgroundColor: C.receivedBg, borderBottomLeftRadius: rs(6), borderWidth: 1, borderColor: C.border },
   msgBubbleOptimistic: { opacity: 0.65 },
-  msgText: { fontSize: 14, color: G.text, lineHeight: 20 },
-  msgTextSent: { color: '#064E3B' },
-  msgMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 3, gap: 4 },
-  msgTime: { fontSize: 10, color: G.muted },
-  msgTimeSent: { color: '#065F46' },
-  msgRead: { fontSize: 11, color: G.muted },
-  msgReadDone: { color: G.green },
+  msgText: { fontFamily: DISPLAY, fontSize: rs(14), color: C.text, lineHeight: rs(20), includeFontPadding: false },
+  msgTextSent: { color: '#fff' },
+  msgMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: rs(3), gap: rs(4) },
+  msgTime: { fontFamily: DISPLAY, fontSize: rs(10), color: C.muted, fontWeight: '600', includeFontPadding: false },
+  msgTimeSent: { color: 'rgba(255,255,255,0.8)' },
+  msgRead: { fontSize: rs(11), color: 'rgba(255,255,255,0.8)' },
+  msgReadDone: { color: '#fff' },
 
   // Post card message
-  postCardMsg: { borderRadius: 10, borderWidth: 1, overflow: 'hidden', minWidth: 200 },
-  postCardMsgHeader: { paddingHorizontal: 10, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  postCardMsgVendor: { flex: 1, fontSize: 12, fontWeight: '700', color: '#fff' },
-  postCardMsgCat: { backgroundColor: 'rgba(255,255,255,0.25)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  postCardMsgCatText: { fontSize: 10, color: '#fff', fontWeight: '600' },
-  postCardMsgContent: { fontSize: 13, color: G.text, padding: 10, lineHeight: 18 },
-  postCardMsgFooter: { fontSize: 11, color: G.muted, paddingHorizontal: 10, paddingBottom: 8 },
+  postCardMsg: { borderRadius: rs(12), borderWidth: 1, overflow: 'hidden', minWidth: rs(200), backgroundColor: C.surface },
+  postCardMsgHeader: { paddingHorizontal: rs(10), paddingVertical: rs(6), flexDirection: 'row', alignItems: 'center', gap: rs(6) },
+  postCardMsgVendor: { flex: 1, fontFamily: DISPLAY, fontSize: rs(12), fontWeight: 'bold', color: '#fff', includeFontPadding: false },
+  postCardMsgCat: { backgroundColor: 'rgba(255,255,255,0.25)', paddingHorizontal: rs(6), paddingVertical: rs(2), borderRadius: rs(6) },
+  postCardMsgCatText: { fontFamily: DISPLAY, fontSize: rs(10), color: '#fff', fontWeight: 'bold', includeFontPadding: false },
+  postCardMsgContent: { fontFamily: DISPLAY, fontSize: rs(13), color: C.text, padding: rs(10), lineHeight: rs(18) },
+  postCardMsgFooter: { fontFamily: DISPLAY, fontSize: rs(11), color: C.muted, paddingHorizontal: rs(10), paddingBottom: rs(8), fontWeight: '600' },
 
   // Input bar
   inputBar: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: 10,
-    backgroundColor: G.surface, paddingHorizontal: 12, paddingVertical: 10,
-    borderTopWidth: 1, borderTopColor: G.border,
+    flexDirection: 'row', alignItems: 'flex-end', gap: rs(10),
+    backgroundColor: C.surface, paddingHorizontal: rs(12), paddingVertical: rs(10),
+    borderTopWidth: 1, borderTopColor: C.border,
   },
   textInput: {
-    flex: 1, backgroundColor: G.bg, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 14, color: G.text, borderWidth: 1, borderColor: G.border, minHeight: 42,
+    flex: 1, fontFamily: DISPLAY, backgroundColor: T.field, borderRadius: rs(20), paddingHorizontal: rs(14), paddingVertical: rs(10),
+    fontSize: rs(14), color: C.text, borderWidth: 1, borderColor: C.border, minHeight: rs(42),
   },
-  sendBtn: {
-    width: 42, height: 42, borderRadius: 21, backgroundColor: G.green,
-    alignItems: 'center', justifyContent: 'center',
+  sendBtnWrap: {
+    width: rs(42), height: rs(42), borderRadius: rs(21), overflow: 'hidden',
+    shadowColor: C.violet, shadowOpacity: 0.35, shadowRadius: rs(8), shadowOffset: { width: 0, height: rs(4) }, elevation: 3,
   },
-  sendBtnDisabled: { backgroundColor: G.border },
+  sendBtn: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   // Empty chat
-  emptyChat: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, paddingBottom: 40 },
-  emptyChatTitle: { fontSize: 18, fontWeight: '700', color: G.text, marginTop: 12, marginBottom: 4 },
-  emptyChatText: { fontSize: 14, color: G.muted },
+  emptyChat: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: rs(80), paddingBottom: rs(40) },
+  emptyChatAvatarRing: {
+    borderRadius: rs(36), padding: rs(4), backgroundColor: C.violetL,
+  },
+  emptyChatTitle: { fontFamily: DISPLAY, fontSize: rs(18), fontWeight: 'bold', color: C.text, marginTop: rs(12), marginBottom: rs(4), includeFontPadding: false },
+  emptyChatText: { fontFamily: DISPLAY, fontSize: rs(14), color: C.muted, fontWeight: '600' },
 });

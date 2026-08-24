@@ -9,33 +9,44 @@ import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { apiGet, deleteStaff, debugAuthState } from '../../api/client';
 import { showConfirm, showError } from '../../../services/alertService';
+import { SC as T, G, rs, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already used — only the values now come from
+// the shared "Elevate" theme instead of hardcoded hex, mirroring the mapping
+// convention already used in StaffListScreen.js (sibling file, same folder).
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', surface: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#3B82F6', blueL: '#EFF6FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#EF4444', redL: '#FEF2F2',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  indigo: T.indigo, indigoL: T.indigoLight,
+  purple: T.purple, purpleL: T.purpleLight,
+  teal: T.teal, tealL: T.tintOcean,
+  goldLight: T.goldLight, roseLight: T.roseLight,
 };
 
+// Mirrors StaffListScreen's ROLE_COLORS exactly so a staff member's role
+// reads the same colour whether you're looking at the list card or here.
 const ROLE_COLORS = {
-  driver:     { bg: '#DBEAFE', text: '#1E40AF' },
-  manager:    { bg: '#F3E8FF', text: '#7C3AED' },
-  helper:     { bg: '#FEF3C7', text: '#92400E' },
-  accountant: { bg: '#DCFCE7', text: '#166534' },
-  mechanic:   { bg: '#FEE2E2', text: '#991B1B' },
-  supervisor: { bg: '#E0E7FF', text: '#3730A3' },
-  default:    { bg: '#F1F5F9', text: '#64748B' },
+  driver:     { bg: C.blueL,   text: C.blue,   dot: C.blue },
+  manager:    { bg: C.purpleL, text: C.purple, dot: C.purple },
+  helper:     { bg: C.amberL,  text: C.amber,  dot: C.amber },
+  accountant: { bg: C.tealL,   text: C.teal,   dot: C.teal },
+  mechanic:   { bg: C.redL,    text: C.red,    dot: C.red },
+  supervisor: { bg: C.indigoL, text: C.indigo, dot: C.indigo },
+  default:    { bg: C.bg,      text: C.muted,  dot: C.muted },
 };
 
 const getStatusDot = (status) => {
   switch (status?.toLowerCase()) {
     case 'active':   return C.g400;
-    case 'on_leave': return '#FCD34D';
-    case 'inactive': return '#FCA5A5';
+    case 'on_leave': return C.goldLight;
+    case 'inactive': return C.roseLight;
     default:         return C.muted;
   }
 };
@@ -43,12 +54,12 @@ const getStatusDot = (status) => {
 function Section({ icon, iconLib = 'feather', color, bg, title, children }) {
   const I = iconLib === 'mci' ? MaterialCommunityIcons : Icon;
   return (
-    <View style={s.section}>
-      <View style={s.sHead}>
-        <View style={[s.sIcon, { backgroundColor: bg }]}>
-          <I name={icon} size={13} color={color} />
+    <View style={styles.card}>
+      <View style={styles.cardHead}>
+        <View style={[styles.cardIcon, { backgroundColor: bg }]}>
+          <I name={icon} size={15} color={color} />
         </View>
-        <Text style={[s.sTitle, { color }]}>{title}</Text>
+        <Text style={styles.cardTitle}>{title}</Text>
       </View>
       {children}
     </View>
@@ -57,13 +68,13 @@ function Section({ icon, iconLib = 'feather', color, bg, title, children }) {
 
 function IRow({ icon, iColor, iBg, label, value, last }) {
   return (
-    <View style={[s.iRow, last && { borderBottomWidth: 0 }]}>
-      <View style={[s.iIcon, { backgroundColor: iBg }]}>
+    <View style={[styles.iRow, last && { borderBottomWidth: 0 }]}>
+      <View style={[styles.iIcon, { backgroundColor: iBg }]}>
         <Icon name={icon} size={13} color={iColor} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={s.iLbl}>{label}</Text>
-        <Text style={s.iVal}>{value || '--'}</Text>
+        <Text style={styles.iLbl}>{label}</Text>
+        <Text style={styles.iVal}>{value || '--'}</Text>
       </View>
     </View>
   );
@@ -71,9 +82,9 @@ function IRow({ icon, iColor, iBg, label, value, last }) {
 
 function KVRow({ label, value, last, green }) {
   return (
-    <View style={[s.kv, last && { borderBottomWidth: 0 }]}>
-      <Text style={s.kvLbl}>{label}</Text>
-      <Text style={[s.kvVal, green && { color: C.g600 }]}>{value || '--'}</Text>
+    <View style={[styles.kv, last && { borderBottomWidth: 0 }]}>
+      <Text style={styles.kvLbl}>{label}</Text>
+      <Text style={[styles.kvVal, green && { color: C.g600 }]}>{value || '--'}</Text>
     </View>
   );
 }
@@ -130,32 +141,49 @@ export default function StaffDetailScreen({ route, navigation }) {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.grad}>
-          <SafeAreaView edges={['top']}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-              <Icon name="arrow-left" size={20} color="#fff" />
-            </TouchableOpacity>
+        <LinearGradient colors={G.hero} style={styles.heroLoading}>
+          <AnimatedOrb style={styles.orbA} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+          <SafeAreaView edges={['top']} style={styles.heroSafe}>
+            <View style={styles.topRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+                <Icon name="arrow-left" size={20} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.loadTitle}>Staff Profile</Text>
+              <View style={{ width: 40 }} />
+            </View>
           </SafeAreaView>
         </LinearGradient>
-        <View style={s.center}><ActivityIndicator size="large" color={C.g600} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={C.g600} /></View>
       </View>
     );
   }
 
   if (!staff) {
     return (
-      <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.grad}>
-          <SafeAreaView edges={['top']}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-              <Icon name="arrow-left" size={20} color="#fff" />
-            </TouchableOpacity>
+        <LinearGradient colors={G.hero} style={styles.heroLoading}>
+          <AnimatedOrb style={styles.orbA} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+          <SafeAreaView edges={['top']} style={styles.heroSafe}>
+            <View style={styles.topRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+                <Icon name="arrow-left" size={20} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.loadTitle}>Staff Profile</Text>
+              <View style={{ width: 40 }} />
+            </View>
           </SafeAreaView>
         </LinearGradient>
-        <View style={s.center}><Text style={{ color: C.muted, fontSize: 16 }}>Staff not found</Text></View>
+        <View style={styles.center}>
+          <View style={styles.emptyIconWrap}>
+            <MaterialCommunityIcons name="account-off-outline" size={40} color={C.g400} />
+          </View>
+          <Text style={styles.emptyTitle}>Staff not found</Text>
+        </View>
       </View>
     );
   }
@@ -165,100 +193,113 @@ export default function StaffDetailScreen({ route, navigation }) {
   const licExpired = staff.licenseExpiry && new Date(staff.licenseExpiry) < new Date();
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
+    <View style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      {/* Single scroll — gradient profile + all cards scroll together */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
+      {/* ── Fixed identity hero ── */}
+      <LinearGradient colors={G.hero} style={styles.hero}>
+        <AnimatedOrb style={styles.orbA} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={['top']} style={styles.heroSafe}>
+          <View style={styles.topRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteCircle} onPress={handleDelete}>
+              <Icon name="trash-2" size={16} color="#FCA5A5" />
+            </TouchableOpacity>
+          </View>
 
-        {/* ── Gradient Profile Hero ── */}
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.grad}>
-          <SafeAreaView edges={['top']}>
-            {/* Back + Delete */}
-            <View style={s.topRow}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-                <Icon name="arrow-left" size={20} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity style={s.deleteBtn} onPress={handleDelete}>
-                <Icon name="trash-2" size={16} color="#FCA5A5" />
-              </TouchableOpacity>
-            </View>
+          <View style={styles.heroBadge}>
+            <MaterialCommunityIcons name="account" size={12} color={C.g400} />
+            <Text style={styles.heroBadgeTxt}>Staff Profile</Text>
+          </View>
 
-            {/* Avatar */}
-            <View style={s.avatarWrap}>
-              {staff.photo ? (
-                <Image source={{ uri: staff.photo }} style={s.avatarImg} />
-              ) : (
-                <View style={s.avatarCircle}>
-                  <Text style={s.avatarLetter}>{staff.name?.charAt(0)?.toUpperCase() || 'S'}</Text>
-                </View>
-              )}
-              <View style={[s.onlineDot, { backgroundColor: dotColor }]} />
-            </View>
-
-            <Text style={s.name}>{staff.name}</Text>
-
-            {/* Badges */}
-            <View style={s.badges}>
-              <View style={s.rolePill}>
-                <Text style={s.rolePillTxt}>{staff.role?.replace(/_/g, ' ') || 'Staff'}</Text>
+          <View style={styles.avatarWrap}>
+            {staff.photo ? (
+              <Image source={{ uri: staff.photo }} style={styles.avatarImg} />
+            ) : (
+              <View style={styles.avatarCircle}>
+                <Text style={styles.avatarLetter}>{staff.name?.charAt(0)?.toUpperCase() || 'S'}</Text>
               </View>
-              <View style={s.statusPill}>
-                <View style={[s.statusDot, { backgroundColor: dotColor }]} />
-                <Text style={[s.statusPillTxt, { color: dotColor }]}>
-                  {staff.status?.replace(/_/g, ' ') || 'Active'}
-                </Text>
-              </View>
-            </View>
+            )}
+            <View style={[styles.onlineDot, { backgroundColor: dotColor }]} />
+          </View>
 
-            {/* Actions */}
-            <View style={s.actions}>
-              <TouchableOpacity style={s.callBtn} onPress={handleCall} activeOpacity={0.8}>
-                <Icon name="phone" size={15} color={C.g900} />
-                <Text style={s.callTxt}>Call</Text>
+          <Text style={styles.name}>{staff.name}</Text>
+
+          <View style={styles.badges}>
+            <View style={[styles.rolePill, { backgroundColor: rc.bg }]}>
+              <Text style={[styles.rolePillTxt, { color: rc.text }]}>
+                {staff.role?.replace(/_/g, ' ') || 'Staff'}
+              </Text>
+            </View>
+            <View style={styles.statusPill}>
+              <View style={[styles.statusDot, { backgroundColor: dotColor }]} />
+              <Text style={[styles.statusPillTxt, { color: dotColor }]}>
+                {staff.status?.replace(/_/g, ' ') || 'Active'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ height: rs(30) }} />
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* Single scroll — floating summary card + all info cards */}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+
+        {/* ── Floating summary card — tucks into the hero's bottom curve ── */}
+        <View style={styles.summaryWrap}>
+          <View style={styles.summaryCard}>
+            <View style={styles.actionsRow}>
+              <TouchableOpacity style={styles.callBtn} onPress={handleCall} activeOpacity={0.85}>
+                <Icon name="phone" size={15} color="#fff" />
+                <Text style={styles.callTxt}>Call</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={s.editBtn}
+                style={styles.editBtn}
                 onPress={() => navigation.navigate('AddStaffScreen', { staffId, staff })}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
-                <Icon name="edit-2" size={15} color="#fff" />
-                <Text style={s.editTxt}>Edit Profile</Text>
+                <Icon name="edit-2" size={15} color={C.g700} />
+                <Text style={styles.editTxt}>Edit Profile</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Bottom info strip */}
-            <View style={s.strip}>
-              <View style={s.stripItem}>
-                <Text style={s.stripVal}>{fmt(staff.joiningDate)}</Text>
-                <Text style={s.stripLbl}>Joined</Text>
+            <View style={styles.stripDivider} />
+
+            <View style={styles.strip}>
+              <View style={styles.stripItem}>
+                <Text style={styles.stripVal}>{fmt(staff.joiningDate)}</Text>
+                <Text style={styles.stripLbl}>Joined</Text>
               </View>
               {staff.salary && (
                 <>
-                  <View style={s.stripSep} />
-                  <View style={s.stripItem}>
-                    <Text style={[s.stripVal, { color: C.g400 }]}>
+                  <View style={styles.stripSep} />
+                  <View style={styles.stripItem}>
+                    <Text style={[styles.stripVal, { color: C.g700 }]}>
                       ₹{parseInt(staff.salary).toLocaleString()}
                     </Text>
-                    <Text style={s.stripLbl}>Monthly Pay</Text>
+                    <Text style={styles.stripLbl}>Monthly Pay</Text>
                   </View>
                 </>
               )}
               {staff.employeeId && (
                 <>
-                  <View style={s.stripSep} />
-                  <View style={s.stripItem}>
-                    <Text style={s.stripVal}>{staff.employeeId}</Text>
-                    <Text style={s.stripLbl}>Employee ID</Text>
+                  <View style={styles.stripSep} />
+                  <View style={styles.stripItem}>
+                    <Text style={styles.stripVal}>{staff.employeeId}</Text>
+                    <Text style={styles.stripLbl}>Employee ID</Text>
                   </View>
                 </>
               )}
             </View>
-          </SafeAreaView>
-        </LinearGradient>
+          </View>
+        </View>
 
         {/* ── Info Cards ── */}
-        <View style={s.cards}>
+        <View style={styles.cardsWrap}>
 
           {/* Contact */}
           <Section icon="phone" color={C.g700} bg={C.g50} title="Contact Information">
@@ -310,9 +351,9 @@ export default function StaffDetailScreen({ route, navigation }) {
               {staff.licenseType && <KVRow label="License Type" value={staff.licenseType} />}
               <KVRow label="Expiry" value={fmt(staff.licenseExpiry)} last={!licExpired} />
               {licExpired && (
-                <View style={s.warning}>
-                  <Icon name="alert-triangle" size={13} color="#92400E" />
-                  <Text style={s.warningTxt}>License expired — please renew</Text>
+                <View style={styles.warning}>
+                  <Icon name="alert-triangle" size={13} color={C.amber} />
+                  <Text style={styles.warningTxt}>License expired — please renew</Text>
                 </View>
               )}
             </Section>
@@ -320,7 +361,7 @@ export default function StaffDetailScreen({ route, navigation }) {
 
           {/* Driver ID */}
           {staff.role?.toLowerCase() === 'driver' && staff.did && (
-            <Section icon="shield-account" iconLib="mci" color="#0EA5E9" bg="#EFF6FF" title="Driver Identification">
+            <Section icon="shield-account" iconLib="mci" color={C.blue} bg={C.blueL} title="Driver Identification">
               <KVRow label="Driver ID" value={staff.did} green last />
             </Section>
           )}
@@ -348,20 +389,20 @@ export default function StaffDetailScreen({ route, navigation }) {
           {/* Performance */}
           {staff.stats && (
             <Section icon="bar-chart-2" color={C.purple} bg={C.purpleL} title="Performance">
-              <View style={s.perf}>
-                <View style={s.perfItem}>
-                  <Text style={s.perfVal}>{staff.stats.totalTrips || 0}</Text>
-                  <Text style={s.perfLbl}>Total Trips</Text>
+              <View style={styles.perf}>
+                <View style={styles.perfItem}>
+                  <Text style={styles.perfVal}>{staff.stats.totalTrips || 0}</Text>
+                  <Text style={styles.perfLbl}>Total Trips</Text>
                 </View>
-                <View style={[s.perfItem, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: C.border }]}>
-                  <Text style={[s.perfVal, { color: C.g600 }]}>{staff.stats.completedTrips || 0}</Text>
-                  <Text style={s.perfLbl}>Completed</Text>
+                <View style={[styles.perfItem, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: C.border }]}>
+                  <Text style={[styles.perfVal, { color: C.g600 }]}>{staff.stats.completedTrips || 0}</Text>
+                  <Text style={styles.perfLbl}>Completed</Text>
                 </View>
-                <View style={s.perfItem}>
-                  <Text style={[s.perfVal, { color: C.amber }]}>
+                <View style={styles.perfItem}>
+                  <Text style={[styles.perfVal, { color: C.amber }]}>
                     {staff.stats.rating?.toFixed(1) || '--'}
                   </Text>
-                  <Text style={s.perfLbl}>Rating</Text>
+                  <Text style={styles.perfLbl}>Rating</Text>
                 </View>
               </View>
             </Section>
@@ -373,14 +414,14 @@ export default function StaffDetailScreen({ route, navigation }) {
               {staff.documents.map((doc, i) => (
                 <View
                   key={i}
-                  style={[s.docRow, i === staff.documents.length - 1 && { borderBottomWidth: 0 }]}
+                  style={[styles.docRow, i === staff.documents.length - 1 && { borderBottomWidth: 0 }]}
                 >
-                  <View style={s.docIcon}>
+                  <View style={styles.docIcon}>
                     <Icon name="file-text" size={14} color={C.blue} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.docName}>{doc.name}</Text>
-                    <Text style={s.docDate}>Uploaded {fmt(doc.uploadedAt)}</Text>
+                    <Text style={styles.docName}>{doc.name}</Text>
+                    <Text style={styles.docDate}>Uploaded {fmt(doc.uploadedAt)}</Text>
                   </View>
                   <Icon name="chevron-right" size={14} color={C.muted} />
                 </View>
@@ -394,38 +435,69 @@ export default function StaffDetailScreen({ route, navigation }) {
   );
 }
 
-const s = StyleSheet.create({
-  /* Gradient hero */
-  grad: { paddingHorizontal: 16, paddingBottom: 0 },
+// How far the floating summary card rides up over the hero's rounded bottom edge.
+const SUMMARY_OVERLAP = rs(24);
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: C.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  /* Hero */
+  hero: {
+    paddingHorizontal: 16, overflow: 'hidden',
+    borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
+  },
+  heroLoading: {
+    paddingHorizontal: 16, overflow: 'hidden',
+    borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
+  },
+  heroSafe: {},
+  orbA: {
+    position: 'absolute', top: -46, right: -30, width: 150, height: 150,
+    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  orbB: {
+    position: 'absolute', bottom: -40, left: -34, width: 120, height: 120,
+    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
+  },
+
   topRow: {
     flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', paddingTop: 8, marginBottom: 20,
+    justifyContent: 'space-between', paddingTop: rs(4), marginBottom: rs(14),
   },
-  backBtn: {
+  backCircle: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
   },
-  deleteBtn: {
+  deleteCircle: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(239,68,68,0.2)',
     borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)',
     alignItems: 'center', justifyContent: 'center',
   },
+  loadTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff', flex: 1, textAlign: 'center' },
+
+  heroBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'center',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 12,
+  },
+  heroBadgeTxt: { fontSize: 10.5, fontWeight: '700', color: C.g400, fontFamily: DISPLAY, textTransform: 'uppercase', letterSpacing: 0.5 },
 
   avatarWrap: { position: 'relative', alignSelf: 'center', marginBottom: 14 },
   avatarImg: {
-    width: 90, height: 90, borderRadius: 45,
+    width: 84, height: 84, borderRadius: 42,
     borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)',
   },
   avatarCircle: {
-    width: 90, height: 90, borderRadius: 45,
+    width: 84, height: 84, borderRadius: 42,
     backgroundColor: 'rgba(52,211,153,0.18)',
     borderWidth: 2.5, borderColor: 'rgba(52,211,153,0.4)',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarLetter: { fontSize: 36, fontWeight: '900', color: '#34D399' },
+  avatarLetter: { fontSize: 32, fontWeight: '900', color: '#34D399', fontFamily: DISPLAY },
   onlineDot: {
     position: 'absolute', bottom: 3, right: 3,
     width: 18, height: 18, borderRadius: 9,
@@ -433,16 +505,12 @@ const s = StyleSheet.create({
   },
 
   name: {
-    fontSize: 24, fontWeight: '800', color: '#fff',
+    fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: '#fff',
     textAlign: 'center', letterSpacing: -0.4, marginBottom: 10,
   },
-  badges: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 18 },
-  rolePill: {
-    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-  },
-  rolePillTxt: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.9)', textTransform: 'capitalize' },
+  badges: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  rolePill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+  rolePillTxt: { fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
   statusPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
@@ -452,57 +520,62 @@ const s = StyleSheet.create({
   statusDot: { width: 7, height: 7, borderRadius: 4 },
   statusPillTxt: { fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
 
-  actions: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginBottom: 24 },
-  callBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 7,
-    backgroundColor: C.g400, paddingVertical: 11, paddingHorizontal: 26, borderRadius: 25,
+  /* Empty state */
+  emptyIconWrap: {
+    width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 10,
   },
-  callTxt: { fontSize: 14, fontWeight: '800', color: C.g900 },
-  editBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 7,
-    paddingVertical: 11, paddingHorizontal: 26, borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
-  },
-  editTxt: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '700', color: C.muted },
 
-  strip: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    paddingVertical: 14, paddingHorizontal: 16,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)',
+  /* Scroll body */
+  scrollContent: { paddingHorizontal: 14, paddingTop: SUMMARY_OVERLAP, paddingBottom: 60 },
+
+  /* Floating summary card */
+  summaryWrap: { marginTop: -SUMMARY_OVERLAP },
+  summaryCard: {
+    backgroundColor: C.card, borderRadius: rs(16),
+    borderWidth: 1, borderColor: T.glassBorder,
+    padding: 14, ...cardShadow,
   },
+  actionsRow: { flexDirection: 'row', gap: 10 },
+  callBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    backgroundColor: C.g600, paddingVertical: 12, borderRadius: rs(12),
+  },
+  callTxt: { fontSize: 14, fontWeight: '800', color: '#fff', fontFamily: DISPLAY },
+  editBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    paddingVertical: 12, borderRadius: rs(12),
+    backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
+  },
+  editTxt: { fontSize: 14, fontWeight: '700', color: C.g700, fontFamily: DISPLAY },
+
+  stripDivider: { height: 1, backgroundColor: C.border, marginVertical: 14 },
+
+  strip: { flexDirection: 'row' },
   stripItem: { flex: 1, alignItems: 'center' },
-  stripVal: { fontSize: 13, fontWeight: '800', color: '#fff' },
+  stripVal: { fontSize: 13, fontWeight: '800', color: C.text, fontFamily: DISPLAY },
   stripLbl: {
-    fontSize: 9, color: 'rgba(255,255,255,0.5)',
+    fontSize: 9, color: C.muted,
     marginTop: 2, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4,
   },
-  stripSep: { width: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 3 },
+  stripSep: { width: 1, backgroundColor: C.border, marginVertical: 3 },
 
   /* Info cards */
-  cards: { padding: 14, paddingTop: 14, gap: 10 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  cardsWrap: { marginTop: 10, gap: 10 },
 
-  section: {
-    backgroundColor: C.surface, borderRadius: 14,
-    borderWidth: 1, borderColor: C.border, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+  card: {
+    backgroundColor: C.card, borderRadius: rs(16), padding: 14,
+    borderWidth: 1, borderColor: T.glassBorder, ...cardShadow,
   },
-  sHead: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 14, paddingVertical: 10,
-    backgroundColor: '#FAFBFC',
-    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
-  },
-  sIcon: { width: 26, height: 26, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
-  sTitle: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 },
+  cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  cardIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: '800', color: C.text },
 
   iRow: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    paddingVertical: 11, paddingHorizontal: 14,
-    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
+    paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
   iIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
   iLbl: { fontSize: 10, color: C.muted, marginBottom: 2, fontWeight: '500' },
@@ -510,27 +583,27 @@ const s = StyleSheet.create({
 
   kv: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 11, paddingHorizontal: 14,
-    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
+    paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
   kvLbl: { fontSize: 13, color: C.sub, fontWeight: '500' },
   kvVal: { fontSize: 13, color: C.text, fontWeight: '700' },
 
   warning: {
     flexDirection: 'row', alignItems: 'center', gap: 7,
-    backgroundColor: '#FEF3C7', margin: 10, padding: 10, borderRadius: 8,
+    backgroundColor: C.amberL, marginTop: 10, padding: 10, borderRadius: rs(10),
   },
-  warningTxt: { fontSize: 12, color: '#92400E', fontWeight: '600', flex: 1 },
+  warningTxt: { fontSize: 12, color: C.amber, fontWeight: '600', flex: 1 },
 
-  perf: { flexDirection: 'row', paddingVertical: 8 },
+  perf: { flexDirection: 'row', paddingVertical: 4 },
   perfItem: { flex: 1, alignItems: 'center', paddingVertical: 8 },
-  perfVal: { fontSize: 22, fontWeight: '800', color: C.text },
+  perfVal: { fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: C.text },
   perfLbl: { fontSize: 10, color: C.muted, marginTop: 3, fontWeight: '600' },
 
   docRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 11, paddingHorizontal: 14,
-    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
+    paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
   docIcon: { width: 30, height: 30, borderRadius: 8, backgroundColor: C.blueL, alignItems: 'center', justifyContent: 'center' },
   docName: { fontSize: 13, fontWeight: '600', color: C.text },

@@ -1,26 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   RefreshControl, StatusBar, Modal, FlatList, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getTemplates, deleteTemplate, updateTemplate } from '../../../api/client';
 import { showConfirm, showError, showSuccess } from '../../../../services/alertService';
+import { SC as T, G, rs, shade, cardShadow, SHEET_RADIUS } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
+import SheetHandle from '../../_shared/SheetHandle';
 
 const { width: W } = Dimensions.get('window');
 
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F0F4F8', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A',
-  sub: '#475569', muted: '#94A3B8',
-  amber: '#D97706', amberD: '#B45309', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
-  orange: '#EA580C',
-  indigo: '#4F46E5', indigoL: '#EEF2FF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border, text: T.ink,
+  sub: T.text, muted: T.subText,
+  amber: T.amber, amberD: shade(T.amber, -15), amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  orange: T.orange,
+  indigo: T.indigo, indigoL: T.indigoLight,
 };
 
 const CATEGORIES = [
@@ -41,6 +46,10 @@ export default function BusTemplatesScreen({ navigation }) {
   const [previewTemplate, setPreviewTemplate] = useState(null);
 
   useEffect(() => { fetchTemplates(); }, [categoryFilter]);
+
+  useFocusEffect(
+    useCallback(() => { fetchTemplates(); }, [categoryFilter])
+  );
 
   const fetchTemplates = async () => {
     try {
@@ -115,17 +124,17 @@ export default function BusTemplatesScreen({ navigation }) {
       </TouchableOpacity>
 
       <View style={s.statsBar}>
-        <View style={s.statItem}>
+        <View style={s.statChip}>
           <Icon name="check-circle" size={12} color={C.g600} />
           <Text style={s.statText}>{t.inclusions?.length || 0} inclusions</Text>
         </View>
         {t.exclusions?.length > 0 && (
-          <View style={s.statItem}>
+          <View style={s.statChip}>
             <Icon name="x-circle" size={12} color={C.red} />
             <Text style={s.statText}>{t.exclusions.length} exclusions</Text>
           </View>
         )}
-        <View style={s.statItem}>
+        <View style={s.statChip}>
           <Icon name="bar-chart-2" size={12} color={C.muted} />
           <Text style={s.statText}>Used {t.usageCount || 0}×</Text>
         </View>
@@ -165,11 +174,12 @@ export default function BusTemplatesScreen({ navigation }) {
     const t = previewTemplate;
     if (!t) return null;
     return (
-      <Modal visible={!!t} animationType="slide" transparent={false} onRequestClose={() => setPreviewTemplate(null)}>
-        <SafeAreaView style={s.sheet} edges={['top']}>
-          <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-          <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.sheetHeader}>
-            <View style={[s.deco, { width: 130, height: 130, top: -40, right: -20, opacity: 0.08 }]} />
+      <Modal visible={!!t} animationType="slide" transparent onRequestClose={() => setPreviewTemplate(null)}>
+        <View style={s.modalOverlay}>
+          <View style={s.sheet}>
+            <SheetHandle />
+            <LinearGradient colors={G.hero} style={s.sheetHeader}>
+            <AnimatedOrb style={s.sheetDeco} />
             <View style={s.sheetHeaderRow}>
               <View style={s.sheetIconRing}>
                 <LinearGradient colors={[C.g800, C.g600]} style={s.sheetIconGrad}>
@@ -280,7 +290,8 @@ export default function BusTemplatesScreen({ navigation }) {
             )}
             <View style={{ height: 32 }} />
           </ScrollView>
-        </SafeAreaView>
+          </View>
+        </View>
       </Modal>
     );
   };
@@ -289,9 +300,9 @@ export default function BusTemplatesScreen({ navigation }) {
     <SafeAreaView style={s.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.header}>
-        <View style={[s.deco, { width: 180, height: 180, top: -70, right: -50, opacity: 0.07 }]} />
-        <View style={[s.deco, { width: 80, height: 80, top: 10, right: 90, opacity: 0.04 }]} />
+      <LinearGradient colors={G.hero} style={s.header}>
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
             <Icon name="arrow-left" size={22} color="#fff" />
@@ -361,9 +372,10 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
 
   header: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20, overflow: 'hidden' },
-  deco: { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
+  deco1: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)', top: -70, right: -50 },
+  deco2: { position: 'absolute', width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.04)', top: 10, right: 90 },
   headerRow:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerTitle:{ fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerTitle:{ fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: '#fff' },
   headerSub:  { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
   backBtn: {
     width: 40, height: 40, borderRadius: 12,
@@ -388,10 +400,10 @@ const s = StyleSheet.create({
   listContent: { padding: 16, paddingBottom: 32 },
 
   card: {
-    backgroundColor: C.card, borderRadius: 18, marginBottom: 14,
+    backgroundColor: C.card, borderRadius: rs(18), marginBottom: 14,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.07, shadowRadius: 10, elevation: 4, overflow: 'hidden',
+    overflow: 'hidden',
+    ...cardShadow,
   },
   cardMain: {
     flexDirection: 'row', alignItems: 'center',
@@ -405,7 +417,7 @@ const s = StyleSheet.create({
     borderWidth: 2, borderColor: C.card,
   },
   cardInfo:    { flex: 1 },
-  cardName:    { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 5 },
+  cardName:    { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text, marginBottom: 5 },
   cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   catTag: {
     backgroundColor: C.g50, paddingHorizontal: 8, paddingVertical: 3,
@@ -424,8 +436,12 @@ const s = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 10,
     borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.bg,
   },
-  statItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  statText: { fontSize: 12, color: C.muted, fontWeight: '500' },
+  statChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: C.card, paddingHorizontal: 8, paddingVertical: 4, borderRadius: rs(10),
+    borderWidth: 1, borderColor: C.border,
+  },
+  statText: { fontSize: 11, color: C.muted, fontWeight: '600' },
 
   cardActions: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: C.border },
   actionBtn: {
@@ -444,19 +460,24 @@ const s = StyleSheet.create({
     backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
     justifyContent: 'center', alignItems: 'center', marginBottom: 16,
   },
-  emptyTitle:      { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 8 },
+  emptyTitle:      { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 8 },
   emptyText:       { fontSize: 13, color: C.muted, textAlign: 'center', marginBottom: 24, lineHeight: 19 },
   centerText:      { fontSize: 14, color: C.muted, marginTop: 12 },
   emptyCreateBtn:  { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.g700, paddingHorizontal: 24, paddingVertical: 13, borderRadius: 14 },
   emptyCreateText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
-  sheet:       { flex: 1, backgroundColor: C.bg },
-  sheetHeader: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 18, overflow: 'hidden' },
+  modalOverlay: { flex: 1, backgroundColor: T.scrim, justifyContent: 'flex-end' },
+  sheet: {
+    maxHeight: '90%', backgroundColor: C.bg, overflow: 'hidden',
+    borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
+  },
+  sheetHeader: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 18, overflow: 'hidden' },
+  sheetDeco: { position: 'absolute', width: 130, height: 130, borderRadius: 65, top: -40, right: -20, backgroundColor: 'rgba(255,255,255,0.06)' },
   sheetHeaderRow: { flexDirection: 'row', alignItems: 'flex-start' },
   sheetIconRing: { width: 52, height: 52, borderRadius: 14, overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)' },
   sheetIconGrad: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
   sheetCloseX:   { position: 'absolute', top: 14, right: 16, width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
-  sheetName:     { fontSize: 17, fontWeight: '800', color: '#fff', marginBottom: 8 },
+  sheetName:     { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff', marginBottom: 8 },
   sheetMetaRow:  { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   sheetCatTag:   { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   sheetCatText:  { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
@@ -466,17 +487,17 @@ const s = StyleSheet.create({
   sheetStatusText:{ fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.85)' },
   sheetDesc:     { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 12, lineHeight: 19 },
 
-  sheetScroll:        { backgroundColor: C.bg },
+  sheetScroll:        { flexGrow: 0, backgroundColor: C.bg },
   sheetScrollContent: { padding: 16 },
 
   mCard:     { backgroundColor: C.card, borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: C.border },
   mCardHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   mCardIcon: { width: 30, height: 30, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  mCardTitle:{ fontSize: 14, fontWeight: '700', color: C.text },
+  mCardTitle:{ fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text },
   rateGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   rateBox:   { flex: 1, minWidth: '40%', backgroundColor: C.g50, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: C.g100 },
   rateBoxLabel: { fontSize: 10, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-  rateBoxVal:   { fontSize: 17, fontWeight: '800', color: C.g700 },
+  rateBoxVal:   { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.g700 },
   mListRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 7 },
   mListDot:  { width: 7, height: 7, borderRadius: 4, marginTop: 6 },
   mListText: { flex: 1, fontSize: 13, color: C.text, lineHeight: 19 },

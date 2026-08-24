@@ -1,35 +1,40 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, FlatList,
-  TouchableOpacity, RefreshControl, StatusBar, Dimensions, Linking,
+  TouchableOpacity, RefreshControl, StatusBar, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import { apiGet, getVendorEarningsDebug } from '../../api/client';
+import { apiGet, getVendorEarningsDebug, getVendorFinancials } from '../../api/client';
+import { SC as T, G, rs, rf, shade, cardShadow, rowShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
 const { width: W } = Dimensions.get('window');
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399',
-  g100: '#D1FAE5', g50:  '#ECFDF5',
-  bg:     '#F1F5F9',
-  card:   '#FFFFFF',
-  border: '#E2E8F0',
-  text:   '#0F172A',
-  sub:    '#475569',
-  muted:  '#94A3B8',
-  blue:   '#2563EB', blueL: '#EFF6FF',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  amber:  '#D97706', amberL:  '#FFFBEB',
-  red:    '#DC2626', redL:    '#FEF2F2',
-  orange: '#EA580C', orangeL: '#FFF7ED',
-  cyan:   '#0891B2', cyanL:   '#ECFEFF',
-  pink:   '#DB2777', pinkL:   '#FDF2F8',
-  indigo: '#4F46E5', indigoL: '#EEF2FF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald,
+  g100: T.tintEmerald, g50:  T.tintEmerald,
+  bg:     T.bg,
+  card:   T.card,
+  border: T.border,
+  text:   T.ink,
+  sub:    T.text,
+  muted:  T.subText,
+  blue:   T.blue,   blueL: T.blueLight,
+  purple: T.purple, purpleL: T.purpleLight,
+  amber:  T.amber,  amberL:  T.amberLight,
+  red:    T.red,    redL:    T.redLight,
+  orange: T.orange, orangeL: T.orangeL,
+  cyan:   shade(T.ocean, 25), cyanL: T.tintOcean,
+  pink:   T.rose,             pinkL: T.tintRose,
+  indigo: T.indigo, indigoL: T.indigoLight,
 };
 
 const SERVICE_CONFIG = {
@@ -92,6 +97,7 @@ export default function EarningsScreen({ navigation, route }) {
   const [bookingsData, setBookingsData] = useState({ total: 0, completed: 0, active: 0, today: 0 });
   const [serviceBreakdown, setServiceBreakdown] = useState([]);
   const [bookingsList, setBookingsList]         = useState([]);
+  const [financials, setFinancials]             = useState(null);
 
   const fetchEarnings = useCallback(async (showFilterLoader = false) => {
     try {
@@ -105,6 +111,12 @@ export default function EarningsScreen({ navigation, route }) {
         setServiceBreakdown(response.data.serviceBreakdown || []);
         setBookingsList(response.data.bookingsList || []);
       }
+      // Real collected/pending/total split for the Collection Progress card
+      // — same endpoint the Dashboard's ring card already uses.
+      try {
+        const fin = await getVendorFinancials();
+        if (fin?.success !== false) setFinancials(fin?.summary || fin || null);
+      } catch (_) {}
     } catch (e) {
       console.log('[EarningsScreen]', e);
     } finally {
@@ -125,6 +137,19 @@ export default function EarningsScreen({ navigation, route }) {
   };
 
   const positive = (earnings.growth ?? 0) >= 0;
+
+  // Real collected/pending/total split (getVendorFinancials) for the
+  // Collection Progress bar.
+  const totalRevenue     = financials?.totalRevenue ?? 0;
+  const collectedRevenue = financials?.totalCollected ?? 0;
+  const pendingRevenue   = financials?.totalPending ?? 0;
+  const collectionPct    = totalRevenue > 0 ? Math.round((collectedRevenue / totalRevenue) * 100) : 0;
+
+  // Avg. booking value — both numbers already fetched, just a ratio.
+  const avgBooking = bookingsData.total > 0 ? earnings.total / bookingsData.total : 0;
+
+  // This-month vs last-month bars, scaled against whichever is larger.
+  const trendMax = Math.max(earnings.thisMonth || 0, earnings.lastMonth || 0, 1);
 
   // ── Filter chip ───────────────────────────────────────────────
   const FilterChip = ({ service, label, icon, color, count, isAll }) => {
@@ -148,74 +173,34 @@ export default function EarningsScreen({ navigation, route }) {
   };
 
   // ── Booking card ──────────────────────────────────────────────
-  const renderBookingCard = ({ item }) => {
+  // Flat rows inside one merged card — first/last row get the card's own
+  // rounded corners + top/bottom border, middle rows share a bottom divider,
+  // so the whole list reads as a single card instead of one box per booking.
+  const renderBookingCard = ({ item, index }) => {
     const cfg         = getServiceConfig(item.service);
     const isCompleted = item.status === 'COMPLETED';
     const hasScreen   = !!BOOKING_DETAIL_SCREEN[item.service];
+    const isFirst     = index === 0;
+    const isLast      = index === bookingsList.length - 1;
+    const meta = [item.customerName, item.location].filter(Boolean).join(' · ') || formatDate(item.date);
 
     return (
-      <TouchableOpacity style={s.bookCard} onPress={() => handleCardPress(item)}
-        activeOpacity={hasScreen ? 0.75 : 1}>
-        {/* Left accent */}
-        <View style={[s.bookAccent, { backgroundColor: cfg.color }]} />
-
-        <View style={{ flex: 1, paddingLeft: 14 }}>
-          {/* Top row */}
-          <View style={s.bookTop}>
-            <View style={[s.bookIconBox, { backgroundColor: cfg.color + '14' }]}>
-              <MaterialCommunityIcons name={cfg.icon} size={18} color={cfg.color} />
-            </View>
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={s.bookNum}>#{item.bookingNumber}</Text>
-              <Text style={s.bookSvc}>{cfg.label}</Text>
-            </View>
-            {/* Status */}
-            <View style={[s.statusPill,
-              { backgroundColor: isCompleted ? C.g50 : C.amberL,
-                borderColor: isCompleted ? C.g100 : '#FDE68A' }]}>
-              <View style={[s.statusDot,
-                { backgroundColor: isCompleted ? C.g600 : C.amber }]} />
-              <Text style={[s.statusTxt,
-                { color: isCompleted ? C.g700 : C.amber }]}>
-                {isCompleted ? 'Done' : 'Active'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Info row */}
-          <View style={s.bookInfo}>
-            {item.customerName ? (
-              <View style={s.bookInfoItem}>
-                <Ionicons name="person-outline" size={12} color={C.muted} />
-                <Text style={s.bookInfoTxt} numberOfLines={1}>{item.customerName}</Text>
-              </View>
-            ) : null}
-            {item.location ? (
-              <View style={s.bookInfoItem}>
-                <Ionicons name="location-outline" size={12} color={C.muted} />
-                <Text style={s.bookInfoTxt} numberOfLines={1}>{item.location}</Text>
-              </View>
-            ) : null}
-            <View style={s.bookInfoItem}>
-              <Ionicons name="calendar-outline" size={12} color={C.muted} />
-              <Text style={s.bookInfoTxt}>{formatDate(item.date)}</Text>
-            </View>
-          </View>
-
-          {/* Footer */}
-          <View style={s.bookFooter}>
-            <View>
-              <Text style={s.bookAmtLbl}>AMOUNT</Text>
-              <Text style={[s.bookAmt, { color: cfg.color }]}>₹{fmt(item.amount)}</Text>
-            </View>
-            {hasScreen && (
-              <TouchableOpacity
-                style={[s.bookDetailBtn, { backgroundColor: cfg.color + '12', borderColor: cfg.color + '30' }]}
-                onPress={() => handleCardPress(item)} activeOpacity={0.75}>
-                <Text style={[s.bookDetailTxt, { color: cfg.color }]}>Details</Text>
-                <Ionicons name="chevron-forward" size={13} color={cfg.color} />
-              </TouchableOpacity>
-            )}
+      <TouchableOpacity
+        style={[s.flatRow, isFirst && s.flatRowFirst, isLast && s.flatRowLast, !isLast && s.flatRowDivider]}
+        onPress={() => handleCardPress(item)} activeOpacity={hasScreen ? 0.75 : 1}>
+        <View style={[s.flatRowIcon, { backgroundColor: cfg.color }]}>
+          <MaterialCommunityIcons name={cfg.icon} size={15} color="#fff" />
+        </View>
+        <View style={{ flex: 1, marginLeft: 10 }}>
+          <Text style={s.flatRowNum} numberOfLines={1}>#{item.bookingNumber}</Text>
+          <Text style={s.flatRowMeta} numberOfLines={1}>{meta}</Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={s.flatRowAmt}>₹{fmt(item.amount)}</Text>
+          <View style={[s.flatRowPill, { backgroundColor: isCompleted ? C.g50 : C.amberL }]}>
+            <Text style={[s.flatRowPillTxt, { color: isCompleted ? C.g700 : C.amber }]}>
+              {isCompleted ? 'Done' : 'Active'}
+            </Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -227,8 +212,8 @@ export default function EarningsScreen({ navigation, route }) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg }}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.hero}>
-          <View style={s.deco1} />
+        <LinearGradient colors={G.hero} style={s.hero}>
+          <AnimatedOrb style={s.deco1} />
           <SafeAreaView>
             <View style={s.headerRow}>
               <View style={s.backCircleSk} />
@@ -254,27 +239,22 @@ export default function EarningsScreen({ navigation, route }) {
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {[80,70,90,70].map((w, i) => <Bone key={i} w={w} h={34} r={17} />)}
           </View>
-          {/* Cards */}
-          {[0,1,2,3].map(i => (
-            <View key={i} style={[s.bookCard, { paddingLeft: 18 }]}>
-              <View style={[s.bookAccent, { backgroundColor: C.border }]} />
-              <View style={{ flex: 1, paddingLeft: 14, gap: 10 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Bone w={38} h={38} r={10} />
-                  <View style={{ flex: 1, gap: 6 }}>
-                    <Bone w={W * 0.3} h={12} r={5} />
-                    <Bone w={W * 0.2} h={9} r={4} />
-                  </View>
-                  <Bone w={56} h={22} r={11} />
+          {/* Rows — flat list skeleton, same merged-card shape as the real list */}
+          <View>
+            {[0,1,2,3].map(i => (
+              <View key={i} style={[s.flatRow, i === 0 && s.flatRowFirst, i === 3 && s.flatRowLast, i !== 3 && s.flatRowDivider]}>
+                <Bone w={32} h={32} r={10} />
+                <View style={{ flex: 1, marginLeft: 10, gap: 6 }}>
+                  <Bone w={W * 0.28} h={11} r={4} />
+                  <Bone w={W * 0.4} h={9} r={4} />
                 </View>
-                <Bone w={W * 0.6} h={9} r={4} />
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Bone w={70} h={18} r={5} />
-                  <Bone w={72} h={30} r={10} />
+                <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                  <Bone w={50} h={12} r={4} />
+                  <Bone w={40} h={14} r={7} />
                 </View>
               </View>
-            </View>
-          ))}
+            ))}
+          </View>
         </View>
       </View>
     );
@@ -283,6 +263,81 @@ export default function EarningsScreen({ navigation, route }) {
   // ── List header component ─────────────────────────────────────
   const ListHeader = () => (
     <>
+      {/* Collection progress — real collected/pending/total split
+          (getVendorFinancials) */}
+      {totalRevenue > 0 && (
+        <View style={s.collCard}>
+          <View style={s.collTop}>
+            <View style={s.collTitleRow}>
+              <View style={s.collIconBox}>
+                <Ionicons name="pie-chart-outline" size={16} color={C.g700} />
+              </View>
+              <Text style={s.collTitle}>Collection progress</Text>
+            </View>
+            <View style={s.collPctPill}>
+              <Text style={s.collPctTxt}>{collectionPct}%</Text>
+            </View>
+          </View>
+          <View style={s.collBarBg}>
+            <LinearGradient colors={G.emerald} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={[s.collBarFill, { width: `${collectionPct}%` }]} />
+          </View>
+          <View style={s.collStatsRow}>
+            <View style={s.collStatItem}>
+              <View style={[s.collDot, { backgroundColor: C.g600 }]} />
+              <Text style={s.collStatLbl}>Collected</Text>
+              <Text style={s.collStatVal}>₹{fmt(collectedRevenue)}</Text>
+            </View>
+            <View style={s.collStatItem}>
+              <View style={[s.collDot, { backgroundColor: T.gold }]} />
+              <Text style={s.collStatLbl}>Pending</Text>
+              <Text style={s.collStatVal}>₹{fmt(pendingRevenue)}</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* This month vs last month — 2 real data points, not a fabricated trend */}
+      {(earnings.thisMonth > 0 || earnings.lastMonth > 0) && (
+        <View style={s.trendCard}>
+          <Text style={s.trendTitle}>This month vs last month</Text>
+          <View style={s.trendBars}>
+            <View style={s.trendBarCol}>
+              <Text style={s.trendBarVal}>{fmtShort(earnings.lastMonth)}</Text>
+              <View style={s.trendBarTrack}>
+                <View style={[s.trendBarFill, { height: `${(earnings.lastMonth / trendMax) * 100}%`, backgroundColor: T.tintEmerald }]} />
+              </View>
+              <Text style={s.trendBarLbl}>Last month</Text>
+            </View>
+            <View style={s.trendBarCol}>
+              <Text style={s.trendBarVal}>{fmtShort(earnings.thisMonth)}</Text>
+              <View style={s.trendBarTrack}>
+                <LinearGradient colors={G.emerald} style={[s.trendBarFill, { height: `${(earnings.thisMonth / trendMax) * 100}%` }]} />
+              </View>
+              <Text style={s.trendBarLbl}>This month</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Bookings + avg. booking value — both derived from already-fetched numbers */}
+      <View style={s.summaryRow}>
+        <View style={[s.summaryCard, { borderLeftColor: C.blue }]}>
+          <View style={[s.summaryIconBox, { backgroundColor: C.blueL }]}>
+            <Ionicons name="calendar-outline" size={15} color={C.blue} />
+          </View>
+          <Text style={s.summaryVal}>{bookingsData.total}</Text>
+          <Text style={s.summaryLbl}>Bookings</Text>
+        </View>
+        <View style={[s.summaryCard, { borderLeftColor: C.purple }]}>
+          <View style={[s.summaryIconBox, { backgroundColor: C.purpleL }]}>
+            <Ionicons name="pricetag-outline" size={15} color={C.purple} />
+          </View>
+          <Text style={s.summaryVal}>₹{fmt(avgBooking)}</Text>
+          <Text style={s.summaryLbl}>Avg. booking</Text>
+        </View>
+      </View>
+
       {/* Filter chips */}
       {(serviceBreakdown.length > 0 || (serviceType && SERVICE_CONFIG[serviceType])) && (
         <View style={s.filtersWrap}>
@@ -344,12 +399,12 @@ export default function EarningsScreen({ navigation, route }) {
 
       {/* ── Hero header ──────────────────────────────────────── */}
       <LinearGradient
-        colors={[C.g900, '#064E3B', C.g700]}
+        colors={G.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.hero}
       >
-        <View style={s.deco1} />
-        <View style={s.deco2} />
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
         <SafeAreaView>
           {/* Top bar */}
           <View style={s.headerRow}>
@@ -400,26 +455,21 @@ export default function EarningsScreen({ navigation, route }) {
       {filterLoading ? (
         <View style={{ paddingHorizontal: 16, paddingTop: 16, gap: 10 }}>
           <ListHeader />
-          {[0,1,2,3].map(i => (
-            <View key={i} style={[s.bookCard, { overflow: 'hidden' }]}>
-              <View style={[s.bookAccent, { backgroundColor: C.border }]} />
-              <View style={{ flex: 1, paddingLeft: 14, gap: 10 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Bone w={38} h={38} r={10} />
-                  <View style={{ flex: 1, gap: 6 }}>
-                    <Bone w={W * 0.35} h={12} r={5} />
-                    <Bone w={W * 0.22} h={9} r={4} />
-                  </View>
-                  <Bone w={54} h={22} r={11} />
+          <View>
+            {[0,1,2,3].map(i => (
+              <View key={i} style={[s.flatRow, i === 0 && s.flatRowFirst, i === 3 && s.flatRowLast, i !== 3 && s.flatRowDivider]}>
+                <Bone w={32} h={32} r={10} />
+                <View style={{ flex: 1, marginLeft: 10, gap: 6 }}>
+                  <Bone w={W * 0.28} h={11} r={4} />
+                  <Bone w={W * 0.4} h={9} r={4} />
                 </View>
-                <Bone w={W * 0.55} h={9} r={4} />
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Bone w={64} h={18} r={5} />
-                  <Bone w={70} h={30} r={10} />
+                <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                  <Bone w={50} h={12} r={4} />
+                  <Bone w={40} h={14} r={7} />
                 </View>
               </View>
-            </View>
-          ))}
+            ))}
+          </View>
         </View>
       ) : (
         <FlatList
@@ -465,11 +515,11 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.13)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
   },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff', letterSpacing: -0.3, marginLeft: 12 },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 19, fontWeight: '800', color: '#fff', letterSpacing: -0.3, marginLeft: 12 },
 
   heroBody: { marginTop: 18, marginBottom: 16 },
   heroLbl:  { fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 6 },
-  heroAmt:  { fontSize: 38, fontWeight: '900', color: '#fff', letterSpacing: -1.5, marginBottom: 6 },
+  heroAmt:  { fontFamily: DISPLAY, fontSize: 38, fontWeight: '800', color: '#fff', letterSpacing: -1.5, marginBottom: 6 },
   growthRow:{ flexDirection: 'row', alignItems: 'center', gap: 5 },
   growthTxt:{ fontSize: 12, fontWeight: '700' },
 
@@ -484,6 +534,53 @@ const s = StyleSheet.create({
   heroStatLbl: { fontSize: 9,  fontWeight: '600', color: 'rgba(255,255,255,0.4)' },
   heroStatsRow:{ flexDirection: 'row', marginTop: 16, gap: 8 },
   heroStatSk:  { flex: 1, alignItems: 'center' },
+
+  // ── Collection progress card ────────────────────────────────
+  collCard: {
+    backgroundColor: C.card, borderRadius: rs(18), padding: rs(16),
+    marginHorizontal: 16, marginTop: 16,
+    borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
+  },
+  collTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  collTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  collIconBox: { width: 30, height: 30, borderRadius: 10, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center' },
+  collTitle: { fontSize: 13, fontWeight: '800', color: C.text },
+  collPctPill: { backgroundColor: C.g50, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  collPctTxt: { fontFamily: DISPLAY, fontSize: rf(13), fontWeight: '800', color: C.g700 },
+  collBarBg: { height: 8, backgroundColor: C.g50, borderRadius: 4, overflow: 'hidden', marginBottom: 14 },
+  collBarFill: { height: 8, borderRadius: 4 },
+  collStatsRow: { flexDirection: 'row', gap: 24 },
+  collStatItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  collDot: { width: 7, height: 7, borderRadius: 3.5 },
+  collStatLbl: { fontSize: 11, color: C.muted, fontWeight: '600' },
+  collStatVal: { fontSize: 11, color: C.text, fontWeight: '800' },
+
+  // ── Trend card (this month vs last month) ───────────────────
+  trendCard: {
+    backgroundColor: C.card, borderRadius: rs(18), padding: rs(16),
+    marginHorizontal: 16, marginTop: 12,
+    borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
+  },
+  trendTitle: { fontSize: 13, fontWeight: '800', color: C.text, marginBottom: 14 },
+  trendBars: { flexDirection: 'row', gap: 24, height: 100, alignItems: 'flex-end' },
+  trendBarCol: { flex: 1, alignItems: 'center' },
+  trendBarVal: { fontSize: 11, fontWeight: '800', color: C.text, marginBottom: 6 },
+  trendBarTrack: { width: '60%', height: 60, justifyContent: 'flex-end' },
+  trendBarFill: { width: '100%', borderRadius: 8, minHeight: 4 },
+  trendBarLbl: { fontSize: 10, color: C.muted, fontWeight: '600', marginTop: 6 },
+
+  // ── Summary row ──────────────────────────────────────────────
+  summaryRow: { flexDirection: 'row', gap: 10, marginHorizontal: 16, marginTop: 12, marginBottom: 4 },
+  summaryCard: {
+    flex: 1, backgroundColor: C.card, borderRadius: rs(14), padding: 12,
+    borderWidth: 1, borderColor: C.border, borderLeftWidth: 3,
+    ...rowShadow,
+  },
+  summaryIconBox: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  summaryVal: { fontFamily: DISPLAY, fontSize: rf(16), fontWeight: '800', color: C.text },
+  summaryLbl: { fontSize: 10, color: C.muted, fontWeight: '600', marginTop: 2 },
 
   // ── Filter chips ─────────────────────────────────────────────
   filtersWrap:  { paddingVertical: 14 },
@@ -506,44 +603,31 @@ const s = StyleSheet.create({
   // ── List ─────────────────────────────────────────────────────
   listContent: { paddingBottom: 100 },
 
-  // ── Booking card ──────────────────────────────────────────────
-  bookCard: {
-    flexDirection: 'row',
-    backgroundColor: C.card, borderRadius: 14,
-    marginHorizontal: 16, marginBottom: 10,
-    overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-    borderWidth: 1, borderColor: C.border,
-    paddingVertical: 14, paddingRight: 14,
+  // ── Booking rows — flat rows merged into one card ───────────────
+  flatRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.card, marginHorizontal: 16,
+    paddingVertical: 11, paddingHorizontal: 12,
+    borderLeftWidth: 1, borderRightWidth: 1, borderColor: C.border,
   },
-  bookAccent: { width: 4, borderRadius: 2, marginLeft: 0 },
-  bookTop:    { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  bookIconBox:{ width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  bookNum:    { fontSize: 14, fontWeight: '800', color: C.text, letterSpacing: -0.3 },
-  bookSvc:    { fontSize: 10, color: C.muted, fontWeight: '600', marginTop: 2 },
-  statusPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, borderWidth: 1,
+  flatRowFirst: {
+    borderTopWidth: 1, borderTopLeftRadius: rs(16), borderTopRightRadius: rs(16), marginTop: 4,
   },
-  statusDot:  { width: 5, height: 5, borderRadius: 3 },
-  statusTxt:  { fontSize: 10, fontWeight: '700' },
-  bookInfo:   { gap: 6, marginBottom: 12 },
-  bookInfoItem:{ flexDirection: 'row', alignItems: 'center', gap: 6 },
-  bookInfoTxt: { fontSize: 12, color: C.sub, fontWeight: '500', flex: 1 },
-  bookFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  bookAmtLbl: { fontSize: 8.5, color: C.muted, fontWeight: '700', letterSpacing: 0.8, marginBottom: 3 },
-  bookAmt:    { fontSize: 19, fontWeight: '900', letterSpacing: -0.5 },
-  bookDetailBtn:{
-    flexDirection: 'row', alignItems: 'center', gap: 3,
-    paddingHorizontal: 12, paddingVertical: 7,
-    borderRadius: 10, borderWidth: 1,
+  flatRowLast: {
+    borderBottomWidth: 1, borderBottomLeftRadius: rs(16), borderBottomRightRadius: rs(16),
+    ...rowShadow,
   },
-  bookDetailTxt:{ fontSize: 12, fontWeight: '700' },
+  flatRowDivider: { borderBottomWidth: 1, borderBottomColor: C.border },
+  flatRowIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  flatRowNum:  { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text },
+  flatRowMeta: { fontSize: 10.5, color: C.muted, fontWeight: '500', marginTop: 2 },
+  flatRowAmt:  { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: '800', color: C.text },
+  flatRowPill: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, marginTop: 4 },
+  flatRowPillTxt: { fontSize: 9, fontWeight: '700' },
 
   // ── Empty ─────────────────────────────────────────────────────
   emptyWrap:  { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
   emptyCircle:{ width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
-  emptyTitle: { fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 8 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 8 },
   emptyBody:  { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 21 },
 });

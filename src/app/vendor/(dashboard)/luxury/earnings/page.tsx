@@ -127,7 +127,7 @@ export default function VendorLuxuryEarningsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center">
+      <div className="min-h-[60dvh] flex flex-col items-center justify-center">
         <div className="relative w-20 h-20">
           <div className="absolute inset-0 border-4 border-emerald-100 rounded-full" />
           <div className="absolute inset-0 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />

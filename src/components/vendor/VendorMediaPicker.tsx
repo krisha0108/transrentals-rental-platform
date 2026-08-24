@@ -253,7 +253,7 @@ export default function VendorMediaPicker({
       {/* Media Picker Modal */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90dvh] overflow-hidden flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="text-lg font-bold text-gray-900">Select from Media Library</h3>

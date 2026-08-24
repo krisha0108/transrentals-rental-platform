@@ -1138,6 +1138,15 @@ export async function getVendorNotificationsUnreadCount() {
   return res.data;
 }
 
+/**
+ * Delete vendor notifications
+ * Pass notificationIds array (one id, or the full list to clear all)
+ */
+export async function deleteVendorNotifications(notificationIds) {
+  const res = await apiPost('/vendor/notifications', { action: 'delete', notificationIds });
+  return res.data;
+}
+
 // ==================== CHAT APIs ====================
 
 /**

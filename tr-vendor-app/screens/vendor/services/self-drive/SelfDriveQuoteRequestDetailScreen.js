@@ -1,44 +1,86 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-  Alert,
-  StatusBar,
-  Linking,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  RefreshControl, StatusBar, Linking, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import LinearGradient from 'react-native-linear-gradient';
 import { getQuoteRequestById, getBaseURL, getSessionToken } from '../../../api/client';
-import { showError, showSuccess, showInfo, showConfirm } from '../../../../services/alertService';
+import { showError, showInfo } from '../../../../services/alertService';
+import { SC as T, G, rs, cardShadow, shade } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
+// How far the ticket summary card rides up over the hero's rounded bottom
+// edge — same technique/constant role as BikeQuoteDetailScreen's ticket and
+// the travel-agent BookingDetailScreen's contact bar. The hero's own bottom
+// padding is shortened by the same amount and the scroll content gets it
+// back as paddingTop, so the gap stays the same, only the overlap changes.
+const TICKET_OVERLAP = 40;
+
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g500: '#059669', g400: '#34D399',
-  g50: '#ECFDF5', g100: '#D1FAE5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  green: '#059669', greenL: '#ECFDF5', greenD: '#065F46',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald,
+  g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  amber: T.amber, amberL: T.amberLight,
+  blue: T.blue, blueL: T.blueLight,
+  red: T.red, redL: T.redLight,
+  purple: T.purple, purpleL: T.purpleLight,
 };
 
-const STATUS_CFG = {
-  PENDING:         { label: 'Pending',          bg: C.amberL,   text: C.amber,  icon: 'time-outline' },
-  QUOTED:          { label: 'Quoted',           bg: C.blueL,    text: C.blue,   icon: 'document-text' },
-  QUOTES_RECEIVED: { label: 'Quotes Received',  bg: C.g50,      text: C.g700,   icon: 'mail-outline' },
-  ACCEPTED:        { label: 'Accepted',         bg: C.greenL,   text: C.green,  icon: 'checkmark-circle' },
-  REJECTED:        { label: 'Rejected',         bg: C.redL,     text: C.red,    icon: 'close-circle' },
-  EXPIRED:         { label: 'Expired',          bg: '#F1F5F9',  text: '#6B7280', icon: 'alert-circle' },
-  CANCELLED:       { label: 'Cancelled',        bg: C.redL,     text: C.red,    icon: 'close-circle-outline' },
+const STATUS_CONFIG = {
+  PENDING:         { color: C.amber, bg: C.amberL, border: '#FDE68A', icon: 'time-outline',          label: 'Pending' },
+  QUOTED:          { color: C.blue,  bg: C.blueL,  border: '#BFDBFE', icon: 'paper-plane-outline',   label: 'Quote Sent' },
+  QUOTES_RECEIVED: { color: C.blue,  bg: C.blueL,  border: '#BFDBFE', icon: 'document-text-outline', label: 'Quotes Received' },
+  ACCEPTED:        { color: C.g600,  bg: C.g50,    border: C.g100,    icon: 'checkmark-circle-outline', label: 'Accepted' },
+  REJECTED:        { color: C.red,   bg: C.redL,   border: '#FECACA', icon: 'close-circle-outline',  label: 'Rejected' },
+  EXPIRED:         { color: C.muted, bg: '#F8FAFC', border: C.border, icon: 'alert-circle-outline',  label: 'Expired' },
+  CANCELLED:       { color: C.red,   bg: C.redL,   border: '#FECACA', icon: 'close-circle-outline',  label: 'Cancelled' },
 };
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+const formatTime = (timeStr) => {
+  if (!timeStr) return 'N/A';
+  // Handle both HH:MM and HH:MM:SS formats
+  const parts = timeStr.split(':');
+  let h = parseInt(parts[0], 10);
+  const m = parts[1] || '00';
+  const period = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${m} ${period}`;
+};
+
+// Reusable section card — icon + title header inside one bordered card,
+// same shape BikeQuoteDetailScreen's sibling Section uses.
+function Section({ iconName, iconLib = 'ion', iconColor, title, children }) {
+  const renderIcon = () => {
+    if (iconLib === 'mci') return <MaterialCommunityIcons name={iconName} size={15} color={iconColor || C.g700} />;
+    if (iconLib === 'feather') return <Icon name={iconName} size={15} color={iconColor || C.g700} />;
+    return <Ionicons name={iconName} size={15} color={iconColor || C.g700} />;
+  };
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHead}>
+        <View style={[styles.cardIcon, { backgroundColor: `${iconColor || C.g700}15` }]}>
+          {renderIcon()}
+        </View>
+        <Text style={styles.cardTitle}>{title}</Text>
+      </View>
+      {children}
+    </View>
+  );
+}
 
 export default function SelfDriveQuoteRequestDetailScreen({ route, navigation }) {
   const { requestId } = route.params || {};
@@ -49,14 +91,10 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
 
   const fetchRequestDetail = useCallback(async () => {
     if (!requestId) {
-      console.log('❌ [SelfDriveRequestDetail] Request ID is missing');
       showError('Request ID is missing');
       navigation.goBack();
       return;
     }
-
-    console.log('🔍 [SelfDriveRequestDetail] Fetching request with ID:', requestId);
-
     try {
       const data = await getQuoteRequestById('self-drive', requestId);
       const requestData = data.request || data;
@@ -71,129 +109,83 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
     }
   }, [requestId, navigation]);
 
-  useEffect(() => {
-    fetchRequestDetail();
-  }, [fetchRequestDetail]);
+  useEffect(() => { fetchRequestDetail(); }, [fetchRequestDetail]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchRequestDetail();
-  };
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return 'N/A';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const formatTime = (timeStr) => {
-    if (!timeStr) return 'N/A';
-    // Handle both HH:MM and HH:MM:SS formats
-    const timeParts = timeStr.split(':');
-    let hours = parseInt(timeParts[0], 10);
-    const minutes = timeParts[1] || '00';
-
-    const period = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
-
-    return `${hours}:${minutes} ${period}`;
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status?.toUpperCase()) {
-      case 'PENDING':
-        return 'time-outline';
-      case 'QUOTED':
-        return 'document-text';
-      case 'ACCEPTED':
-        return 'checkmark-circle';
-      case 'REJECTED':
-        return 'close-circle';
-      case 'EXPIRED':
-        return 'alert-circle';
-      default:
-        return 'help-circle-outline';
-    }
-  };
+  const onRefresh = () => { setRefreshing(true); fetchRequestDetail(); };
 
   const handleSendQuote = () => {
     navigation.navigate('SelfDriveSendQuote', { requestId: request.id || request._id });
   };
 
+  // ── Loading state ────────────────────────────────────────────
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.gradientHeader}>
-          <View style={styles.decorCircle1} />
-          <View style={styles.decorCircle2} />
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Icon name="arrow-left" size={20} color="#fff" />
-            </TouchableOpacity>
-            <View style={styles.headerCenter}>
-              <Text style={styles.headerTitle}>Request Details</Text>
-              <Text style={styles.headerSubtitle}>Self Drive</Text>
-            </View>
-            <View style={{ width: 40 }} />
-          </View>
-        </LinearGradient>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <View style={{ padding: 16, paddingTop: 16 }}>
-            <View style={styles.skeletonBanner} />
-            {[1, 2, 3].map(i => (
-              <View key={i} style={styles.skeletonCard}>
-                <View style={styles.skeletonLine} />
-                <View style={[styles.skeletonLine, { width: '70%' }]} />
-                <View style={[styles.skeletonLine, { width: '50%' }]} />
+        <LinearGradient colors={G.hero} style={styles.headerGrad}>
+          <AnimatedOrb style={styles.deco1} />
+          <SafeAreaView edges={['top']}>
+            <View style={styles.topBar}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Icon name="arrow-left" size={18} color="#fff" />
+              </TouchableOpacity>
+              <View style={styles.titleWrap}>
+                <MaterialCommunityIcons name="car" size={18} color={C.amber} />
+                <Text style={styles.heroTitle}>Quote Request</Text>
               </View>
-            ))}
-          </View>
+              <View style={{ width: 36 }} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          {[1, 2, 3].map(i => (
+            <View key={i} style={[styles.card, { marginBottom: 12 }]}>
+              <View style={{ width: '40%', height: 14, backgroundColor: '#E2E8F0', borderRadius: 7, marginBottom: 12 }} />
+              <View style={{ width: '80%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, marginBottom: 8 }} />
+              <View style={{ width: '60%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6 }} />
+            </View>
+          ))}
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
+  // ── Not found ────────────────────────────────────────────────
   if (!request) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.gradientHeader}>
-          <View style={styles.decorCircle1} />
-          <View style={styles.decorCircle2} />
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Icon name="arrow-left" size={20} color="#fff" />
-            </TouchableOpacity>
-            <View style={styles.headerCenter}>
-              <Text style={styles.headerTitle}>Request Detail</Text>
-              <Text style={styles.headerSubtitle}>Self Drive</Text>
+        <LinearGradient colors={G.hero} style={styles.headerGrad}>
+          <AnimatedOrb style={styles.deco1} />
+          <SafeAreaView edges={['top']}>
+            <View style={styles.topBar}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Icon name="arrow-left" size={18} color="#fff" />
+              </TouchableOpacity>
+              <View style={styles.titleWrap}>
+                <MaterialCommunityIcons name="car" size={18} color={C.amber} />
+                <Text style={styles.heroTitle}>Quote Request</Text>
+              </View>
+              <View style={{ width: 36 }} />
             </View>
-            <View style={{ width: 40 }} />
-          </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={styles.emptyState}>
-          <View style={styles.emptyIconWrap}>
-            <Ionicons name="clipboard-outline" size={48} color={C.muted} />
-          </View>
+          <Ionicons name="clipboard-outline" size={56} color={C.muted} />
           <Text style={styles.emptyTitle}>Request Not Found</Text>
           <Text style={styles.emptySubtitle}>This request may have been removed</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   const status = request.status?.toUpperCase() || 'PENDING';
-  const cfg = STATUS_CFG[status] || { label: status, bg: '#F1F5F9', text: '#6B7280', icon: 'help-circle-outline' };
+  const sc = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING;
 
   // Customer Information
-  const customerName = request.customerName || request.customer_name || 'Customer';
-  const customerEmail = request.customerEmail || request.customer_email;
-  const customerPhone = request.customerPhone || request.customer_phone;
+  const customerName    = request.customerName || request.customer_name || 'Customer';
+  const customerEmail   = request.customerEmail || request.customer_email;
+  const customerPhone   = request.customerPhone || request.customer_phone;
 
   const handleCallCustomer = () => {
     if (!customerPhone) return;
@@ -251,783 +243,485 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
   const requestNumber = request.requestNumber || request.request_number || (request.id || request._id)?.toString().slice(-8);
   const notes = request.customerNotes || request.customer_notes || request.notes || request.description || request.additionalInfo || request.specialRequirements || request.additional_details || request.other_info;
 
-  const vehicleName = vehicleModelName || vehicleTypeDisplay || 'Vehicle';
+  const canSendQuote = !request.hasQuoted && (status === 'PENDING' || status === 'QUOTES_RECEIVED');
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      {/* Gradient Header */}
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.gradientHeader}>
-        <View style={styles.decorCircle1} />
-        <View style={styles.decorCircle2} />
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={20} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Request Details</Text>
-            <Text style={styles.headerSubtitle}>Self Drive</Text>
+      {/* ══ Hero ══════════════════════════════════════════════════════════ */}
+      <LinearGradient colors={G.hero} style={styles.headerGrad}>
+        <AnimatedOrb style={styles.deco1} />
+        <AnimatedOrb style={styles.deco2} delay={1200} dx={-10} dy={8} />
+        <SafeAreaView edges={['top']}>
+          <View style={styles.topBar}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.titleWrap}>
+              <MaterialCommunityIcons name="car" size={18} color={C.amber} />
+              <Text style={styles.heroTitle}>Quote Request</Text>
+            </View>
+            <View style={{ width: 36 }} />
           </View>
-          {/* Right status badge */}
-          <View style={[styles.headerStatusBadge, { backgroundColor: cfg.bg }]}>
-            <Ionicons name={cfg.icon} size={12} color={cfg.text} />
-            <Text style={[styles.headerStatusText, { color: cfg.text }]}>{cfg.label}</Text>
+
+          {/* Identity block — who this request is from */}
+          <View style={styles.identityBlock}>
+            <View style={styles.identityIcon}>
+              <Text style={styles.identityIconTxt}>{customerName.charAt(0).toUpperCase()}</Text>
+            </View>
+            <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
+              <Text style={styles.identityLabel}>QUOTE REQUEST FROM</Text>
+              <Text style={styles.identityName} numberOfLines={1}>{customerName}</Text>
+              {customerPhone ? (
+                <View style={styles.identityPhoneRow}>
+                  <Ionicons name="call-outline" size={12} color="rgba(255,255,255,0.7)" />
+                  <Text style={styles.identityPhoneTxt}>{customerPhone}</Text>
+                </View>
+              ) : null}
+            </View>
           </View>
-        </View>
+
+          {/* Quick action — mirrors old status-banner's conditional action */}
+          {(request.hasQuoted || canSendQuote) && (
+            <View style={styles.heroActionRow}>
+              {request.hasQuoted ? (
+                <View style={styles.quotedPill}>
+                  <Ionicons name="checkmark-circle" size={13} color="#fff" />
+                  <Text style={styles.quotedPillText}>Quoted</Text>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.sendQuickBtn} onPress={handleSendQuote} activeOpacity={0.85}>
+                  <Ionicons name="paper-plane" size={13} color="#fff" />
+                  <Text style={styles.sendQuickBtnText}>Send Quote</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView
-        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g700]} tintColor={C.g700} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g500]} tintColor={C.g500} />}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* Status/Quote Banner */}
-        <View style={[styles.statusBanner, { backgroundColor: cfg.bg, borderColor: cfg.text + '22' }]}>
-          <View style={styles.statusContent}>
-            <View style={[styles.statusIconCircle, { backgroundColor: cfg.text + '18' }]}>
-              <Ionicons name={cfg.icon} size={22} color={cfg.text} />
+        {/* ── Ticket summary — request #, status & route, floated over hero ── */}
+        <View style={styles.ticketWrap}>
+          <LinearGradient
+            colors={[sc.color, shade(sc.color, -18)]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={styles.ticketRail}
+          />
+          <View style={styles.ticketUpperStub}>
+            <View style={styles.ticketIconBox}>
+              <Ionicons name="document-text-outline" size={20} color={C.g700} />
             </View>
-            <View style={styles.statusTextWrap}>
-              <Text style={[styles.statusLabel, { color: cfg.text }]}>{cfg.label}</Text>
-              <Text style={styles.requestNumberText}>Request #{requestNumber}</Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.ticketLabel}>REQUEST #</Text>
+              <Text style={styles.ticketNumber} numberOfLines={1}>{requestNumber}</Text>
+            </View>
+            <View style={[styles.statusPill, { backgroundColor: sc.bg, borderColor: sc.color + '40' }]}>
+              <Ionicons name={sc.icon} size={12} color={sc.color} />
+              <Text style={[styles.statusPillTxt, { color: sc.color }]}>{sc.label}</Text>
             </View>
           </View>
-          {!request.hasQuoted && (status === 'PENDING' || status === 'QUOTES_RECEIVED') && (
-            <TouchableOpacity style={styles.sendQuoteBtn} onPress={handleSendQuote}>
-              <Ionicons name="paper-plane" size={15} color="#fff" />
-              <Text style={styles.sendQuoteBtnText}>Send Quote</Text>
-            </TouchableOpacity>
-          )}
-          {request.hasQuoted && (
-            <View style={styles.quotedBadge}>
-              <Ionicons name="checkmark-circle" size={14} color={C.green} />
-              <Text style={styles.quotedBadgeText}>Quoted ✓</Text>
+
+          {/* Perforation — torn-ticket edge, echoes the My Quotes list card */}
+          <View style={styles.perforationRow}>
+            <View style={styles.notchLeft} />
+            <View style={styles.dashLine} />
+            <View style={styles.notchRight} />
+          </View>
+
+          <View style={styles.ticketLowerStub}>
+            <View style={styles.ticketRouteIconWrap}>
+              <Ionicons name="location" size={16} color={C.g700} />
             </View>
-          )}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.ticketRouteLabel}>ROUTE</Text>
+              <Text style={styles.ticketRouteValue} numberOfLines={1}>
+                {pickupLocation}{destination ? `  →  ${destination}` : ''}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        {/* Quoted Banner */}
+        {/* Quick contact — Call (existing handler) + Email (mailto:, same
+            already-fetched customerEmail, no new data/fetch) */}
+        {(customerPhone || customerEmail) && (
+          <View style={styles.contactRow}>
+            {customerPhone && (
+              <TouchableOpacity style={styles.contactBtn} onPress={handleCallCustomer} activeOpacity={0.8}>
+                <Ionicons name="call" size={16} color={C.g600} />
+                <Text style={styles.contactBtnTxt}>Call</Text>
+              </TouchableOpacity>
+            )}
+            {customerEmail && (
+              <TouchableOpacity style={styles.contactBtn} onPress={() => Linking.openURL(`mailto:${customerEmail}`)} activeOpacity={0.8}>
+                <Ionicons name="mail" size={16} color={C.blue} />
+                <Text style={[styles.contactBtnTxt, { color: C.blue }]}>Email</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Already quoted banner */}
         {request.hasQuoted && (
           <View style={styles.quotedBanner}>
-            <View style={styles.quotedBannerLeft}>
-              <Ionicons name="checkmark-circle" size={22} color={C.green} />
+            <View style={styles.quotedBannerIcon}>
+              <Ionicons name="checkmark-circle" size={20} color={C.g600} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.quotedBannerTitle}>You've already sent a quote</Text>
               {request.vendorQuote?.grandTotal ? (
-                <View style={styles.quotedBannerRow}>
-                  <Text style={styles.quotedBannerAmount}>
-                    ₹{Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}
-                  </Text>
-                  {request.vendorQuote?.status ? (
-                    <View style={[styles.quotedStatusPill, { backgroundColor: cfg.bg }]}>
-                      <Text style={[styles.quotedStatusPillText, { color: cfg.text }]}>
-                        {request.vendorQuote.status}
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
+                <Text style={styles.quotedBannerAmt}>
+                  ₹{Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}
+                  {request.vendorQuote?.status ? `  ·  ${request.vendorQuote.status}` : ''}
+                </Text>
               ) : null}
             </View>
           </View>
         )}
 
-        <View style={styles.content}>
-
-          {/* Customer Information */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconBox}>
-                <Ionicons name="person-circle-outline" size={17} color={C.g700} />
+        {/* Vehicle */}
+        {(vehicleModelName || vehicleBrand || vehicleTypeDisplay || transmission || fuelType) ? (
+          <Section iconName="car" iconLib="mci" iconColor={C.amber} title="Vehicle Preference">
+            <View style={styles.vehicleBox}>
+              <View style={styles.vehicleIconWrap}>
+                <MaterialCommunityIcons name="car" size={28} color={C.amber} />
               </View>
-              <Text style={styles.sectionTitle}>Customer Information</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.vehicleName}>{vehicleModelName || vehicleTypeDisplay || 'Vehicle'}</Text>
+                {vehicleBrand ? <Text style={styles.vehicleBrand}>{vehicleBrand}</Text> : null}
+                {vehicleModelName && vehicleTypeDisplay ? (
+                  <View style={styles.catPill}>
+                    <Text style={styles.catPillText}>{vehicleTypeDisplay}</Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
-            <View style={styles.card}>
-              <View style={styles.infoRow}>
-                <View style={[styles.infoIconBox, { backgroundColor: C.blueL }]}>
-                  <Ionicons name="person" size={16} color={C.blue} />
-                </View>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Name</Text>
-                  <Text style={styles.infoValue}>{customerName}</Text>
-                </View>
+
+            {(transmissionName || fuelTypeName) ? (
+              <View style={styles.vehicleSpecsRow}>
+                {transmissionName ? (
+                  <View style={styles.specItem}>
+                    <View style={styles.specIconBox}>
+                      <MaterialCommunityIcons name="car-shift-pattern" size={15} color={C.g700} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.specLabel}>TRANSMISSION</Text>
+                      <Text style={styles.specValue}>{transmissionName}</Text>
+                    </View>
+                  </View>
+                ) : null}
+                {fuelTypeName ? (
+                  <View style={styles.specItem}>
+                    <View style={styles.specIconBox}>
+                      <MaterialCommunityIcons name="gas-station" size={15} color={C.g700} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.specLabel}>FUEL TYPE</Text>
+                      <Text style={styles.specValue}>{fuelTypeName}</Text>
+                    </View>
+                  </View>
+                ) : null}
               </View>
-              {customerEmail && (
-                <View style={styles.infoRow}>
-                  <View style={[styles.infoIconBox, { backgroundColor: C.purpleL }]}>
-                    <Ionicons name="mail" size={16} color={C.purple} />
-                  </View>
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Email</Text>
-                    <Text style={styles.infoValue}>{customerEmail}</Text>
-                  </View>
-                </View>
-              )}
-              {customerPhone ? (
-                <TouchableOpacity
-                  onPress={handleCallCustomer}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 4 }}
-                >
-                  <Ionicons name="call" size={16} color={C.g600} />
-                  <Text style={{ color: C.g600, fontWeight: '700', fontSize: 14 }}>Call Customer</Text>
-                </TouchableOpacity>
+            ) : null}
+          </Section>
+        ) : null}
+
+        {/* Trip details — route line + fact grid (same fields, new layout) */}
+        <Section iconName="calendar-outline" iconColor={C.g600} title="Rental Details">
+          <View style={styles.routeWrap}>
+            <View style={styles.routeGutter}>
+              <View style={[styles.routeDot, { backgroundColor: C.g600 }]} />
+              {destination ? <View style={styles.routeLine} /> : null}
+              {destination ? <View style={[styles.routeDot, { backgroundColor: C.red }]} /> : null}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.routeLabel}>PICKUP</Text>
+              <Text style={styles.routeValue}>{pickupLocation}</Text>
+              {destination ? (
+                <>
+                  <Text style={[styles.routeLabel, { marginTop: 10 }]}>DESTINATION</Text>
+                  <Text style={styles.routeValue}>{destination}</Text>
+                </>
               ) : null}
             </View>
           </View>
 
-          {/* Vehicle Preference */}
-          {(vehicleModelName || vehicleBrand || vehicleTypeDisplay || transmission || fuelType) && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconBox}>
-                  <MaterialCommunityIcons name="car" size={17} color={C.g700} />
-                </View>
-                <Text style={styles.sectionTitle}>Vehicle Preference</Text>
-              </View>
-              <View style={styles.card}>
-                <View style={styles.vehicleInfo}>
-                  <LinearGradient colors={[C.g50, C.g100]} style={styles.vehicleIconBox}>
-                    <MaterialCommunityIcons name="car" size={28} color={C.g700} />
-                  </LinearGradient>
-                  <View style={{ flex: 1 }}>
-                    {vehicleModelName ? (
-                      <>
-                        <View style={styles.vehicleHeader}>
-                          <Text style={styles.vehicleName}>{vehicleModelName}</Text>
-                          {vehicleTypeDisplay && (
-                            <View style={styles.categoryBadge}>
-                              <Text style={styles.categoryText}>{vehicleTypeDisplay}</Text>
-                            </View>
-                          )}
-                        </View>
-                        {vehicleBrand && (
-                          <Text style={styles.vehicleBrand}>{vehicleBrand}</Text>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <View style={styles.vehicleHeader}>
-                          <Text style={styles.vehicleName}>{vehicleTypeDisplay || 'Vehicle'}</Text>
-                        </View>
-                        {vehicleBrand && (
-                          <Text style={styles.vehicleBrand}>{vehicleBrand}</Text>
-                        )}
-                      </>
-                    )}
-                  </View>
-                </View>
-                {(transmission || fuelType) && (
-                  <View style={styles.vehicleSpecsRow}>
-                    {transmissionName && (
-                      <View style={styles.specItem}>
-                        <View style={[styles.specIconBox, { backgroundColor: C.g50 }]}>
-                          <MaterialCommunityIcons name="car-shift-pattern" size={15} color={C.g700} />
-                        </View>
-                        <View style={styles.specContent}>
-                          <Text style={styles.specLabel}>Transmission</Text>
-                          <Text style={styles.specValue}>{transmissionName}</Text>
-                        </View>
-                      </View>
-                    )}
-                    {fuelTypeName && (
-                      <View style={styles.specItem}>
-                        <View style={[styles.specIconBox, { backgroundColor: C.g50 }]}>
-                          <MaterialCommunityIcons name="gas-station" size={15} color={C.g700} />
-                        </View>
-                        <View style={styles.specContent}>
-                          <Text style={styles.specLabel}>Fuel Type</Text>
-                          <Text style={styles.specValue}>{fuelTypeName}</Text>
-                        </View>
-                      </View>
-                    )}
-                  </View>
-                )}
-              </View>
+          <View style={styles.factGrid}>
+            <View style={styles.factCell}>
+              <Text style={styles.factLabel}>PICKUP</Text>
+              <Text style={styles.factValue}>{formatDate(pickupDate)}</Text>
+              <Text style={styles.factSub}>{formatTime(pickupTime)}</Text>
             </View>
-          )}
-
-          {/* Rental Details */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconBox}>
-                <Ionicons name="calendar-outline" size={17} color={C.g700} />
+            {returnDate ? (
+              <View style={styles.factCell}>
+                <Text style={styles.factLabel}>RETURN</Text>
+                <Text style={styles.factValue}>{formatDate(returnDate)}</Text>
+                <Text style={styles.factSub}>{formatTime(returnTime)}</Text>
               </View>
-              <Text style={styles.sectionTitle}>Rental Details</Text>
-            </View>
-            <View style={styles.card}>
-              <View style={styles.infoRow}>
-                <View style={[styles.infoIconBox, { backgroundColor: C.greenL }]}>
-                  <Ionicons name="location" size={16} color={C.green} />
-                </View>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Pickup Location</Text>
-                  <Text style={styles.infoValue}>{pickupLocation}</Text>
-                </View>
+            ) : null}
+            {passengers ? (
+              <View style={styles.factCell}>
+                <Text style={styles.factLabel}>PASSENGERS</Text>
+                <Text style={styles.factValue}>{passengers}</Text>
+                <Text style={styles.factSub}>{passengers === 1 ? 'Passenger' : 'Passengers'}</Text>
               </View>
-              {destination && (
-                <View style={styles.infoRow}>
-                  <View style={[styles.infoIconBox, { backgroundColor: C.redL }]}>
-                    <Ionicons name="location" size={16} color={C.red} />
-                  </View>
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Destination</Text>
-                    <Text style={styles.infoValue}>{destination}</Text>
-                  </View>
-                </View>
-              )}
-              <View style={styles.dateTimeRow}>
-                <View style={styles.dateTimeItem}>
-                  <View style={[styles.dateTimeIconBox, { backgroundColor: C.g50 }]}>
-                    <Ionicons name="calendar" size={14} color={C.g700} />
-                  </View>
-                  <View style={styles.dateTimeContent}>
-                    <Text style={styles.infoLabel}>Pickup Date</Text>
-                    <Text style={styles.dateTimeValue}>{formatDate(pickupDate)}</Text>
-                  </View>
-                </View>
-                <View style={styles.dateTimeItem}>
-                  <View style={[styles.dateTimeIconBox, { backgroundColor: C.g50 }]}>
-                    <Ionicons name="time" size={14} color={C.g700} />
-                  </View>
-                  <View style={styles.dateTimeContent}>
-                    <Text style={styles.infoLabel}>Time</Text>
-                    <Text style={styles.dateTimeValue}>{formatTime(pickupTime)}</Text>
-                  </View>
-                </View>
-              </View>
-              {returnDate && (
-                <View style={styles.dateTimeRow}>
-                  <View style={styles.dateTimeItem}>
-                    <View style={[styles.dateTimeIconBox, { backgroundColor: C.g50 }]}>
-                      <Ionicons name="calendar" size={14} color={C.g700} />
-                    </View>
-                    <View style={styles.dateTimeContent}>
-                      <Text style={styles.infoLabel}>Return Date</Text>
-                      <Text style={styles.dateTimeValue}>{formatDate(returnDate)}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.dateTimeItem}>
-                    <View style={[styles.dateTimeIconBox, { backgroundColor: C.g50 }]}>
-                      <Ionicons name="time" size={14} color={C.g700} />
-                    </View>
-                    <View style={styles.dateTimeContent}>
-                      <Text style={styles.infoLabel}>Time</Text>
-                      <Text style={styles.dateTimeValue}>{formatTime(returnTime)}</Text>
-                    </View>
-                  </View>
-                </View>
-              )}
-              {passengers && (
-                <View style={styles.infoRow}>
-                  <View style={[styles.infoIconBox, { backgroundColor: C.g50 }]}>
-                    <Ionicons name="people" size={16} color={C.g700} />
-                  </View>
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Total Passengers</Text>
-                    <Text style={styles.infoValue}>{passengers}</Text>
-                  </View>
-                </View>
-              )}
-              {doorstepDelivery !== null && doorstepDelivery !== undefined && (
-                <View style={styles.infoRow}>
-                  <View style={[styles.infoIconBox, { backgroundColor: isDoorstepDelivery ? C.greenL : C.redL }]}>
-                    <MaterialCommunityIcons name="truck-delivery" size={16} color={isDoorstepDelivery ? C.green : C.red} />
-                  </View>
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Doorstep Delivery</Text>
-                    <Text style={[styles.infoValue, { color: isDoorstepDelivery ? C.green : C.red }]}>
-                      {isDoorstepDelivery ? 'Yes' : 'No'}
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {/* Special Requirements */}
-          {notes && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconBox}>
-                  <Ionicons name="chatbox-outline" size={17} color={C.g700} />
-                </View>
-                <Text style={styles.sectionTitle}>Special Requirements</Text>
-              </View>
-              <View style={[styles.card, { backgroundColor: C.amberL, borderColor: C.amber + '30' }]}>
-                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
-                  <Ionicons name="information-circle-outline" size={18} color={C.amber} style={{ marginTop: 1 }} />
-                  <Text style={styles.notesText}>{notes}</Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Request Timeline */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconBox}>
-                <Ionicons name="time-outline" size={17} color={C.g700} />
-              </View>
-              <Text style={styles.sectionTitle}>Request Timeline</Text>
-            </View>
-            <View style={styles.card}>
-              <View style={styles.timelineRow}>
-                <View style={[styles.timelineIconBox, { backgroundColor: C.g50 }]}>
-                  <Ionicons name="add-circle" size={14} color={C.g700} />
-                </View>
-                <Text style={styles.timelineText}>
-                  Received on {formatDate(request.createdAt || request.created_at)}
+            ) : null}
+            {doorstepDelivery !== null && doorstepDelivery !== undefined ? (
+              <View style={styles.factCell}>
+                <Text style={styles.factLabel}>DELIVERY</Text>
+                <Text style={[styles.factValue, { color: isDoorstepDelivery ? C.g600 : C.red }]}>
+                  {isDoorstepDelivery ? 'Yes' : 'No'}
                 </Text>
+                <Text style={styles.factSub}>{isDoorstepDelivery ? 'Doorstep' : 'Self Pickup'}</Text>
               </View>
-              {request.updatedAt && request.updatedAt !== request.createdAt && (
-                <View style={styles.timelineRow}>
-                  <View style={[styles.timelineIconBox, { backgroundColor: '#F8FAFC' }]}>
-                    <Ionicons name="refresh" size={14} color={C.muted} />
-                  </View>
-                  <Text style={styles.timelineText}>
-                    Updated on {formatDate(request.updatedAt)}
-                  </Text>
-                </View>
-              )}
-            </View>
+            ) : null}
           </View>
-        </View>
+        </Section>
+
+        {/* Notes */}
+        {notes ? (
+          <Section iconName="chatbox-outline" iconColor={C.purple} title="Special Requirements">
+            <Text style={styles.notesText}>{notes}</Text>
+          </Section>
+        ) : null}
+
+        {/* Timeline — dot + connecting line, same 2 real events as before */}
+        <Section iconName="time-outline" iconColor={C.muted} title="Request Timeline">
+          <View style={styles.tlRow}>
+            <View style={styles.tlGutter}>
+              <View style={[styles.tlDot, { backgroundColor: C.g500 }]} />
+              {request.updatedAt && request.updatedAt !== request.createdAt ? <View style={styles.tlLine} /> : null}
+            </View>
+            <Text style={styles.timelineText}>Received · {formatDate(request.createdAt || request.created_at)}</Text>
+          </View>
+          {request.updatedAt && request.updatedAt !== request.createdAt ? (
+            <View style={styles.tlRow}>
+              <View style={styles.tlGutter}>
+                <View style={[styles.tlDot, { backgroundColor: C.muted }]} />
+              </View>
+              <Text style={styles.timelineText}>Updated · {formatDate(request.updatedAt)}</Text>
+            </View>
+          ) : null}
+        </Section>
       </ScrollView>
 
-      {/* Bottom Action Bars */}
-      {request.hasQuoted && (status === 'ACCEPTED' || request.vendorQuote?.status === 'ACCEPTED') && (
+      {/* Bottom bar */}
+      {request.hasQuoted && (status === 'ACCEPTED' || request.vendorQuote?.status === 'ACCEPTED') ? (
         <View style={styles.bottomBar}>
           <TouchableOpacity
-            style={styles.viewBookingButton}
+            style={styles.primaryBtnWrap}
+            activeOpacity={0.9}
             onPress={() => {
-              if (bookingId) {
-                navigation.navigate('SelfDriveBookingDetail', { bookingId });
-              } else {
-                showInfo('Booking details will appear in your Bookings section shortly.');
-              }
+              if (bookingId) navigation.navigate('SelfDriveBookingDetail', { bookingId });
+              else showInfo('Booking details will appear in your Bookings section shortly.');
             }}
           >
-            <Ionicons name="document-text-outline" size={20} color="#fff" />
-            <Text style={styles.bottomBtnText}>View Booking Details</Text>
+            <LinearGradient colors={G.ocean} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnInner}>
+              <Ionicons name="document-text-outline" size={18} color="#fff" />
+              <Text style={styles.bottomBtnText}>View Booking Details</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
-      )}
-      {!request.hasQuoted && (status === 'PENDING' || status === 'QUOTES_RECEIVED') && (
+      ) : canSendQuote ? (
         <View style={styles.bottomBar}>
-          <TouchableOpacity style={styles.sendQuoteButton} onPress={handleSendQuote}>
-            <Ionicons name="paper-plane" size={20} color="#fff" />
-            <Text style={styles.bottomBtnText}>Send Quote to Customer</Text>
+          <TouchableOpacity style={styles.primaryBtnWrap} activeOpacity={0.9} onPress={handleSendQuote}>
+            <LinearGradient colors={G.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnInner}>
+              <Ionicons name="paper-plane" size={18} color="#fff" />
+              <Text style={styles.bottomBtnText}>Send Quote to Customer</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
-      )}
-      {request.hasQuoted && status !== 'ACCEPTED' && request.vendorQuote?.status !== 'ACCEPTED' && (
-        <View style={styles.quotedBottomBar}>
-          <Ionicons name="checkmark-circle" size={22} color={C.green} />
+      ) : request.hasQuoted && status !== 'ACCEPTED' && request.vendorQuote?.status !== 'ACCEPTED' ? (
+        <View style={styles.quotedSentBar}>
+          <Ionicons name="checkmark-circle" size={20} color={C.g600} />
           <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.quotedBottomTitle}>Quote Already Sent</Text>
+            <Text style={styles.quotedSentText}>Quote Already Sent</Text>
             {request.vendorQuote?.grandTotal ? (
-              <Text style={styles.quotedBottomSub}>
+              <Text style={styles.quotedSentAmt}>
                 ₹{Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}
-                {request.vendorQuote?.status ? `  •  ${request.vendorQuote.status}` : ''}
+                {request.vendorQuote?.status ? `  ·  ${request.vendorQuote.status}` : ''}
               </Text>
             ) : null}
           </View>
         </View>
-      )}
-    </SafeAreaView>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
+  root: { flex: 1, backgroundColor: C.bg },
 
-  /* ── Gradient Header ── */
-  gradientHeader: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 16,
-    overflow: 'hidden',
-  },
-  decorCircle1: {
-    position: 'absolute',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    top: -60,
-    right: -40,
-  },
-  decorCircle2: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    bottom: -30,
-    left: 20,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerCenter: { alignItems: 'center', flex: 1 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff', letterSpacing: 0.2 },
-  headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  headerStatusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 10,
-  },
-  headerStatusText: { fontSize: 11, fontWeight: '700' },
+  // ── Hero ──────────────────────────────────────────────────────────────
+  headerGrad: { paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
+  deco1: { position: 'absolute', width: 190, height: 190, borderRadius: 95, backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40 },
+  deco2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)', bottom: -10, left: 40 },
 
-  /* ── Skeleton ── */
-  skeletonBanner: {
-    height: 76,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 16,
-    marginBottom: 16,
-  },
-  skeletonCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-    gap: 12,
-    marginBottom: 16,
-  },
-  skeletonLine: {
-    height: 12,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 6,
-    width: '100%',
-  },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 16 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
-  scrollView: { flex: 1 },
+  // Identity block (customer avatar + name + phone)
+  identityBlock: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 2 },
+  identityIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  identityIconTxt: { fontFamily: DISPLAY, fontSize: 19, fontWeight: '800', color: '#fff' },
+  identityLabel: { fontSize: 9.5, color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: 1.2, marginBottom: 3 },
+  identityName: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff' },
+  identityPhoneRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
+  identityPhoneTxt: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
 
-  /* ── Status Banner ── */
-  statusBanner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 4,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 14,
+  // Hero quick action
+  heroActionRow: { flexDirection: 'row', paddingTop: 14 },
+  quotedPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 12, paddingVertical: 7,
+    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
   },
-  statusContent: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  statusIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+  quotedPillText: { fontSize: 12.5, fontWeight: '700', color: '#fff' },
+  sendQuickBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.18)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)',
   },
-  statusTextWrap: { flex: 1 },
-  statusLabel: { fontSize: 15, fontWeight: '700' },
-  requestNumberText: { fontSize: 12, color: C.muted, marginTop: 2 },
-  sendQuoteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: C.g700,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: C.g700,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  sendQuoteBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
-  quotedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: C.greenL,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  quotedBadgeText: { fontSize: 12, fontWeight: '600', color: C.greenD },
+  sendQuickBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
-  /* ── Quoted Banner ── */
+  scrollContent: { paddingHorizontal: 16, paddingTop: TICKET_OVERLAP, paddingBottom: 100 },
+
+  // ── Ticket summary card — request #, status, route; overlaps hero bottom ──
+  ticketWrap: {
+    marginTop: -TICKET_OVERLAP, backgroundColor: C.card,
+    borderRadius: rs(16), overflow: 'hidden', borderWidth: 1, borderColor: C.border,
+    marginBottom: 12, ...cardShadow,
+  },
+  ticketRail: { height: 3, width: '100%' },
+  ticketUpperStub: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingBottom: 14 },
+  ticketIconBox: {
+    width: rs(44), height: rs(44), borderRadius: rs(12),
+    backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
+  },
+  ticketLabel: { fontSize: 9.5, color: C.muted, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
+  ticketNumber: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '900', color: C.text, letterSpacing: -0.3 },
+
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  statusPillTxt: { fontSize: 11, fontWeight: '700' },
+
+  perforationRow: { height: 2, justifyContent: 'center' },
+  dashLine: { marginHorizontal: 20, borderTopWidth: 1, borderColor: C.border, borderStyle: 'dashed' },
+  notchLeft: { position: 'absolute', left: -9, top: -8, width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg },
+  notchRight: { position: 'absolute', right: -9, top: -8, width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg },
+
+  ticketLowerStub: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, paddingTop: 14 },
+  ticketRouteIconWrap: { width: rs(30), height: rs(30), borderRadius: rs(9), backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center' },
+  ticketRouteLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
+  ticketRouteValue: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '800', color: C.g700 },
+
+  // Quick contact row
+  contactRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  contactBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    backgroundColor: C.card, borderRadius: rs(14), paddingVertical: 12,
+    borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
+  },
+  contactBtnTxt: { fontSize: 13, fontWeight: '800', color: C.g600 },
+
+  // Quoted banner
   quotedBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 10,
-    borderRadius: 14,
-    padding: 14,
-    gap: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: C.g700,
-    borderWidth: 1,
-    borderColor: C.border,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.g50, padding: 14, borderRadius: 12,
+    borderWidth: 1, borderColor: C.g100, marginBottom: 12,
   },
-  quotedBannerLeft: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: C.greenL,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quotedBannerTitle: { fontSize: 13, fontWeight: '700', color: C.text },
-  quotedBannerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
-  quotedBannerAmount: { fontSize: 15, fontWeight: '800', color: C.g800 },
-  quotedStatusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  quotedStatusPillText: { fontSize: 11, fontWeight: '700' },
+  quotedBannerIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.g100, justifyContent: 'center', alignItems: 'center' },
+  quotedBannerTitle: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.g700 },
+  quotedBannerAmt: { fontSize: 12, color: C.g600, marginTop: 2 },
 
-  /* ── Content ── */
-  content: { padding: 16, paddingTop: 12, paddingBottom: 110 },
-
-  /* ── Sections ── */
-  section: { marginBottom: 20 },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  sectionIconBox: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: C.g50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: C.g100,
-  },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: C.text },
-
-  /* ── Card ── */
+  // ── Section card ──────────────────────────────────────────────────────
   card: {
-    backgroundColor: C.card,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-    gap: 14,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
+    backgroundColor: C.card, borderRadius: rs(16), padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
   },
+  cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  cardIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
 
-  /* ── Info Rows ── */
-  infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  infoIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexShrink: 0,
+  // Vehicle
+  vehicleBox: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  vehicleIconWrap: {
+    width: 52, height: 52, borderRadius: 14,
+    backgroundColor: C.amberL, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: '#FDE68A',
   },
-  infoContent: { flex: 1, paddingTop: 2 },
-  infoLabel: { fontSize: 11, color: C.muted, marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.4 },
-  infoValue: { fontSize: 14, color: C.text, fontWeight: '600' },
+  vehicleName: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
+  vehicleBrand: { fontSize: 12, color: C.sub, marginTop: 2 },
+  catPill: {
+    alignSelf: 'flex-start', backgroundColor: C.amberL,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginTop: 6,
+    borderWidth: 1, borderColor: '#FDE68A',
+  },
+  catPillText: { fontSize: 11, fontWeight: '600', color: C.amber },
 
-  /* ── Vehicle ── */
-  vehicleInfo: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
-  vehicleIconBox: {
-    width: 54,
-    height: 54,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: C.g100,
-    flexShrink: 0,
-  },
-  vehicleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 4,
-  },
-  vehicleName: { fontSize: 16, fontWeight: '700', color: C.text, flex: 1 },
-  vehicleBrand: { fontSize: 13, color: C.sub },
-  categoryBadge: {
-    backgroundColor: C.g50,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: C.g100,
-  },
-  categoryText: { fontSize: 11, fontWeight: '700', color: C.g700 },
+  // Vehicle specs (transmission / fuel)
+  vehicleSpecsRow: { flexDirection: 'row', gap: 10, marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: C.border },
+  specItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  specIconBox: { width: 30, height: 30, borderRadius: 8, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center' },
+  specLabel: { fontSize: 9, fontWeight: '700', color: C.muted, letterSpacing: 0.5, marginBottom: 1 },
+  specValue: { fontSize: 13, fontWeight: '700', color: C.text },
 
-  vehicleSpecsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingTop: 4,
-  },
-  specItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-  },
-  specIconBox: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  specContent: { flex: 1, paddingTop: 1 },
-  specLabel: { fontSize: 11, color: C.muted, marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.3 },
-  specValue: { fontSize: 13, fontWeight: '600', color: C.text },
+  // Route line (pickup → destination) inside Rental Details
+  routeWrap: { flexDirection: 'row', paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: C.border, marginBottom: 12 },
+  routeGutter: { width: 20, alignItems: 'center', marginRight: 10 },
+  routeDot: { width: 9, height: 9, borderRadius: 4.5 },
+  routeLine: { width: 1.5, flex: 1, minHeight: 24, backgroundColor: C.border, marginVertical: 3 },
+  routeLabel: { fontSize: 10, fontWeight: '700', color: C.muted, letterSpacing: 0.5 },
+  routeValue: { fontSize: 14, fontWeight: '700', color: C.text, marginTop: 2 },
 
-  /* ── Date/Time Grid ── */
-  dateTimeRow: { flexDirection: 'row', gap: 12 },
-  dateTimeItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-  },
-  dateTimeIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  dateTimeContent: { flex: 1, paddingTop: 1 },
-  dateTimeValue: { fontSize: 13, fontWeight: '600', color: C.text, marginTop: 2 },
+  // Fact grid (pickup/return/passengers/delivery)
+  factGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  factCell: { flexGrow: 1, minWidth: '30%', backgroundColor: C.g50, borderRadius: rs(12), padding: 10 },
+  factLabel: { fontSize: 9, fontWeight: '700', color: C.g700, letterSpacing: 0.5, marginBottom: 4 },
+  factValue: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text },
+  factSub: { fontSize: 11, color: C.sub, marginTop: 1 },
 
-  /* ── Notes ── */
-  notesText: { fontSize: 14, color: C.sub, lineHeight: 22, flex: 1 },
+  // Notes
+  notesText: { fontSize: 14, color: C.sub, lineHeight: 22 },
 
-  /* ── Timeline ── */
-  timelineRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  timelineIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  timelineText: { fontSize: 13, color: C.sub },
+  // Timeline (dot + connecting line)
+  tlRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  tlGutter: { width: 18, alignItems: 'center' },
+  tlDot: { width: 8, height: 8, borderRadius: 4, marginTop: 3 },
+  tlLine: { width: 1.5, flex: 1, minHeight: 16, backgroundColor: C.border, marginVertical: 2 },
+  timelineText: { fontSize: 13, color: C.sub, marginLeft: 6, paddingBottom: 10 },
 
-  /* ── Bottom Bars ── */
+  // ── Bottom bar ────────────────────────────────────────────────────────
   bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    elevation: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    paddingHorizontal: 16, paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 14,
+    backgroundColor: C.card,
+    borderTopWidth: 1, borderTopColor: C.border,
+    ...cardShadow,
   },
-  sendQuoteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: C.g700,
-    paddingVertical: 14,
-    borderRadius: 14,
-    elevation: 3,
-    shadowColor: C.g700,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-  },
-  viewBookingButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: C.green,
-    paddingVertical: 14,
-    borderRadius: 14,
-    elevation: 3,
-    shadowColor: C.green,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-  },
-  bottomBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  primaryBtnWrap: { borderRadius: rs(14), overflow: 'hidden' },
+  primaryBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
+  bottomBtnText: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: '#fff' },
 
-  quotedBottomBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+  quotedSentBar: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 12,
     backgroundColor: C.g50,
-    borderTopWidth: 1,
-    borderTopColor: C.g100,
+    borderTopWidth: 1, borderTopColor: C.g100,
   },
-  quotedBottomTitle: { fontSize: 14, fontWeight: '700', color: C.g800 },
-  quotedBottomSub: { fontSize: 12, color: C.g700, marginTop: 2 },
+  quotedSentText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.g700 },
+  quotedSentAmt: { fontSize: 12, color: C.g600, marginTop: 1 },
 
-  /* ── Empty State ── */
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 80,
-  },
-  emptyIconWrap: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: C.g50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: C.g100,
-  },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginTop: 20 },
-  emptySubtitle: {
-    fontSize: 14,
-    color: C.sub,
-    marginTop: 8,
-    textAlign: 'center',
-    paddingHorizontal: 32,
-  },
+  // Empty / Loading
+  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text, marginTop: 14 },
+  emptySubtitle: { fontSize: 13, color: C.muted, marginTop: 6, textAlign: 'center', paddingHorizontal: 32 },
 });

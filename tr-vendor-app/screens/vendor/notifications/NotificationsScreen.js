@@ -1,32 +1,38 @@
-import React, { useState, useEffect, useCallback } from 'react';
+// screens/vendor/notifications/NotificationsScreen.js
+// Redesigned to match the travel-agent side notifications screen exactly:
+// gradient header, pill filter tabs with icons, date-grouped sections,
+// type-color left-border on unread cards, delete + clear-all, polished
+// empty state per filter.
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, StatusBar, Dimensions,
+  View, Text, SectionList, TouchableOpacity, StyleSheet,
+  RefreshControl, ActivityIndicator, ScrollView, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
-import { getVendorNotifications, markVendorNotificationsRead } from '../../api/client';
+import {
+  getVendorNotifications, markVendorNotificationsRead, deleteVendorNotifications,
+} from '../../api/client';
+import { showConfirm, showError } from '../../../services/alertService';
 import { NotifBadgeContext } from '../../../contexts/NotifBadgeContext';
-import { ListSkeleton } from '../../../components/SkeletonLoader';
+import { SC as T, G, rs } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
-const { width: W } = Dimensions.get('window');
-
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399',
-  g100: '#D1FAE5', g50:  '#ECFDF5',
-  bg:     '#F1F5F9',
-  card:   '#FFFFFF',
-  border: '#E2E8F0',
-  text:   '#0F172A',
-  sub:    '#475569',
-  muted:  '#94A3B8',
-  blue:   '#2563EB', blueL: '#EFF6FF',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  amber:  '#D97706', amberL:  '#FFFBEB',
-  red:    '#DC2626', redL:    '#FEF2F2',
+  g900: T.forestDark, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg:     T.bg, card: T.card, border: T.border,
+  text:   T.ink, sub: T.text, muted: T.subText,
+  blue:   T.blue, blueL: T.blueLight,
+  purple: T.purple, purpleL: T.tintPlum,
+  amber:  T.amber, amberL: T.amberLight,
+  red:    T.red, redL: T.redLight,
+  sand:   T.tintSand, shadow: T.shadow,
 };
 
 // WhatsApp-style avatar palette — name hashes into one of these so the same
@@ -50,7 +56,7 @@ function avatarColorFor(name) {
   return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
 }
 
-// ── Notification type config ───────────────────────────────────
+// ── Notification type config — icon + accent colors per type ────
 const NOTIF_CONFIG = {
   quote_request:             { icon: 'file-text',    color: C.purple, bg: C.purpleL },
   chat:                      { icon: 'message-square', color: C.g600, bg: C.g50    },
@@ -91,6 +97,51 @@ const NOTIF_CONFIG = {
   p2p_rating_received:       { icon: 'star',          color: C.amber,  bg: C.amberL },
   p2p_new_comment:           { icon: 'message-circle',color: C.blue,   bg: C.blueL  },
   general:                   { icon: 'bell',          color: C.blue,   bg: C.blueL  },
+};
+
+// Vendor has far more granular types than travel-agent's 5 buckets, so each
+// type is grouped into one of these broader filter categories (used for both
+// the pill tabs and the small badge label on each card).
+const CATEGORY_OF = {
+  quote_request: 'quote',
+  chat: 'chat', new_message: 'chat',
+  direct_booking_inquiry: 'booking', booking_new: 'booking', booking_accepted: 'booking',
+  booking_confirmed: 'booking', booking_assigned: 'booking', booking_cancelled: 'booking',
+  booking_rejected: 'booking', quote_accepted: 'booking',
+  trip_started: 'booking', trip_complete: 'booking', trip_completed: 'booking',
+  payment_received: 'payment', advance_paid: 'payment', payment: 'payment',
+  document_approved: 'updates', document_rejected: 'updates', document: 'updates',
+  location_approved: 'updates', location_rejected: 'updates',
+  service_approved: 'updates', service_rejected: 'updates', approval: 'updates',
+  p2p_booking_accepted: 'updates', p2p_deal_confirmed: 'updates', p2p_trip_started: 'updates',
+  p2p_trip_completed: 'updates', p2p_vehicle_requested: 'updates', p2p_request_accepted: 'updates',
+  p2p_request_rejected: 'updates', p2p_transaction_created: 'updates', p2p_transaction_cancelled: 'updates',
+  p2p_new_booking_posted: 'updates', p2p_posting_cancelled: 'updates', p2p_rating_received: 'updates',
+  p2p_new_comment: 'updates',
+  general: 'updates',
+};
+const CATEGORY_LABEL = {
+  quote: 'Quote', booking: 'Booking', payment: 'Payment', chat: 'Chat', updates: 'Update',
+};
+
+const FILTERS = [
+  { key: 'all',     label: 'All',      icon: 'apps' },
+  { key: 'unread',  label: 'Unread',   icon: 'mail-unread' },
+  { key: 'quote',   label: 'Quotes',   icon: 'document-text' },
+  { key: 'booking', label: 'Bookings', icon: 'calendar' },
+  { key: 'payment', label: 'Payments', icon: 'cash' },
+  { key: 'chat',    label: 'Chat',     icon: 'chatbubble-ellipses' },
+  { key: 'updates', label: 'Updates',  icon: 'information-circle' },
+];
+
+const EMPTY_MAP = {
+  all:     { icon: 'notifications-off-outline', title: 'No notifications',  body: "When something happens, you'll see it here." },
+  unread:  { icon: 'checkmark-done-circle',      title: 'All caught up! 🎉', body: "You've read everything. Nice work." },
+  quote:   { icon: 'document-text-outline',      title: 'No quote activity', body: 'New quote requests will show up here.' },
+  booking: { icon: 'calendar-outline',           title: 'No booking events', body: 'Booking updates and trip status will appear here.' },
+  payment: { icon: 'cash-outline',               title: 'No payment alerts', body: 'Payments and advances will appear here.' },
+  chat:    { icon: 'chatbubbles-outline',        title: 'No chat messages',  body: 'New messages from customers will appear here.' },
+  updates: { icon: 'information-circle-outline', title: 'No updates',       body: 'Approvals and account updates will appear here.' },
 };
 
 const QUOTE_SCREEN_MAP = {
@@ -137,43 +188,24 @@ function getGroup(dateStr) {
   if (diffDays < 7)  return 'This Week';
   return 'Earlier';
 }
-
-// Group + inject section headers
-function buildListData(notifications) {
-  const groups = {};
-  const ORDER  = ['Today', 'Yesterday', 'This Week', 'Earlier'];
-  notifications.forEach(n => {
-    const g = getGroup(n.createdAt);
-    if (!groups[g]) groups[g] = [];
-    groups[g].push(n);
-  });
-  const result = [];
-  ORDER.forEach(g => {
-    if (groups[g]?.length) {
-      result.push({ type: 'header', id: `hdr_${g}`, label: g, count: groups[g].length });
-      groups[g].forEach(n => result.push({ type: 'item', ...n }));
-    }
-  });
-  return result;
-}
-
-// ── Skeleton bone ──────────────────────────────────────────────
-const Bone = ({ w, h, r = 6 }) => (
-  <View style={{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }} />
-);
+const GROUP_ORDER = ['Today', 'Yesterday', 'This Week', 'Earlier'];
 
 export default function NotificationsScreen({ navigation }) {
   const { refreshBadge } = React.useContext(NotifBadgeContext);
   const [loading, setLoading]           = useState(true);
   const [refreshing, setRefreshing]     = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [filter, setFilter] = useState('all');
+  const [error, setError] = useState(null);
 
   const fetchNotifications = useCallback(async () => {
     try {
+      setError(null);
       const response = await getVendorNotifications();
       setNotifications(response?.notifications || []);
     } catch (e) {
       console.log('Error fetching notifications:', e);
+      setError('Failed to load notifications');
     } finally {
       setLoading(false);
     }
@@ -217,172 +249,232 @@ export default function NotificationsScreen({ navigation }) {
     if (type === 'service_approved' || type === 'service_rejected')   { navigation.navigate('VendorServices'); return; }
   }, [navigation, refreshBadge]);
 
-  const handleMarkAllRead = useCallback(async () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    markVendorNotificationsRead(null).catch(() => {});
-    refreshBadge();
-  }, [refreshBadge]);
-
-  const hasUnread   = notifications.some(n => n.read === false);
   const unreadCount = notifications.filter(n => n.read === false).length;
-  const listData    = buildListData(notifications);
+
+  const handleMarkAllRead = useCallback(() => {
+    showConfirm('Mark all as read?', `${unreadCount} unread notifications will be marked as read.`, async () => {
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      markVendorNotificationsRead(null).catch(() => {});
+      refreshBadge();
+    }, { confirmText: 'Mark all' });
+  }, [refreshBadge, unreadCount]);
+
+  const deleteOne = useCallback(async (item) => {
+    setNotifications(prev => prev.filter(n => n.id !== item.id));
+    if (!item.read) refreshBadge();
+    try {
+      await deleteVendorNotifications([item.id]);
+    } catch (e) {
+      fetchNotifications();
+      showError('Failed to delete notification');
+    }
+  }, [refreshBadge, fetchNotifications]);
+
+  const clearAll = useCallback(() => {
+    if (notifications.length === 0) return;
+    showConfirm(
+      'Clear all notifications?',
+      'This will delete every notification in your inbox. This cannot be undone.',
+      async () => {
+        try {
+          await deleteVendorNotifications(notifications.map(n => n.id));
+          setNotifications([]);
+          refreshBadge();
+        } catch (e) {
+          showError('Failed to clear notifications');
+        }
+      },
+      { confirmText: 'Clear all', destructive: true }
+    );
+  }, [notifications, refreshBadge]);
+
+  // ── Filter (client-side — the whole list is already loaded) ──
+  const filtered = useMemo(() => {
+    if (filter === 'all') return notifications;
+    if (filter === 'unread') return notifications.filter(n => n.read === false);
+    return notifications.filter(n => (CATEGORY_OF[n.type] || 'updates') === filter);
+  }, [notifications, filter]);
+
+  // ── Group into day-bucket sections ──
+  const sections = useMemo(() => {
+    const groups = {};
+    filtered.forEach(n => {
+      const g = getGroup(n.createdAt);
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(n);
+    });
+    return GROUP_ORDER.filter(g => groups[g]?.length).map(g => ({ title: g, data: groups[g] }));
+  }, [filtered]);
 
   // ── Render item ────────────────────────────────────────────────
-  const renderItem = ({ item }) => {
-    if (item.type === 'header') {
-      return (
-        <View style={s.groupHeader}>
-          <Text style={s.groupLabel}>{item.label}</Text>
-          <View style={s.groupLine} />
-        </View>
-      );
-    }
-
-    const cfg      = NOTIF_CONFIG[item.type] || NOTIF_CONFIG.general;
-    const isUnread = item.read === false;
-    const isChat   = item.type === 'chat' || item.type === 'new_message';
-
-    // Older saved chat notifications had a "💬 " emoji prefix on the title;
-    // strip defensively so the avatar+name render cleanly either way.
-    const cleanTitle = isChat ? (item.title || '').replace(/^💬\s*/, '').trim() : item.title;
-    const initial    = isChat && cleanTitle ? cleanTitle.charAt(0).toUpperCase() : '';
-    const avatarBg   = isChat ? avatarColorFor(cleanTitle) : null;
-
-    return (
-      <TouchableOpacity
-        style={[s.card, isUnread && (isChat ? s.cardUnreadChat : s.cardUnread)]}
-        onPress={() => handleNotificationPress(item)}
-        activeOpacity={0.75}
-      >
-        {/* Unread left accent bar — only for non-chat (chat uses bolder title + green time) */}
-        {isUnread && !isChat && <View style={[s.accentBar, { backgroundColor: cfg.color }]} />}
-
-        {/* Avatar (chat) — WhatsApp-style; or icon (everything else) */}
-        {isChat ? (
-          <View style={[s.avatar, { backgroundColor: avatarBg }]}>
-            <Text style={s.avatarTxt}>{initial || '?'}</Text>
-          </View>
-        ) : (
-          <View style={[s.iconBox, { backgroundColor: cfg.bg }]}>
-            <Icon name={cfg.icon} size={19} color={cfg.color} />
-          </View>
-        )}
-
-        <View style={s.content}>
-          <View style={s.cardTop}>
-            <Text
-              style={[isChat ? s.chatName : s.title, isUnread && (isChat ? s.chatNameUnread : s.titleUnread)]}
-              numberOfLines={1}
-            >
-              {cleanTitle || (isChat ? 'New message' : 'Notification')}
-            </Text>
-            <Text style={[s.time, isUnread && (isChat ? s.timeChatUnread : s.timeUnread)]}>
-              {formatTime(item.createdAt)}
-            </Text>
-          </View>
-          <Text
-            style={[s.body, isChat && s.bodyChat, isChat && isUnread && s.bodyChatUnread]}
-            numberOfLines={2}
-          >
-            {item.body || item.message}
-          </Text>
-        </View>
-
-        {/* Unread pill — WhatsApp-style green dot on the right for chats */}
-        {isUnread && isChat && <View style={[s.unreadDot, { backgroundColor: C.g500 }]} />}
-      </TouchableOpacity>
-    );
-  };
-
-  // ── Loading skeleton ──────────────────────────────────────────
-  if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: C.bg }}>
-        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.heroSk}>
-          <SafeAreaView>
-            <View style={s.headerRow}>
-              <View style={s.backCircleSk} />
-              <Bone w={130} h={16} r={6} />
-              <Bone w={72} h={14} r={5} />
-            </View>
-            <Bone w={160} h={10} r={4} style={{ marginTop: 4 }} />
-          </SafeAreaView>
-        </LinearGradient>
-        <View style={{ paddingHorizontal: 16, paddingTop: 20, gap: 10 }}>
-          {[0,1,2,3,4,5].map(i => (
-            <View key={i} style={s.cardSk}>
-              <Bone w={44} h={44} r={12} />
-              <View style={{ flex: 1, marginLeft: 12, gap: 7 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Bone w={W * 0.45} h={12} r={5} />
-                  <Bone w={44} h={10} r={4} />
-                </View>
-                <Bone w={W * 0.65} h={10} r={4} />
-                <Bone w={W * 0.5} h={10} r={4} />
-              </View>
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  }
+  const renderItem = ({ item }) => (
+    <NotifCard item={item} onPress={() => handleNotificationPress(item)} onDelete={() => deleteOne(item)} />
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      {/* ── Header ───────────────────────────────────────────── */}
-      <LinearGradient
-        colors={[C.g900, '#064E3B', C.g700]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={s.hero}
-      >
-        {/* Deco blob */}
-        <View style={s.blob} />
-        <SafeAreaView>
+      {/* ── Gradient header ──────────────────────────────────── */}
+      <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+        <AnimatedOrb style={s.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={['top']} style={{ paddingHorizontal: 12 }}>
           <View style={s.headerRow}>
-            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
-              <Ionicons name="arrow-back" size={20} color="#fff" />
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.iconBtn}>
+              <Ionicons name="arrow-back" size={22} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1, marginLeft: 12 }}>
+            <View style={{ flex: 1 }}>
               <Text style={s.headerTitle}>Notifications</Text>
-              {unreadCount > 0 && (
-                <Text style={s.headerSub}>{unreadCount} unread</Text>
-              )}
+              <Text style={s.headerSub}>{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</Text>
             </View>
-            {hasUnread && (
-              <TouchableOpacity style={s.markAllBtn} onPress={handleMarkAllRead} activeOpacity={0.8}>
-                <Ionicons name="checkmark-done-outline" size={14} color="rgba(255,255,255,0.9)" />
-                <Text style={s.markAllTxt}>Mark all read</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={[s.iconBtn, unreadCount === 0 && { opacity: 0.4 }]}
+              onPress={handleMarkAllRead}
+              disabled={unreadCount === 0}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons name="checkmark-done" size={22} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.iconBtn, notifications.length === 0 && { opacity: 0.4 }]}
+              onPress={clearAll}
+              disabled={notifications.length === 0}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons name="trash-outline" size={20} color="#fff" />
+            </TouchableOpacity>
           </View>
+
+          {/* Filter pills */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtersRow}>
+            {FILTERS.map(f => {
+              const active = filter === f.key;
+              return (
+                <TouchableOpacity
+                  key={f.key}
+                  style={[s.filterChip, active && s.filterChipActive]}
+                  onPress={() => setFilter(f.key)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name={f.icon} size={12} color={active ? C.g700 : 'rgba(255,255,255,0.85)'} />
+                  <Text style={[s.filterText, active && s.filterTextActive]}>{f.label}</Text>
+                  {f.key === 'unread' && unreadCount > 0 && (
+                    <View style={[s.filterBadge, active && { backgroundColor: C.g600 }]}>
+                      <Text style={[s.filterBadgeText, active && { color: '#fff' }]}>
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </SafeAreaView>
       </LinearGradient>
 
-      {/* ── List / Empty ─────────────────────────────────────── */}
-      {notifications.length === 0 ? (
-        <View style={s.emptyWrap}>
-          <LinearGradient colors={[C.g50, C.g100]} style={s.emptyCircle}>
-            <Ionicons name="notifications-off-outline" size={44} color={C.g600} />
-          </LinearGradient>
-          <Text style={s.emptyTitle}>All caught up!</Text>
-          <Text style={s.emptyBody}>New notifications will appear here when there's activity on your account.</Text>
+      {error && (
+        <View style={s.errorBox}>
+          <Ionicons name="alert-circle-outline" size={16} color={C.red} />
+          <Text style={s.errorText}>{error}</Text>
+          <TouchableOpacity onPress={fetchNotifications}>
+            <Text style={s.errorRetry}>Retry</Text>
+          </TouchableOpacity>
         </View>
+      )}
+
+      {/* ── List / Empty ─────────────────────────────────────── */}
+      {loading ? (
+        <View style={s.loadingWrap}><ActivityIndicator size="large" color={C.g600} /></View>
+      ) : sections.length === 0 ? (
+        <EmptyState filter={filter} />
       ) : (
-        <FlatList
-          data={listData}
-          renderItem={renderItem}
+        <SectionList
+          sections={sections}
           keyExtractor={item => item.id?.toString()}
+          renderSectionHeader={({ section }) => (
+            <View style={s.sectionHeaderWrap}>
+              <Text style={s.sectionTitle}>{section.title}</Text>
+              <View style={{ flex: 1 }} />
+              <Text style={s.sectionCount}>{section.data.length}</Text>
+            </View>
+          )}
+          renderItem={renderItem}
           contentContainerStyle={s.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh}
               colors={[C.g500]} tintColor={C.g400} progressBackgroundColor="#fff" />
           }
+          stickySectionHeadersEnabled={false}
         />
       )}
+    </View>
+  );
+}
+
+// ── Notification card ──────────────────────────────────────────
+function NotifCard({ item, onPress, onDelete }) {
+  const cfg      = NOTIF_CONFIG[item.type] || NOTIF_CONFIG.general;
+  const category = CATEGORY_OF[item.type] || 'updates';
+  const isUnread = item.read === false;
+  const isChat   = item.type === 'chat' || item.type === 'new_message';
+
+  // Older saved chat notifications had a "💬 " emoji prefix on the title;
+  // strip defensively so the avatar+name render cleanly either way.
+  const cleanTitle = isChat ? (item.title || '').replace(/^💬\s*/, '').trim() : item.title;
+  const initial    = isChat && cleanTitle ? cleanTitle.charAt(0).toUpperCase() : '';
+  const avatarBg   = isChat ? avatarColorFor(cleanTitle) : null;
+
+  return (
+    <TouchableOpacity
+      style={[s.card, isUnread && { borderLeftWidth: 4, borderLeftColor: cfg.color, backgroundColor: '#FCFAF4' }]}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      {isChat ? (
+        <View style={[s.avatar, { backgroundColor: avatarBg }]}>
+          <Text style={s.avatarTxt}>{initial || '?'}</Text>
+          {isUnread && <View style={[s.unreadDot, { backgroundColor: C.g500 }]} />}
+        </View>
+      ) : (
+        <View style={[s.typeIcon, { backgroundColor: cfg.bg }]}>
+          <Icon name={cfg.icon} size={18} color={cfg.color} />
+          {isUnread && <View style={[s.unreadDot, { backgroundColor: cfg.color }]} />}
+        </View>
+      )}
+
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <View style={s.cardTopLine}>
+          <View style={[s.typeBadge, { backgroundColor: cfg.bg }]}>
+            <Text style={[s.typeBadgeText, { color: cfg.color }]}>{CATEGORY_LABEL[category]}</Text>
+          </View>
+          <Text style={s.cardTime}>{formatTime(item.createdAt)}</Text>
+        </View>
+        <Text style={[s.cardTitle, isUnread && { fontWeight: '800' }]} numberOfLines={1}>
+          {cleanTitle || (isChat ? 'New message' : 'Notification')}
+        </Text>
+        {!!(item.body || item.message) && (
+          <Text style={s.cardBody} numberOfLines={2}>{item.body || item.message}</Text>
+        )}
+      </View>
+
+      <TouchableOpacity onPress={onDelete} style={s.deleteBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <Ionicons name="close" size={16} color={C.muted} />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+}
+
+function EmptyState({ filter }) {
+  const m = EMPTY_MAP[filter] || EMPTY_MAP.all;
+  return (
+    <View style={s.empty}>
+      <View style={s.emptyIconBox}>
+        <Ionicons name={m.icon} size={36} color={C.g600} />
+      </View>
+      <Text style={s.emptyTitle}>{m.title}</Text>
+      <Text style={s.emptyBody}>{m.body}</Text>
     </View>
   );
 }
@@ -391,112 +483,99 @@ export default function NotificationsScreen({ navigation }) {
 const s = StyleSheet.create({
 
   // ── Header ──────────────────────────────────────────────────
-  hero:    { paddingHorizontal: 16, paddingBottom: 20, overflow: 'hidden' },
-  heroSk:  { paddingHorizontal: 16, paddingBottom: 20 },
-  blob: {
-    position: 'absolute', width: 160, height: 160, borderRadius: 80,
-    backgroundColor: 'rgba(52,211,153,0.07)', top: -50, right: -30,
+  hero: {
+    paddingBottom: rs(16), overflow: 'hidden',
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
   },
-  headerRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 8 },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.13)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+  orbA: {
+    position: 'absolute', top: -50, right: -40, width: 190, height: 190,
+    borderRadius: 95, backgroundColor: 'rgba(201,154,63,0.10)',
+  },
+  orbB: {
+    position: 'absolute', top: 30, left: -60, width: 150, height: 150,
+    borderRadius: 75, backgroundColor: 'rgba(46,158,119,0.14)',
+  },
+  headerRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 4, paddingHorizontal: 4 },
+  iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 19, fontWeight: '800', color: '#fff' },
+  headerSub:   { fontFamily: DISPLAY, fontSize: 11.5, color: 'rgba(255,255,255,0.85)', fontWeight: '700', marginTop: 2 },
+
+  // Filter pills
+  filtersRow: { paddingHorizontal: 8, paddingTop: 12, gap: 6, flexDirection: 'row' },
+  filterChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+  },
+  filterChipActive: { backgroundColor: '#fff', borderColor: '#fff' },
+  filterText: { fontFamily: DISPLAY, fontSize: 12, color: '#fff', fontWeight: '700' },
+  filterTextActive: { color: C.g700, fontWeight: '700' },
+  filterBadge: {
+    minWidth: 18, height: 16, paddingHorizontal: 5, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.3)',
     alignItems: 'center', justifyContent: 'center',
   },
-  backCircleSk: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.13)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
-  },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  headerSub:   { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: '600', marginTop: 1 },
-  markAllBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.13)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6,
-  },
-  markAllTxt: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
+  filterBadgeText: { fontFamily: DISPLAY, color: '#fff', fontSize: 10, fontWeight: '700' },
 
-  // ── Group header ─────────────────────────────────────────────
-  groupHeader: {
-    flexDirection: 'row', alignItems: 'center', marginBottom: 10, marginTop: 4,
+  // Error
+  errorBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    margin: 14, padding: 10, backgroundColor: C.redL, borderRadius: rs(10),
+    borderWidth: 1, borderColor: '#FECACA',
   },
-  groupLabel: { fontSize: 11, fontWeight: '800', color: C.muted, letterSpacing: 0.5, marginRight: 10 },
-  groupLine:  { flex: 1, height: 1, backgroundColor: C.border },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 12.5, flex: 1 },
+  errorRetry: { fontFamily: DISPLAY, color: C.red, fontWeight: '700', fontSize: 12.5 },
+
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  // ── List ─────────────────────────────────────────────────────
+  listContent: { padding: 14, paddingTop: 10, paddingBottom: 100 },
+
+  // Section header
+  sectionHeaderWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 4, paddingTop: 12, paddingBottom: 8,
+  },
+  sectionTitle: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: '800', color: C.muted, letterSpacing: 0.7, textTransform: 'uppercase' },
+  sectionCount: { fontFamily: DISPLAY, fontSize: 11, color: C.muted, fontWeight: '700' },
 
   // ── Notification card ─────────────────────────────────────────
   card: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.card, borderRadius: 16, padding: 14,
-    marginBottom: 10,
-    shadowColor: '#0F172A', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    backgroundColor: C.card, borderRadius: rs(16), padding: 12,
     borderWidth: 1, borderColor: C.border,
-    overflow: 'hidden',
+    marginBottom: 10, paddingLeft: 12,
+    shadowColor: C.shadow, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05, shadowRadius: 10, elevation: 1,
   },
-  cardUnread: {
-    backgroundColor: '#F8FAFF',
-    borderColor: '#BFDBFE',
-    shadowOpacity: 0.08, elevation: 3,
-  },
-  // Chat unread — keep card clean white (WhatsApp style) but lift slightly
-  cardUnreadChat: {
-    shadowOpacity: 0.09, elevation: 3,
-  },
-  accentBar: {
-    position: 'absolute', left: 0, top: 0, bottom: 0, width: 3.5,
-  },
-  iconBox: {
-    width: 44, height: 44, borderRadius: 13,
-    alignItems: 'center', justifyContent: 'center', marginRight: 12,
-  },
+  typeIcon: { position: 'relative', width: 38, height: 38, borderRadius: rs(13), alignItems: 'center', justifyContent: 'center' },
   // Chat avatar (WhatsApp-style round, no badge)
   avatar: {
-    width: 48, height: 48, borderRadius: 24,
-    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+    position: 'relative', width: 38, height: 38, borderRadius: 19,
+    alignItems: 'center', justifyContent: 'center',
   },
-  avatarTxt: {
-    color: '#fff', fontSize: 19, fontWeight: '700', letterSpacing: -0.3,
+  avatarTxt: { fontFamily: DISPLAY, color: '#fff', fontSize: 15, fontWeight: '800' },
+  unreadDot: { position: 'absolute', top: -2, right: -2, width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: '#FCFAF4' },
+  cardTopLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  typeBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  typeBadgeText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: '800', letterSpacing: 0.4, textTransform: 'uppercase' },
+  cardTime: { fontFamily: DISPLAY, fontSize: 10.5, color: C.muted, fontWeight: '700', marginLeft: 'auto' },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 13.5, color: C.text, fontWeight: '700', marginTop: 4 },
+  cardBody: { fontFamily: DISPLAY, fontSize: 12, color: C.muted, marginTop: 3, lineHeight: 17 },
+  deleteBtn: {
+    width: 28, height: 28, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: C.sand,
   },
-  content:  { flex: 1, minWidth: 0 },
-  cardTop:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
-  title:    { fontSize: 13.5, fontWeight: '600', color: C.sub, flex: 1, marginRight: 8 },
-  titleUnread: { color: C.text, fontWeight: '700' },
-  // Chat name — bigger, like WhatsApp contact name in a chat row
-  chatName: { fontSize: 15, fontWeight: '600', color: C.text, flex: 1, marginRight: 8 },
-  chatNameUnread: { fontWeight: '700' },
-  time:     { fontSize: 10.5, color: C.muted, fontWeight: '500', flexShrink: 0 },
-  timeUnread: { color: C.blue, fontWeight: '700' },
-  // Chat time — turns brand-green for unread (matches WhatsApp's green tint)
-  timeChatUnread: { color: C.g600, fontWeight: '700', fontSize: 11 },
-  body:     { fontSize: 12.5, color: C.muted, lineHeight: 18 },
-  // Chat body — message preview is the content, so it gets more weight
-  bodyChat: { fontSize: 13.5, color: C.sub, lineHeight: 18 },
-  bodyChatUnread: { color: C.text, fontWeight: '500' },
-  // Right-side unread pill for chat (WhatsApp shows a green dot/badge)
-  unreadDot: {
-    width: 10, height: 10, borderRadius: 5,
-    marginLeft: 10, flexShrink: 0,
-  },
-
-  // ── List ─────────────────────────────────────────────────────
-  listContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 100 },
 
   // ── Empty ────────────────────────────────────────────────────
-  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
-  emptyCircle: {
-    width: 110, height: 110, borderRadius: 55,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 20,
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
+  emptyIconBox: {
+    width: 80, height: 80, borderRadius: 40, backgroundColor: C.g50,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+    borderWidth: 1, borderColor: 'rgba(28,107,82,0.12)',
   },
-  emptyTitle: { fontSize: 20, fontWeight: '800', color: C.text, marginBottom: 10 },
-  emptyBody:  { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 21 },
-
-  // ── Skeleton ─────────────────────────────────────────────────
-  cardSk: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    backgroundColor: C.card, borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: C.border,
-  },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text, textAlign: 'center' },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 13, color: C.muted, marginTop: 8, textAlign: 'center', lineHeight: 19, maxWidth: 280 },
 });

@@ -11,16 +11,23 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { getQuoteRequests } from '../../../api/client';
 import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
 import DateFilterModal from '../../../../components/DateFilterModal';
+import { SC as T, G, TONES, rs, rf, GUT, cardShadow, shade } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
+// Same key names this screen already used — only the values now come from
+// the shared "Elevate" theme instead of hardcoded hex. Spread T first so the
+// new TA-pattern styles (ink/forest/emeraldDeep/glassBorder/tintEmerald/…)
+// are also available under their canonical names.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399',
-  g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  amber: '#D97706', amberL: '#FFFBEB',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  red: '#DC2626', redL: '#FEF2F2',
+  ...T,
+  g900: T.forestDark, g800: T.forest, g700: T.emerald600, g600: T.emerald600,
+  g500: T.emerald500, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  amber: T.amber, amberL: T.amberLight,
+  blue: T.blue, blueL: T.blueLight,
+  red: T.red, redL: T.redLight,
 };
 
 const STATUS_META = {
@@ -91,154 +98,176 @@ export default function BusQuoteRequestsScreen({ navigation }) {
     const returnDate = item.returnDate || item.return_date || item.endDate;
     const busType = item.busType || item.bus_type || item.vehicleType;
     const requestNumber = item.requestNumber || item.request_number || (item.id || item._id)?.toString().slice(-8);
+    const railColors = [meta.color, shade(meta.color, -18)];
 
     return (
       <TouchableOpacity
-        style={styles.card}
+        style={[styles.card, cardShadow]}
         onPress={() => {
           const requestId = item.id || item._id;
           console.log('🖱️ [BusRequests] Card clicked:', { requestId, itemId: item.id, item_Id: item._id });
           navigation.navigate('BusQuoteRequestDetail', { requestId });
         }}
-        activeOpacity={0.75}
+        activeOpacity={0.85}
       >
-        <View style={styles.cardTop}>
-          <View style={styles.cardTopLeft}>
-            <View style={styles.iconBox}>
-              <MaterialCommunityIcons name="bus" size={18} color={C.g700} />
+        {/* Tonal accent rail — quick status recognition down the card edge */}
+        <LinearGradient colors={railColors} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.cardRail} />
+
+        <View style={styles.cardInner}>
+          {/* Top: vehicle-type icon + request number + status */}
+          <View style={styles.cardTopStripe}>
+            <LinearGradient colors={TONES.amber.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.busIconBox}>
+              <MaterialCommunityIcons name="bus" size={rs(13)} color="#fff" />
+            </LinearGradient>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.typeLabel}>BUS REQUEST</Text>
+              <Text style={styles.requestNum} numberOfLines={1}>#{requestNumber}</Text>
             </View>
-            <Text style={styles.requestNum}>#{requestNumber}</Text>
-          </View>
-          <View style={[styles.statusPill, { backgroundColor: meta.bg }]}>
-            <Ionicons name={meta.icon} size={12} color={meta.color} />
-            <Text style={[styles.statusText, { color: meta.color }]}>{meta.label}</Text>
-          </View>
-        </View>
-
-        <View style={styles.infoRow}>
-          <Ionicons name="person-outline" size={14} color={C.muted} />
-          <Text style={styles.infoText}>{customerName}</Text>
-        </View>
-
-        {serviceType && (
-          <View style={styles.infoRow}>
-            <Ionicons name="map-outline" size={14} color={C.muted} />
-            <View style={styles.tripBadge}>
-              <Text style={styles.tripBadgeText}>{serviceType}</Text>
+            <View style={[styles.statusPill, { backgroundColor: meta.bg }]}>
+              <Ionicons name={meta.icon} size={rs(10)} color={meta.color} />
+              <Text style={[styles.statusText, { color: meta.color }]}>{meta.label}</Text>
             </View>
           </View>
-        )}
 
-        <View style={styles.locationRow}>
-          <Ionicons name="location" size={14} color={C.g600} />
-          <Text style={styles.locationText} numberOfLines={1}>{pickupLocation}</Text>
-          {dropLocation ? (
-            <>
-              <Icon name="arrow-right" size={12} color={C.muted} />
-              <Ionicons name="location" size={14} color={C.red} />
-              <Text style={styles.locationText} numberOfLines={1}>{dropLocation}</Text>
-            </>
+          {/* Customer */}
+          <Text style={styles.cardName} numberOfLines={1}>{customerName}</Text>
+
+          {/* Trip type badge */}
+          {serviceType ? (
+            <View style={styles.metaItem}>
+              <Ionicons name="map-outline" size={rs(10.5)} color={C.muted} />
+              <View style={styles.tripBadge}>
+                <Text style={styles.tripBadgeText}>{serviceType}</Text>
+              </View>
+            </View>
           ) : null}
-        </View>
 
-        <View style={styles.infoRow}>
-          <Ionicons name="calendar-outline" size={14} color={C.muted} />
-          <Text style={styles.infoText}>
-            {formatDate(pickupDate)}{returnDate ? ` – ${formatDate(returnDate)}` : ''}
-          </Text>
-        </View>
+          {/* Route */}
+          <View style={styles.metaItem}>
+            <Ionicons name="location" size={rs(10.5)} color={C.emeraldDeep} />
+            <Text style={styles.metaText} numberOfLines={1}>{pickupLocation}</Text>
+            {dropLocation ? (
+              <>
+                <Icon name="arrow-right" size={rs(10)} color={C.muted} />
+                <Ionicons name="location" size={rs(10.5)} color={C.red} />
+                <Text style={styles.metaText} numberOfLines={1}>{dropLocation}</Text>
+              </>
+            ) : null}
+          </View>
 
-        {busType ? (
-          <View style={styles.vehicleBox}>
-            <MaterialCommunityIcons name="bus" size={20} color={C.g700} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.vehicleModel} numberOfLines={1}>{busType}</Text>
+          {/* Dates */}
+          <View style={styles.metaItem}>
+            <Ionicons name="calendar-outline" size={rs(10.5)} color={C.muted} />
+            <Text style={styles.metaText}>
+              {formatDate(pickupDate)}{returnDate ? ` – ${formatDate(returnDate)}` : ''}
+            </Text>
+          </View>
+
+          {/* Vehicle section */}
+          {busType ? (
+            <View style={styles.vehicleBox}>
+              <MaterialCommunityIcons name="bus" size={rs(15)} color={C.amber} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.vehicleModel} numberOfLines={1}>{busType}</Text>
+              </View>
+            </View>
+          ) : null}
+
+          {/* Footer */}
+          <View style={styles.cardFooter}>
+            <View style={styles.footerLeft}>
+              <Ionicons name="time-outline" size={rs(10)} color={C.muted} />
+              <Text style={styles.footerText}>{formatDate(item.createdAt || item.created_at)}</Text>
+            </View>
+            <View style={styles.viewBtn}>
+              <Text style={styles.viewBtnText}>View</Text>
+              <Icon name="arrow-right" size={rs(10)} color={C.emeraldDeep} />
             </View>
           </View>
-        ) : null}
 
-        <View style={styles.cardFooter}>
-          <View style={styles.footerLeft}>
-            <Ionicons name="time-outline" size={12} color={C.muted} />
-            <Text style={styles.footerText}>{formatDate(item.createdAt || item.created_at)}</Text>
-          </View>
-          <View style={styles.viewBtn}>
-            <Text style={styles.viewBtnText}>View</Text>
-            <Icon name="arrow-right" size={12} color={C.g600} />
-          </View>
-        </View>
-
-        {/* Quote action buttons */}
-        <View style={styles.quoteActions}>
-          {!item.hasQuoted ? (
-            <TouchableOpacity
-              style={styles.sendQuoteBtn}
-              onPress={(e) => {
-                e.stopPropagation?.();
-                navigation.navigate('BusSendQuote', { requestId: item.id || item._id });
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="send-outline" size={14} color="#fff" />
-              <Text style={styles.sendQuoteBtnText}>Send Quote</Text>
-            </TouchableOpacity>
-          ) : (
-            <>
+          {/* Quote action buttons */}
+          <View style={styles.quoteActions}>
+            {!item.hasQuoted ? (
               <TouchableOpacity
-                style={styles.viewQuoteBtn}
+                style={styles.sendQuoteBtn}
                 onPress={(e) => {
                   e.stopPropagation?.();
-                  navigation.navigate('BusQuoteDetail', { quoteId: item.myQuote?.id });
+                  navigation.navigate('BusSendQuote', { requestId: item.id || item._id });
                 }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="checkmark-circle-outline" size={14} color={C.g700} />
-                <Text style={styles.viewQuoteBtnText}>View Your Quote</Text>
+                <Ionicons name="send-outline" size={rs(12)} color="#fff" />
+                <Text style={styles.sendQuoteBtnText}>Send Quote</Text>
               </TouchableOpacity>
-              {item.myQuote?.status === 'EXPIRED' && status === 'PENDING' && (
+            ) : (
+              <>
                 <TouchableOpacity
-                  style={styles.resubmitBtn}
+                  style={styles.viewQuoteBtn}
                   onPress={(e) => {
                     e.stopPropagation?.();
-                    navigation.navigate('BusSendQuote', {
-                      requestId: item.id || item._id,
-                      prefillQuoteId: item.myQuote?.id,
-                    });
+                    navigation.navigate('BusQuoteDetail', { quoteId: item.myQuote?.id });
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="refresh-outline" size={14} color="#fff" />
-                  <Text style={styles.resubmitBtnText}>Resubmit Quote</Text>
+                  <Ionicons name="checkmark-circle-outline" size={rs(12)} color={C.g700} />
+                  <Text style={styles.viewQuoteBtnText}>View Your Quote</Text>
                 </TouchableOpacity>
-              )}
-            </>
-          )}
+                {item.myQuote?.status === 'EXPIRED' && status === 'PENDING' && (
+                  <TouchableOpacity
+                    style={styles.resubmitBtn}
+                    onPress={(e) => {
+                      e.stopPropagation?.();
+                      navigation.navigate('BusSendQuote', {
+                        requestId: item.id || item._id,
+                        prefillQuoteId: item.myQuote?.id,
+                      });
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="refresh-outline" size={rs(12)} color="#fff" />
+                    <Text style={styles.resubmitBtnText}>Resubmit Quote</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
   };
 
   const renderEmpty = () => (
-    <View style={styles.emptyState}>
-      <View style={styles.emptyIconWrap}>
-        <Ionicons name="clipboard-outline" size={36} color={C.g500} />
+    <View style={[styles.empty, styles.emptyCardWrap]}>
+      {/* Illustrated inbox composition */}
+      <View style={styles.emptyArt}>
+        <View style={styles.emptyArtCardBack} />
+        <View style={styles.emptyArtCard}>
+          <Ionicons name="clipboard-outline" size={rs(40)} color={C.g500} />
+        </View>
+        <View style={styles.emptyArtDot} />
+        <View style={styles.emptyArtTag}>
+          <Text style={styles.emptyArtTagTxt}>INBOX</Text>
+        </View>
       </View>
+
       <Text style={styles.emptyTitle}>No Quote Requests</Text>
       <Text style={styles.emptySubtitle}>New bus requests from customers will appear here</Text>
     </View>
   );
 
   const renderSkeleton = () => (
-    <View style={{ padding: 16 }}>
+    <View style={{ padding: rs(16) }}>
       {[1, 2, 3].map(i => (
-        <View key={i} style={[styles.card, { marginBottom: 12 }]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-            <View style={{ width: 120, height: 16, backgroundColor: '#E2E8F0', borderRadius: 8 }} />
-            <View style={{ width: 70, height: 22, backgroundColor: '#E2E8F0', borderRadius: 10 }} />
+        <View key={i} style={[styles.card, { marginBottom: rs(12), flexDirection: 'column' }]}>
+          <View style={{ padding: rs(14) }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+              <View style={{ width: 120, height: 16, backgroundColor: '#E2E8F0', borderRadius: 8 }} />
+              <View style={{ width: 70, height: 22, backgroundColor: '#E2E8F0', borderRadius: 10 }} />
+            </View>
+            <View style={{ width: '70%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, marginBottom: 8 }} />
+            <View style={{ width: '90%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, marginBottom: 8 }} />
+            <View style={{ width: '55%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6 }} />
           </View>
-          <View style={{ width: '70%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, marginBottom: 8 }} />
-          <View style={{ width: '90%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, marginBottom: 8 }} />
-          <View style={{ width: '55%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6 }} />
         </View>
       ))}
     </View>
@@ -248,43 +277,91 @@ export default function BusQuoteRequestsScreen({ navigation }) {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.headerGrad}>
-        <SafeAreaView edges={['top']}>
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Icon name="arrow-left" size={20} color="#fff" />
+      {/* ── Hero header ── */}
+      <LinearGradient colors={G.hero} style={styles.headerGrad}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Icon name="arrow-left" size={rs(20)} color="#fff" />
             </TouchableOpacity>
-            <View style={styles.headerCenter}>
-              <Text style={styles.headerTitle}>Quote Requests</Text>
-              <Text style={styles.headerSub}>Bus & Tempo</Text>
-            </View>
+            <View style={{ flex: 1 }} />
             <TouchableOpacity
               onPress={() => setShowDateFilter(true)}
-              style={[styles.backBtn, dateFilter.start && styles.backBtnActive]}
+              style={[styles.filterCircle, dateFilter.start && styles.filterCircleActive]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Icon name="calendar" size={18} color="#fff" />
+              <Icon name="calendar" size={rs(18)} color="#fff" />
               {dateFilter.start ? <View style={styles.filterDot} /> : null}
             </TouchableOpacity>
           </View>
+
+          <Text style={styles.headerEyebrow}>REQUEST INBOX</Text>
+          <Text style={styles.bigTitle}>Quote Requests</Text>
+          <Text style={styles.bigSub}>Bus & Tempo enquiries waiting for your response.</Text>
+
+          {/* spacer so the floating summary card can tuck into the curve */}
+          <View style={{ height: rs(28) }} />
         </SafeAreaView>
       </LinearGradient>
 
-      <View style={styles.filterBar}>
+      {/* Floating summary — tucks into the hero's bottom curve */}
+      <View style={styles.summaryWrap}>
+        <View style={[styles.summaryCard, cardShadow]}>
+          <View style={styles.summaryItem}>
+            <View style={[styles.summaryIco, { backgroundColor: C.tintEmerald }]}>
+              <Ionicons name="albums-outline" size={rs(14)} color={C.emeraldDeep} />
+            </View>
+            <View style={{ minWidth: 0 }}>
+              <Text style={styles.summaryLabel}>TOTAL</Text>
+              <Text style={styles.summaryValue} numberOfLines={1}>{statusCounts.ALL}</Text>
+            </View>
+          </View>
+
+          <View style={styles.summaryDivider} />
+
+          <View style={styles.summaryItem}>
+            <View style={[styles.summaryIco, { backgroundColor: C.amberL }]}>
+              <Ionicons name="time-outline" size={rs(14)} color={C.amber} />
+            </View>
+            <View style={{ minWidth: 0 }}>
+              <Text style={styles.summaryLabel}>PENDING</Text>
+              <Text style={[styles.summaryValue, { color: C.amber }]} numberOfLines={1}>{statusCounts.PENDING}</Text>
+            </View>
+          </View>
+
+          <View style={styles.summaryDivider} />
+
+          <View style={styles.summaryItem}>
+            <View style={[styles.summaryIco, { backgroundColor: C.blueL }]}>
+              <Ionicons name="document-text-outline" size={rs(14)} color={C.blue} />
+            </View>
+            <View style={{ minWidth: 0 }}>
+              <Text style={styles.summaryLabel}>QUOTED</Text>
+              <Text style={[styles.summaryValue, { color: C.blue }]} numberOfLines={1}>{statusCounts.QUOTES_RECEIVED}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Fixed status filter chips — kept OUTSIDE the FlatList so tapping a
+          filter doesn't reset the horizontal scroll position. */}
+      <View style={styles.filtersFixed}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
           {Object.entries(STATUS_META).map(([key, meta]) => {
             const active = statusFilter === key;
             return (
               <TouchableOpacity
                 key={key}
-                style={[styles.chip, active && { backgroundColor: meta.bg, borderColor: meta.color }]}
+                style={[styles.chip, active && { backgroundColor: meta.color, borderColor: meta.color }]}
                 onPress={() => setStatusFilter(key)}
-                activeOpacity={0.75}
+                activeOpacity={0.8}
               >
-                <Text style={[styles.chipText, active && { color: meta.color, fontWeight: '700' }]}>
-                  {meta.label}
-                </Text>
-                <View style={[styles.chipCount, active && { backgroundColor: meta.color }]}>
-                  <Text style={[styles.chipCountText, active && { color: '#fff' }]}>
+                <Ionicons name={meta.icon} size={rs(13)} color={active ? '#fff' : meta.color} />
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{meta.label}</Text>
+                <View style={[styles.chipCount, !active && { backgroundColor: meta.bg }, active && styles.chipCountActive]}>
+                  <Text style={[styles.chipCountText, !active && { color: meta.color }, active && styles.chipCountTextActive]}>
                     {statusCounts[key] || 0}
                   </Text>
                 </View>
@@ -294,6 +371,7 @@ export default function BusQuoteRequestsScreen({ navigation }) {
         </ScrollView>
       </View>
 
+      {/* List */}
       {loading && allRequests.length === 0 ? renderSkeleton() : (
         <FlatList
           data={filteredRequests}
@@ -330,130 +408,210 @@ export default function BusQuoteRequestsScreen({ navigation }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
 
-  headerGrad: {},
-  headerRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16,
+  // ── Hero header ──
+  headerGrad: {
+    overflow: 'hidden',
+    borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
   },
-  backBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center',
+  orbA: {
+    position: 'absolute', top: -rs(50), right: -rs(30),
+    width: rs(170), height: rs(170), borderRadius: rs(85),
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
-  backBtnActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
+  orbB: {
+    position: 'absolute', bottom: -rs(60), left: -rs(40),
+    width: rs(150), height: rs(150), borderRadius: rs(75),
+    backgroundColor: 'rgba(46,158,120,0.16)',
+  },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(10) },
+  backCircle: {
+    width: rs(40), height: rs(40), borderRadius: rs(20),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  filterCircle: {
+    width: rs(40), height: rs(40), borderRadius: rs(20),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  filterCircleActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
   filterDot: {
-    position: 'absolute', top: 7, right: 7,
-    width: 7, height: 7, borderRadius: 4, backgroundColor: C.amber,
+    position: 'absolute', top: rs(7), right: rs(7),
+    width: rs(7), height: rs(7), borderRadius: rs(4), backgroundColor: C.amber,
   },
-  headerCenter: { alignItems: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 1 },
+  headerEyebrow: {
+    fontSize: rf(10), color: 'rgba(255,255,255,0.65)', fontWeight: '700',
+    letterSpacing: 1.2, fontFamily: DISPLAY, marginBottom: rs(2),
+  },
+  bigTitle: { fontFamily: DISPLAY, fontSize: rf(26), color: '#fff', letterSpacing: 0.2, fontWeight: '700' },
+  bigSub: { fontFamily: DISPLAY, fontSize: rf(12), color: 'rgba(255,255,255,0.72)', fontWeight: '600', marginTop: rs(4) },
 
-  filterBar: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
-  filterScroll: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+  // Floating summary card — tucks into the hero's bottom curve.
+  summaryWrap: { marginHorizontal: GUT, marginTop: -rs(24) },
+  summaryCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.card, borderRadius: rs(18),
+    paddingHorizontal: rs(12), paddingVertical: rs(13),
+    borderWidth: 1, borderColor: C.glassBorder,
+  },
+  summaryItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: rs(8), minWidth: 0 },
+  summaryIco: {
+    width: rs(26), height: rs(26), borderRadius: rs(9),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  summaryLabel: { fontFamily: DISPLAY, fontSize: rf(8.5), color: C.muted, fontWeight: 'bold', letterSpacing: 0.6 },
+  summaryValue: { fontFamily: DISPLAY, fontSize: rf(15), color: C.emeraldDeep, marginTop: rs(1), fontWeight: '700' },
+  summaryDivider: { width: 1, height: rs(28), backgroundColor: C.border, marginHorizontal: rs(6) },
+
+  // Fixed filter chips
+  filtersFixed: { flexShrink: 0, marginTop: rs(6) },
+  filterScroll: { paddingHorizontal: GUT, paddingVertical: rs(10), gap: rs(8) },
   chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 20, borderWidth: 1, borderColor: C.border, backgroundColor: C.card,
+    flexDirection: 'row', alignItems: 'center', gap: rs(6),
+    paddingHorizontal: rs(13), paddingVertical: rs(8),
+    borderRadius: 999, borderWidth: 1, borderColor: C.border,
+    backgroundColor: C.card,
   },
-  chipText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  chipText: { fontFamily: DISPLAY, fontSize: rf(12.5), fontWeight: '600', color: C.sub },
+  chipTextActive: { color: '#fff', fontWeight: '700' },
   chipCount: {
-    backgroundColor: C.border, borderRadius: 8,
-    paddingHorizontal: 6, paddingVertical: 1, minWidth: 20, alignItems: 'center',
+    backgroundColor: C.border, borderRadius: rs(8),
+    paddingHorizontal: rs(6), paddingVertical: rs(1), minWidth: rs(20), alignItems: 'center',
   },
-  chipCountText: { fontSize: 10, fontWeight: '700', color: C.sub },
+  chipCountActive: { backgroundColor: 'rgba(255,255,255,0.28)' },
+  chipCountText: { fontFamily: DISPLAY, fontSize: rf(10), fontWeight: '700', color: C.sub },
+  chipCountTextActive: { color: '#fff' },
 
-  listContent: { padding: 16, paddingBottom: 100 },
+  listContent: { paddingHorizontal: GUT, paddingTop: rs(4), paddingBottom: rs(100) },
 
+  // ── Card ──
   card: {
-    backgroundColor: C.card, borderRadius: 14, padding: 14, marginBottom: 12,
-    borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 }, elevation: 2,
+    backgroundColor: C.card,
+    borderRadius: rs(14),
+    borderWidth: 1,
+    borderColor: C.glassBorder,
+    marginBottom: rs(10),
+    overflow: 'hidden',
+    flexDirection: 'row',
   },
-  cardTop: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 10,
-    paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
-  },
-  cardTopLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  iconBox: {
-    width: 30, height: 30, borderRadius: 8,
-    backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center',
-  },
-  requestNum: { fontSize: 15, fontWeight: '700', color: C.text },
-  statusPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
-  },
-  statusText: { fontSize: 11, fontWeight: '600' },
+  cardRail: { width: rs(3) },
+  cardInner: { flex: 1, padding: rs(10), minWidth: 0 },
 
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  infoText: { fontSize: 13, color: C.sub, flex: 1 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
-  locationText: { fontSize: 13, color: C.sub, flex: 1 },
+  cardTopStripe: { flexDirection: 'row', alignItems: 'center', gap: rs(8), marginBottom: rs(6) },
+  busIconBox: {
+    width: rs(26), height: rs(26), borderRadius: rs(8),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  typeLabel: { fontFamily: DISPLAY, fontSize: rf(8), fontWeight: '700', letterSpacing: 0.8, color: C.amber },
+  requestNum: {
+    fontFamily: DISPLAY, fontSize: rf(12.5), fontWeight: '700', color: C.text,
+    marginTop: rs(1), fontVariant: ['tabular-nums'],
+  },
+  statusPill: {
+    flexDirection: 'row', alignItems: 'center', gap: rs(3),
+    paddingHorizontal: rs(8), paddingVertical: rs(3), borderRadius: 999,
+  },
+  statusText: { fontFamily: DISPLAY, fontSize: rf(9.5), fontWeight: '700' },
+
+  cardName: { fontFamily: DISPLAY, fontSize: rf(14), color: C.ink, fontWeight: '700', marginBottom: rs(4) },
+
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: rs(4), marginBottom: rs(5) },
+  metaText: { fontFamily: DISPLAY, fontSize: rf(10.5), color: C.sub, flexShrink: 1 },
 
   tripBadge: {
-    backgroundColor: C.amberL, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
+    backgroundColor: C.amberL, paddingHorizontal: rs(8), paddingVertical: rs(2), borderRadius: rs(6),
   },
-  tripBadgeText: { fontSize: 11, fontWeight: '600', color: C.amber },
+  tripBadgeText: { fontFamily: DISPLAY, fontSize: rf(9.5), fontWeight: '700', color: C.amber },
 
   vehicleBox: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: C.g50, borderRadius: 10,
-    padding: 10, marginVertical: 6,
-    borderWidth: 1, borderColor: C.g100,
+    flexDirection: 'row', alignItems: 'center', gap: rs(8),
+    backgroundColor: C.amberL, borderRadius: rs(9),
+    padding: rs(8), marginVertical: rs(3),
+    borderWidth: 1, borderColor: '#FDE68A',
   },
-  vehicleModel: { fontSize: 13, fontWeight: '600', color: C.text },
+  vehicleModel: { fontFamily: DISPLAY, fontSize: rf(11.5), fontWeight: '700', color: C.text },
 
   cardFooter: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#F1F5F9',
+    marginTop: rs(6), paddingTop: rs(6), borderTopWidth: 1, borderTopColor: '#F1F5F9',
   },
-  footerLeft: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  footerText: { fontSize: 11, color: C.muted },
+  footerLeft: { flexDirection: 'row', alignItems: 'center', gap: rs(3) },
+  footerText: { fontFamily: DISPLAY, fontSize: rf(9.5), color: C.muted },
   viewBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: C.g50, paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 8, borderWidth: 1, borderColor: C.g100,
+    flexDirection: 'row', alignItems: 'center', gap: rs(3),
+    backgroundColor: C.g50, paddingHorizontal: rs(8), paddingVertical: rs(3),
+    borderRadius: rs(7), borderWidth: 1, borderColor: C.g100,
   },
-  viewBtnText: { fontSize: 12, fontWeight: '600', color: C.g700 },
+  viewBtnText: { fontFamily: DISPLAY, fontSize: rf(10.5), fontWeight: '700', color: C.g700 },
 
   quoteActions: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
-    paddingTop: 10,
+    gap: rs(6),
+    marginTop: rs(7),
+    paddingTop: rs(7),
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
   sendQuoteBtn: {
     flex: 1,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
-    paddingVertical: 9, borderRadius: 10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(4),
+    paddingVertical: rs(7), borderRadius: rs(9),
     backgroundColor: C.amber,
   },
-  sendQuoteBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  sendQuoteBtnText: { fontFamily: DISPLAY, fontSize: rf(11.5), fontWeight: '700', color: '#fff' },
   viewQuoteBtn: {
     flex: 1,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
-    paddingVertical: 9, borderRadius: 10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(4),
+    paddingVertical: rs(7), borderRadius: rs(9),
     backgroundColor: '#ECFDF5',
     borderWidth: 1, borderColor: '#D1FAE5',
   },
-  viewQuoteBtnText: { fontSize: 13, fontWeight: '600', color: C.g700 },
+  viewQuoteBtnText: { fontFamily: DISPLAY, fontSize: rf(11.5), fontWeight: '600', color: C.g700 },
   resubmitBtn: {
     flex: 1,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
-    paddingVertical: 9, borderRadius: 10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(4),
+    paddingVertical: rs(7), borderRadius: rs(9),
     backgroundColor: '#EA580C',
   },
-  resubmitBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  resubmitBtnText: { fontFamily: DISPLAY, fontSize: rf(11.5), fontWeight: '700', color: '#fff' },
 
-  emptyState: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
-  emptyIconWrap: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+  // ── Empty state ──
+  empty: { alignItems: 'center', paddingVertical: rs(30) },
+  emptyCardWrap: {
+    backgroundColor: C.card, borderRadius: rs(24),
+    borderWidth: 1, borderColor: C.glassBorder,
+    paddingHorizontal: rs(20), marginHorizontal: GUT, marginTop: rs(18),
   },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 6 },
-  emptySubtitle: { fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 20 },
+  emptyArt: {
+    width: rs(150), height: rs(120), marginBottom: rs(18),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyArtCardBack: {
+    position: 'absolute', top: rs(14), right: rs(24),
+    width: rs(96), height: rs(70), borderRadius: rs(14),
+    backgroundColor: C.tintEmerald, transform: [{ rotate: '8deg' }],
+  },
+  emptyArtCard: {
+    width: rs(96), height: rs(84), borderRadius: rs(16),
+    backgroundColor: '#F1F6F3', borderWidth: 1, borderColor: C.tintEmerald,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyArtDot: {
+    position: 'absolute', top: rs(6), right: rs(20),
+    width: rs(22), height: rs(22), borderRadius: rs(11), backgroundColor: C.emerald,
+    borderWidth: rs(3), borderColor: C.card,
+  },
+  emptyArtTag: {
+    position: 'absolute', bottom: rs(10), left: rs(6),
+    backgroundColor: C.card, borderRadius: rs(8),
+    paddingHorizontal: rs(8), paddingVertical: rs(3),
+    borderWidth: 1, borderColor: C.tintEmerald,
+    transform: [{ rotate: '-8deg' }],
+  },
+  emptyArtTagTxt: { fontFamily: DISPLAY, fontSize: rf(8.5), fontWeight: '700', color: C.emeraldDeep, letterSpacing: 0.6 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: rf(18), fontWeight: '700', color: C.text, textAlign: 'center' },
+  emptySubtitle: {
+    fontFamily: DISPLAY, fontSize: rf(12.5), color: C.muted, textAlign: 'center',
+    lineHeight: rf(19), marginTop: rs(8), fontWeight: '600', maxWidth: rs(280),
+  },
 });

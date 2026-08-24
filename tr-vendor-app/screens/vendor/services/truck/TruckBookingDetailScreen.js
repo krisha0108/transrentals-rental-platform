@@ -15,22 +15,34 @@ import {
   generateTripOtp, verifyTripOtp, completeBooking,
   getBaseURL, getSessionToken,
 } from '../../../api/client';
+import { SC as T, G, rs, shade, cardShadow } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
 const { width: W } = Dimensions.get('window');
 
+// How far the ticket summary card rides up over the hero's rounded bottom
+// edge. Same technique/constant role as the bike/bus/luxury/self-drive
+// sibling detail screens' ticket card — the hero's own bottom padding is
+// shortened by the same amount and the scroll content gets it back as
+// paddingTop, so the gap stays the same, only the overlap changes.
+const TICKET_OVERLAP = 40;
+
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A',
-  sub: '#475569', muted: '#94A3B8',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
-  orange: '#EA580C', orangeL: '#FFF7ED',
-  indigo: '#4F46E5', indigoL: '#EEF2FF',
-  teal: '#0D9488', tealL: '#F0FDFA',
-  cyan: '#0891B2', cyanL: '#ECFEFF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border, text: T.ink,
+  sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  purple: T.purple, purpleL: T.purpleLight,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  orange: T.orange, orangeL: T.orangeL,
+  indigo: T.indigo, indigoL: T.indigoLight,
+  teal: T.teal, tealL: T.tintOcean,
+  cyan: shade(T.ocean, 25), cyanL: T.tintOcean,
 };
 
 const STATUS_CONFIG = {
@@ -45,6 +57,19 @@ const STATUS_CONFIG = {
   COMPLETED:        { color: '#047857', bg: '#D1FAE5', label: 'Completed',         icon: 'trophy-outline'       },
   CANCELLED:        { color: '#DC2626', bg: '#FEF2F2', label: 'Cancelled',         icon: 'close-circle'         },
 };
+
+/* ── Section wrapper — icon + title header inside one bordered card ────── */
+function Section({ icon, title, iconBg, children }) {
+  return (
+    <View style={s.card}>
+      <View style={s.cardHead}>
+        <View style={[s.cardIcon, iconBg && { backgroundColor: iconBg }]}>{icon}</View>
+        <Text style={s.cardTitle}>{title}</Text>
+      </View>
+      {children}
+    </View>
+  );
+}
 
 export default function TruckBookingDetailScreen({ route, navigation }) {
   const { bookingId } = route.params || {};
@@ -198,7 +223,9 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
     return (
       <View style={s.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.hero}>
+        <LinearGradient colors={G.hero} style={s.hero}>
+          <AnimatedOrb style={s.deco1} />
+          <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
           <SafeAreaView edges={['top']}>
             <View style={s.topBar}>
               <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -224,7 +251,9 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
     return (
       <View style={s.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.hero}>
+        <LinearGradient colors={G.hero} style={s.hero}>
+          <AnimatedOrb style={s.deco1} />
+          <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
           <SafeAreaView edges={['top']}>
             <View style={s.topBar}>
               <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -254,17 +283,30 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
     booking.status === 'IN_PROGRESS' ||
     (booking.status === 'PAYMENT_VERIFIED' && booking.isOwnBooking);
 
+  /* ── Status progression: Quoted → Accepted → Pickup OTP ── */
+  const st = booking.status;
+  const acceptedDone = ['ACCEPTED', 'CONFIRMED', 'READY_FOR_PICKUP', 'IN_PROGRESS', 'COMPLETED', 'PAYMENT_VERIFIED'].includes(st);
+  const otpDone      = ['IN_PROGRESS', 'COMPLETED'].includes(st);
+  const steps = [
+    { key: 'quoted',   label: 'Quoted',     done: true },
+    { key: 'accepted', label: 'Accepted',   done: acceptedDone },
+    { key: 'otp',      label: 'Pickup OTP', done: otpDone },
+  ];
+  const curIdx = steps.findIndex(x => !x.done);
+  steps.forEach((x, i) => { x.current = i === curIdx; });
+
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
+      {/* ══ Hero ═════════════════════════════════════════════════════════ */}
       <LinearGradient
-        colors={[C.g900, '#064E3B', C.g700]}
+        colors={G.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.hero}
       >
-        <View style={s.deco1} />
-        <View style={s.deco2} />
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
 
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -277,28 +319,15 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
           <View style={{ width: 36 }} />
         </View>
 
-        <View style={s.heroCard}>
-          <View style={s.heroCardTop}>
-            <View>
-              <Text style={s.heroLabel}>BOOKING #</Text>
-              <Text style={s.heroNumber}>{booking.bookingNumber || String(booking.id).slice(-8)}</Text>
-            </View>
-            <View style={[s.statusPill, { backgroundColor: sc.color + '22', borderColor: sc.color + '40' }]}>
-              <Ionicons name={sc.icon} size={12} color={sc.color} />
-              <Text style={[s.statusPillTxt, { color: sc.color }]}>{sc.label}</Text>
-            </View>
+        {/* Identity block — booking # + customer, mirrors sibling detail screens */}
+        <View style={s.identityBlock}>
+          <View style={s.identityIcon}>
+            <MaterialCommunityIcons name="truck-delivery" size={24} color="#fff" />
           </View>
-          <View style={s.heroMeta}>
-            <View style={s.heroMetaItem}>
-              <Ionicons name="calendar-outline" size={11} color="rgba(255,255,255,0.4)" />
-              <Text style={s.heroMetaTxt}>Created {formatDate(booking.createdAt)}</Text>
-            </View>
-            {booking.totalDays > 0 && (
-              <View style={s.heroMetaItem}>
-                <Ionicons name="time-outline" size={11} color="rgba(255,255,255,0.4)" />
-                <Text style={s.heroMetaTxt}>{booking.totalDays} Day{booking.totalDays > 1 ? 's' : ''}</Text>
-              </View>
-            )}
+          <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12) }}>
+            <Text style={s.identityLabel}>BOOKING #</Text>
+            <Text style={s.identityName} numberOfLines={1}>{booking.bookingNumber || String(booking.id).slice(-8)}</Text>
+            <Text style={s.identitySub} numberOfLines={1}>{booking.customerName || 'Customer'}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -311,36 +340,63 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g400} colors={[C.g600]} />
         }
       >
-        {/* ── Status progression: Quoted → Accepted → Pickup OTP ── */}
-        {(() => {
-          const st = booking.status;
-          const acceptedDone = ['ACCEPTED', 'CONFIRMED', 'READY_FOR_PICKUP', 'IN_PROGRESS', 'COMPLETED', 'PAYMENT_VERIFIED'].includes(st);
-          const otpDone      = ['IN_PROGRESS', 'COMPLETED'].includes(st);
-          const steps = [
-            { key: 'quoted',   label: 'Quoted',     done: true },
-            { key: 'accepted', label: 'Accepted',   done: acceptedDone },
-            { key: 'otp',      label: 'Pickup OTP', done: otpDone },
-          ];
-          const curIdx = steps.findIndex(x => !x.done);
-          steps.forEach((x, i) => { x.current = i === curIdx; });
-          return (
-            <View style={s.statusStrip}>
-              {steps.map((stp, i) => (
-                <React.Fragment key={stp.key}>
-                  {i > 0 && <View style={[s.statusLine, steps[i - 1].done && { backgroundColor: C.g500 }]} />}
-                  <View style={s.statusStep}>
-                    <View style={[s.statusDot, stp.done && s.statusDotDone, stp.current && s.statusDotCurrent]}>
-                      {stp.done
-                        ? <Ionicons name="checkmark" size={11} color="#fff" />
-                        : <Text style={[s.statusDotNum, stp.current && { color: '#fff' }]}>{i + 1}</Text>}
-                    </View>
-                    <Text style={[s.statusStepLbl, (stp.done || stp.current) && { color: C.text, fontWeight: '700' }]}>{stp.label}</Text>
-                  </View>
-                </React.Fragment>
-              ))}
+        {/* ── Ticket summary — status, created date & grand total, floated over the hero ── */}
+        <View style={s.ticketWrap}>
+          <LinearGradient
+            colors={[sc.color, shade(sc.color, -18)]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={s.ticketRail}
+          />
+          <View style={s.ticketUpperStub}>
+            <View style={s.ticketIconBox}>
+              <MaterialCommunityIcons name="truck-delivery" size={22} color={C.g700} />
             </View>
-          );
-        })()}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.ticketLabel}>CREATED</Text>
+              <Text style={s.ticketNumber} numberOfLines={1}>{formatDate(booking.createdAt)}</Text>
+            </View>
+            <View style={[s.statusPill, { backgroundColor: sc.bg, borderColor: sc.color + '40' }]}>
+              <Ionicons name={sc.icon} size={12} color={sc.color} />
+              <Text style={[s.statusPillTxt, { color: sc.color }]}>{sc.label}</Text>
+            </View>
+          </View>
+
+          {/* Perforation — torn-ticket edge, echoes the bike/bus/luxury/self-drive sibling ticket cards */}
+          <View style={s.perforationRow}>
+            <View style={s.notchLeft} />
+            <View style={s.dashLine} />
+            <View style={s.notchRight} />
+          </View>
+
+          <View style={s.ticketLowerStub}>
+            <View style={s.moneyIconWrap}>
+              <Ionicons name="cash" size={16} color={C.g700} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.ticketAmountLabel}>GRAND TOTAL</Text>
+              <Text style={s.ticketAmountVal}>
+                ₹{(booking.grandTotal || booking.totalAmount || 0).toLocaleString()}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ── Status progression stepper ── */}
+        <View style={s.statusStrip}>
+          {steps.map((stp, i) => (
+            <React.Fragment key={stp.key}>
+              {i > 0 && <View style={[s.statusLine, steps[i - 1].done && { backgroundColor: C.g500 }]} />}
+              <View style={s.statusStep}>
+                <View style={[s.statusDot, stp.done && s.statusDotDone, stp.current && s.statusDotCurrent]}>
+                  {stp.done
+                    ? <Ionicons name="checkmark" size={11} color="#fff" />
+                    : <Text style={[s.statusDotNum, stp.current && { color: '#fff' }]}>{i + 1}</Text>}
+                </View>
+                <Text style={[s.statusStepLbl, (stp.done || stp.current) && { color: C.text, fontWeight: '700' }]}>{stp.label}</Text>
+              </View>
+            </React.Fragment>
+          ))}
+        </View>
 
         {/* ── Quote Details (collapsible) ── */}
         <View style={s.card}>
@@ -377,9 +433,9 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
                     <Text style={s.payVal}>{q.vehicleCategory}</Text>
                   </View>
                 ) : null}
-                <View style={s.payRow}>
-                  <Text style={[s.payLabel, { fontWeight: '700', color: C.text }]}>Total Quoted</Text>
-                  <Text style={[s.payVal, { color: C.g700 }]}>{money(total)}</Text>
+                <View style={s.totalRow}>
+                  <Text style={s.totalLabel}>Total Quoted</Text>
+                  <Text style={[s.totalVal, { fontSize: 18 }]}>{money(total)}</Text>
                 </View>
                 {advance > 0 ? (
                   <View style={s.payRow}>
@@ -392,36 +448,46 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
                 {inc.length > 0 && (
                   <View style={s.quoteSub}>
                     <Text style={s.quoteSubTitle}>Inclusions</Text>
-                    {inc.map((t, i) => (
-                      <View key={i} style={s.quoteLi}>
-                        <Ionicons name="checkmark-circle" size={13} color={C.g600} />
-                        <Text style={s.quoteLiTxt}>{t}</Text>
-                      </View>
-                    ))}
+                    <View style={s.pillWrap}>
+                      {inc.map((t, i) => (
+                        <View key={i} style={[s.pill, { backgroundColor: C.g100 }]}>
+                          <View style={[s.pillPip, { backgroundColor: C.g700 }]}>
+                            <Ionicons name="checkmark" size={10} color="#fff" />
+                          </View>
+                          <Text style={[s.pillTxt, { color: C.g700 }]}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
                 {/* Exclusions */}
                 {exc.length > 0 && (
                   <View style={s.quoteSub}>
                     <Text style={s.quoteSubTitle}>Exclusions</Text>
-                    {exc.map((t, i) => (
-                      <View key={i} style={s.quoteLi}>
-                        <Ionicons name="close-circle" size={13} color={C.red} />
-                        <Text style={s.quoteLiTxt}>{t}</Text>
-                      </View>
-                    ))}
+                    <View style={s.pillWrap}>
+                      {exc.map((t, i) => (
+                        <View key={i} style={[s.pill, { backgroundColor: C.redL }]}>
+                          <View style={[s.pillPip, { backgroundColor: C.red }]}>
+                            <Ionicons name="close" size={10} color="#fff" />
+                          </View>
+                          <Text style={[s.pillTxt, { color: C.red }]}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
                 {/* Terms */}
                 {terms.length > 0 && (
                   <View style={s.quoteSub}>
                     <Text style={s.quoteSubTitle}>Terms & Conditions</Text>
-                    {terms.map((t, i) => (
-                      <View key={i} style={s.quoteLi}>
-                        <Text style={s.quoteBullet}>•</Text>
-                        <Text style={s.quoteLiTxt}>{t}</Text>
-                      </View>
-                    ))}
+                    <View style={s.termsCard}>
+                      {terms.map((t, i) => (
+                        <View key={i} style={[s.termLine, i === terms.length - 1 && { marginBottom: 0 }]}>
+                          <Text style={s.termNum}>{i + 1}.</Text>
+                          <Text style={s.termTxt}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
                 {q.validTill ? (
@@ -433,25 +499,19 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
         </View>
 
         {booking.status === 'PAYMENT_VERIFIED' && booking.isOwnBooking && (
-          <View style={s.alertBanner}>
-            <View style={[s.alertIconBox, { backgroundColor: C.g100 }]}>
-              <Ionicons name="checkmark-circle" size={22} color={C.g600} />
+          <View style={[s.card, s.verifiedCard]}>
+            <View style={s.cardHead}>
+              <View style={[s.cardIcon, { backgroundColor: '#fff' }]}>
+                <Ionicons name="checkmark-circle" size={15} color={C.g600} />
+              </View>
+              <Text style={[s.cardTitle, { color: C.g700 }]}>Advance Payment Received!</Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.alertTitle}>Advance Payment Received!</Text>
-              <Text style={s.alertDesc}>Prepare the truck and generate OTP when customer arrives.</Text>
-            </View>
+            <Text style={s.verifiedDesc}>Prepare the truck and generate OTP when customer arrives.</Text>
           </View>
         )}
 
-        <View style={s.card}>
-          <View style={s.cardHead}>
-            <View style={[s.cardIcon, { backgroundColor: C.blueL }]}>
-              <Ionicons name="person" size={15} color={C.blue} />
-            </View>
-            <Text style={s.cardTitle}>Customer</Text>
-          </View>
-
+        {/* ── Customer ── */}
+        <Section icon={<Ionicons name="person" size={15} color={C.blue} />} title="Customer" iconBg={C.blueL}>
           <View style={s.customerRow}>
             <View style={s.avatar}>
               <Text style={s.avatarTxt}>
@@ -493,16 +553,10 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
               <Text style={[s.contactTxt, { color: C.purple }]}>Chat</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Section>
 
-        <View style={s.card}>
-          <View style={s.cardHead}>
-            <View style={[s.cardIcon, { backgroundColor: C.g50 }]}>
-              <MaterialCommunityIcons name="truck-delivery" size={15} color={C.g700} />
-            </View>
-            <Text style={s.cardTitle}>Vehicle & Trip</Text>
-          </View>
-
+        {/* ── Vehicle & Trip ── */}
+        <Section icon={<MaterialCommunityIcons name="truck-delivery" size={15} color={C.g700} />} title="Vehicle & Trip" iconBg={C.g50}>
           <View style={s.vehicleBox}>
             <View style={s.vehicleIconWrap}>
               <MaterialCommunityIcons name="truck-delivery" size={34} color={C.g700} />
@@ -523,29 +577,26 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
             </View>
           </View>
 
-          <View style={s.tripMetaRow}>
-            <View style={s.tripMetaItem}>
-              <View style={[s.tripMetaIcon, { backgroundColor: C.indigoL }]}>
-                <Ionicons name="location" size={14} color={C.indigo} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.tripMetaLabel}>Pickup</Text>
-                <Text style={s.tripMetaValue} numberOfLines={1}>
-                  {booking.pickupCity || booking.locationName || 'Not specified'}
-                </Text>
-              </View>
+          {/* Route — connected pickup → drop rail, mirrors the bike/bus/luxury/self-drive siblings */}
+          <View style={s.routeCard}>
+            <View style={s.routeRail}>
+              <View style={[s.routeDot, { backgroundColor: C.indigo }]} />
+              {booking.dropCity ? <View style={s.routeLine} /> : null}
+              {booking.dropCity ? <View style={[s.routeDot, { backgroundColor: C.red }]} /> : null}
             </View>
-            {booking.dropCity ? (
-              <View style={s.tripMetaItem}>
-                <View style={[s.tripMetaIcon, { backgroundColor: C.redL }]}>
-                  <Ionicons name="location" size={14} color={C.red} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.tripMetaLabel}>Drop</Text>
-                  <Text style={s.tripMetaValue} numberOfLines={1}>{booking.dropCity}</Text>
-                </View>
-              </View>
-            ) : null}
+            <View style={{ flex: 1 }}>
+              <Text style={s.routeLabel}>PICKUP</Text>
+              <Text style={s.routeValue} numberOfLines={1}>
+                {booking.pickupCity || booking.locationName || 'Not specified'}
+              </Text>
+              {booking.dropCity ? (
+                <>
+                  <View style={{ height: rs(12) }} />
+                  <Text style={s.routeLabel}>DROP</Text>
+                  <Text style={s.routeValue} numberOfLines={1}>{booking.dropCity}</Text>
+                </>
+              ) : null}
+            </View>
           </View>
 
           <View style={s.dateRow}>
@@ -564,16 +615,10 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
               </View>
             ) : null}
           </View>
-        </View>
+        </Section>
 
-        <View style={s.card}>
-          <View style={s.cardHead}>
-            <View style={[s.cardIcon, { backgroundColor: C.indigoL }]}>
-              <Ionicons name="card" size={15} color={C.indigo} />
-            </View>
-            <Text style={s.cardTitle}>Payment Summary</Text>
-          </View>
-
+        {/* ── Payment Summary ── */}
+        <Section icon={<Ionicons name="card" size={15} color={C.indigo} />} title="Payment Summary" iconBg={C.indigoL}>
           <View style={s.payList}>
             {booking.dailyRate ? (
               <View style={s.payRow}>
@@ -620,17 +665,11 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
               </View>
             </View>
           ) : null}
-        </View>
+        </Section>
 
+        {/* ── Trip Control (OTP) ── */}
         {showTripControl && (
-          <View style={s.card}>
-            <View style={s.cardHead}>
-              <View style={[s.cardIcon, { backgroundColor: C.purpleL }]}>
-                <Ionicons name="key" size={15} color={C.purple} />
-              </View>
-              <Text style={s.cardTitle}>Trip Control</Text>
-            </View>
-
+          <Section icon={<Ionicons name="key" size={15} color={C.purple} />} title="Trip Control" iconBg={C.purpleL}>
             {otpError ? (
               <View style={[s.msgBox, { backgroundColor: C.redL, borderColor: C.red + '30' }]}>
                 <Ionicons name="alert-circle" size={15} color={C.red} />
@@ -653,16 +692,19 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
                     : 'When customer arrives, generate OTP to start the trip.'}
                 </Text>
                 <TouchableOpacity
-                  style={[s.ctaBtn, { backgroundColor: C.purple }]}
+                  style={s.ctaBtnWrap}
                   onPress={handleGenerateOtp}
                   disabled={otpLoading}
+                  activeOpacity={0.9}
                 >
-                  {otpLoading
-                    ? <ActivityIndicator size="small" color="#fff" />
-                    : (<>
-                        <Ionicons name="send" size={17} color="#fff" />
-                        <Text style={s.ctaTxt}>Generate & Send OTP to Customer</Text>
-                      </>)}
+                  <LinearGradient colors={[C.purple, shade(C.purple, -18)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.ctaBtnInner}>
+                    {otpLoading
+                      ? <ActivityIndicator size="small" color="#fff" />
+                      : (<>
+                          <Ionicons name="send" size={17} color="#fff" />
+                          <Text style={s.ctaTxt}>Generate & Send OTP to Customer</Text>
+                        </>)}
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
             )}
@@ -695,16 +737,23 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
                 </View>
 
                 <TouchableOpacity
-                  style={[s.ctaBtn, { backgroundColor: otpInput.length === 6 ? C.g600 : C.muted }]}
+                  style={s.ctaBtnWrap}
                   onPress={handleStartTrip}
                   disabled={otpLoading || otpInput.length !== 6}
+                  activeOpacity={0.9}
                 >
-                  {otpLoading
-                    ? <ActivityIndicator size="small" color="#fff" />
-                    : (<>
-                        <Ionicons name="play-circle" size={17} color="#fff" />
-                        <Text style={s.ctaTxt}>Verify OTP & Start Trip</Text>
-                      </>)}
+                  <LinearGradient
+                    colors={otpInput.length === 6 ? [C.g600, shade(C.g600, -18)] : [C.muted, C.muted]}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                    style={s.ctaBtnInner}
+                  >
+                    {otpLoading
+                      ? <ActivityIndicator size="small" color="#fff" />
+                      : (<>
+                          <Ionicons name="play-circle" size={17} color="#fff" />
+                          <Text style={s.ctaTxt}>Verify OTP & Start Trip</Text>
+                        </>)}
+                  </LinearGradient>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={s.ctaBtnOutline} onPress={handleGenerateOtp} disabled={otpLoading}>
@@ -724,20 +773,20 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
                   </View>
                 </View>
                 <TouchableOpacity
-                  style={[s.ctaBtn, { backgroundColor: C.red }]}
+                  style={s.dangerBtn}
                   onPress={handleEndTrip}
                   disabled={otpLoading}
                 >
                   {otpLoading
-                    ? <ActivityIndicator size="small" color="#fff" />
+                    ? <ActivityIndicator size="small" color={C.red} />
                     : (<>
-                        <Ionicons name="stop-circle" size={17} color="#fff" />
-                        <Text style={s.ctaTxt}>End Trip & Complete Booking</Text>
+                        <Ionicons name="stop-circle" size={17} color={C.red} />
+                        <Text style={[s.ctaTxt, { color: C.red }]}>End Trip & Complete Booking</Text>
                       </>)}
                 </TouchableOpacity>
               </View>
             )}
-          </View>
+          </Section>
         )}
 
         {booking.status === 'COMPLETED' && (
@@ -752,18 +801,13 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
           </View>
         )}
 
+        {/* ── Customer Notes ── */}
         {booking.customerNotes ? (
-          <View style={s.card}>
-            <View style={s.cardHead}>
-              <View style={[s.cardIcon, { backgroundColor: C.amberL }]}>
-                <Ionicons name="chatbox-ellipses" size={15} color={C.amber} />
-              </View>
-              <Text style={s.cardTitle}>Customer Notes</Text>
-            </View>
+          <Section icon={<Ionicons name="chatbox-ellipses" size={15} color={C.amber} />} title="Customer Notes" iconBg={C.amberL}>
             <View style={s.notesBox}>
               <Text style={s.notesTxt}>{booking.customerNotes}</Text>
             </View>
-          </View>
+          </Section>
         ) : null}
 
         <View style={{ height: 120 }} />
@@ -778,13 +822,15 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
             </TouchableOpacity>
           )}
           {canAccept() && (
-            <TouchableOpacity style={s.acceptBtn} onPress={handleAccept} disabled={actionLoading}>
-              {actionLoading
-                ? <ActivityIndicator size="small" color="#fff" />
-                : (<>
-                    <Ionicons name="checkmark-circle" size={18} color="#fff" />
-                    <Text style={s.acceptTxt}>Accept Booking</Text>
-                  </>)}
+            <TouchableOpacity style={s.acceptBtnWrap} onPress={handleAccept} disabled={actionLoading} activeOpacity={0.9}>
+              <LinearGradient colors={G.emerald} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.acceptBtnInner}>
+                {actionLoading
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : (<>
+                      <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                      <Text style={s.acceptTxt}>Accept Booking</Text>
+                    </>)}
+              </LinearGradient>
             </TouchableOpacity>
           )}
         </View>
@@ -796,11 +842,15 @@ export default function TruckBookingDetailScreen({ route, navigation }) {
 const s = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: C.bg },
   scroll: { flex: 1 },
-  scrollContent: { padding: 16 },
-  centered:    { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: TICKET_OVERLAP, paddingBottom: 40 },
+  centered:    { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10, paddingHorizontal: 32 },
   centeredTxt: { fontSize: 14, color: C.muted },
 
-  hero: { paddingHorizontal: 16, paddingBottom: 20, overflow: 'hidden' },
+  // ── Hero ──────────────────────────────────────────────────────────────
+  hero: {
+    paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden',
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
+  },
   deco1: {
     position: 'absolute', width: W * 0.55, height: W * 0.55,
     borderRadius: W * 0.275, backgroundColor: 'rgba(52,211,153,0.06)',
@@ -814,40 +864,55 @@ const s = StyleSheet.create({
   topBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 16 },
   backBtn:   { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  heroTitle: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
-  heroCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
-  heroCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 },
-  heroLabel:  { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 4 },
-  heroNumber: { fontSize: 26, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  identityBlock: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 2 },
+  identityIcon: {
+    width: rs(48), height: rs(48), borderRadius: rs(14),
+    backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  identityLabel: { fontSize: 9.5, color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: 1.4, marginBottom: 3 },
+  identityName:  { fontFamily: DISPLAY, fontSize: 19, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
+  identitySub:   { fontSize: 12.5, color: 'rgba(255,255,255,0.65)', fontWeight: '600', marginTop: 3 },
+
+  // ── Ticket summary card — status, created date, grand total ──
+  ticketWrap: {
+    marginTop: -TICKET_OVERLAP, backgroundColor: C.card,
+    borderRadius: rs(16), overflow: 'hidden', borderWidth: 1, borderColor: C.border,
+    marginBottom: 12, ...cardShadow,
+  },
+  ticketRail: { height: 3, width: '100%' },
+  ticketUpperStub: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingBottom: 14 },
+  ticketIconBox: {
+    width: rs(44), height: rs(44), borderRadius: rs(12),
+    backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
+  },
+  ticketLabel: { fontSize: 9.5, color: C.muted, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
+  ticketNumber: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '900', color: C.text, letterSpacing: -0.3 },
+
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
   statusPillTxt: { fontSize: 11, fontWeight: '700' },
-  heroMeta:     { flexDirection: 'row', gap: 16 },
-  heroMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  heroMetaTxt:  { fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: '500' },
 
-  alertBanner: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
-    backgroundColor: C.g50, borderRadius: 14, padding: 14,
-    marginBottom: 12, borderWidth: 1, borderColor: C.g400 + '50',
+  perforationRow: { height: 2, justifyContent: 'center' },
+  dashLine: { marginHorizontal: 20, borderTopWidth: 1, borderColor: C.border, borderStyle: 'dashed' },
+  notchLeft: { position: 'absolute', left: -9, top: -8, width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg },
+  notchRight: { position: 'absolute', right: -9, top: -8, width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg },
+
+  ticketLowerStub: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, paddingTop: 14 },
+  moneyIconWrap: {
+    width: rs(30), height: rs(30), borderRadius: rs(9),
+    backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
   },
-  alertIconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  alertTitle:   { fontSize: 14, fontWeight: '700', color: C.g700, marginBottom: 3 },
-  alertDesc:    { fontSize: 12, color: C.sub, lineHeight: 17 },
+  ticketAmountLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
+  ticketAmountVal: { fontFamily: DISPLAY, fontSize: 24, fontWeight: '900', color: C.g700, letterSpacing: -0.4 },
 
-  card: {
-    backgroundColor: C.card, borderRadius: 16, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 }, elevation: 2,
+  // ── Status progression strip ──
+  statusStrip: {
+    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
+    backgroundColor: C.card, borderRadius: rs(16), borderWidth: 1, borderColor: C.border,
+    paddingVertical: 14, paddingHorizontal: 14, marginBottom: 12, ...cardShadow,
   },
-  cardHead:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
-  cardHead0: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  cardIcon:  { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: C.text },
-
-  // Status progression strip
-  statusStrip: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingVertical: 14, paddingHorizontal: 14, marginBottom: 14 },
   statusStep:  { alignItems: 'center', width: 66 },
   statusLine:  { flex: 1, height: 2, backgroundColor: C.border, marginTop: 11 },
   statusDot:   { width: 24, height: 24, borderRadius: 12, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
@@ -856,15 +921,35 @@ const s = StyleSheet.create({
   statusDotNum:     { fontSize: 11, fontWeight: '800', color: C.muted },
   statusStepLbl:    { fontSize: 10, fontWeight: '600', color: C.muted, textAlign: 'center' },
 
+  // ── Cards ──
+  card: {
+    backgroundColor: C.card, borderRadius: rs(16), padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
+  },
+  cardHead:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  cardHead0: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  cardIcon:  { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
+
   // Collapsible quote details
   quoteHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   quoteBody: { marginTop: 14, gap: 10 },
-  quoteSub:      { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, gap: 7 },
-  quoteSubTitle: { fontSize: 12, fontWeight: '800', color: C.text, marginBottom: 2 },
-  quoteLi:       { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  quoteLiTxt:    { flex: 1, fontSize: 12.5, color: C.sub, lineHeight: 18 },
-  quoteBullet:   { fontSize: 13, color: C.muted, lineHeight: 18, width: 13, textAlign: 'center' },
+  quoteSub:      { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, gap: 8 },
+  quoteSubTitle: { fontSize: 11, fontWeight: '800', color: C.sub, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
+  pillWrap:      { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  pill:          { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingRight: 12, paddingLeft: 7, borderRadius: 20 },
+  pillPip:       { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  pillTxt:       { fontSize: 12, fontWeight: '600' },
+  termsCard:     { backgroundColor: C.bg, borderRadius: rs(12), padding: 11 },
+  termLine:      { flexDirection: 'row', gap: 8, marginBottom: 7 },
+  termNum:       { fontSize: 12, fontWeight: '800', color: C.text },
+  termTxt:       { flex: 1, fontSize: 12, color: C.sub, lineHeight: 18 },
   quoteValid:    { fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 6 },
+
+  // Advance-payment-received banner
+  verifiedCard: { backgroundColor: C.g50, borderColor: C.g400 + '50' },
+  verifiedDesc: { fontSize: 12, color: C.sub, lineHeight: 17 },
 
   customerRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   avatar:        { width: 46, height: 46, borderRadius: 23, backgroundColor: C.blueL, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.blue + '20' },
@@ -883,16 +968,22 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: C.g100,
   },
   vehicleIconWrap: { width: 58, height: 58, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
-  vehicleName:     { fontSize: 16, fontWeight: '800', color: C.text, marginBottom: 3 },
+  vehicleName:     { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.text, marginBottom: 3 },
   vehicleSub:      { fontSize: 12, color: C.sub },
   assignedBadge:   { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 7, alignSelf: 'flex-start', backgroundColor: C.g100, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
   assignedTxt:     { fontSize: 11, fontWeight: '600', color: C.g700 },
 
-  tripMetaRow:   { flexDirection: 'row', gap: 12, marginBottom: 14 },
-  tripMetaItem:  { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  tripMetaIcon:  { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  tripMetaLabel: { fontSize: 10, color: C.muted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  tripMetaValue: { fontSize: 13, fontWeight: '700', color: C.text },
+  // Route rail (pickup → drop), mirrors the bike/bus/luxury/self-drive siblings
+  routeCard: {
+    flexDirection: 'row', gap: 12,
+    backgroundColor: C.bg, borderRadius: rs(12), padding: 14,
+    marginBottom: 14,
+  },
+  routeRail:  { alignItems: 'center', paddingTop: 3 },
+  routeDot:   { width: 10, height: 10, borderRadius: 5 },
+  routeLine:  { width: 2, flex: 1, minHeight: rs(28), backgroundColor: C.border, marginVertical: 4 },
+  routeLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 0.6 },
+  routeValue: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '700', color: C.text, marginTop: 2 },
 
   dateRow:  { flexDirection: 'row', gap: 10 },
   dateBox:  { flex: 1, padding: 12, borderRadius: 12, borderWidth: 1 },
@@ -911,7 +1002,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: C.g100, marginBottom: 10,
   },
   totalLabel: { fontSize: 14, fontWeight: '700', color: C.g800 },
-  totalVal:   { fontSize: 24, fontWeight: '900', color: C.g700 },
+  totalVal:   { fontFamily: DISPLAY, fontSize: 24, fontWeight: '900', color: C.g700 },
 
   msgBox: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, marginBottom: 12 },
   msgTxt: { fontSize: 12, fontWeight: '500', flex: 1 },
@@ -925,12 +1016,17 @@ const s = StyleSheet.create({
   otpInputWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 2, borderColor: C.border, borderRadius: 14, backgroundColor: C.bg, marginBottom: 14 },
   otpInput: { flex: 1, fontSize: 24, fontWeight: '800', letterSpacing: 8, textAlign: 'center', color: C.text },
 
-  ctaBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14, marginBottom: 10 },
-  ctaBtnOutline:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, borderRadius: 14, marginBottom: 10, borderWidth: 2, borderColor: C.purple, backgroundColor: 'transparent' },
-  ctaTxt:       { fontSize: 14, fontWeight: '700', color: '#fff' },
+  // Gradient-primary CTA (Generate/Verify OTP)
+  ctaBtnWrap:   { borderRadius: rs(14), overflow: 'hidden', marginBottom: 10 },
+  ctaBtnInner:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
+  // Tonal-outline CTA (Resend OTP)
+  ctaBtnOutline:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, borderRadius: rs(14), marginBottom: 10, borderWidth: 2, borderColor: C.purple, backgroundColor: 'transparent' },
+  ctaTxt:       { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
+  // Tonal-destructive CTA (End Trip)
+  dangerBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: rs(14), backgroundColor: C.redL, borderWidth: 1.5, borderColor: C.red + '40' },
 
   trophyRing:     { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  completedTitle: { fontSize: 20, fontWeight: '800', color: C.g700, marginBottom: 6 },
+  completedTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: C.g700, marginBottom: 6 },
   completedDesc:  { fontSize: 13, color: C.sub, textAlign: 'center' },
 
   notesBox: { padding: 12, backgroundColor: C.amberL, borderRadius: 12, borderWidth: 1, borderColor: C.amber + '22' },
@@ -939,11 +1035,11 @@ const s = StyleSheet.create({
   actionBar: {
     flexDirection: 'row', gap: 10, padding: 14,
     backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12,
-    shadowOffset: { width: 0, height: -3 }, elevation: 10,
+    ...cardShadow,
   },
-  rejectBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14, borderRadius: 14, borderWidth: 2, borderColor: C.red, backgroundColor: C.redL },
-  rejectTxt: { fontSize: 14, fontWeight: '700', color: C.red },
-  acceptBtn: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14, borderRadius: 14, backgroundColor: C.g600 },
-  acceptTxt: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  rejectBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14, borderRadius: rs(14), borderWidth: 2, borderColor: C.red, backgroundColor: C.redL },
+  rejectTxt: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.red },
+  acceptBtnWrap: { flex: 2, borderRadius: rs(14), overflow: 'hidden' },
+  acceptBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14 },
+  acceptTxt: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
 });

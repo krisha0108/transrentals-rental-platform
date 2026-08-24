@@ -17,16 +17,32 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+// KeyboardAvoidingView comes from react-native-keyboard-controller, NOT from
+// react-native — RN's built-in Android implementation doesn't reliably
+// re-measure the ScrollView's height when the keyboard opens (window resize
+// via adjustResize doesn't always propagate down), so the scroll range
+// plateaus before reaching content the keyboard is covering. Matches the
+// fix already used in ChatScreen.js.
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { addStaff, updateStaff } from '../../api/client';
 import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
+import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already used — only the values now come from
+// the shared "Elevate" theme instead of hardcoded hex, mirroring the mapping
+// convention already used in StaffListScreen.js / StaffDetailScreen.js.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', surface: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#3B82F6', blueL: '#EFF6FF',
-  red: '#EF4444', redL: '#FEF2F2',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  purple: T.purple, purpleL: T.purpleLight,
+  indigo: T.indigo, indigoL: T.indigoLight,
 };
 
 const ROLES = [
@@ -61,6 +77,26 @@ const INDIAN_STATES = [
   'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
   'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
 ];
+
+// Section card wrapper — mirrors StaffDetailScreen.js's Section component so
+// the add/edit form reads as the same visual language as the profile screen.
+function Section({ icon, iconLib = 'feather', color, bg, title, subtitle, children }) {
+  const I = iconLib === 'mci' ? MaterialCommunityIcons : Icon;
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHead}>
+        <View style={[styles.cardIcon, { backgroundColor: bg }]}>
+          <I name={icon} size={15} color={color} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.cardTitle}>{title}</Text>
+          {subtitle ? <Text style={styles.cardSubtitle}>{subtitle}</Text> : null}
+        </View>
+      </View>
+      {children}
+    </View>
+  );
+}
 
 export default function AddStaffScreen({ route, navigation }) {
   const { staffId, staff: existingStaff } = route.params || {};
@@ -286,39 +322,45 @@ export default function AddStaffScreen({ route, navigation }) {
   const isDriver = form.role === 'DRIVER';
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
+    <View style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      {/* ── HEADER ── */}
-      <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={styles.headerGrad}>
-        <SafeAreaView edges={['top']}>
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.glassBtn}>
+      {/* ── HERO HEADER ── */}
+      <LinearGradient colors={G.hero} style={styles.hero}>
+        <AnimatedOrb style={styles.orbA} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={['top']} style={styles.heroSafe}>
+          <View style={styles.topRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
               <Icon name="arrow-left" size={20} color="#fff" />
             </TouchableOpacity>
-            <View style={styles.headerCenter}>
-              <View style={styles.headerIconWrap}>
-                <MaterialCommunityIcons
-                  name={isEditing ? 'account-edit' : 'account-plus'}
-                  size={18} color={C.g400}
-                />
-              </View>
-              <Text style={styles.headerTitle}>{isEditing ? 'Edit Staff' : 'Add Staff'}</Text>
-            </View>
             <View style={{ width: 40 }} />
           </View>
+
+          <View style={styles.heroBadge}>
+            <MaterialCommunityIcons
+              name={isEditing ? 'account-edit' : 'account-plus'}
+              size={12} color={C.g400}
+            />
+            <Text style={styles.heroBadgeTxt}>{isEditing ? 'EDIT PROFILE' : 'NEW TEAM MEMBER'}</Text>
+          </View>
+          <Text style={styles.heroTitle}>{isEditing ? 'Edit Staff' : 'Add Staff'}</Text>
+          <Text style={styles.heroSub}>
+            {isEditing ? 'Update this team member’s details' : 'Add a new member to your team'}
+          </Text>
+
+          <View style={{ height: rs(20) }} />
         </SafeAreaView>
       </LinearGradient>
 
+      <KeyboardAvoidingView style={styles.scrollView} behavior="padding">
       <ScrollView
-        style={styles.scrollView}
+        style={styles.flex}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Basic Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Personal Information</Text>
-
+        <Section icon="user" color={C.g700} bg={C.g50} title="Basic Information">
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Full Name *</Text>
             <TextInput
@@ -383,7 +425,7 @@ export default function AddStaffScreen({ route, navigation }) {
             )}
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { marginBottom: 0 }]}>
             <Text style={styles.label}>Date of Birth</Text>
             <TouchableOpacity
               style={styles.selectInput}
@@ -395,7 +437,10 @@ export default function AddStaffScreen({ route, navigation }) {
               <Icon name="calendar" size={18} color={C.muted} />
             </TouchableOpacity>
           </View>
+        </Section>
 
+        {/* Role & Status */}
+        <Section icon="sliders" color={C.indigo} bg={C.indigoL} title="Role & Status">
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Role *</Text>
             <TouchableOpacity
@@ -409,7 +454,7 @@ export default function AddStaffScreen({ route, navigation }) {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { marginBottom: 0 }]}>
             <Text style={styles.label}>Status</Text>
             <TouchableOpacity
               style={styles.selectInput}
@@ -421,12 +466,10 @@ export default function AddStaffScreen({ route, navigation }) {
               <Icon name="chevron-down" size={18} color={C.muted} />
             </TouchableOpacity>
           </View>
-        </View>
+        </Section>
 
         {/* Address */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Address Details</Text>
-
+        <Section icon="map-pin" color={C.amber} bg={C.amberL} title="Address Details">
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Address</Text>
             <TextInput
@@ -464,7 +507,7 @@ export default function AddStaffScreen({ route, navigation }) {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { marginBottom: 0 }]}>
             <Text style={styles.label}>Pincode</Text>
             <TextInput
               style={styles.input}
@@ -476,12 +519,10 @@ export default function AddStaffScreen({ route, navigation }) {
               maxLength={6}
             />
           </View>
-        </View>
+        </Section>
 
         {/* Documents */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Identity Documents</Text>
-
+        <Section icon="shield" color={C.blue} bg={C.blueL} title="Identity Documents">
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Aadhar Number</Text>
             <TextInput
@@ -495,7 +536,7 @@ export default function AddStaffScreen({ route, navigation }) {
             />
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { marginBottom: 0 }]}>
             <Text style={styles.label}>PAN Number</Text>
             <TextInput
               style={styles.input}
@@ -507,13 +548,11 @@ export default function AddStaffScreen({ route, navigation }) {
               maxLength={10}
             />
           </View>
-        </View>
+        </Section>
 
         {/* License (Only for drivers) */}
         {isDriver && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Driving License</Text>
-
+          <Section icon="credit-card" color={C.g700} bg={C.g50} title="Driving License" subtitle="Required for driver assignments">
             <View style={styles.inputGroup}>
               <Text style={styles.label}>License Number</Text>
               <TextInput
@@ -539,7 +578,7 @@ export default function AddStaffScreen({ route, navigation }) {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.inputGroup}>
+            <View style={[styles.inputGroup, { marginBottom: 0 }]}>
               <Text style={styles.label}>License Expiry</Text>
               <TouchableOpacity
                 style={styles.selectInput}
@@ -551,13 +590,11 @@ export default function AddStaffScreen({ route, navigation }) {
                 <Icon name="calendar" size={18} color={C.muted} />
               </TouchableOpacity>
             </View>
-          </View>
+          </Section>
         )}
 
         {/* Bank Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Bank Details</Text>
-
+        <Section icon="credit-card" iconLib="mci" color={C.blue} bg={C.blueL} title="Bank Details">
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Bank Name</Text>
             <TextInput
@@ -592,7 +629,7 @@ export default function AddStaffScreen({ route, navigation }) {
             />
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { marginBottom: 0 }]}>
             <Text style={styles.label}>IFSC Code</Text>
             <TextInput
               style={styles.input}
@@ -603,12 +640,10 @@ export default function AddStaffScreen({ route, navigation }) {
               autoCapitalize="characters"
             />
           </View>
-        </View>
+        </Section>
 
         {/* Employment Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Employment Details</Text>
-
+        <Section icon="briefcase" color={C.purple} bg={C.purpleL} title="Employment Details">
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Monthly Salary</Text>
             <TextInput
@@ -621,7 +656,7 @@ export default function AddStaffScreen({ route, navigation }) {
             />
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { marginBottom: 0 }]}>
             <Text style={styles.label}>Joining Date</Text>
             <TouchableOpacity
               style={styles.selectInput}
@@ -633,7 +668,10 @@ export default function AddStaffScreen({ route, navigation }) {
               <Icon name="calendar" size={18} color={C.muted} />
             </TouchableOpacity>
           </View>
+        </Section>
 
+        {/* Emergency Contact */}
+        <Section icon="alert-circle" color={C.red} bg={C.redL} title="Emergency Contact">
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Emergency Contact Name</Text>
             <TextInput
@@ -645,7 +683,7 @@ export default function AddStaffScreen({ route, navigation }) {
             />
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { marginBottom: 0 }]}>
             <Text style={styles.label}>Emergency Contact Phone</Text>
             <TextInput
               style={styles.input}
@@ -656,12 +694,12 @@ export default function AddStaffScreen({ route, navigation }) {
               keyboardType="phone-pad"
             />
           </View>
-        </View>
+        </Section>
 
         {/* Submit Button */}
-        <TouchableOpacity onPress={handleSubmit} disabled={loading} activeOpacity={0.85}>
+        <TouchableOpacity onPress={handleSubmit} disabled={loading} activeOpacity={0.85} style={styles.submitBtnWrap}>
           <LinearGradient
-            colors={loading ? ['#9CA3AF', '#9CA3AF'] : [C.g600, C.g500]}
+            colors={loading ? ['#9CA3AF', '#9CA3AF'] : G.emerald}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={styles.submitBtn}
           >
@@ -680,6 +718,7 @@ export default function AddStaffScreen({ route, navigation }) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Date Pickers */}
       <DateTimePickerModal
@@ -714,6 +753,7 @@ export default function AddStaffScreen({ route, navigation }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Role</Text>
               <TouchableOpacity onPress={() => setShowRoleModal(false)}>
@@ -748,6 +788,7 @@ export default function AddStaffScreen({ route, navigation }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Status</Text>
               <TouchableOpacity onPress={() => setShowStatusModal(false)}>
@@ -782,6 +823,7 @@ export default function AddStaffScreen({ route, navigation }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select License Type</Text>
               <TouchableOpacity onPress={() => setShowLicenseTypeModal(false)}>
@@ -816,6 +858,7 @@ export default function AddStaffScreen({ route, navigation }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select State</Text>
               <TouchableOpacity onPress={() => setShowStateModal(false)}>
@@ -845,65 +888,59 @@ export default function AddStaffScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  // Header
-  headerGrad: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+  safe: { flex: 1, backgroundColor: C.bg },
+
+  /* Hero */
+  hero: {
+    paddingHorizontal: 16, overflow: 'hidden',
+    borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 8,
+  heroSafe: {},
+  orbA: {
+    position: 'absolute', top: -46, right: -30, width: 150, height: 150,
+    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  glassBtn: {
+  orbB: {
+    position: 'absolute', bottom: -40, left: -34, width: 120, height: 120,
+    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
+  },
+  topRow: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', paddingTop: rs(4), marginBottom: rs(14),
+  },
+  backCircle: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
   },
-  headerCenter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  heroBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 8,
   },
-  headerIconWrap: {
-    width: 32, height: 32, borderRadius: 10,
-    backgroundColor: 'rgba(52,211,153,0.15)',
-    borderWidth: 1, borderColor: 'rgba(52,211,153,0.2)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: -0.3,
-  },
+  heroBadgeTxt: { fontSize: 10.5, fontWeight: '700', color: C.g400, fontFamily: DISPLAY, textTransform: 'uppercase', letterSpacing: 0.5 },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 3, letterSpacing: -0.4 },
+  heroSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', fontFamily: DISPLAY },
+
   scrollView: {
     flex: 1,
   },
+  flex: { flex: 1 },
   scrollContent: {
     padding: 16,
   },
-  section: {
-    backgroundColor: C.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+
+  /* Section cards — mirrors StaffDetailScreen.js's card/cardHead/cardIcon/cardTitle */
+  card: {
+    backgroundColor: C.card, borderRadius: rs(16), padding: 16,
+    marginBottom: 14, borderWidth: 1, borderColor: T.glassBorder, ...cardShadow,
   },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: C.sub,
-    marginBottom: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  cardIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '800', color: C.text },
+  cardSubtitle: { fontSize: 11.5, color: C.muted, marginTop: 1 },
+
   inputGroup: {
     marginBottom: 16,
   },
@@ -973,30 +1010,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
+
+  submitBtnWrap: { borderRadius: rs(14), overflow: 'hidden' },
   submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
-    borderRadius: 14,
+    borderRadius: rs(14),
     gap: 8,
   },
   submitBtnText: {
+    fontFamily: DISPLAY,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '800',
     color: '#fff',
   },
+
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: T.scrim,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: C.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: C.card,
+    borderTopLeftRadius: SHEET_RADIUS,
+    borderTopRightRadius: SHEET_RADIUS,
     maxHeight: '70%',
+    overflow: 'hidden',
   },
+  sheetHandleWrap: { alignItems: 'center', paddingTop: 10 },
+  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1006,6 +1050,7 @@ const styles = StyleSheet.create({
     borderBottomColor: C.border,
   },
   modalTitle: {
+    fontFamily: DISPLAY,
     fontSize: 16,
     fontWeight: '700',
     color: C.text,
