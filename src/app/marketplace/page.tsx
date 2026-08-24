@@ -608,6 +608,9 @@ export default function MarketplacePage() {
       {/* ══════════════════════ TRANSPORT SEARCH HERO ══════════════════════ */}
       <TransportSearchHero locations={locations} />
 
+      {/* ══════════════════════ TRANSPORT SEARCH HERO (duplicate) ══════════════════════ */}
+      <TransportSearchHero locations={locations} />
+
       {/* ═══════════════════ EXPLORE TOP CATEGORIES ═══════════════════ */}
       <section className="bg-white py-16 sm:py-20">
         <div className="container mx-auto px-4">
