@@ -2124,13 +2124,13 @@ const POPULAR_TRANSPORT_SEARCHES = [
 ];
 
 const TRANSPORT_TABS = [
-  { key: 'bike', label: 'Bike', icon: Bike, basePath: '/bike-on-rent', fleetSegment: 'bikes' as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: true, hasEquipmentFields: false, chip: 'bg-sky-100 text-sky-600', chipSolid: 'bg-sky-500' },
-  { key: 'self-drive', label: 'Self Drive Car', icon: Key, basePath: '/self-drive-car-rentals', fleetSegment: 'cars' as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: true, hasEquipmentFields: false, chip: 'bg-violet-100 text-violet-600', chipSolid: 'bg-violet-500' },
-  { key: 'car', label: 'Car', icon: Car, basePath: '/car-rental', fleetSegment: null as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false, chip: 'bg-emerald-100 text-emerald-600', chipSolid: 'bg-emerald-500' },
-  { key: 'bus', label: 'Bus', icon: Bus, basePath: '/bus-rental', fleetSegment: null as string | null, needsTo: true, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false, chip: 'bg-amber-100 text-amber-600', chipSolid: 'bg-amber-500' },
-  { key: 'truck', label: 'Truck', icon: Truck, basePath: '/transporter', fleetSegment: null as string | null, needsTo: true, hasTruckFields: true, hasDateTimeFields: false, hasEquipmentFields: false, chip: 'bg-rose-100 text-rose-600', chipSolid: 'bg-rose-500' },
-  { key: 'packers', label: 'Packers & Movers', icon: Package, basePath: '/packers-and-movers', fleetSegment: null as string | null, needsTo: true, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false, chip: 'bg-teal-100 text-teal-600', chipSolid: 'bg-teal-500' },
-  { key: 'equipment', label: 'Equipment', icon: Wrench, basePath: '/equipment-rental', fleetSegment: null as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: true, chip: 'bg-orange-100 text-orange-600', chipSolid: 'bg-orange-500' },
+  { key: 'bike', label: 'Bike', icon: Bike, basePath: '/bike-on-rent', fleetSegment: 'bikes' as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: true, hasEquipmentFields: false },
+  { key: 'self-drive', label: 'Self Drive Car', icon: Key, basePath: '/self-drive-car-rentals', fleetSegment: 'cars' as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: true, hasEquipmentFields: false },
+  { key: 'car', label: 'Car', icon: Car, basePath: '/car-rental', fleetSegment: null as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false },
+  { key: 'bus', label: 'Bus', icon: Bus, basePath: '/bus-rental', fleetSegment: null as string | null, needsTo: true, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false },
+  { key: 'truck', label: 'Truck', icon: Truck, basePath: '/transporter', fleetSegment: null as string | null, needsTo: true, hasTruckFields: true, hasDateTimeFields: false, hasEquipmentFields: false },
+  { key: 'packers', label: 'Packers & Movers', icon: Package, basePath: '/packers-and-movers', fleetSegment: null as string | null, needsTo: true, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false },
+  { key: 'equipment', label: 'Equipment', icon: Wrench, basePath: '/equipment-rental', fleetSegment: null as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: true },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2788,12 +2788,12 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                     type="button"
                     onClick={() => setActiveTab(tab)}
                     className={`flex shrink-0 flex-col items-center gap-1.5 rounded-2xl px-4 py-3 transition-all duration-200 ${
-                      active ? `${tab.chipSolid} shadow-lg scale-[1.04]` : 'bg-slate-50 hover:bg-slate-100'
+                      active ? 'bg-primary shadow-lg scale-[1.04]' : 'bg-slate-50 hover:bg-slate-100'
                     }`}
                   >
                     <span
                       className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
-                        active ? 'bg-white/25' : tab.chip
+                        active ? 'bg-white/25' : 'bg-slate-200 text-slate-500'
                       }`}
                     >
                       <Icon className={`h-5 w-5 ${active ? 'text-white' : ''}`} />
