@@ -1572,7 +1572,7 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
 // is passed (outstation Drop/Via fields), untyped suggestions are ranked by
 // distance from it, same as CarRentalBookingHero's ComboLocationInput.
 function MiniCityInput({
-  label, placeholder, caption, locations, value, onSelect, fromLocation, bare,
+  label, placeholder, caption, locations, value, onSelect, fromLocation,
 }: {
   label: string;
   placeholder: string;
@@ -1581,15 +1581,10 @@ function MiniCityInput({
   value: string;
   onSelect: (loc: Location) => void;
   fromLocation?: Location | null;
-  // When true, skip this field's own border/bg/shadow/rounding — used inside
-  // a group wrapper (see the From/To and date/time groups below) that draws
-  // one continuous bordered bar with dividers between fields instead.
-  bare?: boolean;
 }) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setQuery(value), [value]);
 
@@ -1631,23 +1626,16 @@ function MiniCityInput({
       : 0;
 
   return (
-    <div
-      className={`relative min-w-[120px] sm:min-w-[182px] flex-1 cursor-text px-3.5 py-3 sm:px-5 sm:py-5 ${
-        bare ? '' : 'rounded-[10px] border border-slate-100 bg-[#fbfbfc] shadow-[0_2px_6px_rgba(17,24,39,0.04)]'
-      }`}
-      ref={boxRef}
-      onClick={() => inputRef.current?.focus()}
-    >
-      <label className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-slate-500 sm:text-[15px]">
+    <div className="relative min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
+      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
         <MapPin className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <input
-        ref={inputRef}
         value={query}
         onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
-        className="w-full min-w-0 border-none bg-transparent p-0 text-[19px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0 sm:text-[20px]"
+        className="w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
       />
       {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && matches.length > 0 && (
@@ -1834,7 +1822,7 @@ function dateToYmd(d: Date) {
 // for a native <input type="date"> — matches the rest of the widget's card
 // styling instead of each browser/OS's own native date picker UI.
 function MiniDateInput({
-  label, value, onChange, min, caption, bare,
+  label, value, onChange, min, caption,
   boxClassName = 'min-w-[125px] sm:min-w-[190px] flex-1',
 }: {
   label: string;
@@ -1842,7 +1830,6 @@ function MiniDateInput({
   onChange: (v: string) => void;
   min?: string;
   caption?: string;
-  bare?: boolean;
   boxClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -1880,20 +1867,18 @@ function MiniDateInput({
 
   return (
     <div
-      className={`relative ${boxClassName} px-3.5 py-3 sm:px-5 sm:py-5 ${
-        bare ? '' : 'rounded-[10px] border border-slate-100 bg-[#fbfbfc] shadow-[0_2px_6px_rgba(17,24,39,0.04)]'
-      }`}
+      className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
       ref={boxRef}
     >
+      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+        <Calendar className="h-3 w-3 text-primary-700" /> {label}
+      </label>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-full w-full flex-col items-start justify-center gap-1 border-none bg-transparent p-0 text-left focus:outline-none focus:ring-0"
+        className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
-        <span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-500 sm:text-[15px]">
-          <Calendar className="h-3 w-3 text-primary-700" /> {label}
-        </span>
-        <span className={`truncate text-[19px] font-bold sm:text-[20px] ${value ? 'text-slate-900' : 'text-slate-400'}`}>{displayText}</span>
+        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{displayText}</span>
       </button>
       {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && (
@@ -1973,14 +1958,13 @@ const TIME_SLOTS: string[] = (() => {
 // for a native <input type="time"> — matches the rest of the widget's card
 // styling instead of each browser/OS's own native time picker UI.
 function MiniTimeInput({
-  label, value, onChange, caption, bare,
+  label, value, onChange, caption,
   boxClassName = 'min-w-[112px] sm:min-w-[172px] flex-1',
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   caption?: string;
-  bare?: boolean;
   boxClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -2007,20 +1991,18 @@ function MiniTimeInput({
 
   return (
     <div
-      className={`relative ${boxClassName} px-3.5 py-3 sm:px-5 sm:py-5 ${
-        bare ? '' : 'rounded-[10px] border border-slate-100 bg-[#fbfbfc] shadow-[0_2px_6px_rgba(17,24,39,0.04)]'
-      }`}
+      className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
       ref={boxRef}
     >
+      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+        <Clock className="h-3 w-3 text-primary-700" /> {label}
+      </label>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-full w-full flex-col items-start justify-center gap-1 border-none bg-transparent p-0 text-left focus:outline-none focus:ring-0"
+        className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
-        <span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-500 sm:text-[15px]">
-          <Clock className="h-3 w-3 text-primary-700" /> {label}
-        </span>
-        <span className={`truncate text-[19px] font-bold sm:text-[20px] ${value ? 'text-slate-900' : 'text-slate-400'}`}>{value ? formatTimeSlot(value) : '--:-- --'}</span>
+        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{value ? formatTimeSlot(value) : '--:-- --'}</span>
       </button>
       {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && (
@@ -2775,7 +2757,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
         {/* Search panel */}
         <div className="flex flex-col items-stretch">
-          <div className="ml-1 w-fit max-w-full overflow-x-auto rounded-xl bg-slate-100 p-1.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:ml-5 sm:rounded-t-xl sm:rounded-b-none sm:px-2 sm:pt-2 [&::-webkit-scrollbar]:hidden">
+          <div className="ml-1 w-fit max-w-full overflow-x-auto rounded-xl bg-white px-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:ml-5 sm:rounded-t-lg sm:rounded-b-none sm:px-6 [&::-webkit-scrollbar]:hidden">
             <div className="flex gap-1">
               {TRANSPORT_TABS.map((tab) => {
                 const Icon = tab.icon;
@@ -2785,11 +2767,11 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     key={tab.key}
                     type="button"
                     onClick={() => setActiveTab(tab)}
-                    className={`flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2.5 text-[14px] font-bold transition-all sm:text-[15px] ${
-                      active ? 'bg-white text-primary-700 shadow-md' : 'text-slate-500 hover:bg-white/60 hover:text-slate-900'
+                    className={`mt-2 flex shrink-0 items-center gap-1.5 rounded-lg border-b-2 px-3 py-2.5 text-[13px] font-semibold transition-colors ${
+                      active ? 'border-primary bg-primary-50 text-primary-700' : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                     }`}
                   >
-                    <Icon className="h-4 w-4" /> {tab.label}
+                    <Icon className="h-3.5 w-3.5" /> {tab.label}
                   </button>
                 );
               })}
@@ -2836,7 +2818,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
               </div>
             )}
 
-            <div className={`flex flex-wrap items-stretch gap-2.5 p-3 sm:gap-4 sm:p-8 ${activeTab.key === 'car' || activeTab.key === 'bus' || activeTab.key === 'truck' || activeTab.key === 'packers' || activeTab.key === 'equipment' || activeTab.hasDateTimeFields ? '' : 'md:flex-nowrap'}`}>
+            <div className={`flex flex-wrap items-stretch gap-2.5 p-3 sm:gap-4 sm:p-8 ${activeTab.key === 'car' || activeTab.key === 'bus' || activeTab.key === 'truck' || activeTab.key === 'packers' || activeTab.key === 'equipment' ? '' : 'md:flex-nowrap'}`}>
               {activeTab.key === 'car' ? (
                 <>
                   {carSubTab === 'local' && (
@@ -3892,7 +3874,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 )
               ) : (
                 <>
-                  <div className={`flex min-w-0 flex-wrap items-stretch gap-2.5 rounded-[10px] border border-slate-100 bg-[#fbfbfc] shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:gap-0 sm:divide-x sm:divide-slate-200 ${activeTab.needsTo ? 'flex-[2] basis-[320px]' : 'basis-full'}`}>
+                  <div className="flex min-w-0 flex-[2] flex-wrap basis-[320px] items-stretch gap-2.5">
                     <MiniCityInput
                       label="From"
                       placeholder="Enter pickup location"
@@ -3900,7 +3882,6 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       locations={locations}
                       value={fromCity?.name ?? ''}
                       onSelect={setFromCity}
-                      bare
                     />
 
                     {activeTab.needsTo && (
@@ -3920,7 +3901,6 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           locations={locations}
                           value={toCity?.name ?? ''}
                           onSelect={setToCity}
-                          bare
                         />
                       </>
                     )}
@@ -3976,7 +3956,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   )}
 
                   {activeTab.hasDateTimeFields ? (
-                <div className="flex flex-1 flex-wrap items-stretch gap-2.5 rounded-[10px] border border-slate-100 bg-[#fbfbfc] shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:gap-0 sm:divide-x sm:divide-slate-200">
+                <>
                   <MiniDateInput
                     label="Pickup Date"
                     value={date}
@@ -3984,7 +3964,6 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     min={todayDateStr}
                     caption="Journey date"
                     boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
-                    bare
                   />
                   <MiniTimeInput
                     label="Pickup Time"
@@ -3992,7 +3971,6 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     onChange={setPickupTime}
                     caption="Pickup time"
                     boxClassName="min-w-[112px] sm:min-w-[172px] flex-1"
-                    bare
                   />
                   <MiniDateInput
                     label="Drop-off Date"
@@ -4001,7 +3979,6 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     min={date || todayDateStr}
                     caption="Return date"
                     boxClassName="min-w-[125px] sm:min-w-[190px] flex-1"
-                    bare
                   />
                   <MiniTimeInput
                     label="Drop-off Time"
@@ -4009,9 +3986,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     onChange={setDropoffTime}
                     caption="Return time"
                     boxClassName="min-w-[112px] sm:min-w-[172px] flex-1"
-                    bare
                   />
-                </div>
+                </>
               ) : (
                 <MiniDateInput
                   label="Pickup Date"
