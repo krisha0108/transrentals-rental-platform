@@ -2622,6 +2622,42 @@ model route_pricing {
   @@index([tripTypeId], map: "route_pricing_tripTypeId_fkey")
 }
 
+// One row per URL discovered from the live sitemap(s) — HTTP status/redirect
+// come from our own crawler; the indexing/vitals fields are filled in later
+// by the GSC URL Inspection and PageSpeed Insights integrations, checked on
+// their own independent schedules against the same row.
+model site_audit_pages {
+  id                String    @id
+  url               String    @unique @db.VarChar(1000)
+  sourceSitemap     String?
+
+  // Our own HTTP crawl
+  httpStatus        Int?
+  redirectTo        String?   @db.VarChar(1000)
+  crawlError        String?
+  lastCrawledAt     DateTime?
+
+  // GSC URL Inspection API (added in a later phase)
+  isIndexed         Boolean?
+  indexingVerdict   String?
+  indexingIssues    String?   @db.Text
+  lastInspectedAt   DateTime?
+
+  // PageSpeed Insights (added in a later phase)
+  lcpMs             Int?
+  cls               Float?
+  inpMs             Int?
+  performanceScore  Int?
+  lastVitalsCheckAt DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([httpStatus])
+  @@index([isIndexed])
+  @@index([lastCrawledAt])
+}
+
 model integration_settings {
   id           String    @id
   service      String    @unique

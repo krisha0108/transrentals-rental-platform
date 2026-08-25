@@ -329,9 +329,11 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
+            '@type': 'Service',
+            serviceType: 'Local Taxi',
             name: `Local Taxi in ${locationName}`,
             description: `Book local hourly taxi in ${locationName}. 4hr, 8hr, 12hr packages available.`,
+            areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',

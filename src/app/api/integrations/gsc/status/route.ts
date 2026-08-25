@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isGSCConnected, getSiteInfo } from '@/lib/integrations/google-search-console';
+import { isGSCConnected, getOAuthCredentialsStatus } from '@/lib/integrations/google-search-console';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
@@ -21,11 +21,15 @@ export async function GET(request: NextRequest) {
     }
 
     const isConnected = await isGSCConnected();
+    const credStatus = await getOAuthCredentialsStatus();
 
     if (!isConnected) {
       return NextResponse.json({
         isConnected: false,
         message: 'Google Search Console not connected',
+        credentialsConfigured: credStatus.isConfigured,
+        credentialsSource: credStatus.source,
+        clientId: credStatus.clientId,
       });
     }
 
@@ -42,12 +46,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Try to fetch available sites (validates connection)
-    let sites = [];
+    let sites: any[] = [];
     try {
       const { google } = await import('googleapis');
       const { getOAuth2Client } = await import('@/lib/integrations/google-search-console');
 
-      const oauth2Client = getOAuth2Client();
+      const oauth2Client = await getOAuth2Client();
       oauth2Client.setCredentials({
         access_token: integration.accessToken,
         refresh_token: integration.refreshToken,

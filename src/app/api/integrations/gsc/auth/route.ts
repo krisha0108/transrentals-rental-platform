@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthorizationUrl } from '@/lib/integrations/google-search-console';
+import { getAuthorizationUrl, getOAuthCredentialsStatus } from '@/lib/integrations/google-search-console';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 
@@ -19,15 +19,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if credentials are configured
-    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    // Check if credentials are configured (either in the DB, via the admin
+    // UI, or in the .env file)
+    const credStatus = await getOAuthCredentialsStatus();
+    if (!credStatus.isConfigured) {
       return NextResponse.json({
         error: 'Google Search Console credentials not configured',
-        message: 'Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to your .env file',
+        message: 'Add a Client ID and Client Secret below, or set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env file',
       }, { status: 500 });
     }
 
-    const authUrl = getAuthorizationUrl();
+    const authUrl = await getAuthorizationUrl();
 
     return NextResponse.json({
       authUrl,

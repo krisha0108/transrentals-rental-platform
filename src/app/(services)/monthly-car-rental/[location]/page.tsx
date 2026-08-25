@@ -273,9 +273,11 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
+            '@type': 'Service',
+            serviceType: 'Monthly Car Rental',
             name: `Monthly Car Rental in ${locationName}`,
             description: `Subscribe to cars monthly in ${locationName}. All-inclusive car subscription packages.`,
+            areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',
