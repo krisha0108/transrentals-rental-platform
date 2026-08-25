@@ -7,11 +7,63 @@ function generateId(): string {
   return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
 }
 
+type StoredOAuthConfig = { clientId?: string; clientSecret?: string };
+
+// Client ID/secret can be configured from the admin UI (stored in
+// integration_settings.config as JSON) instead of the .env file — lets an
+// admin without server/deploy access set these up directly. Falls back to
+// GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET env vars when nothing's stored.
+async function getStoredOAuthConfig(): Promise<StoredOAuthConfig> {
+  const integration = await prisma.integration_settings.findUnique({
+    where: { service: 'google_search_console' },
+    select: { config: true },
+  });
+  if (!integration?.config) return {};
+  try {
+    return JSON.parse(integration.config) as StoredOAuthConfig;
+  } catch {
+    return {};
+  }
+}
+
+// Save admin-entered OAuth credentials, without disturbing any tokens
+// already stored on the same integration_settings row.
+export const saveOAuthCredentials = async (clientId: string, clientSecret: string) => {
+  await prisma.integration_settings.upsert({
+    where: { service: 'google_search_console' },
+    create: {
+      id: generateId(),
+      service: 'google_search_console',
+      isActive: false,
+      config: JSON.stringify({ clientId, clientSecret }),
+    },
+    update: {
+      config: JSON.stringify({ clientId, clientSecret }),
+      updatedAt: new Date(),
+    },
+  });
+};
+
+// Whether credentials are available at all, and whether they came from the
+// DB (admin-entered) vs. the .env file — never returns the secret itself.
+export const getOAuthCredentialsStatus = async () => {
+  const stored = await getStoredOAuthConfig();
+  const hasStoredCredentials = !!(stored.clientId && stored.clientSecret);
+  const hasEnvCredentials = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  return {
+    isConfigured: hasStoredCredentials || hasEnvCredentials,
+    source: hasStoredCredentials ? 'database' : hasEnvCredentials ? 'env' : null,
+    clientId: stored.clientId || process.env.GOOGLE_CLIENT_ID || null,
+  };
+};
+
 // OAuth2 Configuration
-export const getOAuth2Client = () => {
+export const getOAuth2Client = async () => {
+  const stored = await getStoredOAuthConfig();
+
   const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
+    stored.clientId || process.env.GOOGLE_CLIENT_ID,
+    stored.clientSecret || process.env.GOOGLE_CLIENT_SECRET,
     process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/integrations/gsc/callback'
   );
 
@@ -19,8 +71,8 @@ export const getOAuth2Client = () => {
 };
 
 // Generate authorization URL
-export const getAuthorizationUrl = () => {
-  const oauth2Client = getOAuth2Client();
+export const getAuthorizationUrl = async () => {
+  const oauth2Client = await getOAuth2Client();
 
   const scopes = [
     'https://www.googleapis.com/auth/webmasters.readonly',
@@ -37,7 +89,7 @@ export const getAuthorizationUrl = () => {
 
 // Exchange authorization code for tokens
 export const getTokensFromCode = async (code: string) => {
-  const oauth2Client = getOAuth2Client();
+  const oauth2Client = await getOAuth2Client();
   const { tokens } = await oauth2Client.getToken(code);
   oauth2Client.setCredentials(tokens);
   return tokens;
@@ -53,7 +105,7 @@ export const loadStoredTokens = async () => {
     return null;
   }
 
-  const oauth2Client = getOAuth2Client();
+  const oauth2Client = await getOAuth2Client();
   oauth2Client.setCredentials({
     access_token: integration.accessToken,
     refresh_token: integration.refreshToken,
