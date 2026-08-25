@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const indexing = searchParams.get('indexing'); // 'indexed' | 'not_indexed' | 'unchecked'
     const search = searchParams.get('search') || undefined;
     const limit = Math.min(500, Math.max(10, parseInt(searchParams.get('limit') || '100', 10)));
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10));
@@ -31,7 +32,11 @@ export async function GET(request: NextRequest) {
       where.OR = [{ httpStatus: { gte: 400 } }, { crawlError: { not: null } }];
     } else if (status && /^\d+$/.test(status)) where.httpStatus = parseInt(status, 10);
 
-    const [rows, total, statusGroups] = await Promise.all([
+    if (indexing === 'indexed') where.isIndexed = true;
+    else if (indexing === 'not_indexed') where.isIndexed = false;
+    else if (indexing === 'unchecked') where.isIndexed = null;
+
+    const [rows, total, statusGroups, indexingGroups] = await Promise.all([
       prisma.site_audit_pages.findMany({
         where,
         orderBy: [{ httpStatus: 'desc' }, { url: 'asc' }],
@@ -40,6 +45,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.site_audit_pages.count({ where }),
       prisma.site_audit_pages.groupBy({ by: ['httpStatus'], _count: { _all: true } }),
+      prisma.site_audit_pages.groupBy({ by: ['isIndexed'], _count: { _all: true } }),
     ]);
 
     const summary = {
@@ -48,6 +54,9 @@ export async function GET(request: NextRequest) {
       total4xx5xx: 0,
       totalCrawlErrors: 0,
       byStatus: {} as Record<string, number>,
+      indexed: 0,
+      notIndexed: 0,
+      indexingUnchecked: 0,
     };
     for (const g of statusGroups) {
       const key = g.httpStatus == null ? 'unchecked' : String(g.httpStatus);
@@ -59,6 +68,11 @@ export async function GET(request: NextRequest) {
       }
     }
     summary.totalCrawlErrors = await prisma.site_audit_pages.count({ where: { crawlError: { not: null } } });
+    for (const g of indexingGroups) {
+      if (g.isIndexed === true) summary.indexed = g._count._all;
+      else if (g.isIndexed === false) summary.notIndexed = g._count._all;
+      else summary.indexingUnchecked = g._count._all;
+    }
 
     return NextResponse.json({
       rows,
