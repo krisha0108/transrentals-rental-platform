@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Play, Square, Loader2, RefreshCw, AlertCircle, CheckCircle2,
-  ArrowRight, Search, ExternalLink, ShieldCheck, ShieldX, ShieldQuestion,
+  ArrowRight, Search, ExternalLink, ShieldCheck, ShieldX, ShieldQuestion, Gauge,
 } from 'lucide-react';
 
 type CrawlJob = {
@@ -42,6 +42,20 @@ type InspectionJob = {
   lastError: string | null;
 };
 
+type VitalsJob = {
+  id: string;
+  state: 'running' | 'done' | 'cancelled' | 'error';
+  strategy: 'mobile' | 'desktop';
+  total: number;
+  checked: number;
+  failed: number;
+  startedAt: string;
+  finishedAt: string | null;
+  elapsedMs: number;
+  etaMs: number | null;
+  lastError: string | null;
+};
+
 type PageRow = {
   id: string;
   url: string;
@@ -53,6 +67,11 @@ type PageRow = {
   isIndexed: boolean | null;
   indexingVerdict: string | null;
   lastInspectedAt: string | null;
+  lcpMs: number | null;
+  cls: number | null;
+  inpMs: number | null;
+  performanceScore: number | null;
+  lastVitalsCheckAt: string | null;
 };
 
 type Summary = {
@@ -64,6 +83,10 @@ type Summary = {
   indexed: number;
   notIndexed: number;
   indexingUnchecked: number;
+  vitalsGood: number;
+  vitalsNeedsImprovement: number;
+  vitalsPoor: number;
+  vitalsUnchecked: number;
 };
 
 const FILTERS: Array<{ key: string; label: string }> = [
@@ -78,6 +101,13 @@ const INDEXING_FILTERS: Array<{ key: string; label: string }> = [
   { key: '', label: 'All' },
   { key: 'indexed', label: 'Indexed' },
   { key: 'not_indexed', label: 'Not Indexed' },
+  { key: 'unchecked', label: 'Not Checked' },
+];
+
+const VITALS_FILTERS: Array<{ key: string; label: string }> = [
+  { key: '', label: 'All' },
+  { key: 'good', label: 'Good' },
+  { key: 'poor', label: 'Poor' },
   { key: 'unchecked', label: 'Not Checked' },
 ];
 
@@ -119,6 +149,29 @@ function IndexingBadge({ isIndexed, verdict }: { isIndexed: boolean | null; verd
   );
 }
 
+const LCP_GOOD = 2500, LCP_POOR = 4000;
+const CLS_GOOD = 0.1, CLS_POOR = 0.25;
+const INP_GOOD = 200, INP_POOR = 500;
+
+function VitalsBadge({ lcpMs, cls, inpMs }: { lcpMs: number | null; cls: number | null; inpMs: number | null }) {
+  if (lcpMs == null) return <span className="text-gray-400">—</span>;
+
+  const isPoor = lcpMs > LCP_POOR || (cls != null && cls > CLS_POOR) || (inpMs != null && inpMs > INP_POOR);
+  const isGood = lcpMs <= LCP_GOOD && (cls == null || cls <= CLS_GOOD) && (inpMs == null || inpMs <= INP_GOOD);
+  const color = isPoor ? 'text-red-700' : isGood ? 'text-green-700' : 'text-yellow-700';
+  const label = isPoor ? 'Poor' : isGood ? 'Good' : 'Needs Improvement';
+
+  return (
+    <span className={`flex items-center gap-1.5 ${color}`}>
+      <Gauge className="h-4 w-4" />
+      <span className="font-medium">{label}</span>
+      <span className="text-xs text-gray-400">
+        LCP {(lcpMs / 1000).toFixed(1)}s{cls != null ? ` · CLS ${cls.toFixed(2)}` : ''}{inpMs != null ? ` · ${inpMs}ms` : ''}
+      </span>
+    </span>
+  );
+}
+
 export default function SiteAuditPage() {
   const [job, setJob] = useState<CrawlJob | null>(null);
   const [starting, setStarting] = useState(false);
@@ -127,6 +180,7 @@ export default function SiteAuditPage() {
   const [pagination, setPagination] = useState({ total: 0, limit: 100, offset: 0, hasMore: false });
   const [filter, setFilter] = useState('');
   const [indexingFilter, setIndexingFilter] = useState('');
+  const [vitalsFilter, setVitalsFilter] = useState('');
   const [search, setSearch] = useState('');
   const [maxUrls, setMaxUrls] = useState('5000');
   const [loadingRows, setLoadingRows] = useState(false);
@@ -141,12 +195,22 @@ export default function SiteAuditPage() {
   const [quota, setQuota] = useState<{ used: number; total: number; remaining: number } | null>(null);
   const inspectionPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const [vitalsApiKeyConfigured, setVitalsApiKeyConfigured] = useState<boolean | null>(null);
+  const [vitalsApiKeyInput, setVitalsApiKeyInput] = useState('');
+  const [savingVitalsKey, setSavingVitalsKey] = useState(false);
+  const [vitalsBatchSize, setVitalsBatchSize] = useState('50');
+  const [vitalsStrategy, setVitalsStrategy] = useState<'mobile' | 'desktop'>('mobile');
+  const [vitalsJob, setVitalsJob] = useState<VitalsJob | null>(null);
+  const [vitalsStarting, setVitalsStarting] = useState(false);
+  const vitalsPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const fetchRows = useCallback(async (offset = 0) => {
     setLoadingRows(true);
     try {
       const params = new URLSearchParams({ limit: '100', offset: String(offset) });
       if (filter) params.set('status', filter);
       if (indexingFilter) params.set('indexing', indexingFilter);
+      if (vitalsFilter) params.set('vitals', vitalsFilter);
       if (search) params.set('search', search);
       const res = await fetch(`/api/admin/site-audit/pages?${params.toString()}`);
       if (res.ok) {
@@ -160,7 +224,7 @@ export default function SiteAuditPage() {
     } finally {
       setLoadingRows(false);
     }
-  }, [filter, indexingFilter, search]);
+  }, [filter, indexingFilter, vitalsFilter, search]);
 
   useEffect(() => { fetchRows(0); }, [fetchRows]);
 
@@ -178,6 +242,7 @@ export default function SiteAuditPage() {
       })
       .catch(() => {});
     fetchQuota();
+    fetchVitalsKeyStatus();
   }, []);
 
   const fetchQuota = async () => {
@@ -186,6 +251,16 @@ export default function SiteAuditPage() {
       if (res.ok) {
         const data = await res.json();
         setQuota(data.quota);
+      }
+    } catch {}
+  };
+
+  const fetchVitalsKeyStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/site-audit/vitals');
+      if (res.ok) {
+        const data = await res.json();
+        setVitalsApiKeyConfigured(data.apiKey?.isConfigured ?? false);
       }
     } catch {}
   };
@@ -282,13 +357,84 @@ export default function SiteAuditPage() {
     await fetch(`/api/admin/site-audit/inspect/${inspectionJob.id}`, { method: 'DELETE' });
   };
 
+  const handleSaveVitalsKey = async () => {
+    if (!vitalsApiKeyInput.trim()) {
+      setMessage({ type: 'error', text: 'Enter a PageSpeed Insights API key' });
+      return;
+    }
+    setSavingVitalsKey(true);
+    try {
+      const res = await fetch('/api/admin/site-audit/vitals', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: vitalsApiKeyInput.trim() }),
+      });
+      if (res.ok) {
+        setMessage({ type: 'success', text: 'API key saved.' });
+        setVitalsApiKeyInput('');
+        setVitalsApiKeyConfigured(true);
+      } else {
+        const data = await res.json();
+        setMessage({ type: 'error', text: data.error || 'Failed to save API key' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to save API key' });
+    } finally {
+      setSavingVitalsKey(false);
+    }
+  };
+
+  const pollVitalsJob = useCallback(async (jobId: string) => {
+    const res = await fetch(`/api/admin/site-audit/vitals/${jobId}`);
+    if (!res.ok) return;
+    const data: VitalsJob = await res.json();
+    setVitalsJob(data);
+    if (data.state !== 'running') {
+      if (vitalsPollRef.current) clearInterval(vitalsPollRef.current);
+      vitalsPollRef.current = null;
+      fetchRows(0);
+      if (data.state === 'done') setMessage({ type: 'success', text: `Vitals check complete — ${data.checked} pages checked, ${data.failed} failed.` });
+      if (data.state === 'error') setMessage({ type: 'error', text: data.lastError || 'Vitals check failed' });
+    }
+  }, [fetchRows]);
+
+  const handleStartVitals = async () => {
+    setVitalsStarting(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/admin/site-audit/vitals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchSize: parseInt(vitalsBatchSize, 10) || 50, strategy: vitalsStrategy, concurrency: 3 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage({ type: 'error', text: data.error || 'Failed to start vitals check' });
+        return;
+      }
+      setVitalsJob(data.job);
+      vitalsPollRef.current = setInterval(() => pollVitalsJob(data.jobId), 3000);
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to start vitals check' });
+    } finally {
+      setVitalsStarting(false);
+    }
+  };
+
+  const handleCancelVitals = async () => {
+    if (!vitalsJob) return;
+    await fetch(`/api/admin/site-audit/vitals/${vitalsJob.id}`, { method: 'DELETE' });
+  };
+
   useEffect(() => () => {
     if (pollRef.current) clearInterval(pollRef.current);
     if (inspectionPollRef.current) clearInterval(inspectionPollRef.current);
+    if (vitalsPollRef.current) clearInterval(vitalsPollRef.current);
   }, []);
 
   const isActive = job?.state === 'discovering' || job?.state === 'running';
   const isInspecting = inspectionJob?.state === 'running';
+  const isCheckingVitals = vitalsJob?.state === 'running';
 
   return (
     <div className="space-y-6 p-6">
@@ -424,8 +570,98 @@ export default function SiteAuditPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>3. Web Vitals Check (PageSpeed Insights)</CardTitle>
+          <CardDescription>
+            Runs a real Lighthouse audit per page for Core Web Vitals (LCP, CLS, INP) — prefers real-user field data
+            when Google has enough traffic for it, otherwise falls back to the lab-simulated result. Each check takes
+            15–40s, so this runs a small worker pool rather than one at a time.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {vitalsApiKeyConfigured === false && (
+            <div className="space-y-3 rounded-lg border border-gray-200 p-4">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  No PageSpeed Insights API key configured. It&rsquo;s a plain API key (no OAuth) — Google Cloud
+                  Console → APIs &amp; Services → Credentials → Create Credentials → API key, then enable the
+                  &ldquo;PageSpeed Insights API&rdquo; for it. Or set PAGESPEED_API_KEY in your .env file instead.
+                </AlertDescription>
+              </Alert>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm text-gray-600">API Key</label>
+                  <Input
+                    type="password"
+                    value={vitalsApiKeyInput}
+                    onChange={(e) => setVitalsApiKeyInput(e.target.value)}
+                    placeholder="AIza..."
+                    className="w-72"
+                  />
+                </div>
+                <Button variant="outline" onClick={handleSaveVitalsKey} disabled={savingVitalsKey}>
+                  {savingVitalsKey ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Save Key
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {isCheckingVitals && vitalsJob ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Checking vitals: {vitalsJob.checked} / {vitalsJob.total}</span>
+                {vitalsJob.etaMs != null && <span className="text-gray-500">ETA {formatMs(vitalsJob.etaMs)}</span>}
+              </div>
+              {vitalsJob.total > 0 && (
+                <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                  <div
+                    className="h-full bg-primary transition-all"
+                    style={{ width: `${Math.min(100, (vitalsJob.checked / vitalsJob.total) * 100)}%` }}
+                  />
+                </div>
+              )}
+              <Button variant="outline" onClick={handleCancelVitals}>
+                <Square className="mr-2 h-4 w-4" /> Cancel
+              </Button>
+            </div>
+          ) : (
+            vitalsApiKeyConfigured && (
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm text-gray-600">Strategy</label>
+                  <select
+                    value={vitalsStrategy}
+                    onChange={(e) => setVitalsStrategy(e.target.value as 'mobile' | 'desktop')}
+                    className="h-10 w-32 rounded-md border border-gray-300 px-3 text-sm"
+                  >
+                    <option value="mobile">Mobile</option>
+                    <option value="desktop">Desktop</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm text-gray-600">Batch size (slow — keep modest)</label>
+                  <Input
+                    type="number"
+                    value={vitalsBatchSize}
+                    onChange={(e) => setVitalsBatchSize(e.target.value)}
+                    className="w-32"
+                  />
+                </div>
+                <Button onClick={handleStartVitals} disabled={vitalsStarting}>
+                  {vitalsStarting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+                  Check Vitals
+                </Button>
+              </div>
+            )
+          )}
+        </CardContent>
+      </Card>
+
       {summary && (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-8">
           <Card><CardContent className="pt-6">
             <p className="text-sm text-gray-500">2xx OK</p>
             <p className="text-2xl font-bold text-green-700">{summary.total2xx}</p>
@@ -449,6 +685,14 @@ export default function SiteAuditPage() {
           <Card><CardContent className="pt-6">
             <p className="text-sm text-gray-500">Not Indexed</p>
             <p className="text-2xl font-bold text-red-700">{summary.notIndexed}</p>
+          </CardContent></Card>
+          <Card><CardContent className="pt-6">
+            <p className="text-sm text-gray-500">Vitals: Good</p>
+            <p className="text-2xl font-bold text-green-700">{summary.vitalsGood}</p>
+          </CardContent></Card>
+          <Card><CardContent className="pt-6">
+            <p className="text-sm text-gray-500">Vitals: Poor</p>
+            <p className="text-2xl font-bold text-red-700">{summary.vitalsPoor}</p>
           </CardContent></Card>
         </div>
       )}
@@ -497,6 +741,18 @@ export default function SiteAuditPage() {
                 {f.label}
               </button>
             ))}
+            <span className="mx-1 self-center text-gray-300">|</span>
+            {VITALS_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setVitalsFilter(f.key)}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                  vitalsFilter === f.key ? 'border-primary bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
         </CardHeader>
         <CardContent>
@@ -508,6 +764,7 @@ export default function SiteAuditPage() {
                   <th className="py-2 pr-4">Status</th>
                   <th className="py-2 pr-4">Redirects To</th>
                   <th className="py-2 pr-4">Indexing</th>
+                  <th className="py-2 pr-4">Vitals</th>
                   <th className="py-2 pr-4">Last Checked</th>
                 </tr>
               </thead>
@@ -536,13 +793,16 @@ export default function SiteAuditPage() {
                     <td className="py-2 pr-4">
                       <IndexingBadge isIndexed={row.isIndexed} verdict={row.indexingVerdict} />
                     </td>
+                    <td className="py-2 pr-4">
+                      <VitalsBadge lcpMs={row.lcpMs} cls={row.cls} inpMs={row.inpMs} />
+                    </td>
                     <td className="py-2 pr-4 text-gray-500">
                       {row.lastCrawledAt ? new Date(row.lastCrawledAt).toLocaleString() : '—'}
                     </td>
                   </tr>
                 ))}
                 {rows.length === 0 && !loadingRows && (
-                  <tr><td colSpan={5} className="py-8 text-center text-gray-400">No results yet — run a crawl to populate this table.</td></tr>
+                  <tr><td colSpan={6} className="py-8 text-center text-gray-400">No results yet — run a crawl to populate this table.</td></tr>
                 )}
               </tbody>
             </table>
