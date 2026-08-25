@@ -278,9 +278,11 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
+            '@type': 'Service',
+            serviceType: 'Corporate Car Rental',
             name: `Corporate Car Rental in ${locationName}`,
             description: `Professional corporate car rental in ${locationName}. Employee transport and business fleet management.`,
+            areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',

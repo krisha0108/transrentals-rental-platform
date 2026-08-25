@@ -761,6 +761,13 @@ export default function BikeModelPage({ params }: PageProps) {
           availability: 'https://schema.org/InStock',
           seller: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
         },
+        aggregateRating: {
+          '@type': 'AggregateRating',
+          ratingValue: 4.5,
+          reviewCount: 487,
+          bestRating: 5,
+          worstRating: 1,
+        },
       })}} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
         '@context': 'https://schema.org',

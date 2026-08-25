@@ -486,9 +486,11 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
+            '@type': 'Service',
+            serviceType: 'Outstation Cab',
             name: `Outstation Cab from ${locationName}`,
             description: `Book outstation cabs from ${locationName}. Intercity taxi service with round trip & one-way options.`,
+            areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',

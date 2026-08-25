@@ -234,7 +234,7 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
             </div>
           </div>
         </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content
@@ -252,9 +252,11 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
+            '@type': 'Service',
+            serviceType: 'Sports Car Rental',
             name: `Sports Car Rental in ${locationName}`,
             description: `Rent exotic supercars in ${locationName}. Ferrari, Lamborghini, Porsche available.`,
+            areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',

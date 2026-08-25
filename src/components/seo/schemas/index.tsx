@@ -224,6 +224,15 @@ export function VehicleRentalSchema({
               availability: 'https://schema.org/InStock',
               seller: ORGANIZATION,
             },
+            ...(rating && reviewCount && {
+              aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: rating,
+                reviewCount: reviewCount,
+                bestRating: 5,
+                worstRating: 1,
+              },
+            }),
           },
         })),
       }
