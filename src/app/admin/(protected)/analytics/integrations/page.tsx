@@ -41,8 +41,8 @@ interface GA4Status {
 
 interface SyncStats {
   total: number;
-  created: number;
-  updated: number;
+  upserted: number;
+  trackedKeywordsUpdated: number;
 }
 
 export default function IntegrationsPage() {
@@ -483,12 +483,12 @@ export default function IntegrationsPage() {
                       <p className="text-2xl font-bold text-green-900">{syncStats.total}</p>
                     </div>
                     <div>
-                      <p className="text-green-600">Created</p>
-                      <p className="text-2xl font-bold text-green-900">{syncStats.created}</p>
+                      <p className="text-green-600">Rows Synced</p>
+                      <p className="text-2xl font-bold text-green-900">{syncStats.upserted}</p>
                     </div>
                     <div>
-                      <p className="text-green-600">Updated</p>
-                      <p className="text-2xl font-bold text-green-900">{syncStats.updated}</p>
+                      <p className="text-green-600">Tracked Keywords Updated</p>
+                      <p className="text-2xl font-bold text-green-900">{syncStats.trackedKeywordsUpdated}</p>
                     </div>
                   </div>
                 </div>
