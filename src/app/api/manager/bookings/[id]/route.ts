@@ -50,9 +50,16 @@ export async function GET(
     const resolvedParams = 'then' in params ? await params : params;
     let bookingId = resolvedParams.id;
 
-    // If bookingId looks like a bookingNumber (contains uppercase + dashes like CB-2026-XXX), resolve to actual id
-    if (bookingId && /^[A-Z]{2,4}-\d{4}-/.test(bookingId)) {
-      const prefix = bookingId.split('-')[0];
+    // If bookingId looks like a bookingNumber/requestNumber (starts with a
+    // 2-4 letter prefix + dash), resolve to the actual id. Deliberately NOT
+    // requiring a 4-digit year after the prefix (like `\d{4}-`) — most
+    // generators use PREFIX-YYYY-XXXX, but self-drive and bike quote
+    // requests use PREFIX-<timestamp>-<random> (e.g. SDQ-1787546954709-
+    // 0L2C6), which that stricter pattern silently failed to match, so
+    // those bookings always 404'd for managers.
+    const prefixMatch = bookingId ? bookingId.match(/^([A-Z]{2,4})-/) : null;
+    if (prefixMatch) {
+      const prefix = prefixMatch[1];
 
       // Booking tables use `bookingNumber`; quote request tables use `requestNumber`
       // Prefixes verified against actual DB data (multiple formats due to historical changes)
