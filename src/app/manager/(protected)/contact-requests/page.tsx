@@ -7,6 +7,7 @@ import {
   Store, RefreshCw, InboxIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 interface ContactRequest {
   id: string;
@@ -41,6 +42,20 @@ export default function ManagerContactRequestsPage() {
     }
   };
 
+  useManagerPageHeader(
+    'Contact Change Requests',
+    'Review and approve vendor contact info change requests',
+    <button
+      key="refresh"
+      onClick={fetchRequests}
+      disabled={loading}
+      title="Refresh"
+      className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+    >
+      <RefreshCw className={`w-5 h-5 text-gray-700 ${loading ? 'animate-spin' : ''}`} />
+    </button>
+  );
+
   useEffect(() => { fetchRequests(); }, []);
 
   const handleAction = async (reqId: string, action: 'APPROVE' | 'REJECT') => {
@@ -62,21 +77,16 @@ export default function ManagerContactRequestsPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      {/* Controls */}
+      <div className="flex items-center justify-between gap-4 flex-wrap rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => router.back()}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Contact Change Requests</h1>
-            <p className="text-gray-500 text-sm mt-0.5">{requests.length} pending request{requests.length !== 1 ? 's' : ''}</p>
-          </div>
+          <p className="text-sm text-slate-500">
+            <span className="font-semibold text-slate-700">{requests.length}</span> pending request{requests.length !== 1 ? 's' : ''}
+          </p>
         </div>
-        <Button variant="outline" onClick={fetchRequests} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
       </div>
 
       {loading ? (

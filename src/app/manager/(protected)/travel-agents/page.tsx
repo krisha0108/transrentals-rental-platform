@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
   Plane,
   Search,
@@ -61,6 +62,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
 export default function ManagerTravelAgentsPage() {
   const [agents, setAgents] = useState<TravelAgent[]>([]);
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, pages: 0 });
+  useManagerPageHeader('Travel Agents', `${pagination.total} total registered`);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [cityFilter, setCityFilter] = useState('ALL');
@@ -118,24 +120,13 @@ export default function ManagerTravelAgentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <Plane className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Travel Agents</h1>
-            <p className="text-sm text-gray-500">{pagination.total} total registered</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/manager/travel-agents/pending"
-            className="text-sm font-semibold text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-4 py-2.5 rounded-xl"
-          >
-            View Pending Approvals
-          </Link>
-        </div>
+      <div className="flex items-center justify-end gap-2 rounded-2xl border border-gray-200 bg-white p-4">
+        <Link
+          href="/manager/travel-agents/pending"
+          className="text-sm font-semibold text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-4 py-2.5 rounded-xl"
+        >
+          View Pending Approvals
+        </Link>
       </div>
 
       {/* Stats cards */}

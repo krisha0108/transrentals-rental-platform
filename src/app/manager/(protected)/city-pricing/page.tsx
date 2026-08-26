@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
   MapPin, Car, Plus, Trash2, Save, Loader2, IndianRupee,
   ArrowLeft, Download, Search, Pencil, X, ChevronDown,
@@ -199,6 +200,7 @@ function PricingFields({ formData, setFormData }: {
 }
 
 export default function ManagerCityPricingPage() {
+  useManagerPageHeader('Car Rental — City-wise Pricing', 'Manage per-km rates grouped by state → city');
   const [pricing, setPricing] = useState<CityPricing[]>([]);
   const [categories, setCategories] = useState<VehicleCategory[]>([]);
   const [locations, setLocations] = useState<LocationWithState[]>([]);
@@ -439,32 +441,26 @@ export default function ManagerCityPricingPage() {
   return (
     <div className="space-y-5">
 
-      {/* Header */}
-      <div>
-        <Link href="/manager/dashboard" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-3">
+      {/* Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <Link href="/manager/dashboard" className="inline-flex items-center text-sm text-slate-500 hover:text-slate-700">
           <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to Dashboard
         </Link>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Car Rental — City-wise Pricing</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Manage per-km rates grouped by state → city</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handleExport} disabled={pricing.length === 0}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 disabled:opacity-40 transition">
-              <Download className="w-4 h-4" /> Export
-            </button>
-            <button
-              onClick={() => { setBulkForm(defaultForm()); setBulkState(''); setBulkError(''); setShowBulk(true); }}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-sm border border-purple-200 text-purple-700 font-medium rounded-lg hover:bg-purple-50 transition"
-            >
-              <Layers className="w-4 h-4" /> Bulk by State
-            </button>
-            <button onClick={handleCreate}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition">
-              <Plus className="w-4 h-4" /> Add Pricing
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
+          <button onClick={handleExport} disabled={pricing.length === 0}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 disabled:opacity-40 transition">
+            <Download className="w-4 h-4" /> Export
+          </button>
+          <button
+            onClick={() => { setBulkForm(defaultForm()); setBulkState(''); setBulkError(''); setShowBulk(true); }}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-sm border border-purple-200 text-purple-700 font-medium rounded-lg hover:bg-purple-50 transition"
+          >
+            <Layers className="w-4 h-4" /> Bulk by State
+          </button>
+          <button onClick={handleCreate}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition">
+            <Plus className="w-4 h-4" /> Add Pricing
+          </button>
         </div>
       </div>
 

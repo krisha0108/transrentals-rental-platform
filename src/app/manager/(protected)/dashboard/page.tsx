@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
   FileText, Briefcase, MapPin, TrendingUp, Clock, CheckCircle, AlertCircle,
   Users, Loader2, RefreshCw, MessageSquare, Plus, Calendar,
@@ -289,6 +290,20 @@ export default function ManagerDashboard() {
     setIsRefreshing(false);
   };
 
+  useManagerPageHeader(
+    'Dashboard',
+    `Welcome back, ${managerInfo?.name || session?.user?.name || ''}`,
+    <button
+      key="refresh"
+      onClick={handleRefresh}
+      disabled={isRefreshing}
+      title="Refresh"
+      className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+    >
+      <RefreshCw className={`w-5 h-5 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`} />
+    </button>
+  );
+
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
@@ -361,60 +376,61 @@ export default function ManagerDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-green-500 to-teal-600 rounded-2xl p-6 text-white">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-2xl font-bold mb-2">Welcome back, {managerInfo?.name || session?.user?.name}!</h1>
-            <p className="text-green-100">Manager Dashboard - TransRentals CMS</p>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            {filter === 'custom' && (
-              <div className="flex items-center gap-2 bg-white/20 rounded-lg px-3 py-1.5 border border-white/30">
-                <Calendar className="w-4 h-4" />
-                <input
-                  type="date"
-                  value={customFrom}
-                  onChange={(e) => setCustomFrom(e.target.value)}
-                  className="bg-transparent text-sm text-white placeholder-white/70 focus:outline-none [color-scheme:dark]"
-                />
-                <span className="text-white/70">to</span>
-                <input
-                  type="date"
-                  value={customTo}
-                  onChange={(e) => setCustomTo(e.target.value)}
-                  className="bg-transparent text-sm text-white focus:outline-none [color-scheme:dark]"
-                />
-                <button
-                  onClick={applyCustomRange}
-                  disabled={!customFrom || !customTo}
-                  className="text-xs font-semibold px-2 py-1 bg-white/30 hover:bg-white/40 rounded disabled:opacity-40"
-                >
-                  Apply
-                </button>
-              </div>
-            )}
-            <select
-              value={filter}
-              onChange={(e) => handleFilterChange(e.target.value as DatePreset)}
-              className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition text-white border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50"
-            >
-              {(Object.keys(DATE_PRESET_LABELS) as DatePreset[]).map((preset) => (
-                <option key={preset} value={preset} className="text-gray-900">
-                  {DATE_PRESET_LABELS[preset]}
-                </option>
-              ))}
-            </select>
+      {/* Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 p-1 flex-wrap">
+          {(Object.keys(DATE_PRESET_LABELS) as DatePreset[])
+            .filter((preset) => preset !== 'custom')
+            .map((preset) => (
+              <button
+                key={preset}
+                onClick={() => handleFilterChange(preset)}
+                className={`px-3.5 py-1.5 rounded-md text-sm font-medium transition ${
+                  filter === preset
+                    ? 'bg-white text-indigo-700 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {DATE_PRESET_LABELS[preset]}
+              </button>
+            ))}
+          <button
+            onClick={() => handleFilterChange('custom')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-sm font-medium transition ${
+              filter === 'custom'
+                ? 'bg-white text-indigo-700 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            Custom
+          </button>
+        </div>
+
+        {filter === 'custom' && (
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
+            <input
+              type="date"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              className="bg-transparent text-sm text-slate-700 focus:outline-none"
+            />
+            <span className="text-slate-400">to</span>
+            <input
+              type="date"
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+              className="bg-transparent text-sm text-slate-700 focus:outline-none"
+            />
             <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition disabled:opacity-50"
+              onClick={applyCustomRange}
+              disabled={!customFrom || !customTo}
+              className="text-xs font-semibold px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded disabled:opacity-40"
             >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              Apply
             </button>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Error Display */}
@@ -428,9 +444,6 @@ export default function ManagerDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link href="/manager/bookings" className="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition relative">
-          <span className="absolute top-3 right-3 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">
-            {DATE_PRESET_LABELS[filter]}
-          </span>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
               <Briefcase className="w-6 h-6 text-white" />
@@ -445,9 +458,6 @@ export default function ManagerDashboard() {
         </Link>
 
         <Link href="/manager/inquiries" className="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition relative">
-          <span className="absolute top-3 right-3 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-700">
-            {DATE_PRESET_LABELS[filter]}
-          </span>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
               <FileText className="w-6 h-6 text-white" />

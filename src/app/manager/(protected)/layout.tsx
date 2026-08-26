@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { ToastProvider } from '@/components/ui/toast';
 import { useManagerActivityHeartbeat } from '@/hooks/useManagerActivityHeartbeat';
+import { ManagerPageHeaderProvider, useManagerPageHeaderContext } from '@/hooks/useManagerPageHeader';
 
 const SIDEBAR_LINKS = [
   { href: '/manager/dashboard', label: 'Dashboard', icon: Home },
@@ -23,7 +24,6 @@ const SIDEBAR_LINKS = [
   { href: '/manager/b2b', label: 'B2B Bookings', icon: Briefcase },
   { href: '/manager/b2b-companies', label: 'B2B Companies', icon: Building2 },
   { href: '/manager/tracking', label: 'Live Tracking', icon: Navigation },
-  { href: '/manager/contact-inquiries', label: 'Contact Inquiries', icon: Mail },
   { href: '/manager/contact-requests', label: 'Contact Requests', icon: UserCog },
   { href: '/manager/chats', label: 'Chats', icon: MessageSquare },
   { href: '/manager/locations', label: 'My Locations', icon: MapPin },
@@ -56,13 +56,11 @@ function ManagerSidebar({
   isOpen,
   onClose,
   vendorBadgeCount,
-  contactInquiryBadgeCount,
   notificationsBadgeCount,
 }: {
   isOpen: boolean;
   onClose: () => void;
   vendorBadgeCount: number;
-  contactInquiryBadgeCount: number;
   notificationsBadgeCount: number;
 }) {
   const { data: session } = useSession();
@@ -70,7 +68,6 @@ function ManagerSidebar({
   const badgeCountByHref: Record<string, number> = {
     '/manager/vendors': vendorBadgeCount,
     '/manager/notifications': notificationsBadgeCount,
-    '/manager/contact-inquiries': contactInquiryBadgeCount,
   };
   // Longest-prefix match so a nested route (e.g. /manager/vendors/by-location)
   // highlights its own link instead of also lighting up the shorter parent link.
@@ -264,7 +261,6 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<ManagerNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [vendorUnreadCount, setVendorUnreadCount] = useState(0);
-  const [contactInquiryCount, setContactInquiryCount] = useState(0);
 
   useManagerActivityHeartbeat(status === 'authenticated' && session?.user?.role === 'MANAGER');
 
@@ -282,17 +278,6 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const fetchContactInquiryCount = useCallback(async () => {
-    try {
-      const res = await fetch('/api/manager/contact-inquiries/count');
-      if (!res.ok) return;
-      const data = await res.json();
-      setContactInquiryCount(data.count || 0);
-    } catch {
-      // silent — badge count is non-critical, don't disrupt the page
-    }
-  }, []);
-
   // Must be before any early returns — hooks cannot be called conditionally
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -303,13 +288,11 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (status !== 'authenticated') return;
     fetchNotifications();
-    fetchContactInquiryCount();
     const interval = setInterval(() => {
       fetchNotifications();
-      fetchContactInquiryCount();
     }, 30000);
     return () => clearInterval(interval);
-  }, [status, fetchNotifications, fetchContactInquiryCount]);
+  }, [status, fetchNotifications]);
 
   // Other pages (dashboard widget, the standalone notifications page) mark
   // notifications read via their own PATCH calls, not through this layout's
@@ -387,28 +370,71 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         vendorBadgeCount={vendorUnreadCount}
-        contactInquiryBadgeCount={contactInquiryCount}
         notificationsBadgeCount={unreadCount}
       />
 
       <div className="lg:pl-64">
-        <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <Menu className="w-6 h-6 text-gray-700" />
-          </button>
-          <div className="flex-1" />
-          <ManagerNotificationBell
-            notifications={notifications}
-            unreadCount={unreadCount}
-            onMarkRead={handleMarkRead}
-            onMarkAllRead={handleMarkAllRead}
-          />
-        </div>
+        <ManagerTopBar
+          onOpenSidebar={() => setIsSidebarOpen(true)}
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onMarkRead={handleMarkRead}
+          onMarkAllRead={handleMarkAllRead}
+        />
 
         <main className="p-6">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+// Split out from ManagerLayoutContent so it can consume the page-header
+// context — the title/subtitle a page registers via useManagerPageHeader()
+// renders here, on the left of the same sticky bar the notification bell
+// already lives in, instead of every page repeating its own header block
+// below it (saves a whole row of vertical space, and the title stays
+// visible on scroll since this bar is sticky).
+function ManagerTopBar({
+  onOpenSidebar,
+  notifications,
+  unreadCount,
+  onMarkRead,
+  onMarkAllRead,
+}: {
+  onOpenSidebar: () => void;
+  notifications: ManagerNotification[];
+  unreadCount: number;
+  onMarkRead: (id: string) => void;
+  onMarkAllRead: () => void;
+}) {
+  const { header } = useManagerPageHeaderContext();
+
+  return (
+    <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          onClick={onOpenSidebar}
+          className="lg:hidden shrink-0 p-2 hover:bg-gray-100 rounded-lg transition"
+        >
+          <Menu className="w-6 h-6 text-gray-700" />
+        </button>
+        {header && (
+          <div className="min-w-0">
+            <h1 className="text-base font-bold text-gray-900 leading-tight truncate">{header.title}</h1>
+            {header.subtitle && (
+              <p className="text-xs text-gray-500 truncate hidden sm:block">{header.subtitle}</p>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {header?.action}
+        <ManagerNotificationBell
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onMarkRead={onMarkRead}
+          onMarkAllRead={onMarkAllRead}
+        />
       </div>
     </div>
   );
@@ -418,7 +444,9 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
   return (
     <SessionProvider>
       <ToastProvider>
-        <ManagerLayoutContent>{children}</ManagerLayoutContent>
+        <ManagerPageHeaderProvider>
+          <ManagerLayoutContent>{children}</ManagerLayoutContent>
+        </ManagerPageHeaderProvider>
       </ToastProvider>
     </SessionProvider>
   );
