@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -90,6 +91,7 @@ const buildPaginationRange = (current: number, total: number, window = 5) => {
 };
 
 export default function ManagerHelpdeskPage() {
+  useManagerPageHeader('Helpdesk', 'Manage support tickets and contact inquiries in one place.');
   const [items, setItems] = useState<UnifiedItem[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalItems: 0,
@@ -161,16 +163,9 @@ export default function ManagerHelpdeskPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Helpdesk</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage support tickets and contact inquiries in one place.
-          </p>
-        </div>
-        <div className="text-xs text-gray-400 font-medium">Last updated: {formatDateTime(new Date().toISOString())}</div>
-      </header>
+      <div className="text-right text-xs text-gray-400 font-medium">
+        Last updated: {formatDateTime(new Date().toISOString())}
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr,280px]">
         <section className="space-y-4">

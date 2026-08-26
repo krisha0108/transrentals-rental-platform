@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { ToastProvider } from '@/components/ui/toast';
 import { useManagerActivityHeartbeat } from '@/hooks/useManagerActivityHeartbeat';
+import { ManagerPageHeaderProvider, useManagerPageHeaderContext } from '@/hooks/useManagerPageHeader';
 
 const SIDEBAR_LINKS = [
   { href: '/manager/dashboard', label: 'Dashboard', icon: Home },
@@ -373,24 +374,65 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
       />
 
       <div className="lg:pl-64">
-        <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <Menu className="w-6 h-6 text-gray-700" />
-          </button>
-          <div className="flex-1" />
-          <ManagerNotificationBell
-            notifications={notifications}
-            unreadCount={unreadCount}
-            onMarkRead={handleMarkRead}
-            onMarkAllRead={handleMarkAllRead}
-          />
-        </div>
+        <ManagerTopBar
+          onOpenSidebar={() => setIsSidebarOpen(true)}
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onMarkRead={handleMarkRead}
+          onMarkAllRead={handleMarkAllRead}
+        />
 
         <main className="p-6">{children}</main>
       </div>
+    </div>
+  );
+}
+
+// Split out from ManagerLayoutContent so it can consume the page-header
+// context — the title/subtitle a page registers via useManagerPageHeader()
+// renders here, on the left of the same sticky bar the notification bell
+// already lives in, instead of every page repeating its own header block
+// below it (saves a whole row of vertical space, and the title stays
+// visible on scroll since this bar is sticky).
+function ManagerTopBar({
+  onOpenSidebar,
+  notifications,
+  unreadCount,
+  onMarkRead,
+  onMarkAllRead,
+}: {
+  onOpenSidebar: () => void;
+  notifications: ManagerNotification[];
+  unreadCount: number;
+  onMarkRead: (id: string) => void;
+  onMarkAllRead: () => void;
+}) {
+  const { header } = useManagerPageHeaderContext();
+
+  return (
+    <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          onClick={onOpenSidebar}
+          className="lg:hidden shrink-0 p-2 hover:bg-gray-100 rounded-lg transition"
+        >
+          <Menu className="w-6 h-6 text-gray-700" />
+        </button>
+        {header && (
+          <div className="min-w-0">
+            <h1 className="text-base font-bold text-gray-900 leading-tight truncate">{header.title}</h1>
+            {header.subtitle && (
+              <p className="text-xs text-gray-500 truncate hidden sm:block">{header.subtitle}</p>
+            )}
+          </div>
+        )}
+      </div>
+      <ManagerNotificationBell
+        notifications={notifications}
+        unreadCount={unreadCount}
+        onMarkRead={onMarkRead}
+        onMarkAllRead={onMarkAllRead}
+      />
     </div>
   );
 }
@@ -399,7 +441,9 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
   return (
     <SessionProvider>
       <ToastProvider>
-        <ManagerLayoutContent>{children}</ManagerLayoutContent>
+        <ManagerPageHeaderProvider>
+          <ManagerLayoutContent>{children}</ManagerLayoutContent>
+        </ManagerPageHeaderProvider>
       </ToastProvider>
     </SessionProvider>
   );
