@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -73,10 +73,12 @@ function StoryCard({
   story,
   offset,
   onSelect,
+  dragDeltaX = 0,
 }: {
   story: Story;
   offset: number;
   onSelect: () => void;
+  dragDeltaX?: number;
 }) {
   const isCenter = offset === 0;
   const cover = story.coverImageSquare || story.coverImage;
@@ -133,12 +135,12 @@ function StoryCard({
       className="absolute top-0 left-1/2"
       style={{ marginLeft: -width / 2 }}
       animate={{
-        x: offset * SPACING,
+        x: offset * SPACING + dragDeltaX * 0.5,
         scale: isCenter ? 1 : 0.94,
         opacity: 1,
         zIndex: 20 - dist,
       }}
-      transition={{ type: 'spring', stiffness: 260, damping: 30 }}
+      transition={dragDeltaX !== 0 ? { type: 'tween', duration: 0 } : { type: 'spring', stiffness: 260, damping: 30 }}
     >
       {isCenter ? (
         <Link href={`/stories/${story.slug}`}>{content}</Link>
@@ -194,6 +196,48 @@ export function StoriesStrip() {
     const len = visibleStories.length || 1;
     return (prev + 1) % len;
   });
+
+  // Drag-to-change: mouse or touch, in either direction. `draggedRef` marks
+  // a gesture that actually moved (past a tiny jitter threshold) so the
+  // click-capture handler below can swallow the click that follows a drag
+  // release — otherwise dragging over the center card would also navigate
+  // to it via its <Link>.
+  const dragStartXRef = useRef<number | null>(null);
+  const draggedRef = useRef(false);
+  const [dragging, setDragging] = useState(false);
+  const [dragDeltaX, setDragDeltaX] = useState(0);
+  const DRAG_THRESHOLD = 50;
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    dragStartXRef.current = e.clientX;
+    draggedRef.current = false;
+    setDragging(true);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragStartXRef.current === null) return;
+    const delta = e.clientX - dragStartXRef.current;
+    if (Math.abs(delta) > 6) draggedRef.current = true;
+    setDragDeltaX(Math.max(-160, Math.min(160, delta)));
+  };
+  const endDrag = (commit: boolean) => {
+    if (commit && draggedRef.current) {
+      if (dragDeltaX <= -DRAG_THRESHOLD) goNext();
+      else if (dragDeltaX >= DRAG_THRESHOLD) goPrev();
+    }
+    dragStartXRef.current = null;
+    setDragging(false);
+    setDragDeltaX(0);
+  };
+  const handlePointerUp = () => endDrag(true);
+  const handlePointerCancel = () => endDrag(false);
+  const handleTrackClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (draggedRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      draggedRef.current = false;
+    }
+  };
 
   if (!loading && stories.length === 0) return null;
 
@@ -263,7 +307,17 @@ export function StoriesStrip() {
             <ChevronRight className="w-5 h-5 text-slate-600" />
           </button>
 
-          <div className="relative mx-auto overflow-hidden" style={{ height: CAROUSEL_HEIGHT, maxWidth: 1180 }}>
+          <div
+            className={`relative mx-auto overflow-hidden select-none touch-pan-y ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+            style={{ height: CAROUSEL_HEIGHT, maxWidth: 1180 }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+            onPointerLeave={dragStartXRef.current !== null ? handlePointerCancel : undefined}
+            onClickCapture={handleTrackClickCapture}
+            onDragStart={(e) => e.preventDefault()}
+          >
             {loading
               ? Array.from({ length: 5 }).map((_, i) => (
                   <div
@@ -279,7 +333,7 @@ export function StoriesStrip() {
               : visibleStories.map((story, i) => {
                   const offset = wrappedOffset(i, centerIndex, visibleStories.length);
                   return (
-                    <StoryCard key={story.id} story={story} offset={offset} onSelect={() => setCenterIndex(i)} />
+                    <StoryCard key={story.id} story={story} offset={offset} onSelect={() => setCenterIndex(i)} dragDeltaX={dragDeltaX} />
                   );
                 })}
           </div>
