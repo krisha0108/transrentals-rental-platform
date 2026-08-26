@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
+import { CarSearchHero } from '@/components/car';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { HowToSchema } from '@/components/seo/schemas';
@@ -42,18 +42,11 @@ export default function SelfDriveCarRentalPage() {
         ]}
       />
       {/* Hero Section */}
-      <SimpleServiceHero
-        badge="Self Drive Car Rental"
-        title="Drive Yourself"
-        titleHighlight="Starting @₹899/Day"
-        description="Rent self-drive cars across 250+ cities. No driver needed — complete freedom. Hatchbacks, Sedans, SUVs available!"
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Instant Booking', color: 'text-green-600' },
-        ]}
-        gradientFrom="blue-50"
-        gradientTo="indigo-50"
+      <CarSearchHero
+        city=""
+        citySlug=""
+        citySelectable
+        pageDescription="Rent self-drive cars across 250+ cities. No driver needed — complete freedom. Hatchbacks, Sedans, SUVs available!"
       />
 
       {/* Fleet Display from Database */}
