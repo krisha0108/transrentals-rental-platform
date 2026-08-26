@@ -23,7 +23,6 @@ const SIDEBAR_LINKS = [
   { href: '/manager/b2b', label: 'B2B Bookings', icon: Briefcase },
   { href: '/manager/b2b-companies', label: 'B2B Companies', icon: Building2 },
   { href: '/manager/tracking', label: 'Live Tracking', icon: Navigation },
-  { href: '/manager/contact-inquiries', label: 'Contact Inquiries', icon: Mail },
   { href: '/manager/contact-requests', label: 'Contact Requests', icon: UserCog },
   { href: '/manager/chats', label: 'Chats', icon: MessageSquare },
   { href: '/manager/locations', label: 'My Locations', icon: MapPin },
@@ -56,13 +55,11 @@ function ManagerSidebar({
   isOpen,
   onClose,
   vendorBadgeCount,
-  contactInquiryBadgeCount,
   notificationsBadgeCount,
 }: {
   isOpen: boolean;
   onClose: () => void;
   vendorBadgeCount: number;
-  contactInquiryBadgeCount: number;
   notificationsBadgeCount: number;
 }) {
   const { data: session } = useSession();
@@ -70,7 +67,6 @@ function ManagerSidebar({
   const badgeCountByHref: Record<string, number> = {
     '/manager/vendors': vendorBadgeCount,
     '/manager/notifications': notificationsBadgeCount,
-    '/manager/contact-inquiries': contactInquiryBadgeCount,
   };
   // Longest-prefix match so a nested route (e.g. /manager/vendors/by-location)
   // highlights its own link instead of also lighting up the shorter parent link.
@@ -264,7 +260,6 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<ManagerNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [vendorUnreadCount, setVendorUnreadCount] = useState(0);
-  const [contactInquiryCount, setContactInquiryCount] = useState(0);
 
   useManagerActivityHeartbeat(status === 'authenticated' && session?.user?.role === 'MANAGER');
 
@@ -282,17 +277,6 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const fetchContactInquiryCount = useCallback(async () => {
-    try {
-      const res = await fetch('/api/manager/contact-inquiries/count');
-      if (!res.ok) return;
-      const data = await res.json();
-      setContactInquiryCount(data.count || 0);
-    } catch {
-      // silent — badge count is non-critical, don't disrupt the page
-    }
-  }, []);
-
   // Must be before any early returns — hooks cannot be called conditionally
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -303,13 +287,11 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (status !== 'authenticated') return;
     fetchNotifications();
-    fetchContactInquiryCount();
     const interval = setInterval(() => {
       fetchNotifications();
-      fetchContactInquiryCount();
     }, 30000);
     return () => clearInterval(interval);
-  }, [status, fetchNotifications, fetchContactInquiryCount]);
+  }, [status, fetchNotifications]);
 
   // Other pages (dashboard widget, the standalone notifications page) mark
   // notifications read via their own PATCH calls, not through this layout's
@@ -387,7 +369,6 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         vendorBadgeCount={vendorUnreadCount}
-        contactInquiryBadgeCount={contactInquiryCount}
         notificationsBadgeCount={unreadCount}
       />
 
