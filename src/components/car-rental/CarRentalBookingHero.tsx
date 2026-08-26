@@ -1523,6 +1523,7 @@ export function CarRentalBookingHero({
 
   return (
     <section
+      id="booking"
       className={
         isAurora
           ? 'relative bg-slate-50 text-slate-900 overflow-hidden'
@@ -2317,7 +2318,7 @@ export function CarRentalBookingHero({
                     {/* Back Button */}
                     <button
                       onClick={() => (onModifySearch ? onModifySearch() : setShowCarSelection(false))}
-                      className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+                      className="text-emerald-600 hover:text-emerald-700 text-sm font-semibold flex items-center gap-1"
                     >
                       ← Modify Search
                     </button>
@@ -2354,14 +2355,14 @@ export function CarRentalBookingHero({
                         </div>
                       </div>
                     ) : (
-                      <div className="bg-blue-50 rounded-lg p-3 text-sm">
-                        <div className="flex items-center gap-2 text-blue-800">
+                      <div className="bg-emerald-50 rounded-xl p-3.5 text-sm">
+                        <div className="flex items-center gap-2 text-emerald-800">
                           {tripType === 'airport' ? (
                             <Plane className="w-4 h-4" />
                           ) : (
                             <MapPin className="w-4 h-4" />
                           )}
-                          <span className="font-medium">
+                          <span className="font-semibold">
                             {tripType === 'local' &&
                               `${pickupCity} - ${selectedPackage?.hours || 8}hr/${selectedPackage?.kms || 80}km`}
                             {tripType === 'outstation' && (
@@ -2375,12 +2376,12 @@ export function CarRentalBookingHero({
                                 : `${pickupCity} → ${selectedAirport?.code || 'Airport'}`)}
                           </span>
                           {tripType === 'outstation' && (
-                            <span className="ml-auto shrink-0 text-xs font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white">
+                            <span className="ml-auto shrink-0 text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white">
                               {outstationMode === 'round-trip' ? 'Round Trip' : 'One Way'}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-4 mt-1 text-blue-700">
+                        <div className="flex items-center gap-4 mt-1 text-emerald-700">
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
                             {new Date(pickupDate).toLocaleDateString('en-IN', {
@@ -2403,7 +2404,7 @@ export function CarRentalBookingHero({
                     {/* Loading State */}
                     {loadingPrices && (
                       <div className="flex justify-center py-8">
-                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
                       </div>
                     )}
 
@@ -2439,12 +2440,12 @@ export function CarRentalBookingHero({
                             <div
                               key={vehicle.id}
                               className={`relative border-2 cursor-pointer transition-all duration-200 ${
-                                isHorizontal ? `flex w-full flex-col items-center gap-3 rounded-2xl p-4 text-center ${hasPrice ? 'hover:-translate-y-1' : ''}` : 'rounded-xl p-4'
+                                isHorizontal ? `flex w-full flex-col items-center gap-3 rounded-2xl p-4 text-center ${hasPrice ? 'hover:-translate-y-1' : ''}` : 'rounded-2xl p-4'
                               } ${
                                 isSelected
-                                  ? `border-blue-500 bg-blue-50 ${isHorizontal ? 'shadow-lg shadow-blue-500/10' : 'shadow-sm'}`
+                                  ? `border-emerald-500 bg-emerald-50 ${isHorizontal ? 'shadow-lg shadow-emerald-500/10' : 'shadow-sm'}`
                                   : hasPrice
-                                    ? `border-gray-200 hover:border-blue-300 ${isHorizontal ? 'hover:shadow-lg hover:shadow-black/5' : ''}`
+                                    ? `border-gray-200 hover:border-emerald-300 ${isHorizontal ? 'hover:shadow-lg hover:shadow-black/5' : ''}`
                                     : 'border-gray-100 bg-gray-50 opacity-60'
                               }`}
                               onClick={() => {
@@ -2463,9 +2464,9 @@ export function CarRentalBookingHero({
                                   <Star className="h-3 w-3 fill-blue-700" /> Popular
                                 </span>
                               )}
-                              <div className={isHorizontal ? 'flex w-full flex-col items-center gap-3' : 'flex items-start justify-between'}>
-                                <div className={isHorizontal ? 'flex w-full flex-col items-center gap-2.5' : 'flex items-center gap-3'}>
-                                  <div className={isHorizontal ? `mt-4 flex h-24 w-full items-center justify-center rounded-xl bg-gradient-to-br ${isSelected ? 'from-blue-100 to-blue-50' : 'from-gray-50 to-gray-100'}` : 'w-16 h-12 bg-gray-100 rounded-lg flex items-center justify-center'}>
+                              <div className={isHorizontal ? 'flex w-full flex-col items-center gap-3' : 'flex items-start justify-between gap-2'}>
+                                <div className={isHorizontal ? 'flex w-full flex-col items-center gap-2.5' : 'flex items-center gap-3 min-w-0'}>
+                                  <div className={isHorizontal ? `mt-4 flex h-24 w-full items-center justify-center rounded-xl bg-gradient-to-br ${isSelected ? 'from-blue-100 to-blue-50' : 'from-gray-50 to-gray-100'}` : 'w-16 h-12 bg-gray-100 rounded-lg flex items-center justify-center shrink-0'}>
                                     {vehicle.image ? (
                                       <Image
                                         src={vehicle.image}
@@ -2478,9 +2479,9 @@ export function CarRentalBookingHero({
                                       <Car className={isHorizontal ? 'h-12 w-12 text-gray-400' : 'w-8 h-8 text-gray-400'} />
                                     )}
                                   </div>
-                                  <div className={isHorizontal ? 'w-full' : ''}>
-                                    <h4 className={isHorizontal ? 'text-[15px] font-bold leading-tight text-gray-900' : 'font-semibold text-gray-900'}>{vehicle.name}</h4>
-                                    <div className={`flex items-center gap-3 mt-1 text-xs text-gray-600 ${isHorizontal ? 'flex-wrap justify-center gap-x-1.5 gap-y-0.5 text-[11px] text-gray-500' : ''}`}>
+                                  <div className={isHorizontal ? 'w-full' : 'min-w-0'}>
+                                    <h4 className={isHorizontal ? 'text-[15px] font-bold leading-tight text-gray-900' : 'font-semibold text-gray-900 truncate'}>{vehicle.name}</h4>
+                                    <div className={`flex items-center gap-3 mt-1 text-xs text-gray-600 ${isHorizontal ? 'flex-wrap justify-center gap-x-1.5 gap-y-0.5 text-[11px] text-gray-500' : 'flex-wrap gap-x-2 gap-y-0.5'}`}>
                                       <span className="flex items-center gap-1">
                                         <Users className="w-3 h-3" />
                                         {vehicle.seatingCapacity}
@@ -2492,7 +2493,7 @@ export function CarRentalBookingHero({
                                     </div>
                                   </div>
                                 </div>
-                                <div className={isHorizontal ? 'w-full border-t border-gray-100 pt-2.5 text-center' : 'text-right'}>
+                                <div className={isHorizontal ? 'w-full border-t border-gray-100 pt-2.5 text-center' : 'text-right shrink-0'}>
                                   {hasPrice ? (
                                     <>
                                       <div className={isHorizontal ? `text-lg font-extrabold ${isSelected ? 'text-blue-600' : 'text-gray-900'}` : 'text-xl font-bold text-gray-900'}>
@@ -2544,7 +2545,7 @@ export function CarRentalBookingHero({
                                 <motion.div
                                   initial={{ opacity: 0, height: 0 }}
                                   animate={{ opacity: 1, height: 'auto' }}
-                                  className="mt-4 pt-4 border-t border-blue-200"
+                                  className="mt-4 pt-4 border-t border-emerald-100"
                                 >
                                   {/* Fare Breakdown */}
                                   <div className="text-xs space-y-1 text-gray-600 mb-4">
@@ -2606,12 +2607,12 @@ export function CarRentalBookingHero({
                                     {tripType === 'outstation' && priceData.legs && (
                                       <>
                                         {/* Per-leg route breakdown */}
-                                        <div className="bg-blue-50 rounded-lg p-2.5 mb-2 space-y-1.5">
-                                          <div className="text-xs font-semibold text-blue-700 mb-1.5">Route Breakdown</div>
+                                        <div className="bg-emerald-50 rounded-xl p-2.5 mb-2 space-y-1.5">
+                                          <div className="text-xs font-semibold text-emerald-700 mb-1.5">Route Breakdown</div>
                                           {priceData.legs.map((leg, i) => (
                                             <div key={i} className="flex items-center gap-1.5">
                                               <div className="flex flex-col items-center flex-shrink-0">
-                                                <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-blue-500' : 'bg-orange-400'}`} />
+                                                <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-emerald-500' : 'bg-orange-400'}`} />
                                                 {i < priceData.legs!.length - 1 && <div className="w-px h-3 bg-gray-300" />}
                                               </div>
                                               <div className="flex-1">
@@ -2620,7 +2621,7 @@ export function CarRentalBookingHero({
                                             </div>
                                           ))}
                                           {priceData.calculation?.minApplied && (
-                                            <div className="flex items-center justify-between pt-1 border-t border-blue-200">
+                                            <div className="flex items-center justify-between pt-1 border-t border-emerald-200">
                                               <span className="text-amber-600 text-xs font-medium">
                                                 Min {priceData.calculation.days}d × {priceData.calculation.minKmPerDay} km/day = {priceData.calculation.minKmForDays} km
                                               </span>
@@ -2670,13 +2671,13 @@ export function CarRentalBookingHero({
                                     )}
                                     <div className="flex justify-between pt-2 border-t border-gray-200 mt-1">
                                       <span className="font-semibold text-gray-900">Total (incl. GST)</span>
-                                      <span className="font-bold text-blue-700">₹{priceData.pricing.grandTotal.toLocaleString()}</span>
+                                      <span className="font-bold text-emerald-700">₹{priceData.pricing.grandTotal.toLocaleString()}</span>
                                     </div>
                                   </div>
 
                                   <button
                                     onClick={() => handleBook(vehicle.id)}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
+                                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl shadow-sm transition flex items-center justify-center gap-2"
                                   >
                                     <CheckCircle2 className="w-5 h-5" />
                                     Book {vehicle.name}

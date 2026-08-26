@@ -7,7 +7,7 @@ import {
   Users, Calendar, ArrowRight, BadgeCheck,
   Clock, Headphones, Minus, Plus, Bus, Navigation2,
   Search, ChevronDown, X, Check, ArrowLeft, User, Lock, Home, Flag,
-  HardHat, Wrench, Package, Mail, Truck,
+  HardHat, Wrench, Package, Mail, Truck, ShieldCheck, Tag, UserCheck,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DynamicChatBookingHero } from '@/components/booking/DynamicChatBookingHero';
@@ -68,9 +68,10 @@ interface CityPickerProps {
   locations: { name: string }[];
   allowCustom?: boolean;
   icon: React.ReactNode;
+  iconAccent?: 'gray' | 'green';
 }
 
-function CityPicker({ value, onChange, placeholder, locations, allowCustom, icon }: CityPickerProps) {
+function CityPicker({ value, onChange, placeholder, locations, allowCustom, icon, iconAccent = 'gray' }: CityPickerProps) {
   const [open, setOpen]     = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
@@ -89,7 +90,7 @@ function CityPicker({ value, onChange, placeholder, locations, allowCustom, icon
 
   return (
     <div ref={ref} className="relative">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10 [&>svg]:w-4 [&>svg]:h-4">
+      <span className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10 [&>svg]:w-4 [&>svg]:h-4 ${iconAccent === 'green' ? 'text-green-600' : 'text-gray-400'}`}>
         {icon}
       </span>
       <button
@@ -156,7 +157,12 @@ const DEFAULT_PROGRESS_STEPS = [
   { n: 4, label: 'Review' },
 ];
 
-function ProgressBar({ step, steps = DEFAULT_PROGRESS_STEPS }: { step: number; steps?: { n: number; label: string }[] }) {
+function ProgressBar({ step, steps = DEFAULT_PROGRESS_STEPS, accent = 'emerald' }: { step: number; steps?: { n: number; label: string }[]; accent?: 'emerald' | 'green' }) {
+  const isGreen = accent === 'green';
+  const dotFillCls = isGreen ? 'bg-green-500 text-white' : 'bg-emerald-500 text-white';
+  const dotActiveCls = isGreen ? 'bg-green-500 text-white ring-4 ring-green-100' : 'bg-emerald-500 text-white ring-4 ring-emerald-100';
+  const labelActiveCls = isGreen ? 'text-green-700' : 'text-emerald-700';
+  const barFillCls = isGreen ? 'bg-green-500' : 'bg-emerald-500';
   return (
     <div className="flex items-center gap-1 mb-4">
       {steps.map((s, i) => (
@@ -164,20 +170,20 @@ function ProgressBar({ step, steps = DEFAULT_PROGRESS_STEPS }: { step: number; s
           <div className="flex items-center gap-1.5 shrink-0">
             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all shrink-0 ${
               step > s.n
-                ? 'bg-emerald-500 text-white'
+                ? dotFillCls
                 : step === s.n
-                ? 'bg-emerald-500 text-white ring-4 ring-emerald-100'
+                ? dotActiveCls
                 : 'bg-white border border-gray-200 text-gray-400'
             }`}>
               {step > s.n ? <Check className="w-3 h-3" /> : s.n}
             </div>
-            <span className={`text-[11.5px] font-semibold whitespace-nowrap ${step >= s.n ? 'text-emerald-700' : 'text-gray-400'}`}>
+            <span className={`text-[11.5px] font-semibold whitespace-nowrap ${step >= s.n ? labelActiveCls : 'text-gray-400'}`}>
               {s.label}
             </span>
           </div>
           {i < steps.length - 1 && (
             <div className="flex-1 h-[2px] bg-gray-200 rounded-full overflow-hidden mx-0.5">
-              <div className={`h-full bg-emerald-500 transition-all duration-500 ${step > s.n ? 'w-full' : 'w-0'}`} />
+              <div className={`h-full ${barFillCls} transition-all duration-500 ${step > s.n ? 'w-full' : 'w-0'}`} />
             </div>
           )}
         </React.Fragment>
@@ -347,11 +353,11 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
   };
 
   /* shared styles */
-  const inputCls = "w-full h-[46px] pl-10 pr-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all";
-  const iconCls  = "absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none [&>svg]:w-4 [&>svg]:h-4";
-  const lblCls   = "block text-xs font-semibold text-gray-800 mb-1.5";
-  const backBtn  = "flex-none w-[88px] h-12 border border-gray-200 bg-white text-gray-400 font-bold rounded-2xl flex items-center justify-center gap-1.5 hover:bg-gray-50 hover:text-gray-700 transition-all text-sm";
-  const nextBtn  = "flex-1 h-12 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-100 text-sm";
+  const inputCls = "w-full h-[46px] pl-10 pr-3 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500 transition-all";
+  const iconCls  = "absolute left-3 top-1/2 -translate-y-1/2 text-green-600 pointer-events-none [&>svg]:w-4 [&>svg]:h-4";
+  const lblCls   = "block text-xs font-medium text-slate-600 mb-1.5";
+  const backBtn  = "flex-none w-[88px] h-12 border border-slate-200 bg-white text-slate-400 font-bold rounded-2xl flex items-center justify-center gap-1.5 hover:bg-slate-50 hover:text-slate-600 transition-all text-sm";
+  const nextBtn  = "flex-1 h-12 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-all text-sm";
 
   /* ── SUCCESS ── */
   if (step === 5) {
@@ -367,16 +373,16 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
             <path fill="none" stroke="#16C47F" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" d="M14 27l8 8 16-16" />
           </svg>
         </motion.div>
-        <h2 className="text-[21px] font-black text-gray-900 mb-2">You&apos;re all set</h2>
-        <p className="text-sm text-gray-500 mb-4">Our operators are preparing your quotes.</p>
-        <div className="inline-flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 mb-5">
-          <Clock className="w-5 h-5 text-emerald-600 shrink-0" />
+        <h2 className="text-[21px] font-black text-slate-900 mb-2">You&apos;re all set</h2>
+        <p className="text-sm text-slate-500 mb-4">Our operators are preparing your quotes.</p>
+        <div className="inline-flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-4 py-3 mb-5">
+          <Clock className="w-5 h-5 text-green-600 shrink-0" />
           <div className="text-left">
-            <small className="block text-[11px] text-gray-400">Expected callback</small>
-            <b className="text-sm text-emerald-700">within 15 minutes</b>
+            <small className="block text-[11px] text-slate-400">Expected callback</small>
+            <b className="text-sm text-green-700">within 15 minutes</b>
           </div>
         </div>
-        <button onClick={resetForm} className="text-sm text-gray-400 hover:text-gray-600 transition-colors font-medium">
+        <button onClick={resetForm} className="text-sm text-slate-400 hover:text-slate-500 transition-colors font-medium">
           New Request
         </button>
       </div>
@@ -385,7 +391,21 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
 
   return (
     <div>
-      <ProgressBar step={step} />
+      <div className="flex items-center gap-1.5 pb-4 text-xs font-medium text-slate-400 overflow-x-auto">
+        {DEFAULT_PROGRESS_STEPS.map((s, idx) => (
+          <div key={s.n} className="flex items-center gap-1.5 flex-shrink-0">
+            <span className={`flex items-center gap-1.5 ${step >= s.n ? 'text-green-700' : 'text-slate-400'}`}>
+              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
+                step >= s.n ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-400'
+              }`}>
+                {step > s.n ? <Check className="w-2.5 h-2.5" /> : s.n}
+              </span>
+              {s.label}
+            </span>
+            {idx < DEFAULT_PROGRESS_STEPS.length - 1 && <span className="w-5 h-px bg-slate-200" />}
+          </div>
+        ))}
+      </div>
 
       <AnimatePresence mode="wait">
 
@@ -396,8 +416,8 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
             transition={{ duration: 0.28 }}>
 
             <div className="mb-4">
-              <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Trip Details</h2>
-              <p className="text-[12.5px] text-gray-400 mt-0.5">Let&apos;s start with where you&apos;re headed.</p>
+              <h2 className="text-base font-bold text-slate-900">Trip Details</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Let&apos;s start with where you&apos;re headed.</p>
             </div>
 
             <label className={lblCls}>Trip Type</label>
@@ -406,18 +426,18 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
                 <button key={t.value} type="button" onClick={() => setTripType(t.value)}
                   className={`relative flex items-center gap-2.5 p-3 rounded-2xl border text-left transition-all ${
                     tripType === t.value
-                      ? 'border-emerald-500 bg-emerald-50'
-                      : 'border-gray-200 bg-white hover:border-gray-300 hover:-translate-y-px'
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:-translate-y-px'
                   }`}>
-                  <span className={`w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 ${tripType === t.value ? 'bg-white' : 'bg-gray-50'}`}>
-                    <t.Icon className={`w-4 h-4 ${tripType === t.value ? 'text-emerald-600' : 'text-gray-400'}`} />
+                  <span className={`w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 ${tripType === t.value ? 'bg-white' : 'bg-slate-50'}`}>
+                    <t.Icon className={`w-4 h-4 ${tripType === t.value ? 'text-green-600' : 'text-slate-400'}`} />
                   </span>
                   <span className="flex flex-col leading-tight">
-                    <b className="text-[13px] font-bold text-gray-800">{t.label}</b>
-                    <small className="text-[10.5px] text-gray-400">{t.sub}</small>
+                    <b className="text-[13px] font-bold text-slate-700">{t.label}</b>
+                    <small className="text-[10.5px] text-slate-400">{t.sub}</small>
                   </span>
                   <span className={`absolute top-2 right-2 w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                    tripType === t.value ? 'border-emerald-500 bg-emerald-500' : 'border-gray-200 bg-white'
+                    tripType === t.value ? 'border-green-500 bg-green-500' : 'border-slate-200 bg-white'
                   }`}>
                     {tripType === t.value && <Check className="w-2.5 h-2.5 text-white" />}
                   </span>
@@ -428,7 +448,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
             <label className={lblCls}>Pickup City</label>
             <div className="mb-3.5">
               <CityPicker value={fromCity} onChange={setFromCity}
-                placeholder="Select pickup city" locations={locations} icon={<MapPin />} />
+                placeholder="Select pickup city" locations={locations} icon={<MapPin />} iconAccent="green" />
             </div>
 
             <label className={lblCls}>Pickup Address</label>
@@ -442,7 +462,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
             <label className={lblCls}>Drop City</label>
             <div className="mb-3.5">
               <CityPicker value={toCity} onChange={v => { setToCity(v); if (!v) setDropAddress(''); }}
-                placeholder="Enter drop city" locations={locations} allowCustom icon={<Flag />} />
+                placeholder="Enter drop city" locations={locations} allowCustom icon={<Flag />} iconAccent="green" />
             </div>
 
             <label className={lblCls}>Drop Address</label>
@@ -468,8 +488,8 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
             transition={{ duration: 0.28 }}>
 
             <div className="mb-4">
-              <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Journey Details</h2>
-              <p className="text-[12.5px] text-gray-400 mt-0.5">When you travel &amp; how many people.</p>
+              <h2 className="text-base font-bold text-slate-900">Journey Details</h2>
+              <p className="text-xs text-slate-500 mt-0.5">When you travel &amp; how many people.</p>
             </div>
 
             {/* Date row */}
@@ -483,7 +503,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
                 </div>
               </div>
               <div>
-                <label className={lblCls}>Return Date <small className="text-[11px] text-gray-400 font-normal">(optional)</small></label>
+                <label className={lblCls}>Return Date <small className="text-[11px] text-slate-400 font-normal">(optional)</small></label>
                 <div className="relative">
                   <span className={iconCls}><Calendar /></span>
                   <input type="date" min={travelDate || today} value={returnDate}
@@ -500,20 +520,20 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
             </div>
 
             <label className={lblCls}>Passengers</label>
-            <div className="flex items-center justify-between border border-gray-200 rounded-xl p-2.5 bg-white mb-3.5">
+            <div className="flex items-center justify-between border border-slate-200 rounded-xl p-2.5 bg-white mb-3.5">
               <div className="flex items-center gap-2.5">
-                <span className="w-8 h-8 rounded-[10px] bg-emerald-50 flex items-center justify-center shrink-0">
-                  <Users className="w-4 h-4 text-emerald-600" />
+                <span className="w-8 h-8 rounded-[10px] bg-green-50 flex items-center justify-center shrink-0">
+                  <Users className="w-4 h-4 text-green-600" />
                 </span>
                 <span className="flex flex-col leading-tight">
-                  <b className="text-[13px] font-bold text-gray-800">{passengers} Passengers</b>
-                  <small className="text-[10.5px] text-gray-400">Adults travelling</small>
+                  <b className="text-[13px] font-bold text-slate-700">{passengers} Passengers</b>
+                  <small className="text-[10.5px] text-slate-400">Adults travelling</small>
                 </span>
               </div>
               <div className="flex items-center gap-1">
                 <button type="button"
                   onClick={() => { const n = Math.max(10, passengers - 1); setPassengers(n); setPaxRaw(String(n)); }}
-                  className="w-8 h-8 rounded-[9px] border border-gray-200 bg-white text-emerald-700 text-[18px] font-semibold flex items-center justify-center hover:bg-emerald-50 hover:border-emerald-400 active:scale-90 transition-all">
+                  className="w-8 h-8 rounded-[9px] border border-slate-200 bg-white text-green-700 text-[18px] font-semibold flex items-center justify-center hover:bg-green-50 hover:border-green-400 active:scale-90 transition-all">
                   −
                 </button>
                 <input
@@ -526,25 +546,25 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
                     setPassengers(clamped);
                     setPaxRaw(String(clamped));
                   }}
-                  className="w-12 text-center text-[15px] font-black text-gray-900 bg-transparent border-none outline-none focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  className="w-12 text-center text-[15px] font-black text-slate-900 bg-transparent border-none outline-none focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
                 <button type="button"
                   onClick={() => { const n = Math.min(60, passengers + 1); setPassengers(n); setPaxRaw(String(n)); }}
-                  className="w-8 h-8 rounded-[9px] border border-gray-200 bg-white text-emerald-700 text-[18px] font-semibold flex items-center justify-center hover:bg-emerald-50 hover:border-emerald-400 active:scale-90 transition-all">
+                  className="w-8 h-8 rounded-[9px] border border-slate-200 bg-white text-green-700 text-[18px] font-semibold flex items-center justify-center hover:bg-green-50 hover:border-green-400 active:scale-90 transition-all">
                   +
                 </button>
               </div>
             </div>
 
             {/* Vehicle recommendation */}
-            <div className="relative flex items-center gap-3 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 mb-3.5">
-              <span className="absolute -top-2 left-3 text-[8.5px] font-black tracking-widest text-white bg-emerald-500 px-2 py-0.5 rounded-md">RECOMMENDED</span>
+            <div className="relative flex items-center gap-3 p-3 rounded-2xl bg-green-50 border border-green-200 mb-3.5">
+              <span className="absolute -top-2 left-3 text-[8.5px] font-black tracking-widest text-white bg-green-500 px-2 py-0.5 rounded-md">RECOMMENDED</span>
               <span className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shrink-0">
-                <Bus className="w-5 h-5 text-emerald-600" />
+                <Bus className="w-5 h-5 text-green-600" />
               </span>
               <div className="leading-tight">
-                <b className="text-[13px] font-bold text-gray-800">{vReco.name}</b>
-                <small className="block text-[11px] text-emerald-700">{vReco.desc}</small>
+                <b className="text-[13px] font-bold text-slate-700">{vReco.name}</b>
+                <small className="block text-[11px] text-green-700">{vReco.desc}</small>
               </div>
             </div>
 
@@ -568,24 +588,24 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
             transition={{ duration: 0.28 }}>
 
             <div className="mb-4">
-              <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Contact Details</h2>
-              <p className="text-[12.5px] text-gray-400 mt-0.5">We&apos;ll send your quotes here.</p>
+              <h2 className="text-base font-bold text-slate-900">Contact Details</h2>
+              <p className="text-xs text-slate-500 mt-0.5">We&apos;ll send your quotes here.</p>
             </div>
 
             {showAutoFill ? (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 mb-3.5">
-                <p className="text-xs text-emerald-600 font-semibold mb-2">Booking as</p>
+              <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 mb-3.5">
+                <p className="text-xs text-green-600 font-semibold mb-2">Booking as</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-emerald-200 flex items-center justify-center text-emerald-700 font-black text-sm shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-black text-sm shrink-0">
                     {(customer!.name || 'U')[0].toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-gray-800">{customer!.name}</p>
-                    <p className="text-xs text-gray-500">{customer!.phone}</p>
+                    <p className="text-sm font-bold text-slate-700">{customer!.name}</p>
+                    <p className="text-xs text-slate-500">{customer!.phone}</p>
                   </div>
                   <button type="button"
                     onClick={() => { setGuestOverride(true); setName(''); setPhone(''); setEmail(''); }}
-                    className="ml-auto text-xs text-gray-400 hover:text-gray-600 underline">
+                    className="ml-auto text-xs text-slate-400 hover:text-slate-500 underline">
                     Not you?
                   </button>
                 </div>
@@ -619,15 +639,15 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
             )}
 
             <label className={lblCls}>
-              Special requirements <small className="text-[11px] text-gray-400 font-normal ml-1">(optional)</small>
+              Special requirements <small className="text-[11px] text-slate-400 font-normal ml-1">(optional)</small>
             </label>
             <div className="flex flex-wrap gap-1.5 mb-2.5">
               {REQUIREMENT_CHIPS.map(chip => (
                 <button key={chip} type="button" onClick={() => toggleChip(chip)}
                   className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${
                     selectedChips.includes(chip)
-                      ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
-                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                      ? 'bg-green-50 border-green-500 text-green-700'
+                      : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
                   }`}>
                   {chip}
                 </button>
@@ -636,7 +656,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
             <textarea placeholder="e.g. decorations, AC bus, specific timing, route, permits…"
               value={notes} onChange={e => setNotes(e.target.value)}
               rows={3} maxLength={250}
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all resize-none mb-1" />
+              className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 placeholder:text-slate-400 focus:outline-none focus:border-green-400 focus:ring-4 focus:ring-green-50 transition-all resize-none mb-1" />
 
             {err3 && <p className="text-xs text-red-500 font-semibold mb-2">{err3}</p>}
 
@@ -658,8 +678,8 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
             transition={{ duration: 0.28 }}>
 
             <div className="mb-4">
-              <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Review &amp; Confirm</h2>
-              <p className="text-[12.5px] text-gray-400 mt-0.5">Please review before requesting quotes.</p>
+              <h2 className="text-base font-bold text-slate-900">Review &amp; Confirm</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Please review before requesting quotes.</p>
             </div>
 
             <ReviewSection title="Trip Details" icon={<MapPin />} onEdit={() => setStep(1)}>
@@ -687,10 +707,10 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
               <ReviewSection title="Requirements" icon={<MessageCircle />} onEdit={() => setStep(3)}>
                 {selectedChips.length > 0 && (
                   <div className="col-span-2">
-                    <p className="text-[10.5px] text-gray-400 mb-1.5">Selected</p>
+                    <p className="text-[10.5px] text-slate-400 mb-1.5">Selected</p>
                     <div className="flex flex-wrap gap-1.5">
                       {selectedChips.map(c => (
-                        <span key={c} className="text-[11px] font-semibold text-emerald-700 bg-white border border-emerald-200 px-2 py-0.5 rounded-full">{c}</span>
+                        <span key={c} className="text-[11px] font-semibold text-green-700 bg-white border border-green-200 px-2 py-0.5 rounded-full">{c}</span>
                       ))}
                     </div>
                   </div>
@@ -708,11 +728,11 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
                 <ArrowLeft className="w-3.5 h-3.5" /> Back
               </button>
               <button type="button" onClick={onSubmit} disabled={loading}
-                className="flex-1 h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-60 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-xl shadow-emerald-100 text-sm">
+                className="flex-1 h-12 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-all text-sm">
                 {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</> : 'Get Instant Quotes'}
               </button>
             </div>
-            <p className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
+            <p className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
               <Lock className="w-3 h-3" /> No advance payment · Best price guaranteed
             </p>
           </motion.div>
@@ -1957,19 +1977,27 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
 
 /* ──────────────────────────── BOOKING CARD ───────────────────── */
 
-function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityName: string; serviceType?: string; variant?: 'bus' | 'equipment' | 'truck' }) {
+export function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityName: string; serviceType?: string; variant?: 'bus' | 'equipment' | 'truck' }) {
   const [showChat, setShowChat] = useState(false);
   const isEquipment = variant === 'equipment';
   const isTruck = variant === 'truck';
 
   return (
-    <div className="w-full lg:w-[500px] shrink-0 order-1 lg:order-2">
-      <div className="bg-white rounded-[28px] shadow-2xl shadow-black/20 overflow-hidden flex flex-col lg:h-[620px]">
+    <div className={`w-full min-w-0 shrink-0 order-1 lg:order-2 ${!isEquipment && !isTruck ? 'lg:max-w-md lg:ml-auto' : 'lg:w-[500px]'}`}>
+      <div className={`bg-white shadow-2xl shadow-black/20 overflow-hidden flex flex-col ${!isEquipment && !isTruck ? 'rounded-2xl' : 'rounded-[28px] lg:h-[620px]'}`}>
 
-        {/* Header – 72px */}
-        <div className="flex items-center justify-between px-[18px] h-[72px] border-b border-gray-100 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="relative w-[42px] h-[42px] rounded-[13px] bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-200/60">
+        {/* Header – 72px (equipment/truck); content-driven height on mobile for bus so wrapped text never clips */}
+        <div className={`flex items-center justify-between shrink-0 gap-2 ${
+          !isEquipment && !isTruck
+            ? 'min-h-[72px] py-3 px-4 sm:px-6 bg-gradient-to-r from-green-700 to-green-600'
+            : 'h-[72px] px-[18px] border-b border-gray-100'
+        }`}>
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className={`relative w-[42px] h-[42px] rounded-[13px] flex items-center justify-center shrink-0 ${
+              !isEquipment && !isTruck
+                ? 'bg-white/15'
+                : 'bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-lg shadow-emerald-200/60'
+            }`}>
               {isEquipment
                 ? <HardHat className="w-[22px] h-[22px] text-white" />
                 : isTruck
@@ -1978,32 +2006,44 @@ function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityName: str
               {/* online dot */}
               <span className="absolute bottom-[-1px] right-[-1px] w-[11px] h-[11px] rounded-full bg-emerald-400 border-2 border-white" />
             </div>
-            <div>
-              <p className="text-[17px] font-black text-gray-900 leading-tight tracking-tight">
+            <div className="min-w-0">
+              <p className={`text-[15px] sm:text-[17px] font-black leading-tight tracking-tight whitespace-nowrap ${!isEquipment && !isTruck ? 'text-white' : 'text-gray-900'}`}>
                 {isEquipment ? 'Book Your Equipment' : isTruck ? 'Book Your Truck' : 'Book Your Bus'}
               </p>
-              <p className="text-[11.5px] text-gray-400 mt-0.5">Free quote · No advance payment</p>
+              <p className={`text-[10.5px] sm:text-[11.5px] mt-0.5 truncate ${!isEquipment && !isTruck ? 'text-green-100' : 'text-gray-400'}`}>Free quote · No advance payment</p>
             </div>
           </div>
           {showChat ? (
             <button onClick={() => setShowChat(false)}
-              className="text-[11.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-[9px] px-3 py-1.5 hover:bg-emerald-100 transition-colors whitespace-nowrap">
+              className={`shrink-0 text-[11.5px] font-bold rounded-[9px] px-3 py-1.5 transition-colors whitespace-nowrap ${
+                !isEquipment && !isTruck
+                  ? 'text-green-700 bg-white hover:bg-green-50'
+                  : 'text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100'
+              }`}>
               ← New chat
             </button>
           ) : (
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full whitespace-nowrap">
-              <Shield className="w-3 h-3" />
-              100% Secure
+            <div className={`shrink-0 flex items-center gap-1 text-xs font-semibold rounded-full whitespace-nowrap ${
+              !isEquipment && !isTruck
+                ? 'gap-1 px-2 sm:px-2.5 py-1 text-green-700 bg-white'
+                : 'gap-1.5 text-[11px] font-bold px-3 py-1.5 text-emerald-700 bg-emerald-50 border border-emerald-200'
+            }`}>
+              {!isEquipment && !isTruck ? <ShieldCheck className="w-3.5 h-3.5" /> : <Shield className="w-3 h-3" />}
+              {!isEquipment && !isTruck ? <><span className="hidden sm:inline">100% </span>Secure</> : '100% Secure'}
             </div>
           )}
         </div>
 
-        {/* Body – scrollable */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-[18px] py-4
+        {/* Body – scrollable on fixed-height variants, natural height for bus */}
+        <div className={`${
+          !isEquipment && !isTruck
+            ? 'p-6 pt-4'
+            : `px-[18px] py-4 flex-1 min-h-0 overflow-y-auto
           [&::-webkit-scrollbar]:w-1.5
           [&::-webkit-scrollbar-track]:bg-transparent
           [&::-webkit-scrollbar-thumb]:bg-gray-200
-          [&::-webkit-scrollbar-thumb]:rounded-full">
+          [&::-webkit-scrollbar-thumb]:rounded-full`
+        }`}>
           {showChat
             ? <DynamicChatBookingHero hideHeader serviceType={serviceType} />
             : isEquipment
@@ -2014,25 +2054,44 @@ function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityName: str
           }
         </div>
 
-        {/* Footer – 70px */}
-        <div className="flex items-center justify-between px-[18px] h-[70px] border-t border-gray-100 bg-white shrink-0">
-          <div className="flex flex-col gap-[3px]">
+        {/* Footer */}
+        {!isEquipment && !isTruck ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-6 py-4 border-t border-slate-100 bg-white shrink-0">
             {[
-              { text: 'Best Price' },
-              { text: '500+ Operators' },
-              { text: '15 Min Callback' },
+              { icon: Tag, text: 'Best Price', sub: 'Guaranteed' },
+              { icon: ShieldCheck, text: '500+ Verified', sub: 'Operators' },
+              { icon: Clock, text: '15 Min', sub: 'Callback' },
+              { icon: UserCheck, text: '24/7', sub: 'Support' },
             ].map(item => (
-              <div key={item.text} className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-700">
-                <Check className="w-[13px] h-[13px] text-emerald-500 shrink-0" />
-                {item.text}
+              <div key={item.text} className="flex items-center gap-2">
+                <item.icon className="w-4 h-4 text-green-600 flex-shrink-0" />
+                <div className="text-[11px] leading-tight text-slate-600">
+                  <div className="font-semibold text-slate-900">{item.text}</div>
+                  {item.sub}
+                </div>
               </div>
             ))}
           </div>
-          <button onClick={() => setShowChat(s => !s)}
-            className="flex items-center gap-1.5 text-[13px] font-bold text-emerald-700 hover:text-emerald-500 transition-colors whitespace-nowrap">
-            {showChat ? '← Back to form' : <>Book with AI Assistant <ChevronRight className="w-3.5 h-3.5" /></>}
-          </button>
-        </div>
+        ) : (
+          <div className="flex items-center justify-between px-[18px] h-[70px] border-t border-gray-100 bg-white shrink-0">
+            <div className="flex flex-col gap-[3px]">
+              {[
+                { text: 'Best Price' },
+                { text: '500+ Operators' },
+                { text: '15 Min Callback' },
+              ].map(item => (
+                <div key={item.text} className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-700">
+                  <Check className="w-[13px] h-[13px] text-emerald-500 shrink-0" />
+                  {item.text}
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setShowChat(s => !s)}
+              className="flex items-center gap-1.5 text-[13px] font-bold text-emerald-700 hover:text-emerald-500 transition-colors whitespace-nowrap">
+              {showChat ? '← Back to form' : <>Book with AI Assistant <ChevronRight className="w-3.5 h-3.5" /></>}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
