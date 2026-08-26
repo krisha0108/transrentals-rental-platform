@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail, UserCog, Bell, MapPinPlus, Layers, MapPinOff } from 'lucide-react';
+import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail, UserCog, Bell, MapPinPlus, Layers, MapPinOff, Search } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { ToastProvider } from '@/components/ui/toast';
@@ -65,6 +65,7 @@ function ManagerSidebar({
 }) {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const [navSearch, setNavSearch] = useState('');
   const badgeCountByHref: Record<string, number> = {
     '/manager/vendors': vendorBadgeCount,
     '/manager/notifications': notificationsBadgeCount,
@@ -75,6 +76,10 @@ function ManagerSidebar({
     .map((l) => l.href)
     .filter((href) => pathname === href || pathname?.startsWith(`${href}/`))
     .sort((a, b) => b.length - a.length)[0];
+
+  const visibleLinks = navSearch.trim()
+    ? SIDEBAR_LINKS.filter((l) => l.label.toLowerCase().includes(navSearch.trim().toLowerCase()))
+    : SIDEBAR_LINKS;
 
   return (
     <>
@@ -110,33 +115,61 @@ function ManagerSidebar({
             </div>
           </div>
 
+          {/* Nav search — filters the list below so managers don't have to
+              scroll through all ~18 links to find one. */}
+          <div className="px-4 pt-3">
+            <div className="relative">
+              <Search className="w-4 h-4 text-white/50 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={navSearch}
+                onChange={(e) => setNavSearch(e.target.value)}
+                placeholder="Search menu..."
+                className="w-full pl-9 pr-8 py-2 rounded-lg bg-white/10 border border-white/20 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:bg-white/15 transition"
+              />
+              {navSearch && (
+                <button
+                  onClick={() => setNavSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {SIDEBAR_LINKS.map((link) => {
-              const Icon = link.icon;
-              const badgeCount = badgeCountByHref[link.href] || 0;
-              const isActive = link.href === activeHref;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={onClose}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                    isActive
-                      ? 'bg-white/20 font-semibold shadow-sm'
-                      : 'hover:bg-white/10'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="flex-1">{link.label}</span>
-                  {badgeCount > 0 && (
-                    <span className="min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center rounded-full bg-orange-400 text-teal-900 text-[11px] font-bold">
-                      {badgeCount > 99 ? '99+' : badgeCount}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
+            {visibleLinks.length === 0 ? (
+              <p className="px-4 py-6 text-center text-sm text-white/50">No menu items match "{navSearch}"</p>
+            ) : (
+              visibleLinks.map((link) => {
+                const Icon = link.icon;
+                const badgeCount = badgeCountByHref[link.href] || 0;
+                const isActive = link.href === activeHref;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={onClose}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+                      isActive
+                        ? 'bg-white/20 font-semibold shadow-sm'
+                        : 'hover:bg-white/10'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="flex-1">{link.label}</span>
+                    {badgeCount > 0 && (
+                      <span className="min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center rounded-full bg-orange-400 text-teal-900 text-[11px] font-bold">
+                        {badgeCount > 99 ? '99+' : badgeCount}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })
+            )}
           </nav>
 
           {/* User Info & Logout */}
