@@ -2819,7 +2819,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                           src={tab.image}
                           alt={tab.label}
                           className="relative h-16 w-auto origin-center transform-gpu object-contain transition-transform duration-300 ease-out"
-                          style={{ transform: `scale(${(active ? 2 : 1.25) * (tab.imageScale ?? 1)})` }}
+                          style={{ transform: `scale(${(active ? 1.5 : 1.15) * (tab.imageScale ?? 1)})` }}
                         />
                       </div>
                       <span className="mt-1 whitespace-nowrap">{tab.label}</span>
