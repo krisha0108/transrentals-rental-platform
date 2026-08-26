@@ -8,11 +8,22 @@ import {
   IndianRupee,
   Users,
   MapPin,
+  Sparkles,
+  Bus,
+  ArrowRight,
+  Calendar,
+  ShieldCheck,
+  Quote,
+  Plus,
+  HelpCircle,
+  Heart,
+  Building2,
+  Truck,
 } from 'lucide-react';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
-import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
-import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
+import { BusRentalHubHero } from '@/components/bus-rental/BusRentalHubHero';
+import { BusRentalFleetDisplay } from '@/components/bus-rental/BusRentalFleetDisplay';
+import { BusRentalPopularCitiesGrid } from '@/components/bus-rental/BusRentalPopularCitiesGrid';
 import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
@@ -66,6 +77,7 @@ const VEHICLE_TYPES = [
     features: ['AC', 'Push-back Seats', 'Music System'],
     bestFor: 'Family Tours, Small Groups',
     icon: '🚐',
+    gradient: 'from-purple-500 to-blue-500',
   },
   {
     name: 'Tempo Traveller 17-Seater',
@@ -74,6 +86,7 @@ const VEHICLE_TYPES = [
     features: ['AC', 'Push-back Seats', 'Luggage Boot'],
     bestFor: 'Corporate Outings, Pilgrimages',
     icon: '🚐',
+    gradient: 'from-blue-500 to-cyan-500',
   },
   {
     name: 'Mini Bus 20–25 Seater',
@@ -82,6 +95,8 @@ const VEHICLE_TYPES = [
     features: ['AC/Non-AC', 'Reclining Seats', 'Music System'],
     bestFor: 'Corporate Events, School Trips',
     icon: '🚌',
+    gradient: 'from-teal-500 to-emerald-500',
+    popular: true,
   },
   {
     name: 'Standard Bus 35–40 Seater',
@@ -90,6 +105,7 @@ const VEHICLE_TYPES = [
     features: ['AC/Non-AC', 'Overhead Luggage', 'PA System'],
     bestFor: 'Large Groups, Wedding Baraat',
     icon: '🚌',
+    gradient: 'from-emerald-600 to-green-600',
   },
   {
     name: 'Large Bus 45–50 Seater',
@@ -98,6 +114,7 @@ const VEHICLE_TYPES = [
     features: ['AC', 'Sleeper Option', 'Entertainment System'],
     bestFor: 'Pilgrimages, Tour Groups',
     icon: '🚌',
+    gradient: 'from-amber-600 to-orange-600',
   },
   {
     name: 'Volvo / Luxury Coach',
@@ -106,16 +123,17 @@ const VEHICLE_TYPES = [
     features: ['AC', 'Reclining Seats', 'Wi-Fi, USB Charging'],
     bestFor: 'Premium Corporate, Long-Distance',
     icon: '🚍',
+    gradient: 'from-indigo-600 to-purple-600',
   },
 ];
 
 const TRIP_TYPES = [
-  { name: 'Pilgrimage Tours', icon: '🛕', desc: 'Char Dham, Vaishno Devi, Tirupati, Shirdi' },
-  { name: 'Wedding Transport', icon: '💒', desc: 'Baraat Bus, Guest Shuttles, Decorated Buses' },
-  { name: 'Corporate Events', icon: '🏢', desc: 'Team Outings, Off-Sites, Conferences' },
-  { name: 'Schools & Colleges', icon: '🎓', desc: 'Picnics, Educational Tours, Sports Meets' },
-  { name: 'Tour Packages', icon: '🗺️', desc: 'Multi-City Circuits, Sightseeing Tours' },
-  { name: 'Airport Shuttle', icon: '✈️', desc: 'Group Airport Transfers, Bulk Hotel Pickups' },
+  { name: 'Pilgrimage Tours', icon: '🛕', desc: 'Char Dham, Vaishno Devi, Tirupati, Shirdi', gradient: 'from-amber-500 to-yellow-500' },
+  { name: 'Wedding Transport', icon: '💒', desc: 'Baraat Bus, Guest Shuttles, Decorated Buses', gradient: 'from-pink-500 to-rose-500' },
+  { name: 'Corporate Events', icon: '🏢', desc: 'Team Outings, Off-Sites, Conferences', gradient: 'from-slate-600 to-gray-700' },
+  { name: 'Schools & Colleges', icon: '🎓', desc: 'Picnics, Educational Tours, Sports Meets', gradient: 'from-blue-500 to-indigo-500' },
+  { name: 'Tour Packages', icon: '🗺️', desc: 'Multi-City Circuits, Sightseeing Tours', gradient: 'from-emerald-500 to-teal-500' },
+  { name: 'Airport Shuttle', icon: '✈️', desc: 'Group Airport Transfers, Bulk Hotel Pickups', gradient: 'from-cyan-500 to-sky-500' },
 ];
 
 const HOW_IT_WORKS = [
@@ -145,6 +163,33 @@ const HOW_IT_WORKS = [
   },
 ];
 
+const WHY_CHOOSE_US = [
+  {
+    title: 'Transparent Pricing',
+    description: 'Fixed per-km rates with no hidden charges. Fuel, toll, and driver allowance clearly stated upfront.',
+    icon: IndianRupee,
+    gradient: 'from-orange-500 to-amber-500',
+  },
+  {
+    title: 'Verified & Insured',
+    description: 'All operators have valid contract carriage permits, vehicle fitness certificates, and comprehensive insurance.',
+    icon: Shield,
+    gradient: 'from-emerald-500 to-green-600',
+  },
+  {
+    title: '4.7★ Rated Service',
+    description: 'Check ratings and verified reviews from real customers before booking your bus.',
+    icon: Star,
+    gradient: 'from-blue-500 to-indigo-500',
+  },
+  {
+    title: '24/7 Trip Support',
+    description: 'Our support team is available round the clock during your trip for any assistance.',
+    icon: Phone,
+    gradient: 'from-purple-500 to-violet-500',
+  },
+];
+
 const STATS = [
   { value: '5,000+', label: 'Trips Completed' },
   { value: '500+', label: 'Verified Operators' },
@@ -160,6 +205,18 @@ const POPULAR_ROUTES = [
   { from: 'Lucknow', to: 'Ayodhya', distance: '130 km', tripType: 'Pilgrimage' },
   { from: 'Chennai', to: 'Pondicherry', distance: '160 km', tripType: 'Corporate Outing' },
 ];
+
+const ROUTE_TYPE_STYLES: Record<string, string> = {
+  Pilgrimage: 'from-rose-500 to-red-500',
+  Tour: 'from-violet-500 to-fuchsia-500',
+  'Corporate Outing': 'from-sky-500 to-cyan-600',
+};
+
+const ROUTE_TYPE_HEX: Record<string, string> = {
+  Pilgrimage: '#f43f5e',
+  Tour: '#a855f7',
+  'Corporate Outing': '#0ea5e9',
+};
 
 const TOP_CITIES = [
   { name: 'Delhi', slug: 'delhi' },
@@ -307,35 +364,16 @@ export default function BusRentalPage() {
       />
 
       {/* Hero Section */}
-      <ServiceHeroWithChat
-        badge="Bus & Tempo Traveller Rental"
-        title="Bus Rental Across"
-        titleHighlight="50+ Indian Cities"
-        description="Hire 12-seater Tempo Travellers to 50-seater buses for pilgrimages, weddings, corporate events and tours. Get quotes from 500+ verified operators."
-        features={[
-          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Verified Operators', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Instant Quotes', color: 'text-green-600' },
-        ]}
-        gradientFrom="orange-50"
-        gradientTo="red-50"
-        showQuickForm
-        priceAnchor="18/km"
-        heroHighlights={[
-          'Driver included on all trips',
-          'AC & Non-AC buses — 9 to 55 seater options',
-          '500+ verified operators, instant quote',
-        ]}
-      />
+      <BusRentalHubHero />
 
       {/* Stats Bar */}
-      <section className="bg-orange-600 py-6">
+      <section className="bg-emerald-700 py-6">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             {STATS.map((stat) => (
               <div key={stat.label}>
                 <div className="text-2xl font-bold text-white">{stat.value}</div>
-                <div className="text-orange-100 text-sm">{stat.label}</div>
+                <div className="text-emerald-100 text-sm">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -343,7 +381,7 @@ export default function BusRentalPage() {
       </section>
 
       {/* Fleet Display from Database */}
-      <ServiceFleetDisplay
+      <BusRentalFleetDisplay
         serviceSlug="bus-rental"
         title="Choose Your Bus or Tempo Traveller"
         showCategories={true}
@@ -351,103 +389,161 @@ export default function BusRentalPage() {
       />
 
       {/* Vehicle Type & Pricing Guide */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+      <section className="py-16 md:py-20 bg-gray-50">
+        <div className="container-custom">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
+              <Sparkles className="w-4 h-4" />
+              Pricing Guide
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
               Bus Rental Rates — Which Vehicle to Choose?
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-gray-500">
               From 12-seater Tempo Travellers to 50-seater luxury coaches — choose the right vehicle based on your group size and budget.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {VEHICLE_TYPES.map((vehicle) => (
               <div
                 key={vehicle.name}
-                className="border border-gray-200 rounded-xl p-5 hover:shadow-md hover:border-orange-300 transition-all"
+                className="group relative rounded-2xl p-6 overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
               >
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="text-3xl">{vehicle.icon}</span>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-base">{vehicle.name}</h3>
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                      <Users className="w-3.5 h-3.5" />
-                      <span>{vehicle.capacity}</span>
-                    </div>
+                <div className={`absolute inset-0 bg-gradient-to-br ${vehicle.gradient} opacity-[0.08] group-hover:opacity-[0.14] transition-opacity`} />
+
+                {vehicle.popular && (
+                  <div className="absolute top-5 right-5 flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold rounded-full">
+                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                    Popular
+                  </div>
+                )}
+
+                <div className="relative">
+                  <div className={`w-14 h-14 bg-gradient-to-br ${vehicle.gradient} rounded-xl flex items-center justify-center text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform`}>
+                    {vehicle.icon}
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">{vehicle.name}</h3>
+                  <div className="flex items-center gap-1 text-sm text-gray-500 mb-3">
+                    <Users className="w-3.5 h-3.5" />
+                    <span>{vehicle.capacity}</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {vehicle.features.map((f) => (
+                      <span key={f} className="text-xs bg-gray-50 text-gray-600 px-2.5 py-1 rounded-full border border-gray-100">
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <span className="text-[12.5px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full">{vehicle.price}</span>
+                    <span className="text-xs text-gray-400 text-right">
+                      <span className="font-semibold text-gray-500">Best for:</span> {vehicle.bestFor}
+                    </span>
                   </div>
                 </div>
-                <div className="text-xl font-bold text-orange-600 mb-2">{vehicle.price}</div>
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {vehicle.features.map((f) => (
-                    <span key={f} className="text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full">
-                      {f}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500">
-                  <span className="font-medium text-gray-700">Best for:</span> {vehicle.bestFor}
-                </p>
               </div>
             ))}
           </div>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
+          <p className="text-center text-sm text-gray-500 mt-8">
             * Rates vary by city, season, and operator. Actual quotes may differ. Includes driver — excludes fuel, toll, and driver allowance on outstation trips.
           </p>
         </div>
       </section>
 
       {/* Locations from Database */}
-      <ServiceLocationsGrid
+      <BusRentalPopularCitiesGrid
         serviceSlug="bus-rental"
         title="Bus Rental in Popular Cities"
       />
 
       {/* Popular Routes */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+      <section className="py-16 md:py-20 bg-gray-50">
+        <div className="container-custom">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
+              <MapPin className="w-4 h-4" />
+              Popular Routes
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
               Most Popular Bus Rental Routes
             </h2>
-            <p className="text-gray-600">Top intercity group travel routes booked on TransRentals</p>
+            <p className="text-gray-500">Top intercity group travel routes booked on TransRentals</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {POPULAR_ROUTES.map((route) => (
-              <div
-                key={`${route.from}-${route.to}`}
-                className="bg-white rounded-xl p-4 flex items-center gap-4 border border-gray-100 hover:border-orange-200 hover:shadow-sm transition"
-              >
-                <div className="text-2xl">🛣️</div>
-                <div className="flex-1">
-                  <div className="font-semibold text-gray-900">
-                    {route.from} → {route.to}
-                  </div>
-                  <div className="text-sm text-gray-500">{route.distance} · {route.tripType}</div>
-                </div>
-                <Link
-                  href={`/bus-rental/${route.from.toLowerCase()}`}
-                  className="text-xs text-orange-600 hover:text-orange-700 font-medium whitespace-nowrap"
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {POPULAR_ROUTES.map((route) => {
+              const gradient = ROUTE_TYPE_STYLES[route.tripType] || 'from-emerald-500 to-teal-500';
+              const hex = ROUTE_TYPE_HEX[route.tripType] || '#10b981';
+              return (
+                <div
+                  key={`${route.from}-${route.to}`}
+                  className="group relative rounded-xl p-4 overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
                 >
-                  View →
-                </Link>
-              </div>
-            ))}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-[0.07] group-hover:opacity-[0.13] transition-opacity`} />
+
+                  <div className="relative">
+                    <span className={`inline-block text-[10px] font-bold text-white bg-gradient-to-r ${gradient} px-2.5 py-0.5 rounded-full mb-3 shadow-sm`}>
+                      {route.tripType}
+                    </span>
+
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-extrabold text-gray-900 truncate">{route.from}</span>
+                      <span className="text-sm font-extrabold text-gray-900 truncate text-right">{route.to}</span>
+                    </div>
+
+                    {/* Travel route illustration */}
+                    <div className="relative h-8 mb-3">
+                      <svg viewBox="0 0 280 32" preserveAspectRatio="none" className="absolute inset-0 w-full h-full" fill="none">
+                        <path
+                          d="M8 25 Q 80 4, 140 16 T 272 9"
+                          stroke={hex}
+                          strokeOpacity="0.45"
+                          strokeWidth="2"
+                          strokeDasharray="1 7"
+                          strokeLinecap="round"
+                        />
+                        <circle cx="8" cy="25" r="3.5" fill={hex} />
+                        <circle cx="272" cy="9" r="3.5" fill={hex} />
+                      </svg>
+                      <span className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center shadow-md ring-4 ring-white group-hover:scale-110 transition-transform`}>
+                        <Bus className="w-3.5 h-3.5 text-white" />
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                      <span className="text-xs font-semibold text-gray-500">{route.distance}</span>
+                      <Link
+                        href={`/bus-rental/${route.from.toLowerCase()}`}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-gray-400 group-hover:text-emerald-600 group-hover:gap-1.5 transition-all"
+                      >
+                        View Route
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* Trip Types */}
-      <section className="py-16 bg-gradient-to-br from-orange-50 to-red-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+      <section className="py-16 md:py-20 bg-white">
+        <div className="container-custom">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
+              <Calendar className="w-4 h-4" />
+              Every Occasion
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
               Bus Rental for Every Occasion
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-500">
               Whatever your group travel need, we have experienced operators ready to serve
             </p>
           </div>
@@ -456,13 +552,18 @@ export default function BusRentalPage() {
             {TRIP_TYPES.map((type) => (
               <div
                 key={type.name}
-                className="bg-white rounded-xl p-4 text-center hover:shadow-md transition flex flex-col items-center justify-center min-h-[140px]"
+                className="group relative rounded-2xl p-4 overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 text-center"
               >
-                <div className="text-3xl mb-2">{type.icon}</div>
-                <h3 className="font-semibold text-gray-900 mb-1 text-sm leading-tight">
-                  {type.name}
-                </h3>
-                <p className="text-xs text-gray-500 leading-snug">{type.desc}</p>
+                <div className={`absolute inset-0 bg-gradient-to-br ${type.gradient} opacity-[0.07] group-hover:opacity-[0.13] transition-opacity`} />
+                <div className="relative flex flex-col items-center">
+                  <div className={`w-12 h-12 bg-gradient-to-br ${type.gradient} rounded-xl flex items-center justify-center text-2xl mb-3 shadow-sm group-hover:scale-110 transition-transform`}>
+                    {type.icon}
+                  </div>
+                  <h3 className="font-bold text-gray-900 mb-1 text-sm leading-tight">
+                    {type.name}
+                  </h3>
+                  <p className="text-xs text-gray-500 leading-snug">{type.desc}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -470,28 +571,42 @@ export default function BusRentalPage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+      <section className="py-16 md:py-20 bg-white">
+        <div className="container-custom">
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
+              <CheckCircle className="w-4 h-4" />
+              Simple Process
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
               How to Rent a Bus in India
             </h2>
-            <p className="text-gray-600">Book your bus or tempo traveller in 4 simple steps</p>
+            <p className="text-gray-500">Book your bus or tempo traveller in 4 simple steps</p>
           </div>
 
           <div className="grid md:grid-cols-4 gap-8">
             {HOW_IT_WORKS.map((step, idx) => (
               <div key={step.step} className="relative">
                 {idx < HOW_IT_WORKS.length - 1 && (
-                  <div className="hidden md:block absolute top-10 left-1/2 w-full h-0.5 bg-orange-200" />
+                  <div
+                    className="hidden md:block absolute top-7 left-1/2 w-full border-t-2 border-dashed border-emerald-200"
+                  />
                 )}
-                <div className="relative z-10 text-center">
-                  <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <step.icon className="w-8 h-8 text-white" />
+                <div className="group relative z-10 text-center">
+                  <div className="relative w-14 h-14 mx-auto mb-4">
+                    <span
+                      className="absolute inset-0 rounded-full bg-emerald-400 opacity-75 animate-ping"
+                      style={{ animationDelay: `${idx * 0.3}s`, animationDuration: '2.5s' }}
+                    />
+                    <div className="relative w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-lg shadow-emerald-100 group-hover:scale-110 transition-transform duration-300">
+                      <step.icon className="w-6 h-6 text-white" />
+                      <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white border-2 border-emerald-500 text-emerald-700 text-[10px] font-extrabold flex items-center justify-center">
+                        {step.step}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-sm font-bold text-orange-600 mb-1">Step {step.step}</div>
-                  <h3 className="font-bold text-gray-900 mb-2">{step.title}</h3>
-                  <p className="text-sm text-gray-600">{step.description}</p>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{step.title}</h3>
+                  <p className="text-sm text-gray-500">{step.description}</p>
                 </div>
               </div>
             ))}
@@ -500,79 +615,72 @@ export default function BusRentalPage() {
       </section>
 
       {/* Why Choose Us */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+      <section className="py-16 md:py-20 bg-gray-50">
+        <div className="container-custom">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
+              <ShieldCheck className="w-4 h-4" />
+              Why TransRentals
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
               Why Book Bus Rental with TransRentals?
             </h2>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white rounded-xl text-center p-6 shadow-sm">
-              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <IndianRupee className="w-8 h-8 text-orange-600" />
+            {WHY_CHOOSE_US.map((item) => (
+              <div
+                key={item.title}
+                className="group relative rounded-2xl p-6 overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 text-center"
+              >
+                <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-[0.07] group-hover:opacity-[0.13] transition-opacity`} />
+                <div className="relative">
+                  <div className={`w-14 h-14 bg-gradient-to-br ${item.gradient} rounded-xl flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform`}>
+                    <item.icon className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{item.title}</h3>
+                  <p className="text-sm text-gray-500">{item.description}</p>
+                </div>
               </div>
-              <h3 className="font-bold text-gray-900 mb-2">Transparent Pricing</h3>
-              <p className="text-sm text-gray-600">
-                Fixed per-km rates with no hidden charges. Fuel, toll, and driver allowance clearly stated upfront.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-xl text-center p-6 shadow-sm">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="font-bold text-gray-900 mb-2">Verified & Insured</h3>
-              <p className="text-sm text-gray-600">
-                All operators have valid contract carriage permits, vehicle fitness certificates, and comprehensive insurance.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-xl text-center p-6 shadow-sm">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="font-bold text-gray-900 mb-2">4.7★ Rated Service</h3>
-              <p className="text-sm text-gray-600">
-                Check ratings and verified reviews from real customers before booking your bus.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-xl text-center p-6 shadow-sm">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Phone className="w-8 h-8 text-purple-600" />
-              </div>
-              <h3 className="font-bold text-gray-900 mb-2">24/7 Trip Support</h3>
-              <p className="text-sm text-gray-600">
-                Our support team is available round the clock during your trip for any assistance.
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+      <section className="py-16 md:py-20 bg-white">
+        <div className="container-custom">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
+              <Star className="w-4 h-4 fill-emerald-700" />
+              Testimonials
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
               What Our Customers Say
             </h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
             {TESTIMONIALS.map((testimonial, idx) => (
-              <div key={idx} className="bg-gray-50 rounded-xl p-6 shadow-sm">
+              <div
+                key={idx}
+                className="group relative rounded-2xl p-6 bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              >
+                <Quote className="w-8 h-8 text-emerald-100 mb-2" fill="currentColor" />
                 <div className="flex items-center gap-1 mb-3">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                    <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
                   ))}
                 </div>
-                <p className="text-gray-600 mb-4">&ldquo;{testimonial.text}&rdquo;</p>
-                <div className="border-t pt-4">
-                  <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                  <p className="text-sm text-orange-600">{testimonial.trip}</p>
+                <p className="text-gray-600 text-sm leading-relaxed mb-5">&ldquo;{testimonial.text}&rdquo;</p>
+                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                    {testimonial.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm">{testimonial.name}</p>
+                    <p className="text-xs text-emerald-600 font-medium">{testimonial.trip}</p>
+                  </div>
                 </div>
               </div>
             ))}
@@ -581,57 +689,94 @@ export default function BusRentalPage() {
       </section>
 
       {/* FAQ */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+      <section className="py-16 md:py-20 bg-gray-50">
+        <div className="container-custom">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-100 px-4 py-2 rounded-full mb-4">
+              <HelpCircle className="w-4 h-4" />
+              FAQs
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
               Bus Rental FAQs
             </h2>
-            <p className="text-gray-600">Everything you need to know before booking a bus or tempo traveller</p>
+            <p className="text-gray-500">Everything you need to know before booking a bus or tempo traveller</p>
           </div>
 
-          <div className="max-w-3xl mx-auto space-y-4">
+          <div className="max-w-3xl mx-auto space-y-3">
             {FAQS.map((faq, idx) => (
-              <div key={idx} className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-semibold text-gray-900 mb-2">{faq.q}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{faq.a}</p>
-              </div>
+              <details
+                key={idx}
+                className="group bg-white rounded-2xl border border-gray-100 shadow-sm open:shadow-md open:border-emerald-200 transition-shadow"
+              >
+                <summary className="flex items-center justify-between gap-4 p-5 cursor-pointer list-none">
+                  <h3 className="text-base font-semibold text-gray-900">{faq.q}</h3>
+                  <span className="shrink-0 w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center group-open:bg-emerald-600 transition-colors">
+                    <Plus className="w-4 h-4 text-emerald-600 group-open:text-white group-open:rotate-45 transition-transform" />
+                  </span>
+                </summary>
+                <p className="text-gray-600 text-sm leading-relaxed px-5 pb-5 -mt-1">{faq.a}</p>
+              </details>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Internal Links — Top Cities */}
-      <section className="py-12 bg-white border-t border-gray-100">
-        <div className="container mx-auto px-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">
-            Bus Rental by City
-          </h2>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+      {/* Internal City Links */}
+      <section className="relative py-16 bg-white border-t border-gray-100 overflow-hidden">
+        {/* Subtle grid-line pattern background */}
+        <div
+          className="absolute inset-0 opacity-70"
+          style={{
+            backgroundImage:
+              'linear-gradient(#ecfdf5 1px, transparent 1px), linear-gradient(90deg, #ecfdf5 1px, transparent 1px)',
+            backgroundSize: '34px 34px',
+            maskImage: 'radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 90%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 90%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
+              <MapPin className="w-4 h-4" />
+              Browse by City
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">Bus Rental by City</h2>
+            <p className="text-gray-500">Jump straight to a city&apos;s dedicated page</p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 max-w-5xl mx-auto mb-8">
             {TOP_CITIES.map((city) => (
               <Link
                 key={city.slug}
                 href={`/bus-rental/${city.slug}`}
-                className="text-center py-3 px-2 rounded-lg border border-gray-200 hover:border-orange-400 hover:bg-orange-50 transition text-sm font-medium text-gray-700 hover:text-orange-700"
+                className="flex items-center gap-2 bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50 rounded-xl px-3.5 py-3 text-sm font-semibold text-gray-700 hover:text-emerald-700 transition-colors"
               >
+                <span className="w-7 h-7 rounded-lg bg-white border border-gray-100 flex items-center justify-center shrink-0">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                </span>
                 {city.name}
               </Link>
             ))}
           </div>
 
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-500 mb-4">Also available:</p>
-            <div className="flex flex-wrap justify-center gap-3 text-sm">
-              <Link href="/wedding-bus-rental" className="text-orange-600 hover:underline">Wedding Bus Rental</Link>
-              <span className="text-gray-300">|</span>
-              <Link href="/corporate-bus-rental" className="text-orange-600 hover:underline">Corporate Bus Rental</Link>
-              <span className="text-gray-300">|</span>
-              <Link href="/tempo-traveller" className="text-orange-600 hover:underline">Tempo Traveller Hire</Link>
-              <span className="text-gray-300">|</span>
-              <Link href="/local-bus-rental" className="text-orange-600 hover:underline">Local Bus Rental</Link>
-              <span className="text-gray-300">|</span>
-              <Link href="/transporter" className="text-orange-600 hover:underline">Truck Rental</Link>
-            </div>
+          <div className="flex flex-wrap justify-center gap-3 max-w-5xl mx-auto">
+            {[
+              { href: '/wedding-bus-rental', label: 'Wedding Bus Rental', icon: Heart },
+              { href: '/corporate-bus-rental', label: 'Corporate Bus Rental', icon: Building2 },
+              { href: '/tempo-traveller', label: 'Tempo Traveller Hire', icon: Bus },
+              { href: '/local-bus-rental', label: 'Local Bus Rental', icon: MapPin },
+              { href: '/transporter', label: 'Truck Rental', icon: Truck },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="inline-flex items-center gap-2 bg-white border border-gray-100 hover:border-emerald-200 rounded-xl px-4 py-2.5 text-sm font-bold text-emerald-700 transition-colors"
+              >
+                <link.icon className="w-4 h-4 text-emerald-600" />
+                {link.label}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            ))}
           </div>
         </div>
       </section>

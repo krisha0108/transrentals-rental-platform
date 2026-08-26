@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Sparkles, Star, Lightbulb } from 'lucide-react';
 
 const CAR_SUB_SERVICES = [
   {
@@ -91,79 +91,100 @@ const CAR_SUB_SERVICES = [
 
 export function CarSubServicesGrid() {
   return (
-    <section className="py-16 bg-gray-50">
-      <div className="container-custom">
+    <section className="relative py-16 md:py-20 bg-gray-50 overflow-hidden">
+      {/* Subtle dot-grid pattern background */}
+      <div
+        className="absolute inset-0 opacity-60"
+        style={{
+          backgroundImage: 'radial-gradient(circle, #a7f3d0 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
+          maskImage: 'radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 90%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 90%)',
+        }}
+      />
+      <div className="container-custom relative">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
+            <Sparkles className="w-4 h-4" />
+            Specialized Services
+          </span>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
             Specialized Car Rental Services
           </h2>
-          <p className="text-lg text-gray-600">
+          <p className="text-gray-500">
             Looking for something specific? Browse our specialized car rental services tailored to your needs
           </p>
         </div>
 
         {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {CAR_SUB_SERVICES.map((service) => (
             <Link
               key={service.id}
               href={service.url}
-              className="group relative bg-white rounded-xl border-2 border-gray-200 p-6 hover:border-primary hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
+              className="group relative rounded-2xl p-6 overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
             >
+              {/* Soft pastel colour wash — same gradient, much lower intensity */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${service.gradient} opacity-[0.08] group-hover:opacity-[0.14] transition-opacity`} />
+
               {/* Popular Badge */}
               {service.popular && (
-                <div className="absolute top-3 right-3">
-                  <span className="px-2 py-1 bg-amber-500 text-white text-xs font-bold rounded-full">
-                    Popular
-                  </span>
+                <div className="absolute top-5 right-5 flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold rounded-full">
+                  <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                  Popular
                 </div>
               )}
 
-              {/* Icon */}
+              {/* Content */}
               <div className="relative">
-                <div className={`w-16 h-16 bg-gradient-to-br ${service.gradient} rounded-lg flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition-transform`}>
+                <div className={`w-14 h-14 bg-gradient-to-br ${service.gradient} rounded-xl flex items-center justify-center text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform`}>
                   {service.icon}
                 </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                  {service.name}
+                </h3>
+                <p className="text-gray-500 text-sm mb-4">
+                  {service.description}
+                </p>
+
+                {/* Price + Arrow */}
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                  <span className="text-[12.5px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full">
+                    {service.price}
+                  </span>
+                  <div className="flex items-center gap-1 text-gray-400 group-hover:text-emerald-600 font-semibold text-sm group-hover:gap-1.5 transition-all">
+                    <span>Details</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </div>
               </div>
-
-              {/* Content */}
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                {service.name}
-              </h3>
-              <p className="text-gray-600 text-sm mb-3">
-                {service.description}
-              </p>
-              <p className="text-primary font-bold text-sm mb-4">
-                {service.price}
-              </p>
-
-              {/* Arrow */}
-              <div className="flex items-center text-primary font-medium text-sm group-hover:gap-2 transition-all">
-                <span>View Details</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </div>
-
-              {/* Hover Effect */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${service.gradient} opacity-0 group-hover:opacity-5 transition-opacity rounded-xl pointer-events-none`} />
             </Link>
           ))}
         </div>
 
         {/* Info Box */}
-        <div className="mt-12 max-w-4xl mx-auto bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
-          <div className="flex items-start gap-4">
-            <div className="text-3xl">💡</div>
-            <div>
-              <h4 className="font-bold text-lg text-gray-900 mb-2">Not sure which service to choose?</h4>
-              <p className="text-gray-700 mb-3">
-                Use our general car rental booking form above to describe your requirements, and we'll match you with the best car rental service and vendors for your needs.
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>Tip:</strong> For standard car rentals with a driver for local/outstation trips, use the main booking form. For specialized needs like self-drive, luxury, or wedding cars, explore the specific services above.
-              </p>
-            </div>
+        <div className="mt-10 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-5">
+          <div className="w-1 self-stretch rounded-full bg-gradient-to-b from-emerald-500 to-emerald-700 hidden sm:block" />
+          <div className="w-12 h-12 rounded-xl bg-white shadow-md shadow-emerald-900/10 flex items-center justify-center shrink-0">
+            <Lightbulb className="w-5 h-5 text-emerald-600" />
           </div>
+          <div className="flex-1">
+            <h4 className="font-bold text-base text-gray-900 mb-1">Not sure which service to choose?</h4>
+            <p className="text-sm text-gray-600 leading-relaxed mb-1.5">
+              Use our general car rental booking form above to describe your requirements, and we&apos;ll match you with the best car rental service and vendors for your needs.
+            </p>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              <strong className="text-gray-700">Tip:</strong> Standard local/outstation trips use the main booking form; specialized needs like self-drive, luxury, or wedding cars have their own pages above.
+            </p>
+          </div>
+          <a
+            href="#booking"
+            className="shrink-0 inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-5 py-3 rounded-xl transition-colors whitespace-nowrap"
+          >
+            Use Booking Form
+            <ArrowRight className="w-4 h-4 -rotate-90" />
+          </a>
         </div>
       </div>
     </section>

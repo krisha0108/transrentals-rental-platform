@@ -1,10 +1,12 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { CarSubServicesGrid } from '@/components/services/CarSubServicesGrid';
-import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
-import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
+import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
+import { CarRentalPopularCitiesGrid } from '@/components/car-rental/CarRentalPopularCitiesGrid';
 import { HowToSchema, FAQSchema, BreadcrumbSchema, ItemListSchema } from '@/components/seo/schemas';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
+import { FAQSection } from '@/components/services/FAQSection';
+import { ArrowRight, MapPin, Key, Navigation, Plane } from 'lucide-react';
 
 const CAR_RENTAL_FAQS = [
   {
@@ -134,19 +136,28 @@ export default function CarRentalPage() {
         }}
       />
 
+      {/* Breadcrumbs */}
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <Link href="/" className="hover:text-primary">Home</Link>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">Car Rental</span>
+          </nav>
+        </div>
+      </div>
+
       {/* Hero Section */}
-      <SimpleServiceHero
-        badge="Car Rental Services"
-        title="Car Rental"
-        titleHighlight="Self Drive & Chauffeur-Driven"
-        description="Rent cars with driver or self-drive across 250+ cities. Roundtrip, one-way, airport transfers. Choose from hatchbacks, sedans, and SUVs!"
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Verified Drivers', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Instant Booking', color: 'text-green-600' },
-        ]}
-        gradientFrom="blue-50"
-        gradientTo="indigo-50"
+      <CarRentalBookingHero
+        city=""
+        citySlug=""
+        serviceSlug="car-rental"
+        serviceTitle="Car Rental"
+        headingLine1="Drive Your Way,"
+        headingLine2="Across India"
+        subheading="Rent cars with driver or self-drive across 250+ cities. Roundtrip, one-way, airport transfers."
+        heroVariant="aurora"
+        heroImage="/images/sections/car-rental-hero-bg.png"
       />
 
       {/* Fleet Display from Database */}
@@ -159,7 +170,7 @@ export default function CarRentalPage() {
       />
 
       {/* Locations from Database */}
-      <ServiceLocationsGrid
+      <CarRentalPopularCitiesGrid
         serviceSlug="car-rental"
         title="Car Rental in Popular Cities"
         startingPrice="₹999"
@@ -170,46 +181,65 @@ export default function CarRentalPage() {
       <CarSubServicesGrid />
 
       {/* FAQ Section */}
-      <section className="py-14 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Car Rental FAQs</h2>
-            <p className="text-gray-600">Common questions about renting a car in India</p>
-          </div>
-          <div className="max-w-3xl mx-auto space-y-4">
-            {CAR_RENTAL_FAQS.map((faq, idx) => (
-              <div key={idx} className="bg-gray-50 rounded-xl p-5">
-                <h3 className="font-semibold text-gray-900 mb-2">{faq.q}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <FAQSection
+        service="car-rental"
+        customFaqs={CAR_RENTAL_FAQS.map((f) => ({ question: f.q, answer: f.a }))}
+      />
 
       {/* Internal City Links */}
-      <section className="py-10 bg-gray-50 border-t border-gray-100">
-        <div className="container mx-auto px-4">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 text-center">Car Rental by City</h2>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+      <section className="relative py-16 bg-white border-t border-gray-100 overflow-hidden">
+        {/* Subtle grid-line pattern background */}
+        <div
+          className="absolute inset-0 opacity-70"
+          style={{
+            backgroundImage:
+              'linear-gradient(#ecfdf5 1px, transparent 1px), linear-gradient(90deg, #ecfdf5 1px, transparent 1px)',
+            backgroundSize: '34px 34px',
+            maskImage: 'radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 90%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 90%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
+              <MapPin className="w-4 h-4" />
+              Browse by City
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">Car Rental by City</h2>
+            <p className="text-gray-500">Jump straight to a city&apos;s dedicated page</p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 max-w-5xl mx-auto mb-8">
             {TOP_CITIES.map((city) => (
               <Link
                 key={city.slug}
                 href={`/car-rental/${city.slug}`}
-                className="text-center py-2.5 px-2 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition text-sm font-medium text-gray-700 hover:text-blue-700"
+                className="flex items-center gap-2 bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50 rounded-xl px-3.5 py-3 text-sm font-semibold text-gray-700 hover:text-emerald-700 transition-colors"
               >
+                <span className="w-7 h-7 rounded-lg bg-white border border-gray-100 flex items-center justify-center shrink-0">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                </span>
                 {city.name}
               </Link>
             ))}
           </div>
-          <div className="mt-6 text-center">
-            <div className="flex flex-wrap justify-center gap-3 text-sm">
-              <Link href="/self-drive-car-rentals" className="text-blue-600 hover:underline">Self Drive Car Rentals</Link>
-              <span className="text-gray-300">|</span>
-              <Link href="/outstation-cab" className="text-blue-600 hover:underline">Outstation Cabs</Link>
-              <span className="text-gray-300">|</span>
-              <Link href="/airport-transfer" className="text-blue-600 hover:underline">Airport Transfers</Link>
-            </div>
+
+          <div className="flex flex-wrap justify-center gap-3 max-w-5xl mx-auto">
+            {[
+              { href: '/self-drive-car-rentals', label: 'Self Drive Car Rentals', icon: Key },
+              { href: '/outstation-cab', label: 'Outstation Cabs', icon: Navigation },
+              { href: '/airport-transfer', label: 'Airport Transfers', icon: Plane },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="inline-flex items-center gap-2 bg-white border border-gray-100 hover:border-emerald-200 rounded-xl px-4 py-2.5 text-sm font-bold text-emerald-700 transition-colors"
+              >
+                <link.icon className="w-4 h-4 text-emerald-600" />
+                {link.label}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            ))}
           </div>
         </div>
       </section>
