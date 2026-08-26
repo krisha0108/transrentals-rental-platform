@@ -129,39 +129,39 @@ export default function ManagerNotificationsPage() {
 
   return (
     <div className="space-y-5">
-      {/* Controls */}
-      <div className="flex flex-wrap items-center justify-end gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+      {/* Stats + Controls */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="grid flex-1 min-w-[280px] grid-cols-2 gap-3 max-w-md">
+          <div className="relative overflow-hidden bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+            <span className="absolute inset-y-0 left-0 w-1 bg-slate-300" />
+            <div className="flex items-center gap-3 pl-1">
+              <div className="p-2 rounded-lg bg-gray-100 text-gray-600"><Inbox className="w-5 h-5" /></div>
+              <div>
+                <p className="text-xl font-bold text-gray-900">{items.length}{nextCursor ? '+' : ''}</p>
+                <p className="text-xs text-gray-500">{filter === 'unread' ? 'Unread Shown' : 'Total Shown'}</p>
+              </div>
+            </div>
+          </div>
+          <div className="relative overflow-hidden bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+            <span className="absolute inset-y-0 left-0 w-1 bg-orange-400" />
+            <div className="flex items-center gap-3 pl-1">
+              <div className="p-2 rounded-lg bg-orange-100 text-orange-600"><BellRing className="w-5 h-5" /></div>
+              <div>
+                <p className="text-xl font-bold text-orange-600">{unreadCount}</p>
+                <p className="text-xs text-gray-500">Unread</p>
+              </div>
+            </div>
+          </div>
+        </div>
         {unreadCount > 0 && (
           <button
             onClick={handleMarkAllRead}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-green-600 text-green-700 rounded-lg hover:bg-green-50 transition font-medium"
+            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium shadow-sm shrink-0"
           >
             <CheckCheck className="w-4 h-4" />
             Mark all read
           </button>
         )}
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 max-w-md">
-        <div className="bg-white rounded-xl p-4 border shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gray-100 text-gray-600"><Inbox className="w-5 h-5" /></div>
-            <div>
-              <p className="text-xl font-bold text-gray-900">{items.length}{nextCursor ? '+' : ''}</p>
-              <p className="text-xs text-gray-500">{filter === 'unread' ? 'Unread Shown' : 'Total Shown'}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-4 border shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-orange-100 text-orange-600"><BellRing className="w-5 h-5" /></div>
-            <div>
-              <p className="text-xl font-bold text-orange-600">{unreadCount}</p>
-              <p className="text-xs text-gray-500">Unread</p>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Tabs */}
