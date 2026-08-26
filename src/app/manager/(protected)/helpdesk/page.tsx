@@ -162,14 +162,14 @@ export default function ManagerHelpdeskPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl px-8 py-6 shadow-lg">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Helpdesk</h1>
-          <p className="text-sm text-indigo-100 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Helpdesk</h1>
+          <p className="text-sm text-gray-500 mt-1">
             Manage support tickets and contact inquiries in one place.
           </p>
         </div>
-        <div className="text-xs text-indigo-200 font-medium">Last updated: {formatDateTime(new Date().toISOString())}</div>
+        <div className="text-xs text-gray-400 font-medium">Last updated: {formatDateTime(new Date().toISOString())}</div>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[1fr,280px]">
