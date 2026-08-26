@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
   Users,
   Search,
@@ -99,6 +100,7 @@ const STATUS_CONFIG: Record<DriverStatus, { label: string; pill: string; dot: st
 };
 
 export default function DriversPage() {
+  useManagerPageHeader('Drivers', 'Manage drivers registered on TransRentals');
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, pages: 0 });
   const [stats, setStats] = useState<Stats>({ total: 0, pending: 0, active: 0, suspended: 0, inactive: 0 });
@@ -215,14 +217,6 @@ export default function DriversPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Drivers</h1>
-          <p className="text-gray-600 text-sm mt-0.5">Manage drivers registered on TransRentals</p>
-        </div>
-      </div>
-
       {/* Status chips double as filters and stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {statusChips.map((chip) => {

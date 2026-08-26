@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
   Loader2,
   MapPin,
@@ -82,6 +83,20 @@ export default function ManagerLocationsPage() {
     fetchData();
   };
 
+  useManagerPageHeader(
+    'My Locations',
+    'View your assigned locations and vendors',
+    <button
+      key="refresh"
+      onClick={handleRefresh}
+      disabled={isRefreshing}
+      title="Refresh"
+      className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+    >
+      <RefreshCw className={`w-5 h-5 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`} />
+    </button>
+  );
+
   const getVendorsByLocation = (locationId: string) => {
     return vendors.filter((v: any) =>
       v.vendor_approved_locations?.some((al: any) => al.locationId === locationId)
@@ -113,22 +128,6 @@ export default function ManagerLocationsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Locations</h1>
-          <p className="text-gray-500 mt-1">View your assigned locations and vendors</p>
-        </div>
-        <button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
-
       {/* Error */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">

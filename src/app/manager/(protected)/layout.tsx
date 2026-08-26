@@ -410,7 +410,7 @@ function ManagerTopBar({
   const { header } = useManagerPageHeaderContext();
 
   return (
-    <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
+    <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onOpenSidebar}
@@ -427,12 +427,15 @@ function ManagerTopBar({
           </div>
         )}
       </div>
-      <ManagerNotificationBell
-        notifications={notifications}
-        unreadCount={unreadCount}
-        onMarkRead={onMarkRead}
-        onMarkAllRead={onMarkAllRead}
-      />
+      <div className="flex items-center gap-2 shrink-0">
+        {header?.action}
+        <ManagerNotificationBell
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onMarkRead={onMarkRead}
+          onMarkAllRead={onMarkAllRead}
+        />
+      </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import { Bell, BellRing, Loader2, MapPinPlus, Layers, Mail, Plane, CheckCheck, RefreshCw, Inbox } from 'lucide-react';
 
 interface ManagerNotification {
@@ -66,6 +67,20 @@ export default function ManagerNotificationsPage() {
     fetchPage(true);
   };
 
+  useManagerPageHeader(
+    'Notifications',
+    unreadCount > 0 ? `${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}` : "You're all caught up",
+    <button
+      key="refresh"
+      onClick={handleRefresh}
+      disabled={isRefreshing}
+      title="Refresh"
+      className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+    >
+      <RefreshCw className={`w-5 h-5 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`} />
+    </button>
+  );
+
   const handleMarkAllRead = async () => {
     setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
     setUnreadCount(0);
@@ -114,36 +129,17 @@ export default function ManagerNotificationsPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-          <p className="text-gray-500 mt-1">
-            {unreadCount > 0 ? (
-              <>
-                <span className="text-orange-600 font-medium">{unreadCount} unread</span> notification{unreadCount === 1 ? '' : 's'}
-              </>
-            ) : (
-              "You're all caught up"
-            )}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {unreadCount > 0 && (
-            <button
-              onClick={handleMarkAllRead}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-green-600 text-green-700 rounded-lg hover:bg-green-50 transition font-medium"
-            >
-              <CheckCheck className="w-4 h-4" />
-              Mark all read
-            </button>
-          )}
-          <button onClick={handleRefresh} disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50">
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
+      {/* Controls */}
+      <div className="flex flex-wrap items-center justify-end gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        {unreadCount > 0 && (
+          <button
+            onClick={handleMarkAllRead}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-green-600 text-green-700 rounded-lg hover:bg-green-50 transition font-medium"
+          >
+            <CheckCheck className="w-4 h-4" />
+            Mark all read
           </button>
-        </div>
+        )}
       </div>
 
       {/* Stats */}

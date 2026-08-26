@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
   Building2, Search, Filter, CheckCircle, XCircle, Clock, Loader2,
   Phone, Mail, User, FileText, ChevronDown, AlertCircle, Eye,
@@ -35,6 +36,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 };
 
 export default function B2BCompaniesPage() {
+  useManagerPageHeader('B2B Companies', 'Manage B2B corporate customer registrations');
   const [customers, setCustomers] = useState<B2BCustomer[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -146,15 +148,6 @@ export default function B2BCompaniesPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-          <Building2 className="w-7 h-7 text-emerald-600" />
-          B2B Companies
-        </h1>
-        <p className="text-gray-500 mt-1">Manage B2B corporate customer registrations</p>
-      </div>
-
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[

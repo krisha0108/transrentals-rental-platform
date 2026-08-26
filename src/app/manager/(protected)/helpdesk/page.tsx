@@ -163,12 +163,36 @@ export default function ManagerHelpdeskPage() {
 
   return (
     <div className="space-y-6">
-      <div className="text-right text-xs text-gray-400 font-medium">
-        Last updated: {formatDateTime(new Date().toISOString())}
+      {/* Overview */}
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Dashboard</p>
+          <h2 className="text-lg font-bold text-slate-900 mt-0.5">Overview</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+          {statCards.map((stat) => (
+            <div
+              key={stat.label}
+              className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2.5 text-center"
+            >
+              <p className={`text-xl font-bold ${stat.color || 'text-slate-900'}`}>
+                {stat.value}
+              </p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-0.5">{stat.label}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr,280px]">
-        <section className="space-y-4">
+      {/* Quick Tips */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 rounded-lg border border-indigo-100 bg-indigo-50/50 px-4 py-2.5">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-500">Quick Tips</span>
+        <span className="text-[12px] text-indigo-700"><strong>Tickets:</strong> Customer issues from app</span>
+        <span className="text-[12px] text-indigo-700"><strong>Inquiries:</strong> Website contact forms</span>
+        <span className="text-[12px] text-indigo-700">Prioritize open tickets first</span>
+      </div>
+
+      <section className="space-y-4">
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
             <form className="flex flex-1 flex-wrap items-center gap-3" onSubmit={handleFilter}>
@@ -327,7 +351,7 @@ export default function ManagerHelpdeskPage() {
           </div>
 
           {/* Pagination */}
-          {pagination.totalPages > 1 && (
+          {pagination.total > 0 && (
             <nav className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 text-xs font-semibold text-slate-600 shadow-sm">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
@@ -368,46 +392,7 @@ export default function ManagerHelpdeskPage() {
               </button>
             </nav>
           )}
-        </section>
-
-        {/* Sidebar */}
-        <aside className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-700 shadow-sm h-fit">
-          <div className="pb-3 border-b border-slate-100">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Dashboard</p>
-            <h2 className="text-lg font-bold text-slate-900 mt-0.5">Overview</h2>
-          </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            {statCards.map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2.5 text-center"
-              >
-                <p className={`text-xl font-bold ${stat.color || 'text-slate-900'}`}>
-                  {stat.value}
-                </p>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-0.5">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-          <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 px-3.5 py-3 text-sm">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-500 mb-2">Quick Tips</p>
-            <ul className="space-y-1.5 text-[12px] text-indigo-700 leading-relaxed">
-              <li className="flex items-start gap-1.5">
-                <span className="text-indigo-400 mt-0.5">•</span>
-                <span><strong>Tickets:</strong> Customer issues from app</span>
-              </li>
-              <li className="flex items-start gap-1.5">
-                <span className="text-indigo-400 mt-0.5">•</span>
-                <span><strong>Inquiries:</strong> Website contact forms</span>
-              </li>
-              <li className="flex items-start gap-1.5">
-                <span className="text-indigo-400 mt-0.5">•</span>
-                <span>Prioritize open tickets first</span>
-              </li>
-            </ul>
-          </div>
-        </aside>
-      </div>
+      </section>
     </div>
   );
 }

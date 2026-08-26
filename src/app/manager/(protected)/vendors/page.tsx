@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
   Loader2, Search, Store, Phone, Mail, MapPin, Layers,
   ChevronRight, ChevronDown, RefreshCw, AlertCircle, CheckCircle, Clock,
@@ -113,14 +114,14 @@ interface Stats {
   suspended: number;
 }
 
-const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; icon: React.ElementType }> = {
-  PENDING:           { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Pending',      icon: Clock },
-  DOCUMENTS_PENDING: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Docs Pending', icon: FileText },
-  UNDER_REVIEW:      { bg: 'bg-blue-100',   text: 'text-blue-700',   label: 'Under Review', icon: Clock },
-  APPROVED:          { bg: 'bg-green-100',  text: 'text-green-700',  label: 'Approved',     icon: CheckCircle },
-  REJECTED:          { bg: 'bg-red-100',    text: 'text-red-700',    label: 'Rejected',     icon: XCircle },
-  SUSPENDED:         { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Suspended',    icon: AlertCircle },
-  BLOCKED:           { bg: 'bg-gray-100',   text: 'text-gray-700',   label: 'Blocked',      icon: XCircle },
+const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; icon: React.ElementType; accent: string }> = {
+  PENDING:           { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Pending',      icon: Clock,       accent: 'bg-yellow-400' },
+  DOCUMENTS_PENDING: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Docs Pending', icon: FileText,    accent: 'bg-orange-400' },
+  UNDER_REVIEW:      { bg: 'bg-blue-100',   text: 'text-blue-700',   label: 'Under Review', icon: Clock,       accent: 'bg-blue-400' },
+  APPROVED:          { bg: 'bg-green-100',  text: 'text-green-700',  label: 'Approved',     icon: CheckCircle, accent: 'bg-green-400' },
+  REJECTED:          { bg: 'bg-red-100',    text: 'text-red-700',    label: 'Rejected',     icon: XCircle,     accent: 'bg-red-400' },
+  SUSPENDED:         { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Suspended',    icon: AlertCircle, accent: 'bg-purple-400' },
+  BLOCKED:           { bg: 'bg-gray-100',   text: 'text-gray-700',   label: 'Blocked',      icon: XCircle,     accent: 'bg-gray-400' },
 };
 
 // Presence — "is this vendor online right now" — same mechanism as the admin
@@ -365,14 +366,40 @@ function ManagerVendorsPageInner() {
     };
   }, []);
 
+  // Filtering, sorting, and pagination all happen server-side now — this
+  // fetch re-runs whenever any URL filter param (including page) changes,
+  // since they're all read from searchParams above.
+  const [uniqueLocations, setUniqueLocations] = useState<string[]>([]);
+  const [uniqueServices, setUniqueServices] = useState<string[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
   const fetchVendors = async () => {
     try {
       setError(null);
-      const response = await fetch('/api/manager/vendors');
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      if (locationFilter !== 'all') params.set('location', locationFilter);
+      if (serviceFilter !== 'all') params.set('service', serviceFilter);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (tagFilter !== 'all') params.set('tag', tagFilter);
+      if (requestFilter !== 'all') params.set('request', requestFilter);
+      if (dateFilter !== 'all') params.set('joined', dateFilter);
+      if (customFrom) params.set('from', customFrom);
+      if (customTo) params.set('to', customTo);
+      if (sortBy !== 'date_desc') params.set('sort', sortBy);
+      params.set('page', String(currentPage));
+      params.set('limit', String(itemsPerPage));
+
+      const response = await fetch(`/api/manager/vendors?${params.toString()}`);
       const data = await response.json();
       if (data.success) {
         setAllVendors(data.vendors);
         setStats(data.stats);
+        setUniqueLocations(data.locations || []);
+        setUniqueServices(data.services || []);
+        setTotalPages(data.pagination?.totalPages || 1);
+        setTotalCount(data.pagination?.total || 0);
       } else {
         setError(data.error || 'Failed to fetch vendors');
       }
@@ -384,116 +411,15 @@ function ManagerVendorsPageInner() {
     }
   };
 
-  useEffect(() => { fetchVendors(); }, []);
+  useEffect(() => { fetchVendors(); }, [searchParams.toString()]);
 
   const handleRefresh = () => { setIsRefreshing(true); fetchVendors(); };
 
-  // Extract unique locations and services for dropdowns
-  const uniqueLocations = useMemo(() => {
-    const set = new Set<string>();
-    allVendors.forEach(v => v.locationNames.forEach(l => set.add(l)));
-    return Array.from(set).sort();
-  }, [allVendors]);
-
-  const uniqueServices = useMemo(() => {
-    const set = new Set<string>();
-    allVendors.forEach(v => v.serviceNames.forEach(s => set.add(s)));
-    return Array.from(set).sort();
-  }, [allVendors]);
-
-  // Client-side filtering + sorting
-  const vendors = useMemo(() => {
-    let list = [...allVendors];
-
-    // Name / phone / vid search
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(v =>
-        v.businessName.toLowerCase().includes(q) ||
-        v.ownerName.toLowerCase().includes(q) ||
-        v.phone.includes(q) ||
-        v.email.toLowerCase().includes(q) ||
-        (v.vid && v.vid.toLowerCase().includes(q))
-      );
-    }
-
-    // Location filter
-    if (locationFilter !== 'all') {
-      list = list.filter(v => v.locationNames.includes(locationFilter));
-    }
-
-    // Service filter
-    if (serviceFilter !== 'all') {
-      list = list.filter(v => v.serviceNames.includes(serviceFilter));
-    }
-
-    // Status filter
-    if (statusFilter !== 'all') {
-      if (statusFilter === 'PENDING') {
-        list = list.filter(v => ['PENDING', 'DOCUMENTS_PENDING', 'UNDER_REVIEW'].includes(v.status));
-      } else {
-        list = list.filter(v => v.status === statusFilter);
-      }
-    }
-
-    // Tag filter — vendor matches if they carry the selected tag, or (for
-    // '__none__') if they carry no tag at all. That second case is the one
-    // managers actually need most under a Pending filter: which of these
-    // haven't been triaged yet, as opposed to ones already tagged Follow-Up/
-    // Connected/etc and just sitting in Pending for another reason.
-    if (tagFilter === '__none__') {
-      list = list.filter(v => !Array.isArray(v.tags) || v.tags.length === 0);
-    } else if (tagFilter !== 'all') {
-      list = list.filter(v => Array.isArray(v.tags) && v.tags.includes(tagFilter));
-    }
-
-    // Pending-request filter — new location/service asks awaiting review
-    if (requestFilter !== 'all') {
-      if (requestFilter === 'location') list = list.filter(v => v.hasPendingLocationRequest);
-      else if (requestFilter === 'service') list = list.filter(v => v.hasPendingServiceRequest);
-      else if (requestFilter === 'any') list = list.filter(v => v.hasPendingLocationRequest || v.hasPendingServiceRequest);
-    }
-
-    // Joined date filter — tracks vendor onboarding (registration) date
-    if (dateFilter !== 'all' && !(dateFilter === 'custom' && !customFrom && !customTo)) {
-      const [from, to] = getDateRange(dateFilter, customFrom, customTo);
-      list = list.filter(v => {
-        const created = new Date(v.createdAt).getTime();
-        if (from && created < from.getTime()) return false;
-        if (to && created > to.getTime()) return false;
-        return true;
-      });
-    }
-
-    // Sort
-    switch (sortBy) {
-      case 'date_asc':   list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); break;
-      case 'date_desc':  list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); break;
-      case 'rating_desc': list.sort((a, b) => b.rating - a.rating); break;
-      case 'rating_asc':  list.sort((a, b) => a.rating - b.rating); break;
-      case 'fleet_desc':  list.sort((a, b) => b.fleetCount - a.fleetCount); break;
-      case 'fleet_asc':   list.sort((a, b) => a.fleetCount - b.fleetCount); break;
-    }
-
-    // Pin anything needing manager attention to the top — a pending
-    // location/service request or a freshly-uploaded-docs vendor awaiting
-    // review is easy to miss buried in the list otherwise. Stable sort keeps
-    // the chosen sortBy order intact within each group.
-    list.sort((a, b) => (needsAttention(b) ? 1 : 0) - (needsAttention(a) ? 1 : 0));
-
-    return list;
-  }, [allVendors, search, locationFilter, serviceFilter, statusFilter, tagFilter, requestFilter, dateFilter, customFrom, customTo, sortBy]);
-
-  // Stats derived from the filtered list so they update with filters
-  const filteredStats = useMemo(() => ({
-    total: vendors.length,
-    approved: vendors.filter(v => v.status === 'APPROVED').length,
-    pending: vendors.filter(v => ['PENDING', 'DOCUMENTS_PENDING', 'UNDER_REVIEW'].includes(v.status)).length,
-    suspended: vendors.filter(v => v.status === 'SUSPENDED').length,
-  }), [vendors]);
-
-  const totalPages = Math.ceil(vendors.length / itemsPerPage);
-  const paginatedVendors = vendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  // The server already returns exactly this page's rows, filtered/sorted/
+  // pinned — no further client-side work needed.
+  const vendors = allVendors;
+  const filteredStats = stats || { total: 0, approved: 0, pending: 0, suspended: 0 };
+  const paginatedVendors = allVendors;
 
   const activeFilterCount = [
     search, locationFilter !== 'all' ? locationFilter : '', serviceFilter !== 'all' ? serviceFilter : '',
@@ -507,6 +433,20 @@ function ManagerVendorsPageInner() {
     setSearchInput('');
     router.push('/manager/vendors');
   };
+
+  useManagerPageHeader(
+    'Vendors',
+    `${totalCount} vendor${totalCount === 1 ? '' : 's'}${activeFilterCount > 0 ? ` (${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''} active)` : ''}${totalPages > 1 ? ` · Page ${currentPage}/${totalPages}` : ''}`,
+    <button
+      key="refresh"
+      onClick={handleRefresh}
+      disabled={isRefreshing}
+      title="Refresh"
+      className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+    >
+      <RefreshCw className={`w-5 h-5 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`} />
+    </button>
+  );
 
   // Optimistic tag toggle — adds/removes the tag locally, then syncs server.
   // Rolls back on failure. Keeps the inline editor snappy.
@@ -554,52 +494,38 @@ function ManagerVendorsPageInner() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Vendors</h1>
-          <p className="text-gray-500 mt-1">
-            {vendors.length} of {allVendors.length} vendors
-            {activeFilterCount > 0 && <span className="ml-1 text-green-600 font-medium">({activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active)</span>}
-            {totalPages > 1 && <span className="ml-1 text-gray-400">· Page {currentPage}/{totalPages}</span>}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href="/manager/vendors/create"
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-green-600 text-green-700 rounded-lg hover:bg-green-50 transition font-medium">
-            <Plus className="w-4 h-4" />
-            Create Vendor
-          </Link>
-          <button onClick={handleRefresh} disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50">
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Stats + Controls */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="grid flex-1 min-w-[280px] grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Total',     value: filteredStats.total,     icon: Store,        color: 'bg-gray-100 text-gray-600',   valColor: 'text-gray-900' },
-            { label: 'Approved',  value: filteredStats.approved,  icon: CheckCircle,  color: 'bg-green-100 text-green-600', valColor: 'text-green-600' },
-            { label: 'Pending',   value: filteredStats.pending,   icon: Clock,        color: 'bg-yellow-100 text-yellow-600', valColor: 'text-yellow-600' },
-            { label: 'Suspended', value: filteredStats.suspended, icon: AlertCircle,  color: 'bg-purple-100 text-purple-600', valColor: 'text-purple-600' },
-          ].map(({ label, value, icon: Icon, color, valColor }) => (
-            <div key={label} className="bg-white rounded-xl p-4 border shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${color}`}><Icon className="w-5 h-5" /></div>
+            { label: 'Total',     value: filteredStats.total,     icon: Store,        ring: 'ring-slate-200',  iconWrap: 'bg-slate-100 text-slate-600',   valColor: 'text-slate-900',  accent: 'bg-slate-300' },
+            { label: 'Approved',  value: filteredStats.approved,  icon: CheckCircle,  ring: 'ring-green-100',  iconWrap: 'bg-green-100 text-green-600',   valColor: 'text-green-600',  accent: 'bg-green-400' },
+            { label: 'Pending',   value: filteredStats.pending,   icon: Clock,        ring: 'ring-yellow-100', iconWrap: 'bg-yellow-100 text-yellow-600', valColor: 'text-yellow-600', accent: 'bg-yellow-400' },
+            { label: 'Suspended', value: filteredStats.suspended, icon: AlertCircle,  ring: 'ring-purple-100', iconWrap: 'bg-purple-100 text-purple-600', valColor: 'text-purple-600', accent: 'bg-purple-400' },
+          ].map(({ label, value, icon: Icon, iconWrap, valColor, accent }) => (
+            <div key={label} className="relative overflow-hidden bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+              <span className={`absolute inset-y-0 left-0 w-1 ${accent}`} />
+              <div className="flex items-center gap-3 pl-1">
+                <div className={`p-2.5 rounded-lg ${iconWrap}`}><Icon className="w-5 h-5" /></div>
                 <div>
-                  <p className={`text-2xl font-bold ${valColor}`}>{value}</p>
-                  <p className="text-xs text-gray-500">{label}</p>
+                  <p className={`text-2xl font-bold leading-none ${valColor}`}>{value}</p>
+                  <p className="text-xs text-gray-500 mt-1">{label}</p>
                 </div>
               </div>
             </div>
           ))}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link href="/manager/vendors/create"
+            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium shadow-sm">
+            <Plus className="w-4 h-4" />
+            Create Vendor
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border p-4 space-y-3">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
         {/* Row 1: Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -772,10 +698,12 @@ function ManagerVendorsPageInner() {
       )}
 
       {/* Vendors List */}
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {vendors.length === 0 ? (
           <div className="p-12 text-center">
-            <Store className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-4">
+              <Store className="w-8 h-8 text-gray-300" />
+            </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No vendors found</h3>
             <p className="text-gray-500 mb-4">
               {activeFilterCount > 0 ? 'Try adjusting your filters' : 'No vendors in your assigned locations yet'}
@@ -797,11 +725,12 @@ function ManagerVendorsPageInner() {
               return (
                 <div key={vendor.id}
                   onClick={() => router.push(`/manager/vendors/${vendor.id}`)}
-                  className={`block p-4 sm:p-5 hover:bg-gray-50 transition cursor-pointer relative ${flagged ? 'border-l-4 border-orange-400 bg-orange-50/40' : ''}`}>
-                  <div className="flex items-start gap-4">
+                  className={`group relative block p-4 sm:p-5 hover:bg-slate-50 transition cursor-pointer ${flagged ? 'bg-orange-50/40' : ''}`}>
+                  <span className={`absolute inset-y-0 left-0 w-1 ${flagged ? 'bg-orange-400' : statusConfig.accent}`} />
+                  <div className="flex items-start gap-4 pl-1.5">
                     {/* Avatar */}
-                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Store className="w-6 h-6 text-green-600" />
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${statusConfig.bg}`}>
+                      <Store className={`w-6 h-6 ${statusConfig.text}`} />
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -880,27 +809,28 @@ function ManagerVendorsPageInner() {
                         )}
                       </div>
 
-                      {/* Info grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm">
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Store className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      {/* Info row */}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <Store className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                           <span className="truncate">{vendor.ownerName}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                          <span>{vendor.phone}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                          {vendor.phone}
+                        </span>
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <Mail className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                           <span className="truncate">{vendor.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Car className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                          <span>{vendor.fleetCount} vehicles</span>
-                          <span className="text-gray-400">·</span>
-                          <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                          <span className="text-xs text-gray-400">{formatDate(vendor.createdAt)}</span>
-                        </div>
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Car className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                          {vendor.fleetCount} vehicles
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                          <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                          {formatDate(vendor.createdAt)}
+                        </span>
                       </div>
 
                       {/* Location & Service chips */}
@@ -994,7 +924,7 @@ function ManagerVendorsPageInner() {
                       )}
                     </div>
 
-                    <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 mt-1" />
+                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-gray-500 flex-shrink-0 mt-1 transition-colors" />
                   </div>
                 </div>
               );
@@ -1005,10 +935,10 @@ function ManagerVendorsPageInner() {
 
       {/* Pagination */}
       {vendors.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white rounded-xl border shadow-sm px-4 py-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <p className="text-sm text-gray-500">
-              Showing <span className="font-medium text-gray-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, vendors.length)}</span> of <span className="font-medium text-gray-700">{vendors.length}</span> vendors
+              Showing <span className="font-medium text-gray-700">{totalCount === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalCount)}</span> of <span className="font-medium text-gray-700">{totalCount}</span> vendors
             </p>
             <span className="hidden sm:inline text-gray-300">·</span>
             <div className="flex items-center gap-2">

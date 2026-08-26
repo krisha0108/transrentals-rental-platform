@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
   Loader2,
   Search,
@@ -206,14 +207,18 @@ const DATE_FILTERS: { value: DateFilter; label: string }[] = [
 
 export default function ManagerInquiriesPage() {
   const router = useRouter();
+  // `inquiries` now holds only the current page's rows — filtering, stats,
+  // and pagination all happen server-side (see fetchInquiries below) instead
+  // of fetching every inquiry and slicing in the browser.
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState<string | null>(null);
-  const [filteredInquiries, setFilteredInquiries] = useState<Inquiry[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
@@ -222,22 +227,42 @@ export default function ManagerInquiriesPage() {
   const [actionedFilter, setActionedFilter] = useState<'all' | 'actioned' | 'notActioned'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [itemsPerPage] = useState(10);
   const [stats, setStats] = useState({ total: 0, pending: 0, quoted: 0, accepted: 0, rejected: 0 });
 
-  const fetchInquiries = async () => {
+  // Debounce the search box into `searchTerm` (which actually triggers a
+  // fetch) so typing doesn't fire a request per keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setSearchTerm(searchInput), 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const fetchInquiries = async (page = currentPage) => {
     try {
       setError(null);
-      const url = serviceFilter === 'all'
-        ? '/api/manager/inquiries'
-        : `/api/manager/inquiries?service=${serviceFilter}`;
-      const response = await fetch(url);
+      const params = new URLSearchParams();
+      if (serviceFilter !== 'all') params.set('service', serviceFilter);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (sourceFilter !== 'all') params.set('source', sourceFilter);
+      if (locationFilter !== 'all') params.set('location', locationFilter);
+      if (dateFilter !== 'all') params.set('date', dateFilter);
+      if (actionedFilter !== 'all') params.set('actioned', actionedFilter);
+      if (searchTerm) params.set('search', searchTerm);
+      params.set('page', String(page));
+      params.set('limit', String(itemsPerPage));
+
+      const response = await fetch(`/api/manager/inquiries?${params.toString()}`);
       const data = await response.json();
 
       if (data.success) {
-        const inquiryBookings = data.inquiries || [];
-        setInquiries(inquiryBookings);
+        setInquiries(data.inquiries || []);
         setServices(data.services || []);
+        setLocationOptions(data.locations || []);
+        setStats(data.stats || { total: 0, pending: 0, quoted: 0, accepted: 0, rejected: 0 });
+        setTotalPages(data.pagination?.totalPages || 1);
+        setTotalCount(data.pagination?.total || 0);
       } else {
         setError(data.error || 'Failed to fetch inquiries');
       }
@@ -259,14 +284,14 @@ export default function ManagerInquiriesPage() {
 
   const toggleSelectAllOnPage = () => {
     setSelectedIds((prev) => {
-      const allSelected = currentInquiries.length > 0 && currentInquiries.every((i) => prev.has(i.id));
+      const allSelected = inquiries.length > 0 && inquiries.every((i) => prev.has(i.id));
       if (allSelected) {
         const next = new Set(prev);
-        currentInquiries.forEach((i) => next.delete(i.id));
+        inquiries.forEach((i) => next.delete(i.id));
         return next;
       }
       const next = new Set(prev);
-      currentInquiries.forEach((i) => next.add(i.id));
+      inquiries.forEach((i) => next.add(i.id));
       return next;
     });
   };
@@ -295,114 +320,45 @@ export default function ManagerInquiriesPage() {
     }
   };
 
+  // Any filter change resets to page 1 (matches the old reset-on-filter
+  // behavior); this effect then does the actual fetch for the current
+  // filters + page, re-running on every filter change and page navigation.
   useEffect(() => {
-    fetchInquiries();
-  }, [serviceFilter]);
-
-  // Filter by date
-  const filterByDate = (inquiry: Inquiry, filter: DateFilter): boolean => {
-    if (filter === 'all') return true;
-
-    const inquiryDate = new Date(inquiry.createdAt);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    switch (filter) {
-      case 'today':
-        return inquiryDate >= today;
-      case 'yesterday':
-        const tomorrowOfYesterday = new Date(yesterday);
-        tomorrowOfYesterday.setDate(tomorrowOfYesterday.getDate() + 1);
-        return inquiryDate >= yesterday && inquiryDate < tomorrowOfYesterday;
-      case 'thisMonth':
-        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        return inquiryDate >= thisMonthStart;
-      case 'lastMonth':
-        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-        return inquiryDate >= lastMonthStart && inquiryDate <= lastMonthEnd;
-      default:
-        return true;
-    }
-  };
-
-  useEffect(() => {
-    let filtered = inquiries;
-
-    // Apply date filter
-    filtered = filtered.filter((i) => filterByDate(i, dateFilter));
-
-    // Apply status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((i) => i.status === statusFilter);
-    }
-
-    // Apply search filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (i) =>
-          i.requestNumber?.toLowerCase().includes(term) ||
-          i.customerName?.toLowerCase().includes(term) ||
-          i.customerPhone?.includes(term) ||
-          i.customerEmail?.toLowerCase().includes(term) ||
-          i.locationName?.toLowerCase().includes(term) ||
-          i.serviceName?.toLowerCase().includes(term)
-      );
-    }
-
-    // Apply source filter
-    if (sourceFilter !== 'all') {
-      filtered = filtered.filter((i) => (i.source || 'web') === sourceFilter);
-    }
-
-    // Apply location filter
-    if (locationFilter !== 'all') {
-      filtered = filtered.filter((i) => i.locationName === locationFilter);
-    }
-
-    // Apply actioned filter
-    if (actionedFilter !== 'all') {
-      filtered = filtered.filter((i) =>
-        actionedFilter === 'actioned' ? !!i.lastActionType : !i.lastActionType
-      );
-    }
-
-    setFilteredInquiries(filtered);
     setCurrentPage(1);
-    setStats({
-      total:    filtered.length,
-      pending:  filtered.filter((i) => i.status === 'PENDING').length,
-      quoted:   filtered.filter((i) => i.status === 'QUOTED').length,
-      accepted: filtered.filter((i) => i.status === 'ACCEPTED').length,
-      rejected: filtered.filter((i) => i.status === 'REJECTED').length,
-    });
-  }, [searchTerm, statusFilter, sourceFilter, locationFilter, dateFilter, actionedFilter, inquiries]);
+  }, [serviceFilter, statusFilter, sourceFilter, locationFilter, dateFilter, actionedFilter, searchTerm]);
 
-  // Clear selection whenever the page or filtered results change, so bulk
+  useEffect(() => {
+    fetchInquiries(currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, serviceFilter, statusFilter, sourceFilter, locationFilter, dateFilter, actionedFilter, searchTerm]);
+
+  // Clear selection whenever the page or its results change, so bulk
   // actions never silently apply to rows that are no longer visible.
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [currentPage, filteredInquiries]);
+  }, [currentPage, inquiries]);
 
-  const uniqueLocations = useMemo(() => {
-    const set = new Set<string>();
-    inquiries.forEach((i) => { if (i.locationName) set.add(i.locationName); });
-    return Array.from(set).sort();
-  }, [inquiries]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredInquiries.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentInquiries = filteredInquiries.slice(startIndex, endIndex);
+  const uniqueLocations = locationOptions;
+  const currentInquiries = inquiries;
 
   const handleRefresh = () => {
     setIsRefreshing(true);
     fetchInquiries();
   };
+
+  useManagerPageHeader(
+    'My Inquiries',
+    'Pending bookings that need your attention',
+    <button
+      key="refresh"
+      onClick={handleRefresh}
+      disabled={isRefreshing}
+      title="Refresh"
+      className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+    >
+      <RefreshCw className={`w-5 h-5 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`} />
+    </button>
+  );
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -446,22 +402,6 @@ export default function ManagerInquiriesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Inquiries</h1>
-          <p className="text-gray-500 mt-1">Pending bookings that need your attention</p>
-        </div>
-        <button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {[
@@ -500,8 +440,8 @@ export default function ManagerInquiriesPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input
               type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search inquiries..."
               className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
@@ -608,7 +548,7 @@ export default function ManagerInquiriesPage() {
       {/* Results count */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-500">
-          Showing {startIndex + 1}-{Math.min(endIndex, filteredInquiries.length)} of {filteredInquiries.length} inquiries
+          Showing {totalCount === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} inquiries
         </p>
         {totalPages > 1 && (
           <p className="text-sm text-gray-500">

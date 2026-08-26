@@ -44,6 +44,9 @@ export async function GET(request: NextRequest) {
           name: ms.services.name,
           slug: ms.services.slug,
         })),
+        locations: [],
+        stats: { total: 0, active: 0, completed: 0, cancelled: 0, revenue: 0 },
+        pagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
       });
     }
 
@@ -51,6 +54,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const serviceFilter = searchParams.get('service') || 'all';
     const statusFilter = searchParams.get('status') || 'all';
+    const sourceFilter = searchParams.get('source') || 'all';
+    const locationFilter = searchParams.get('location') || 'all';
+    const dateFilter = searchParams.get('date') || 'all';
+    const search = (searchParams.get('search') || '').trim().toLowerCase();
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.max(1, parseInt(searchParams.get('limit') || '10', 10));
 
     // Helper to check if service is assigned
     const isServiceAssigned = (serviceSlug: string): boolean => {
@@ -535,10 +544,80 @@ export async function GET(request: NextRequest) {
       slug: svc.slug,
     }));
 
+    // Unique locations for the filter dropdown — from the full assigned-scope
+    // result, not the post-filter list, so the dropdown doesn't shrink as
+    // other filters narrow the results.
+    const uniqueLocations = Array.from(
+      new Set(allBookings.map((b) => b.locationName || b.deliveryCity).filter(Boolean))
+    ).sort();
+
+    const matchesDateFilter = (booking: any): boolean => {
+      if (dateFilter === 'all') return true;
+      const bookingDate = new Date(booking.createdAt);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      switch (dateFilter) {
+        case 'today':
+          return bookingDate >= today;
+        case 'yesterday': {
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          return bookingDate >= yesterday && bookingDate < today;
+        }
+        case 'thisMonth':
+          return bookingDate >= new Date(now.getFullYear(), now.getMonth(), 1);
+        case 'lastMonth': {
+          const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 1);
+          return bookingDate >= lastMonthStart && bookingDate < lastMonthEnd;
+        }
+        default:
+          return true;
+      }
+    };
+
+    let filtered = allBookings.filter(matchesDateFilter);
+
+    if (sourceFilter !== 'all') {
+      filtered = filtered.filter((b) => (b.source || 'web') === sourceFilter);
+    }
+    if (locationFilter !== 'all') {
+      filtered = filtered.filter((b) => (b.locationName || b.deliveryCity || '') === locationFilter);
+    }
+    if (search) {
+      filtered = filtered.filter(
+        (b) =>
+          b.bookingNumber?.toLowerCase().includes(search) ||
+          b.customerName?.toLowerCase().includes(search) ||
+          b.customerPhone?.includes(search) ||
+          b.customerEmail?.toLowerCase().includes(search) ||
+          b.locationName?.toLowerCase().includes(search) ||
+          b.vendorName?.toLowerCase().includes(search) ||
+          b.vendorVid?.toLowerCase().includes(search) ||
+          b.serviceName?.toLowerCase().includes(search)
+      );
+    }
+
+    const stats = {
+      total: filtered.length,
+      active: filtered.filter((b) => ['PAYMENT_VERIFIED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'READY_FOR_PICKUP', 'IN_PROGRESS'].includes(b.status)).length,
+      completed: filtered.filter((b) => b.status === 'COMPLETED').length,
+      cancelled: filtered.filter((b) => ['CANCELLED', 'EXPIRED', 'REFUNDED'].includes(b.status)).length,
+      revenue: filtered.reduce((sum, b) => sum + (b.totalAmount || 0), 0),
+    };
+
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const skip = (page - 1) * limit;
+    const paginatedBookings = filtered.slice(skip, skip + limit);
+
     return NextResponse.json({
       success: true,
-      bookings: allBookings,
+      bookings: paginatedBookings,
       services: uniqueServices,
+      locations: uniqueLocations,
+      stats,
+      pagination: { page, limit, total, totalPages },
     });
   } catch (error: any) {
     logger.error('Manager bookings error', error);
