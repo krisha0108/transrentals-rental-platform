@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, ActivityIndicator, Modal, TextInput, Linking, Share, ScrollView, StatusBar,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -640,6 +641,7 @@ export default function BrowseVehiclesScreen({ navigation }) {
 
       {/* ── Request Modal ── */}
       <Modal visible={reqModal} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setReqModal(false)} />
           <View style={s.modalSheet}>
@@ -821,6 +823,7 @@ export default function BrowseVehiclesScreen({ navigation }) {
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <CustomAlert

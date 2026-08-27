@@ -868,6 +868,10 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
         transparent={true}
         onRequestClose={() => setEditModalVisible(false)}
       >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             {/* Modal Handle */}
@@ -929,6 +933,7 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

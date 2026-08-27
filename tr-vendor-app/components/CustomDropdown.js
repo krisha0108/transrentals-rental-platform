@@ -7,6 +7,8 @@ import {
   Modal,
   FlatList,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 
@@ -75,6 +77,7 @@ export default function CustomDropdown({
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -129,6 +132,7 @@ export default function CustomDropdown({
             />
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

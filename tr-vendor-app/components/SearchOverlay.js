@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Image,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { api } from '../lib/api';
@@ -229,6 +231,7 @@ export default function SearchOverlay({ visible, onClose, onSelectPost }) {
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -289,6 +292,7 @@ export default function SearchOverlay({ visible, onClose, onSelectPost }) {
           renderEmptyState()
         )}
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

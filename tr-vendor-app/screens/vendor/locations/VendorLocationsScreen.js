@@ -11,6 +11,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, Modal, TextInput, StatusBar,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -669,6 +670,7 @@ export default function VendorLocationsScreen({ navigation }) {
         onRequestClose={() => setShowModal(false)}
         onShow={() => { setModalLoading(true); setTimeout(() => setModalLoading(false), 80); }}
       >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={() => setShowModal(false)} />
           <View style={s.modalContent}>
@@ -822,6 +824,7 @@ export default function VendorLocationsScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

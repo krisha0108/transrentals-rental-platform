@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, ActivityIndicator, Modal, TextInput, ScrollView, Linking, Share, StatusBar,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -680,6 +681,7 @@ export default function BrowseBookingsScreen({ navigation }) {
 
       {/* ── ACCEPT MODAL ── */}
       <Modal visible={accModal} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={() => setAccModal(false)} />
           <View style={s.modalSheet}>
@@ -868,6 +870,7 @@ export default function BrowseBookingsScreen({ navigation }) {
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <CustomAlert

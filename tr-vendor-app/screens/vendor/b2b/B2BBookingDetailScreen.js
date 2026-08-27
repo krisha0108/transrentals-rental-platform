@@ -1633,6 +1633,7 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
       {/* ── Fleet Modal ──────────────────────────────────────────── */}
       <Modal visible={fleetModalOpen} animationType="slide" transparent
         onRequestClose={() => { setFleetModalOpen(false); setFleetSearch(''); }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <TouchableOpacity style={s.modalBackdrop} activeOpacity={1}
           onPress={() => { setFleetModalOpen(false); setFleetSearch(''); }} />
         <View style={s.modalSheet}>
@@ -1701,6 +1702,7 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
             />
           )}
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Driver Modal ─────────────────────────────────────────── */}

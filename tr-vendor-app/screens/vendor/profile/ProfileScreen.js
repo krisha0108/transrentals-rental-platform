@@ -9,12 +9,12 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { launchImageLibrary } from 'react-native-image-picker';
 import { getVendorProfile, logoutVendor, uploadVendorLogo, getBaseURL } from '../../api/client';
-import { showConfirm, showError, showSuccess } from '../../../services/alertService';
+import { showConfirm, showError } from '../../../services/alertService';
 import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
 import AnimatedOrb from '../_shared/AnimatedOrb';
+import { pickCroppedImage } from '../_shared/pickCroppedImage';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -132,11 +132,8 @@ export default function ProfileScreen({ navigation }) {
 
   const handleUpdateProfileImage = async () => {
     try {
-      const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8, maxWidth: 1024, maxHeight: 1024 });
-      if (result.didCancel) return;
-      if (result.errorCode) { showError(result.errorMessage || 'Failed to pick image'); return; }
-      const asset = result.assets?.[0];
-      if (!asset?.uri) { showError('No image selected'); return; }
+      const asset = await pickCroppedImage({ circle: true, size: 600 });
+      if (!asset) return; // user cancelled the picker or crop screen
       if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) { showError('Image size must be less than 5MB'); return; }
 
       setUploading(true);
@@ -146,7 +143,6 @@ export default function ProfileScreen({ navigation }) {
       const response = await uploadVendorLogo(formData);
       if (response.success) {
         setProfile({ ...profile, logo: response.logo });
-        showSuccess('Profile image updated!');
       }
     } catch (e) {
       showError(e?.response?.data?.error || 'Failed to upload image');
@@ -232,7 +228,7 @@ export default function ProfileScreen({ navigation }) {
             {/* Avatar */}
             <TouchableOpacity style={st.avatarWrap} onPress={handleUpdateProfileImage} disabled={uploading}>
               {logoUrl ? (
-                <Image source={{ uri: logoUrl }} style={st.avatar} />
+                <Image source={{ uri: logoUrl }} style={st.avatar} resizeMode="cover" />
               ) : (
                 <LinearGradient colors={[C.g600, C.g500]} style={st.avatarPlaceholder}>
                   <Text style={st.avatarInitial}>{initials}</Text>

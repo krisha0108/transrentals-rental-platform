@@ -841,6 +841,10 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
         transparent={true}
         onRequestClose={() => setEditModalVisible(false)}
       >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -882,6 +886,7 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

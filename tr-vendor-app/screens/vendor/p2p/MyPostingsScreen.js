@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, ActivityIndicator, Modal, TextInput, ScrollView, Linking, Share, StatusBar,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -1173,6 +1174,7 @@ export default function MyPostingsScreen({ navigation, route }) {
 
       {/* Respond Modal */}
       <Modal visible={respondModal} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             {/* Gradient header with handle */}
@@ -1279,6 +1281,7 @@ export default function MyPostingsScreen({ navigation, route }) {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <CustomAlert visible={alert.visible} type={alert.type} title={alert.title} message={alert.message} onClose={hideAlert} />
