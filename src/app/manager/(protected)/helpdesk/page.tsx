@@ -76,6 +76,31 @@ interface Pagination {
   totalPages: number;
 }
 
+const toDateInputValue = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const DATE_RANGE_PRESETS: Record<string, () => { from: string; to: string }> = {
+  today: () => {
+    const today = toDateInputValue(new Date());
+    return { from: today, to: today };
+  },
+  week: () => {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    return { from: toDateInputValue(start), to: toDateInputValue(now) };
+  },
+  month: () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { from: toDateInputValue(start), to: toDateInputValue(now) };
+  },
+};
+
 const buildPaginationRange = (current: number, total: number, window = 5) => {
   const half = Math.floor(window / 2);
   let start = Math.max(1, current - half);
@@ -112,9 +137,22 @@ export default function ManagerHelpdeskPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [submitterFilter, setSubmitterFilter] = useState('');
+  const [dateRangePreset, setDateRangePreset] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+
+  const handleDateRangePresetChange = (value: string) => {
+    setDateRangePreset(value);
+    if (value === 'custom' || value === '') {
+      setDateFrom('');
+      setDateTo('');
+    } else {
+      const preset = DATE_RANGE_PRESETS[value]?.();
+      setDateFrom(preset?.from || '');
+      setDateTo(preset?.to || '');
+    }
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -155,13 +193,14 @@ export default function ManagerHelpdeskPage() {
     fetchData();
   };
 
-  const hasActiveFilters = !!(search || typeFilter || statusFilter || submitterFilter || dateFrom || dateTo);
+  const hasActiveFilters = !!(search || typeFilter || statusFilter || submitterFilter || dateRangePreset);
 
   const handleClearFilters = () => {
     setSearch('');
     setTypeFilter('');
     setStatusFilter('');
     setSubmitterFilter('');
+    setDateRangePreset('');
     setDateFrom('');
     setDateTo('');
     setCurrentPage(1);
@@ -264,25 +303,43 @@ export default function ManagerHelpdeskPage() {
                 </select>
               </label>
               <label className="flex flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                From
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  max={dateTo || undefined}
+                Date Range
+                <select
+                  value={dateRangePreset}
+                  onChange={(e) => handleDateRangePresetChange(e.target.value)}
                   className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
-                />
+                >
+                  <option value="">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="custom">Custom</option>
+                </select>
               </label>
-              <label className="flex flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                To
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  min={dateFrom || undefined}
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
-                />
-              </label>
+              {dateRangePreset === 'custom' && (
+                <>
+                  <label className="flex flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    From
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      max={dateTo || undefined}
+                      className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    To
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      min={dateFrom || undefined}
+                      className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
+                    />
+                  </label>
+                </>
+              )}
               <div className="flex items-center gap-2 mt-5">
                 <button
                   type="submit"
