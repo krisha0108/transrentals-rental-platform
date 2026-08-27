@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, User, MapPin, Briefcase, Eye, EyeOff, Check, X, Shield, Activity, TrendingUp, Mail, Phone as PhoneIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, User, MapPin, Briefcase, Eye, EyeOff, Check, X, Shield, Activity, TrendingUp, Mail, Phone as PhoneIcon, Search } from 'lucide-react';
 
 type PresenceStatus = 'active' | 'idle' | 'offline';
 
@@ -57,6 +57,8 @@ export default function ManagersPage() {
   const [managers, setManagers] = useState<Manager[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [locationSearch, setLocationSearch] = useState('');
+  const [serviceSearch, setServiceSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<Manager | null>(null);
@@ -228,6 +230,8 @@ export default function ManagersPage() {
       serviceIds: [],
     });
     setShowPassword(false);
+    setLocationSearch('');
+    setServiceSearch('');
   };
 
   const toggleLocation = (locationId: string) => {
@@ -245,6 +249,29 @@ export default function ManagersPage() {
       serviceIds: prev.serviceIds.includes(serviceId)
         ? prev.serviceIds.filter((id) => id !== serviceId)
         : [...prev.serviceIds, serviceId],
+    }));
+  };
+
+  const filteredLocations = locations.filter((loc) =>
+    !locationSearch.trim() || loc.name.toLowerCase().includes(locationSearch.trim().toLowerCase())
+  );
+  const filteredServices = services.filter((svc) =>
+    !serviceSearch.trim() || svc.name.toLowerCase().includes(serviceSearch.trim().toLowerCase())
+  );
+
+  // "Select all" adds every currently-filtered item to the existing
+  // selection (so searching then selecting doesn't wipe out picks made
+  // before the search); "Clear all" resets the whole selection outright.
+  const selectAllLocations = () => {
+    setFormData((prev) => ({
+      ...prev,
+      locationIds: Array.from(new Set([...prev.locationIds, ...filteredLocations.map((l) => l.id)])),
+    }));
+  };
+  const selectAllServices = () => {
+    setFormData((prev) => ({
+      ...prev,
+      serviceIds: Array.from(new Set([...prev.serviceIds, ...filteredServices.map((s) => s.id)])),
     }));
   };
 
@@ -574,15 +601,52 @@ export default function ManagersPage() {
               </div>
 
               <div className="border-t pt-4">
-                <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                  <MapPin size={18} />
-                  Assign Locations
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-gray-900 flex items-center gap-2">
+                    <MapPin size={18} />
+                    Assign Locations
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    {formData.locationIds.length > 0 && (
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                        {formData.locationIds.length} selected
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={selectAllLocations}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Select All{locationSearch.trim() ? ' (shown)' : ''}
+                    </button>
+                    {formData.locationIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, locationIds: [] }))}
+                        className="text-xs text-gray-400 hover:text-red-500 hover:underline"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={locationSearch}
+                    onChange={(e) => setLocationSearch(e.target.value)}
+                    placeholder="Search locations..."
+                    className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
                 <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3">
                   {locations.length === 0 ? (
                     <p className="text-sm text-gray-500 col-span-3">No locations available</p>
+                  ) : filteredLocations.length === 0 ? (
+                    <p className="text-sm text-gray-400 col-span-3">No locations match "{locationSearch}"</p>
                   ) : (
-                    locations.map((loc) => (
+                    filteredLocations.map((loc) => (
                       <label
                         key={loc.id}
                         className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-50 ${formData.locationIds.includes(loc.id) ? 'bg-blue-50' : ''
@@ -603,15 +667,52 @@ export default function ManagersPage() {
               </div>
 
               <div className="border-t pt-4">
-                <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                  <Briefcase size={18} />
-                  Assign Services
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-gray-900 flex items-center gap-2">
+                    <Briefcase size={18} />
+                    Assign Services
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    {formData.serviceIds.length > 0 && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                        {formData.serviceIds.length} selected
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={selectAllServices}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Select All{serviceSearch.trim() ? ' (shown)' : ''}
+                    </button>
+                    {formData.serviceIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, serviceIds: [] }))}
+                        className="text-xs text-gray-400 hover:text-red-500 hover:underline"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={serviceSearch}
+                    onChange={(e) => setServiceSearch(e.target.value)}
+                    placeholder="Search services..."
+                    className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3">
                   {services.length === 0 ? (
                     <p className="text-sm text-gray-500 col-span-2">No services available</p>
+                  ) : filteredServices.length === 0 ? (
+                    <p className="text-sm text-gray-400 col-span-2">No services match "{serviceSearch}"</p>
                   ) : (
-                    services.map((svc) => (
+                    filteredServices.map((svc) => (
                       <label
                         key={svc.id}
                         className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-50 ${formData.serviceIds.includes(svc.id) ? 'bg-green-50' : ''
