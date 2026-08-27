@@ -111,6 +111,9 @@ export default function ManagerHelpdeskPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [submitterFilter, setSubmitterFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
   const fetchData = useCallback(async () => {
@@ -120,6 +123,9 @@ export default function ManagerHelpdeskPage() {
       if (search) params.set('search', search);
       if (typeFilter) params.set('type', typeFilter);
       if (statusFilter) params.set('status', statusFilter);
+      if (submitterFilter) params.set('submitter', submitterFilter);
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo) params.set('dateTo', dateTo);
       if (currentPage > 1) params.set('page', currentPage.toString());
       params.set('limit', ITEMS_PER_PAGE.toString());
 
@@ -137,7 +143,7 @@ export default function ManagerHelpdeskPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, typeFilter, statusFilter, currentPage]);
+  }, [search, typeFilter, statusFilter, submitterFilter, dateFrom, dateTo, currentPage]);
 
   useEffect(() => {
     fetchData();
@@ -147,6 +153,18 @@ export default function ManagerHelpdeskPage() {
     e.preventDefault();
     setCurrentPage(1);
     fetchData();
+  };
+
+  const hasActiveFilters = !!(search || typeFilter || statusFilter || submitterFilter || dateFrom || dateTo);
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setTypeFilter('');
+    setStatusFilter('');
+    setSubmitterFilter('');
+    setDateFrom('');
+    setDateTo('');
+    setCurrentPage(1);
   };
 
   const paginationPages = buildPaginationRange(pagination.page, pagination.totalPages);
@@ -226,18 +244,62 @@ export default function ManagerHelpdeskPage() {
                   className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
                 >
                   <option value="">All Status</option>
+                  <option value="NEW">New</option>
                   <option value="OPEN">Open</option>
                   <option value="IN_PROGRESS">In Progress</option>
                   <option value="RESOLVED">Resolved</option>
                   <option value="CLOSED">Cancelled</option>
                 </select>
               </label>
-              <button
-                type="submit"
-                className="rounded-lg bg-indigo-600 px-5 py-2 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-indigo-700 hover:shadow-md mt-5"
-              >
-                Filter
-              </button>
+              <label className="flex flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Submitter
+                <select
+                  value={submitterFilter}
+                  onChange={(e) => setSubmitterFilter(e.target.value)}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
+                >
+                  <option value="">All Submitters</option>
+                  <option value="customer">Customers</option>
+                  <option value="travel_agent">Travel Agents</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                From
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  max={dateTo || undefined}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
+                />
+              </label>
+              <label className="flex flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                To
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  min={dateFrom || undefined}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
+                />
+              </label>
+              <div className="flex items-center gap-2 mt-5">
+                <button
+                  type="submit"
+                  className="rounded-lg bg-indigo-600 px-5 py-2 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-indigo-700 hover:shadow-md"
+                >
+                  Filter
+                </button>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={handleClearFilters}
+                    className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500 transition hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </form>
           </div>
 

@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
           type: 'NEW_CONTACT_INQUIRY',
           title: 'New contact form inquiry',
           body: `${sanitizedData.name} sent a message: "${sanitizedData.subject}"`,
-          link: `/manager/contact-inquiries/${inquiryId}`,
+          link: `/manager/helpdesk/inquiries/${inquiryId}`,
           metadata: { inquiryId },
         })
       )
