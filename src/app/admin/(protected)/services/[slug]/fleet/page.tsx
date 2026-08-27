@@ -439,7 +439,11 @@ export default function ServiceFleetPage() {
       .then(data => {
         const existing: Record<string, { basePricePerDay: string; kmLimit: string; extraKmRate: string; securityDeposit: string }> = {};
         const selected: string[] = [];
+        // Show every currently-assigned city as selected, not just ones with
+        // a custom price override — otherwise a city assigned at the default
+        // price (no override) looked unassigned when reopening Edit.
         (data.assignedLocations || []).forEach((al: any) => {
+          selected.push(al.locationId);
           if (al.basePricePerDay || al.kmLimit || al.extraKmRate || al.securityDeposit) {
             existing[al.locationId] = {
               basePricePerDay: al.basePricePerDay ? String(al.basePricePerDay) : '',
@@ -447,7 +451,6 @@ export default function ServiceFleetPage() {
               extraKmRate: al.extraKmRate ? String(al.extraKmRate) : '',
               securityDeposit: al.securityDeposit ? String(al.securityDeposit) : '',
             };
-            selected.push(al.locationId);
           }
         });
         setCityPrices(existing);
@@ -639,14 +642,23 @@ export default function ServiceFleetPage() {
         const data = await res.json();
         const vehicleId = editingVehicle ? editingVehicle.id : (data.vehicle?.id || data.id);
 
-        // Save city-wise prices if any are set
-        const cityPriceEntries = Object.entries(cityPrices).filter(([, p]) =>
-          p.basePricePerDay || p.kmLimit || p.extraKmRate || p.securityDeposit
-        );
-        if (vehicleId && cityPriceEntries.length > 0) {
-          await Promise.all(
-            cityPriceEntries.map(([locationId, p]) =>
-              fetch(`/api/admin/services/${slug}/fleet/${vehicleId}/locations`, {
+        // Save every city selected in Step 4 — with its custom price override
+        // where one was entered, otherwise still assigned (just without a
+        // price override, so it falls back to the default price above).
+        // Previously only cities with at least one price field filled got
+        // sent to the API at all, so a city that was checked but left at
+        // the default price silently never got assigned.
+        if (vehicleId && selectedCitiesForPricing.length > 0) {
+          const pricedIds = selectedCitiesForPricing.filter((locationId) => {
+            const p = cityPrices[locationId];
+            return p && (p.basePricePerDay || p.kmLimit || p.extraKmRate || p.securityDeposit);
+          });
+          const unpricedIds = selectedCitiesForPricing.filter((id) => !pricedIds.includes(id));
+
+          await Promise.all([
+            ...pricedIds.map((locationId) => {
+              const p = cityPrices[locationId];
+              return fetch(`/api/admin/services/${slug}/fleet/${vehicleId}/locations`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -656,9 +668,18 @@ export default function ServiceFleetPage() {
                   extraKmRate: p.extraKmRate ? Number(p.extraKmRate) : null,
                   securityDeposit: p.securityDeposit ? Number(p.securityDeposit) : null,
                 }),
-              })
-            )
-          );
+              });
+            }),
+            ...(unpricedIds.length > 0
+              ? [
+                  fetch(`/api/admin/services/${slug}/fleet/${vehicleId}/locations`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ locationIds: unpricedIds }),
+                  }),
+                ]
+              : []),
+          ]);
         }
 
         setShowModal(false);
@@ -1499,18 +1520,29 @@ export default function ServiceFleetPage() {
                 const step = i + 1;
                 const isActive = formStep === step;
                 const isDone = formStep > step;
+                // Jumping is safe from any step — the only real gate in the
+                // wizard is that step 1 needs a name before leaving it, since
+                // steps 2-4 are independent sections of the same formData
+                // object with no other cross-step dependency.
+                const canJump = step === 1 || !!formData.name;
                 return (
                   <div key={step} className="flex items-center flex-1">
-                    <div className="flex flex-col items-center flex-1">
+                    <button
+                      type="button"
+                      onClick={() => canJump && setFormStep(step)}
+                      disabled={!canJump}
+                      title={canJump ? `Jump to ${label}` : 'Enter a name in Step 1 first'}
+                      className={`flex flex-col items-center flex-1 bg-transparent border-0 p-0 ${canJump ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                    >
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${
                         isDone ? 'bg-green-500 border-green-500 text-white' :
                         isActive ? 'bg-blue-600 border-blue-600 text-white' :
                         'bg-white border-gray-300 text-gray-400'
-                      }`}>
+                      } ${canJump ? 'hover:opacity-80' : ''}`}>
                         {isDone ? <Check className="w-3.5 h-3.5" /> : step}
                       </div>
                       <span className={`text-xs mt-1 font-medium ${isActive ? 'text-blue-600' : isDone ? 'text-green-600' : 'text-gray-400'}`}>{label}</span>
-                    </div>
+                    </button>
                     {step < 4 && <div className={`h-0.5 flex-1 mx-1 mb-4 ${formStep > step ? 'bg-green-400' : 'bg-gray-200'}`} />}
                   </div>
                 );
