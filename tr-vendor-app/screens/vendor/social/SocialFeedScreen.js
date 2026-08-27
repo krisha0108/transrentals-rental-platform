@@ -237,6 +237,7 @@ function AvatarCircle({ name, logo, size = 40, style }) {
         <Image
           source={{ uri }}
           style={{ width: size, height: size, borderRadius: size / 2 }}
+          resizeMode="cover"
           onError={() => setImgErr(true)}
         />
       ) : (
@@ -1262,6 +1263,7 @@ export default function SocialFeedScreen({ navigation }) {
 
       {/* ── Comment Modal ──────────────────────────────────────────────── */}
       <Modal visible={!!commentPost} transparent animationType="slide" onRequestClose={() => closeComments()}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={styles.commentOverlay}>
           <TouchableOpacity style={styles.commentBackdrop} onPress={() => closeComments()} />
           <View style={styles.commentSheet}>
@@ -1320,6 +1322,7 @@ export default function SocialFeedScreen({ navigation }) {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

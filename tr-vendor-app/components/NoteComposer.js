@@ -1,6 +1,6 @@
 // components/NoteComposer.js
 import React, { useEffect, useState } from "react";
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
+import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { getCategories } from "../lib/socialActions"; // adjust path if needed
 
@@ -45,6 +45,7 @@ export default function NoteComposer({ visible, onClose, onSubmit }) {
 
   return (
     <Modal transparent animationType="slide" visible={visible} onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <TouchableOpacity activeOpacity={1} style={styles.backdrop} onPress={onClose} />
       <View style={styles.sheet}>
         {/* Header */}
@@ -92,6 +93,7 @@ export default function NoteComposer({ visible, onClose, onSubmit }) {
           <Text style={styles.counter}>{text.trim().length}/{limit}</Text>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

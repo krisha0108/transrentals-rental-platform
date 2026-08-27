@@ -82,6 +82,7 @@ function AvatarCircle({ name, logo, size = 36 }) {
         <Image
           source={{ uri }}
           style={{ width: size, height: size, borderRadius: size / 2 }}
+          resizeMode="cover"
           onError={() => setImgErr(true)}
         />
       ) : (

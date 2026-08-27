@@ -304,6 +304,7 @@ export default function CreatePostScreen({ navigation }) {
 
         {/* Category picker Modal */}
         <Modal visible={catModalVisible} transparent animationType="slide" onRequestClose={() => setCatModalVisible(false)}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <View style={styles.catOverlay}>
             <TouchableOpacity style={styles.catBackdrop} activeOpacity={1} onPress={() => setCatModalVisible(false)} />
             <View style={styles.catSheet}>
@@ -361,6 +362,7 @@ export default function CreatePostScreen({ navigation }) {
               </ScrollView>
             </View>
           </View>
+          </KeyboardAvoidingView>
         </Modal>
       </KeyboardAvoidingView>
     </View>

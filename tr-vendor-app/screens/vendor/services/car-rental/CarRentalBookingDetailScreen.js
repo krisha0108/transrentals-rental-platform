@@ -12,6 +12,8 @@ import {
   TextInput,
   Modal,
   StatusBar,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -1320,6 +1322,7 @@ export default function BookingDetailScreen({ route, navigation }) {
         animationType="slide"
         onRequestClose={() => setShowEndTripModal(false)}
       >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={styles.completeModalOverlay}>
           <View style={styles.completeModalContent}>
             <View style={styles.modalHeader}>
@@ -1414,6 +1417,7 @@ export default function BookingDetailScreen({ route, navigation }) {
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

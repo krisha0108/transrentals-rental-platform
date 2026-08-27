@@ -11,6 +11,7 @@ import {
   TextInput,
   Platform,
   StatusBar,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -431,6 +432,7 @@ export default function StaffPayrollScreen({ navigation }) {
 
       {/* Payment Modal */}
       <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
@@ -517,6 +519,7 @@ export default function StaffPayrollScreen({ navigation }) {
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

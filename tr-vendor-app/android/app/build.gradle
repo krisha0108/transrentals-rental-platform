@@ -87,8 +87,8 @@ android {
         applicationId "com.transrentalsvenderapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 47
-        versionName "5.0.6"
+        versionCode 48
+        versionName "5.0.7"
     }
     signingConfigs {
         debug {
