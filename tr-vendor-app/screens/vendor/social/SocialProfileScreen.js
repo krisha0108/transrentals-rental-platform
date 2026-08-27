@@ -60,7 +60,7 @@ function AvatarCircle({ name, logo, size = 40 }) {
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
       {logo && uri && !imgErr
-        ? <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} onError={() => setImgErr(true)} />
+        ? <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} resizeMode="cover" onError={() => setImgErr(true)} />
         : <Text style={{ color: '#fff', fontFamily: DISPLAY, fontWeight: '800', fontSize: size * 0.38 }}>{letter}</Text>}
     </View>
   );

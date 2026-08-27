@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, ActivityIndicator, Modal, TextInput, Image,
-  Dimensions, Platform, StatusBar, Animated,
+  Dimensions, Platform, StatusBar, Animated, KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -458,6 +458,7 @@ export default function FleetDocumentsScreen({ navigation }) {
 
       {/* Add/Update Modal */}
       <Modal visible={modal} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             <View style={s.sheetHandleWrap}><View style={s.sheetHandle} /></View>
@@ -601,6 +602,7 @@ export default function FleetDocumentsScreen({ navigation }) {
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Full-Screen Image Viewer */}

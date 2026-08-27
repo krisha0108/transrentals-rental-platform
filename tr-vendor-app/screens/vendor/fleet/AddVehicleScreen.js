@@ -12,6 +12,8 @@ import {
   Modal,
   FlatList,
   StatusBar,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -327,6 +329,7 @@ export default function AddVehicleScreen({ route, navigation }) {
   // Selection modal component
   const SelectionModal = ({ visible, onClose, title, data, onSelect, selected, searchFields, renderItem }) => (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
@@ -367,6 +370,7 @@ export default function AddVehicleScreen({ route, navigation }) {
           />
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 
@@ -929,6 +933,7 @@ export default function AddVehicleScreen({ route, navigation }) {
 
       {/* Location Selection Modal */}
       <Modal visible={showLocationModal} animationType="slide" transparent onRequestClose={() => setShowLocationModal(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
@@ -1001,6 +1006,7 @@ export default function AddVehicleScreen({ route, navigation }) {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

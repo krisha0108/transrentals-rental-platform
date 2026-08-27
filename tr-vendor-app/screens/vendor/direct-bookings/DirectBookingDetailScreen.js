@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, ActivityIndicator, Linking, TextInput, Modal, StatusBar,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -874,6 +875,7 @@ export default function DirectBookingDetailScreen({ navigation, route }) {
 
       {/* ── Payment Modal ── */}
       <Modal visible={showPayModal} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <View style={s.modalSheet}>
             <SheetHandle />
@@ -917,6 +919,7 @@ export default function DirectBookingDetailScreen({ navigation, route }) {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Assignment Modal ── */}

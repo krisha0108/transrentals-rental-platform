@@ -19,6 +19,8 @@ import {
   TextInput,
   Alert,
   StatusBar,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -522,6 +524,7 @@ export default function VendorServicesScreen({ navigation }) {
         transparent
         onRequestClose={() => !submitting && setShowRequestModal(false)}
       >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={st.modalOverlay}>
           <View style={st.modalContent}>
             <View style={st.sheetHandleWrap}><View style={st.sheetHandle} /></View>
@@ -609,6 +612,7 @@ export default function VendorServicesScreen({ navigation }) {
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Withdraw / Remove Confirm Modal ──────────────────────────────── */}

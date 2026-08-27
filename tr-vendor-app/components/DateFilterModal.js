@@ -8,6 +8,7 @@ import {
   ScrollView,
   TextInput,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { SC as T, rs, cardShadow, SHEET_RADIUS } from '../screens/vendor/_shared/theme';
@@ -192,6 +193,7 @@ const DateFilterModal = ({ visible, onClose, onApply, currentStartDate, currentE
       onRequestClose={onClose}
       statusBarTranslucent={true}
     >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <SheetHandle />
@@ -330,6 +332,7 @@ const DateFilterModal = ({ visible, onClose, onApply, currentStartDate, currentE
           )}
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

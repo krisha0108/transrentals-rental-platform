@@ -570,6 +570,10 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
       />
 
       <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
         <View style={s.modalOverlay}>
           <View style={s.modalSheet}>
             <View style={s.modalHandle} />
@@ -608,6 +612,7 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

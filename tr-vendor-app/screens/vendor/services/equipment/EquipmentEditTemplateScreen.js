@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Modal, Switch, StatusBar,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -332,6 +333,7 @@ export default function EquipmentEditTemplateScreen({ navigation, route }) {
 
       {/* Edit Modal */}
       <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             <View style={s.modalHeader}>
@@ -355,6 +357,7 @@ export default function EquipmentEditTemplateScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
