@@ -49,8 +49,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Block rejected/suspended/blocked vendors from write operations
-  const _guard = await vendorStatusGuard(auth.vendorId!);
+  // Block rejected/blocked vendors — suspended vendors can still manage
+  // their own direct bookings (offline/personal, not platform-routed).
+  const _guard = await vendorStatusGuard(auth.vendorId!, { allowSuspended: true });
   if (_guard.blocked) return _guard.response;
 
   // Verify ownership via raw query
@@ -154,8 +155,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Block rejected/suspended/blocked vendors from write operations
-  const _guard = await vendorStatusGuard(auth.vendorId!);
+  // Block rejected/blocked vendors — suspended vendors can still manage
+  // their own direct bookings (offline/personal, not platform-routed).
+  const _guard = await vendorStatusGuard(auth.vendorId!, { allowSuspended: true });
   if (_guard.blocked) return _guard.response;
 
   const rows: any[] = await prisma.$queryRaw`

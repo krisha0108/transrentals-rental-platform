@@ -29,6 +29,7 @@ import {
   ChevronRight,
   Star,
   Loader2,
+  Flag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import VendorCallButton from '@/components/vendor/VendorCallButton';
@@ -44,7 +45,11 @@ interface BookingDetails {
   customerPhone: string;
   customerEmail: string;
   locationName: string;
-  requestedVehicleName: string;
+  carCategoryName?: string;
+  localPackageHours?: number;
+  localPackageKm?: number;
+  totalHours?: number;
+  requestedVehicleName?: string;
   requestedBrand?: string;
   requestedCategory?: string;
   requestedVehicleType?: string;
@@ -53,6 +58,7 @@ interface BookingDetails {
   requestedSeats?: number;
   pickupAddress?: string;
   dropAddress?: string;
+  intermediateStops?: Array<{ id: string; locationId: string; cityText: string }>;
   pickupDate: string;
   pickupTime: string;
   dropDate?: string;
@@ -606,11 +612,18 @@ export default function VendorBookingDetailPage() {
                   <Car className="w-3 h-3" />
                   {TRIP_TYPE_LABELS[(booking as any).tripType] || (booking as any).carCategoryName || 'Car Rental'}
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-700 rounded-full text-xs font-semibold border border-emerald-200/60 shadow-sm">
-                  <Navigation className="w-3 h-3" />
-                  {booking.requestedVehicleName}{booking.requestedBrand ? ` · ${booking.requestedBrand}` : ''}
-                </span>
-                {booking.totalDays > 0 && (
+                {(booking.requestedVehicleName || booking.carCategoryName) && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-700 rounded-full text-xs font-semibold border border-emerald-200/60 shadow-sm capitalize">
+                    <Navigation className="w-3 h-3" />
+                    {booking.requestedVehicleName || booking.carCategoryName}{booking.requestedBrand ? ` · ${booking.requestedBrand}` : ''}
+                  </span>
+                )}
+                {(booking as any).tripType === 'LOCAL' && booking.localPackageHours ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-700 rounded-full text-xs font-semibold border border-emerald-200/60 shadow-sm">
+                    <Clock className="w-3 h-3" />
+                    {booking.localPackageHours}hr{booking.localPackageKm ? ` / ${booking.localPackageKm}km` : ''} Package
+                  </span>
+                ) : booking.totalDays > 0 && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-700 rounded-full text-xs font-semibold border border-emerald-200/60 shadow-sm">
                     <Calendar className="w-3 h-3" />
                     {booking.totalDays} Day{booking.totalDays > 1 ? 's' : ''}
@@ -627,57 +640,109 @@ export default function VendorBookingDetailPage() {
                     Delivery Requested
                   </span>
                 )}
+                {(booking.intermediateStops || []).filter((s) => s.cityText).length > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-amber-100/50 text-amber-700 rounded-full text-xs font-semibold border border-amber-200/60 shadow-sm">
+                    <MapPin className="w-3 h-3" />
+                    {booking.intermediateStops!.filter((s) => s.cityText).length} Extra Stop{booking.intermediateStops!.filter((s) => s.cityText).length > 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
             </CardHeader>
 
             <CardContent className="space-y-5">
               {/* Route visualization */}
               {(() => {
-                const allPoints = [
+                const isLocalPackage = (booking as any).tripType === 'LOCAL';
+
+                // Local package trips are a single pickup point with a fixed
+                // hour/km allowance — not an A→B route — so give them one
+                // prominent summary block instead of duplicating the same
+                // city/date info across a route timeline + a separate card.
+                if (isLocalPackage) {
+                  return (
+                    <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 rounded-2xl p-5 text-white shadow-lg shadow-emerald-200/50">
+                      <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full" />
+                      <div className="relative z-10 flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 border border-white/20">
+                          <MapPin className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-lg">{booking.locationName}</p>
+                          {booking.pickupAddress && booking.pickupAddress !== booking.locationName && (
+                            <p className="text-sm text-white/80 truncate mt-0.5">{booking.pickupAddress}</p>
+                          )}
+                          {booking.localPackageHours && (
+                            <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 bg-white text-emerald-700 rounded-lg font-bold text-sm shadow-sm">
+                              <Route className="w-4 h-4" />
+                              {booking.localPackageHours}hr / {booking.localPackageKm}km Local Package
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1.5 mt-3 text-white/90">
+                            <Calendar className="w-4 h-4" />
+                            <p className="text-sm font-semibold">
+                              {new Date(booking.pickupDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} &middot; {formatTime(booking.pickupTime)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                const stops = (booking.intermediateStops || []).filter((s) => s.cityText);
+                const points = [
                   { city: booking.locationName, address: booking.pickupAddress, type: 'pickup' },
+                  ...stops.map((s) => ({ city: s.cityText, address: undefined as string | undefined, type: 'stop' })),
                   { city: booking.locationName, address: booking.dropAddress, type: 'drop' },
                 ];
-                const points = allPoints;
+
+                const POINT_STYLE: Record<string, { badge: string; ring: string; icon: React.ComponentType<{ className?: string }>; tag: string; tagColor: string }> = {
+                  pickup: { badge: 'bg-gradient-to-br from-emerald-400 to-emerald-600', ring: 'ring-emerald-100', icon: Navigation, tag: 'Pickup', tagColor: 'text-emerald-600' },
+                  stop:   { badge: 'bg-gradient-to-br from-amber-400 to-amber-500',   ring: 'ring-amber-100',   icon: MapPin,     tag: 'Via',    tagColor: 'text-amber-600' },
+                  drop:   { badge: 'bg-gradient-to-br from-red-400 to-red-600',       ring: 'ring-red-100',     icon: Flag,       tag: 'Drop',   tagColor: 'text-red-600' },
+                };
 
                 return (
                   <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-5 border border-gray-100">
                     <div className="relative">
                       {points.length > 1 && (
-                        <div className="absolute left-[11px] top-6 bottom-6 w-[2px] bg-gradient-to-b from-emerald-400 via-gray-200 to-red-400 rounded-full" />
+                        <div className="absolute left-[19px] top-9 bottom-9 w-[2px] bg-gradient-to-b from-emerald-400 via-amber-300 to-red-400 rounded-full" />
                       )}
                       <div className="space-y-6">
-                        {points.map((pt, i) => (
-                          <div key={i} className="flex items-start gap-4">
-                            <div className={cn(
-                              'w-6 h-6 rounded-full flex-shrink-0 mt-0.5 border-[3px] border-white shadow-lg relative z-10 ring-2',
-                              i === 0 ? 'bg-emerald-500 ring-emerald-200' :
-                              i === points.length - 1 ? 'bg-red-500 ring-red-200' :
-                              'bg-emerald-400 ring-emerald-200'
-                            )} />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-gray-900">{pt.city}</p>
-                              {pt.address && (
-                                <p className="text-sm text-gray-500 truncate mt-0.5">{pt.address}</p>
-                              )}
-                              {i === 0 && (
-                                <div className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 bg-emerald-50 rounded-lg border border-emerald-100">
-                                  <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                                  <p className="text-xs text-emerald-700 font-semibold">
-                                    {new Date(booking.pickupDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} &middot; {formatTime(booking.pickupTime)}
-                                  </p>
-                                </div>
-                              )}
-                              {i === points.length - 1 && booking.dropDate && (
-                                <div className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 bg-red-50 rounded-lg border border-red-100">
-                                  <Calendar className="w-3.5 h-3.5 text-red-500" />
-                                  <p className="text-xs text-red-600 font-semibold">
-                                    Return: {new Date(booking.dropDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} · {formatTime(booking.dropTime)}
-                                  </p>
-                                </div>
-                              )}
+                        {points.map((pt, i) => {
+                          const style = POINT_STYLE[pt.type];
+                          const Icon = style.icon;
+                          return (
+                            <div key={i} className="flex items-start gap-4">
+                              <div className={cn('w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center shadow-lg relative z-10 ring-4 border-2 border-white', style.badge, style.ring)}>
+                                <Icon className="w-4.5 h-4.5 text-white" />
+                              </div>
+                              <div className="flex-1 min-w-0 pt-1">
+                                <p className={cn('text-[10px] font-extrabold uppercase tracking-wider', style.tagColor)}>{style.tag}</p>
+                                <p className="font-bold text-gray-900 leading-tight">{pt.city}</p>
+                                {pt.address && pt.address !== pt.city && (
+                                  <p className="text-sm text-gray-500 truncate mt-0.5">{pt.address}</p>
+                                )}
+                                {i === 0 && (
+                                  <div className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 bg-emerald-50 rounded-lg border border-emerald-100">
+                                    <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                                    <p className="text-xs text-emerald-700 font-semibold">
+                                      {new Date(booking.pickupDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} &middot; {formatTime(booking.pickupTime)}
+                                    </p>
+                                  </div>
+                                )}
+                                {i === points.length - 1 && booking.dropDate && (
+                                  <div className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 bg-red-50 rounded-lg border border-red-100">
+                                    <Calendar className="w-3.5 h-3.5 text-red-500" />
+                                    <p className="text-xs text-red-600 font-semibold">
+                                      Return: {new Date(booking.dropDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} · {formatTime(booking.dropTime)}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -696,8 +761,8 @@ export default function VendorBookingDetailPage() {
                 );
               })()}
 
-              {/* Date info */}
-              {(
+              {/* Date info — local packages already show date/time in the summary block above */}
+              {(booking as any).tripType !== 'LOCAL' && (
                 <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-4">
                   <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
                     <Calendar className="w-5 h-5 text-emerald-600" />
@@ -1211,8 +1276,15 @@ export default function VendorBookingDetailPage() {
             <CardContent className="space-y-0 pt-5">
               <div className="space-y-2.5 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Daily Rate × {booking.totalDays} day{booking.totalDays > 1 ? 's' : ''}</span>
-                  <span className="font-medium">₹{(booking.dailyRate || 0).toLocaleString()}/day</span>
+                  <span className="text-gray-500">
+                    {(booking as any).tripType === 'LOCAL' && booking.localPackageHours
+                      ? `Package Fare (${booking.localPackageHours}hr/${booking.localPackageKm}km)`
+                      : `Daily Rate × ${booking.totalDays} day${booking.totalDays > 1 ? 's' : ''}`}
+                  </span>
+                  <span className="font-medium">
+                    ₹{(booking.dailyRate || 0).toLocaleString()}
+                    {!((booking as any).tripType === 'LOCAL' && booking.localPackageHours) && '/day'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Base Amount</span>

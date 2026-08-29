@@ -220,7 +220,7 @@ export async function PATCH(
     }
 
     // Block rejected/suspended/blocked vendors from write operations
-    const _guard = await vendorStatusGuard(auth.vendorId!);
+    const _guard = await vendorStatusGuard(auth.vendorId!, { allowSuspended: true });
     if (_guard.blocked) return _guard.response;
 
     const { id } = await params;
@@ -356,7 +356,7 @@ export async function PUT(
     }
 
     // Block rejected/suspended/blocked vendors from write operations
-    const _guard = await vendorStatusGuard(auth.vendorId!);
+    const _guard = await vendorStatusGuard(auth.vendorId!, { allowSuspended: true });
     if (_guard.blocked) return _guard.response;
 
     const { id } = await params;
@@ -569,7 +569,7 @@ export async function DELETE(
     }
 
     // Block rejected/suspended/blocked vendors from write operations
-    const _guard = await vendorStatusGuard(auth.vendorId!);
+    const _guard = await vendorStatusGuard(auth.vendorId!, { allowSuspended: true });
     if (_guard.blocked) return _guard.response;
 
     const { id } = await params;
