@@ -99,11 +99,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
       }
 
+      // Suspended vendors are let through — they can still view their
+      // dashboard read-only, same as the web login. Every write route is
+      // independently blocked by vendorStatusGuard regardless of this.
       if (vendor.status === 'BLOCKED') {
-        return NextResponse.json({ error: 'Your account has been blocked. Please contact support.' }, { status: 403 });
-      }
-      if (vendor.status === 'SUSPENDED') {
-        return NextResponse.json({ error: 'Your account is suspended. Please contact support.' }, { status: 403 });
+        return NextResponse.json({ error: 'Your account is blocked. Please contact our support team for any query.' }, { status: 403 });
       }
       if (vendor.status === 'REJECTED') {
         return NextResponse.json({ error: 'Your application was rejected. Please contact support.' }, { status: 403 });

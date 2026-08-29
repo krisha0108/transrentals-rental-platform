@@ -15,8 +15,16 @@ type GuardResult =
  * Usage:
  *   const guard = await vendorStatusGuard(vendorId);
  *   if (guard.blocked) return guard.response;
+ *
+ * Pass { allowSuspended: true } for modules a suspended vendor should still
+ * be able to use — e.g. direct-bookings, which records the vendor's own
+ * offline/personal bookings rather than platform-routed ones, so it's
+ * carved out from the general suspension write-block on purpose.
  */
-export async function vendorStatusGuard(vendorId: string): Promise<GuardResult> {
+export async function vendorStatusGuard(
+  vendorId: string,
+  opts?: { allowSuspended?: boolean },
+): Promise<GuardResult> {
   const vendor = await prisma.vendors.findUnique({
     where: { id: vendorId },
     select: { status: true },
@@ -27,6 +35,10 @@ export async function vendorStatusGuard(vendorId: string): Promise<GuardResult> 
       blocked: true,
       response: NextResponse.json({ error: 'Vendor not found' }, { status: 404 }),
     };
+  }
+
+  if (opts?.allowSuspended && vendor.status === 'SUSPENDED') {
+    return { blocked: false };
   }
 
   if ((BLOCKED_STATUSES as readonly string[]).includes(vendor.status)) {

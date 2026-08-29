@@ -33,6 +33,14 @@ export async function GET(
     const acceptedVendor = (booking as any).vendors_chauffeur_bookings_acceptedVendorIdTovendors;
     const acceptedDriver = (booking as any).accepted_driver;
 
+    let intermediateStops: any[] = [];
+    try {
+      if (booking.intermediateStops) {
+        const parsed = JSON.parse(booking.intermediateStops);
+        if (Array.isArray(parsed)) intermediateStops = parsed;
+      }
+    } catch { /* malformed/legacy data — treat as no stops */ }
+
     // Driver name/phone: prefer drivers table (independent driver), fallback to booking fields (staff driver)
     const resolvedDriverName  = acceptedDriver?.name  ?? booking.driverName  ?? null;
     const resolvedDriverPhone = acceptedDriver?.phone ?? booking.driverPhone ?? null;
@@ -58,6 +66,7 @@ export async function GET(
         totalDays:       booking.totalDays,
         pickupAddress:   booking.pickupAddress,
         dropAddress:     booking.dropAddress,
+        intermediateStops,
         baseFare:        booking.baseFare,
         perKmRate:       booking.perKmRate,
         chargeableKm:    booking.chargeableKm,

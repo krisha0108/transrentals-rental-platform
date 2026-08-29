@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Block rejected/suspended/blocked vendors from write operations
-    const _guard = await vendorStatusGuard(auth.vendorId!);
+    const _guard = await vendorStatusGuard(auth.vendorId!, { allowSuspended: true });
     if (_guard.blocked) return _guard.response;
 
     const formData = await request.formData();

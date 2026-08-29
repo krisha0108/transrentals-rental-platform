@@ -111,7 +111,10 @@ type ServiceType = "bike-rental" | "car-rental" | "self-drive" | "with-driver" |
 
 export default function AddFleetVehiclePage() {
   const router = useRouter();
-  const { isApproved, openVerificationModal } = useVendorVerification();
+  const { isApproved, vendorStatus, openVerificationModal } = useVendorVerification();
+  // Suspended vendors can still manage their fleet — only genuinely
+  // unverified/pending vendors get routed into the onboarding modal.
+  const canSubmit = isApproved || vendorStatus === 'SUSPENDED';
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -1635,7 +1638,7 @@ export default function AddFleetVehiclePage() {
                 Next: Set Pricing
               </Button>
             ) : (
-              <Button onClick={isApproved ? handleSubmit : openVerificationModal} disabled={submitting || selectedLocations.length === 0}>
+              <Button onClick={canSubmit ? handleSubmit : openVerificationModal} disabled={submitting || selectedLocations.length === 0}>
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1764,7 +1767,7 @@ export default function AddFleetVehiclePage() {
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
             ) : (
-              <Button onClick={isApproved ? handleSubmit : openVerificationModal} disabled={submitting || !perDayRate || Number(perDayRate) <= 0}>
+              <Button onClick={canSubmit ? handleSubmit : openVerificationModal} disabled={submitting || !perDayRate || Number(perDayRate) <= 0}>
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1892,7 +1895,7 @@ export default function AddFleetVehiclePage() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <Button onClick={isApproved ? handleSubmit : openVerificationModal} disabled={submitting}>
+            <Button onClick={canSubmit ? handleSubmit : openVerificationModal} disabled={submitting}>
               {submitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

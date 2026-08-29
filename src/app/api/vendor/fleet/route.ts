@@ -339,7 +339,7 @@ export async function POST(request: NextRequest) {
     const vendorId = auth.vendorId;
 
     // Block rejected/suspended/blocked vendors from write operations
-    const guard = await vendorStatusGuard(vendorId);
+    const guard = await vendorStatusGuard(vendorId, { allowSuspended: true });
     if (guard.blocked) return guard.response;
 
     // 2. Parse request body
