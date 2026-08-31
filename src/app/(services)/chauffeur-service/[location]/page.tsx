@@ -318,9 +318,11 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
+            '@type': 'Service',
+            serviceType: 'Chauffeur Service',
             name: `Chauffeur Service in ${locationName}`,
             description: `Hire professional chauffeur in ${locationName}. Verified drivers for daily & outstation use.`,
+            areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',

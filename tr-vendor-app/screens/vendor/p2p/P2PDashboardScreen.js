@@ -10,20 +10,25 @@ import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getP2PStats, getP2PMyPostings, getP2PTransactions } from '../../api/client';
 import { useVerificationGate, VerificationBanner } from '../../../components/VerificationGate';
+import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
 const SW = Dimensions.get('window').width;
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399', g300: '#6EE7B7',
-  g200: '#A7F3D0', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F8FAFC', surface: '#FFFFFF',
-  text: '#0F172A', sub: '#334155', muted: '#94A3B8',
-  border: '#E2E8F0',
-  amber: '#F59E0B', amberBg: '#FFFBEB',
-  red: '#EF4444', redBg: '#FEF2F2',
-  blue: '#3B82F6', blueBg: '#EFF6FF',
-  purple: '#8B5CF6', purpleBg: '#F5F3FF',
+  g950: T.forestDark, g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald, g300: shade(T.emerald, 20),
+  g200: shade(T.emerald, 35), g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, surface: T.card,
+  text: T.ink, sub: T.text, muted: T.subText,
+  border: T.border,
+  amber: T.amber, amberBg: T.amberLight,
+  red: T.red, redBg: T.redLight,
+  blue: T.blue, blueBg: T.blueLight,
+  purple: T.purple, purpleBg: T.tintPlum,
 };
 
 const STATUS_COLORS = {
@@ -73,10 +78,10 @@ export default function P2PDashboardScreen({ navigation }) {
     : '₹' + earnings.toLocaleString('en-IN');
 
   const HeaderBlock = () => (
-    <LinearGradient colors={[C.g950, C.g900, '#043D2B']} style={s.header}>
-      {/* Decorative circles */}
-      <View style={s.decCircleLg} />
-      <View style={s.decCircleMd} />
+    <LinearGradient colors={G.hero} style={s.header}>
+      {/* Decorative orbs */}
+      <AnimatedOrb style={s.decCircleLg} />
+      <AnimatedOrb style={s.decCircleMd} delay={1200} dx={-10} dy={8} />
 
       <SafeAreaView edges={['top']}>
         {/* Top nav row */}
@@ -337,10 +342,10 @@ export default function P2PDashboardScreen({ navigation }) {
 
 const s = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 14, color: C.muted, fontWeight: '500' },
+  loadingText: { marginTop: 12, fontSize: 14, color: C.muted, fontWeight: '600' },
 
   // Header
-  header: { paddingBottom: 0, overflow: 'hidden' },
+  header: { paddingBottom: 0, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
   decCircleLg: {
     position: 'absolute', width: 200, height: 200, borderRadius: 100,
     backgroundColor: 'rgba(16,185,129,0.06)', top: -60, right: -60,
@@ -361,14 +366,14 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   navCenter: { flex: 1, marginHorizontal: 10, alignItems: 'center' },
-  navTitle:  { fontSize: 20, fontWeight: '800', color: '#fff' },
+  navTitle:  { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: '#fff' },
   navSub:    { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
 
   // Earnings Hero Card
   heroCard: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 20, padding: 20,
+    borderRadius: rs(20), padding: 20,
     marginHorizontal: 16, marginTop: 4, marginBottom: 18,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
   },
@@ -380,14 +385,14 @@ const s = StyleSheet.create({
   },
   heroContent: { flex: 1 },
   heroLabel:   { fontSize: 10, color: C.g300, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
-  heroAmount:  { fontSize: 32, fontWeight: '900', color: C.g300, marginTop: 2, letterSpacing: -0.5 },
+  heroAmount:  { fontFamily: DISPLAY, fontSize: 32, fontWeight: '900', color: C.g300, marginTop: 2, letterSpacing: -0.5 },
   heroChipsRow:{ flexDirection: 'row', marginTop: 6 },
   heroChip: {
     backgroundColor: 'rgba(110,231,183,0.15)',
     borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
     borderWidth: 1, borderColor: 'rgba(110,231,183,0.25)',
   },
-  heroChipText: { fontSize: 10, color: C.g300, fontWeight: '600' },
+  heroChipText: { fontSize: 10, color: C.g300, fontWeight: '700' },
   heroRatingBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     backgroundColor: 'rgba(245,158,11,0.15)',
@@ -395,56 +400,56 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
     marginLeft: 10,
   },
-  heroRatingText: { fontSize: 14, fontWeight: '800', color: '#FCD34D', marginLeft: 2 },
+  heroRatingText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#FCD34D', marginLeft: 2 },
 
   // Section
   section:     { paddingHorizontal: 16, marginTop: 22 },
   sectionRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle:{ fontSize: 12, fontWeight: '800', color: C.text, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  sectionTitle:{ fontFamily: DISPLAY, fontSize: 12, fontWeight: '800', color: C.text, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
   seeAll:      { fontSize: 13, color: C.g600, fontWeight: '700' },
 
   // Stats strip — single white card
   statsCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.surface, borderRadius: 18, marginHorizontal: 16, marginTop: 16,
+    backgroundColor: C.surface, borderRadius: rs(18), marginHorizontal: 16, marginTop: 16,
     paddingVertical: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
     borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
   },
   statItem:   { flex: 1, alignItems: 'center', position: 'relative' },
-  statVal:    { fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },
-  statLbl:    { fontSize: 10, color: C.muted, fontWeight: '500', marginTop: 3 },
+  statVal:    { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },
+  statLbl:    { fontSize: 10, color: C.muted, fontWeight: '600', marginTop: 3 },
   statDivider:{ position: 'absolute', right: 0, top: '15%', width: 1, height: '70%', backgroundColor: C.border },
 
   // Quick Actions — 2x2 pastel grid
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   actionCard: {
-    width: (SW - 42) / 2, borderRadius: 18, padding: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 1,
+    width: (SW - 42) / 2, borderRadius: rs(18), padding: 16,
+    ...cardShadow,
   },
   actionIconBox:{ width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  actionLabel: { fontSize: 14, fontWeight: '800' },
+  actionLabel: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800' },
   actionSub:   { fontSize: 11, color: C.muted, marginTop: 3, lineHeight: 15 },
 
   // Manage — single white card with rows
   manageCard: {
-    backgroundColor: C.surface, borderRadius: 18,
+    backgroundColor: C.surface, borderRadius: rs(18),
     borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
     overflow: 'hidden',
+    ...cardShadow,
   },
   manageRow:       { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 },
   manageRowBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
   manageIconBox:   { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  manageLabel:     { fontSize: 14, fontWeight: '700', color: C.text },
+  manageLabel:     { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text },
   manageSub:       { fontSize: 11, color: C.muted, marginTop: 2 },
 
   // Transactions
   txCard: {
     flexDirection: 'row', alignItems: 'stretch',
-    backgroundColor: C.surface, borderRadius: 14, marginBottom: 10, overflow: 'hidden',
+    backgroundColor: C.surface, borderRadius: rs(14), marginBottom: 10, overflow: 'hidden',
     borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    ...cardShadow,
   },
   txBar:    { width: 4, alignSelf: 'stretch' },
   txContent:{ flex: 1, padding: 14 },
@@ -455,17 +460,17 @@ const s = StyleSheet.create({
   txBadgeText:{ fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
   txRouteRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   txRouteDot:  { width: 7, height: 7, borderRadius: 4 },
-  txRouteCity: { fontSize: 12, fontWeight: '600', color: C.sub, marginHorizontal: 6, maxWidth: SW * 0.22 },
+  txRouteCity: { fontSize: 12, fontWeight: '700', color: C.sub, marginHorizontal: 6, maxWidth: SW * 0.22 },
   txRouteLine: { flex: 1, height: 1, backgroundColor: C.border },
   txBottom:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   txVehicle:   { fontSize: 11, color: C.muted },
-  txAmt:       { fontSize: 15, fontWeight: '900', color: C.g700 },
+  txAmt:       { fontFamily: DISPLAY, fontSize: 15, fontWeight: '900', color: C.g700 },
 
   // Active Postings
   postCard: {
-    width: SW * 0.65, backgroundColor: C.surface, borderRadius: 16, padding: 14,
+    width: SW * 0.65, backgroundColor: C.surface, borderRadius: rs(16), padding: 14,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    ...cardShadow,
   },
   postTop:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   postTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
@@ -473,7 +478,7 @@ const s = StyleSheet.create({
   postNum:       { fontSize: 10, color: C.muted, fontFamily: 'monospace', maxWidth: SW * 0.3 },
   postRouteRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   postRouteDot:  { width: 7, height: 7, borderRadius: 4 },
-  postRouteCity: { fontSize: 12, fontWeight: '600', color: C.sub, marginHorizontal: 6, maxWidth: SW * 0.2 },
+  postRouteCity: { fontSize: 12, fontWeight: '700', color: C.sub, marginHorizontal: 6, maxWidth: SW * 0.2 },
   postRouteLine: { flex: 1, height: 1, backgroundColor: C.border },
   postStatusChip:{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   postStatusDot: { width: 6, height: 6, borderRadius: 3 },
@@ -488,9 +493,9 @@ const s = StyleSheet.create({
     width: 32, height: 32, borderRadius: 16,
     justifyContent: 'center', alignItems: 'center',
   },
-  howNumText: { fontSize: 13, fontWeight: '900' },
+  howNumText: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '900' },
   howConnector: { width: 2, flex: 1, minHeight: 20, backgroundColor: C.border, marginTop: 4 },
   howIconBox:  { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
-  howLabel:    { fontSize: 14, fontWeight: '700', color: C.text, marginTop: 4 },
+  howLabel:    { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text, marginTop: 4 },
   howDesc:     { fontSize: 11, color: C.muted, marginTop: 3, lineHeight: 16 },
 });

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, ActivityIndicator, Modal, TextInput, StatusBar,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,19 +16,24 @@ import {
   submitP2PRating,
 } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
+import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399', g300: '#6EE7B7',
-  g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F8FAFC', surface: '#FFFFFF',
-  text: '#0F172A', sub: '#334155', muted: '#94A3B8',
-  border: '#E2E8F0',
-  amber: '#F59E0B', amberBg: '#FFFBEB',
-  red: '#EF4444', redBg: '#FEF2F2',
-  blue: '#3B82F6', blueBg: '#EFF6FF', blueDark: '#1D4ED8',
-  purple: '#8B5CF6', purpleBg: '#F5F3FF',
-  sky: '#0EA5E9', skyBg: '#E0F2FE',
+  g950: T.forestDark, g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald, g300: T.oceanLight,
+  g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, surface: T.card,
+  text: T.ink, sub: T.text, muted: T.subText,
+  border: T.border,
+  amber: T.amber, amberBg: T.amberLight,
+  red: T.red, redBg: T.redLight,
+  blue: T.blue, blueBg: T.blueLight, blueDark: '#1D4ED8',
+  purple: T.purple, purpleBg: T.tintPlum,
+  sky: T.blue, skyBg: T.blueLight,
 };
 
 const CATEGORY_CONFIG = {
@@ -496,10 +502,10 @@ export default function P2PActivityScreen({ navigation }) {
 
       {/* ─────────── FIXED HEADER ─────────── */}
       <SafeAreaView edges={['top']} style={{ backgroundColor: C.g950 }}>
-        <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.headerGrad}>
+        <LinearGradient colors={G.hero} style={s.headerGrad}>
           {/* Decorative circles */}
-          <View style={s.decCircle1} />
-          <View style={s.decCircle2} />
+          <AnimatedOrb style={s.decCircle1} />
+          <AnimatedOrb style={s.decCircle2} delay={1200} dx={-10} dy={8} />
 
           {/* Nav row */}
           <View style={s.headerRow}>
@@ -622,12 +628,13 @@ export default function P2PActivityScreen({ navigation }) {
 
       {/* ─────────── RATING MODAL ─────────── */}
       <Modal visible={ratingModal} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setRatingModal(false)} />
           <View style={s.modalSheet}>
 
             {/* Gradient header */}
-            <LinearGradient colors={[C.g800, C.g700]} style={s.modalHeader}>
+            <LinearGradient colors={[T.forestDark, T.forest]} style={s.modalHeader}>
               <View style={s.modalHandle} />
               <View style={s.modalHeaderRow}>
                 <View style={s.modalStarCircle}>
@@ -692,6 +699,7 @@ export default function P2PActivityScreen({ navigation }) {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <CustomAlert
@@ -719,11 +727,11 @@ const s = StyleSheet.create({
   },
   decCircle1: {
     position: 'absolute', width: 180, height: 180, borderRadius: 90,
-    backgroundColor: 'rgba(52,211,153,0.06)', top: -60, right: -40,
+    backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40,
   },
   decCircle2: {
     position: 'absolute', width: 120, height: 120, borderRadius: 60,
-    backgroundColor: 'rgba(52,211,153,0.04)', bottom: -30, left: -20,
+    backgroundColor: 'rgba(255,255,255,0.045)', bottom: -30, left: -20,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   backBtn: {
@@ -733,14 +741,14 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
   headerCenter: { flex: 1, marginLeft: 12 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
   headerSub:   { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
 
   // ─── Earnings hero card ───
   earningsCard: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 20, padding: 16,
+    borderRadius: rs(20), padding: 16,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
   earningsIconCircle: {
@@ -748,7 +756,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(52,211,153,0.2)',
     justifyContent: 'center', alignItems: 'center',
   },
-  earningsAmt:   { fontSize: 28, fontWeight: '800', color: C.g300, letterSpacing: -1 },
+  earningsAmt:   { fontFamily: DISPLAY, fontSize: 28, fontWeight: '800', color: C.g300, letterSpacing: -1 },
   earningsLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
   earningsPills: { gap: 6, alignItems: 'flex-end' },
   earningsPillGreen: {
@@ -769,21 +777,20 @@ const s = StyleSheet.create({
   // ─── Stats card ───
   statsCard: {
     flexDirection: 'row', backgroundColor: C.surface,
-    borderRadius: 16, marginHorizontal: 16, marginTop: 14, marginBottom: 4,
+    borderRadius: rs(16), marginHorizontal: 16, marginTop: 14, marginBottom: 4,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
+    ...cardShadow,
   },
   statItem:    { flex: 1, alignItems: 'center', paddingVertical: 14 },
   statDivider: { width: 1, height: 36, backgroundColor: C.border, alignSelf: 'center' },
-  statVal:     { fontSize: 20, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
+  statVal:     { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
   statLabel:   { fontSize: 9, fontWeight: '700', color: C.muted, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.6 },
 
   // ─── Tab bar ───
   tabBarWrap: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4 },
   tabBar: {
     flexDirection: 'row', backgroundColor: '#F1F5F9',
-    borderRadius: 14, padding: 4,
+    borderRadius: rs(14), padding: 4,
   },
   tabItemActive: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -816,10 +823,9 @@ const s = StyleSheet.create({
 
   // ─── Card ───
   card: {
-    backgroundColor: C.surface, borderRadius: 16, marginBottom: 14,
+    backgroundColor: C.surface, borderRadius: rs(16), marginBottom: 14,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: '#0F172A', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.07, shadowRadius: 10, elevation: 3,
+    ...cardShadow,
     overflow: 'hidden',
   },
 
@@ -895,9 +901,9 @@ const s = StyleSheet.create({
     paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border,
   },
   amtLabel:   { fontSize: 9, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 2 },
-  amtMain:    { fontSize: 22, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
+  amtMain:    { fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
   earningBox: { alignItems: 'flex-end' },
-  amtEarning: { fontSize: 20, fontWeight: '800', color: C.g600, letterSpacing: -0.5 },
+  amtEarning: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: C.g600, letterSpacing: -0.5 },
 
   // Action buttons row
   actionsRow: {
@@ -918,11 +924,10 @@ const s = StyleSheet.create({
 
   // ─── Pagination ───
   pagination: {
-    backgroundColor: C.surface, borderRadius: 16, padding: 16,
+    backgroundColor: C.surface, borderRadius: rs(16), padding: 16,
     marginTop: 4, marginBottom: 4,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    ...cardShadow,
   },
   pageShowText: { fontSize: 12, color: C.sub, textAlign: 'center', marginBottom: 12 },
   pageBold:     { fontWeight: '700', color: C.text },
@@ -948,21 +953,21 @@ const s = StyleSheet.create({
     width: 88, height: 88, borderRadius: 44,
     justifyContent: 'center', alignItems: 'center', marginBottom: 6,
   },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: C.text, textAlign: 'center' },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '700', color: C.text, textAlign: 'center' },
   emptyMsg:   { fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 20 },
   emptyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginTop: 8, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14,
+    marginTop: 8, paddingHorizontal: 28, paddingVertical: 14, borderRadius: rs(14),
   },
   emptyBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
   // ─── Rating Modal ───
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end',
+    flex: 1, backgroundColor: T.scrim, justifyContent: 'flex-end',
   },
   modalSheet: {
     backgroundColor: C.surface,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     overflow: 'hidden',
   },
   modalHeader: { paddingTop: 10, paddingHorizontal: 20, paddingBottom: 18 },
@@ -978,7 +983,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
-  modalTitle:    { fontSize: 18, fontWeight: '700', color: '#fff' },
+  modalTitle:    { fontFamily: DISPLAY, fontSize: 18, fontWeight: '700', color: '#fff' },
   modalTitleSub: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
   modalCloseBtn: {
     width: 34, height: 34, borderRadius: 17,
@@ -1001,12 +1006,12 @@ const s = StyleSheet.create({
   },
   reviewInput: {
     backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border,
-    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12,
+    borderRadius: rs(14), paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 14, color: C.text, height: 92,
   },
   submitBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, paddingVertical: 15, borderRadius: 16,
+    gap: 8, paddingVertical: 15, borderRadius: rs(16),
   },
   submitBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });

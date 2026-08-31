@@ -3,8 +3,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   MapPinOff, AlertCircle, RefreshCw, Search, Calendar, User, Hash,
-  Bike, Key, Bus, Truck, Gem, Package, Wrench, AlertTriangle,
+  Bike, Key, Bus, Truck, Gem, Package, Wrench,
 } from 'lucide-react';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 interface GapRecord {
   id: string;
@@ -79,6 +80,20 @@ export default function ManagerCoverageGapsPage() {
     }
   }, [search, service]);
 
+  useManagerPageHeader(
+    'Coverage Gaps',
+    'Inquiries from your assigned locations where no vendor was eligible to receive them',
+    <button
+      key="refresh"
+      onClick={() => fetchData(true)}
+      disabled={isRefreshing}
+      title="Refresh"
+      className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+    >
+      <RefreshCw className={`w-5 h-5 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`} />
+    </button>
+  );
+
   useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
@@ -89,45 +104,20 @@ export default function ManagerCoverageGapsPage() {
   return (
     <div className="space-y-6 pb-10">
 
-      {/* ══ HEADER ══════════════════════════════════════════════════ */}
-      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 text-white">
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 10% 60%, #ef4444 0%, transparent 50%), radial-gradient(circle at 90% 20%, #f59e0b 0%, transparent 50%)' }} />
-        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px)', backgroundSize: '24px 24px' }} />
-
-        <div className="relative px-6 sm:px-8 py-7 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="w-5 h-5 text-red-400" />
-              <span className="text-slate-400 text-xs font-semibold tracking-widest uppercase">My Coverage</span>
+      {/* ══ STATS & CONTROLS ════════════════════════════════════════ */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+        <div className="flex gap-3 flex-wrap">
+          {[
+            { label: 'Total', value: total, color: 'bg-gray-50 border-gray-200 text-gray-700' },
+            { label: 'Today', value: todayCount, color: 'bg-red-50 border-red-200 text-red-600' },
+            { label: 'This Week', value: weekCount, color: 'bg-amber-50 border-amber-200 text-amber-600' },
+            { label: 'Locations', value: locationsAffected, color: 'bg-indigo-50 border-indigo-200 text-indigo-600' },
+          ].map((s) => (
+            <div key={s.label} className={`flex flex-col items-center px-4 py-2.5 rounded-xl border ${s.color}`}>
+              <span className="text-xl font-black">{isLoading ? '—' : s.value}</span>
+              <span className="text-[10px] font-semibold tracking-wide uppercase mt-0.5 opacity-80">{s.label}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold mb-1">Coverage Gaps</h1>
-            <p className="text-slate-400 text-sm">Inquiries from your assigned locations where no vendor was eligible to receive them</p>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="flex gap-3 flex-wrap">
-              {[
-                { label: 'Total', value: total, color: 'bg-white/10 border-white/15 text-white' },
-                { label: 'Today', value: todayCount, color: 'bg-red-500/20 border-red-400/30 text-red-300' },
-                { label: 'This Week', value: weekCount, color: 'bg-amber-500/20 border-amber-400/30 text-amber-300' },
-                { label: 'Locations', value: locationsAffected, color: 'bg-indigo-500/20 border-indigo-400/30 text-indigo-300' },
-              ].map((s) => (
-                <div key={s.label} className={`flex flex-col items-center px-4 py-2.5 rounded-xl border ${s.color}`}>
-                  <span className="text-xl font-black">{isLoading ? '—' : s.value}</span>
-                  <span className="text-[10px] font-semibold tracking-wide uppercase mt-0.5 opacity-80">{s.label}</span>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => fetchData(true)}
-              disabled={isRefreshing}
-              className="shrink-0 p-2.5 rounded-xl border border-white/15 bg-white/10 hover:bg-white/15 transition-colors"
-              title="Refresh"
-            >
-              <RefreshCw className={`w-4 h-4 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
+          ))}
         </div>
       </div>
 

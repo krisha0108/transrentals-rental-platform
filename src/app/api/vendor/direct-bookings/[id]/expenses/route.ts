@@ -78,8 +78,9 @@ export async function POST(
     const amountVal = parseFloat(amount);
     const vendorId = auth.vendorId;
 
-    // Block rejected/suspended/blocked vendors from write operations
-    const guard = await vendorStatusGuard(vendorId);
+    // Block rejected/blocked vendors — suspended vendors can still manage
+    // their own direct bookings (offline/personal, not platform-routed).
+    const guard = await vendorStatusGuard(vendorId, { allowSuspended: true });
     if (guard.blocked) return guard.response;
     const bookingId = params.id;
 

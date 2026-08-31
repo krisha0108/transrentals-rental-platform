@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
   Loader2,
   Search,
@@ -121,12 +122,16 @@ const DATE_FILTERS: { value: DateFilter; label: string }[] = [
 ];
 
 export default function ManagerBookingsPage() {
+  // `bookings` now holds only the current page's rows — filtering, stats,
+  // and pagination all happen server-side (see fetchBookings below) instead
+  // of fetching every booking and slicing in the browser.
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [assignedServices, setAssignedServices] = useState<Service[]>([]);
+  const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
@@ -134,27 +139,41 @@ export default function ManagerBookingsPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [bookingStats, setBookingStats] = useState({ total: 0, active: 0, completed: 0, cancelled: 0, revenue: 0 });
+
+
+  // Debounce the search box so typing doesn't fire a request per keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setSearchTerm(searchInput), 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
   const itemsPerPage = 10;
 
-  const fetchBookings = async () => {
+  const fetchBookings = async (page = currentPage) => {
     try {
       setError(null);
       const params = new URLSearchParams();
-      if (statusFilter !== 'all') {
-        params.set('status', statusFilter);
-      }
-      if (serviceFilter !== 'all') {
-        params.set('service', serviceFilter);
-      }
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (serviceFilter !== 'all') params.set('service', serviceFilter);
+      if (sourceFilter !== 'all') params.set('source', sourceFilter);
+      if (locationFilter !== 'all') params.set('location', locationFilter);
+      if (dateFilter !== 'all') params.set('date', dateFilter);
+      if (searchTerm) params.set('search', searchTerm);
+      params.set('page', String(page));
+      params.set('limit', String(itemsPerPage));
 
       const response = await fetch(`/api/manager/bookings?${params.toString()}`);
       const data = await response.json();
 
       if (data.success) {
         setBookings(data.bookings || []);
-        if (data.services) {
-          setAssignedServices(data.services);
-        }
+        if (data.services) setAssignedServices(data.services);
+        setLocationOptions(data.locations || []);
+        setBookingStats(data.stats || { total: 0, active: 0, completed: 0, cancelled: 0, revenue: 0 });
+        setTotalPages(data.pagination?.totalPages || 1);
+        setTotalCount(data.pagination?.total || 0);
       } else {
         setError(data.error || 'Failed to fetch bookings');
       }
@@ -166,77 +185,36 @@ export default function ManagerBookingsPage() {
     }
   };
 
+  // Any filter change resets to page 1; this effect does the actual fetch
+  // for the current filters + page, re-running on every filter change and
+  // page navigation.
   useEffect(() => {
-    fetchBookings();
-  }, [statusFilter, serviceFilter]);
-
-  // Date filtering helper
-  const filterByDate = (booking: Booking, filter: DateFilter): boolean => {
-    if (filter === 'all') return true;
-
-    const bookingDate = new Date(booking.createdAt);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    switch (filter) {
-      case 'today':
-        return bookingDate >= today;
-      case 'yesterday':
-        return bookingDate >= yesterday && bookingDate < today;
-      case 'thisMonth':
-        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        return bookingDate >= thisMonthStart;
-      case 'lastMonth':
-        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 1);
-        return bookingDate >= lastMonthStart && bookingDate < lastMonthEnd;
-      default:
-        return true;
-    }
-  };
+    setCurrentPage(1);
+  }, [statusFilter, serviceFilter, sourceFilter, locationFilter, dateFilter, searchTerm]);
 
   useEffect(() => {
-    let filtered = bookings;
-
-    // Apply date filter
-    filtered = filtered.filter((b) => filterByDate(b, dateFilter));
-
-    // Apply search filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (b) =>
-          b.bookingNumber?.toLowerCase().includes(term) ||
-          b.customerName?.toLowerCase().includes(term) ||
-          b.customerPhone?.includes(term) ||
-          b.customerEmail?.toLowerCase().includes(term) ||
-          b.locationName?.toLowerCase().includes(term) ||
-          b.vendorName?.toLowerCase().includes(term) ||
-          b.vendorVid?.toLowerCase().includes(term) ||
-          b.serviceName?.toLowerCase().includes(term)
-      );
-    }
-
-    // Apply source filter
-    if (sourceFilter !== 'all') {
-      filtered = filtered.filter((b) => (b.source || 'web') === sourceFilter);
-    }
-
-    // Apply location filter
-    if (locationFilter !== 'all') {
-      filtered = filtered.filter((b) => (b.locationName || b.deliveryCity || '') === locationFilter);
-    }
-
-    setFilteredBookings(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [searchTerm, bookings, dateFilter, sourceFilter, locationFilter]);
+    fetchBookings(currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, statusFilter, serviceFilter, sourceFilter, locationFilter, dateFilter, searchTerm]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    fetchBookings();
+    fetchBookings(currentPage);
   };
+
+  useManagerPageHeader(
+    'My Bookings',
+    'Manage bookings for your assigned locations',
+    <button
+      key="refresh"
+      onClick={handleRefresh}
+      disabled={isRefreshing}
+      title="Refresh"
+      className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+    >
+      <RefreshCw className={`w-5 h-5 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`} />
+    </button>
+  );
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -255,21 +233,10 @@ export default function ManagerBookingsPage() {
     }).format(amount);
   };
 
-  // Unique locations derived from all fetched bookings
-  const uniqueLocations = useMemo(() => {
-    const set = new Set<string>();
-    bookings.forEach((b) => {
-      const loc = b.locationName || b.deliveryCity;
-      if (loc) set.add(loc);
-    });
-    return Array.from(set).sort();
-  }, [bookings]);
-
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
+  const uniqueLocations = locationOptions;
+  const currentBookings = bookings;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentBookings = filteredBookings.slice(startIndex, endIndex);
 
   // Generate page numbers for pagination
   const getPageNumbers = () => {
@@ -304,16 +271,6 @@ export default function ManagerBookingsPage() {
     return pages;
   };
 
-  const bookingStats = useMemo(() => {
-    const active = filteredBookings.filter((b) =>
-      ['PAYMENT_VERIFIED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'READY_FOR_PICKUP', 'IN_PROGRESS'].includes(b.status)
-    ).length;
-    const completed = filteredBookings.filter((b) => b.status === 'COMPLETED').length;
-    const cancelled = filteredBookings.filter((b) => ['CANCELLED', 'EXPIRED', 'REFUNDED'].includes(b.status)).length;
-    const revenue = filteredBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
-    return { total: filteredBookings.length, active, completed, cancelled, revenue };
-  }, [filteredBookings]);
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -327,21 +284,6 @@ export default function ManagerBookingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Bookings</h1>
-          <p className="text-gray-500 mt-1">Manage bookings for your assigned locations</p>
-        </div>
-        <button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -390,8 +332,8 @@ export default function ManagerBookingsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search by booking #, customer, phone, email, location, service..."
               className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
@@ -472,7 +414,7 @@ export default function ManagerBookingsPage() {
       {/* Results count */}
       <div className="flex items-center justify-between text-sm text-gray-500">
         <p>
-          Showing {filteredBookings.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredBookings.length)} of {filteredBookings.length} bookings
+          Showing {totalCount > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, totalCount)} of {totalCount} bookings
         </p>
         {totalPages > 1 && (
           <p>

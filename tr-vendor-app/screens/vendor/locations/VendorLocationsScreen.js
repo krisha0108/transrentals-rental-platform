@@ -1,24 +1,47 @@
+// screens/vendor/locations/VendorLocationsScreen.js
+// REDESIGNED — "Elevate" visual language, matching this app's own
+// VendorDocumentsScreen.js / BusinessProfileScreen.js / BankDetailsScreen.js
+// (hero + floating stats-card pattern, shared theme tokens, DISPLAY font).
+//
+// UI ONLY. All behaviour is preserved exactly: same GET (getVendorLocations)
+// / POST (requestLocation) / DELETE (apiDelete) calls, same state, same
+// filters/search/bulk-select logic, same modal flows, same navigation
+// targets (VendorDashboard).
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Modal, TextInput, Dimensions,
+  ActivityIndicator, RefreshControl, Modal, TextInput, StatusBar,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { showError, showSuccess } from '../../../services/alertService';
 import { getVendorLocations, requestLocation, apiDelete } from '../../api/client';
+import { SC as T, G, rs, rf, GUT, cardShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
-const { width: SW } = Dimensions.get('window');
-
+// Same key names this file already used everywhere below — only the values
+// now come from the shared "Elevate" theme instead of hardcoded hex. Follows
+// the same construction VendorDocumentsScreen.js / BankDetailsScreen.js use
+// (this folder's siblings), with g900/g700/g400 added for the hero chrome.
 const C = {
-  g600: '#166534', g500: '#15803d', g100: '#dcfce7', g50: '#f0fdf4',
-  text: '#0A0F1E', textMid: '#374151', muted: '#6B7280',
-  bg: '#F5F7FA', surface: '#FFFFFF', border: '#E8EDF2',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  red: '#DC2626', redL: '#FEF2F2',
-  amber: '#D97706', amberL: '#FFFBEB',
+  g900: T.forestDark, g700: T.emeraldDeep, g600: T.emeraldDeep,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  text: T.ink, textMid: T.text, muted: T.subText,
+  bg: T.bg, surface: T.card, border: T.border,
+  blue: T.blue, blueL: T.blueLight,
+  red: T.red, redL: T.redLight,
+  amber: T.amber, amberL: T.amberLight,
 };
+
+// Hero ↔ stats-card spacing — the card is pulled up so it tucks into the
+// hero's rounded bottom curve, matching VendorDocumentsScreen's stats card.
+// It is a static sibling between the hero and the ScrollView so it can
+// never be clipped.
+const HERO_TAIL = rs(24);
+const STATS_OVERLAP = rs(20);
 
 export default function VendorLocationsScreen({ navigation }) {
   const [requests, setRequests] = useState([]);
@@ -220,92 +243,103 @@ export default function VendorLocationsScreen({ navigation }) {
   const bulkApprovedActive = selectedLocIds.size > 0;
   const bulkPendingActive = selectedPendingIds.size > 0;
 
-  if (loading) return (
-    <SafeAreaView style={s.safe}>
-      <View style={s.loadCenter}>
-        <ActivityIndicator size="large" color={C.g600} />
-        <Text style={s.loadText}>Loading locations...</Text>
+  if (loading) {
+    return (
+      <View style={s.root}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroLoading}>
+          <AnimatedOrb style={s.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
+          <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
+            <Text style={s.heroLoadingTitle}>My Locations</Text>
+          </SafeAreaView>
+        </LinearGradient>
+        <View style={s.loaderWrap}>
+          <ActivityIndicator size="large" color={C.g600} />
+          <Text style={s.loaderTxt}>Loading locations...</Text>
+        </View>
       </View>
-    </SafeAreaView>
-  );
+    );
+  }
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={s.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── Hero Header ── */}
-        <LinearGradient colors={['#14532d', '#166534', '#15803d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+      {/* ── HERO — static sibling so it can never be clipped by the
+          ScrollView's own viewport ── */}
+      <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+        <AnimatedOrb style={s.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
+
+        <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
           <View style={s.heroTop}>
-            <View>
-              <Text style={s.heroLabel}>Operational Locations</Text>
+            <View style={{ flex: 1 }}>
+              <View style={s.heroBadge}>
+                <Ionicons name="location" size={rs(11)} color={C.g400} />
+                <Text style={s.heroBadgeTxt}>Operational Locations</Text>
+              </View>
               <Text style={s.heroTitle}>My Locations</Text>
+              <Text style={s.heroSub}>Cities where you receive bookings</Text>
             </View>
             <TouchableOpacity style={s.heroBtn} onPress={() => setShowModal(true)} activeOpacity={0.85}>
-              <Ionicons name="add" size={18} color={C.g600} />
+              <Ionicons name="add" size={rs(18)} color={C.g700} />
               <Text style={s.heroBtnText}>Request</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Stats row inside hero */}
-          <View style={s.heroStats}>
-            <View style={s.heroStat}>
-              <Text style={s.heroStatNum}>{approvedLocations.length}</Text>
-              <View style={s.heroStatRow}>
-                <Ionicons name="checkmark-circle" size={13} color="rgba(255,255,255,0.75)" />
-                <Text style={s.heroStatLabel}>Approved</Text>
-              </View>
-            </View>
-            <View style={s.heroStatDivider} />
-            <View style={s.heroStat}>
-              <Text style={s.heroStatNum}>{pendingRequests.length}</Text>
-              <View style={s.heroStatRow}>
-                <Ionicons name="time" size={13} color="rgba(255,255,255,0.75)" />
-                <Text style={s.heroStatLabel}>Pending</Text>
-              </View>
-            </View>
-            <View style={s.heroStatDivider} />
-            <View style={s.heroStat}>
-              <Text style={s.heroStatNum}>{rejectedRequests.length}</Text>
-              <View style={s.heroStatRow}>
-                <Ionicons name="close-circle" size={13} color="rgba(255,255,255,0.75)" />
-                <Text style={s.heroStatLabel}>Rejected</Text>
-              </View>
-            </View>
-            <View style={s.heroStatDivider} />
-            <View style={s.heroStat}>
-              <Text style={s.heroStatNum}>{availableCount}</Text>
-              <View style={s.heroStatRow}>
-                <Ionicons name="location" size={13} color="rgba(255,255,255,0.75)" />
-                <Text style={s.heroStatLabel}>Available</Text>
-              </View>
-            </View>
-          </View>
-        </LinearGradient>
+          <View style={{ height: HERO_TAIL }} />
+        </SafeAreaView>
+      </LinearGradient>
 
-        {/* ── Approved Locations ── */}
-        <View style={s.card}>
-          <View style={s.cardHeader}>
-            <View style={s.cardHeaderLeft}>
-              <View style={[s.dot, { backgroundColor: C.g600 }]} />
-              <Text style={s.cardTitle}>Approved Locations</Text>
-              <View style={[s.countBadge, { backgroundColor: C.g100 }]}>
-                <Text style={[s.countBadgeText, { color: C.g600 }]}>{approvedLocations.length}</Text>
+      {/* ── Stats card tucked into the hero curve — static sibling between
+          the hero and the ScrollView, never inside it ── */}
+      <View style={s.statsWrap}>
+        <View style={[s.statsCard, cardShadow]}>
+          {[
+            { value: approvedLocations.length, label: 'Approved', icon: 'checkmark-circle', color: C.g700 },
+            { value: pendingRequests.length,   label: 'Pending',  icon: 'time',              color: C.amber },
+            { value: rejectedRequests.length,  label: 'Rejected', icon: 'close-circle',      color: C.red },
+            { value: availableCount,           label: 'Available',icon: 'location',          color: C.blue },
+          ].map((st, i) => (
+            <React.Fragment key={st.label}>
+              {i > 0 && <View style={s.statDivider} />}
+              <View style={s.statCell}>
+                <Ionicons name={st.icon} size={rs(14)} color={st.color} />
+                <Text style={[s.statValue, { color: st.color }]} numberOfLines={1}>{st.value}</Text>
+                <Text style={s.statLabel} numberOfLines={1}>{st.label}</Text>
               </View>
+            </React.Fragment>
+          ))}
+        </View>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={s.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
+      >
+        {/* ── Approved Locations ── */}
+        <View style={s.section}>
+          <View style={s.sectionHead}>
+            <View style={[s.sectionIconBox, { backgroundColor: C.g100 }]}>
+              <Ionicons name="checkmark-circle-outline" size={rs(16)} color={C.g700} />
+            </View>
+            <Text style={s.sectionTitle}>Approved Locations</Text>
+            <View style={[s.countBadge, { backgroundColor: C.g100 }]}>
+              <Text style={[s.countBadgeText, { color: C.g700 }]}>{approvedLocations.length}</Text>
             </View>
           </View>
 
           {approvedLocations.length === 0 ? (
             <View style={s.empty}>
               <View style={[s.emptyIcon, { backgroundColor: C.g50 }]}>
-                <Ionicons name="location-outline" size={32} color={C.g600} />
+                <Ionicons name="location-outline" size={rs(30)} color={C.g700} />
               </View>
               <Text style={s.emptyTitle}>No approved locations</Text>
               <Text style={s.emptyText}>Request locations to start receiving bookings</Text>
               <TouchableOpacity style={s.emptyBtn} onPress={() => setShowModal(true)}>
-                <Ionicons name="add-circle-outline" size={16} color={C.g600} />
+                <Ionicons name="add-circle-outline" size={rs(15)} color={C.g700} />
                 <Text style={s.emptyBtnText}>Request First Location</Text>
               </TouchableOpacity>
             </View>
@@ -313,7 +347,7 @@ export default function VendorLocationsScreen({ navigation }) {
             <>
               {/* Search */}
               <View style={s.searchBar}>
-                <Ionicons name="search-outline" size={17} color={C.muted} />
+                <Ionicons name="search-outline" size={rs(16)} color={C.muted} />
                 <TextInput
                   style={s.searchInput}
                   placeholder="Search city or state..."
@@ -323,7 +357,7 @@ export default function VendorLocationsScreen({ navigation }) {
                 />
                 {locSearch.length > 0 && (
                   <TouchableOpacity onPress={() => setLocSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Ionicons name="close-circle" size={17} color={C.muted} />
+                    <Ionicons name="close-circle" size={rs(16)} color={C.muted} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -334,9 +368,9 @@ export default function VendorLocationsScreen({ navigation }) {
                   <TouchableOpacity style={[s.chip, !locStateFilter && s.chipActive]} onPress={() => { setLocStateFilter(''); setSelectedLocIds(new Set()); }}>
                     <Text style={[s.chipText, !locStateFilter && s.chipTextActive]}>All States</Text>
                   </TouchableOpacity>
-                  {uniqueStates.map((st) => (
-                    <TouchableOpacity key={st} style={[s.chip, locStateFilter === st && s.chipActive]} onPress={() => { setLocStateFilter(locStateFilter === st ? '' : st); setSelectedLocIds(new Set()); }}>
-                      <Text style={[s.chipText, locStateFilter === st && s.chipTextActive]}>{st}</Text>
+                  {uniqueStates.map((stt) => (
+                    <TouchableOpacity key={stt} style={[s.chip, locStateFilter === stt && s.chipActive]} onPress={() => { setLocStateFilter(locStateFilter === stt ? '' : stt); setSelectedLocIds(new Set()); }}>
+                      <Text style={[s.chipText, locStateFilter === stt && s.chipTextActive]}>{stt}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -344,7 +378,7 @@ export default function VendorLocationsScreen({ navigation }) {
 
               {filteredApproved.length === 0 ? (
                 <View style={s.noMatch}>
-                  <Ionicons name="search-outline" size={22} color={C.border} />
+                  <Ionicons name="search-outline" size={rs(20)} color={C.border} />
                   <Text style={s.noMatchText}>No locations match your filter</Text>
                 </View>
               ) : (
@@ -352,7 +386,7 @@ export default function VendorLocationsScreen({ navigation }) {
                   {/* Select All row */}
                   <TouchableOpacity style={s.selectAllRow} onPress={toggleAllApproved} activeOpacity={0.7}>
                     <View style={[s.checkbox, allApprovedSelected && s.checkboxActive]}>
-                      {allApprovedSelected && <Ionicons name="checkmark" size={13} color="#fff" />}
+                      {allApprovedSelected && <Ionicons name="checkmark" size={rs(12)} color="#fff" />}
                     </View>
                     <Text style={s.selectAllText}>
                       {allApprovedSelected ? 'Deselect all' : `Select all ${filteredApproved.length}${locStateFilter ? ` · ${locStateFilter}` : ''}`}
@@ -377,10 +411,10 @@ export default function VendorLocationsScreen({ navigation }) {
                         activeOpacity={0.75}
                       >
                         <View style={[s.checkbox, isSel && s.checkboxActive]}>
-                          {isSel && <Ionicons name="checkmark" size={13} color="#fff" />}
+                          {isSel && <Ionicons name="checkmark" size={rs(12)} color="#fff" />}
                         </View>
                         <View style={s.locIconWrap}>
-                          <Ionicons name="location" size={16} color={C.g600} />
+                          <Ionicons name="location" size={rs(15)} color={C.g700} />
                         </View>
                         <View style={s.locInfo}>
                           <Text style={s.locName}>{loc?.name || 'Unknown'}</Text>
@@ -394,7 +428,7 @@ export default function VendorLocationsScreen({ navigation }) {
                         >
                           {isDel
                             ? <ActivityIndicator size="small" color={C.red} />
-                            : <Ionicons name="trash-outline" size={18} color={C.red} />}
+                            : <Ionicons name="trash-outline" size={rs(17)} color={C.red} />}
                         </TouchableOpacity>
                       </TouchableOpacity>
                     );
@@ -407,20 +441,20 @@ export default function VendorLocationsScreen({ navigation }) {
 
         {/* ── Pending Requests ── */}
         {pendingRequests.length > 0 && (
-          <View style={s.card}>
-            <View style={s.cardHeader}>
-              <View style={s.cardHeaderLeft}>
-                <View style={[s.dot, { backgroundColor: C.amber }]} />
-                <Text style={s.cardTitle}>Pending Requests</Text>
-                <View style={[s.countBadge, { backgroundColor: C.amberL }]}>
-                  <Text style={[s.countBadgeText, { color: C.amber }]}>{pendingRequests.length}</Text>
-                </View>
+          <View style={s.section}>
+            <View style={s.sectionHead}>
+              <View style={[s.sectionIconBox, { backgroundColor: C.amberL }]}>
+                <Ionicons name="time-outline" size={rs(16)} color={C.amber} />
+              </View>
+              <Text style={s.sectionTitle}>Pending Requests</Text>
+              <View style={[s.countBadge, { backgroundColor: C.amberL }]}>
+                <Text style={[s.countBadgeText, { color: C.amber }]}>{pendingRequests.length}</Text>
               </View>
             </View>
 
             {pendingRequests.length > 1 && (
               <View style={s.searchBar}>
-                <Ionicons name="search-outline" size={17} color={C.muted} />
+                <Ionicons name="search-outline" size={rs(16)} color={C.muted} />
                 <TextInput
                   style={s.searchInput}
                   placeholder="Search pending..."
@@ -430,7 +464,7 @@ export default function VendorLocationsScreen({ navigation }) {
                 />
                 {pendingSearch.length > 0 && (
                   <TouchableOpacity onPress={() => setPendingSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Ionicons name="close-circle" size={17} color={C.muted} />
+                    <Ionicons name="close-circle" size={rs(16)} color={C.muted} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -445,7 +479,7 @@ export default function VendorLocationsScreen({ navigation }) {
                 {pendingRequests.length > 1 && (
                   <TouchableOpacity style={s.selectAllRow} onPress={toggleAllPending} activeOpacity={0.7}>
                     <View style={[s.checkbox, allPendingSelected && s.checkboxActive]}>
-                      {allPendingSelected && <Ionicons name="checkmark" size={13} color="#fff" />}
+                      {allPendingSelected && <Ionicons name="checkmark" size={rs(12)} color="#fff" />}
                     </View>
                     <Text style={s.selectAllText}>
                       {allPendingSelected ? 'Deselect all' : `Select all ${filteredPending.length}`}
@@ -472,11 +506,11 @@ export default function VendorLocationsScreen({ navigation }) {
                     >
                       {pendingRequests.length > 1 && (
                         <View style={[s.checkbox, isSel && s.checkboxAmber]}>
-                          {isSel && <Ionicons name="checkmark" size={13} color="#fff" />}
+                          {isSel && <Ionicons name="checkmark" size={rs(12)} color="#fff" />}
                         </View>
                       )}
                       <View style={[s.locIconWrap, { backgroundColor: C.amberL }]}>
-                        <Ionicons name="time" size={16} color={C.amber} />
+                        <Ionicons name="time" size={rs(15)} color={C.amber} />
                       </View>
                       <View style={s.locInfo}>
                         <Text style={s.locName}>{loc?.name || 'Unknown'}</Text>
@@ -497,7 +531,7 @@ export default function VendorLocationsScreen({ navigation }) {
                         >
                           {isWd
                             ? <ActivityIndicator size="small" color={C.red} />
-                            : <Ionicons name="close-circle-outline" size={20} color={C.red} />}
+                            : <Ionicons name="close-circle-outline" size={rs(19)} color={C.red} />}
                         </TouchableOpacity>
                       </View>
                     </TouchableOpacity>
@@ -510,14 +544,14 @@ export default function VendorLocationsScreen({ navigation }) {
 
         {/* ── Rejected Requests ── */}
         {rejectedRequests.length > 0 && (
-          <View style={s.card}>
-            <View style={s.cardHeader}>
-              <View style={s.cardHeaderLeft}>
-                <View style={[s.dot, { backgroundColor: C.red }]} />
-                <Text style={s.cardTitle}>Rejected Requests</Text>
-                <View style={[s.countBadge, { backgroundColor: C.redL }]}>
-                  <Text style={[s.countBadgeText, { color: C.red }]}>{rejectedRequests.length}</Text>
-                </View>
+          <View style={s.section}>
+            <View style={s.sectionHead}>
+              <View style={[s.sectionIconBox, { backgroundColor: C.redL }]}>
+                <Ionicons name="close-circle-outline" size={rs(16)} color={C.red} />
+              </View>
+              <Text style={s.sectionTitle}>Rejected Requests</Text>
+              <View style={[s.countBadge, { backgroundColor: C.redL }]}>
+                <Text style={[s.countBadgeText, { color: C.red }]}>{rejectedRequests.length}</Text>
               </View>
             </View>
             {rejectedRequests.map((req, idx) => {
@@ -526,7 +560,7 @@ export default function VendorLocationsScreen({ navigation }) {
               return (
                 <View key={req.id} style={[s.locRow, isLast && s.locRowLast, { opacity: 0.8 }]}>
                   <View style={[s.locIconWrap, { backgroundColor: C.redL }]}>
-                    <Ionicons name="close-circle" size={16} color={C.red} />
+                    <Ionicons name="close-circle" size={rs(15)} color={C.red} />
                   </View>
                   <View style={s.locInfo}>
                     <Text style={s.locName}>{loc?.name || 'Unknown'}</Text>
@@ -546,24 +580,26 @@ export default function VendorLocationsScreen({ navigation }) {
 
         {/* Info tip */}
         <View style={s.tip}>
-          <Ionicons name="information-circle" size={18} color={C.blue} />
+          <Ionicons name="information-circle" size={rs(17)} color={C.blue} />
           <Text style={s.tipText}>Request locations where you want to operate. Customers in these cities will be able to book your services.</Text>
         </View>
 
         {/* Continue / Skip */}
         {approvedLocations.length > 0 || requests.length > 0 ? (
-          <TouchableOpacity style={s.continueBtn} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'VendorDashboard' }] })} activeOpacity={0.85}>
-            <LinearGradient colors={['#14532d', '#15803d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.continueBtnGrad}>
+          <TouchableOpacity style={s.continueWrap} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'VendorDashboard' }] })} activeOpacity={0.85}>
+            <LinearGradient colors={G.emerald} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.continueBtn}>
               <Text style={s.continueBtnText}>Continue to Dashboard</Text>
-              <Ionicons name="arrow-forward" size={18} color="#fff" />
+              <Ionicons name="arrow-forward" size={rs(17)} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={s.skipBtn} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'VendorDashboard' }] })}>
             <Text style={s.skipBtnText}>Skip for now</Text>
-            <Ionicons name="arrow-forward" size={16} color={C.muted} />
+            <Ionicons name="arrow-forward" size={rs(15)} color={C.muted} />
           </TouchableOpacity>
         )}
+
+        <View style={{ height: rs(20) }} />
       </ScrollView>
 
       {/* ── Sticky Bulk Action Bar ── */}
@@ -573,21 +609,21 @@ export default function VendorLocationsScreen({ navigation }) {
             <TouchableOpacity style={s.bulkBarBtn} onPress={confirmBulkDelete} disabled={bulkDeleting} activeOpacity={0.85}>
               {bulkDeleting
                 ? <ActivityIndicator size="small" color="#fff" />
-                : <><Ionicons name="trash" size={16} color="#fff" /><Text style={s.bulkBarBtnText}>Remove {selectedLocIds.size} Location{selectedLocIds.size > 1 ? 's' : ''}</Text></>}
+                : <><Ionicons name="trash" size={rs(15)} color="#fff" /><Text style={s.bulkBarBtnText}>Remove {selectedLocIds.size} Location{selectedLocIds.size > 1 ? 's' : ''}</Text></>}
             </TouchableOpacity>
           )}
           {bulkPendingActive && (
             <TouchableOpacity style={[s.bulkBarBtn, { backgroundColor: C.amber }]} onPress={confirmBulkWithdraw} disabled={bulkWithdrawing} activeOpacity={0.85}>
               {bulkWithdrawing
                 ? <ActivityIndicator size="small" color="#fff" />
-                : <><Ionicons name="close-circle" size={16} color="#fff" /><Text style={s.bulkBarBtnText}>Withdraw {selectedPendingIds.size} Request{selectedPendingIds.size > 1 ? 's' : ''}</Text></>}
+                : <><Ionicons name="close-circle" size={rs(15)} color="#fff" /><Text style={s.bulkBarBtnText}>Withdraw {selectedPendingIds.size} Request{selectedPendingIds.size > 1 ? 's' : ''}</Text></>}
             </TouchableOpacity>
           )}
           <TouchableOpacity
             style={s.bulkBarCancel}
             onPress={() => { setSelectedLocIds(new Set()); setSelectedPendingIds(new Set()); }}
           >
-            <Ionicons name="close" size={18} color={C.muted} />
+            <Ionicons name="close" size={rs(17)} color={C.muted} />
           </TouchableOpacity>
         </View>
       )}
@@ -596,9 +632,9 @@ export default function VendorLocationsScreen({ navigation }) {
       <Modal visible={confirmModal.visible} transparent animationType="fade" onRequestClose={hideConfirm}>
         <View style={s.cfOverlay}>
           <TouchableOpacity style={s.cfBackdrop} activeOpacity={1} onPress={hideConfirm} />
-          <View style={s.cfCard}>
+          <View style={[s.cfCard, cardShadow]}>
             <View style={s.cfIconWrap}>
-              <Ionicons name="alert-circle" size={32} color={C.red} />
+              <Ionicons name="alert-circle" size={rs(30)} color={C.red} />
             </View>
             <Text style={s.cfTitle}>{confirmModal.title}</Text>
             <Text style={s.cfMessage}>{confirmModal.message}</Text>
@@ -618,7 +654,15 @@ export default function VendorLocationsScreen({ navigation }) {
         </View>
       </Modal>
 
-      {/* ── Request Locations Modal ── */}
+      {/* ── Request Locations Modal ──
+          The primary scrollable region here is a virtualized FlatList (city
+          list can be long), so it is NOT nested inside a ScrollView — that
+          would break its virtualization and trigger RN's nested
+          VirtualizedList warning. Instead the sheet is a bounded-height flex
+          column: fixed header/search/select-all on top, the FlatList filling
+          the flexible middle (scrolling internally), and the note + submit
+          button pinned at the bottom. modalContent itself is height-capped
+          with overflow: 'hidden' and SHEET_RADIUS corners, per convention. */}
       <Modal
         visible={showModal}
         animationType="slide"
@@ -626,26 +670,26 @@ export default function VendorLocationsScreen({ navigation }) {
         onRequestClose={() => setShowModal(false)}
         onShow={() => { setModalLoading(true); setTimeout(() => setModalLoading(false), 80); }}
       >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={() => setShowModal(false)} />
-          <View style={s.modalSheet}>
-            {/* Handle */}
-            <View style={s.modalHandle} />
+          <View style={s.modalContent}>
+            <View style={s.sheetHandleWrap}><View style={s.sheetHandle} /></View>
 
             {/* Header */}
             <View style={s.modalHeader}>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={s.modalTitle}>Request Locations</Text>
                 <Text style={s.modalSubtitle}>{availableCount} cities available</Text>
               </View>
               <TouchableOpacity style={s.modalCloseBtn} onPress={() => setShowModal(false)}>
-                <Ionicons name="close" size={20} color={C.textMid} />
+                <Ionicons name="close" size={rs(18)} color={C.textMid} />
               </TouchableOpacity>
             </View>
 
             {/* Search */}
             <View style={s.modalSearch}>
-              <Ionicons name="search-outline" size={17} color={C.muted} />
+              <Ionicons name="search-outline" size={rs(16)} color={C.muted} />
               <TextInput
                 style={s.modalSearchInput}
                 placeholder="Search city or state..."
@@ -656,7 +700,7 @@ export default function VendorLocationsScreen({ navigation }) {
               />
               {modalSearch.length > 0 && (
                 <TouchableOpacity onPress={() => setModalSearch('')}>
-                  <Ionicons name="close-circle" size={17} color={C.muted} />
+                  <Ionicons name="close-circle" size={rs(16)} color={C.muted} />
                 </TouchableOpacity>
               )}
             </View>
@@ -665,7 +709,7 @@ export default function VendorLocationsScreen({ navigation }) {
             {availableCount > 0 && (
               <TouchableOpacity style={s.modalSelectAll} onPress={selectAllModal} activeOpacity={0.75}>
                 <View style={[s.checkbox, selectedLocations.length === availableCount && availableCount > 0 ? s.checkboxActive : {}]}>
-                  {selectedLocations.length === availableCount && availableCount > 0 && <Ionicons name="checkmark" size={13} color="#fff" />}
+                  {selectedLocations.length === availableCount && availableCount > 0 && <Ionicons name="checkmark" size={rs(12)} color="#fff" />}
                 </View>
                 <Text style={s.modalSelectAllText}>
                   {selectedLocations.length === availableCount && availableCount > 0 ? 'Deselect All' : 'Select All Cities'}
@@ -681,67 +725,68 @@ export default function VendorLocationsScreen({ navigation }) {
               </TouchableOpacity>
             )}
 
-            {/* City list */}
-            {modalLoading ? (
-              <View style={s.modalLoadingWrap}>
-                <ActivityIndicator size="large" color={C.g600} />
-                <Text style={s.modalLoadingText}>Loading cities...</Text>
-              </View>
-            ) : (
-              <FlatList
-                data={modalGroupList}
-                keyExtractor={(item) => item.state}
-                style={s.modalList}
-                showsVerticalScrollIndicator={false}
-                removeClippedSubviews
-                initialNumToRender={8}
-                maxToRenderPerBatch={6}
-                windowSize={10}
-                ListEmptyComponent={
-                  <View style={s.modalEmpty}>
-                    <Ionicons name="search-outline" size={40} color={C.border} />
-                    <Text style={s.modalEmptyText}>No cities found</Text>
-                  </View>
-                }
-                ListFooterComponent={<View style={{ height: 12 }} />}
-                renderItem={({ item: { state, locs } }) => {
-                  const avail = locs.filter((l) => !isApproved(l.id) && !hasPending(l.id));
-                  const allSt = avail.length > 0 && avail.every((c) => selectedLocations.some((l) => l.id === c.id));
-                  return (
-                    <View style={s.stateGroup}>
-                      <TouchableOpacity style={s.stateRow} onPress={() => toggleModalState(state, locs)} disabled={!avail.length} activeOpacity={0.7}>
-                        <View style={[s.checkbox, allSt ? s.checkboxActive : {}, !avail.length && s.checkboxDisabled]}>
-                          {allSt && <Ionicons name="checkmark" size={13} color="#fff" />}
-                        </View>
-                        <Text style={[s.stateName, !avail.length && s.stateNameDim]}>{state}</Text>
-                        {avail.length > 0 && <Text style={s.stateCount}>{avail.length} available</Text>}
-                      </TouchableOpacity>
-                      <View style={s.citiesWrap}>
-                        {locs.map((loc) => {
-                          const app = isApproved(loc.id), pend = hasPending(loc.id);
-                          const sel = selectedLocations.some((l) => l.id === loc.id);
-                          return (
-                            <TouchableOpacity
-                              key={loc.id}
-                              style={[s.cityPill, app && s.cityPillApproved, pend && !app && s.cityPillPending, sel && s.cityPillSel]}
-                              onPress={() => !app && !pend && toggleModalLoc(loc)}
-                              disabled={app || pend}
-                              activeOpacity={0.75}
-                            >
-                              {sel ? <Ionicons name="checkmark-circle" size={14} color={C.blue} />
-                                : app ? <Ionicons name="checkmark-circle" size={14} color={C.g600} />
-                                : pend ? <Ionicons name="time" size={14} color={C.amber} />
-                                : <Ionicons name="add-circle-outline" size={14} color={C.muted} />}
-                              <Text style={[s.cityPillText, app && s.cityPillTextApp, sel && s.cityPillTextSel]}>{loc.name}</Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
+            {/* City list — flexible scrollable middle */}
+            <View style={s.modalListFlex}>
+              {modalLoading ? (
+                <View style={s.modalLoadingWrap}>
+                  <ActivityIndicator size="large" color={C.g600} />
+                  <Text style={s.modalLoadingText}>Loading cities...</Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={modalGroupList}
+                  keyExtractor={(item) => item.state}
+                  showsVerticalScrollIndicator={false}
+                  removeClippedSubviews
+                  initialNumToRender={8}
+                  maxToRenderPerBatch={6}
+                  windowSize={10}
+                  ListEmptyComponent={
+                    <View style={s.modalEmpty}>
+                      <Ionicons name="search-outline" size={rs(36)} color={C.border} />
+                      <Text style={s.modalEmptyText}>No cities found</Text>
                     </View>
-                  );
-                }}
-              />
-            )}
+                  }
+                  ListFooterComponent={<View style={{ height: rs(12) }} />}
+                  renderItem={({ item: { state, locs } }) => {
+                    const avail = locs.filter((l) => !isApproved(l.id) && !hasPending(l.id));
+                    const allSt = avail.length > 0 && avail.every((c) => selectedLocations.some((l) => l.id === c.id));
+                    return (
+                      <View style={s.stateGroup}>
+                        <TouchableOpacity style={s.stateRow} onPress={() => toggleModalState(state, locs)} disabled={!avail.length} activeOpacity={0.7}>
+                          <View style={[s.checkbox, allSt ? s.checkboxActive : {}, !avail.length && s.checkboxDisabled]}>
+                            {allSt && <Ionicons name="checkmark" size={rs(12)} color="#fff" />}
+                          </View>
+                          <Text style={[s.stateName, !avail.length && s.stateNameDim]}>{state}</Text>
+                          {avail.length > 0 && <Text style={s.stateCount}>{avail.length} available</Text>}
+                        </TouchableOpacity>
+                        <View style={s.citiesWrap}>
+                          {locs.map((loc) => {
+                            const app = isApproved(loc.id), pend = hasPending(loc.id);
+                            const sel = selectedLocations.some((l) => l.id === loc.id);
+                            return (
+                              <TouchableOpacity
+                                key={loc.id}
+                                style={[s.cityPill, app && s.cityPillApproved, pend && !app && s.cityPillPending, sel && s.cityPillSel]}
+                                onPress={() => !app && !pend && toggleModalLoc(loc)}
+                                disabled={app || pend}
+                                activeOpacity={0.75}
+                              >
+                                {sel ? <Ionicons name="checkmark-circle" size={rs(13)} color={C.blue} />
+                                  : app ? <Ionicons name="checkmark-circle" size={rs(13)} color={C.g700} />
+                                  : pend ? <Ionicons name="time" size={rs(13)} color={C.amber} />
+                                  : <Ionicons name="add-circle-outline" size={rs(13)} color={C.muted} />}
+                                <Text style={[s.cityPillText, app && s.cityPillTextApp, sel && s.cityPillTextSel]}>{loc.name}</Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    );
+                  }}
+                />
+              )}
+            </View>
 
             {/* Optional message */}
             <View style={s.modalMsgWrap}>
@@ -759,19 +804,19 @@ export default function VendorLocationsScreen({ navigation }) {
 
             {/* Submit */}
             <TouchableOpacity
-              style={[s.submitBtn, (!selectedLocations.length || submitting) && s.submitBtnDim]}
+              style={[s.submitWrap, (!selectedLocations.length || submitting) && s.submitBtnDim]}
               onPress={handleRequest}
               disabled={!selectedLocations.length || submitting}
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={!selectedLocations.length || submitting ? ['#86efac', '#86efac'] : ['#14532d', '#15803d']}
+                colors={!selectedLocations.length || submitting ? ['#86efac', '#86efac'] : G.emerald}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                 style={s.submitBtnGrad}
               >
                 {submitting
                   ? <ActivityIndicator color="#fff" size="small" />
-                  : <><Ionicons name="send" size={17} color="#fff" />
+                  : <><Ionicons name="send" size={rs(16)} color="#fff" />
                     <Text style={s.submitBtnText}>
                       Submit {selectedLocations.length > 0 ? `${selectedLocations.length} Request${selectedLocations.length > 1 ? 's' : ''}` : 'Request'}
                     </Text></>}
@@ -779,163 +824,209 @@ export default function VendorLocationsScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  scroll: { paddingBottom: 120 },
-  loadCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadText: { marginTop: 12, fontSize: 15, color: C.muted },
+  root: { flex: 1, backgroundColor: C.bg },
+  scrollContent: { paddingHorizontal: GUT, paddingBottom: rs(120) },
+  loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: rs(10) },
+  loaderTxt: { fontSize: rf(14), color: C.muted },
 
-  // Hero
-  hero: { paddingTop: 24, paddingHorizontal: 20, paddingBottom: 24, marginBottom: 16 },
-  heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 },
-  heroLabel: { fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.3, marginBottom: 4 },
-  heroTitle: { fontSize: 26, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
-  heroBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 3 },
-  heroBtnText: { fontSize: 14, fontWeight: '700', color: C.g600 },
-  heroStats: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-  heroStat: { flex: 1, alignItems: 'center', gap: 4 },
-  heroStatNum: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
-  heroStatRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  heroStatLabel: { fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: '600' },
-  heroStatDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: 4 },
+  /* ── Hero ── */
+  hero: {
+    paddingBottom: rs(8),
+    borderBottomLeftRadius: rs(26),
+    borderBottomRightRadius: rs(26),
+    overflow: 'hidden',
+  },
+  heroLoading: {
+    paddingBottom: rs(20),
+    borderBottomLeftRadius: rs(26),
+    borderBottomRightRadius: rs(26),
+    overflow: 'hidden',
+  },
+  heroLoadingTitle: { fontFamily: DISPLAY, fontSize: rf(20), fontWeight: '800', color: '#fff', paddingTop: rs(10) },
+  orbA: {
+    position: 'absolute', top: -rs(60), right: -rs(40),
+    width: rs(180), height: rs(180), borderRadius: rs(90),
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  orbB: {
+    position: 'absolute', bottom: -rs(60), left: -rs(40),
+    width: rs(150), height: rs(150), borderRadius: rs(75),
+    backgroundColor: 'rgba(46,158,120,0.16)',
+  },
+  heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingTop: rs(8), gap: rs(10) },
+  heroBadge: { flexDirection: 'row', alignItems: 'center', gap: rs(5), backgroundColor: 'rgba(255,255,255,0.1)', alignSelf: 'flex-start', paddingHorizontal: rs(10), paddingVertical: rs(4), borderRadius: 20, marginBottom: rs(7) },
+  heroBadgeTxt: { fontFamily: DISPLAY, fontSize: rf(11), fontWeight: '600', color: C.g400 },
+  heroTitle: { fontFamily: DISPLAY, fontSize: rf(24), fontWeight: '800', color: '#fff', letterSpacing: -0.3, marginBottom: rs(4) },
+  heroSub: { fontFamily: DISPLAY, fontSize: rf(12.5), color: 'rgba(255,255,255,0.6)' },
+  heroBtn: { flexDirection: 'row', alignItems: 'center', gap: rs(5), backgroundColor: '#fff', paddingHorizontal: rs(14), paddingVertical: rs(9), borderRadius: rs(12), marginTop: rs(2), shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 3 },
+  heroBtnText: { fontSize: rf(13.5), fontWeight: '700', color: C.g700 },
 
-  // Card
-  card: { marginHorizontal: 14, marginBottom: 14, backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border },
-  cardHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  cardTitle: { fontSize: 15, fontWeight: '800', color: C.text, letterSpacing: -0.2 },
-  countBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  countBadgeText: { fontSize: 12, fontWeight: '700' },
+  /* ── Stats card tucked into the hero curve ── */
+  statsWrap: { marginHorizontal: GUT, marginTop: -STATS_OVERLAP },
+  statsCard: {
+    flexDirection: 'row', backgroundColor: C.surface, borderRadius: rs(16),
+    paddingVertical: rs(12), paddingHorizontal: rs(6),
+    borderWidth: 1, borderColor: T.glassBorder,
+  },
+  statCell: { flex: 1, alignItems: 'center', gap: rs(3) },
+  statValue: { fontFamily: DISPLAY, fontSize: rf(16), fontWeight: '800' },
+  statLabel: { fontFamily: DISPLAY, fontSize: rf(9.5), color: C.muted, fontWeight: '600' },
+  statDivider: { width: 1, backgroundColor: C.border, marginVertical: rs(2) },
 
-  // Empty state
-  empty: { padding: 36, alignItems: 'center', gap: 8 },
-  emptyIcon: { width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text },
-  emptyText: { fontSize: 13, color: C.muted, textAlign: 'center' },
-  emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, borderColor: C.g600, borderStyle: 'dashed' },
-  emptyBtnText: { fontSize: 13, fontWeight: '700', color: C.g600 },
+  /* ── Section card ── */
+  section: {
+    marginTop: rs(14), backgroundColor: C.surface, borderRadius: rs(18),
+    borderWidth: 1, borderColor: C.border, overflow: 'hidden', ...cardShadow,
+  },
+  sectionHead: {
+    flexDirection: 'row', alignItems: 'center', gap: rs(10),
+    paddingHorizontal: rs(16), paddingVertical: rs(13),
+    borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  sectionIconBox: { width: rs(30), height: rs(30), borderRadius: rs(10), alignItems: 'center', justifyContent: 'center' },
+  sectionTitle: { flex: 1, fontFamily: DISPLAY, fontSize: rf(14.5), fontWeight: '700', color: C.text },
+  countBadge: { paddingHorizontal: rs(8), paddingVertical: rs(2), borderRadius: 10 },
+  countBadgeText: { fontSize: rf(11.5), fontWeight: '700' },
 
-  // Search bar
-  searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 14, marginTop: 12, marginBottom: 2, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: C.bg, borderRadius: 12, borderWidth: 1, borderColor: C.border, gap: 8 },
-  searchInput: { flex: 1, fontSize: 14, color: C.text, padding: 0 },
+  /* ── Empty state ── */
+  empty: { padding: rs(34), alignItems: 'center', gap: rs(7) },
+  emptyIcon: { width: rs(62), height: rs(62), borderRadius: rs(20), alignItems: 'center', justifyContent: 'center', marginBottom: rs(4) },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: rf(15.5), fontWeight: '700', color: C.text },
+  emptyText: { fontSize: rf(12.5), color: C.muted, textAlign: 'center' },
+  emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: rs(6), marginTop: rs(8), paddingHorizontal: rs(16), paddingVertical: rs(9), borderRadius: rs(10), borderWidth: 1.5, borderColor: C.g600, borderStyle: 'dashed' },
+  emptyBtnText: { fontSize: rf(12.5), fontWeight: '700', color: C.g700 },
 
-  // State chips
-  chipsRow: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 4, gap: 8 },
-  chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
+  /* ── Search bar ── */
+  searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: rs(14), marginTop: rs(12), marginBottom: rs(2), paddingHorizontal: rs(12), paddingVertical: rs(9), backgroundColor: C.bg, borderRadius: rs(12), borderWidth: 1, borderColor: C.border, gap: rs(8) },
+  searchInput: { flex: 1, fontSize: rf(14), color: C.text, padding: 0 },
+
+  /* ── State chips ── */
+  chipsRow: { paddingHorizontal: rs(14), paddingTop: rs(10), paddingBottom: rs(4), gap: rs(8) },
+  chip: { paddingHorizontal: rs(14), paddingVertical: rs(6), borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
   chipActive: { backgroundColor: C.blueL, borderColor: C.blue },
-  chipText: { fontSize: 13, fontWeight: '600', color: C.muted },
+  chipText: { fontSize: rf(12.5), fontWeight: '600', color: C.muted },
   chipTextActive: { color: C.blue },
 
-  // No match
-  noMatch: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', paddingVertical: 20 },
-  noMatchText: { fontSize: 13, color: C.muted },
+  /* ── No match ── */
+  noMatch: { flexDirection: 'row', alignItems: 'center', gap: rs(8), justifyContent: 'center', paddingVertical: rs(20) },
+  noMatchText: { fontSize: rf(12.5), color: C.muted },
 
-  // Select all row
-  selectAllRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 11, backgroundColor: '#FAFBFC', borderTopWidth: 1, borderTopColor: C.border },
-  selectAllText: { flex: 1, fontSize: 13, fontWeight: '600', color: C.blue },
-  selectedBadge: { paddingHorizontal: 8, paddingVertical: 3, backgroundColor: C.blueL, borderRadius: 10 },
-  selectedBadgeText: { fontSize: 11, fontWeight: '700', color: C.blue },
+  /* ── Select all row ── */
+  selectAllRow: { flexDirection: 'row', alignItems: 'center', gap: rs(10), paddingHorizontal: rs(14), paddingVertical: rs(11), backgroundColor: T.ivory, borderTopWidth: 1, borderTopColor: C.border },
+  selectAllText: { flex: 1, fontSize: rf(12.5), fontWeight: '600', color: C.blue },
+  selectedBadge: { paddingHorizontal: rs(8), paddingVertical: rs(3), backgroundColor: C.blueL, borderRadius: 10 },
+  selectedBadgeText: { fontSize: rf(10.5), fontWeight: '700', color: C.blue },
 
-  // Checkbox
-  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  /* ── Checkbox ── */
+  checkbox: { width: rs(20), height: rs(20), borderRadius: rs(6), borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
   checkboxActive: { backgroundColor: C.blue, borderColor: C.blue },
   checkboxAmber: { backgroundColor: C.amber, borderColor: C.amber },
-  checkboxDisabled: { borderColor: C.border, backgroundColor: '#f5f5f5' },
+  checkboxDisabled: { borderColor: C.border, backgroundColor: T.ivory },
 
-  // Location row
-  locRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, borderTopWidth: 1, borderTopColor: C.border, gap: 10 },
-  locRowSelected: { backgroundColor: '#F0F9FF' },
-  locRowSelectedAmber: { backgroundColor: '#FFFBEB' },
+  /* ── Location row ── */
+  locRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: rs(14), paddingVertical: rs(13), borderTopWidth: 1, borderTopColor: C.border, gap: rs(10) },
+  locRowSelected: { backgroundColor: C.blueL },
+  locRowSelectedAmber: { backgroundColor: C.amberL },
   locRowLast: { borderBottomWidth: 0 },
-  locIconWrap: { width: 32, height: 32, borderRadius: 10, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center' },
+  locIconWrap: { width: rs(32), height: rs(32), borderRadius: rs(10), backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center' },
   locInfo: { flex: 1 },
-  locName: { fontSize: 14, fontWeight: '700', color: C.text },
-  locState: { fontSize: 12, color: C.muted, marginTop: 1 },
-  actionIconBtn: { padding: 4 },
+  locName: { fontFamily: DISPLAY, fontSize: rf(14), fontWeight: '700', color: C.text },
+  locState: { fontSize: rf(11.5), color: C.muted, marginTop: rs(1) },
+  actionIconBtn: { padding: rs(4) },
 
-  // Pending
-  pendingRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  pendingPill: { paddingHorizontal: 8, paddingVertical: 3, backgroundColor: C.amberL, borderRadius: 8 },
-  pendingPillText: { fontSize: 11, fontWeight: '700', color: C.amber },
-  rejectedPill: { paddingHorizontal: 8, paddingVertical: 3, backgroundColor: C.redL, borderRadius: 8 },
-  rejectedPillText: { fontSize: 11, fontWeight: '700', color: C.red },
+  /* ── Pending ── */
+  pendingRight: { flexDirection: 'row', alignItems: 'center', gap: rs(6) },
+  pendingPill: { paddingHorizontal: rs(8), paddingVertical: rs(3), backgroundColor: C.amberL, borderRadius: rs(8) },
+  pendingPillText: { fontSize: rf(10.5), fontWeight: '700', color: C.amber },
+  rejectedPill: { paddingHorizontal: rs(8), paddingVertical: rs(3), backgroundColor: C.redL, borderRadius: rs(8) },
+  rejectedPillText: { fontSize: rf(10.5), fontWeight: '700', color: C.red },
 
-  // Tip
-  tip: { marginHorizontal: 14, marginBottom: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14, backgroundColor: C.blueL, borderRadius: 14, borderWidth: 1, borderColor: '#BFDBFE' },
-  tipText: { flex: 1, fontSize: 13, color: C.textMid, lineHeight: 19 },
+  /* ── Tip ── */
+  tip: { marginTop: rs(14), flexDirection: 'row', alignItems: 'flex-start', gap: rs(10), padding: rs(14), backgroundColor: C.blueL, borderRadius: rs(14), borderWidth: 1, borderColor: '#BFDBFE' },
+  tipText: { flex: 1, fontSize: rf(12.5), color: C.textMid, lineHeight: rf(19) },
 
-  // Continue / Skip
-  continueBtn: { marginHorizontal: 14, marginBottom: 10, borderRadius: 14, overflow: 'hidden' },
-  continueBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
-  continueBtnText: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
-  skipBtn: { marginHorizontal: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 14, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, gap: 6 },
-  skipBtnText: { fontSize: 14, fontWeight: '600', color: C.muted },
+  /* ── Continue / Skip ── */
+  continueWrap: { marginTop: rs(14), borderRadius: rs(14), overflow: 'hidden' },
+  continueBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: rs(16), gap: rs(8) },
+  continueBtnText: { fontFamily: DISPLAY, fontSize: rf(15.5), fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
+  skipBtn: { marginTop: rs(14), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: rs(14), borderRadius: rs(14), borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, gap: rs(6) },
+  skipBtnText: { fontSize: rf(13.5), fontWeight: '600', color: C.muted },
 
-  // Bulk bar
-  bulkBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, paddingBottom: 24, backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.border, gap: 10, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 12 },
-  bulkBarBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: 12, backgroundColor: C.red },
-  bulkBarBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  bulkBarCancel: { width: 44, height: 44, borderRadius: 12, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
+  /* ── Bulk bar ── */
+  bulkBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: rs(14), paddingVertical: rs(12), paddingBottom: rs(24), backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.border, gap: rs(10), shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 12 },
+  bulkBarBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(6), paddingVertical: rs(13), borderRadius: rs(12), backgroundColor: C.red },
+  bulkBarBtnText: { fontSize: rf(13.5), fontWeight: '700', color: '#fff' },
+  bulkBarCancel: { width: rs(44), height: rs(44), borderRadius: rs(12), backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
 
-  // Modal
-  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
-  modalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 8, paddingHorizontal: 18, paddingBottom: 32, maxHeight: '92%', shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 20 },
-  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 16 },
-  modalHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
-  modalTitle: { fontSize: 20, fontWeight: '800', color: C.text, letterSpacing: -0.3 },
-  modalSubtitle: { fontSize: 13, color: C.muted, marginTop: 3 },
-  modalCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
-  modalSearch: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, gap: 8, marginBottom: 12 },
-  modalSearchInput: { flex: 1, fontSize: 14, color: C.text, padding: 0 },
-  modalSelectAll: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 4, marginBottom: 8 },
-  modalSelectAllText: { fontSize: 14, fontWeight: '600', color: C.blue },
-  modalSelCount: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10 },
-  modalSelCountText: { fontSize: 13, color: C.blue, fontWeight: '600' },
-  modalClearText: { fontSize: 12, color: C.red, fontWeight: '700' },
-  modalList: { maxHeight: 320 },
-  modalEmpty: { alignItems: 'center', paddingVertical: 40, gap: 10 },
-  modalEmptyText: { fontSize: 14, color: C.muted },
-  stateGroup: { marginBottom: 18 },
-  stateRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, paddingHorizontal: 12, backgroundColor: C.bg, borderRadius: 10, borderWidth: 1, borderColor: C.border, marginBottom: 10 },
-  stateName: { flex: 1, fontSize: 13, fontWeight: '700', color: C.textMid, textTransform: 'uppercase', letterSpacing: 0.5 },
+  /* ── Request modal ── */
+  modalOverlay: { flex: 1, backgroundColor: T.scrim, justifyContent: 'flex-end' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject },
+  modalContent: {
+    backgroundColor: C.surface, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
+    paddingHorizontal: rs(18), maxHeight: '90%', overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 20,
+  },
+  sheetHandleWrap: { alignItems: 'center', paddingTop: rs(10) },
+  sheetHandle: { width: rs(40), height: rs(4), borderRadius: rs(2), backgroundColor: C.border, marginBottom: rs(14) },
+
+  modalHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: rs(14) },
+  modalTitle: { fontFamily: DISPLAY, fontSize: rf(19), fontWeight: '800', color: C.text, letterSpacing: -0.3 },
+  modalSubtitle: { fontSize: rf(12.5), color: C.muted, marginTop: rs(3) },
+  modalCloseBtn: { width: rs(34), height: rs(34), borderRadius: rs(17), backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
+
+  modalSearch: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: rs(14), paddingHorizontal: rs(12), paddingVertical: rs(10), gap: rs(8), marginBottom: rs(10) },
+  modalSearchInput: { flex: 1, fontSize: rf(14), color: C.text, padding: 0 },
+  modalSelectAll: { flexDirection: 'row', alignItems: 'center', gap: rs(10), paddingVertical: rs(8), paddingHorizontal: rs(4), marginBottom: rs(6) },
+  modalSelectAllText: { fontSize: rf(13.5), fontWeight: '600', color: C.blue },
+  modalSelCount: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: rs(10) },
+  modalSelCountText: { fontSize: rf(12.5), color: C.blue, fontWeight: '600' },
+  modalClearText: { fontSize: rf(11.5), color: C.red, fontWeight: '700' },
+
+  modalListFlex: { flexShrink: 1, minHeight: rs(90), maxHeight: rs(320) },
+  modalEmpty: { alignItems: 'center', paddingVertical: rs(38), gap: rs(10) },
+  modalEmptyText: { fontSize: rf(13.5), color: C.muted },
+  modalLoadingWrap: { height: rs(160), alignItems: 'center', justifyContent: 'center', gap: rs(12) },
+  modalLoadingText: { fontSize: rf(13.5), color: C.muted },
+
+  stateGroup: { marginBottom: rs(16) },
+  stateRow: { flexDirection: 'row', alignItems: 'center', gap: rs(10), paddingVertical: rs(9), paddingHorizontal: rs(12), backgroundColor: C.bg, borderRadius: rs(10), borderWidth: 1, borderColor: C.border, marginBottom: rs(10) },
+  stateName: { flex: 1, fontSize: rf(12.5), fontWeight: '700', color: C.textMid, textTransform: 'uppercase', letterSpacing: 0.5 },
   stateNameDim: { color: C.border },
-  stateCount: { fontSize: 11, color: C.muted, fontWeight: '600' },
-  citiesWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  cityPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, gap: 5 },
+  stateCount: { fontSize: rf(10.5), color: C.muted, fontWeight: '600' },
+  citiesWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(8) },
+  cityPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: rs(12), paddingVertical: rs(7), borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, gap: rs(5) },
   cityPillApproved: { backgroundColor: C.g50, borderColor: '#a7f3d0' },
   cityPillPending: { backgroundColor: C.amberL, borderColor: '#fde68a' },
   cityPillSel: { backgroundColor: C.blueL, borderColor: C.blue },
-  cityPillText: { fontSize: 13, color: C.textMid },
-  cityPillTextApp: { color: C.g600 },
+  cityPillText: { fontSize: rf(12.5), color: C.textMid },
+  cityPillTextApp: { color: C.g700 },
   cityPillTextSel: { color: C.blue, fontWeight: '700' },
-  modalMsgWrap: { marginTop: 10, marginBottom: 12 },
-  modalMsgInput: { borderWidth: 1, borderColor: C.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: C.text, backgroundColor: C.bg, minHeight: 60 },
-  submitBtn: { borderRadius: 14, overflow: 'hidden' },
+
+  modalMsgWrap: { marginTop: rs(10), marginBottom: rs(12) },
+  modalMsgInput: { borderWidth: 1, borderColor: C.border, borderRadius: rs(14), paddingHorizontal: rs(14), paddingVertical: rs(11), fontSize: rf(14), color: C.text, backgroundColor: C.bg, minHeight: rs(58) },
+
+  submitWrap: { borderRadius: rs(14), overflow: 'hidden', marginBottom: rs(18) },
   submitBtnDim: { opacity: 0.65 },
-  submitBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
-  submitBtnText: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
+  submitBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: rs(16), gap: rs(8) },
+  submitBtnText: { fontFamily: DISPLAY, fontSize: rf(15.5), fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
-  // Modal loading
-  modalLoadingWrap: { height: 160, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  modalLoadingText: { fontSize: 14, color: C.muted },
-
-  // Custom confirm modal
-  cfOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
-  cfBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
-  cfCard: { width: '100%', backgroundColor: '#fff', borderRadius: 24, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 24, elevation: 16 },
-  cfIconWrap: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  cfTitle: { fontSize: 18, fontWeight: '800', color: C.text, textAlign: 'center', marginBottom: 8, letterSpacing: -0.3 },
-  cfMessage: { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 21, marginBottom: 24 },
-  cfBtns: { flexDirection: 'row', gap: 12, width: '100%' },
-  cfCancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', backgroundColor: C.bg },
-  cfCancelText: { fontSize: 15, fontWeight: '700', color: C.textMid },
-  cfConfirmBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', backgroundColor: C.red },
-  cfConfirmText: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  /* ── Custom confirm modal ── */
+  cfOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: rs(28), backgroundColor: T.scrim },
+  cfBackdrop: { ...StyleSheet.absoluteFillObject },
+  cfCard: { width: '100%', backgroundColor: C.surface, borderRadius: rs(24), padding: rs(24), alignItems: 'center' },
+  cfIconWrap: { width: rs(62), height: rs(62), borderRadius: rs(20), backgroundColor: C.redL, alignItems: 'center', justifyContent: 'center', marginBottom: rs(14) },
+  cfTitle: { fontFamily: DISPLAY, fontSize: rf(17.5), fontWeight: '800', color: C.text, textAlign: 'center', marginBottom: rs(8), letterSpacing: -0.3 },
+  cfMessage: { fontSize: rf(13.5), color: C.muted, textAlign: 'center', lineHeight: rf(20), marginBottom: rs(22) },
+  cfBtns: { flexDirection: 'row', gap: rs(12), width: '100%' },
+  cfCancelBtn: { flex: 1, paddingVertical: rs(14), borderRadius: rs(14), borderWidth: 1.5, borderColor: C.border, alignItems: 'center', backgroundColor: C.bg },
+  cfCancelText: { fontSize: rf(14.5), fontWeight: '700', color: C.textMid },
+  cfConfirmBtn: { flex: 1, paddingVertical: rs(14), borderRadius: rs(14), alignItems: 'center', backgroundColor: C.red },
+  cfConfirmText: { fontSize: rf(14.5), fontWeight: '800', color: '#fff' },
 });

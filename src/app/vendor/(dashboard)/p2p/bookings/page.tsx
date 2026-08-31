@@ -566,7 +566,7 @@ export default function BrowseBookingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+    <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
       <style jsx global>{`
         @keyframes float-slow { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-12px) translateX(8px); } }
         @keyframes float-rev { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(10px) translateX(-6px); } }
@@ -1131,7 +1131,7 @@ export default function BrowseBookingsPage() {
       {selectedPosting && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
           <div
-            className="bg-white rounded-2xl max-w-md w-full mx-4 max-h-[92vh] overflow-hidden shadow-2xl animate-pop-in flex flex-col"
+            className="bg-white rounded-2xl max-w-md w-full mx-4 max-h-[92dvh] overflow-hidden shadow-2xl animate-pop-in flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}

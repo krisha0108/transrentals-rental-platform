@@ -22,17 +22,20 @@ import CustomDropdown from '../../../../components/CustomDropdown';
 import { getQuoteRequestById, getFleetVehicles, submitQuote, getTemplates, getTemplateById } from '../../../api/client';
 import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
 import AppEvents, { EVT_QUOTE_SENT } from '../../../../utils/AppEvents';
+import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669', g500: '#059669', g400: '#34D399',
-  g50: '#ECFDF5', g100: '#D1FAE5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  green: '#059669', greenL: '#ECFDF5',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  orange: '#EA580C', orangeL: '#FFF7ED',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600, g500: T.emerald500, g400: T.emerald,
+  g50: T.tintEmerald, g100: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border, text: T.ink, sub: T.text, muted: T.subText,
+  green: T.emerald600, greenL: T.tintEmerald,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  blue: T.blue, blueL: T.blueLight,
+  purple: T.purple, purpleL: T.purpleLight,
+  orange: T.orange, orangeL: T.orangeL,
 };
 
 const DEFAULT_INCLUSIONS = [
@@ -290,7 +293,7 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.loadingHeader} />
+        <LinearGradient colors={G.hero} style={styles.loadingHeader} />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={C.g500} />
           <Text style={styles.loadingText}>Loading quote details...</Text>
@@ -308,10 +311,10 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* Header */}
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.header}>
+      <LinearGradient colors={G.hero} style={styles.header}>
         {/* Decorative circles */}
-        <View style={styles.decorCircle1} />
-        <View style={styles.decorCircle2} />
+        <AnimatedOrb style={styles.decorCircle1} />
+        <AnimatedOrb style={styles.decorCircle2} delay={1200} dx={-10} dy={8} />
 
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
@@ -838,6 +841,10 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
         transparent={true}
         onRequestClose={() => setEditModalVisible(false)}
       >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -879,6 +886,7 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -958,13 +966,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     overflow: 'hidden',
     position: 'relative',
+    borderBottomLeftRadius: rs(20),
+    borderBottomRightRadius: rs(20),
   },
   decorCircle1: {
     position: 'absolute',
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.07)',
     top: -40,
     right: 20,
   },
@@ -994,8 +1004,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
+    fontFamily: DISPLAY,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.2,
   },
@@ -1016,16 +1027,12 @@ const styles = StyleSheet.create({
   // Card
   card: {
     backgroundColor: C.card,
-    borderRadius: 14,
+    borderRadius: rs(14),
     padding: 16,
     marginBottom: 14,
     borderWidth: 1,
     borderColor: C.border,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...cardShadow,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -1048,8 +1055,9 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   cardTitle: {
+    fontFamily: DISPLAY,
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     color: C.text,
   },
   templateDesc: {
@@ -1265,19 +1273,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 9,
     paddingVertical: 15,
-    borderRadius: 12,
-    shadowColor: C.g900,
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    borderRadius: rs(12),
+    ...cardShadow,
   },
   submitBtnDisabled: {
     opacity: 0.6,
   },
   submitBtnText: {
+    fontFamily: DISPLAY,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#fff',
     letterSpacing: 0.3,
   },
@@ -1285,13 +1290,13 @@ const styles = StyleSheet.create({
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: T.scrim,
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: C.card,
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
+    borderTopLeftRadius: rs(22),
+    borderTopRightRadius: rs(22),
     padding: 20,
     maxHeight: '82%',
   },
@@ -1305,8 +1310,9 @@ const styles = StyleSheet.create({
     borderBottomColor: C.border,
   },
   modalTitle: {
+    fontFamily: DISPLAY,
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '800',
     color: C.text,
   },
   modalCloseBtn: {
@@ -1372,14 +1378,15 @@ const styles = StyleSheet.create({
   modalSaveBtn: {
     backgroundColor: C.g700,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: rs(12),
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
   },
   modalSaveBtnText: {
+    fontFamily: DISPLAY,
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#fff',
   },
 

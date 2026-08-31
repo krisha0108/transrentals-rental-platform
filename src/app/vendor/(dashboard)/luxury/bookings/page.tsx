@@ -275,7 +275,7 @@ export default function VendorLuxuryBookingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F8F9FB] animate-pulse">
+      <div className="min-h-dvh bg-[#F8F9FB] animate-pulse">
         {/* Header Skeleton */}
         <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 border-b border-emerald-200/20 px-4 py-3.5 -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 mb-4">
           <div className="flex items-center justify-between">
@@ -421,7 +421,7 @@ export default function VendorLuxuryBookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB]">
+    <div className="min-h-dvh bg-[#F8F9FB]">
       {/* ═══════ Premium Header ═══════ */}
       <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 border-b border-emerald-200/20 px-4 py-3.5 -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 mb-4">
         <div className="flex items-center justify-between">
@@ -685,7 +685,7 @@ export default function VendorLuxuryBookingsPage() {
                     </span>
                   </div>
 
-                  <div className="flex flex-col gap-2 overflow-y-auto pr-1 pb-2" style={{ maxHeight: 'calc(100vh - 420px)' }}>
+                  <div className="flex flex-col gap-2 overflow-y-auto pr-1 pb-2" style={{ maxHeight: 'calc(100dvh - 420px)' }}>
                     {column.items.map((item) => {
                       const isQuoted = item.type === 'quoted';
                       return (

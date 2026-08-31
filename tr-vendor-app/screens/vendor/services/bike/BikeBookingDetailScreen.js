@@ -15,22 +15,27 @@ import {
   generateTripOtp, verifyTripOtp, completeBooking,
   getBaseURL, getSessionToken,
 } from '../../../api/client';
+import { SC as T, G, rs, shade, cardShadow } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
 const { width: W } = Dimensions.get('window');
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A',
-  sub: '#475569', muted: '#94A3B8',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
-  orange: '#EA580C', orangeL: '#FFF7ED',
-  indigo: '#4F46E5', indigoL: '#EEF2FF',
-  teal: '#0D9488', tealL: '#F0FDFA',
-  cyan: '#0891B2', cyanL: '#ECFEFF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border, text: T.ink,
+  sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  purple: T.purple, purpleL: T.purpleLight,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  orange: T.orange, orangeL: T.orangeL,
+  indigo: T.indigo, indigoL: T.indigoLight,
+  teal: T.teal, tealL: T.tintOcean,
+  cyan: shade(T.ocean, 25), cyanL: T.tintOcean,
 };
 
 const STATUS_CONFIG = {
@@ -200,7 +205,7 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
     return (
       <View style={s.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.hero}>
+        <LinearGradient colors={G.hero} style={s.hero}>
           <SafeAreaView edges={['top']}>
             <View style={s.topBar}>
               <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -226,7 +231,7 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
     return (
       <View style={s.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.hero}>
+        <LinearGradient colors={G.hero} style={s.hero}>
           <SafeAreaView edges={['top']}>
             <View style={s.topBar}>
               <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -263,12 +268,12 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
 
       {/* ══ Hero Header ══════════════════════════════════════════════════════ */}
       <LinearGradient
-        colors={[C.g900, '#064E3B', C.g700]}
+        colors={G.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.hero}
       >
-        <View style={s.deco1} />
-        <View style={s.deco2} />
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
 
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -407,9 +412,9 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
                     <Text style={s.payVal}>₹{q.extraKmCharge}/km</Text>
                   </View>
                 ) : null}
-                <View style={s.payRow}>
-                  <Text style={[s.payLabel, { fontWeight: '700', color: C.text }]}>Total Quoted</Text>
-                  <Text style={[s.payVal, { color: C.g700 }]}>{money(total)}</Text>
+                <View style={s.totalRow}>
+                  <Text style={s.totalLabel}>Total Quoted</Text>
+                  <Text style={[s.totalVal, { fontSize: 18 }]}>{money(total)}</Text>
                 </View>
                 {advance > 0 ? (
                   <View style={s.payRow}>
@@ -422,43 +427,53 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
                 {inc.length > 0 && (
                   <View style={s.quoteSub}>
                     <Text style={s.quoteSubTitle}>Inclusions</Text>
-                    {inc.map((t, i) => (
-                      <View key={i} style={s.quoteLi}>
-                        <Ionicons name="checkmark-circle" size={13} color={C.g600} />
-                        <Text style={s.quoteLiTxt}>{t}</Text>
-                      </View>
-                    ))}
+                    <View style={s.pillWrap}>
+                      {inc.map((t, i) => (
+                        <View key={i} style={[s.pill, { backgroundColor: C.g100 }]}>
+                          <View style={[s.pillPip, { backgroundColor: C.g700 }]}>
+                            <Ionicons name="checkmark" size={10} color="#fff" />
+                          </View>
+                          <Text style={[s.pillTxt, { color: C.g700 }]}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
                 {/* Exclusions */}
                 {exc.length > 0 && (
                   <View style={s.quoteSub}>
                     <Text style={s.quoteSubTitle}>Exclusions</Text>
-                    {exc.map((t, i) => (
-                      <View key={i} style={s.quoteLi}>
-                        <Ionicons name="close-circle" size={13} color={C.red} />
-                        <Text style={s.quoteLiTxt}>{t}</Text>
-                      </View>
-                    ))}
+                    <View style={s.pillWrap}>
+                      {exc.map((t, i) => (
+                        <View key={i} style={[s.pill, { backgroundColor: C.redL }]}>
+                          <View style={[s.pillPip, { backgroundColor: C.red }]}>
+                            <Ionicons name="close" size={10} color="#fff" />
+                          </View>
+                          <Text style={[s.pillTxt, { color: C.red }]}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
                 {/* Terms */}
                 {terms.length > 0 && (
                   <View style={s.quoteSub}>
                     <Text style={s.quoteSubTitle}>Terms & Conditions</Text>
-                    {terms.map((t, i) => (
-                      <View key={i} style={s.quoteLi}>
-                        <Text style={s.quoteBullet}>•</Text>
-                        <Text style={s.quoteLiTxt}>{t}</Text>
-                      </View>
-                    ))}
+                    <View style={s.termsCard}>
+                      {terms.map((t, i) => (
+                        <View key={i} style={[s.termLine, i === terms.length - 1 && { marginBottom: 0 }]}>
+                          <Text style={s.termNum}>{i + 1}.</Text>
+                          <Text style={s.termTxt}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
                 {/* Vendor note */}
                 {q.vendorMessage ? (
-                  <View style={s.quoteSub}>
-                    <Text style={s.quoteSubTitle}>Your Note</Text>
-                    <Text style={s.quoteLiTxt}>{q.vendorMessage}</Text>
+                  <View style={s.quoteNote}>
+                    <Ionicons name="chatbox-ellipses-outline" size={13} color={C.muted} />
+                    <Text style={[s.quoteLiTxt, { flex: 1 }]}>{q.vendorMessage}</Text>
                   </View>
                 ) : null}
                 {q.validTill ? (
@@ -871,12 +886,12 @@ const s = StyleSheet.create({
   topBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 16 },
   backBtn:   { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  heroTitle: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
-  heroCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
+  heroCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: rs(16), padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
   heroCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 },
   heroLabel:  { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 4 },
-  heroNumber: { fontSize: 26, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  heroNumber: { fontFamily: DISPLAY, fontSize: 26, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
   statusPillTxt: { fontSize: 11, fontWeight: '700' },
   heroMeta:     { flexDirection: 'row', gap: 16 },
@@ -895,18 +910,17 @@ const s = StyleSheet.create({
 
   // ── Card ──────────────────────────────────────────────────────────────────
   card: {
-    backgroundColor: C.card, borderRadius: 16, padding: 16,
+    backgroundColor: C.card, borderRadius: rs(16), padding: 16,
     marginBottom: 12, borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 }, elevation: 2,
+    ...cardShadow,
   },
   cardHead:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
   cardHead0: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   cardIcon:  { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
 
   // Status progression strip
-  statusStrip: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingVertical: 14, paddingHorizontal: 14, marginBottom: 14 },
+  statusStrip: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', backgroundColor: C.card, borderRadius: rs(14), borderWidth: 1, borderColor: C.border, paddingVertical: 14, paddingHorizontal: 14, marginBottom: 14 },
   statusStep:  { alignItems: 'center', width: 66 },
   statusLine:  { flex: 1, height: 2, backgroundColor: C.border, marginTop: 11 },
   statusDot:   { width: 24, height: 24, borderRadius: 12, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
@@ -918,11 +932,18 @@ const s = StyleSheet.create({
   // Collapsible quote details
   quoteHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   quoteBody: { marginTop: 14, gap: 10 },
-  quoteSub:      { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, gap: 7 },
-  quoteSubTitle: { fontSize: 12, fontWeight: '800', color: C.text, marginBottom: 2 },
-  quoteLi:       { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  quoteSub:      { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, gap: 8 },
+  quoteSubTitle: { fontSize: 11, fontWeight: '800', color: C.sub, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
   quoteLiTxt:    { flex: 1, fontSize: 12.5, color: C.sub, lineHeight: 18 },
-  quoteBullet:   { fontSize: 13, color: C.muted, lineHeight: 18, width: 13, textAlign: 'center' },
+  pillWrap:      { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  pill:          { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingRight: 12, paddingLeft: 7, borderRadius: 20 },
+  pillPip:       { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  pillTxt:       { fontSize: 12, fontWeight: '600' },
+  termsCard:     { backgroundColor: C.bg, borderRadius: rs(12), padding: 11 },
+  termLine:      { flexDirection: 'row', gap: 8, marginBottom: 7 },
+  termNum:       { fontSize: 12, fontWeight: '800', color: C.text },
+  termTxt:       { flex: 1, fontSize: 12, color: C.sub, lineHeight: 18 },
+  quoteNote:     { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: C.bg, borderRadius: rs(10), padding: 10, marginTop: 4 },
   quoteValid:    { fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 6 },
 
   // ── Customer ──────────────────────────────────────────────────────────────
@@ -973,7 +994,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: C.g100, marginBottom: 10,
   },
   totalLabel: { fontSize: 14, fontWeight: '700', color: C.g800 },
-  totalVal:   { fontSize: 24, fontWeight: '900', color: C.g700 },
+  totalVal:   { fontFamily: DISPLAY, fontSize: 24, fontWeight: '900', color: C.g700 },
 
   // ── Trip Control ──────────────────────────────────────────────────────────
   msgBox: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, marginBottom: 12 },
@@ -988,13 +1009,13 @@ const s = StyleSheet.create({
   otpInputWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 2, borderColor: C.border, borderRadius: 14, backgroundColor: C.bg, marginBottom: 14 },
   otpInput: { flex: 1, fontSize: 24, fontWeight: '800', letterSpacing: 8, textAlign: 'center', color: C.text },
 
-  ctaBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14, marginBottom: 10 },
-  ctaBtnOutline:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, borderRadius: 14, marginBottom: 10, borderWidth: 2, borderColor: C.purple, backgroundColor: 'transparent' },
-  ctaTxt:       { fontSize: 14, fontWeight: '700', color: '#fff' },
+  ctaBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: rs(14), marginBottom: 10 },
+  ctaBtnOutline:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, borderRadius: rs(14), marginBottom: 10, borderWidth: 2, borderColor: C.purple, backgroundColor: 'transparent' },
+  ctaTxt:       { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
 
   // ── Completed ─────────────────────────────────────────────────────────────
   trophyRing:     { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  completedTitle: { fontSize: 20, fontWeight: '800', color: C.g700, marginBottom: 6 },
+  completedTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: C.g700, marginBottom: 6 },
   completedDesc:  { fontSize: 13, color: C.sub, textAlign: 'center' },
 
   // ── Notes ─────────────────────────────────────────────────────────────────
@@ -1005,11 +1026,10 @@ const s = StyleSheet.create({
   actionBar: {
     flexDirection: 'row', gap: 10, padding: 14,
     backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12,
-    shadowOffset: { width: 0, height: -3 }, elevation: 10,
+    ...cardShadow,
   },
-  rejectBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14, borderRadius: 14, borderWidth: 2, borderColor: C.red, backgroundColor: C.redL },
-  rejectTxt: { fontSize: 14, fontWeight: '700', color: C.red },
-  acceptBtn: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14, borderRadius: 14, backgroundColor: C.g600 },
-  acceptTxt: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  rejectBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14, borderRadius: rs(14), borderWidth: 2, borderColor: C.red, backgroundColor: C.redL },
+  rejectTxt: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.red },
+  acceptBtn: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14, borderRadius: rs(14), backgroundColor: C.g600 },
+  acceptTxt: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
 });

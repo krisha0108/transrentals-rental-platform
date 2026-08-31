@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -605,8 +605,12 @@ export default function MarketplacePage() {
       </section>
       )}
 
-      {/* ══════════════════════ TRANSPORT SEARCH HERO ══════════════════════ */}
-      <TransportSearchHero locations={locations} />
+      {/* ══════════════════════ TRANSPORT SEARCH HERO (ixigo-style, no banner) ══════════════════════ */}
+      <TransportSearchHero locations={locations} variant="compact" />
+
+      {/* ══════════════════════ TRANSPORT SEARCH HERO (duplicate) ══════════════════════ */}
+      {/* Temporarily hidden — keeping the code, not deleting it. */}
+      {false && <TransportSearchHero locations={locations} variant="hero" />}
 
       {/* ═══════════════════ EXPLORE TOP CATEGORIES ═══════════════════ */}
       <section className="bg-white py-16 sm:py-20">
@@ -1565,6 +1569,11 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Lets the Mini*Input field components below pick up styling for the
+// compact (ixigo-style) hero without threading a prop through every one of
+// their ~30 call sites — TransportSearchHero provides its own `variant`.
+const HeroVariantContext = createContext<'hero' | 'compact'>('hero');
+
 // ─────────────────────────────────────────────────────────────────────────
 // Compact city autocomplete shared by the From/To fields below — same
 // dropdown-on-focus, filter-as-you-type behaviour as CategoryFormPanel's
@@ -1582,9 +1591,11 @@ function MiniCityInput({
   onSelect: (loc: Location) => void;
   fromLocation?: Location | null;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setQuery(value), [value]);
 
@@ -1626,20 +1637,25 @@ function MiniCityInput({
       : 0;
 
   return (
-    <div className="relative min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
+    <div
+      className="relative min-w-[120px] sm:min-w-[182px] flex-1 cursor-text rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]"
+      ref={boxRef}
+      onClick={() => inputRef.current?.focus()}
+    >
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <MapPin className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <input
+        ref={inputRef}
         value={query}
         onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
-        className="w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+        className={`w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0 ${variant === 'compact' ? 'placeholder:font-normal placeholder:text-slate-600' : 'placeholder:font-medium placeholder:text-slate-400'}`}
       />
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && matches.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
+        <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl" onClick={(e) => e.stopPropagation()}>
           {nearbyCount > 0 && (
             <div className="px-3 pb-1 pt-1 text-[10.5px] font-semibold uppercase tracking-wide text-primary-600">
               Nearby cities shown first
@@ -1688,9 +1704,11 @@ function MiniAirportInput({
   onSelect: (a: AirportOption) => void;
   loading?: boolean;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setQuery(value), [value]);
 
@@ -1711,20 +1729,25 @@ function MiniAirportInput({
   }, [query, airports]);
 
   return (
-    <div className="relative min-w-[117px] sm:min-w-[180px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]" ref={boxRef}>
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
+    <div
+      className="relative min-w-[117px] sm:min-w-[180px] flex-1 cursor-text rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]"
+      ref={boxRef}
+      onClick={() => inputRef.current?.focus()}
+    >
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <Plane className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <input
+        ref={inputRef}
         value={query}
         onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         placeholder={loading ? 'Loading airports…' : placeholder}
-        className="w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+        className={`w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0 ${variant === 'compact' ? 'placeholder:font-normal placeholder:text-slate-600' : 'placeholder:font-medium placeholder:text-slate-400'}`}
       />
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && matches.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
+        <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl" onClick={(e) => e.stopPropagation()}>
           {matches.map((a) => (
             <button
               key={a.id}
@@ -1758,6 +1781,7 @@ function MiniSelectInput({
   caption?: string;
   boxClassName?: string;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -1771,22 +1795,22 @@ function MiniSelectInput({
 
   return (
     <div
-      className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
+      className={`relative ${boxClassName} cursor-pointer rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
       ref={boxRef}
+      onClick={() => setOpen(true)}
     >
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <Icon className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-2 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
-        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{value || placeholder}</span>
+        <span className={`truncate ${value ? '' : variant === 'compact' ? 'font-normal text-slate-600' : 'font-medium text-slate-400'}`}>{value || placeholder}</span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
+        <div className="absolute left-0 right-0 top-full z-[60] mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl" onClick={(e) => e.stopPropagation()}>
           {options.map((opt) => (
             <button
               key={opt}
@@ -1802,7 +1826,7 @@ function MiniSelectInput({
           ))}
         </div>
       )}
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
     </div>
   );
 }
@@ -1832,6 +1856,7 @@ function MiniDateInput({
   caption?: string;
   boxClassName?: string;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [open, setOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState(() => {
     const base = value ? ymdToDate(value) : min ? ymdToDate(min) : new Date();
@@ -1867,22 +1892,22 @@ function MiniDateInput({
 
   return (
     <div
-      className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
+      className={`relative ${boxClassName} cursor-pointer rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
       ref={boxRef}
+      onClick={() => setOpen(true)}
     >
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <Calendar className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
-        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{displayText}</span>
+        <span className={`truncate ${value ? '' : variant === 'compact' ? 'font-normal text-slate-600' : 'font-medium text-slate-400'}`}>{displayText}</span>
       </button>
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && (
-        <div className="absolute left-0 top-full z-[60] mt-1.5 w-64 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-2xl">
+        <div className="absolute left-0 top-full z-[60] mt-1.5 w-64 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-2xl" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between">
             <button
               type="button"
@@ -1967,6 +1992,7 @@ function MiniTimeInput({
   caption?: string;
   boxClassName?: string;
 }) {
+  const variant = useContext(HeroVariantContext);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -1991,22 +2017,23 @@ function MiniTimeInput({
 
   return (
     <div
-      className={`relative ${boxClassName} rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
+      className={`relative ${boxClassName} cursor-pointer rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
       ref={boxRef}
+      onClick={() => setOpen(true)}
     >
-      <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold text-slate-500 sm:text-[13px]">
+      <label className={`mb-1 flex items-center gap-1.5 text-[11.5px] font-bold sm:text-[13px] ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>
         <Clock className="h-3 w-3 text-primary-700" /> {label}
       </label>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen(true)}
         className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
-        <span className={`truncate ${value ? '' : 'font-medium text-slate-400'}`}>{value ? formatTimeSlot(value) : '--:-- --'}</span>
+        <span className={`truncate ${value ? '' : variant === 'compact' ? 'font-normal text-slate-600' : 'font-medium text-slate-400'}`}>{value ? formatTimeSlot(value) : '--:-- --'}</span>
       </button>
-      {caption && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
+      {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && (
-        <div ref={listRef} className="absolute left-0 top-full z-[60] mt-1.5 max-h-64 w-40 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl">
+        <div ref={listRef} className="absolute left-0 top-full z-[60] mt-1.5 max-h-64 w-40 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl" onClick={(e) => e.stopPropagation()}>
           {TIME_SLOTS.map((t) => {
             const isSelected = t === value;
             return (
@@ -2111,13 +2138,13 @@ const POPULAR_TRANSPORT_SEARCHES = [
 ];
 
 const TRANSPORT_TABS = [
-  { key: 'bike', label: 'Bike', icon: Bike, basePath: '/bike-on-rent', fleetSegment: 'bikes' as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: true, hasEquipmentFields: false },
-  { key: 'self-drive', label: 'Self Drive Car', icon: Key, basePath: '/self-drive-car-rentals', fleetSegment: 'cars' as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: true, hasEquipmentFields: false },
-  { key: 'car', label: 'Car', icon: Car, basePath: '/car-rental', fleetSegment: null as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false },
-  { key: 'bus', label: 'Bus', icon: Bus, basePath: '/bus-rental', fleetSegment: null as string | null, needsTo: true, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false },
-  { key: 'truck', label: 'Truck', icon: Truck, basePath: '/transporter', fleetSegment: null as string | null, needsTo: true, hasTruckFields: true, hasDateTimeFields: false, hasEquipmentFields: false },
-  { key: 'packers', label: 'Packers & Movers', icon: Package, basePath: '/packers-and-movers', fleetSegment: null as string | null, needsTo: true, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false },
-  { key: 'equipment', label: 'Equipment', icon: Wrench, basePath: '/equipment-rental', fleetSegment: null as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: true },
+  { key: 'bike', label: 'Bike', icon: Bike, basePath: '/bike-on-rent', fleetSegment: 'bikes' as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: true, hasEquipmentFields: false, image: '/images/tabs/bike-tab.png' },
+  { key: 'self-drive', label: 'Self Drive Car', icon: Key, basePath: '/self-drive-car-rentals', fleetSegment: 'cars' as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: true, hasEquipmentFields: false, image: '/images/tabs/self-drive-tab.png' },
+  { key: 'car', label: 'Car', icon: Car, basePath: '/car-rental', fleetSegment: null as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false, image: '/images/tabs/car-rental-tab.png', imageScale: 1.2 },
+  { key: 'bus', label: 'Bus', icon: Bus, basePath: '/bus-rental', fleetSegment: null as string | null, needsTo: true, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false, image: '/images/tabs/bus-tab.png' },
+  { key: 'truck', label: 'Truck', icon: Truck, basePath: '/transporter', fleetSegment: null as string | null, needsTo: true, hasTruckFields: true, hasDateTimeFields: false, hasEquipmentFields: false, image: '/images/tabs/truck-tab.png' },
+  { key: 'packers', label: 'Packers & Movers', icon: Package, basePath: '/packers-and-movers', fleetSegment: null as string | null, needsTo: true, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: false, image: '/images/tabs/packers-tab.png' },
+  { key: 'equipment', label: 'Equipment', icon: Wrench, basePath: '/equipment-rental', fleetSegment: null as string | null, needsTo: false, hasTruckFields: false, hasDateTimeFields: false, hasEquipmentFields: true, image: '/images/tabs/equipment-tab.png' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2140,7 +2167,7 @@ function getTodayLocalDateString() {
   return `${year}-${month}-${day}`;
 }
 
-function TransportSearchHero({ locations }: { locations: Location[] }) {
+function TransportSearchHero({ locations, variant = 'hero' }: { locations: Location[]; variant?: 'hero' | 'compact' }) {
   const todayDateStr = getTodayLocalDateString();
   const router = useRouter();
   const { customer, isAuthenticated } = useCustomerAuth();
@@ -2702,83 +2729,129 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
   ];
 
   return (
-    <section className="relative bg-[#0b1420] pb-14 pt-16 text-white sm:pt-20">
-      <div className="absolute inset-0 overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/categories/hero-fleet.png"
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-90"
-          style={{ objectPosition: 'center 30%' }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              'linear-gradient(90deg, #0a1220 0%, rgba(10,18,32,.92) 22%, rgba(10,18,32,.55) 45%, rgba(10,18,32,.25) 62%, rgba(10,18,32,.65) 100%), linear-gradient(180deg, rgba(6,11,20,.35) 0%, rgba(6,11,20,.15) 35%, rgba(7,12,22,.65) 78%, #0a0f18 100%)',
-          }}
-        />
-      </div>
-
-      <div className="container relative z-10 mx-auto px-4">
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.04] px-4 py-1.5 text-xs font-semibold text-white/90">
-          <ShieldCheck className="h-3.5 w-3.5 text-primary-400" />
-          THE MOBILITY TRAVEL MARKETPLACE
-        </span>
-
-        <div className="mb-14 mt-7 flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-start">
-          <div>
-            <h2 className="max-w-2xl font-heading text-2xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-4xl lg:text-5xl">
-              Everything You Need to<br />
-              <span className="text-primary-400">Ride, Move &amp; Travel.</span>
-            </h2>
-
-            <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-slate-300">
-              Rent vehicles. Book tours &amp; trips. Find trusted rental providers. Or grow your mobility business — all from one place.
-            </p>
-          </div>
-
-          <div className="flex w-full flex-wrap items-center gap-2.5 rounded-2xl border border-white/[0.18] bg-slate-900/70 px-4 py-3 backdrop-blur-sm sm:w-fit sm:shrink-0 sm:flex-nowrap sm:gap-3.5 sm:px-5 sm:py-4">
-            <div className="flex shrink-0">
-              {HERO_AVATARS.map((src, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={src} src={src} alt="" className={`h-9 w-9 rounded-full border-2 border-[#16202f] object-cover ${i > 0 ? '-ml-2.5' : ''}`} />
-              ))}
-            </div>
-            <div className="shrink-0 border-r border-white/[0.18] pr-4">
-              <div className="flex items-center gap-1.5 text-[15px] font-bold text-white">
-                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> 4.8/5
-              </div>
-              <p className="mt-0.5 whitespace-nowrap text-xs text-slate-400">From 20,000+ reviews</p>
-            </div>
-            <p className="w-full text-[13px] font-medium text-slate-200 sm:w-auto sm:whitespace-nowrap">Trusted by Thousands of Customers</p>
-          </div>
+    <HeroVariantContext.Provider value={variant}>
+    <section className={variant === 'compact' ? 'bg-slate-50 pb-8 pt-14 sm:pb-10 sm:pt-16' : 'relative bg-[#0b1420] pb-14 pt-16 text-white sm:pt-20'}>
+      {variant === 'hero' && (
+        <div className="absolute inset-0 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/categories/hero-fleet.png"
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover opacity-90"
+            style={{ objectPosition: 'center 30%' }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                'linear-gradient(90deg, #0a1220 0%, rgba(10,18,32,.92) 22%, rgba(10,18,32,.55) 45%, rgba(10,18,32,.25) 62%, rgba(10,18,32,.65) 100%), linear-gradient(180deg, rgba(6,11,20,.35) 0%, rgba(6,11,20,.15) 35%, rgba(7,12,22,.65) 78%, #0a0f18 100%)',
+            }}
+          />
         </div>
+      )}
+
+      <div className={variant === 'compact' ? 'container mx-auto px-4' : 'container relative z-10 mx-auto px-4'}>
+        {variant === 'hero' && (
+          <>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.04] px-4 py-1.5 text-xs font-semibold text-white/90">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary-400" />
+              THE MOBILITY TRAVEL MARKETPLACE
+            </span>
+
+            <div className="mb-14 mt-7 flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-start">
+              <div>
+                <h2 className="max-w-2xl font-heading text-2xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-4xl lg:text-5xl">
+                  Everything You Need to<br />
+                  <span className="text-primary-400">Ride, Move &amp; Travel.</span>
+                </h2>
+
+                <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-slate-300">
+                  Rent vehicles. Book tours &amp; trips. Find trusted rental providers. Or grow your mobility business — all from one place.
+                </p>
+              </div>
+
+              <div className="flex w-full flex-wrap items-center gap-2.5 rounded-2xl border border-white/[0.18] bg-slate-900/70 px-4 py-3 backdrop-blur-sm sm:w-fit sm:shrink-0 sm:flex-nowrap sm:gap-3.5 sm:px-5 sm:py-4">
+                <div className="flex shrink-0">
+                  {HERO_AVATARS.map((src, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={src} src={src} alt="" className={`h-9 w-9 rounded-full border-2 border-[#16202f] object-cover ${i > 0 ? '-ml-2.5' : ''}`} />
+                  ))}
+                </div>
+                <div className="shrink-0 border-r border-white/[0.18] pr-4">
+                  <div className="flex items-center gap-1.5 text-[15px] font-bold text-white">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> 4.8/5
+                  </div>
+                  <p className="mt-0.5 whitespace-nowrap text-xs text-slate-400">From 20,000+ reviews</p>
+                </div>
+                <p className="w-full text-[13px] font-medium text-slate-200 sm:w-auto sm:whitespace-nowrap">Trusted by Thousands of Customers</p>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Search panel */}
         <div className="flex flex-col items-stretch">
-          <div className="ml-1 w-fit max-w-full overflow-x-auto rounded-xl bg-white px-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:ml-5 sm:rounded-t-lg sm:rounded-b-none sm:px-6 [&::-webkit-scrollbar]:hidden">
-            <div className="flex gap-1">
-              {TRANSPORT_TABS.map((tab) => {
-                const Icon = tab.icon;
-                const active = activeTab.key === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setActiveTab(tab)}
-                    className={`mt-2 flex shrink-0 items-center gap-1.5 rounded-lg border-b-2 px-3 py-2.5 text-[13px] font-semibold transition-colors ${
-                      active ? 'border-primary bg-primary-50 text-primary-700' : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    <Icon className="h-3.5 w-3.5" /> {tab.label}
-                  </button>
-                );
-              })}
+          {variant === 'compact' ? (
+            <div className="rounded-2xl bg-white px-2 shadow-[0_2px_10px_rgba(15,23,42,0.06)] sm:px-6">
+              <div className="flex items-end gap-10 overflow-x-auto overflow-y-visible px-8 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {TRANSPORT_TABS.map((tab) => {
+                  const active = activeTab.key === tab.key;
+                  // Every tab reserves the SAME fixed 192px of layout height (enough for
+                  // the largest image at its biggest active scale) — identical for every
+                  // tab, in both states, all the time. That's what actually keeps the
+                  // button height and label position 100% still: nothing here ever
+                  // depends on `active`. The circle badge is a separate, always-64px
+                  // decorative layer. Only the image's transform (pure paint, no layout
+                  // effect) animates its visual size within that fixed space.
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex shrink-0 flex-col items-center border-b-2 px-1 py-2 text-[15px] font-semibold transition-colors ${
+                        active ? 'border-primary text-primary-700' : 'border-transparent text-slate-700 hover:text-slate-900'
+                      }`}
+                    >
+                      <div className="relative flex h-32 w-16 shrink-0 items-center justify-center">
+                        <div className="absolute h-16 w-16 rounded-full bg-primary-50" />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={tab.image}
+                          alt={tab.label}
+                          className="relative h-16 w-auto origin-center transform-gpu object-contain transition-transform duration-300 ease-out"
+                          style={{ transform: `scale(${(active ? 1.5 : 1.15) * (tab.imageScale ?? 1)})` }}
+                        />
+                      </div>
+                      <span className="mt-1 whitespace-nowrap">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="ml-1 w-fit max-w-full overflow-x-auto rounded-xl bg-white px-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:ml-5 sm:rounded-t-lg sm:rounded-b-none sm:px-6 [&::-webkit-scrollbar]:hidden">
+              <div className="flex gap-1">
+                {TRANSPORT_TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  const active = activeTab.key === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={`mt-2 flex shrink-0 items-center gap-1.5 rounded-lg border-b-2 px-3 py-2.5 text-[13px] font-semibold transition-colors ${
+                        active ? 'border-primary bg-primary-50 text-primary-700' : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" /> {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-          <div className="rounded-2xl bg-white shadow-[0_16px_34px_rgba(0,0,0,0.28)]">
+          <div className={variant === 'compact' ? 'mt-4 rounded-2xl bg-white shadow-[0_2px_10px_rgba(15,23,42,0.06)] sm:mt-5' : 'rounded-2xl bg-white shadow-[0_16px_34px_rgba(0,0,0,0.28)]'}>
             {activeTab.key === 'car' && (
               <div className="flex flex-wrap gap-2 px-3.5 pt-3.5 sm:px-5 sm:pt-5">
                 {(['local', 'outstation', 'airport'] as const).map((mode) => (
@@ -2818,7 +2891,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
               </div>
             )}
 
-            <div className={`flex flex-wrap items-stretch gap-2.5 p-3 sm:gap-4 sm:p-8 ${activeTab.key === 'car' || activeTab.key === 'bus' || activeTab.key === 'truck' || activeTab.key === 'packers' || activeTab.key === 'equipment' ? '' : 'md:flex-nowrap'}`}>
+            <div className={`flex flex-wrap items-stretch gap-2.5 p-3 sm:gap-4 sm:p-8 ${activeTab.key === 'car' || activeTab.key === 'bus' || activeTab.key === 'truck' || activeTab.key === 'packers' || activeTab.key === 'equipment' || activeTab.hasDateTimeFields ? '' : 'md:flex-nowrap'}`}>
               {activeTab.key === 'car' ? (
                 <>
                   {carSubTab === 'local' && (
@@ -2831,7 +2904,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         value={fromCity?.name ?? ''}
                         onSelect={setFromCity}
                       />
-                      <div className="min-w-[170px] sm:min-w-[260px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[170px] sm:min-w-[260px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Select Package</label>
                         <div className="grid grid-cols-3 gap-1.5">
                           {(['4', '8', '12'] as const).map((p) => (
@@ -3045,7 +3118,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         onSelect={setToCity}
                       />
                     </div>
-                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                       </label>
@@ -3058,7 +3131,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
-                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Drop Address
                       </label>
@@ -3108,7 +3181,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       caption="Pickup time"
                       boxClassName="min-w-[120px] sm:min-w-[182px] flex-1"
                     />
-                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Users className="h-3 w-3 text-primary-700" /> Passengers
                       </label>
@@ -3188,7 +3261,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                               type="button"
                               onClick={() => setPackersScope(opt.v)}
                               className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                                active ? 'border-primary bg-primary-50 text-primary-700' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-900'
+                                active ? 'border-primary bg-primary-50 text-primary-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900'
                               }`}
                             >
                               <Icon className="h-3 w-3" /> {opt.label}
@@ -3214,8 +3287,8 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                                 key={opt.v}
                                 type="button"
                                 onClick={() => setPackersType(opt.v)}
-                                className={`relative flex items-center gap-2 rounded-xl border-2 px-3 py-2 text-left transition-all ${
-                                  active ? 'border-primary bg-primary-50 shadow-[0_4px_14px_rgba(9,179,104,0.16)]' : 'border-slate-100 bg-[#fbfbfc] hover:border-slate-200 hover:bg-white'
+                                className={`relative flex items-center gap-2 rounded-xl border-2 px-3.5 py-2.5 text-left transition-all ${
+                                  active ? 'border-primary bg-primary-50 shadow-[0_4px_14px_rgba(9,179,104,0.16)]' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                                 }`}
                               >
                                 {active && (
@@ -3305,7 +3378,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={fromCity?.name ?? ''}
                       onSelect={setFromCity}
                     />
-                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                       </label>
@@ -3318,7 +3391,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
-                    <div className="min-w-[90px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[90px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Pincode</label>
                       <input
                         type="tel"
@@ -3330,7 +3403,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[105px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[105px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Floor No.</label>
                       <input
                         type="number"
@@ -3342,7 +3415,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Lift at Pickup?</label>
                       <YesNoPill value={pickupLift} onChange={setPickupLift} />
                     </div>
@@ -3376,7 +3449,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={toCity?.name ?? ''}
                       onSelect={setToCity}
                     />
-                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Drop Address
                       </label>
@@ -3389,7 +3462,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
-                    <div className="min-w-[90px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[90px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Pincode</label>
                       <input
                         type="tel"
@@ -3401,7 +3474,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[105px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[105px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Floor No.</label>
                       <input
                         type="number"
@@ -3413,7 +3486,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Lift at Drop?</label>
                       <YesNoPill value={dropLift} onChange={setDropLift} />
                     </div>
@@ -3484,7 +3557,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   </>
                 ) : packersStep === 6 ? (
                   <div className="flex w-full flex-col gap-3">
-                    <div className="w-full rounded-[10px] border border-slate-100 bg-[#fbfbfc] p-3.5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="w-full rounded-[10px] border border-slate-200 bg-[#fbfbfc] p-3.5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-2 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">What are you moving?</label>
                       <div className="flex flex-wrap gap-2">
                         {INVENTORY_ITEMS.map((item) => {
@@ -3521,7 +3594,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     </div>
 
                     <div className="flex flex-wrap items-stretch gap-3">
-                      <div className="min-w-[130px] sm:min-w-[200px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[130px] sm:min-w-[200px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Other Items</label>
                         <input
                           type="text"
@@ -3532,7 +3605,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         />
                         <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                       </div>
-                      <div className="min-w-[143px] sm:min-w-[220px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[143px] sm:min-w-[220px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Estimated Weight</label>
                         <div className="grid grid-cols-2 gap-1.5">
                           {ESTIMATED_WEIGHT_OPTIONS.map((opt) => (
@@ -3549,7 +3622,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           ))}
                         </div>
                       </div>
-                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Heavy Items?</label>
                         <YesNoPill value={hasHeavyItems} onChange={setHasHeavyItems} />
                         {hasHeavyItems && (
@@ -3562,7 +3635,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           />
                         )}
                       </div>
-                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Fragile Items?</label>
                         <YesNoPill value={hasFragileItems} onChange={setHasFragileItems} />
                         {hasFragileItems && (
@@ -3599,19 +3672,19 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 ) : (
                   <div className="flex w-full flex-col gap-3">
                     <div className="flex flex-wrap items-stretch gap-3">
-                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Packing Help?</label>
                         <YesNoPill value={needPacking} onChange={setNeedPacking} />
                       </div>
-                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Loading Help?</label>
                         <YesNoPill value={needLoading} onChange={setNeedLoading} />
                       </div>
-                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Unloading Help?</label>
                         <YesNoPill value={needUnloading} onChange={setNeedUnloading} />
                       </div>
-                      <div className="min-w-[100px] sm:min-w-[155px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[100px] sm:min-w-[155px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Labour Workers</label>
                         <input
                           type="number"
@@ -3626,7 +3699,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     </div>
 
                     <div className="flex flex-wrap items-stretch gap-3">
-                      <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Truck Type</label>
                         <div className="flex gap-1.5">
                           {([
@@ -3649,11 +3722,11 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           })}
                         </div>
                       </div>
-                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Part Load OK?</label>
                         <YesNoPill value={partLoad} onChange={setPartLoad} />
                       </div>
-                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Transit Insurance?</label>
                         <YesNoPill value={needInsurance} onChange={setNeedInsurance} />
                         {needInsurance && (
@@ -3666,11 +3739,11 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                           />
                         )}
                       </div>
-                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Proof of Delivery?</label>
                         <YesNoPill value={requiresPod} onChange={setRequiresPod} />
                       </div>
-                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Multiple Stops?</label>
                         <YesNoPill value={multipleStops} onChange={setMultipleStops} />
                         {multipleStops && (
@@ -3712,7 +3785,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
               ) : activeTab.key === 'equipment' ? (
                 equipmentStep === 1 ? (
                   <>
-                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Wrench className="h-3 w-3 text-primary-700" /> Equipment Type
                       </label>
@@ -3734,7 +3807,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       value={fromCity?.name ?? ''}
                       onSelect={setFromCity}
                     />
-                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                       </label>
@@ -3760,7 +3833,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   </>
                 ) : (
                   <>
-                    <div className="min-w-[143px] sm:min-w-[220px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[143px] sm:min-w-[220px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Rental Duration</label>
                       <div className="grid grid-cols-2 gap-1.5">
                         {([
@@ -3790,7 +3863,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                       caption="Rental start"
                       boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
                     />
-                    <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Wrench className="h-3 w-3 text-primary-700" /> Number of Equipment
                       </label>
@@ -3826,7 +3899,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         </button>
                       </div>
                     </div>
-                    <div className="min-w-[170px] sm:min-w-[260px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[170px] sm:min-w-[260px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                       <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">What do you need?</label>
                       <div className="flex flex-wrap gap-1.5">
                         {([
@@ -3874,7 +3947,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 )
               ) : (
                 <>
-                  <div className="flex min-w-0 flex-[2] flex-wrap basis-[320px] items-stretch gap-2.5">
+                  <div className={`flex min-w-0 flex-wrap items-stretch gap-2.5 ${activeTab.needsTo ? 'flex-[2] basis-[320px]' : ''}`}>
                     <MiniCityInput
                       label="From"
                       placeholder="Enter pickup location"
@@ -3926,7 +3999,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         placeholder="Select truck type"
                         caption="Vehicle type"
                       />
-                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                           <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                         </label>
@@ -3939,7 +4012,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                         />
                         <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                       </div>
-                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-100 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
                         <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                           <MapPin className="h-3 w-3 text-primary-700" /> Drop Address
                         </label>
@@ -4007,9 +4080,9 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                     type="button"
                     onClick={handleTruckSubmit}
                     disabled={truckSubmitting}
-                    className="flex shrink-0 items-center justify-center gap-2 rounded-[10px] bg-primary px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="flex shrink-0 items-center justify-center gap-1.5 rounded-[10px] bg-primary px-4 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {truckSubmitting ? 'Submitting…' : 'Get Quotes Now'} <ArrowRight className="h-4 w-4" />
+                    {truckSubmitting ? 'Submitting…' : 'Get Quotes Now'} <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                   <span className="whitespace-nowrap text-[12.5px] text-slate-400">
                     {isAuthenticated ? "It’s free & hassle-free" : 'Log in to submit & track your request'}
@@ -4022,9 +4095,9 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                   <button
                     type="button"
                     onClick={handleSearch}
-                    className="flex shrink-0 items-center justify-center gap-2 rounded-[10px] bg-primary px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-600"
+                    className="flex shrink-0 items-center justify-center gap-1.5 rounded-[10px] bg-primary px-4 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-primary-600"
                   >
-                    {activeTab.key === 'car' ? 'Book Now' : 'Get Quotes Now'} <ArrowRight className="h-4 w-4" />
+                    {activeTab.key === 'car' ? 'Book Now' : 'Get Quotes Now'} <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                   {activeTab.key !== 'car' && (
                     <span className="hidden whitespace-nowrap text-[12.5px] text-slate-400 sm:inline">It&rsquo;s free &amp; takes less than 2 minutes</span>
@@ -4034,8 +4107,14 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
             </div>
             {formError && <p className="px-5 pb-3 text-xs font-semibold text-red-500">{formError}</p>}
 
-            {/* Secondary trust bar — same card, no gap */}
-            <div className="mt-3 grid grid-cols-2 items-center gap-x-4 gap-y-3 rounded-b-2xl border-t border-slate-100 bg-[#f7f8fa] px-5 py-3 text-xs text-slate-600 sm:mt-0 sm:flex sm:flex-wrap sm:gap-x-0 sm:text-sm">
+            {/* Secondary trust bar */}
+            <div
+              className={
+                variant === 'compact'
+                  ? 'mx-3 mb-3 mt-4 grid grid-cols-2 items-center gap-x-4 gap-y-3 rounded-xl border border-primary-100 bg-gradient-to-r from-primary-50 via-white to-primary-50 px-5 py-3.5 text-xs text-slate-600 sm:mx-5 sm:mb-5 sm:flex sm:flex-wrap sm:gap-x-0 sm:text-sm'
+                  : 'mt-3 grid grid-cols-2 items-center gap-x-4 gap-y-3 rounded-b-2xl border-t border-slate-100 bg-[#f7f8fa] px-5 py-3 text-xs text-slate-600 sm:mt-0 sm:flex sm:flex-wrap sm:gap-x-0 sm:text-sm'
+              }
+            >
               <span className="flex flex-1 items-center gap-2.5 border-slate-200 px-0 sm:border-r sm:px-4">
                 <FileText className="h-[15px] w-[15px] shrink-0 text-primary-700" />
                 <span><b className="block font-semibold text-slate-900">Add GST Invoice</b><span className="mt-px block text-[12.5px] text-slate-400">For business bookings</span></span>
@@ -4048,7 +4127,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
                 <div className="flex">
                   {FOOTER_AVATARS.map((src, i) => (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img key={src} src={src} alt="" className={`h-6 w-6 rounded-full border-2 border-[#f7f8fa] object-cover ${i > 0 ? '-ml-2' : ''}`} />
+                    <img key={src} src={src} alt="" className={`h-6 w-6 rounded-full border-2 object-cover ${variant === 'compact' ? 'border-white' : 'border-[#f7f8fa]'} ${i > 0 ? '-ml-2' : ''}`} />
                   ))}
                 </div>
                 <span><b className="block font-semibold text-slate-900">10,482 vendors online</b><span className="mt-px block text-[12.5px] text-slate-400">128 quotes in last hour</span></span>
@@ -4063,12 +4142,16 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
 
         {/* Popular searches */}
         <div className="mt-6 flex flex-wrap items-center gap-3 text-sm">
-          <span className="font-medium text-slate-400">Popular Searches:</span>
+          <span className={`font-medium ${variant === 'compact' ? 'text-slate-500' : 'text-slate-400'}`}>Popular Searches:</span>
           {POPULAR_TRANSPORT_SEARCHES.map((p) => (
             <Link
               key={p.label}
               href={p.href}
-              className="rounded-full border border-white/[0.18] px-4 py-2 text-[13px] font-medium text-slate-200 transition-colors hover:border-white/40 hover:bg-white/[0.06]"
+              className={
+                variant === 'compact'
+                  ? 'rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50'
+                  : 'rounded-full border border-white/[0.18] px-4 py-2 text-[13px] font-medium text-slate-200 transition-colors hover:border-white/40 hover:bg-white/[0.06]'
+              }
             >
               {p.label}
             </Link>
@@ -4087,6 +4170,7 @@ function TransportSearchHero({ locations }: { locations: Location[] }) {
         )}
       </AnimatePresence>
     </section>
+    </HeroVariantContext.Provider>
   );
 }
 

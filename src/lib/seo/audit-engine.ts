@@ -5,6 +5,111 @@ function generateId(): string {
   return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
 }
 
+export const DEFAULT_AUDIT_BASE_URL = 'https://transrentals.in';
+
+// Row shape as stored/returned by prisma.seo_audits (issues/warnings/passed
+// may already be parsed into arrays by the caller, or still be the raw
+// JSON string straight from the DB).
+interface StoredSEOAuditRow {
+  id: string;
+  pagePath: string;
+  pageTitle: string | null;
+  lastAuditDate: Date | string;
+  createdAt: Date | string;
+  overallScore: number;
+  technicalScore: number;
+  contentScore: number;
+  onPageScore: number;
+  titleLength: number | null;
+  metaDescLength: number | null;
+  h1Count: number;
+  h1Text: string | null;
+  wordCount: number;
+  imageCount: number;
+  imagesWithAlt: number;
+  imagesMissingAlt: number;
+  internalLinks: number;
+  externalLinks: number;
+  brokenLinks: number;
+  isIndexable: boolean;
+  isMobileFriendly: boolean;
+  hasStructuredData: boolean;
+  hasOpenGraph: boolean;
+  canonicalUrl: string | null;
+  loadTime: number | null;
+  pageSize: number | null;
+  issues: string | string[] | null;
+  warnings: string | string[] | null;
+  passed: string | string[] | null;
+}
+
+function parseList(value: string | string[] | null): string[] {
+  if (Array.isArray(value)) return value;
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function toIso(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+/**
+ * Reshapes a flat `seo_audits` DB row (audit-engine's storage shape) into
+ * the nested shape the /admin/analytics/seo dashboard renders. The DB row
+ * has no `url` or nested metric groups, so this fills those in rather than
+ * having the frontend guess at flat field names.
+ */
+export function shapeAuditForClient(audit: StoredSEOAuditRow, baseUrl: string = DEFAULT_AUDIT_BASE_URL) {
+  return {
+    id: audit.id,
+    url: `${baseUrl}${audit.pagePath}`,
+    pageTitle: audit.pageTitle || audit.pagePath,
+    path: audit.pagePath,
+    overallScore: audit.overallScore,
+    technicalScore: audit.technicalScore,
+    contentScore: audit.contentScore,
+    onPageScore: audit.onPageScore,
+    issues: parseList(audit.issues),
+    warnings: parseList(audit.warnings),
+    passed: parseList(audit.passed),
+    contentMetrics: {
+      wordCount: audit.wordCount,
+      h1Count: audit.h1Count,
+      h1Text: audit.h1Text ?? undefined,
+      titleLength: audit.titleLength ?? 0,
+      metaDescriptionLength: audit.metaDescLength ?? 0,
+    },
+    imageMetrics: {
+      totalImages: audit.imageCount,
+      imagesWithAlt: audit.imagesWithAlt,
+      imagesWithoutAlt: audit.imagesMissingAlt,
+    },
+    linkMetrics: {
+      internalLinks: audit.internalLinks,
+      externalLinks: audit.externalLinks,
+      brokenLinks: audit.brokenLinks,
+    },
+    technicalMetrics: {
+      isIndexable: audit.isIndexable,
+      isMobileFriendly: audit.isMobileFriendly,
+      hasStructuredData: audit.hasStructuredData,
+      hasOpenGraph: audit.hasOpenGraph,
+      canonicalUrl: audit.canonicalUrl ?? undefined,
+    },
+    performanceMetrics: {
+      loadTime: audit.loadTime ?? 0,
+      pageSize: audit.pageSize ? Math.round(audit.pageSize / 1024) : 0,
+    },
+    lastAudited: toIso(audit.lastAuditDate),
+    createdAt: toIso(audit.createdAt),
+  };
+}
+
 export interface SEOAuditResult {
   id: string;
   pagePath: string;

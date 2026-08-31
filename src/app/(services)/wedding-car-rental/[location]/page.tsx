@@ -251,7 +251,7 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
             ))}
           </div>
         </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content
@@ -269,9 +269,11 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
+            '@type': 'Service',
+            serviceType: 'Wedding Car Rental',
             name: `Wedding Car Rental in ${locationName}`,
             description: `Rent wedding cars in ${locationName}. Baraat cars, bride/groom cars with decoration.`,
+            areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',

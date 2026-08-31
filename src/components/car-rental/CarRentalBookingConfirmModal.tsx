@@ -137,25 +137,25 @@ export function CarRentalBookingConfirmModal({
     processingBg: 'bg-purple-100',
     processingIcon: 'text-purple-600',
   } : {
-    header: 'bg-gradient-to-r from-blue-600 to-blue-700',
-    btn: 'bg-blue-600 hover:bg-blue-700',
-    imgBg: 'bg-blue-100',
-    imgIcon: 'text-blue-600',
-    badge: 'bg-blue-50 text-blue-700',
-    dot: 'bg-blue-500',
-    routeBg: 'bg-blue-50',
-    routeText: 'text-blue-700',
-    routeBorder: 'border-blue-200',
-    totalFare: 'text-blue-600',
-    advance: 'bg-blue-50 text-blue-700',
-    authSummary: 'bg-blue-50',
-    authIcon: 'text-blue-600',
-    loginCard: 'bg-blue-50 border-blue-200',
-    loginAvatarBg: 'bg-blue-100',
-    loginAvatarIcon: 'text-blue-600',
-    inputFocus: 'focus:ring-blue-500 focus:border-blue-500',
-    processingBg: 'bg-blue-100',
-    processingIcon: 'text-blue-600',
+    header: 'bg-gradient-to-r from-emerald-600 to-teal-600',
+    btn: 'bg-emerald-600 hover:bg-emerald-700',
+    imgBg: 'bg-emerald-50',
+    imgIcon: 'text-emerald-600',
+    badge: 'bg-emerald-50 text-emerald-700',
+    dot: 'bg-emerald-500',
+    routeBg: 'bg-emerald-50',
+    routeText: 'text-emerald-700',
+    routeBorder: 'border-emerald-200',
+    totalFare: 'text-emerald-600',
+    advance: 'bg-emerald-50 text-emerald-700',
+    authSummary: 'bg-emerald-50',
+    authIcon: 'text-emerald-600',
+    loginCard: 'bg-emerald-50 border-emerald-200',
+    loginAvatarBg: 'bg-emerald-100',
+    loginAvatarIcon: 'text-emerald-600',
+    inputFocus: 'focus:ring-emerald-500 focus:border-emerald-500',
+    processingBg: 'bg-emerald-100',
+    processingIcon: 'text-emerald-600',
   };
   const router = useRouter();
   const [step, setStep] = useState<Step>('confirm');
@@ -563,15 +563,15 @@ export function CarRentalBookingConfirmModal({
   const renderBookingSummary = () => (
     <div className="space-y-4">
       {/* Vehicle Info */}
-      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-        <div className={`w-20 h-20 ${clr.imgBg} rounded-lg flex items-center justify-center overflow-hidden`}>
+      <div className="flex items-center gap-4 p-4 bg-white border border-gray-100 shadow-sm rounded-2xl">
+        <div className={`w-20 h-20 ${clr.imgBg} rounded-xl flex items-center justify-center overflow-hidden shrink-0`}>
           {vehicle.image ? (
             <Image src={vehicle.image} alt={vehicle.name} width={80} height={80} className="object-cover" />
           ) : (
             <Car className={`w-10 h-10 ${clr.imgIcon}`} />
           )}
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <h3 className="font-bold text-gray-900 text-lg">{vehicle.name}</h3>
           <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 mt-1">
             <span className="flex items-center gap-1">
@@ -608,29 +608,29 @@ export function CarRentalBookingConfirmModal({
       </div>
 
       {/* Trip Type Badge */}
-      <div className={`flex items-center gap-2 p-3 ${clr.badge} rounded-lg`}>
+      <div className={`inline-flex items-center gap-2 px-3.5 py-2 ${clr.badge} rounded-full`}>
         {getTripTypeIcon()}
-        <span className={`font-medium ${clr.routeText}`}>{getTripTypeLabel()}</span>
+        <span className={`font-semibold text-sm ${clr.routeText}`}>{getTripTypeLabel()}</span>
         {tripType === 'local' && packageHours && packageKms && (
-          <span className="text-sm text-blue-600">({packageHours}hrs / {packageKms}km)</span>
+          <span className={`text-xs ${clr.routeText} opacity-75`}>({packageHours}hrs / {packageKms}km)</span>
         )}
       </div>
 
       {/* Trip Details */}
       <div className="space-y-3">
-        <div className="p-3 bg-gray-50 rounded-lg">
+        <div className="p-3.5 bg-gray-50 border border-gray-100 rounded-xl">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <MapPin className="w-4 h-4 text-green-600" />
+            <MapPin className="w-4 h-4 text-emerald-600" />
             Pickup
           </div>
-          <p className="font-medium text-gray-900">{pickupCity}</p>
+          <p className="font-semibold text-gray-900">{pickupCity}</p>
           <p className="text-sm text-gray-600">{formatDate(pickupDate)} at {formatTime(pickupTime)}</p>
         </div>
 
         {tripType === 'outstation' && dropCity && (
-          <div className="p-3 bg-gray-50 rounded-lg">
+          <div className="p-3.5 bg-gray-50 border border-gray-100 rounded-xl">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-              <MapPin className="w-4 h-4 text-red-600" />
+              <MapPin className="w-4 h-4 text-red-500" />
               {outstationMode === 'round-trip' ? 'Destination & Return' : 'Drop'}
             </div>
             {intermediateStops && intermediateStops.length > 0 ? (
@@ -654,23 +654,23 @@ export function CarRentalBookingConfirmModal({
         )}
 
         {tripType === 'outstation' && outstationMode === 'round-trip' && returnDate && (
-          <div className="p-3 bg-gray-50 rounded-lg">
+          <div className="p-3.5 bg-gray-50 border border-gray-100 rounded-xl">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
               <Calendar className={`w-4 h-4 ${clr.imgIcon}`} />
               Return Date
             </div>
-            <p className="font-medium text-gray-900">{formatDate(returnDate)}</p>
+            <p className="font-semibold text-gray-900">{formatDate(returnDate)}</p>
             {pickupTime && <p className="text-sm text-gray-600">at {formatTime(pickupTime)}</p>}
           </div>
         )}
 
         {tripType === 'airport' && airportName && (
-          <div className="p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <Plane className="w-4 h-4 text-blue-600" />
+          <div className="p-3.5 bg-gray-50 border border-gray-100 rounded-xl">
+            <div className={`flex items-center gap-2 text-sm text-gray-500 mb-1`}>
+              <Plane className={`w-4 h-4 ${clr.imgIcon}`} />
               {airportMode === 'pickup' ? 'Airport' : 'Drop at Airport'}
             </div>
-            <p className="font-medium text-gray-900">{airportName}</p>
+            <p className="font-semibold text-gray-900">{airportName}</p>
           </div>
         )}
       </div>
@@ -694,9 +694,9 @@ export function CarRentalBookingConfirmModal({
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => setBookingPurpose('personal')}
-              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
+              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
                 bookingPurpose === 'personal'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  ? `${clr.routeBorder} ${clr.badge}`
                   : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
               }`}
             >
@@ -704,7 +704,7 @@ export function CarRentalBookingConfirmModal({
             </button>
             <button
               onClick={() => setBookingPurpose('company')}
-              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
+              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
                 bookingPurpose === 'company'
                   ? 'border-teal-500 bg-teal-50 text-teal-700'
                   : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
@@ -759,8 +759,8 @@ export function CarRentalBookingConfirmModal({
       )}
 
       {/* Price Breakdown */}
-      <div className="border-t border-gray-200 pt-4">
-        <h4 className="font-semibold text-gray-900 mb-3">Fare Details</h4>
+      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-4">
+        <h4 className="font-bold text-gray-900 mb-3">Fare Details</h4>
         <div className="space-y-2 text-sm">
           {pricing.basePrice && (
             <div className="flex justify-between">
@@ -818,24 +818,24 @@ export function CarRentalBookingConfirmModal({
             <span>Toll/Parking</span>
             <span>Extra (as applicable)</span>
           </div>
-          <div className="flex justify-between pt-2 border-t border-gray-200">
-            <span className="font-semibold text-gray-900">Total Fare</span>
-            <span className={`font-bold ${clr.totalFare} text-lg`}>₹{pricing.grandTotal.toLocaleString()}</span>
+          <div className="flex justify-between pt-2 border-t border-gray-100">
+            <span className="font-bold text-gray-900">Total Fare</span>
+            <span className={`font-extrabold ${clr.totalFare} text-lg`}>₹{pricing.grandTotal.toLocaleString()}</span>
           </div>
           {isTravelAgent && bookingPurpose === 'personal' ? (
-            <div className="flex justify-between text-indigo-700 bg-indigo-50 p-2 rounded-lg mt-2">
+            <div className="flex justify-between text-indigo-700 bg-indigo-50 p-2.5 rounded-xl mt-2">
               <span className="font-medium">Payment Mode</span>
               <span className="font-bold">Manager Quote — No Advance</span>
             </div>
           ) : bookingPurpose === 'company' ? (
-            <div className="flex justify-between text-teal-700 bg-teal-50 p-2 rounded-lg mt-2">
+            <div className="flex justify-between text-teal-700 bg-teal-50 p-2.5 rounded-xl mt-2">
               <span className="font-medium">Payment Mode</span>
               <span className="font-bold">
                 {isTravelAgent ? 'Manager Quote — Monthly Invoice' : 'Corporate Post-Paid'}
               </span>
             </div>
           ) : (
-            <div className={`flex justify-between ${clr.advance} p-2 rounded-lg mt-2`}>
+            <div className={`flex justify-between ${clr.advance} p-2.5 rounded-xl mt-2`}>
               <span className="font-medium">Advance Payment (30%)</span>
               <span className="font-bold">₹{advanceAmount.toLocaleString()}</span>
             </div>
@@ -844,12 +844,12 @@ export function CarRentalBookingConfirmModal({
       </div>
 
       {/* Inclusions */}
-      <div className="bg-green-50 p-3 rounded-lg">
-        <p className="text-sm font-medium text-green-800 mb-2">Included:</p>
-        <div className="flex flex-wrap gap-2 text-xs text-green-700">
-          <span className="bg-green-100 px-2 py-1 rounded">Professional Driver</span>
-          <span className="bg-green-100 px-2 py-1 rounded">AC Vehicle</span>
-          <span className="bg-green-100 px-2 py-1 rounded">Fuel</span>
+      <div className="bg-emerald-50 p-3.5 rounded-2xl">
+        <p className="text-sm font-semibold text-emerald-800 mb-2">Included:</p>
+        <div className="flex flex-wrap gap-2 text-xs font-medium text-emerald-700">
+          <span className="bg-white px-2.5 py-1 rounded-full">Professional Driver</span>
+          <span className="bg-white px-2.5 py-1 rounded-full">AC Vehicle</span>
+          <span className="bg-white px-2.5 py-1 rounded-full">Fuel</span>
         </div>
       </div>
 
@@ -864,7 +864,7 @@ export function CarRentalBookingConfirmModal({
   const renderAuthStep = () => (
     <div className="space-y-4">
       {/* Compact Booking Summary */}
-      <div className={`flex items-center gap-3 p-3 ${clr.authSummary} rounded-lg`}>
+      <div className={`flex items-center gap-3 p-3.5 ${clr.authSummary} rounded-2xl`}>
         <Car className={`w-8 h-8 ${clr.authIcon}`} />
         <div className="flex-1">
           <p className="font-semibold text-gray-900">{vehicle.name}</p>
@@ -873,7 +873,7 @@ export function CarRentalBookingConfirmModal({
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
@@ -896,7 +896,7 @@ export function CarRentalBookingConfirmModal({
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="Enter your full name"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-gray-900 focus:ring-2 ${clr.inputFocus}`}
                 required
               />
             </div>
@@ -930,7 +930,7 @@ export function CarRentalBookingConfirmModal({
                 maxLength={10}
                 inputMode="numeric"
                 pattern="[0-9]{10}"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-gray-900 focus:ring-2 ${clr.inputFocus}`}
                 required
               />
             </div>
@@ -946,7 +946,7 @@ export function CarRentalBookingConfirmModal({
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="your.email@example.com"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-gray-900 focus:ring-2 ${clr.inputFocus}`}
                 required
               />
             </div>
@@ -962,7 +962,7 @@ export function CarRentalBookingConfirmModal({
                 value={formData.pickupAddress}
                 onChange={handleChange}
                 placeholder="Enter complete pickup address"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-gray-900 focus:ring-2 ${clr.inputFocus}`}
               />
             </div>
           </div>
@@ -970,7 +970,7 @@ export function CarRentalBookingConfirmModal({
           <Button
             onClick={checkCustomerAndProceed}
             disabled={isLoading || !formData.name || !formData.phone || !formData.email}
-            className={`w-full ${clr.btn} text-white py-3`}
+            className={`w-full ${clr.btn} text-white py-3 rounded-xl`}
           >
             {isLoading ? (
               <>
@@ -994,7 +994,7 @@ export function CarRentalBookingConfirmModal({
             <p className="text-sm text-gray-500">Enter your password to login and confirm booking</p>
           </div>
 
-          <div className={`p-3 ${clr.loginCard} rounded-lg border`}>
+          <div className={`p-3.5 ${clr.loginCard} rounded-2xl border`}>
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 ${clr.loginAvatarBg} rounded-full flex items-center justify-center`}>
                 <User className={`w-5 h-5 ${clr.loginAvatarIcon}`} />
@@ -1016,7 +1016,7 @@ export function CarRentalBookingConfirmModal({
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Enter your password"
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                className={`w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 ${clr.inputFocus} text-gray-900`}
                 autoFocus
               />
               <button
@@ -1032,7 +1032,7 @@ export function CarRentalBookingConfirmModal({
           <Button
             onClick={handleLogin}
             disabled={isLoading || !formData.password}
-            className={`w-full ${clr.btn} text-white py-3`}
+            className={`w-full ${clr.btn} text-white py-3 rounded-xl`}
           >
             {isLoading ? (
               <>
@@ -1068,10 +1068,10 @@ export function CarRentalBookingConfirmModal({
             <p className="text-sm text-gray-500">Set a password to secure your account</p>
           </div>
 
-          <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+          <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <User className="w-5 h-5 text-green-600" />
+              <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                <User className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
                 <p className="font-medium text-gray-900">{formData.name}</p>
@@ -1090,7 +1090,7 @@ export function CarRentalBookingConfirmModal({
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Min 6 characters"
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 ${clr.inputFocus}`}
                 autoFocus
                 minLength={6}
               />
@@ -1108,7 +1108,7 @@ export function CarRentalBookingConfirmModal({
           <Button
             onClick={handleRegister}
             disabled={isLoading || !formData.password || formData.password.length < 6}
-            className={`w-full ${clr.btn} text-white py-3`}
+            className={`w-full ${clr.btn} text-white py-3 rounded-xl`}
           >
             {isLoading ? (
               <>
@@ -1179,20 +1179,25 @@ export function CarRentalBookingConfirmModal({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-lg w-full flex flex-col"
+            className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-lg w-full flex flex-col overflow-hidden"
             style={{ maxHeight: 'min(92vh, 100dvh - env(safe-area-inset-bottom, 0px))' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className={`flex items-center justify-between p-4 border-b border-gray-200 ${clr.header} text-white rounded-t-2xl flex-shrink-0`}>
-              <h2 className="font-bold text-lg">
-                {step === 'confirm' && 'Confirm Booking'}
-                {step === 'auth' && 'Complete Registration'}
-                {step === 'processing' && 'Processing'}
-              </h2>
+            <div className={`flex items-center justify-between px-5 py-4 ${clr.header} text-white flex-shrink-0`}>
+              <div>
+                <h2 className="font-extrabold text-lg leading-tight">
+                  {step === 'confirm' && 'Confirm Booking'}
+                  {step === 'auth' && 'Complete Registration'}
+                  {step === 'processing' && 'Processing'}
+                </h2>
+                {step === 'confirm' && (
+                  <p className="text-xs text-white/75 mt-0.5">Review your trip before confirming</p>
+                )}
+              </div>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-white/20 rounded-full transition"
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1207,10 +1212,10 @@ export function CarRentalBookingConfirmModal({
 
             {/* Footer */}
             {step === 'confirm' && (
-              <div className="p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <div className="p-4 border-t border-gray-100 bg-gray-50 flex-shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 <Button
                   onClick={handleConfirmBooking}
-                  className={`w-full ${clr.btn} text-white py-3 text-lg font-semibold`}
+                  className={`w-full ${clr.btn} text-white py-3 text-lg font-semibold rounded-xl shadow-lg shadow-black/10`}
                 >
                   {existingCustomer ? (
                     <>

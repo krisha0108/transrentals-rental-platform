@@ -350,7 +350,14 @@
       "WebFetch(domain:www.trukky.com)",
       "WebFetch(domain:urbanclapmovers.com)",
       "WebFetch(domain:www.rentickle.com)",
-      "WebFetch(domain:www.justdial.com)"
+      "WebFetch(domain:www.justdial.com)",
+      "Bash(git cherry-pick *)",
+      "Bash(NODE_OPTIONS=--max-old-space-size=6144 npx tsc --noEmit -p .)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(cd *)",
+      "Bash(curl -s \"http://localhost:3000/marketplace\")",
+      "Bash(NODE_PATH=/Users/apple/tran_stable/node_modules /Users/apple/tran_stable/node_modules/.bin/eslint \"src/app/manager/\\(protected\\)/layout.tsx\")"
     ],
     "deny": [],
     "ask": [],

@@ -11,6 +11,10 @@ import {
   MessageSquare,
   Clock,
   AlertCircle,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Save,
 } from 'lucide-react';
 
 interface Inquiry {
@@ -20,8 +24,20 @@ interface Inquiry {
   phone?: string;
   subject?: string;
   message: string;
+  status: string;
+  resolution: string | null;
+  resolved_at: string | null;
   created_at: string;
 }
+
+const STATUS_OPTIONS = [
+  { value: 'NEW',         label: 'New',         pill: 'bg-blue-50 text-blue-700 border-blue-200',    icon: AlertCircle },
+  { value: 'IN_PROGRESS', label: 'In Progress', pill: 'bg-amber-50 text-amber-700 border-amber-200', icon: Clock },
+  { value: 'RESOLVED',    label: 'Resolved',    pill: 'bg-green-50 text-green-700 border-green-200', icon: CheckCircle },
+  { value: 'CLOSED',      label: 'Closed',      pill: 'bg-gray-100 text-gray-600 border-gray-200',   icon: XCircle },
+] as const;
+
+type StatusValue = (typeof STATUS_OPTIONS)[number]['value'];
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return '\u2014';
@@ -41,9 +57,37 @@ export default function ManagerInquiryDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [status, setStatus] = useState<StatusValue>('NEW');
+  const [resolution, setResolution] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchInquiry();
   }, [inquiryId]);
+
+  const handleSaveStatus = async () => {
+    if (!inquiry) return;
+    setSaving(true);
+    setSaveError(null);
+    setSaved(false);
+    try {
+      const res = await fetch(`/api/manager/contact-inquiries/${inquiryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, resolution: resolution.trim() || null }),
+      });
+      if (!res.ok) throw new Error('Failed to update');
+      setInquiry({ ...inquiry, status, resolution: resolution.trim() || null });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e: any) {
+      setSaveError(e.message || 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const fetchInquiry = async () => {
     try {
@@ -53,6 +97,8 @@ export default function ManagerInquiryDetailPage() {
 
       if (data.success && data.inquiry) {
         setInquiry(data.inquiry);
+        setStatus((data.inquiry.status as StatusValue) || 'NEW');
+        setResolution(data.inquiry.resolution || '');
       } else {
         setError('Inquiry not found');
       }
@@ -114,6 +160,16 @@ export default function ManagerInquiryDetailPage() {
             <span className="px-3 py-1 rounded-full text-xs font-semibold border border-orange-200 bg-orange-50 text-orange-700">
               Inquiry
             </span>
+            {(() => {
+              const opt = STATUS_OPTIONS.find((o) => o.value === inquiry.status) || STATUS_OPTIONS[0];
+              const Icon = opt.icon;
+              return (
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${opt.pill}`}>
+                  <Icon className="w-3 h-3" />
+                  {opt.label}
+                </span>
+              );
+            })()}
           </div>
           <p className="text-slate-500 text-sm mt-1">
             INQ-{inquiry.id.slice(-6).toUpperCase()} &bull; Received {formatDateTime(inquiry.created_at)}
@@ -218,6 +274,75 @@ export default function ManagerInquiryDetailPage() {
             </div>
           </div>
 
+          {/* Status & Resolution */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
+              <h2 className="font-semibold text-slate-900">Status & Resolution</h2>
+            </div>
+            <div className="p-6 space-y-5">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-slate-400 mb-2">Change Status</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {STATUS_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
+                    const isSelected = status === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setStatus(opt.value)}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition ${
+                          isSelected
+                            ? `${opt.pill} ring-2 ring-offset-1 ring-current`
+                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-widest text-slate-400 mb-2">Resolution Notes</p>
+                <textarea
+                  value={resolution}
+                  onChange={(e) => setResolution(e.target.value)}
+                  placeholder="Add notes about how this inquiry was resolved..."
+                  rows={4}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100 resize-none"
+                />
+              </div>
+
+              {saveError && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{saveError}</p>
+              )}
+
+              <button
+                type="button"
+                onClick={handleSaveStatus}
+                disabled={saving || (status === inquiry.status && resolution === (inquiry.resolution || ''))}
+                className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold transition ${
+                  saved
+                    ? 'bg-green-600 text-white'
+                    : status === inquiry.status && resolution === (inquiry.resolution || '')
+                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                    : 'bg-orange-600 text-white hover:bg-orange-700'
+                }`}
+              >
+                {saving ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                ) : saved ? (
+                  <><CheckCircle className="w-4 h-4" /> Saved!</>
+                ) : (
+                  <><Save className="w-4 h-4" /> Save Changes</>
+                )}
+              </button>
+            </div>
+          </div>
+
           {/* Timeline */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
@@ -235,6 +360,15 @@ export default function ManagerInquiryDetailPage() {
                     <p className="text-xs text-slate-500">{formatDateTime(inquiry.created_at)}</p>
                   </div>
                 </div>
+                {inquiry.resolved_at && (
+                  <div className="flex gap-3">
+                    <div className="w-2 h-2 mt-2 rounded-full bg-green-500"></div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">Resolved</p>
+                      <p className="text-xs text-slate-500">{formatDateTime(inquiry.resolved_at)}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

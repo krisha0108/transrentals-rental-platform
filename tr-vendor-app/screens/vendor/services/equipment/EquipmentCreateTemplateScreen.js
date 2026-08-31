@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Modal, Switch, StatusBar,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -9,13 +10,16 @@ import Icon from 'react-native-vector-icons/Feather';
 import CustomDropdown from '../../../../components/CustomDropdown';
 import { createTemplate } from '../../../api/client';
 import { showError, showSuccess } from '../../../../services/alertService';
+import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  red: '#DC2626', redL: '#FEF2F2',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  red: T.red, redL: T.redLight,
 };
 
 const EQUIPMENT_CATEGORIES = [
@@ -139,11 +143,12 @@ export default function EquipmentCreateTemplateScreen({ navigation }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       <LinearGradient
-        colors={[C.g900, '#064E3B', C.g700]}
+        colors={G.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.hero}
       >
-        <View style={s.deco1} /><View style={s.deco2} />
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={18} color="#fff" />
@@ -276,6 +281,7 @@ export default function EquipmentCreateTemplateScreen({ navigation }) {
 
       {/* Edit Modal */}
       <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             <View style={s.modalHeader}>
@@ -299,6 +305,7 @@ export default function EquipmentCreateTemplateScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -307,21 +314,24 @@ export default function EquipmentCreateTemplateScreen({ navigation }) {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
 
-  hero: { paddingHorizontal: 16, paddingBottom: 16 },
-  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(52,211,153,0.08)' },
-  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(52,211,153,0.06)' },
+  hero: {
+    paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden',
+    borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20),
+  },
+  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)' },
+  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)' },
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 12 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
   headerTextWrap: { flex: 1 },
-  heroTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff' },
   heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 3 },
 
   scroll: { flex: 1 },
   content: { padding: 16, paddingBottom: 20 },
 
-  card: { backgroundColor: C.card, borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
+  card: { backgroundColor: C.card, borderRadius: rs(16), padding: 16, marginBottom: 16, borderWidth: 1, borderColor: C.border, ...cardShadow },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 4 },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.text, marginBottom: 4 },
   cardSubtitle: { fontSize: 12, color: C.muted, marginBottom: 12 },
 
   inputLabel: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 6, marginTop: 10 },
@@ -344,19 +354,19 @@ const s = StyleSheet.create({
 
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
-  footer: { padding: 16, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border },
-  submitBtn: { backgroundColor: C.g600, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12 },
-  submitBtnTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  footer: { padding: 16, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border, ...cardShadow },
+  submitBtn: { backgroundColor: C.g600, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: rs(12) },
+  submitBtnTxt: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff' },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: C.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '80%' },
+  modalOverlay: { flex: 1, backgroundColor: T.scrim, justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: C.card, borderTopLeftRadius: rs(20), borderTopRightRadius: rs(20), padding: 20, maxHeight: '80%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: C.text },
+  modalTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: C.text },
   modalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: C.bg, borderRadius: 8, marginBottom: 8 },
   modalItemText: { flex: 1, fontSize: 14, color: C.text },
   modalAddRow: { flexDirection: 'row', gap: 8, marginTop: 12, marginBottom: 12 },
   modalInput: { flex: 1, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 8, padding: 12, fontSize: 14, color: C.text },
   modalAddBtn: { backgroundColor: C.g600, width: 46, height: 46, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  modalSaveBtn: { backgroundColor: C.g600, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  modalSaveTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  modalSaveBtn: { backgroundColor: C.g600, paddingVertical: 14, borderRadius: rs(12), alignItems: 'center' },
+  modalSaveTxt: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: '#fff' },
 });

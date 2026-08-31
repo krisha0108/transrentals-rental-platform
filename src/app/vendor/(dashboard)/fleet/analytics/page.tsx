@@ -83,7 +83,7 @@ export default function FleetAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+      <div className="min-h-[60dvh] flex flex-col items-center justify-center gap-3">
         <div className="relative">
           <div className="w-14 h-14 rounded-full border-4 border-emerald-100"></div>
           <Loader2 className="w-14 h-14 animate-spin text-emerald-600 absolute inset-0" />
@@ -147,7 +147,7 @@ export default function FleetAnalyticsPage() {
   const healthData = [{ name: 'Health', value: healthScore, fill: '#10b981' }];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+    <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
       <style jsx global>{`
         @keyframes float-slow { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-12px) translateX(8px); } }
         @keyframes float-rev { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(10px) translateX(-6px); } }

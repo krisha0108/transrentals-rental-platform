@@ -68,16 +68,53 @@ export async function GET(request: NextRequest) {
       whereConditions = [availableCondition, ownCondition];
     }
 
-    // Also fetch direct car_bookings (no quoteRequestId) for this vendor's locations
-    const directCarWhere: any = {
-      quoteRequestId: null,
-      ...dateFilter,
-      OR: [
-        { assignedVendorId: vendorId },
-        { acceptedVendorId: vendorId },
-        { status: { in: ['PENDING_VENDOR', 'BROADCASTED'] }, locationId: { in: approvedLocationIds } },
-      ],
-    };
+    // Also fetch direct car_bookings (no quoteRequestId) for this vendor's
+    // locations — mirror the same status branching used for whereConditions
+    // above, otherwise a status filter (e.g. Cancelled) only narrows the
+    // chauffeur_bookings half of the list and every self-drive booking for
+    // this vendor leaks through unfiltered.
+    let directCarWhere: any;
+    if (status && status !== 'all') {
+      if (status === 'my_bookings') {
+        directCarWhere = {
+          quoteRequestId: null,
+          ...dateFilter,
+          OR: [{ assignedVendorId: vendorId }, { acceptedVendorId: vendorId }],
+          status: { not: 'PENDING_PAYMENT' },
+        };
+      } else if (status === 'available') {
+        directCarWhere = {
+          quoteRequestId: null,
+          ...dateFilter,
+          status: { in: ['PENDING_VENDOR', 'BROADCASTED'] },
+          locationId: { in: approvedLocationIds },
+        };
+      } else if (['PENDING_VENDOR', 'BROADCASTED'].includes(status)) {
+        directCarWhere = {
+          quoteRequestId: null,
+          ...dateFilter,
+          status,
+          locationId: { in: approvedLocationIds },
+        };
+      } else {
+        directCarWhere = {
+          quoteRequestId: null,
+          ...dateFilter,
+          status,
+          OR: [{ assignedVendorId: vendorId }, { acceptedVendorId: vendorId }],
+        };
+      }
+    } else {
+      directCarWhere = {
+        quoteRequestId: null,
+        ...dateFilter,
+        OR: [
+          { assignedVendorId: vendorId },
+          { acceptedVendorId: vendorId },
+          { status: { in: ['PENDING_VENDOR', 'BROADCASTED'] }, locationId: { in: approvedLocationIds } },
+        ],
+      };
+    }
 
     const [chauffeurBookings, chauffeurTotal, directCarBookings] = await Promise.all([
       prisma.chauffeur_bookings.findMany({

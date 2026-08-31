@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, ActivityIndicator, Linking, TextInput, Modal, StatusBar,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -14,14 +15,20 @@ import {
   getDirectBookingAssignOptions,
 } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
+import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
+import SheetHandle from '../_shared/SheetHandle';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#064E3B', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g300: '#6EE7B7', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F0FDF9', surface: '#FFFFFF',
-  text: '#1E293B', subtext: '#475569', muted: '#94A3B8', border: '#D1FAE5',
-  blue: '#3B82F6', indigo: '#6366F1', purple: '#8B5CF6',
-  amber: '#F59E0B', orange: '#F97316', red: '#EF4444', teal: '#14B8A6',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g300: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, surface: T.card,
+  text: T.ink, subtext: T.text, muted: T.subText, border: T.border,
+  blue: T.blue, indigo: T.indigo, purple: T.purple,
+  amber: T.amber, orange: T.orange, red: T.red, teal: T.teal,
 };
 
 const STATUS_CONFIG = {
@@ -346,7 +353,7 @@ export default function DirectBookingDetailScreen({ navigation, route }) {
   if (loading) return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.loadingGrad}>
+      <LinearGradient colors={G.hero} style={s.loadingGrad}>
         <SafeAreaView edges={['top']}>
           <View style={s.loadingTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -389,31 +396,39 @@ export default function DirectBookingDetailScreen({ navigation, route }) {
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
+      {/* ── Gradient Hero — static, stays fixed above the scrolling content ── */}
+      <LinearGradient colors={G.hero} style={s.grad}>
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <SafeAreaView edges={['top']}>
+          <View style={s.gradTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={s.gradNum}>#{booking.bookingNumber}</Text>
+              <View style={s.gradSvcRow}>
+                <MaterialCommunityIcons name={svcIcon} size={13} color={C.g300} />
+                <Text style={s.gradSvcText}>{SERVICE_LABELS[booking.serviceType] || booking.serviceType}</Text>
+              </View>
+            </View>
+            <View style={[s.gradStatusPill, { backgroundColor: sc.color + '30' }]}>
+              <View style={[s.gradStatusDot, { backgroundColor: sc.color }]} />
+              <Text style={s.gradStatusText}>{sc.label}</Text>
+            </View>
+          </View>
+          <View style={{ height: rs(22) }} />
+        </SafeAreaView>
+      </LinearGradient>
+
       <ScrollView
         contentContainerStyle={{ paddingBottom: actions.length > 0 ? 120 : 40 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
+        showsVerticalScrollIndicator={false}
       >
-        {/* ── Gradient Hero ── */}
-        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.grad}>
-          <SafeAreaView edges={['top']}>
-            {/* Top row */}
-            <View style={s.gradTop}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-                <Icon name="arrow-left" size={22} color="#fff" />
-              </TouchableOpacity>
-              <View style={{ flex: 1 }}>
-                <Text style={s.gradNum}>#{booking.bookingNumber}</Text>
-                <View style={s.gradSvcRow}>
-                  <MaterialCommunityIcons name={svcIcon} size={13} color={C.g300} />
-                  <Text style={s.gradSvcText}>{SERVICE_LABELS[booking.serviceType] || booking.serviceType}</Text>
-                </View>
-              </View>
-              <View style={[s.gradStatusPill, { backgroundColor: sc.color + '30' }]}>
-                <View style={[s.gradStatusDot, { backgroundColor: sc.color }]} />
-                <Text style={s.gradStatusText}>{sc.label}</Text>
-              </View>
-            </View>
-
+        {/* ── Progress card — journey + amounts, tucks into the hero's curve ── */}
+        <View style={s.progressWrap}>
+          <View style={[s.progressCard, cardShadow]}>
             {/* Journey tracker */}
             <View style={s.journeyWrap}>
               {JOURNEY.map((step, i) => {
@@ -423,20 +438,20 @@ export default function DirectBookingDetailScreen({ navigation, route }) {
                 return (
                   <React.Fragment key={step}>
                     {i > 0 && (
-                      <View style={[s.journeyLine, done && { backgroundColor: C.g400 }]} />
+                      <View style={[s.journeyLine, done && { backgroundColor: C.g500 }]} />
                     )}
                     <View style={s.journeyItem}>
                       <View style={[
                         s.journeyDot,
-                        done && { backgroundColor: C.g400, borderColor: C.g400 },
-                        isCurrent && { backgroundColor: C.g300, borderColor: '#fff', transform: [{ scale: 1.2 }] },
+                        done && { backgroundColor: C.g500, borderColor: C.g500 },
+                        isCurrent && { backgroundColor: C.g700, borderColor: C.g700, transform: [{ scale: 1.15 }] },
                       ]}>
-                        {done && <Icon name="check" size={9} color={C.g900} />}
+                        {done && <Icon name="check" size={9} color="#fff" />}
                       </View>
                       <Text style={[
                         s.journeyLabel,
-                        done && { color: C.g300 },
-                        isCurrent && { color: '#fff', fontWeight: '700' },
+                        done && { color: C.g700 },
+                        isCurrent && { color: C.g700, fontWeight: '700' },
                       ]}>
                         {STATUS_CONFIG[step]?.label}
                       </Text>
@@ -445,6 +460,8 @@ export default function DirectBookingDetailScreen({ navigation, route }) {
                 );
               })}
             </View>
+
+            <View style={s.progressDivider} />
 
             {/* Amount strip */}
             <View style={s.heroStrip}>
@@ -455,18 +472,18 @@ export default function DirectBookingDetailScreen({ navigation, route }) {
               <View style={s.heroStripDiv} />
               <View style={s.heroStripItem}>
                 <Text style={s.heroStripLbl}>Collected</Text>
-                <Text style={[s.heroStripVal, { color: C.g400 }]}>₹{paidAmt.toLocaleString('en-IN')}</Text>
+                <Text style={[s.heroStripVal, { color: C.g700 }]}>₹{paidAmt.toLocaleString('en-IN')}</Text>
               </View>
               <View style={s.heroStripDiv} />
               <View style={s.heroStripItem}>
                 <Text style={s.heroStripLbl}>Payment</Text>
-                <Text style={[s.heroStripVal, { color: ['collected','paid_online'].includes(booking.paymentStatus) ? C.g400 : '#FCD34D', fontSize: 12 }]}>{pc.label}</Text>
+                <Text style={[s.heroStripVal, { color: ['collected','paid_online'].includes(booking.paymentStatus) ? C.g700 : C.amber, fontSize: 12 }]}>{pc.label}</Text>
               </View>
             </View>
 
             <Text style={s.gradCreated}>Created {fmtFull(booking.createdAt)}</Text>
-          </SafeAreaView>
-        </LinearGradient>
+          </View>
+        </View>
 
         {/* ── Cards ── */}
         <View style={s.cards}>
@@ -858,9 +875,10 @@ export default function DirectBookingDetailScreen({ navigation, route }) {
 
       {/* ── Payment Modal ── */}
       <Modal visible={showPayModal} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <View style={s.modalSheet}>
-            <View style={s.modalHandle} />
+            <SheetHandle />
             <Text style={s.modalTitle}>
               {payAction === 'mark_paid' ? 'Mark as Paid' : payAction === 'advance' ? 'Collect Advance' : 'Send via WhatsApp'}
             </Text>
@@ -901,13 +919,14 @@ export default function DirectBookingDetailScreen({ navigation, route }) {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Assignment Modal ── */}
       <Modal visible={!!showAssignModal} transparent animationType="slide">
         <View style={s.modalOverlay}>
           <View style={[s.modalSheet, { maxHeight: '70%' }]}>
-            <View style={s.modalHandle} />
+            <SheetHandle />
             <Text style={s.modalTitle}>
               {showAssignModal === 'driver' ? 'Select Driver' : 'Select Vehicle'}
             </Text>
@@ -974,41 +993,48 @@ const s = StyleSheet.create({
   /* Loading */
   loadingGrad: { paddingBottom: 20 },
   loadingTop: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, gap: 12 },
-  loadingTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  loadingTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff' },
 
-  /* Gradient hero */
-  grad: { paddingBottom: 20 },
-  gradTop: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, gap: 10 },
+  /* Gradient hero — static, compact identity bar only */
+  grad: { paddingBottom: rs(6), overflow: 'hidden', borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26) },
+  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)' },
+  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)' },
+  gradTop: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, gap: 10 },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
-  gradNum: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  gradNum: { fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
   gradSvcRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
   gradSvcText: { fontSize: 12, color: 'rgba(255,255,255,0.65)' },
   gradStatusPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginTop: 4 },
   gradStatusDot: { width: 7, height: 7, borderRadius: 3.5 },
   gradStatusText: { fontSize: 12, fontWeight: '700', color: '#fff' },
 
+  /* Progress card — floats into the hero's bottom curve */
+  progressWrap: { marginHorizontal: 16, marginTop: rs(14) },
+  progressCard: { backgroundColor: C.surface, borderRadius: rs(18), paddingTop: 16, paddingBottom: 4, borderWidth: 1, borderColor: C.border },
+  progressDivider: { height: 1, backgroundColor: C.border, marginHorizontal: 16, marginBottom: 12 },
+
   /* Journey */
   journeyWrap: { flexDirection: 'row', alignItems: 'flex-start', marginHorizontal: 20, marginBottom: 16, paddingHorizontal: 4 },
-  journeyLine: { flex: 1, height: 2, backgroundColor: 'rgba(255,255,255,0.2)', marginTop: 11, alignSelf: 'flex-start' },
+  journeyLine: { flex: 1, height: 2, backgroundColor: C.border, marginTop: 11, alignSelf: 'flex-start' },
   journeyItem: { alignItems: 'center', gap: 5 },
-  journeyDot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
-  journeyLabel: { fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: '600', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3, width: 56 },
+  journeyDot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: C.border, backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center' },
+  journeyLabel: { fontSize: 9, color: C.muted, fontWeight: '600', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3, width: 56 },
 
   /* Amount strip */
-  heroStrip: { flexDirection: 'row', marginHorizontal: 16, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.1)', marginBottom: 12 },
+  heroStrip: { flexDirection: 'row', marginHorizontal: 16, borderRadius: 14, backgroundColor: C.g50, marginBottom: 12 },
   heroStripItem: { flex: 1, paddingVertical: 12, alignItems: 'center' },
-  heroStripDiv: { width: 1, backgroundColor: 'rgba(255,255,255,0.15)', marginVertical: 10 },
-  heroStripLbl: { fontSize: 9, color: 'rgba(255,255,255,0.5)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
-  heroStripVal: { fontSize: 14, fontWeight: '800', color: '#fff' },
+  heroStripDiv: { width: 1, backgroundColor: C.g100, marginVertical: 10 },
+  heroStripLbl: { fontSize: 9, color: C.muted, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+  heroStripVal: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text },
 
-  gradCreated: { fontSize: 11, color: 'rgba(255,255,255,0.45)', textAlign: 'center', marginBottom: 4 },
+  gradCreated: { fontSize: 11, color: C.muted, textAlign: 'center', marginBottom: 4 },
 
   /* Cards container */
-  cards: { padding: 14, gap: 12 },
-  card: { backgroundColor: C.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: C.border, shadowColor: C.g900, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  cards: { padding: 14, paddingTop: 12, gap: 12 },
+  card: { backgroundColor: C.surface, borderRadius: rs(18), padding: 16, borderWidth: 1, borderColor: C.border, ...cardShadow },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
   cardHeadIcon: { width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  cardTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text },
 
   /* Customer */
   customerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
@@ -1059,7 +1085,7 @@ const s = StyleSheet.create({
   payAmtRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   payAmtBlock: { flex: 1, backgroundColor: C.g50, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: C.g100 },
   payAmtLbl: { fontSize: 10, color: C.muted, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 4 },
-  payAmtTotal: { fontSize: 20, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
+  payAmtTotal: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
   progressTrack: { height: 7, backgroundColor: C.border, borderRadius: 4, overflow: 'hidden', marginBottom: 10 },
   progressFill: { height: '100%', borderRadius: 4 },
   balanceBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FEF3C7', borderRadius: 10, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: '#FDE68A' },
@@ -1101,15 +1127,14 @@ const s = StyleSheet.create({
   notesCancelBtn: { flex: 1, borderRadius: 10, paddingVertical: 10, alignItems: 'center', borderWidth: 1.5, borderColor: C.border },
 
   /* Bottom bar */
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 12, paddingBottom: 24, backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.border },
-  bottomBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14 },
-  bottomBtnTxt: { fontSize: 14, fontWeight: '700' },
+  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 12, paddingBottom: 24, backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.border, ...cardShadow },
+  bottomBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: rs(14) },
+  bottomBtnTxt: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800' },
 
   /* Payment Modal */
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 17, fontWeight: '800', color: C.text, marginBottom: 20 },
+  modalOverlay: { flex: 1, backgroundColor: T.scrim, justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: C.surface, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS, padding: 24, paddingBottom: 40 },
+  modalTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text, marginBottom: 20 },
   modalLabel: { fontSize: 12, fontWeight: '700', color: C.subtext, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 4 },
   modalInput: { backgroundColor: C.g50, borderWidth: 1.5, borderColor: C.g100, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 13, fontSize: 16, color: C.text, fontWeight: '700', marginBottom: 4 },
   modalModeRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },

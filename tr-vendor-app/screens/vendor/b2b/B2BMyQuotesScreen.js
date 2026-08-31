@@ -9,16 +9,20 @@ import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getB2BMyQuotes } from '../../api/client';
+import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g300: '#6EE7B7', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F0FDF9', surface: '#FFFFFF',
-  text: '#1E293B', sub: '#475569', muted: '#94A3B8', border: '#E2E8F0',
-  amber: '#F59E0B', amberBg: '#FFFBEB', amberDark: '#D97706',
-  red: '#EF4444', redBg: '#FEF2F2',
-  blue: '#3B82F6', blueBg: '#EFF6FF',
-  purple: '#8B5CF6', purpleBg: '#F5F3FF',
+  g950: T.forestDark, g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g300: T.oceanLight, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, surface: T.card,
+  text: T.ink, sub: T.text, muted: T.subText, border: T.border,
+  amber: T.amber, amberBg: T.amberLight, amberDark: shade(T.amber, -15),
+  red: T.red, redBg: T.redLight,
+  blue: T.blue, blueBg: T.blueLight,
+  purple: T.purple, purpleBg: T.tintPlum,
 };
 
 const STATUS_CONFIG = {
@@ -220,7 +224,7 @@ export default function B2BMyQuotesScreen({ navigation }) {
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       {/* Gradient Header */}
-      <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.header}>
+      <LinearGradient colors={G.hero} style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Icon name="arrow-left" size={22} color="#fff" />
         </TouchableOpacity>
@@ -297,7 +301,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center',
   },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff', fontFamily: DISPLAY },
   headerSub: { fontSize: 12, color: C.g300, marginTop: 2 },
 
   // Filter Tabs
@@ -325,18 +329,18 @@ const s = StyleSheet.create({
 
   // Card
   card: {
-    backgroundColor: C.surface, borderRadius: 16, marginBottom: 12,
+    backgroundColor: C.surface, borderRadius: rs(16), marginBottom: 12,
     borderWidth: 1, borderColor: C.border,
-    elevation: 2, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
+    ...cardShadow,
     flexDirection: 'row', overflow: 'hidden',
   },
-  accentBar: { width: 4, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 },
+  accentBar: { width: 4, borderTopLeftRadius: rs(16), borderBottomLeftRadius: rs(16) },
   cardInner: { flex: 1, padding: 14 },
 
   // Card Header
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   cardHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-  quoteNum: { fontSize: 14, fontWeight: '800', color: C.g800, fontVariant: ['tabular-nums'] },
+  quoteNum: { fontSize: 14, fontWeight: '800', color: C.g800, fontVariant: ['tabular-nums'], fontFamily: DISPLAY },
   statusChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
@@ -376,7 +380,7 @@ const s = StyleSheet.create({
     marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border,
   },
   pricingLabel: { fontSize: 11, color: C.muted, marginBottom: 2 },
-  pricingTotal: { fontSize: 20, fontWeight: '800', color: C.g700 },
+  pricingTotal: { fontSize: 20, fontWeight: '800', color: C.g700, fontFamily: DISPLAY },
   pricingRight: { alignItems: 'flex-end' },
   pricingPerVeh: { fontSize: 13, fontWeight: '600', color: C.sub },
 
@@ -412,6 +416,6 @@ const s = StyleSheet.create({
 
   // Empty
   empty: { alignItems: 'center', paddingTop: 80 },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text, marginTop: 16 },
+  emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text, marginTop: 16, fontFamily: DISPLAY },
   emptySub: { fontSize: 13, color: C.sub, marginTop: 6, textAlign: 'center', paddingHorizontal: 40 },
 });

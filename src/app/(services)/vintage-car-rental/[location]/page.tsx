@@ -235,7 +235,7 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
             </div>
           </div>
         </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content
@@ -253,9 +253,11 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
+            '@type': 'Service',
+            serviceType: 'Vintage Car Rental',
             name: `Vintage Car Rental in ${locationName}`,
             description: `Rent vintage & classic cars in ${locationName} for weddings and events.`,
+            areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',

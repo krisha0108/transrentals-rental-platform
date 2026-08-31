@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
   Loader2, Search, Building2, Truck, Calendar, MapPin, ChevronRight,
   Clock, CheckCircle, FileText, IndianRupee, AlertCircle, ExternalLink,
@@ -41,6 +42,7 @@ function getEventName(bulkBreakdown: any): string | null {
 }
 
 export default function ManagerB2BPage() {
+  useManagerPageHeader('B2B Management', 'Manage corporate bookings, invoices & companies');
   const [activeTab, setActiveTab] = useState('bookings');
   const [bookings, setBookings] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -164,19 +166,13 @@ export default function ManagerB2BPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">B2B Management</h1>
-          <p className="text-gray-500 mt-0.5 text-sm">Manage corporate bookings, invoices & companies</p>
+      {/* Needs-action notice */}
+      {needsAction > 0 && (
+        <div className="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 w-fit">
+          <AlertCircle className="w-4 h-4" />
+          {needsAction} booking(s) need Super Quote
         </div>
-        {needsAction > 0 && (
-          <div className="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            {needsAction} booking(s) need Super Quote
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 border-b overflow-x-auto">

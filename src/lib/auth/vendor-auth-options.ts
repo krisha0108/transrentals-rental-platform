@@ -36,12 +36,12 @@ export const vendorAuthOptions: NextAuthOptions = {
           throw new Error('Invalid credentials');
         }
 
-        // Check if vendor is blocked or suspended
+        // Blocked/rejected vendors can't log in at all. Suspended vendors are
+        // let through so they can still view their dashboard (read-only) —
+        // VendorLayout shows the suspension notice there, and every write
+        // route is independently blocked by vendorStatusGuard regardless.
         if (vendor.status === 'BLOCKED') {
-          throw new Error('Your account has been blocked. Please contact support.');
-        }
-        if (vendor.status === 'SUSPENDED') {
-          throw new Error('Your account is suspended. Please contact support.');
+          throw new Error('Your account is blocked. Please contact our support team for any query.');
         }
         if (vendor.status === 'REJECTED') {
           const reason = vendor.rejectionReason?.trim() || 'Your application did not meet our requirements.';

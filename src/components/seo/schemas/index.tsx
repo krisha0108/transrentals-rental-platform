@@ -192,15 +192,10 @@ export function VehicleRentalSchema({
         offerCount: vehicles.length || 50,
       },
     }),
-    ...(rating && reviewCount && {
-      aggregateRating: {
-        '@type': 'AggregateRating',
-        ratingValue: rating,
-        reviewCount: reviewCount,
-        bestRating: 5,
-        worstRating: 1,
-      },
-    }),
+    // No aggregateRating here — Google's review-snippet feature doesn't
+    // support it on a bare Service type ("Invalid object type for field
+    // <parent_node>" in Search Console). The same rating/reviewCount is
+    // already carried on the LocalBusiness schema rendered alongside this.
   };
 
   const vehicleListSchema = vehicles.length > 0
@@ -224,6 +219,15 @@ export function VehicleRentalSchema({
               availability: 'https://schema.org/InStock',
               seller: ORGANIZATION,
             },
+            ...(rating && reviewCount && {
+              aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: rating,
+                reviewCount: reviewCount,
+                bestRating: 5,
+                worstRating: 1,
+              },
+            }),
           },
         })),
       }

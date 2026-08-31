@@ -6,6 +6,7 @@ import {
   Navigation, AlertTriangle, Car, Map as MapIcon, X,
 } from 'lucide-react';
 import LiveMap, { LiveMarker } from '@/components/tracking/LiveMap';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 interface MgrDriver {
   id: string; name: string; phone: string; profilePhoto: string | null; vendorName: string | null;
@@ -37,6 +38,7 @@ function timeAgo(iso: string | null): string {
 }
 
 export default function ManagerTrackingPage() {
+  useManagerPageHeader('Vendors & Drivers', 'Real-time locations across your assigned cities');
   const [drivers, setDrivers] = useState<MgrDriver[]>([]);
   const [vendors, setVendors] = useState<MgrVendor[]>([]);
   const [stateCounts, setStateCounts] = useState<StateCount[]>([]);
@@ -133,52 +135,36 @@ export default function ManagerTrackingPage() {
 
   return (
     <div className="space-y-4 pb-10">
-      {/* ══ HEADER ══════════════════════════════════════════════════ */}
-      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 text-white">
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 10% 60%, #10b981 0%, transparent 50%), radial-gradient(circle at 90% 20%, #059669 0%, transparent 50%)' }} />
-        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px)', backgroundSize: '24px 24px' }} />
-
-        <div className="relative px-6 sm:px-8 py-7 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Navigation className="w-5 h-5 text-emerald-400" />
-              <span className="text-slate-400 text-xs font-semibold tracking-widest uppercase">Live Tracking</span>
+      {/* ══ CONTROLS ════════════════════════════════════════════════ */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <div className="flex gap-3 flex-wrap">
+          {[
+            { label: 'Vendors', value: stats.vendors, color: 'bg-slate-50 border-slate-200 text-slate-700' },
+            { label: 'Vendor Drivers', value: stats.vendorDrivers, color: 'bg-blue-50 border-blue-200 text-blue-700' },
+            { label: 'Independent', value: stats.independentDrivers, color: 'bg-violet-50 border-violet-200 text-violet-700' },
+            { label: 'Live Now', value: stats.driversLive, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+          ].map((s) => (
+            <div key={s.label} className={`flex flex-col items-center px-4 py-2.5 rounded-xl border ${s.color}`}>
+              <span className="text-xl font-black">{loading ? '—' : s.value}</span>
+              <span className="text-[10px] font-semibold tracking-wide uppercase mt-0.5 opacity-80">{s.label}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold mb-1">Vendors &amp; Drivers</h1>
-            <p className="text-slate-400 text-sm">Real-time locations across your assigned cities</p>
-          </div>
+          ))}
+        </div>
 
-          <div className="flex items-center gap-3 shrink-0 flex-wrap">
-            <div className="flex gap-3 flex-wrap">
-              {[
-                { label: 'Vendors', value: stats.vendors, color: 'bg-white/10 border-white/15 text-white' },
-                { label: 'Vendor Drivers', value: stats.vendorDrivers, color: 'bg-blue-500/20 border-blue-400/30 text-blue-300' },
-                { label: 'Independent', value: stats.independentDrivers, color: 'bg-violet-500/20 border-violet-400/30 text-violet-300' },
-                { label: 'Live Now', value: stats.driversLive, color: 'bg-emerald-500/20 border-emerald-400/30 text-emerald-300' },
-              ].map((s) => (
-                <div key={s.label} className={`flex flex-col items-center px-4 py-2.5 rounded-xl border ${s.color}`}>
-                  <span className="text-xl font-black">{loading ? '—' : s.value}</span>
-                  <span className="text-[10px] font-semibold tracking-wide uppercase mt-0.5 opacity-80">{s.label}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsLive(!isLive)}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${isLive ? 'bg-emerald-500/20 border-emerald-400/30 text-emerald-300' : 'bg-white/10 border-white/15 text-white'}`}
-              >
-                {isLive ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />} {isLive ? 'Live' : 'Paused'}
-              </button>
-              <button
-                onClick={load}
-                className="p-2.5 rounded-xl border border-white/15 bg-white/10 hover:bg-white/15 transition-colors"
-                title="Refresh"
-              >
-                <RefreshCcw className="w-4 h-4 text-white" />
-              </button>
-            </div>
-          </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setIsLive(!isLive)}
+            className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold border transition-colors ${isLive ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
+          >
+            {isLive ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />} {isLive ? 'Live' : 'Paused'}
+          </button>
+          <button
+            onClick={load}
+            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+            title="Refresh"
+          >
+            <RefreshCcw className="w-4 h-4" />
+          </button>
         </div>
       </div>
 

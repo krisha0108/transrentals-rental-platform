@@ -318,13 +318,18 @@ export async function PUT(
         };
         break;
       case 'SUSPEND':
+        if (!rejectionReason) {
+          return NextResponse.json({ error: 'Suspension reason is required' }, { status: 400 });
+        }
         updateData = {
           status: 'SUSPENDED',
+          rejectionReason,
         };
         break;
       case 'UNSUSPEND':
         updateData = {
           status: 'APPROVED',
+          rejectionReason: null,
         };
         break;
       case 'BLOCK':
@@ -384,9 +389,12 @@ export async function PUT(
         body: `Your vendor account application was rejected. Reason: ${rejectionReason || 'Please contact support for more information.'}.`,
         type: 'account_rejected',
       },
+      // Unlike REJECT, the suspension reason (rejectionReason) is internal —
+      // it's shown back to managers on the vendor detail page, but the
+      // vendor-facing notification stays generic on purpose.
       SUSPEND: {
         title: '⚠️ Account Suspended',
-        body: 'Your vendor account has been suspended. Please contact support for more information.',
+        body: 'Your vendor account has been suspended. Please contact our support team for any query.',
         type: 'account_suspended',
       },
       UNSUSPEND: {

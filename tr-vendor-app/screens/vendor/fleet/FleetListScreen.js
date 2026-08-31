@@ -7,26 +7,33 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorFleet, deleteVehicle, getBaseURL } from '../../api/client';
 import { showConfirm, showError, showSuccess } from '../../../services/alertService';
 import { ListSkeleton } from '../../../components/SkeletonLoader';
 import { useVerificationGate, VerificationBanner } from '../../../components/VerificationGate';
+import { SC as T, G, rs, shade, cardShadow, rowShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already used — only the values now come from
+// the shared "Elevate" theme instead of hardcoded hex. Matches the mapping
+// convention established in AddVehicleScreen.js (same folder).
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
-  orange: '#EA580C', orangeL: '#FFF7ED',
-  indigo: '#4F46E5', indigoL: '#EEF2FF',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  pink: '#DB2777', pinkL: '#FDF2F8',
-  teal: '#0D9488', tealL: '#F0FDFA',
-  cyan: '#0891B2', cyanL: '#ECFEFF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  orange: T.orange, orangeL: T.orangeL,
+  indigo: T.indigo, indigoL: T.indigoLight,
+  purple: T.purple, purpleL: T.purpleLight,
+  pink: T.rose, pinkL: T.roseLight,
+  teal: T.teal, tealL: T.tintOcean,
+  cyan: shade(T.ocean, 25), cyanL: T.tintOcean,
 };
 
 const VEHICLE_ICONS = {
@@ -47,6 +54,36 @@ const SERVICE_CONFIG = {
   'luxury-car-rental': { icon: 'car-sports',        color: C.indigo, label: 'Luxury Cars',      shortLabel: 'Luxury' },
   default:             { icon: 'car',               color: C.muted,  label: 'Other',            shortLabel: 'Other' },
 };
+
+/* ── Illustrated empty state ──────────────────────────────────────────── */
+const FleetEmptyState = ({ noneAtAll, onAddVehicle, addIcon }) => (
+  <View style={styles.emptyCardWrap}>
+    <View style={styles.emptyArt}>
+      <View style={styles.emptyArtCardBack} />
+      <View style={styles.emptyArtCard}>
+        <Ionicons name={noneAtAll ? 'car-outline' : 'search'} size={rs(40)} color={C.g400} />
+      </View>
+      <View style={styles.emptyArtDot} />
+      <View style={styles.emptyArtTag}>
+        <Text style={styles.emptyArtTagTxt}>{noneAtAll ? 'EMPTY' : 'NO MATCH'}</Text>
+      </View>
+    </View>
+
+    <Text style={styles.emptyTitle}>No Vehicles Found</Text>
+    <Text style={styles.emptyBody}>
+      {noneAtAll ? 'Add your first vehicle to get started' : 'No vehicles match your filters'}
+    </Text>
+
+    {noneAtAll && (
+      <TouchableOpacity style={styles.emptyCtaWrap} onPress={onAddVehicle} activeOpacity={0.9}>
+        <LinearGradient colors={G.emerald} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyCta}>
+          <Icon name={addIcon} size={16} color="#fff" />
+          <Text style={styles.emptyCtaText}>Add Vehicle</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    )}
+  </View>
+);
 
 export default function FleetListScreen({ navigation }) {
   const [loading, setLoading]         = useState(true);
@@ -224,314 +261,419 @@ export default function FleetListScreen({ navigation }) {
     const fuelType        = item.vehicle_models?.fuelType        || item.chauffeur_vehicle_categories?.fuelType        || item.fuelType;
 
     return (
-      <TouchableOpacity
-        style={[st.vCard, { borderLeftColor: serviceConfig.color }]}
-        onPress={() => navigation.navigate('VehicleDetailScreen', { vehicleId: item.id })}
-        activeOpacity={0.85}
-      >
-        <View style={st.vRow}>
-          {/* Icon box */}
-          <View style={[st.vIconBox, { backgroundColor: serviceConfig.color + '15' }]}>
-            {imageUri
-              ? <Image source={{ uri: imageUri }} style={st.vImg} resizeMode="cover" />
-              : <MaterialCommunityIcons name={serviceConfig.icon} size={22} color={serviceConfig.color} />
-            }
-          </View>
+      <View style={styles.card}>
+        {/* Accent rail — tinted by vehicle status, mirroring the compact
+            booking-card template's status-tinted rail. */}
+        <LinearGradient
+          colors={[statusColors.dot, shade(statusColors.dot, -20)]}
+          start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+          style={styles.cardRail}
+        />
 
-          {/* Info */}
-          <View style={st.vMeta}>
-            <View style={st.vMetaTop}>
-              <Text style={st.vName} numberOfLines={1}>{vehicleName}</Text>
+        <View style={styles.cardInner}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('VehicleDetailScreen', { vehicleId: item.id })}
+          >
+            {/* Top stripe: icon/photo box + name + status pill + delete */}
+            <View style={styles.cardTopStripe}>
+              <View style={[styles.iconBox, { backgroundColor: serviceConfig.color + '15' }]}>
+                {imageUri
+                  ? <Image source={{ uri: imageUri }} style={styles.vehicleImg} resizeMode="cover" />
+                  : <MaterialCommunityIcons name={serviceConfig.icon} size={rs(18)} color={serviceConfig.color} />
+                }
+              </View>
+
+              <Text style={styles.cardName} numberOfLines={1}>{vehicleName}</Text>
+
               {item.status && (
-                <View style={[st.vStatusBadge, { backgroundColor: statusColors.bg }]}>
-                  <Text style={[st.vStatusTxt, { color: statusColors.text }]}>{item.status.replace(/_/g, ' ')}</Text>
+                <View style={[styles.statusPill, { backgroundColor: statusColors.bg }]}>
+                  <Text style={[styles.statusText, { color: statusColors.text }]} numberOfLines={1}>
+                    {item.status.replace(/_/g, ' ')}
+                  </Text>
                 </View>
               )}
+
+              <TouchableOpacity
+                style={styles.vDel}
+                onPress={(e) => { e.stopPropagation(); gate(() => handleDeleteVehicle(item.id), 'delete vehicles')(); }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Icon name="trash-2" size={13} color={C.muted} />
+              </TouchableOpacity>
             </View>
 
-            {item.registrationNumber && (
-              <Text style={st.vReg}>{item.registrationNumber}</Text>
-            )}
+            {/* Body: registration + meta chips, aligned under the name */}
+            <View style={styles.cardBody}>
+              {item.registrationNumber && (
+                <Text style={styles.regText}>{item.registrationNumber}</Text>
+              )}
 
-            <View style={st.vMetaBot}>
-              <View style={[st.vSvcTag, { backgroundColor: serviceConfig.color + '15' }]}>
-                <MaterialCommunityIcons name={serviceConfig.icon} size={10} color={serviceConfig.color} />
-                <Text style={[st.vSvcTagTxt, { color: serviceConfig.color }]}>{serviceConfig.shortLabel}</Text>
+              <View style={styles.metaRow}>
+                <View style={[styles.svcTag, { backgroundColor: serviceConfig.color + '15' }]}>
+                  <MaterialCommunityIcons name={serviceConfig.icon} size={10} color={serviceConfig.color} />
+                  <Text style={[styles.svcTagTxt, { color: serviceConfig.color }]}>{serviceConfig.shortLabel}</Text>
+                </View>
+                {seatingCapacity && (
+                  <View style={styles.metaItem}>
+                    <Icon name="users" size={10} color={C.muted} />
+                    <Text style={styles.metaText}>{seatingCapacity}</Text>
+                  </View>
+                )}
+                {fuelType && (
+                  <View style={styles.metaItem}>
+                    <MaterialCommunityIcons name="gas-station" size={11} color={C.muted} />
+                    <Text style={styles.metaText}>{fuelType}</Text>
+                  </View>
+                )}
               </View>
-              {seatingCapacity && (
-                <View style={st.vSpec}><Icon name="users" size={10} color={C.muted} /><Text style={st.vSpecTxt}>{seatingCapacity}</Text></View>
-              )}
-              {fuelType && (
-                <View style={st.vSpec}><MaterialCommunityIcons name="gas-station" size={11} color={C.muted} /><Text style={st.vSpecTxt}>{fuelType}</Text></View>
-              )}
             </View>
-          </View>
-
-          {/* Delete */}
-          <TouchableOpacity
-            style={st.vDel}
-            onPress={(e) => { e.stopPropagation(); gate(() => handleDeleteVehicle(item.id), 'delete vehicles')(); }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Icon name="trash-2" size={14} color={C.muted} />
           </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={st.safe} edges={['top']}>
+      <View style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.heroLoading}>
-          <View style={st.heroTopSimple}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
-              <Icon name="arrow-left" size={20} color="#fff" />
-            </TouchableOpacity>
-            <Text style={st.heroTitle}>My Fleet</Text>
-            <View style={{ width: 38 }} />
-          </View>
+        <LinearGradient colors={G.hero} style={styles.headerLoading}>
+          <AnimatedOrb style={styles.orbA} />
+          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+          <SafeAreaView edges={['top']} style={styles.headerSafe}>
+            <View style={styles.headerTopRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+                <Icon name="arrow-left" size={20} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.loadTitle}>My Fleet</Text>
+              <View style={{ width: 40 }} />
+            </View>
+          </SafeAreaView>
         </LinearGradient>
         <ListSkeleton count={4} />
-      </SafeAreaView>
+      </View>
     );
   }
 
+  const activeCount = vehicles.filter(v => v.status?.toLowerCase() === 'active').length;
+  const bookedCount = vehicles.filter(v => v.status?.toLowerCase() === 'booked').length;
+  const isFilteredEmpty = filteredVehicles.length === 0;
+  const noneAtAll = vehicles.length === 0;
+  const addIcon = vendorStatus === 'APPROVED' ? 'plus' : 'lock';
+
   return (
-    <SafeAreaView style={st.safe} edges={['top']}>
+    <View style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* ── HERO HEADER ── */}
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.hero}>
-        <View style={[st.deco, { width: 180, height: 180, top: -70, right: -50, opacity: 0.07 }]} />
-        <View style={[st.deco, { width: 80,  height: 80,  top: 10,  right: 110, opacity: 0.04 }]} />
-
-        <View style={st.heroTop}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
-            <Icon name="arrow-left" size={20} color="#fff" />
-          </TouchableOpacity>
-          <View style={st.heroMid}>
-            <View style={st.heroBadge}>
-              <MaterialCommunityIcons name="car-multiple" size={12} color={C.g400} />
-              <Text style={st.heroBadgeTxt}>Fleet Manager</Text>
-            </View>
-            <Text style={st.heroTitle}>My Fleet</Text>
-            <Text style={st.heroSub}>{vehicles.length} vehicles · {availableServices.length} services</Text>
+      <LinearGradient colors={G.hero} style={styles.header}>
+        <AnimatedOrb style={styles.orbA} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={['top']} style={styles.headerSafe}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity
+              style={styles.addCircle}
+              onPress={gate(() => navigation.navigate('AddVehicleScreen'), 'add vehicles')}
+              activeOpacity={0.85}
+            >
+              <Icon name={addIcon} size={20} color="#fff" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={st.addBtn} onPress={gate(() => navigation.navigate('AddVehicleScreen'), 'add vehicles')}>
-            <Icon name={vendorStatus === 'APPROVED' ? 'plus' : 'lock'} size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
 
-        <View style={st.statsRow}>
+          <View style={styles.heroBadge}>
+            <MaterialCommunityIcons name="car-multiple" size={12} color={C.g400} />
+            <Text style={styles.heroBadgeTxt}>Fleet Manager</Text>
+          </View>
+          <Text style={styles.bigTitle}>My Fleet</Text>
+          <Text style={styles.bigSub}>{vehicles.length} vehicles · {availableServices.length} services</Text>
+
+          <View style={{ height: rs(30) }} />
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* Floating stats card — tucks into the hero's bottom curve, mirroring
+          the compact template's floating-search-card motif. */}
+      <View style={styles.statsWrap}>
+        <View style={styles.statsCard}>
           {[
-            { label: 'Total',       value: vehicles.length,                                                        color: '#fff' },
-            { label: 'Active',      value: vehicles.filter(v => v.status?.toLowerCase() === 'active').length,      color: C.g400 },
-            { label: 'Booked',      value: vehicles.filter(v => v.status?.toLowerCase() === 'booked').length,      color: '#93C5FD' },
-            { label: 'Services',    value: availableServices.length,                                               color: '#FCD34D' },
+            { label: 'Total',    value: vehicles.length,            color: C.text  },
+            { label: 'Active',   value: activeCount,                color: C.g700  },
+            { label: 'Booked',   value: bookedCount,                color: C.blue  },
+            { label: 'Services', value: availableServices.length,   color: C.amber },
           ].map((s, i) => (
             <React.Fragment key={s.label}>
-              {i > 0 && <View style={st.statDiv} />}
-              <View style={st.statBox}>
-                <Text style={[st.statVal, { color: s.color }]}>{s.value}</Text>
-                <Text style={st.statLabel}>{s.label}</Text>
+              {i > 0 && <View style={styles.statDiv} />}
+              <View style={styles.statBox}>
+                <Text style={[styles.statVal, { color: s.color }]}>{s.value}</Text>
+                <Text style={styles.statLabel}>{s.label}</Text>
               </View>
             </React.Fragment>
           ))}
         </View>
-      </LinearGradient>
+      </View>
 
       {/* Pending-vendor verification banner */}
       <VerificationBanner status={vendorStatus} navigation={navigation} />
 
-      {/* ── ALL SCROLLABLE CONTENT ── */}
+      {/* ── FLEET TOOLS — fixed quick-access row ── */}
+      <View style={styles.toolsRow}>
+        {FLEET_TOOLS.map((tool, idx) => {
+          const gc = idx===0?['#1D4ED8','#60A5FA']:idx===1?['#B45309','#FBBF24']:idx===2?['#B91C1C','#F87171']:[C.g800,C.g500];
+          return (
+            <TouchableOpacity key={tool.label} style={styles.toolItem} onPress={() => navigation.navigate(tool.screen)} activeOpacity={0.8}>
+              <LinearGradient colors={gc} style={styles.toolItemIcon}>
+                <MaterialCommunityIcons name={tool.icon} size={19} color="#fff" />
+              </LinearGradient>
+              <Text style={styles.toolItemLabel} numberOfLines={1}>{tool.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Fixed filters — kept OUTSIDE the FlatList so switching tabs/chips
+          doesn't reset scroll position. */}
+      <View style={styles.filtersFixed}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.svcScroll}>
+          {[{ slug:'all', icon:'car-multiple', color: C.g700, shortLabel:'All', count: vehicles.length }, ...availableServices].map(svc => {
+            const isActive = serviceFilter === svc.slug;
+            return (
+              <TouchableOpacity
+                key={svc.slug}
+                style={[styles.svcChip, isActive && { backgroundColor: svc.color + '1A', borderColor: svc.color }]}
+                onPress={() => setServiceFilter(svc.slug)}
+                activeOpacity={0.75}
+              >
+                <MaterialCommunityIcons name={svc.icon} size={13} color={isActive ? svc.color : C.muted} />
+                <Text style={[styles.svcChipTxt, isActive && { color: svc.color }]}>{svc.shortLabel}</Text>
+                <Text style={[styles.svcChipCnt, isActive && { color: svc.color }]}>{svc.count}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        <View style={styles.statusRow}>
+          {statusFilters.map(f => {
+            const cnt = f.key === 'all' ? vehicles.length : vehicles.filter(v => v.status?.toLowerCase() === f.key).length;
+            const isActive = statusFilter === f.key;
+            const color = f.key === 'all' ? C.g600 : getStatusColor(f.key).dot;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                style={[styles.statusTab, isActive && { borderBottomColor: color }]}
+                onPress={() => setStatusFilter(f.key)}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.statusTabTxt, isActive && { color, fontWeight: '800' }]}>{f.label}</Text>
+                <View style={[styles.statusTabCnt, isActive && { backgroundColor: color }]}>
+                  <Text style={[styles.statusTabCntTxt, isActive && { color: '#fff' }]}>{cnt}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {(statusFilter !== 'all' || serviceFilter !== 'all') && (
+          <View style={styles.activeFilterRow}>
+            <Text style={styles.activeFilterTxt}>{filteredVehicles.length} result{filteredVehicles.length !== 1 ? 's' : ''}</Text>
+            <TouchableOpacity onPress={() => { setStatusFilter('all'); setServiceFilter('all'); }}>
+              <Text style={styles.clearFilterTxt}>Clear filters ×</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* ── VEHICLE LIST ── */}
       <FlatList
         data={filteredVehicles}
         renderItem={renderVehicle}
         keyExtractor={(item) => item.id?.toString()}
-        contentContainerStyle={st.list}
+        contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          <View>
-
-            {/* ── FLEET TOOLS ── */}
-            <View style={st.toolsRow}>
-              {FLEET_TOOLS.map((tool, idx) => {
-                const gc = idx===0?['#1D4ED8','#60A5FA']:idx===1?['#B45309','#FBBF24']:idx===2?['#B91C1C','#F87171']:[C.g800,C.g500];
-                return (
-                  <TouchableOpacity key={tool.label} style={st.toolItem} onPress={() => navigation.navigate(tool.screen)} activeOpacity={0.8}>
-                    <LinearGradient colors={gc} style={st.toolItemIcon}>
-                      <MaterialCommunityIcons name={tool.icon} size={20} color="#fff" />
-                    </LinearGradient>
-                    <Text style={st.toolItemLabel} numberOfLines={1}>{tool.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+          !isFilteredEmpty ? (
+            <View style={styles.sectionHead}>
+              <Text style={styles.sectionTitle}>MY VEHICLES</Text>
+              <Text style={styles.sectionCount}>{filteredVehicles.length} of {vehicles.length}</Text>
             </View>
-
-            {/* ── SECTION HEADER ── */}
-            <View style={st.listSectionHead}>
-              <Text style={st.listSectionTitle}>MY VEHICLES</Text>
-              <Text style={st.listSectionCount}>{filteredVehicles.length} of {vehicles.length}</Text>
-            </View>
-
-            {/* ── SERVICE CHIPS ── */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.svcScroll}>
-              {[{ slug:'all', icon:'car-multiple', color: C.g700, shortLabel:'All', count: vehicles.length }, ...availableServices].map(svc => {
-                const isActive = serviceFilter === svc.slug;
-                return (
-                  <TouchableOpacity
-                    key={svc.slug}
-                    style={[st.svcChip, isActive && { backgroundColor: svc.color + '1A', borderColor: svc.color }]}
-                    onPress={() => setServiceFilter(svc.slug)}
-                    activeOpacity={0.75}
-                  >
-                    <MaterialCommunityIcons name={svc.icon} size={13} color={isActive ? svc.color : C.muted} />
-                    <Text style={[st.svcChipTxt, isActive && { color: svc.color }]}>{svc.shortLabel}</Text>
-                    <Text style={[st.svcChipCnt, isActive && { color: svc.color }]}>{svc.count}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            {/* ── STATUS TABS ── */}
-            <View style={st.statusRow}>
-              {statusFilters.map(f => {
-                const cnt = f.key === 'all' ? vehicles.length : vehicles.filter(v => v.status?.toLowerCase() === f.key).length;
-                const isActive = statusFilter === f.key;
-                const color = f.key === 'all' ? C.g600 : getStatusColor(f.key).dot;
-                return (
-                  <TouchableOpacity
-                    key={f.key}
-                    style={[st.statusTab, isActive && { borderBottomColor: color }]}
-                    onPress={() => setStatusFilter(f.key)}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={[st.statusTabTxt, isActive && { color, fontWeight: '800' }]}>{f.label}</Text>
-                    <View style={[st.statusTabCnt, isActive && { backgroundColor: color }]}>
-                      <Text style={[st.statusTabCntTxt, isActive && { color: '#fff' }]}>{cnt}</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {(statusFilter !== 'all' || serviceFilter !== 'all') && (
-              <View style={st.activeFilterRow}>
-                <Text style={st.activeFilterTxt}>{filteredVehicles.length} result{filteredVehicles.length !== 1 ? 's' : ''}</Text>
-                <TouchableOpacity onPress={() => { setStatusFilter('all'); setServiceFilter('all'); }}>
-                  <Text style={st.clearFilterTxt}>Clear filters ×</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {filteredVehicles.length === 0 && (
-              <View style={st.empty}>
-                <View style={st.emptyIcon}><MaterialCommunityIcons name="car-off" size={36} color={C.muted} /></View>
-                <Text style={st.emptyTitle}>No Vehicles Found</Text>
-                <Text style={st.emptyMsg}>{vehicles.length === 0 ? 'Add your first vehicle to get started' : 'No vehicles match your filters'}</Text>
-                {vehicles.length === 0 && (
-                  <TouchableOpacity style={st.emptyBtn} onPress={gate(() => navigation.navigate('AddVehicleScreen'), 'add vehicles')}>
-                    <Icon name={vendorStatus === 'APPROVED' ? 'plus' : 'lock'} size={16} color="#fff" /><Text style={st.emptyBtnTxt}>Add Vehicle</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-          </View>
+          ) : null
+        }
+        ListEmptyComponent={
+          <FleetEmptyState
+            noneAtAll={noneAtAll}
+            onAddVehicle={gate(() => navigation.navigate('AddVehicleScreen'), 'add vehicles')}
+            addIcon={addIcon}
+          />
         }
       />
       {LockGateModal}
-    </SafeAreaView>
+    </View>
   );
 }
 
-const st = StyleSheet.create({
+const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
 
   /* Hero */
-  hero:        { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 18, overflow: 'hidden' },
-  heroLoading: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 18 },
-  heroTopSimple: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  deco: { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
-  heroTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 18 },
-  backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center', marginTop: 4 },
-  heroMid: { flex: 1 },
-  heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 6 },
-  heroBadgeTxt: { fontSize: 11, fontWeight: '600', color: C.g400 },
-  heroTitle: { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 3 },
-  heroSub:   { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
-  addBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', marginTop: 4 },
+  header: {
+    overflow: 'hidden',
+    borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
+    paddingBottom: rs(8),
+  },
+  headerLoading: {
+    overflow: 'hidden',
+    borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
+  },
+  headerSafe: { paddingHorizontal: 16 },
+  orbA: {
+    position: 'absolute', top: -46, right: -30, width: 150, height: 150,
+    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  orbB: {
+    position: 'absolute', bottom: -40, left: -34, width: 120, height: 120,
+    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
+  },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(14) },
+  backCircle: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  loadTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff', flex: 1, textAlign: 'center' },
+  addCircle: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+  },
 
-  statsRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14, paddingVertical: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  statDiv:  { width: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 4 },
+  heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 8 },
+  heroBadgeTxt: { fontSize: 11, fontWeight: '600', color: C.g400, fontFamily: DISPLAY },
+  bigTitle: { fontSize: 26, fontWeight: '700', color: '#fff', fontFamily: DISPLAY, marginBottom: 3 },
+  bigSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', fontFamily: DISPLAY },
+
+  /* Floating stats card */
+  statsWrap: { marginHorizontal: 16, marginTop: -rs(24) },
+  statsCard: {
+    flexDirection: 'row',
+    backgroundColor: C.card, borderRadius: rs(16),
+    paddingVertical: 13,
+    borderWidth: 1, borderColor: C.glassBorder,
+    ...cardShadow,
+  },
+  statDiv:  { width: 1, backgroundColor: C.border, marginVertical: 4 },
   statBox:  { flex: 1, alignItems: 'center' },
-  statVal:  { fontSize: 18, fontWeight: '800', marginBottom: 3 },
-  statLabel:{ fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.4 },
+  statVal:  { fontSize: 17, fontWeight: '800', fontFamily: DISPLAY, marginBottom: 2 },
+  statLabel:{ fontSize: 9.5, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.4 },
 
-  /* Fleet Tools single row */
-  toolsRow: { flexDirection: 'row', paddingTop: 14, paddingBottom: 6, gap: 8 },
-  toolItem: { flex: 1, alignItems: 'center', backgroundColor: C.card, borderRadius: 16, paddingVertical: 14, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
-  toolItemIcon: { width: 42, height: 42, borderRadius: 13, justifyContent: 'center', alignItems: 'center', marginBottom: 7 },
-  toolItemLabel: { fontSize: 11, fontWeight: '700', color: C.text },
+  /* Fleet tools — fixed single row */
+  toolsRow: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: rs(14), paddingBottom: 6, gap: 8 },
+  toolItem: { flex: 1, alignItems: 'center', backgroundColor: C.card, borderRadius: rs(14), paddingVertical: 12, borderWidth: 1, borderColor: C.border, ...rowShadow },
+  toolItemIcon: { width: 38, height: 38, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
+  toolItemLabel: { fontSize: 10.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
 
-  /* Section header — no horizontal padding (FlatList contentContainerStyle already has 16px) */
-  listSectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 10, marginTop: 6, borderTopWidth: 1, borderTopColor: C.border },
-  listSectionTitle: { fontSize: 11, fontWeight: '800', color: C.muted, letterSpacing: 1.2, textTransform: 'uppercase' },
-  listSectionCount: { fontSize: 12, fontWeight: '600', color: C.sub },
-
-  /* Service chips */
-  svcScroll: { gap: 8, paddingBottom: 12 },
+  /* Fixed filters */
+  filtersFixed: { paddingTop: 8 },
+  svcScroll: { gap: 8, paddingHorizontal: 16, paddingBottom: 10 },
   svcChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 20, backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border },
-  svcChipTxt: { fontSize: 12, fontWeight: '700', color: C.muted },
+  svcChipTxt: { fontSize: 12, fontWeight: '700', color: C.muted, fontFamily: DISPLAY },
   svcChipCnt: { fontSize: 11, fontWeight: '800', color: C.muted },
 
-  /* Status underline tabs */
-  statusRow: { flexDirection: 'row', marginBottom: 10, backgroundColor: C.card, borderRadius: 12, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
+  statusRow: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 8, backgroundColor: C.card, borderRadius: 12, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
   statusTab: { flex: 1, alignItems: 'center', paddingVertical: 9, gap: 3, borderBottomWidth: 2.5, borderBottomColor: 'transparent' },
-  statusTabTxt: { fontSize: 11, fontWeight: '700', color: C.muted },
+  statusTabTxt: { fontSize: 11, fontWeight: '700', color: C.muted, fontFamily: DISPLAY },
   statusTabCnt: { minWidth: 20, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6, backgroundColor: C.bg, alignItems: 'center' },
   statusTabCntTxt: { fontSize: 10, fontWeight: '800', color: C.muted },
 
-  /* Active filter clear row */
-  activeFilterRow: { flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 8 },
+  activeFilterRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 8 },
   activeFilterTxt: { fontSize: 12, color: C.sub, fontWeight: '600' },
   clearFilterTxt: { fontSize: 12, color: C.red, fontWeight: '700' },
 
-  /* Vehicle cards */
-  list: { paddingHorizontal: 16, paddingBottom: 120, gap: 10, paddingTop: 0 },
-  vCard: {
-    backgroundColor: C.card, borderRadius: 14,
-    borderLeftWidth: 4,
+  /* List */
+  listContent: { paddingHorizontal: 16, paddingBottom: 120, gap: 10, paddingTop: 4 },
+
+  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10 },
+  sectionTitle: { fontSize: 11, fontWeight: '800', color: C.muted, letterSpacing: 1.2, textTransform: 'uppercase', fontFamily: DISPLAY },
+  sectionCount: { fontSize: 12, fontWeight: '600', color: C.sub },
+
+  /* Vehicle card */
+  card: {
+    flexDirection: 'row',
+    backgroundColor: C.card,
+    borderRadius: rs(14),
+    borderWidth: 1,
+    borderColor: C.glassBorder,
+    overflow: 'hidden',
+    ...cardShadow,
   },
-  vRow: { flexDirection: 'row', alignItems: 'center', padding: 13, gap: 11 },
-  vIconBox: { width: 50, height: 50, borderRadius: 13, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
-  vImg: { width: 50, height: 50, borderRadius: 13 },
+  cardRail: { width: 3 },
+  cardInner: { flex: 1, padding: 11, minWidth: 0 },
 
-  vMeta: { flex: 1, gap: 3 },
-  vMetaTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  vName: { fontSize: 14, fontWeight: '800', color: C.text, flex: 1 },
-  vStatusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
-  vStatusDot: { width: 6, height: 6, borderRadius: 3 },
-  vStatusTxt: { fontSize: 10, fontWeight: '700', textTransform: 'capitalize' },
-  vReg: { fontSize: 12, color: C.blue, fontWeight: '700', letterSpacing: 0.3 },
+  cardTopStripe: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  iconBox: { width: 42, height: 42, borderRadius: rs(11), justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  vehicleImg: { width: 42, height: 42, borderRadius: rs(11) },
+  cardName: { fontSize: 14.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY, flex: 1 },
+  statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  statusText: { fontSize: 9.5, fontWeight: '700', textTransform: 'capitalize' },
+  vDel: { width: 28, height: 28, borderRadius: 9, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
 
-  vMetaBot: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  vSvcTag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7 },
-  vSvcTagTxt: { fontSize: 10, fontWeight: '700' },
-  vSpec: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  vSpecTxt: { fontSize: 11, color: C.muted, fontWeight: '500' },
+  cardBody: { marginLeft: 50 },
+  regText: { fontSize: 11.5, color: C.blue, fontWeight: '700', letterSpacing: 0.3, marginBottom: 6 },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { fontSize: 10.5, color: C.sub, fontWeight: '600' },
+  svcTag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7 },
+  svcTagTxt: { fontSize: 10, fontWeight: '700', fontFamily: DISPLAY },
 
-  vDel: { width: 32, height: 32, borderRadius: 9, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
-
-  /* Empty state */
-  empty:     { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: C.card, justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: C.border },
-  emptyTitle:{ fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 8 },
-  emptyMsg:  { fontSize: 14, color: C.muted, textAlign: 'center', marginBottom: 24, lineHeight: 20 },
-  emptyBtn:  { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.g700, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 14 },
-  emptyBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  clearBtn:  { marginTop: 12, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: C.border, backgroundColor: C.card },
-  clearBtnTxt: { color: C.text, fontWeight: '600', fontSize: 13 },
+  /* Illustrated empty state */
+  emptyCardWrap: {
+    alignItems: 'center',
+    backgroundColor: C.card, borderRadius: rs(24),
+    borderWidth: 1, borderColor: C.glassBorder,
+    paddingHorizontal: 20, paddingVertical: rs(30),
+    marginTop: rs(6),
+  },
+  emptyArt: {
+    width: rs(140), height: rs(112), marginBottom: rs(16),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyArtCardBack: {
+    position: 'absolute', top: rs(12), right: rs(20),
+    width: rs(88), height: rs(64), borderRadius: rs(14),
+    backgroundColor: C.g50, transform: [{ rotate: '8deg' }],
+  },
+  emptyArtCard: {
+    width: rs(88), height: rs(78), borderRadius: rs(16),
+    backgroundColor: C.bg, borderWidth: 1, borderColor: C.g50,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyArtDot: {
+    position: 'absolute', top: rs(4), right: rs(16),
+    width: rs(20), height: rs(20), borderRadius: rs(10), backgroundColor: C.g400,
+    borderWidth: rs(3), borderColor: C.card,
+  },
+  emptyArtTag: {
+    position: 'absolute', bottom: rs(8), left: rs(4),
+    backgroundColor: C.card, borderRadius: rs(8),
+    paddingHorizontal: rs(8), paddingVertical: rs(3),
+    borderWidth: 1, borderColor: C.g50,
+    transform: [{ rotate: '-8deg' }],
+  },
+  emptyArtTagTxt: { fontSize: 8.5, fontWeight: '700', color: C.g700, letterSpacing: 0.6, fontFamily: DISPLAY },
+  emptyTitle:    { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 6, fontFamily: DISPLAY, textAlign: 'center' },
+  emptyBody: {
+    fontSize: 13, color: C.muted, textAlign: 'center',
+    lineHeight: 19, maxWidth: rs(260),
+  },
+  emptyCtaWrap: { marginTop: rs(16) },
+  emptyCta: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 11, paddingHorizontal: 24, borderRadius: rs(14),
+  },
+  emptyCtaText: { fontSize: 13.5, fontWeight: '700', color: '#fff', fontFamily: DISPLAY },
 });

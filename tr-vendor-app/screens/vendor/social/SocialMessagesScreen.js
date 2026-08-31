@@ -18,16 +18,24 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { getConversations } from '../../api/socialApi';
 import { getFullImageURL } from '../../api/client';
+import { SC as T, G, rs, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
-const G = {
-  bg: '#F8FAFC', surface: '#FFFFFF', text: '#1E293B', muted: '#64748B',
-  border: '#E2E8F0', violet: '#059669', violetL: '#ECFDF5',
-  red: '#EF4444', redL: '#FEF2F2', green: '#059669', greenL: '#ECFDF5',
-  orange: '#F97316', orangeL: '#FFF7ED', amber: '#D97706', amberL: '#FFFBEB',
-  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g600: '#059669',
+// Same key names this screen already used everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex,
+// mirroring the mapping convention CreatePostScreen.js just used. Renamed
+// from `G` to `C` so it doesn't collide with the theme's `G` gradients export.
+const C = {
+  g950: T.forestDark, g900: T.forest, g800: T.emeraldDeep,
+  bg: T.bg, surface: T.card, text: T.ink, muted: T.subText,
+  border: T.border, violet: T.emerald600, violetL: T.tintEmerald,
+  red: T.red, redL: T.redLight, green: T.emerald600, greenL: T.tintEmerald,
+  orange: T.orange, orangeL: T.orangeL, amber: T.amber, amberL: T.tintGold,
+  g600: T.emerald600,
 };
 
-const AVATAR_COLORS = ['#059669', '#DC2626', '#16A34A', '#F97316', '#0891B2', '#DB2777', '#D97706'];
+const AVATAR_COLORS = [T.emerald600, T.red, T.ocean, T.orange, T.plum, T.rose, T.gold];
 const getAvatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
 const formatTime = (dateStr) => {
@@ -67,11 +75,12 @@ function AvatarCircle({ name, logo, size = 44 }) {
   }, [logo]);
 
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+    <View style={{ width: size, height: size, borderRadius: size * 0.32, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
       {logo && uri && !imgErr ? (
-        <Image 
-          source={{ uri }} 
-          style={{ width: size, height: size, borderRadius: size / 2 }} 
+        <Image
+          source={{ uri }}
+          style={{ width: size, height: size, borderRadius: size * 0.32 }}
+          resizeMode="cover"
           onError={() => setImgErr(true)}
         />
       ) : (
@@ -163,64 +172,72 @@ export default function SocialMessagesScreen({ navigation }) {
           </Text>
         </View>
 
-        <Icon name="chevron-right" size={16} color={isUnread ? G.violet : G.border} />
+        <Icon name="chevron-right" size={16} color={isUnread ? C.violet : C.border} />
       </TouchableOpacity>
     );
   };
 
   useFocusEffect(useCallback(() => {
     StatusBar.setBarStyle('light-content');
-    if (Platform.OS === 'android') StatusBar.setBackgroundColor(G.g950);
+    if (Platform.OS === 'android') StatusBar.setBackgroundColor(C.g950);
   }, []));
 
   return (
     <View style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={G.g950} translucent={false} />
-      {/* Header */}
-      <LinearGradient colors={[G.g950, G.g900, G.g800]} style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Icon name="arrow-left" size={20} color="#fff" />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Messages</Text>
-          <Text style={styles.headerSub}>
-            {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
-            {totalUnread > 0 ? ` · ${totalUnread} unread` : ''}
-          </Text>
-        </View>
-        {totalUnread > 0 && (
-          <View style={styles.totalUnreadBadge}>
-            <Text style={styles.totalUnreadText}>{totalUnread > 99 ? '99+' : totalUnread}</Text>
-          </View>
-        )}
-      </LinearGradient>
+      <StatusBar barStyle="light-content" backgroundColor={C.g950} translucent={false} />
 
-      {/* Search */}
-      <View style={styles.searchBar}>
-        <Icon name="search" size={16} color={G.muted} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search conversations..."
-          placeholderTextColor={G.muted}
-          value={search}
-          onChangeText={setSearch}
-        />
-        {search.length > 0 && (
-          <TouchableOpacity onPress={() => setSearch('')}>
-            <Icon name="x-circle" size={16} color={G.muted} />
-          </TouchableOpacity>
-        )}
-      </View>
+      {/* ── HERO HEADER ── */}
+      <LinearGradient colors={G.hero} style={styles.hero}>
+        <AnimatedOrb style={styles.orbA} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <View style={[styles.heroSafe, { paddingTop: insets.top + rs(10) }]}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.headerTitleBlock}>
+              <Text style={styles.headerEyebrow}>DIRECT MESSAGES</Text>
+              <Text style={styles.headerTitle} numberOfLines={1}>Messages</Text>
+              <Text style={styles.headerSub} numberOfLines={1}>
+                {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
+                {totalUnread > 0 ? ` · ${totalUnread} unread` : ''}
+              </Text>
+            </View>
+            {totalUnread > 0 && (
+              <View style={styles.totalUnreadBadge}>
+                <Text style={styles.totalUnreadText}>{totalUnread > 99 ? '99+' : totalUnread}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Search */}
+          <View style={styles.searchBar}>
+            <Icon name="search" size={16} color={C.muted} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search conversations..."
+              placeholderTextColor={C.muted}
+              value={search}
+              onChangeText={setSearch}
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <Icon name="x-circle" size={16} color={C.muted} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </LinearGradient>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={G.violet} size="large" />
+          <ActivityIndicator color={C.violet} size="large" />
           <Text style={styles.loadingText}>Loading conversations...</Text>
         </View>
       ) : filtered.length === 0 ? (
         <View style={styles.center}>
           <View style={styles.emptyCircle}>
-            <Icon name="message-circle" size={44} color={G.violet} />
+            <Icon name="message-circle" size={44} color={C.violet} />
           </View>
           <Text style={styles.emptyTitle}>
             {search ? 'No Results' : 'No Messages Yet'}
@@ -236,7 +253,7 @@ export default function SocialMessagesScreen({ navigation }) {
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={renderConversation}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={G.violet} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.violet} />}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
@@ -246,68 +263,88 @@ export default function SocialMessagesScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: G.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  loadingText: { color: G.muted, fontSize: 14, marginTop: 10 },
+  safe: { flex: 1, backgroundColor: C.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: rs(32) },
+  loadingText: { fontFamily: DISPLAY, color: C.muted, fontSize: rs(14), marginTop: rs(10), fontWeight: '600' },
 
-  // Header
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 14, gap: 10,
+  // Hero header
+  hero: { borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24), overflow: 'hidden' },
+  orbA: {
+    position: 'absolute', top: -rs(48), right: -rs(32), width: rs(170), height: rs(170), borderRadius: rs(85),
+    backgroundColor: 'rgba(228,192,102,0.10)',
   },
-  backBtn: { padding: 4 },
-  headerCenter: { flex: 1 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 1 },
+  orbB: {
+    position: 'absolute', bottom: -rs(44), left: -rs(38), width: rs(140), height: rs(140), borderRadius: rs(70),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  heroSafe: { paddingHorizontal: rs(16), paddingBottom: rs(16) },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: rs(10) },
+  backBtn: {
+    width: rs(38), height: rs(38), borderRadius: rs(19),
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  headerTitleBlock: { flex: 1, minWidth: 0 },
+  headerEyebrow: {
+    fontFamily: DISPLAY, fontSize: rs(9.5), fontWeight: 'bold', color: T.gold,
+    letterSpacing: 1.4, textTransform: 'uppercase', includeFontPadding: false,
+  },
+  headerTitle: {
+    fontFamily: DISPLAY, fontSize: rs(19), fontWeight: 'bold', color: '#fff',
+    letterSpacing: 0.2, marginTop: rs(2), includeFontPadding: false,
+  },
+  headerSub: { fontFamily: DISPLAY, fontSize: rs(11.5), color: 'rgba(255,255,255,0.8)', marginTop: rs(2), fontWeight: '600', includeFontPadding: false },
   totalUnreadBadge: {
-    minWidth: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.25)',
-    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
+    minWidth: rs(26), height: rs(26), borderRadius: rs(13), backgroundColor: '#fff',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: rs(6),
   },
-  totalUnreadText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  totalUnreadText: { fontFamily: DISPLAY, color: C.g900, fontSize: rs(11.5), fontWeight: 'bold' },
 
   // Search
   searchBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: G.surface, marginHorizontal: 12, marginVertical: 10,
-    paddingHorizontal: 12, paddingVertical: 10,
-    borderRadius: 12, borderWidth: 1, borderColor: G.border,
+    flexDirection: 'row', alignItems: 'center', gap: rs(8),
+    backgroundColor: '#fff', marginTop: rs(14),
+    paddingHorizontal: rs(14), height: rs(44),
+    borderRadius: rs(14),
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 2,
   },
-  searchInput: { flex: 1, fontSize: 14, color: G.text, padding: 0 },
+  searchInput: { fontFamily: DISPLAY, flex: 1, fontSize: rs(14), color: C.text, padding: 0 },
 
   // List
-  listContent: { paddingHorizontal: 12, paddingBottom: 100 },
+  listContent: { paddingHorizontal: rs(14), paddingTop: rs(12), paddingBottom: rs(100) },
 
   // Conversation item
   convItem: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: G.surface,
-    borderRadius: 14, padding: 12, marginBottom: 8,
-    borderWidth: 1, borderColor: G.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface,
+    borderRadius: rs(16), padding: rs(12), marginBottom: rs(8),
+    borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
   },
-  convItemUnread: { backgroundColor: G.violetL, borderColor: '#6EE7B7', borderLeftWidth: 3, borderLeftColor: G.green },
-  avatarWrap: { position: 'relative', marginRight: 12 },
+  convItemUnread: { backgroundColor: C.violetL, borderColor: C.green },
+  avatarWrap: { position: 'relative', marginRight: rs(12) },
   unreadDot: {
-    position: 'absolute', top: -3, right: -3,
-    minWidth: 18, height: 18, borderRadius: 9, backgroundColor: G.violet,
-    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
-    borderWidth: 2, borderColor: G.surface,
+    position: 'absolute', top: -rs(3), right: -rs(3),
+    minWidth: rs(18), height: rs(18), borderRadius: rs(9), backgroundColor: C.violet,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: rs(4),
+    borderWidth: 2, borderColor: C.surface,
   },
-  unreadDotText: { fontSize: 9, fontWeight: '700', color: '#fff' },
-  convContent: { flex: 1, marginRight: 6 },
-  convRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 1 },
-  convName: { fontSize: 15, fontWeight: '600', color: G.text, flex: 1, marginRight: 6 },
-  convNameUnread: { fontWeight: '700' },
-  convTime: { fontSize: 11, color: G.muted },
-  convTimeUnread: { color: G.violet, fontWeight: '600' },
-  convOwner: { fontSize: 12, color: G.muted, marginBottom: 2 },
-  convPreview: { fontSize: 13, color: G.muted },
-  convPreviewUnread: { color: G.text, fontWeight: '500' },
+  unreadDotText: { fontFamily: DISPLAY, fontSize: rs(9), fontWeight: 'bold', color: '#fff', includeFontPadding: false },
+  convContent: { flex: 1, marginRight: rs(6) },
+  convRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: rs(1) },
+  convName: { fontFamily: DISPLAY, fontSize: rs(14.5), fontWeight: 'bold', color: C.text, flex: 1, marginRight: rs(6), includeFontPadding: false },
+  convNameUnread: { fontWeight: 'bold' },
+  convTime: { fontFamily: DISPLAY, fontSize: rs(10.5), color: C.muted, fontWeight: '600', includeFontPadding: false },
+  convTimeUnread: { color: C.violet, fontWeight: 'bold' },
+  convOwner: { fontFamily: DISPLAY, fontSize: rs(11.5), color: C.muted, marginBottom: rs(2), fontWeight: '500' },
+  convPreview: { fontFamily: DISPLAY, fontSize: rs(12.5), color: C.muted },
+  convPreviewUnread: { color: C.text, fontWeight: 'bold' },
 
   // Empty
   emptyCircle: {
-    width: 88, height: 88, borderRadius: 44, backgroundColor: G.violetL,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 14,
+    width: rs(88), height: rs(88), borderRadius: rs(44), backgroundColor: C.violetL,
+    alignItems: 'center', justifyContent: 'center', marginBottom: rs(14),
   },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: G.text, marginBottom: 6 },
-  emptyText: { fontSize: 14, color: G.muted, textAlign: 'center', lineHeight: 20 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: rs(18), fontWeight: 'bold', color: C.text, marginBottom: rs(6) },
+  emptyText: { fontFamily: DISPLAY, fontSize: rs(13.5), color: C.muted, textAlign: 'center', lineHeight: rs(20), fontWeight: '500' },
 });

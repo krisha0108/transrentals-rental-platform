@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
-import { auditPage, auditMultiplePages } from '@/lib/seo/audit-engine';
+import { auditPage, auditMultiplePages, shapeAuditForClient, DEFAULT_AUDIT_BASE_URL } from '@/lib/seo/audit-engine';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes for multiple pages
@@ -22,13 +22,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { url, urls, baseUrl } = body;
-
-    if (!baseUrl) {
-      return NextResponse.json({
-        error: 'Base URL is required',
-      }, { status: 400 });
-    }
+    const { url, urls } = body;
+    const baseUrl = body.baseUrl || DEFAULT_AUDIT_BASE_URL;
 
     // Audit single page
     if (url) {
@@ -37,7 +32,7 @@ export async function POST(request: NextRequest) {
       const result = await auditPage(url, baseUrl);
 
       // Save to database
-      await prisma.seo_audits.upsert({
+      const saved = await prisma.seo_audits.upsert({
         where: { pagePath: result.pagePath },
         create: result,
         update: {
@@ -88,10 +83,7 @@ export async function POST(request: NextRequest) {
 
       console.log(`✅ Audit complete: ${result.pagePath} (Score: ${result.overallScore})`);
 
-      return NextResponse.json({
-        success: true,
-        result,
-      });
+      return NextResponse.json(shapeAuditForClient(saved, baseUrl));
     }
 
     // Audit multiple pages

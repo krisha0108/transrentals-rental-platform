@@ -26,6 +26,9 @@ interface GSCStatus {
     siteUrl: string;
     permissionLevel: string;
   }>;
+  credentialsConfigured?: boolean;
+  credentialsSource?: 'database' | 'env' | null;
+  clientId?: string | null;
 }
 
 interface GA4Status {
@@ -41,8 +44,8 @@ interface GA4Status {
 
 interface SyncStats {
   total: number;
-  created: number;
-  updated: number;
+  upserted: number;
+  trackedKeywordsUpdated: number;
 }
 
 export default function IntegrationsPage() {
@@ -59,6 +62,9 @@ export default function IntegrationsPage() {
   const [ga4SyncDays, setGa4SyncDays] = useState('7');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [syncStats, setSyncStats] = useState<SyncStats | null>(null);
+  const [gscClientId, setGscClientId] = useState('');
+  const [gscClientSecret, setGscClientSecret] = useState('');
+  const [savingCredentials, setSavingCredentials] = useState(false);
 
   // Check URL parameters for success/error messages
   useEffect(() => {
@@ -136,6 +142,33 @@ export default function IntegrationsPage() {
     };
     fetchStatuses();
   }, []);
+
+  const handleSaveCredentials = async () => {
+    if (!gscClientId.trim() || !gscClientSecret.trim()) {
+      setMessage({ type: 'error', text: 'Enter both a Client ID and Client Secret' });
+      return;
+    }
+    try {
+      setSavingCredentials(true);
+      const response = await fetch('/api/integrations/gsc/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: gscClientId.trim(), clientSecret: gscClientSecret.trim() }),
+      });
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Credentials saved. You can now connect.' });
+        setGscClientSecret('');
+        await fetchGSCStatus();
+      } else {
+        const data = await response.json();
+        setMessage({ type: 'error', text: data.error || 'Failed to save credentials' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to save credentials' });
+    } finally {
+      setSavingCredentials(false);
+    }
+  };
 
   const handleConnect = async () => {
     try {
@@ -483,12 +516,12 @@ export default function IntegrationsPage() {
                       <p className="text-2xl font-bold text-green-900">{syncStats.total}</p>
                     </div>
                     <div>
-                      <p className="text-green-600">Created</p>
-                      <p className="text-2xl font-bold text-green-900">{syncStats.created}</p>
+                      <p className="text-green-600">Rows Synced</p>
+                      <p className="text-2xl font-bold text-green-900">{syncStats.upserted}</p>
                     </div>
                     <div>
-                      <p className="text-green-600">Updated</p>
-                      <p className="text-2xl font-bold text-green-900">{syncStats.updated}</p>
+                      <p className="text-green-600">Tracked Keywords Updated</p>
+                      <p className="text-2xl font-bold text-green-900">{syncStats.trackedKeywordsUpdated}</p>
                     </div>
                   </div>
                 </div>
@@ -506,26 +539,73 @@ export default function IntegrationsPage() {
                 <li>Page performance data</li>
               </ul>
 
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Make sure you have added GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to your .env file
-                </AlertDescription>
-              </Alert>
+              {gscStatus?.credentialsConfigured ? (
+                <>
+                  <Alert>
+                    <CheckCircle2 className="h-4 w-4" />
+                    <AlertDescription>
+                      OAuth credentials configured ({gscStatus.credentialsSource === 'database' ? 'saved from this page' : 'from .env file'}
+                      {gscStatus.clientId ? ` — ${gscStatus.clientId}` : ''}).
+                    </AlertDescription>
+                  </Alert>
 
-              <Button onClick={handleConnect} disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  <>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Connect Google Search Console
-                  </>
-                )}
-              </Button>
+                  <Button onClick={handleConnect} disabled={loading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Connect Google Search Console
+                      </>
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      No OAuth credentials found. Enter a Client ID and Client Secret from a Google Cloud OAuth
+                      client below, or set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env file instead.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="space-y-3 rounded-lg border border-gray-200 p-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="gsc-client-id">Client ID</Label>
+                      <Input
+                        id="gsc-client-id"
+                        value={gscClientId}
+                        onChange={(e) => setGscClientId(e.target.value)}
+                        placeholder="xxxxxxxxxxxx.apps.googleusercontent.com"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="gsc-client-secret">Client Secret</Label>
+                      <Input
+                        id="gsc-client-secret"
+                        type="password"
+                        value={gscClientSecret}
+                        onChange={(e) => setGscClientSecret(e.target.value)}
+                        placeholder="GOCSPX-••••••••••••"
+                      />
+                    </div>
+                    <Button onClick={handleSaveCredentials} disabled={savingCredentials} variant="outline">
+                      {savingCredentials ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Save Credentials'
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
             </>
           )}
         </CardContent>

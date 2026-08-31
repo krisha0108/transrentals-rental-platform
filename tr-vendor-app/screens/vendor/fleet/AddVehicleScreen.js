@@ -12,6 +12,8 @@ import {
   Modal,
   FlatList,
   StatusBar,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -22,13 +24,18 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { launchImageLibrary } from 'react-native-image-picker';
 import { getVendorFleet, addVehicle, updateVehicle } from '../../api/client';
 import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
+import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g50: '#ECFDF5', g100: '#D1FAE5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  red: '#EF4444', redL: '#FEE2E2',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  red: T.red, redL: T.redLight,
 };
 
 const FUEL_TYPES = [
@@ -77,7 +84,7 @@ export default function AddVehicleScreen({ route, navigation }) {
   useEffect(() => { fetchData(); }, []);
   useFocusEffect(useCallback(() => {
     StatusBar.setBarStyle('light-content');
-    StatusBar.setBackgroundColor('#022C22');
+    StatusBar.setBackgroundColor(C.g900);
   }, []));
 
   useEffect(() => {
@@ -322,8 +329,10 @@ export default function AddVehicleScreen({ route, navigation }) {
   // Selection modal component
   const SelectionModal = ({ visible, onClose, title, data, onSelect, selected, searchFields, renderItem }) => (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
+          <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{title}</Text>
             <TouchableOpacity style={styles.modalClose} onPress={onClose}>
@@ -361,6 +370,7 @@ export default function AddVehicleScreen({ route, navigation }) {
           />
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 
@@ -368,7 +378,7 @@ export default function AddVehicleScreen({ route, navigation }) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.heroLoading}>
+        <LinearGradient colors={G.hero} style={styles.heroLoading}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Icon name="arrow-left" size={22} color="#fff" />
           </TouchableOpacity>
@@ -387,9 +397,9 @@ export default function AddVehicleScreen({ route, navigation }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* Hero Header */}
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.hero}>
-        <View style={styles.deco1} />
-        <View style={styles.deco2} />
+      <LinearGradient colors={G.hero} style={styles.hero}>
+        <AnimatedOrb style={styles.deco1} />
+        <AnimatedOrb style={styles.deco2} delay={1200} dx={-10} dy={8} />
         <View style={styles.heroRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Icon name="arrow-left" size={22} color="#fff" />
@@ -432,7 +442,7 @@ export default function AddVehicleScreen({ route, navigation }) {
           >
             {selectedService ? (
               <View style={styles.selectedItem}>
-                <LinearGradient colors={[C.g800, C.g600]} style={styles.selectedIconGrad}>
+                <LinearGradient colors={G.emerald} style={styles.selectedIconGrad}>
                   <Ionicons name="car-sport" size={20} color="#fff" />
                 </LinearGradient>
                 <View style={styles.selectedInfo}>
@@ -480,7 +490,7 @@ export default function AddVehicleScreen({ route, navigation }) {
                     {selectedModel.sideImage ? (
                       <Image source={{ uri: selectedModel.sideImage }} style={styles.modelImage} onError={(e) => console.log(`[AddVehicle] image error: ${selectedModel.name}`)} />
                     ) : (
-                      <LinearGradient colors={[C.g800, C.g600]} style={styles.selectedIconGrad}>
+                      <LinearGradient colors={G.emerald} style={styles.selectedIconGrad}>
                         <Ionicons name="car" size={20} color="#fff" />
                       </LinearGradient>
                     )}
@@ -507,7 +517,7 @@ export default function AddVehicleScreen({ route, navigation }) {
                 >
                   {selectedCategory ? (
                     <View style={styles.selectedItem}>
-                      <LinearGradient colors={[C.g800, C.g600]} style={styles.selectedIconGrad}>
+                      <LinearGradient colors={G.emerald} style={styles.selectedIconGrad}>
                         <Ionicons name="grid" size={20} color="#fff" />
                       </LinearGradient>
                       <View style={styles.selectedInfo}>
@@ -534,7 +544,7 @@ export default function AddVehicleScreen({ route, navigation }) {
                         {selectedBrand.logo ? (
                           <Image source={{ uri: selectedBrand.logo }} style={styles.brandLogo} />
                         ) : (
-                          <LinearGradient colors={[C.g800, C.g600]} style={styles.selectedIconGrad}>
+                          <LinearGradient colors={G.emerald} style={styles.selectedIconGrad}>
                             <Ionicons name="business" size={20} color="#fff" />
                           </LinearGradient>
                         )}
@@ -703,7 +713,7 @@ export default function AddVehicleScreen({ route, navigation }) {
             >
               {selectedLocations.length > 0 ? (
                 <View style={styles.selectedItem}>
-                  <LinearGradient colors={[C.g800, C.g600]} style={styles.selectedIconGrad}>
+                  <LinearGradient colors={G.emerald} style={styles.selectedIconGrad}>
                     <Ionicons name="location" size={20} color="#fff" />
                   </LinearGradient>
                   <View style={styles.selectedInfo}>
@@ -792,7 +802,7 @@ export default function AddVehicleScreen({ route, navigation }) {
 
         {/* Submit Button */}
         <TouchableOpacity style={[styles.submitBtn, submitting && { opacity: 0.6 }]} onPress={handleSubmit} disabled={submitting}>
-          <LinearGradient colors={[C.g800, C.g600]} style={styles.submitBtnInner}>
+          <LinearGradient colors={G.emerald} style={styles.submitBtnInner}>
             {submitting ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
@@ -923,8 +933,10 @@ export default function AddVehicleScreen({ route, navigation }) {
 
       {/* Location Selection Modal */}
       <Modal visible={showLocationModal} animationType="slide" transparent onRequestClose={() => setShowLocationModal(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Locations</Text>
               <TouchableOpacity style={styles.modalClose} onPress={() => setShowLocationModal(false)}>
@@ -988,12 +1000,13 @@ export default function AddVehicleScreen({ route, navigation }) {
             />
 
             <TouchableOpacity style={styles.modalDoneBtn} onPress={() => setShowLocationModal(false)}>
-              <LinearGradient colors={[C.g800, C.g600]} style={styles.modalDoneBtnInner}>
+              <LinearGradient colors={G.emerald} style={styles.modalDoneBtnInner}>
                 <Text style={styles.modalDoneBtnText}>Done</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -1005,42 +1018,52 @@ const styles = StyleSheet.create({
   loadingText: { marginTop: 12, fontSize: 15, color: C.muted },
 
   // Hero
-  hero: { paddingBottom: 18, overflow: 'hidden' },
+  hero: { paddingBottom: rs(18), overflow: 'hidden' },
   heroLoading: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  loadTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  deco1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(52,211,153,0.08)', top: -50, right: -30 },
-  deco2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(52,211,153,0.06)', bottom: -10, right: 70 },
+  loadTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff' },
+  deco1: {
+    position: 'absolute', width: 160, height: 160, borderRadius: 80,
+    backgroundColor: 'rgba(52,211,153,0.08)', top: -50, right: -30,
+  },
+  deco2: {
+    position: 'absolute', width: 100, height: 100, borderRadius: 50,
+    backgroundColor: 'rgba(52,211,153,0.06)', bottom: -10, right: 70,
+  },
   heroRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 14 },
   backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
   heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
-  heroBadgeText: { fontSize: 10, fontWeight: '600', color: C.g400, letterSpacing: 0.5 },
-  heroTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  heroBadgeText: { fontSize: 10, fontWeight: '700', color: C.g400, letterSpacing: 0.5 },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: '#fff' },
 
   scrollView: { flex: 1 },
   scrollContent: { padding: 16 },
 
   // Section
-  section: { backgroundColor: C.card, borderRadius: 18, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: C.border, borderLeftWidth: 4, borderLeftColor: C.g400, shadowColor: C.g900, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2 },
+  section: {
+    backgroundColor: C.card, borderRadius: rs(18), padding: 16, marginBottom: 14,
+    borderWidth: 1, borderColor: C.border, borderLeftWidth: 4, borderLeftColor: C.g400,
+    ...cardShadow,
+  },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 10, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
   stepBadge: { width: 30, height: 30, borderRadius: 15, backgroundColor: C.card, borderWidth: 2, borderColor: C.g400, alignItems: 'center', justifyContent: 'center' },
   stepBadgeComplete: { backgroundColor: C.g700, borderColor: C.g700 },
   stepNumber: { fontSize: 13, fontWeight: '800', color: C.g600 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  sectionTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
   sectionSubtitle: { fontSize: 11, color: C.muted, marginTop: 1 },
   sectionIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.g100 },
 
   // Select Box
-  selectBox: { borderWidth: 1.5, borderColor: C.border, borderRadius: 14, padding: 14, backgroundColor: '#F8FAFC' },
+  selectBox: { borderWidth: 1.5, borderColor: C.border, borderRadius: rs(14), padding: 14, backgroundColor: '#F8FAFC' },
   selectBoxActive: { borderColor: C.g500, borderWidth: 1.5, backgroundColor: C.g50 },
   placeholderRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   placeholderText: { fontSize: 14, color: C.muted },
   placeholderIconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.g100 },
-  placeholderTitle: { fontSize: 14, fontWeight: '600', color: C.text },
+  placeholderTitle: { fontSize: 14, fontWeight: '700', color: C.text },
   placeholderHint: { fontSize: 12, color: C.muted, marginTop: 2 },
   selectedItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   selectedIconGrad: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   selectedInfo: { flex: 1 },
-  selectedName: { fontSize: 15, fontWeight: '600', color: C.text },
+  selectedName: { fontSize: 15, fontWeight: '700', color: C.text },
   selectedSub: { fontSize: 12, color: C.muted, marginTop: 2 },
   modelImage: { width: 60, height: 40, borderRadius: 6, resizeMode: 'contain' },
   brandLogo: { width: 44, height: 44, borderRadius: 10, resizeMode: 'contain' },
@@ -1056,72 +1079,74 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border },
   chipActive: { backgroundColor: C.g50, borderColor: C.g500 },
-  chipText: { fontSize: 13, fontWeight: '500', color: C.sub },
-  chipTextActive: { color: C.g700, fontWeight: '700' },
+  chipText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  chipTextActive: { color: C.g700, fontWeight: '800' },
 
   // Images
-  imageTypeContainer: { marginBottom: 14, borderWidth: 1, borderColor: C.border, borderRadius: 14, padding: 12, backgroundColor: C.bg },
+  imageTypeContainer: { marginBottom: 14, borderWidth: 1, borderColor: C.border, borderRadius: rs(14), padding: 12, backgroundColor: C.bg },
   imageTypeHeader: { marginBottom: 10 },
-  imageTypeLabel: { fontSize: 14, fontWeight: '600', color: C.text, marginBottom: 2 },
+  imageTypeLabel: { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 2 },
   imageTypeDescription: { fontSize: 12, color: C.muted },
   imagePreviewContainer: { position: 'relative', width: '100%', height: 150, borderRadius: 10, overflow: 'hidden' },
   imagePreviewLarge: { width: '100%', height: '100%', borderRadius: 10 },
   removeImageBtnLarge: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', elevation: 5 },
   imageUploadBtn: { width: '100%', height: 120, borderRadius: 10, borderWidth: 2, borderColor: C.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: C.card },
-  imageUploadText: { fontSize: 13, color: C.muted, marginTop: 6, fontWeight: '500' },
+  imageUploadText: { fontSize: 13, color: C.muted, marginTop: 6, fontWeight: '600' },
   imageUploadSubtext: { fontSize: 11, color: C.muted, marginTop: 2 },
 
   // Pricing Cards
   pricingGrid: { flexDirection: 'row', gap: 10 },
-  pricingCard: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: 14, padding: 12, borderWidth: 1.5, borderColor: C.border },
+  pricingCard: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: rs(14), padding: 12, borderWidth: 1.5, borderColor: C.border },
   pricingLabel: { fontSize: 11, fontWeight: '700', color: C.sub, marginBottom: 8, letterSpacing: 0.3 },
   pricingInputRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: C.border, backgroundColor: C.card },
   currencyBox: { backgroundColor: C.g50, paddingHorizontal: 10, paddingVertical: 12, borderRightWidth: 1, borderRightColor: C.g100 },
-  currencySymbol: { fontSize: 15, fontWeight: '800', color: C.g700 },
+  currencySymbol: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.g700 },
   unitBox: { backgroundColor: '#EFF6FF', paddingHorizontal: 8, paddingVertical: 12, borderRightWidth: 1, borderRightColor: '#DBEAFE' },
-  unitSymbol: { fontSize: 12, fontWeight: '700', color: '#2563EB' },
-  pricingInput: { flex: 1, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15, color: C.text, fontWeight: '600' },
+  unitSymbol: { fontSize: 12, fontWeight: '800', color: '#2563EB' },
+  pricingInput: { flex: 1, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15, color: C.text, fontWeight: '700' },
 
   // Submit
-  submitBtn: { borderRadius: 14, overflow: 'hidden' },
+  submitBtn: { borderRadius: rs(14), overflow: 'hidden' },
   submitBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16 },
-  submitBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  submitBtnText: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff' },
 
   // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: C.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '82%', paddingBottom: 20 },
+  modalOverlay: { flex: 1, backgroundColor: T.scrim, justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: C.card, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS, maxHeight: '82%', paddingBottom: 20 },
+  sheetHandleWrap: { alignItems: 'center', paddingTop: 10 },
+  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderBottomWidth: 1, borderBottomColor: C.border },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: C.text },
+  modalTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: C.text },
   modalClose: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
   searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.bg, margin: 16, marginBottom: 8, paddingHorizontal: 12, borderRadius: 12, gap: 8, borderWidth: 1, borderColor: C.border },
   searchInput: { flex: 1, paddingVertical: 12, fontSize: 15, color: C.text },
   modalList: { padding: 16, paddingTop: 8 },
   emptyState: { alignItems: 'center', paddingVertical: 40 },
   emptyText: { marginTop: 12, fontSize: 14, color: C.muted },
-  modalItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 14, marginBottom: 8, backgroundColor: C.bg, gap: 12 },
+  modalItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: rs(14), marginBottom: 8, backgroundColor: C.bg, gap: 12 },
   modalItemSelected: { backgroundColor: C.g50, borderWidth: 1, borderColor: C.g500 },
   modalItemIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: C.g100, alignItems: 'center', justifyContent: 'center' },
   modalItemIconSelected: { backgroundColor: C.g700 },
   modalModelImage: { width: 60, height: 44, borderRadius: 8, resizeMode: 'contain' },
   brandLogoModal: { width: 44, height: 44, borderRadius: 8, resizeMode: 'contain' },
   modalItemInfo: { flex: 1 },
-  modalItemName: { fontSize: 15, fontWeight: '600', color: C.text },
+  modalItemName: { fontSize: 15, fontWeight: '700', color: C.text },
   modalItemNameSelected: { color: C.g700 },
   modalItemSub: { fontSize: 12, color: C.muted, marginTop: 2 },
 
   // Location modal
   bulkActionsRow: { flexDirection: 'row', justifyContent: 'space-around', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.border, gap: 12 },
   bulkActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: C.card, borderRadius: 10, borderWidth: 1, borderColor: C.border, gap: 6 },
-  bulkActionText: { fontSize: 13, fontWeight: '600' },
+  bulkActionText: { fontSize: 13, fontWeight: '700' },
   selectedCountBar: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.g50, borderBottomWidth: 1, borderBottomColor: C.g100 },
-  selectedCountText: { fontSize: 14, fontWeight: '600', color: C.g700 },
+  selectedCountText: { fontSize: 14, fontWeight: '700', color: C.g700 },
   locationItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, marginBottom: 8, backgroundColor: C.bg, gap: 12 },
   locationItemSelected: { backgroundColor: C.g50 },
   checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
   checkboxSelected: { backgroundColor: C.g700, borderColor: C.g700 },
   locationInfo: { flex: 1 },
-  locationName: { fontSize: 15, fontWeight: '500', color: C.text },
+  locationName: { fontSize: 15, fontWeight: '600', color: C.text },
   modalDoneBtn: { marginHorizontal: 16, marginTop: 12, borderRadius: 12, overflow: 'hidden' },
   modalDoneBtnInner: { paddingVertical: 14, alignItems: 'center' },
-  modalDoneBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  modalDoneBtnText: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff' },
 });

@@ -9,17 +9,22 @@ import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorFinancials } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
+import { SC as T, G, rs, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
 const { width: SW } = Dimensions.get('window');
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#064E3B', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g300: '#6EE7B7', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F0FDF9', surface: '#FFFFFF',
-  text: '#1E293B', subtext: '#475569', muted: '#94A3B8', border: '#D1FAE5',
-  amber: '#F59E0B', amberBg: '#FEF3C7',
-  red: '#EF4444', redBg: '#FEE2E2',
-  blue: '#3B82F6', purple: '#8B5CF6', indigo: '#6366F1', teal: '#14B8A6',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g300: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, surface: T.card,
+  text: T.ink, subtext: T.text, muted: T.subText, border: T.border,
+  amber: T.amber, amberBg: T.amberLight,
+  red: T.red, redBg: T.redLight,
+  blue: T.blue, purple: T.purple, indigo: T.indigo, teal: T.teal,
 };
 
 const EXPENSE_CATEGORIES = {
@@ -42,6 +47,21 @@ const SERVICE_META = {
   'packers-movers':  { icon: 'package-variant', color: '#0EA5E9', label: 'Packers' },
   equipment:         { icon: 'wrench',          color: '#EF4444', label: 'Equipment' },
   general:           { icon: 'clipboard-text',  color: '#6B7280', label: 'General' },
+};
+
+// Maps each booking's serviceType to its per-service detail screen — a
+// booking can come from any of several tables (direct, bike, bus, ...),
+// so it can't always be opened via the generic DirectBookingDetail screen.
+const BOOKING_DETAIL_SCREEN = {
+  direct:            'DirectBookingDetail',
+  bike:              'BikeBookingDetail',
+  'self-drive':      'SelfDriveBookingDetail',
+  'car-with-driver': 'CarRentalBookingDetail',
+  bus:               'BusBookingDetail',
+  transporter:       'TruckBookingDetail',
+  'packers-movers':  'PackersBookingDetail',
+  equipment:         'EquipmentBookingDetail',
+  luxury:            'LuxuryBookingDetail',
 };
 
 function fmt(n) { return Math.round(n || 0).toLocaleString('en-IN'); }
@@ -121,6 +141,12 @@ export default function FinancialsScreen({ navigation }) {
   useEffect(() => { setLoading(true); fetchData(selectedMonth); }, [selectedMonth, fetchData]);
   const onRefresh = () => { setRefreshing(true); fetchData(selectedMonth); };
 
+  const handleBookingPress = (b) => {
+    const screen = BOOKING_DETAIL_SCREEN[b.serviceType];
+    if (screen) navigation.navigate(screen, { bookingId: b.id });
+    else showAlert('info', 'Not Available', 'Detail view for this booking type is not available yet.');
+  };
+
   const selectedLabel = months.find(m => m.val === selectedMonth)?.full || 'All Time';
   const healthPct = summary
     ? Math.max(0, Math.min(100, summary.totalRevenue > 0
@@ -133,26 +159,31 @@ export default function FinancialsScreen({ navigation }) {
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
+      {/* Static header — stays fixed while content below scrolls */}
+      <SafeAreaView edges={['top']} style={s.staticHeader}>
+        <View style={s.heroNav}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+            <Icon name="arrow-left" size={22} color="#fff" />
+          </TouchableOpacity>
+          <Text style={s.heroNavTitle}>Financials</Text>
+          <TouchableOpacity onPress={onRefresh} style={s.refreshBtn}>
+            <Icon name="refresh-cw" size={17} color="rgba(255,255,255,0.75)" />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
+        stickyHeaderIndices={[1]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
       >
         {/* ══════════════════════════════════════════
             HERO HEADER — gradient with big net number
         ══════════════════════════════════════════ */}
-        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.hero}>
-          <SafeAreaView edges={['top']}>
-            {/* Nav row */}
-            <View style={s.heroNav}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-                <Icon name="arrow-left" size={22} color="#fff" />
-              </TouchableOpacity>
-              <Text style={s.heroNavTitle}>Financials</Text>
-              <TouchableOpacity onPress={onRefresh} style={s.refreshBtn}>
-                <Icon name="refresh-cw" size={17} color="rgba(255,255,255,0.75)" />
-              </TouchableOpacity>
-            </View>
-
+        <LinearGradient colors={G.hero} style={s.hero}>
+          <AnimatedOrb style={s.deco1} />
+          <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+          <View style={{ paddingTop: 12 }}>
             {/* Month label */}
             <Text style={s.heroPeriod}>{selectedLabel}</Text>
 
@@ -209,14 +240,13 @@ export default function FinancialsScreen({ navigation }) {
                 </View>
               </View>
             )}
-          </SafeAreaView>
+          </View>
         </LinearGradient>
 
-        <View style={s.body}>
-
-          {/* ══════════════════════════
-              MONTH SELECTOR TABS
-          ══════════════════════════ */}
+        {/* ══════════════════════════
+            MONTH SELECTOR TABS — sticky just below the static header
+        ══════════════════════════ */}
+        <View style={s.monthStickyWrap}>
           <View style={s.monthWrap}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.monthScroll}>
               <TouchableOpacity
@@ -241,7 +271,9 @@ export default function FinancialsScreen({ navigation }) {
               ))}
             </ScrollView>
           </View>
+        </View>
 
+        <View style={s.body}>
           {loading && !refreshing ? (
             <View style={s.loadingWrap}>
               <ActivityIndicator size="large" color={C.g600} />
@@ -338,11 +370,13 @@ export default function FinancialsScreen({ navigation }) {
                             </View>
                             {/* Thick bar */}
                             <View style={s.expBarTrack}>
-                              <LinearGradient
-                                colors={[cat.color, cat.color + 'AA']}
-                                style={[s.expBarFill, { width: `${Math.max(pct, 4)}%` }]}
-                                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                              />
+                              <View style={s.expBarFillWrap}>
+                                <LinearGradient
+                                  colors={[cat.color, cat.color + 'AA']}
+                                  style={[s.expBarFill, { width: `${Math.max(pct, 4)}%` }]}
+                                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                                />
+                              </View>
                               <Text style={[s.expPctLabel, { color: cat.color }]}>{pct}%</Text>
                             </View>
                           </View>
@@ -374,7 +408,7 @@ export default function FinancialsScreen({ navigation }) {
                       <TouchableOpacity
                         key={b.id}
                         style={[s.pendingCard, idx < pending.length - 1 && { marginBottom: 10 }]}
-                        onPress={() => navigation.navigate('DirectBookingDetail', { bookingId: b.id })}
+                        onPress={() => handleBookingPress(b)}
                         activeOpacity={0.8}
                       >
                         <View style={[s.pendingAccent, { backgroundColor: C.amber }]} />
@@ -416,7 +450,7 @@ export default function FinancialsScreen({ navigation }) {
                       <TouchableOpacity
                         key={b.id}
                         style={[s.plCard, idx < bookings.length - 1 && { marginBottom: 10 }]}
-                        onPress={() => navigation.navigate('DirectBookingDetail', { bookingId: b.id })}
+                        onPress={() => handleBookingPress(b)}
                         activeOpacity={0.8}
                       >
                         {/* Top row */}
@@ -521,17 +555,22 @@ export default function FinancialsScreen({ navigation }) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
 
+  /* ── Static header (stays fixed above the scroll) ── */
+  staticHeader: { backgroundColor: C.g900 },
+
   /* ── Hero header ── */
-  hero: { paddingBottom: 24 },
+  hero: { paddingBottom: 24, overflow: 'hidden' },
+  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)' },
+  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)' },
   heroNav: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  heroNavTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
+  heroNavTitle: { flex: 1, fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: 'rgba(255,255,255,0.9)' },
   refreshBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
   heroPeriod: { fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: '600', paddingHorizontal: 16, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
 
   heroNetRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 20 },
   heroNetLabel: { fontSize: 13, color: 'rgba(255,255,255,0.55)', fontWeight: '600', marginBottom: 4 },
-  heroNetValue: { fontSize: 40, fontWeight: '900', color: C.g400, letterSpacing: -1 },
+  heroNetValue: { fontFamily: DISPLAY, fontSize: 40, fontWeight: '900', color: C.g400, letterSpacing: -1 },
   heroNetFormula: { fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 },
   heroHealthWrap: { alignItems: 'center', gap: 6 },
   heroHealthPct: { fontSize: 13, fontWeight: '800', color: '#fff' },
@@ -544,10 +583,11 @@ const s = StyleSheet.create({
   heroMetricDiv: { width: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 8 },
 
   /* ── Body ── */
-  body: { padding: 14, gap: 14 },
+  body: { paddingHorizontal: 14, paddingBottom: 14, gap: 14 },
 
-  /* ── Month tabs ── */
-  monthWrap: { backgroundColor: C.surface, borderRadius: 18, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
+  /* ── Month tabs (sticky) ── */
+  monthStickyWrap: { backgroundColor: C.bg, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 14 },
+  monthWrap: { backgroundColor: C.surface, borderRadius: rs(18), borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
   monthScroll: { paddingHorizontal: 10, paddingVertical: 10, gap: 6 },
   monthTab: { alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, backgroundColor: C.bg },
   monthTabActive: { backgroundColor: C.g700 },
@@ -560,13 +600,13 @@ const s = StyleSheet.create({
 
   /* ── Cards ── */
   card: {
-    backgroundColor: C.surface, borderRadius: 20, padding: 18,
+    backgroundColor: C.surface, borderRadius: rs(20), padding: 18,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: C.g900, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.07, shadowRadius: 10, elevation: 3,
+    ...cardShadow,
   },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 18 },
   cardTitleIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  cardTitle: { flex: 1, fontSize: 15, fontWeight: '800', color: C.text },
+  cardTitle: { flex: 1, fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
   cardBadge: { fontSize: 11, fontWeight: '700', color: C.muted, backgroundColor: C.bg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1, borderColor: C.border },
 
   /* ── Collection status ── */
@@ -580,7 +620,7 @@ const s = StyleSheet.create({
 
   metricTiles: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   metricTile: { width: '47.5%', borderRadius: 14, padding: 12, borderWidth: 1, alignItems: 'center' },
-  metricTileVal: { fontSize: 18, fontWeight: '800', color: C.text },
+  metricTileVal: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: C.text },
   metricTileLbl: { fontSize: 10, color: C.muted, fontWeight: '600', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.4 },
 
   /* ── Expense breakdown ── */
@@ -589,9 +629,10 @@ const s = StyleSheet.create({
   expIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
   expName: { fontSize: 13, fontWeight: '600', color: C.text },
   expAmt: { fontSize: 13, fontWeight: '700' },
-  expBarTrack: { height: 9, backgroundColor: C.bg, borderRadius: 6, overflow: 'visible', flexDirection: 'row', alignItems: 'center' },
+  expBarTrack: { flexDirection: 'row', alignItems: 'center' },
+  expBarFillWrap: { flex: 1, height: 9, backgroundColor: C.bg, borderRadius: 6, overflow: 'hidden' },
   expBarFill: { height: 9, borderRadius: 6, minWidth: 12 },
-  expPctLabel: { fontSize: 10, fontWeight: '700', marginLeft: 6 },
+  expPctLabel: { fontSize: 10, fontWeight: '700', marginLeft: 6, width: 30, textAlign: 'right' },
 
   /* ── Pending cards ── */
   urgentBadge: { backgroundColor: C.amberBg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1, borderColor: '#FDE68A' },
@@ -634,12 +675,12 @@ const s = StyleSheet.create({
   /* ── All paid ── */
   allPaidBanner: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 18, padding: 18 },
   allPaidIconWrap: { width: 46, height: 46, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
-  allPaidTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  allPaidTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: '#fff' },
   allPaidSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
 
   /* ── Empty ── */
   emptyWrap: { alignItems: 'center', paddingVertical: 50, gap: 10 },
   emptyIconWrap: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.subtext },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.subtext },
   emptyMeta: { fontSize: 13, color: C.muted },
 });

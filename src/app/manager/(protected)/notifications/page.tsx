@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import { Bell, BellRing, Loader2, MapPinPlus, Layers, Mail, Plane, CheckCheck, RefreshCw, Inbox } from 'lucide-react';
 
 interface ManagerNotification {
@@ -66,6 +67,20 @@ export default function ManagerNotificationsPage() {
     fetchPage(true);
   };
 
+  useManagerPageHeader(
+    'Notifications',
+    unreadCount > 0 ? `${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}` : "You're all caught up",
+    <button
+      key="refresh"
+      onClick={handleRefresh}
+      disabled={isRefreshing}
+      title="Refresh"
+      className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+    >
+      <RefreshCw className={`w-5 h-5 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`} />
+    </button>
+  );
+
   const handleMarkAllRead = async () => {
     setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
     setUnreadCount(0);
@@ -114,58 +129,39 @@ export default function ManagerNotificationsPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-          <p className="text-gray-500 mt-1">
-            {unreadCount > 0 ? (
-              <>
-                <span className="text-orange-600 font-medium">{unreadCount} unread</span> notification{unreadCount === 1 ? '' : 's'}
-              </>
-            ) : (
-              "You're all caught up"
-            )}
-          </p>
+      {/* Stats + Controls */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="grid flex-1 min-w-[280px] grid-cols-2 gap-3 max-w-md">
+          <div className="relative overflow-hidden bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+            <span className="absolute inset-y-0 left-0 w-1 bg-slate-300" />
+            <div className="flex items-center gap-3 pl-1">
+              <div className="p-2 rounded-lg bg-gray-100 text-gray-600"><Inbox className="w-5 h-5" /></div>
+              <div>
+                <p className="text-xl font-bold text-gray-900">{items.length}{nextCursor ? '+' : ''}</p>
+                <p className="text-xs text-gray-500">{filter === 'unread' ? 'Unread Shown' : 'Total Shown'}</p>
+              </div>
+            </div>
+          </div>
+          <div className="relative overflow-hidden bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+            <span className="absolute inset-y-0 left-0 w-1 bg-orange-400" />
+            <div className="flex items-center gap-3 pl-1">
+              <div className="p-2 rounded-lg bg-orange-100 text-orange-600"><BellRing className="w-5 h-5" /></div>
+              <div>
+                <p className="text-xl font-bold text-orange-600">{unreadCount}</p>
+                <p className="text-xs text-gray-500">Unread</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {unreadCount > 0 && (
-            <button
-              onClick={handleMarkAllRead}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-green-600 text-green-700 rounded-lg hover:bg-green-50 transition font-medium"
-            >
-              <CheckCheck className="w-4 h-4" />
-              Mark all read
-            </button>
-          )}
-          <button onClick={handleRefresh} disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50">
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
+        {unreadCount > 0 && (
+          <button
+            onClick={handleMarkAllRead}
+            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium shadow-sm shrink-0"
+          >
+            <CheckCheck className="w-4 h-4" />
+            Mark all read
           </button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 max-w-md">
-        <div className="bg-white rounded-xl p-4 border shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gray-100 text-gray-600"><Inbox className="w-5 h-5" /></div>
-            <div>
-              <p className="text-xl font-bold text-gray-900">{items.length}{nextCursor ? '+' : ''}</p>
-              <p className="text-xs text-gray-500">{filter === 'unread' ? 'Unread Shown' : 'Total Shown'}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-4 border shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-orange-100 text-orange-600"><BellRing className="w-5 h-5" /></div>
-            <div>
-              <p className="text-xl font-bold text-orange-600">{unreadCount}</p>
-              <p className="text-xs text-gray-500">Unread</p>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Tabs */}

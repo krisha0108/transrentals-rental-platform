@@ -1,26 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, ActivityIndicator, StatusBar, Alert, ScrollView,
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  RefreshControl,
+  ActivityIndicator,
+  StatusBar,
+  Alert,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorQuotes, withdrawQuote } from '../../../api/client';
 import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
 import DateFilterModal from '../../../../components/DateFilterModal';
+import { SC as T, G, rs, shade, cardShadow } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
+// Same key names this screen already used — only the values now come from
+// the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A',
-  sub: '#475569', muted: '#94A3B8', blue: '#2563EB', blueL: '#EFF6FF',
-  amber: '#D97706', amberL: '#FFFBEB', red: '#DC2626', redL: '#FEF2F2',
-  orange: '#EA580C', orangeL: '#FFF7ED', indigo: '#4F46E5', indigoL: '#EEF2FF',
-  teal: '#0D9488', tealL: '#F0FDFA', pink: '#DB2777', pinkL: '#FDF2F8',
-  cyan: '#0891B2', cyanL: '#ECFEFF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border, glassBorder: T.glassBorder,
+  text: T.ink, sub: T.text, muted: T.subText,
+  amber: T.amber, amberL: T.amberLight, gold: T.gold, goldLight: T.goldLight,
+  red: T.red, redL: T.redLight,
 };
 
 const STATUS_COLORS = {
@@ -32,11 +41,23 @@ const STATUS_COLORS = {
   WITHDRAWN: { color: C.muted,  bg: '#F8FAFC'},
 };
 
+// Accent-rail gradients — purely decorative, one per status, echoing
+// STATUS_COLORS so the card edge gives an instant read before the eye
+// even reaches the status pill.
+const STATUS_RAIL = {
+  PENDING:   [C.goldLight, C.gold],
+  SENT:      [C.goldLight, C.gold],
+  ACCEPTED:  [C.g500, C.g700],
+  REJECTED:  [C.red, shade(C.red, -25)],
+  EXPIRED:   ['#C7CDC9', C.muted],
+  WITHDRAWN: ['#C7CDC9', C.muted],
+};
+
 const TABS = [
-  { id: 'all',      label: 'All'              },
-  { id: 'active',   label: 'Active'            },
-  { id: 'accepted', label: 'Accepted'          },
-  { id: 'expired',  label: 'Expired/Rejected'  },
+  { id: 'all',      label: 'All',              icon: 'sparkles-outline' },
+  { id: 'active',   label: 'Active',           icon: 'hourglass-outline' },
+  { id: 'accepted', label: 'Accepted',         icon: 'checkmark-circle-outline' },
+  { id: 'expired',  label: 'Expired/Rejected', icon: 'close-circle-outline' },
 ];
 
 // Map tab id → status param sent to API
@@ -113,9 +134,11 @@ export default function LuxuryMyQuotesScreen({ navigation }) {
     );
   };
 
+  /* ── Quote card ──────────────────────────────────────────── */
   const renderQuoteCard = ({ item }) => {
     const status      = item.status || 'PENDING';
     const sc          = STATUS_COLORS[status] || { color: C.muted, bg: '#F8FAFC' };
+    const rail        = STATUS_RAIL[status] || ['#C7CDC9', C.muted];
     const request     = item.request || {};
     const customerName   = request.customerName  || item.customerName  || 'Customer';
     const pickupCity     = request.pickupCity    || item.pickupCity    || 'Location';
@@ -131,59 +154,43 @@ export default function LuxuryMyQuotesScreen({ navigation }) {
       <TouchableOpacity
         style={styles.card}
         onPress={() => navigation.navigate('LuxuryQuoteDetail', { quoteId: item.id || item._id })}
-        activeOpacity={0.7}
+        activeOpacity={0.88}
       >
-        <View style={styles.cardAccent} />
-        <View style={styles.cardInner}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderLeft}>
-              <Text style={styles.quoteNumber}>
+        {/* Status-tinted top edge — reads before the eye reaches the pill */}
+        <LinearGradient colors={rail} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ticketTopStrip} />
+
+        {/* ── Upper stub ── */}
+        <View style={styles.ticketUpper}>
+          <View style={styles.cardTopRow}>
+            <LinearGradient colors={G.emerald} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.iconBox}>
+              <Ionicons name="car-sport" size={rs(13)} color="#fff" />
+            </LinearGradient>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.quoteNumber} numberOfLines={1}>
                 #{item.quoteNumber || (item.id || item._id)?.toString().slice(-8) || 'N/A'}
               </Text>
-              <View style={[styles.statusBadge, { backgroundColor: sc.bg }]}>
-                <Ionicons name={getStatusIcon(status)} size={12} color={sc.color} />
-                <Text style={[styles.statusText, { color: sc.color }]}>{status}</Text>
-              </View>
+              {!!requestNumber && (
+                <Text style={styles.refText} numberOfLines={1}>Request #{requestNumber}</Text>
+              )}
             </View>
-            <Text style={styles.quoteAmount}>{formatCurrency(totalAmount)}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: sc.bg }]}>
+              <Ionicons name={getStatusIcon(status)} size={rs(10)} color={sc.color} />
+              <Text style={[styles.statusText, { color: sc.color }]}>{status}</Text>
+            </View>
           </View>
 
-          {requestNumber && (
-            <View style={styles.refRow}>
-              <Ionicons name="document-text-outline" size={13} color={C.muted} />
-              <Text style={styles.refText}>Request #{requestNumber}</Text>
-            </View>
-          )}
+          {/* Customer — primary title */}
+          <Text style={styles.cardName} numberOfLines={1}>{customerName}</Text>
 
-          <View style={styles.divider} />
-
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <Ionicons name="person-outline" size={14} color={C.g700} />
-            </View>
-            <Text style={styles.infoText} numberOfLines={1}>{customerName}</Text>
-          </View>
-
-          {(item.vehicleName || item.luxuryType) && (
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <MaterialCommunityIcons name="car-estate" size={14} color={C.g700} />
-              </View>
-              <Text style={styles.infoText} numberOfLines={1}>
-                {item.vehicleName || item.luxuryType}
-                {item.vehicleBrand ? ` · ${item.vehicleBrand}` : ''}
-              </Text>
-            </View>
-          )}
-
+          {/* Route */}
           <View style={styles.routeRow}>
             <View style={styles.routePin}>
               <View style={[styles.pinDot, { backgroundColor: C.g500 }]} />
               <Text style={styles.routeCity} numberOfLines={1}>{pickupCity}</Text>
             </View>
-            {dropCity && (
+            {!!dropCity && (
               <>
-                <Icon name="arrow-right" size={12} color={C.muted} style={{ marginHorizontal: 4 }} />
+                <Ionicons name="arrow-forward" size={rs(11)} color={C.muted} style={{ marginHorizontal: rs(4) }} />
                 <View style={styles.routePin}>
                   <View style={[styles.pinDot, { backgroundColor: C.red }]} />
                   <Text style={styles.routeCity} numberOfLines={1}>{dropCity}</Text>
@@ -192,24 +199,43 @@ export default function LuxuryMyQuotesScreen({ navigation }) {
             )}
           </View>
 
-          <View style={styles.divider} />
-
-          <View style={styles.cardFooter}>
-            <View style={styles.footerDates}>
-              <View style={styles.dateChip}>
-                <Ionicons name="calendar-outline" size={11} color={C.muted} />
-                <Text style={styles.dateText}>Sent: {formatDate(item.createdAt || item.created_at)}</Text>
+          {/* Meta row — vehicle + sent date */}
+          <View style={styles.cardMetaRow}>
+            {(!!item.vehicleName || !!item.luxuryType) && (
+              <View style={styles.metaItem}>
+                <Ionicons name="diamond-outline" size={rs(11)} color={C.muted} />
+                <Text style={styles.metaText} numberOfLines={1}>
+                  {item.vehicleName || item.luxuryType}{item.vehicleBrand ? ` · ${item.vehicleBrand}` : ''}
+                </Text>
               </View>
-              {validTill && (
-                <View style={styles.dateChip}>
-                  <Ionicons name="time-outline" size={11} color={C.muted} />
-                  <Text style={styles.dateText}>Valid: {formatDate(validTill)}</Text>
-                </View>
-              )}
+            )}
+            <View style={styles.metaItem}>
+              <Ionicons name="calendar-outline" size={rs(11)} color={C.muted} />
+              <Text style={styles.metaText}>Sent {formatDate(item.createdAt || item.created_at)}</Text>
             </View>
-            <View style={styles.arrowCircle}>
-              <Icon name="chevron-right" size={14} color={C.g700} />
+          </View>
+        </View>
+
+        {/* ── Perforation — torn-ticket edge ── */}
+        <View style={styles.perforationRow}>
+          <View style={styles.notchLeft} />
+          <View style={styles.dashLine} />
+          <View style={styles.notchRight} />
+        </View>
+
+        {/* ── Lower stub ── */}
+        <View style={styles.ticketLower}>
+          <View style={styles.moneyTopRow}>
+            <View style={styles.moneyIcoWrap}>
+              <Ionicons name="pricetag" size={rs(11)} color={C.g700} />
             </View>
+            <Text style={styles.quoteAmount} numberOfLines={1}>{formatCurrency(totalAmount)}</Text>
+            {!!validTill && (
+              <View style={styles.validPill}>
+                <Ionicons name="time-outline" size={rs(9)} color={C.amber} />
+                <Text style={styles.validPillText} numberOfLines={1}>Valid {formatDate(validTill)}</Text>
+              </View>
+            )}
           </View>
 
           {/* Action buttons */}
@@ -226,7 +252,7 @@ export default function LuxuryMyQuotesScreen({ navigation }) {
                     <ActivityIndicator size="small" color={C.red} />
                   ) : (
                     <>
-                      <Ionicons name="close-circle-outline" size={14} color={C.red} />
+                      <Ionicons name="close-circle-outline" size={rs(12)} color={C.red} />
                       <Text style={styles.withdrawBtnText}>Withdraw</Text>
                     </>
                   )}
@@ -244,7 +270,7 @@ export default function LuxuryMyQuotesScreen({ navigation }) {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="refresh-outline" size={14} color={C.g700} />
+                  <Ionicons name="refresh-outline" size={rs(12)} color={C.g700} />
                   <Text style={styles.freshQuoteBtnText}>Send Fresh Quote</Text>
                 </TouchableOpacity>
               )}
@@ -255,10 +281,18 @@ export default function LuxuryMyQuotesScreen({ navigation }) {
     );
   };
 
+  /* ── Empty state ─────────────────────────────────────────── */
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <View style={styles.emptyIconWrap}>
-        <Ionicons name="clipboard-outline" size={44} color={C.g400} />
+      <View style={styles.emptyArt}>
+        <View style={styles.emptyArtCardBack} />
+        <View style={styles.emptyArtCard}>
+          <Ionicons name="clipboard-outline" size={rs(40)} color={C.g500} />
+        </View>
+        <View style={styles.emptyArtDot} />
+        <View style={styles.emptyArtTag}>
+          <Text style={styles.emptyArtTagTxt}>QUOTES</Text>
+        </View>
       </View>
       <Text style={styles.emptyTitle}>No Quotes Found</Text>
       <Text style={styles.emptySubtitle}>
@@ -270,40 +304,67 @@ export default function LuxuryMyQuotesScreen({ navigation }) {
     </View>
   );
 
+  /* ── Render ──────────────────────────────────────────────── */
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color="#fff" />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>My Quotes</Text>
-          <Text style={styles.headerSubtitle}>Luxury Cars</Text>
-        </View>
-        <TouchableOpacity onPress={() => setShowDateFilter(true)} style={styles.filterBtn}>
-          <Icon name="calendar" size={20} color="#fff" />
-          {dateFilter.start && <View style={styles.filterDot} />}
-        </TouchableOpacity>
+      {/* Hero header */}
+      <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
+        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <SafeAreaView edges={['top']} style={{ paddingHorizontal: rs(16) }}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="arrow-back" size={rs(20)} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity
+              onPress={() => setShowDateFilter(true)}
+              style={styles.filterBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="calendar-outline" size={rs(19)} color="#fff" />
+              {!!dateFilter.start && <View style={styles.filterDot} />}
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.headerEyebrow}>SUBMITTED QUOTES</Text>
+          <Text style={styles.bigTitle}>My Quotes</Text>
+          <Text style={styles.bigSub}>Every quote you've sent for luxury car rentals, in one place.</Text>
+
+          <View style={{ height: rs(26) }} />
+        </SafeAreaView>
       </LinearGradient>
 
-      <View style={styles.tabBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
-          {TABS.map(tab => (
-            <TouchableOpacity
-              key={tab.id}
-              style={[styles.tabPill, activeTab === tab.id && styles.tabPillActive]}
-              onPress={() => setActiveTab(tab.id)}
-            >
-              <Text style={[styles.tabLabel, activeTab === tab.id && styles.tabLabelActive]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+      {/* Floating tab pills — tucks into the hero's bottom curve, kept
+          outside the FlatList so switching tabs never resets scroll. */}
+      <View style={styles.tabFloatWrap}>
+        <View style={styles.tabCard}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
+            {TABS.map(tab => {
+              const active = activeTab === tab.id;
+              return (
+                <TouchableOpacity
+                  key={tab.id}
+                  style={[styles.tabPill, active && styles.tabPillActive]}
+                  onPress={() => setActiveTab(tab.id)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name={tab.icon} size={rs(13)} color={active ? '#fff' : C.sub} />
+                  <Text style={[styles.tabLabel, active && styles.tabLabelActive]} numberOfLines={1}>{tab.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
       </View>
 
+      {/* List */}
       {loading && quotes.length === 0 ? (
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" color={C.g600} />
@@ -318,11 +379,11 @@ export default function LuxuryMyQuotesScreen({ navigation }) {
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[C.g600]} />
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[C.g600]} tintColor={C.g600} />
           }
           ListFooterComponent={
             loading && hasMore ? (
-              <View style={{ paddingVertical: 20 }}>
+              <View style={{ paddingVertical: rs(20) }}>
                 <ActivityIndicator size="small" color={C.g600} />
               </View>
             ) : null
@@ -339,105 +400,151 @@ export default function LuxuryMyQuotesScreen({ navigation }) {
         currentEndDate={dateFilter.end}
         currentFilterType={dateFilter.type}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
+  /* Hero header */
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 14,
+    paddingBottom: rs(8),
+    overflow: 'hidden',
+    borderBottomLeftRadius: rs(24),
+    borderBottomRightRadius: rs(24),
   },
+  orbA: {
+    position: 'absolute', top: -rs(46), right: -rs(30),
+    width: rs(150), height: rs(150), borderRadius: rs(75),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  orbB: {
+    position: 'absolute', bottom: -rs(40), left: -rs(34),
+    width: rs(120), height: rs(120), borderRadius: rs(60),
+    backgroundColor: 'rgba(255,255,255,0.045)',
+  },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(10) },
   backBtn: {
-    width: 40, height: 40, borderRadius: 20,
+    width: rs(40), height: rs(40), borderRadius: rs(20),
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center', alignItems: 'center',
   },
-  headerCenter: { alignItems: 'center', flex: 1 },
-  headerTitle:  { fontSize: 18, fontWeight: '700', color: '#fff' },
-  headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   filterBtn: {
-    width: 40, height: 40, borderRadius: 20,
+    width: rs(40), height: rs(40), borderRadius: rs(20),
     backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center', alignItems: 'center', position: 'relative',
+    justifyContent: 'center', alignItems: 'center',
+    position: 'relative',
   },
   filterDot: {
-    position: 'absolute', top: 8, right: 8,
-    width: 8, height: 8, borderRadius: 4, backgroundColor: C.g400,
+    position: 'absolute', top: rs(8), right: rs(8),
+    width: rs(8), height: rs(8), borderRadius: rs(4),
+    backgroundColor: C.g400,
   },
-  tabBar: {
-    backgroundColor: C.card,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+  headerEyebrow: {
+    fontFamily: DISPLAY,
+    fontSize: 10, color: 'rgba(255,255,255,0.65)', fontWeight: '700',
+    letterSpacing: 1.2, marginBottom: 2,
   },
-  tabScroll: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
-    flexDirection: 'row',
+  bigTitle: { fontFamily: DISPLAY, fontSize: 26, color: '#fff', letterSpacing: 0.2 },
+  bigSub: { fontFamily: DISPLAY, fontSize: 12.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', marginTop: rs(4) },
+
+  /* Floating tab pills */
+  tabFloatWrap: { marginHorizontal: rs(16), marginTop: -rs(16) },
+  tabCard: {
+    backgroundColor: C.card, borderRadius: rs(16),
+    borderWidth: 1, borderColor: C.glassBorder,
+    paddingVertical: rs(8),
+    ...cardShadow,
   },
+  tabScroll: { paddingHorizontal: rs(8), paddingRight: rs(16), gap: rs(8), flexDirection: 'row', alignItems: 'center' },
   tabPill: {
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-    borderRadius: 20,
-    alignItems: 'center',
-    backgroundColor: C.bg,
-    borderWidth: 1,
-    borderColor: C.border,
+    flexDirection: 'row', alignItems: 'center', gap: rs(5), flexShrink: 0,
+    paddingVertical: rs(8), paddingHorizontal: rs(14), borderRadius: rs(20),
+    backgroundColor: C.bg, borderWidth: 1, borderColor: C.border,
   },
   tabPillActive: { backgroundColor: C.g700, borderColor: C.g700 },
-  tabLabel:      { fontSize: 13, fontWeight: '600', color: C.sub },
+  tabLabel: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: '600', color: C.sub, flexShrink: 0 },
   tabLabelActive: { color: '#fff' },
+
   loaderWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  listContent: { padding: 16, paddingBottom: 40 },
+  listContent: { padding: rs(16), paddingTop: rs(16), paddingBottom: rs(40) },
+
+  /* Card — ticket / boarding-pass silhouette */
   card: {
-    backgroundColor: C.card, borderRadius: 16, marginBottom: 12,
-    borderWidth: 1, borderColor: C.border, overflow: 'hidden',
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 }, elevation: 3,
+    backgroundColor: C.card,
+    borderRadius: rs(14),
+    marginBottom: rs(14),
+    borderWidth: 1,
+    borderColor: C.glassBorder,
+    overflow: 'hidden',
+    ...cardShadow,
   },
-  cardAccent: { height: 4, backgroundColor: C.g600 },
-  cardInner: { padding: 16 },
-  cardHeader: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'flex-start', marginBottom: 8,
+  ticketTopStrip: { height: rs(3), width: '100%' },
+  ticketUpper: { padding: rs(11), paddingBottom: rs(9) },
+  ticketLower: { padding: rs(11), paddingTop: rs(9) },
+
+  /* Perforation row — two bg-colored "notches" clipped by the card's
+     overflow:hidden create the classic torn-ticket cutout illusion. */
+  perforationRow: { height: rs(2), justifyContent: 'center' },
+  dashLine: {
+    marginHorizontal: rs(16),
+    borderTopWidth: 1, borderColor: C.border, borderStyle: 'dashed',
   },
-  cardHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  quoteNumber: { fontSize: 15, fontWeight: '700', color: C.text },
+  notchLeft: {
+    position: 'absolute', left: -rs(9), top: -rs(8),
+    width: rs(18), height: rs(18), borderRadius: rs(9),
+    backgroundColor: C.bg,
+  },
+  notchRight: {
+    position: 'absolute', right: -rs(9), top: -rs(8),
+    width: rs(18), height: rs(18), borderRadius: rs(9),
+    backgroundColor: C.bg,
+  },
+
+  cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: rs(8), marginBottom: rs(6) },
+  iconBox: {
+    width: rs(26), height: rs(26), borderRadius: rs(8),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  quoteNumber: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: '700', color: C.text },
+  refText: { fontFamily: DISPLAY, fontSize: 10, color: C.muted, marginTop: 1 },
   statusBadge: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, gap: 4,
+    paddingHorizontal: rs(7), paddingVertical: rs(2.5),
+    borderRadius: rs(8), gap: rs(3),
   },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  quoteAmount: { fontSize: 18, fontWeight: '800', color: C.g700 },
-  refRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 10 },
-  refText: { fontSize: 12, color: C.muted },
-  divider: { height: 1, backgroundColor: C.border, marginVertical: 10 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  infoIcon: {
-    width: 26, height: 26, borderRadius: 8,
-    backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center',
+  statusText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: '700' },
+
+  cardName: { fontFamily: DISPLAY, fontSize: 14.5, color: C.text, letterSpacing: 0.1, marginBottom: rs(4) },
+
+  routeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: rs(6) },
+  routePin: { flexDirection: 'row', alignItems: 'center', gap: rs(4), flex: 1 },
+  pinDot: { width: rs(6), height: rs(6), borderRadius: rs(3) },
+  routeCity: { fontFamily: DISPLAY, fontSize: 11.5, color: C.sub, flex: 1 },
+
+  cardMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(10), marginBottom: rs(7) },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: rs(3) },
+  metaText: { fontFamily: DISPLAY, fontSize: 10.5, color: C.sub, fontWeight: '600' },
+
+  /* Money row */
+  moneyTopRow: { flexDirection: 'row', alignItems: 'center', gap: rs(7) },
+  moneyIcoWrap: {
+    width: rs(22), height: rs(22), borderRadius: rs(7),
+    backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
   },
-  infoText: { fontSize: 13, color: C.sub, flex: 1 },
-  routeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 2 },
-  routePin: { flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 },
-  pinDot: { width: 8, height: 8, borderRadius: 4 },
-  routeCity: { fontSize: 13, color: C.sub, flex: 1 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  footerDates: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, flex: 1 },
-  dateChip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  dateText: { fontSize: 11, color: C.muted },
-  arrowCircle: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center',
+  quoteAmount: { fontFamily: DISPLAY, fontSize: 16.5, fontWeight: '800', color: C.g700, flexShrink: 1 },
+  validPill: {
+    flexDirection: 'row', alignItems: 'center', gap: rs(3),
+    paddingHorizontal: rs(7), paddingVertical: rs(2.5), borderRadius: rs(8),
+    backgroundColor: C.amberL, marginLeft: 'auto',
   },
+  validPillText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: '700', color: C.amber },
+
   /* Card action buttons */
   cardActions: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
-    paddingTop: 10,
+    gap: rs(7),
+    marginTop: rs(7),
+    paddingTop: rs(7),
     borderTopWidth: 1,
     borderTopColor: C.border,
   },
@@ -446,33 +553,57 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    paddingVertical: 8,
-    borderRadius: 10,
+    gap: rs(4),
+    paddingVertical: rs(6.5),
+    borderRadius: rs(9),
     backgroundColor: C.redL,
     borderWidth: 1,
     borderColor: '#FECACA',
   },
-  withdrawBtnText: { fontSize: 13, fontWeight: '600', color: C.red },
+  withdrawBtnText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: '600', color: C.red },
   freshQuoteBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    paddingVertical: 8,
-    borderRadius: 10,
+    gap: rs(4),
+    paddingVertical: rs(6.5),
+    borderRadius: rs(9),
     backgroundColor: C.g50,
     borderWidth: 1,
     borderColor: C.g100,
   },
-  freshQuoteBtnText: { fontSize: 13, fontWeight: '600', color: C.g700 },
+  freshQuoteBtnText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: '600', color: C.g700 },
 
-  emptyState: { alignItems: 'center', paddingVertical: 80 },
-  emptyIconWrap: {
-    width: 80, height: 80, borderRadius: 40, backgroundColor: C.g50,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+  /* Empty state */
+  emptyState: { alignItems: 'center', paddingVertical: rs(50), paddingHorizontal: rs(24) },
+  emptyArt: {
+    width: rs(150), height: rs(114), marginBottom: rs(18),
+    alignItems: 'center', justifyContent: 'center',
   },
-  emptyTitle:    { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 6 },
-  emptySubtitle: { fontSize: 13, color: C.muted, textAlign: 'center' },
+  emptyArtCardBack: {
+    position: 'absolute', top: rs(12), right: rs(22),
+    width: rs(92), height: rs(66), borderRadius: rs(14),
+    backgroundColor: C.g100, transform: [{ rotate: '8deg' }],
+  },
+  emptyArtCard: {
+    width: rs(92), height: rs(80), borderRadius: rs(16),
+    backgroundColor: '#F1F6F3', borderWidth: 1, borderColor: C.g100,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyArtDot: {
+    position: 'absolute', top: rs(4), right: rs(18),
+    width: rs(22), height: rs(22), borderRadius: rs(11), backgroundColor: C.g500,
+    borderWidth: rs(3), borderColor: C.card,
+  },
+  emptyArtTag: {
+    position: 'absolute', bottom: rs(8), left: rs(4),
+    backgroundColor: C.card, borderRadius: rs(8),
+    paddingHorizontal: rs(8), paddingVertical: rs(3),
+    borderWidth: 1, borderColor: C.g100,
+    transform: [{ rotate: '-8deg' }],
+  },
+  emptyArtTagTxt: { fontFamily: DISPLAY, fontSize: 8.5, fontWeight: '700', color: C.g700, letterSpacing: 0.6 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 6 },
+  emptySubtitle: { fontFamily: DISPLAY, fontSize: 13, color: C.muted, textAlign: 'center' },
 });

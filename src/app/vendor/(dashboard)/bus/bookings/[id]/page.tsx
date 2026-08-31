@@ -780,7 +780,7 @@ export default function VendorBusBookingDetailPage() {
                 </div>
 
                 {/* ══ Sidebar ══ */}
-                <div className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1">
+                <div className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:pr-1">
                     {/* Payment Summary */}
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                         <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2"><CreditCard className="w-4 h-4 text-indigo-500" /> Payment</h3>

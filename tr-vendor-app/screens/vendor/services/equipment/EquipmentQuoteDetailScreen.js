@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, ActivityIndicator, StatusBar,
+  RefreshControl, ActivityIndicator, StatusBar, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -10,16 +10,28 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorQuotes, getQuoteRequestById, withdrawQuote } from '../../../api/client';
 import { showError, showSuccess, showInfo, showConfirm } from '../../../../services/alertService';
+import { SC as T, G, rs, shade, cardShadow } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
+// How far the ticket summary card rides up over the hero's rounded bottom
+// edge. The hero's own paddingBottom is shortened by the same amount and the
+// scroll content gets it back as paddingTop, so the gap stays the same —
+// only the visual overlap changes. Same technique as the bike side's
+// BikeQuoteDetailScreen.
+const TICKET_OVERLAP = 40;
+
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
-  orange: '#EA580C',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600, g500: T.emerald500, g400: T.emerald,
+  g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  orange: T.orange,
 };
 
 const STATUS_CONFIG = {
@@ -27,9 +39,52 @@ const STATUS_CONFIG = {
   SENT:     { color: C.blue,  bg: C.blueL,  icon: 'paper-plane-outline',     label: 'Sent' },
   ACCEPTED: { color: C.g600,  bg: C.g50,    icon: 'checkmark-circle',         label: 'Accepted' },
   REJECTED: { color: C.red,   bg: C.redL,   icon: 'close-circle',             label: 'Rejected' },
-  EXPIRED:  { color: C.muted, bg: '#F8FAFC', icon: 'time-outline',            label: 'Expired' },
-  WITHDRAWN:{ color: C.muted, bg: '#F8FAFC', icon: 'arrow-undo-outline',      label: 'Withdrawn' },
+  EXPIRED:  { color: C.muted, bg: C.bg,     icon: 'time-outline',            label: 'Expired' },
+  WITHDRAWN:{ color: C.muted, bg: C.bg,     icon: 'arrow-undo-outline',      label: 'Withdrawn' },
 };
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+const formatCurrency = (amount) => {
+  if (!amount) return '₹0';
+  return `₹${Number(amount).toLocaleString('en-IN')}`;
+};
+
+/* ── Section wrapper ─────────────────────────────────────────────────────── */
+const Section = ({ icon, title, iconBg, children }) => (
+  <View style={s.card}>
+    <View style={s.cardHead}>
+      <View style={[s.cardIcon, iconBg && { backgroundColor: iconBg }]}>
+        {icon}
+      </View>
+      <Text style={s.cardTitle}>{title}</Text>
+    </View>
+    {children}
+  </View>
+);
+
+/* ── Info row inside a card ──────────────────────────────────────────────── */
+const InfoRow = ({ icon, label, value }) => (
+  <View style={s.infoRow}>
+    <View style={s.infoIconWrap}>{icon}</View>
+    <View style={s.infoContent}>
+      <Text style={s.infoLabel}>{label}</Text>
+      <Text style={s.infoValue}>{value}</Text>
+    </View>
+  </View>
+);
+
+function PriceRow({ label, value }) {
+  return (
+    <View style={s.payRow}>
+      <Text style={s.payLabel}>{label}</Text>
+      <Text style={s.payVal}>{value}</Text>
+    </View>
+  );
+}
 
 export default function EquipmentQuoteDetailScreen({ route, navigation }) {
   const { quoteId } = route.params || {};
@@ -95,16 +150,6 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
     );
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-  };
-
-  const formatCurrency = (amount) => {
-    if (!amount) return '₹0';
-    return `₹${Number(amount).toLocaleString('en-IN')}`;
-  };
-
   const parseJSON = (field) => {
     if (!field) return null;
     if (Array.isArray(field)) return field;
@@ -119,43 +164,60 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
     return null;
   };
 
+  /* ── Loading ── */
   if (loading) {
     return (
       <View style={s.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.heroMin}>
+        <LinearGradient colors={G.hero} style={s.hero}>
+          <AnimatedOrb style={s.deco1} />
+          <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
           <SafeAreaView edges={['top']}>
             <View style={s.topBar}>
               <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
                 <Icon name="arrow-left" size={18} color="#fff" />
               </TouchableOpacity>
-              <Text style={s.heroTitle}>Quote Details</Text>
-              <View style={{ width: 36 }} />
-            </View>
-          </SafeAreaView>
-        </LinearGradient>
-        <View style={s.centered}><ActivityIndicator size="large" color={C.g600} /></View>
-      </View>
-    );
-  }
-
-  if (!quote) {
-    return (
-      <View style={s.safe}>
-        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.heroMin}>
-          <SafeAreaView edges={['top']}>
-            <View style={s.topBar}>
-              <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-                <Icon name="arrow-left" size={18} color="#fff" />
-              </TouchableOpacity>
-              <Text style={s.heroTitle}>Quote Details</Text>
+              <View style={s.titleWrap}>
+                <MaterialCommunityIcons name="toolbox" size={18} color={C.g400} />
+                <Text style={s.heroTitle}>Quote Details</Text>
+              </View>
               <View style={{ width: 36 }} />
             </View>
           </SafeAreaView>
         </LinearGradient>
         <View style={s.centered}>
-          <Ionicons name="document-text-outline" size={64} color={C.muted} />
+          <ActivityIndicator size="large" color={C.g600} />
+          <Text style={s.centeredTxt}>Loading quote details…</Text>
+        </View>
+      </View>
+    );
+  }
+
+  /* ── Not found ── */
+  if (!quote) {
+    return (
+      <View style={s.safe}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={G.hero} style={s.hero}>
+          <AnimatedOrb style={s.deco1} />
+          <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+          <SafeAreaView edges={['top']}>
+            <View style={s.topBar}>
+              <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-left" size={18} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.titleWrap}>
+                <MaterialCommunityIcons name="toolbox" size={18} color={C.g400} />
+                <Text style={s.heroTitle}>Quote Details</Text>
+              </View>
+              <View style={{ width: 36 }} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+        <View style={s.centered}>
+          <View style={s.emptyIconWrap}>
+            <Ionicons name="document-text-outline" size={44} color={C.g400} />
+          </View>
           <Text style={s.emptyTitle}>Quote Not Found</Text>
           <Text style={s.emptySubtitle}>This quote may have been removed</Text>
         </View>
@@ -163,6 +225,7 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
     );
   }
 
+  /* ── Data extraction ── */
   const status = quote.status || 'PENDING';
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING;
 
@@ -193,219 +256,326 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
   const exclusions = parseJSON(quote.exclusions);
   const termsConditions = parseJSON(quote.termsConditions);
 
+  // Timeline events — same two possible entries the original screen showed,
+  // just assembled into a list so the connecting line can be drawn between
+  // whichever dots actually render.
+  const timelineEvents = [
+    { key: 'sent', label: 'Quote Sent', date: quote.createdAt || quote.created_at, color: C.g500 },
+  ];
+  if (quote.updatedAt && quote.updatedAt !== quote.createdAt) {
+    timelineEvents.push({ key: 'updated', label: 'Last Updated', date: quote.updatedAt, color: C.sub });
+  }
+
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
+      {/* ══ Hero Header ══════════════════════════════════════════════════════ */}
       <LinearGradient
-        colors={[C.g900, '#064E3B', C.g700]}
+        colors={G.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.hero}
       >
-        <View style={s.deco1} /><View style={s.deco2} />
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={18} color="#fff" />
           </TouchableOpacity>
           <View style={s.titleWrap}>
-            <MaterialCommunityIcons name="toolbox" size={16} color={C.g400} />
+            <MaterialCommunityIcons name="toolbox" size={18} color={C.g400} />
             <Text style={s.heroTitle}>Quote Details</Text>
           </View>
           <TouchableOpacity style={s.backBtn} onPress={onRefresh}>
-            <Icon name="refresh-cw" size={16} color={C.g400} />
+            <Icon name="refresh-cw" size={16} color="#fff" />
           </TouchableOpacity>
         </View>
 
-        <View style={s.heroCard}>
-          <View style={s.heroRow}>
-            <View>
-              <Text style={s.heroQuoteNum}>Quote #{quoteNumber}</Text>
-              <Text style={s.heroService}>Equipment Rental</Text>
-            </View>
-            <View style={[s.statusPill, { backgroundColor: cfg.bg }]}>
-              <Ionicons name={cfg.icon} size={12} color={cfg.color} />
-              <Text style={[s.statusPillTxt, { color: cfg.color }]}>{cfg.label}</Text>
-            </View>
+        {/* Identity block — who this quote is for */}
+        <View style={s.identityBlock}>
+          <View style={s.identityIcon}>
+            <MaterialCommunityIcons name="account" size={24} color="#fff" />
           </View>
-          <View style={s.heroAmountRow}>
-            <Text style={s.heroAmountLabel}>Grand Total</Text>
-            <Text style={s.heroAmount}>{formatCurrency(totalAmount)}</Text>
+          <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12) }}>
+            <Text style={s.identityLabel}>QUOTE FOR</Text>
+            <Text style={s.identityName} numberOfLines={1}>{customerName}</Text>
+            <Text style={s.identitySub} numberOfLines={1}>
+              {pickupCity}{dropCity ? ` → ${dropCity}` : ''}
+            </Text>
           </View>
         </View>
       </LinearGradient>
 
+      {/* ══ Body ═════════════════════════════════════════════════════════════ */}
       <ScrollView
         style={s.scroll}
+        contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g400} colors={[C.g600]} />}
-        contentContainerStyle={s.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g400} colors={[C.g600]} />
+        }
       >
-        {/* Request Reference */}
-        {requestNumber && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Reference</Text>
-            <View style={s.card}>
-              <Text style={s.refText}>Request #{requestNumber}</Text>
+        {/* ── Ticket summary — quote #, status & total, floated over the hero ── */}
+        <View style={s.ticketWrap}>
+          <LinearGradient
+            colors={[cfg.color, shade(cfg.color, -18)]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={s.ticketRail}
+          />
+          <View style={s.ticketUpperStub}>
+            <View style={s.ticketIconBox}>
+              <MaterialCommunityIcons name="toolbox" size={22} color={C.g700} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.ticketLabel}>QUOTE #</Text>
+              <Text style={s.ticketNumber} numberOfLines={1}>{quoteNumber}</Text>
+            </View>
+            <View style={[s.statusPill, { backgroundColor: cfg.bg, borderColor: cfg.color + '40' }]}>
+              <Ionicons name={cfg.icon} size={12} color={cfg.color} />
+              <Text style={[s.statusPillTxt, { color: cfg.color }]}>{cfg.label}</Text>
             </View>
           </View>
-        )}
 
-        {/* Customer */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Customer</Text>
-          <View style={s.card}>
-            <InfoRow icon={<Ionicons name="person" size={16} color={C.muted} />} label="Name" value={customerName} />
-            {customerEmail && <InfoRow icon={<Ionicons name="mail" size={16} color={C.muted} />} label="Email" value={customerEmail} />}
+          {/* Perforation — torn-ticket edge */}
+          <View style={s.perforationRow}>
+            <View style={s.notchLeft} />
+            <View style={s.dashLine} />
+            <View style={s.notchRight} />
+          </View>
+
+          <View style={s.ticketLowerStub}>
+            <View style={s.moneyIconWrap}>
+              <Ionicons name="cash" size={16} color={C.g700} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.ticketAmountLabel}>TOTAL QUOTED</Text>
+              <Text style={s.ticketAmountVal}>{formatCurrency(totalAmount)}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Equipment Details */}
+        {/* ── Request Reference ── */}
+        {requestNumber && (
+          <Section
+            icon={<Ionicons name="document-text-outline" size={15} color={C.g700} />}
+            title="Reference"
+          >
+            <View style={s.refBadge}>
+              <Ionicons name="document-text-outline" size={16} color={C.g700} />
+              <Text style={s.refBadgeText}>Request #{requestNumber}</Text>
+            </View>
+          </Section>
+        )}
+
+        {/* ── Customer ── */}
+        <Section
+          icon={<Ionicons name="person-circle-outline" size={15} color={C.g700} />}
+          title="Customer"
+        >
+          <InfoRow icon={<Ionicons name="person" size={16} color={C.muted} />} label="Name" value={customerName} />
+          {customerEmail && <InfoRow icon={<Ionicons name="mail" size={16} color={C.muted} />} label="Email" value={customerEmail} />}
+        </Section>
+
+        {/* ── Equipment Details ── */}
         {vehicleName && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Equipment Details</Text>
-            <View style={s.card}>
-              <View style={s.equipRow}>
-                <MaterialCommunityIcons name="toolbox" size={30} color={C.g600} />
-                <View style={{ flex: 1 }}>
-                  <Text style={s.equipName}>{vehicleName}</Text>
-                  {vehicleBrand && <Text style={s.equipBrand}>{vehicleBrand}</Text>}
-                </View>
+          <Section
+            icon={<MaterialCommunityIcons name="toolbox" size={15} color={C.g700} />}
+            title="Equipment Details"
+          >
+            <View style={s.vehicleHero}>
+              <View style={s.vehicleHeroIcon}>
+                <MaterialCommunityIcons name="toolbox" size={26} color={C.g700} />
               </View>
-              {registrationNumber && <InfoRow icon={<Ionicons name="document-outline" size={16} color={C.muted} />} label="Registration No." value={registrationNumber} />}
-              {vehicleYear && <InfoRow icon={<Ionicons name="calendar" size={16} color={C.muted} />} label="Model Year" value={`${vehicleYear}`} />}
-              {quote.condition && <InfoRow icon={<Ionicons name="star-outline" size={16} color={C.muted} />} label="Condition" value={quote.condition} />}
-              {quote.capacity && <InfoRow icon={<Ionicons name="resize-outline" size={16} color={C.muted} />} label="Capacity" value={`${quote.capacity}`} />}
-              {vehicleFeatures && vehicleFeatures.length > 0 && (
-                <View style={s.featuresWrap}>
-                  <Text style={s.featuresTitle}>Features</Text>
-                  {vehicleFeatures.map((feature, idx) => (
-                    <View key={idx} style={s.featureItem}>
-                      <Ionicons name="checkmark-circle" size={14} color={C.g600} />
-                      <Text style={s.featureText}>{feature}</Text>
-                    </View>
-                  ))}
-                </View>
+              <View style={s.vehicleHeroText}>
+                <Text style={s.vehicleHeroName}>{vehicleName}</Text>
+                {vehicleBrand && <Text style={s.vehicleHeroBrand}>{vehicleBrand}</Text>}
+              </View>
+            </View>
+            {registrationNumber && <InfoRow icon={<Ionicons name="document-outline" size={16} color={C.muted} />} label="Registration No." value={registrationNumber} />}
+            {vehicleYear && <InfoRow icon={<Ionicons name="calendar" size={16} color={C.muted} />} label="Model Year" value={`${vehicleYear}`} />}
+            {quote.condition && <InfoRow icon={<Ionicons name="star-outline" size={16} color={C.muted} />} label="Condition" value={quote.condition} />}
+            {quote.capacity && <InfoRow icon={<Ionicons name="resize-outline" size={16} color={C.muted} />} label="Capacity" value={`${quote.capacity}`} />}
+            {vehicleFeatures && vehicleFeatures.length > 0 && (
+              <View style={s.featuresWrap}>
+                <Text style={s.featuresTitle}>Features</Text>
+                {vehicleFeatures.map((feature, idx) => (
+                  <View key={idx} style={s.featureItem}>
+                    <Ionicons name="checkmark-circle" size={15} color={C.g600} />
+                    <Text style={s.featureText}>{feature}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </Section>
+        )}
+
+        {/* ── Booking Details ── */}
+        <Section
+          icon={<Ionicons name="calendar-outline" size={15} color={C.g700} />}
+          title="Booking Details"
+        >
+          <View style={s.routeCard}>
+            <View style={s.routeRail}>
+              <View style={[s.routeDot, { backgroundColor: C.g600 }]} />
+              {!!dropCity && <View style={s.routeLine} />}
+              {!!dropCity && <View style={[s.routeDot, { backgroundColor: C.red }]} />}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.routeLabel}>LOCATION</Text>
+              <Text style={s.routeValue} numberOfLines={1}>{pickupCity}</Text>
+              {!!dropCity && (
+                <>
+                  <View style={{ height: rs(12) }} />
+                  <Text style={s.routeLabel}>DROP LOCATION</Text>
+                  <Text style={s.routeValue} numberOfLines={1}>{dropCity}</Text>
+                </>
               )}
             </View>
           </View>
-        )}
 
-        {/* Booking Details */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Booking Details</Text>
-          <View style={s.card}>
-            <InfoRow icon={<Ionicons name="location" size={16} color={C.g600} />} label="Location" value={pickupCity} />
-            {dropCity && <InfoRow icon={<Ionicons name="location" size={16} color={C.red} />} label="Drop Location" value={dropCity} />}
-            {pickupDate && <InfoRow icon={<Ionicons name="calendar" size={16} color={C.muted} />} label="Start Date" value={formatDate(pickupDate)} />}
-            {returnDate && <InfoRow icon={<Ionicons name="calendar" size={16} color={C.muted} />} label="End Date" value={formatDate(returnDate)} />}
-          </View>
-        </View>
-
-        {/* Pricing */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Pricing Breakdown</Text>
-          <View style={s.card}>
-            {quote.dailyRate > 0 && <PriceRow label="Daily Rate" value={formatCurrency(quote.dailyRate)} />}
-            {quote.operatorCharges > 0 && <PriceRow label="Operator Charges" value={formatCurrency(quote.operatorCharges)} />}
-            {quote.transportCharges > 0 && <PriceRow label="Transport Charges" value={formatCurrency(quote.transportCharges)} />}
-            {quote.maintenanceCharges > 0 && <PriceRow label="Maintenance" value={formatCurrency(quote.maintenanceCharges)} />}
-            {quote.deliveryCharges > 0 && <PriceRow label="Delivery Charges" value={formatCurrency(quote.deliveryCharges)} />}
-            {securityDeposit > 0 && <PriceRow label="Security Deposit" value={formatCurrency(securityDeposit)} />}
-            {quote.gstAmount > 0 && <PriceRow label="GST" value={formatCurrency(quote.gstAmount)} />}
-            <View style={s.priceDivider} />
-            <View style={s.priceRow}>
-              <Text style={[s.priceLabel, { fontSize: 15, fontWeight: '700', color: C.text }]}>Grand Total</Text>
-              <Text style={[s.priceValue, { fontSize: 18, fontWeight: '700', color: C.g600 }]}>{formatCurrency(totalAmount)}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Validity */}
-        {validTill && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Quote Validity</Text>
-            <View style={s.card}>
-              <InfoRow icon={<Ionicons name="hourglass-outline" size={16} color={C.muted} />} label="Valid Until" value={formatDate(validTill)} />
-            </View>
-          </View>
-        )}
-
-        {/* Notes */}
-        {notes && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Additional Notes</Text>
-            <View style={s.card}><Text style={s.notesText}>{notes}</Text></View>
-          </View>
-        )}
-
-        {/* Inclusions */}
-        {inclusions && inclusions.length > 0 && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Inclusions</Text>
-            <View style={s.card}>
-              {inclusions.map((item, idx) => (
-                <View key={idx} style={s.listItem}>
-                  <Ionicons name="checkmark-circle" size={14} color={C.g600} />
-                  <Text style={s.listText}>{item}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Exclusions */}
-        {exclusions && exclusions.length > 0 && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Exclusions</Text>
-            <View style={s.card}>
-              {exclusions.map((item, idx) => (
-                <View key={idx} style={s.listItem}>
-                  <Ionicons name="close-circle" size={14} color={C.red} />
-                  <Text style={s.listText}>{item}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Terms */}
-        {termsConditions && termsConditions.length > 0 && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Terms & Conditions</Text>
-            <View style={s.card}>
-              {termsConditions.map((item, idx) => (
-                <View key={idx} style={s.listItem}>
-                  <Text style={s.listNum}>{idx + 1}.</Text>
-                  <Text style={s.listText}>{item}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Timeline */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Timeline</Text>
-          <View style={s.card}>
-            <View style={s.timelineRow}>
-              <Ionicons name="paper-plane" size={14} color={C.g600} />
-              <Text style={s.timelineText}>Sent on {formatDate(quote.createdAt || quote.created_at)}</Text>
-            </View>
-            {quote.updatedAt && quote.updatedAt !== quote.createdAt && (
-              <View style={s.timelineRow}>
-                <Ionicons name="refresh" size={14} color={C.muted} />
-                <Text style={s.timelineText}>Updated on {formatDate(quote.updatedAt)}</Text>
+          <View style={s.dateGrid}>
+            {pickupDate && (
+              <View style={s.dateCell}>
+                <Ionicons name="calendar" size={14} color={C.sub} />
+                <Text style={s.dateCellLabel}>START DATE</Text>
+                <Text style={s.dateCellValue}>{formatDate(pickupDate)}</Text>
+              </View>
+            )}
+            {returnDate && (
+              <View style={s.dateCell}>
+                <Ionicons name="calendar" size={14} color={C.sub} />
+                <Text style={s.dateCellLabel}>END DATE</Text>
+                <Text style={s.dateCellValue}>{formatDate(returnDate)}</Text>
               </View>
             )}
           </View>
-        </View>
+        </Section>
+
+        {/* ── Pricing Breakdown ── */}
+        <Section
+          icon={<Ionicons name="receipt-outline" size={15} color={C.g700} />}
+          title="Pricing Breakdown"
+        >
+          {quote.dailyRate > 0 && <PriceRow label="Daily Rate" value={formatCurrency(quote.dailyRate)} />}
+          {quote.operatorCharges > 0 && <PriceRow label="Operator Charges" value={formatCurrency(quote.operatorCharges)} />}
+          {quote.transportCharges > 0 && <PriceRow label="Transport Charges" value={formatCurrency(quote.transportCharges)} />}
+          {quote.maintenanceCharges > 0 && <PriceRow label="Maintenance" value={formatCurrency(quote.maintenanceCharges)} />}
+          {quote.deliveryCharges > 0 && <PriceRow label="Delivery Charges" value={formatCurrency(quote.deliveryCharges)} />}
+          {securityDeposit > 0 && <PriceRow label="Security Deposit" value={formatCurrency(securityDeposit)} />}
+          {quote.gstAmount > 0 && <PriceRow label="GST" value={formatCurrency(quote.gstAmount)} />}
+          <View style={s.totalRow}>
+            <Text style={s.totalLabel}>Grand Total</Text>
+            <Text style={s.totalVal}>{formatCurrency(totalAmount)}</Text>
+          </View>
+        </Section>
+
+        {/* ── Quote Validity ── */}
+        {validTill && (
+          <Section
+            icon={<Ionicons name="time-outline" size={15} color={C.g700} />}
+            title="Quote Validity"
+          >
+            <InfoRow icon={<Ionicons name="hourglass-outline" size={16} color={C.muted} />} label="Valid Until" value={formatDate(validTill)} />
+          </Section>
+        )}
+
+        {/* ── Additional Notes ── */}
+        {notes && (
+          <Section
+            icon={<Ionicons name="chatbox-outline" size={15} color={C.g700} />}
+            title="Additional Notes"
+            iconBg={C.amberL}
+          >
+            <View style={s.notesInner}>
+              <Text style={s.notesTxt}>{notes}</Text>
+            </View>
+          </Section>
+        )}
+
+        {/* ── Inclusions ── */}
+        {inclusions && inclusions.length > 0 && (
+          <Section
+            icon={<Ionicons name="checkmark-circle-outline" size={15} color={C.g700} />}
+            title="Inclusions"
+          >
+            <View style={s.pillWrap}>
+              {inclusions.map((item, idx) => (
+                <View key={idx} style={[s.pill, { backgroundColor: C.g100 }]}>
+                  <View style={[s.pillPip, { backgroundColor: C.g700 }]}>
+                    <Ionicons name="checkmark" size={10} color="#fff" />
+                  </View>
+                  <Text style={[s.pillTxt, { color: C.g700 }]}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          </Section>
+        )}
+
+        {/* ── Exclusions ── */}
+        {exclusions && exclusions.length > 0 && (
+          <Section
+            icon={<Ionicons name="close-circle-outline" size={15} color={C.g700} />}
+            title="Exclusions"
+          >
+            <View style={s.pillWrap}>
+              {exclusions.map((item, idx) => (
+                <View key={idx} style={[s.pill, { backgroundColor: C.redL }]}>
+                  <View style={[s.pillPip, { backgroundColor: C.red }]}>
+                    <Ionicons name="close" size={10} color="#fff" />
+                  </View>
+                  <Text style={[s.pillTxt, { color: C.red }]}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          </Section>
+        )}
+
+        {/* ── Terms & Conditions ── */}
+        {termsConditions && termsConditions.length > 0 && (
+          <Section
+            icon={<Ionicons name="document-text-outline" size={15} color={C.g700} />}
+            title="Terms & Conditions"
+          >
+            <View style={s.termsCard}>
+              {termsConditions.map((item, idx) => (
+                <View key={idx} style={[s.termLine, idx === termsConditions.length - 1 && { marginBottom: 0 }]}>
+                  <Text style={s.termNum}>{idx + 1}.</Text>
+                  <Text style={s.termTxt}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          </Section>
+        )}
+
+        {/* ── Timeline ── */}
+        <Section
+          icon={<Ionicons name="time-outline" size={15} color={C.g700} />}
+          title="Timeline"
+        >
+          {timelineEvents.map((ev, idx) => (
+            <View key={ev.key} style={s.timelineItem}>
+              <View style={s.timelineRail}>
+                <View style={[s.timelineDot, { backgroundColor: ev.color }]} />
+                {idx < timelineEvents.length - 1 && <View style={s.timelineLine} />}
+              </View>
+              <View style={[s.timelineBody, idx < timelineEvents.length - 1 && { marginBottom: rs(14) }]}>
+                <Text style={s.timelineEvent}>{ev.label}</Text>
+                <Text style={s.timelineDate}>{formatDate(ev.date)}</Text>
+              </View>
+            </View>
+          ))}
+        </Section>
+
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Bottom Bar */}
       <View style={s.bottomBar}>
         {status === 'ACCEPTED' ? (
           <TouchableOpacity
-            style={[s.bottomBtn, { backgroundColor: C.g700 }]}
+            style={s.primaryBtnWrap}
+            activeOpacity={0.9}
             onPress={() => {
               if (bookingId) {
                 navigation.navigate('EquipmentBookingDetail', { bookingId });
@@ -416,8 +586,10 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
               }
             }}
           >
-            <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
-            <Text style={s.bottomBtnTxt}>View Booking Details</Text>
+            <LinearGradient colors={G.ocean} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.primaryBtnInner}>
+              <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+              <Text style={s.bottomBtnText}>View Booking Details</Text>
+            </LinearGradient>
           </TouchableOpacity>
         ) : isActive ? (
           <View style={s.bottomRow}>
@@ -425,58 +597,73 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
               style={[s.withdrawBtn, isWithdrawing && { opacity: 0.6 }]}
               onPress={handleWithdraw}
               disabled={isWithdrawing}
+              activeOpacity={0.75}
             >
-              <Icon name="x-circle" size={17} color="#fff" />
-              <Text style={s.bottomBtnTxt}>{isWithdrawing ? 'Withdrawing...' : 'Withdraw'}</Text>
+              {isWithdrawing ? (
+                <ActivityIndicator size="small" color={C.red} />
+              ) : (
+                <>
+                  <Icon name="x-circle" size={16} color={C.red} />
+                  <Text style={s.withdrawBtnText}>Withdraw</Text>
+                </>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
-              style={[s.viewRequestBtn, { flex: 1 }]}
+              style={[s.outlineBtn, { flex: 1 }]}
+              activeOpacity={0.75}
               onPress={() => {
                 const rid = quote.requestId || quote.request?.id || quote.request?._id;
                 if (rid) navigation.navigate('EquipmentQuoteRequestDetail', { requestId: rid });
                 else showInfo('Request details not available.');
               }}
             >
-              <Ionicons name="document-text-outline" size={17} color="#fff" />
-              <Text style={s.bottomBtnTxt}>View Request</Text>
+              <Ionicons name="document-text-outline" size={16} color={C.g700} />
+              <Text style={s.outlineBtnText}>View Request</Text>
             </TouchableOpacity>
           </View>
         ) : canReQuote ? (
           <View style={s.bottomRow}>
             <TouchableOpacity
-              style={[s.viewRequestBtn, { flex: 1 }]}
+              style={[s.outlineBtn, { flex: 1 }]}
+              activeOpacity={0.75}
               onPress={() => {
                 const rid = quote.requestId || quote.request?.id || quote.request?._id;
                 if (rid) navigation.navigate('EquipmentQuoteRequestDetail', { requestId: rid });
                 else showInfo('Request details not available.');
               }}
             >
-              <Ionicons name="document-text-outline" size={17} color="#fff" />
-              <Text style={s.bottomBtnTxt}>View Request</Text>
+              <Ionicons name="document-text-outline" size={16} color={C.g700} />
+              <Text style={s.outlineBtnText}>View Request</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[s.freshQuoteBtn, { flex: 1 }]}
+              style={[s.primaryBtnWrap, { flex: 1 }]}
+              activeOpacity={0.9}
               onPress={() => {
                 const rid = quote.requestId || quote.request?.id || quote.request?._id;
                 if (rid) navigation.navigate('EquipmentSendQuote', { requestId: rid });
                 else showInfo('Request details not available.');
               }}
             >
-              <Icon name="refresh-cw" size={17} color="#fff" />
-              <Text style={s.bottomBtnTxt}>Send Fresh Quote</Text>
+              <LinearGradient colors={G.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.primaryBtnInner}>
+                <Icon name="refresh-cw" size={16} color="#fff" />
+                <Text style={s.bottomBtnText}>Send Fresh Quote</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         ) : (
           <TouchableOpacity
-            style={[s.bottomBtn, { backgroundColor: C.sub }]}
+            style={s.primaryBtnWrap}
+            activeOpacity={0.9}
             onPress={() => {
               const rid = quote.requestId || quote.request?.id || quote.request?._id;
               if (rid) navigation.navigate('EquipmentQuoteRequestDetail', { requestId: rid });
               else showInfo('Request details not available.');
             }}
           >
-            <Ionicons name="document-text-outline" size={18} color="#fff" />
-            <Text style={s.bottomBtnTxt}>View Request Details</Text>
+            <LinearGradient colors={G.emerald} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.primaryBtnInner}>
+              <Ionicons name="document-text-outline" size={18} color="#fff" />
+              <Text style={s.bottomBtnText}>View Request Details</Text>
+            </LinearGradient>
           </TouchableOpacity>
         )}
       </View>
@@ -484,102 +671,219 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
   );
 }
 
-function InfoRow({ icon, label, value }) {
-  return (
-    <View style={s.infoRow}>
-      {icon}
-      <View style={s.infoContent}>
-        <Text style={s.infoLabel}>{label}</Text>
-        <Text style={s.infoValue}>{value}</Text>
-      </View>
-    </View>
-  );
-}
-
-function PriceRow({ label, value }) {
-  return (
-    <View style={s.priceRow}>
-      <Text style={s.priceLabel}>{label}</Text>
-      <Text style={s.priceValue}>{value}</Text>
-    </View>
-  );
-}
-
+// ─────────────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-
-  hero: { paddingHorizontal: 16, paddingBottom: 20 },
-  heroMin: { paddingHorizontal: 16, paddingBottom: 16 },
-  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(52,211,153,0.08)' },
-  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(52,211,153,0.06)' },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12 },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  heroTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
-
-  heroCard: { marginTop: 16, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  heroRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  heroQuoteNum: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  heroService: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
-  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  statusPillTxt: { fontSize: 11, fontWeight: '700' },
-  heroAmountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)' },
-  heroAmountLabel: { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
-  heroAmount: { fontSize: 22, fontWeight: '700', color: C.g400 },
-
+  safe:   { flex: 1, backgroundColor: C.bg },
   scroll: { flex: 1 },
-  content: { padding: 16, paddingBottom: 100 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: TICKET_OVERLAP, paddingBottom: 100 },
 
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: C.sub, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  card: { backgroundColor: C.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: C.border, gap: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
-  refText: { fontSize: 14, fontWeight: '600', color: C.sub },
+  centered:    { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10, paddingHorizontal: 32 },
+  centeredTxt: { fontSize: 14, color: C.muted },
 
-  infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  infoContent: { flex: 1 },
-  infoLabel: { fontSize: 11, color: C.muted, marginBottom: 2 },
-  infoValue: { fontSize: 14, color: C.text, fontWeight: '600' },
+  // ── Hero ──────────────────────────────────────────────────────────────────
+  hero: {
+    paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden',
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
+  },
+  deco1: {
+    position: 'absolute', width: 220, height: 220,
+    borderRadius: 110, backgroundColor: 'rgba(52,211,153,0.06)',
+    top: -70, right: -40,
+  },
+  deco2: {
+    position: 'absolute', width: 130, height: 130,
+    borderRadius: 65, backgroundColor: 'rgba(16,185,129,0.05)',
+    bottom: 0, left: 150,
+  },
+  topBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 16 },
+  backBtn:   { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
-  equipRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  equipName: { fontSize: 16, fontWeight: '700', color: C.text },
-  equipBrand: { fontSize: 13, color: C.sub, marginTop: 2 },
+  identityBlock: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 2 },
+  identityIcon: {
+    width: rs(48), height: rs(48), borderRadius: rs(14),
+    backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  identityLabel: { fontSize: 9.5, color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: 1.4, marginBottom: 3 },
+  identityName:  { fontFamily: DISPLAY, fontSize: 19, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
+  identitySub:   { fontSize: 12.5, color: 'rgba(255,255,255,0.65)', fontWeight: '600', marginTop: 3 },
+
+  // ── Ticket summary card — quote #, status, total; overlaps hero bottom ──
+  ticketWrap: {
+    marginTop: -TICKET_OVERLAP, backgroundColor: C.card,
+    borderRadius: rs(16), overflow: 'hidden', borderWidth: 1, borderColor: C.border,
+    marginBottom: 12, ...cardShadow,
+  },
+  ticketRail: { height: 3, width: '100%' },
+  ticketUpperStub: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingBottom: 14 },
+  ticketIconBox: {
+    width: rs(44), height: rs(44), borderRadius: rs(12),
+    backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
+  },
+  ticketLabel: { fontSize: 9.5, color: C.muted, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
+  ticketNumber: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '900', color: C.text, letterSpacing: -0.3 },
+
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  statusPillTxt: { fontSize: 11, fontWeight: '700' },
+
+  perforationRow: { height: 2, justifyContent: 'center' },
+  dashLine: { marginHorizontal: 20, borderTopWidth: 1, borderColor: C.border, borderStyle: 'dashed' },
+  notchLeft: {
+    position: 'absolute', left: -9, top: -8,
+    width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg,
+  },
+  notchRight: {
+    position: 'absolute', right: -9, top: -8,
+    width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg,
+  },
+
+  ticketLowerStub: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, paddingTop: 14 },
+  moneyIconWrap: {
+    width: rs(30), height: rs(30), borderRadius: rs(9),
+    backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
+  },
+  ticketAmountLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
+  ticketAmountVal: { fontFamily: DISPLAY, fontSize: 24, fontWeight: '900', color: C.g700, letterSpacing: -0.4 },
+
+  // ── Card ──────────────────────────────────────────────────────────────────
+  card: {
+    backgroundColor: C.card, borderRadius: rs(16), padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
+  },
+  cardHead:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  cardIcon:  { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: C.g50 },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
+
+  /* InfoRow */
+  infoRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10 },
+  infoIconWrap: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginTop: 1, backgroundColor: C.bg },
+  infoContent:  { flex: 1 },
+  infoLabel:    { fontSize: 11, color: C.muted, marginBottom: 2 },
+  infoValue:    { fontSize: 14, color: C.text, fontWeight: '600' },
+
+  /* Ref badge */
+  refBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.g50, padding: 12, borderRadius: rs(10),
+  },
+  refBadgeText: { fontSize: 14, fontWeight: '700', color: C.g700 },
+
+  /* Equipment hero */
+  vehicleHero: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+  vehicleHeroIcon: {
+    width: 52, height: 52, borderRadius: 14,
+    backgroundColor: C.g50,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  vehicleHeroText: { flex: 1 },
+  vehicleHeroName:  { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.text },
+  vehicleHeroBrand: { fontSize: 13, color: C.sub, marginTop: 3 },
+
+  /* Features */
   featuresWrap: { paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border },
-  featuresTitle: { fontSize: 12, fontWeight: '600', color: C.sub, marginBottom: 8 },
-  featureItem: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  featureText: { fontSize: 13, color: C.sub, flex: 1 },
+  featuresTitle: { fontSize: 11, fontWeight: '800', color: C.sub, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.4 },
+  featureItem:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  featureText:  { fontSize: 13, color: C.sub, flex: 1 },
 
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  priceLabel: { fontSize: 14, color: C.sub },
-  priceValue: { fontSize: 14, color: C.text, fontWeight: '600' },
-  priceDivider: { height: 1, backgroundColor: C.border, marginVertical: 4 },
+  /* Route / booking details */
+  routeCard: {
+    flexDirection: 'row', gap: 12,
+    backgroundColor: C.bg, borderRadius: rs(12), padding: 14,
+  },
+  routeRail: { alignItems: 'center', paddingTop: 3 },
+  routeDot: { width: 10, height: 10, borderRadius: 5 },
+  routeLine: { width: 2, flex: 1, minHeight: rs(28), backgroundColor: C.border, marginVertical: 4 },
+  routeLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 0.6 },
+  routeValue: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '700', color: C.text, marginTop: 2 },
 
-  notesText: { fontSize: 14, color: C.sub, lineHeight: 20 },
+  dateGrid: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  dateCell: {
+    flex: 1, alignItems: 'flex-start', gap: 4,
+    backgroundColor: C.g50, borderRadius: rs(12), padding: 12,
+  },
+  dateCellLabel: { fontSize: 9.5, color: C.g700, fontWeight: '700', letterSpacing: 0.8, marginTop: 2 },
+  dateCellValue: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: '800', color: C.text },
 
-  listItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  listText: { fontSize: 13, color: C.sub, flex: 1, lineHeight: 18 },
-  listNum: { fontSize: 13, fontWeight: '600', color: C.muted, width: 18 },
+  /* Pricing */
+  payRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
+  payLabel:{ fontSize: 13, color: C.sub },
+  payVal:  { fontSize: 13, fontWeight: '600', color: C.text },
+  totalRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: C.g50, borderRadius: rs(12), padding: 14,
+    borderWidth: 1, borderColor: C.g100, marginVertical: 6,
+  },
+  totalLabel: { fontSize: 14, fontWeight: '700', color: C.g800 },
+  totalVal:   { fontFamily: DISPLAY, fontSize: 22, fontWeight: '900', color: C.g700 },
 
-  timelineRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  timelineText: { fontSize: 13, color: C.sub },
+  /* Inclusions / Exclusions pills */
+  pillWrap:  { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  pill:      { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingRight: 12, paddingLeft: 7, borderRadius: 20 },
+  pillPip:   { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  pillTxt:   { fontSize: 12, fontWeight: '600' },
 
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: C.text, marginTop: 16 },
-  emptySubtitle: { fontSize: 14, color: C.muted, marginTop: 8 },
+  /* Terms */
+  termsCard: { backgroundColor: C.bg, borderRadius: rs(12), padding: 12 },
+  termLine:  { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  termNum:   { fontSize: 12, fontWeight: '800', color: C.text },
+  termTxt:   { flex: 1, fontSize: 12.5, color: C.sub, lineHeight: 18 },
 
-  bottomBar: { backgroundColor: C.card, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: C.border, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 8 },
-  bottomBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12 },
-  bottomBtnTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  /* Notes */
+  notesInner: { borderLeftWidth: 3, borderLeftColor: C.amber, paddingLeft: 12 },
+  notesTxt: { fontSize: 13, color: C.text, lineHeight: 20 },
+
+  /* Timeline */
+  timelineItem: { flexDirection: 'row', gap: 12 },
+  timelineRail: { alignItems: 'center' },
+  timelineDot:  { width: 10, height: 10, borderRadius: 5 },
+  timelineLine: { width: 2, flex: 1, minHeight: rs(20), backgroundColor: C.border, marginTop: 4 },
+  timelineBody: { flex: 1, paddingTop: 0 },
+  timelineEvent: { fontSize: 14, fontWeight: '600', color: C.text },
+  timelineDate:  { fontSize: 12, color: C.muted, marginTop: 2 },
+
+  /* Bottom Bar */
+  bottomBar: {
+    backgroundColor: C.card,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 14,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    ...cardShadow,
+  },
   bottomRow: { flexDirection: 'row', gap: 10 },
+
+  primaryBtnWrap: { borderRadius: rs(14), overflow: 'hidden' },
+  primaryBtnInner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 14,
+  },
+
+  outlineBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.card, paddingVertical: 14, borderRadius: rs(14),
+    borderWidth: 1.5, borderColor: C.g100,
+  },
+  outlineBtnText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.g700 },
+
   withdrawBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: C.red, paddingVertical: 15, borderRadius: 14, flex: 1,
+    backgroundColor: C.redL, paddingVertical: 14, borderRadius: rs(14), flex: 1,
+    borderWidth: 1.5, borderColor: '#FECACA',
   },
-  viewRequestBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: C.sub, paddingVertical: 15, borderRadius: 14,
+  withdrawBtnText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.red },
+
+  bottomBtnText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
+
+  /* Empty */
+  emptyIconWrap: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: C.g50,
+    justifyContent: 'center', alignItems: 'center',
   },
-  freshQuoteBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: C.orange, paddingVertical: 15, borderRadius: 14,
-  },
+  emptyTitle:    { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text },
+  emptySubtitle: { fontSize: 13, color: C.muted, textAlign: 'center' },
 });

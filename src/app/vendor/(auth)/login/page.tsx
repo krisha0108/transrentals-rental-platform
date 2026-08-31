@@ -74,7 +74,7 @@ export default function VendorLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex flex-col">
+    <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex flex-col">
 
       {/* ── Full-page loading overlay ── */}
       {loading && (

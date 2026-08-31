@@ -1,21 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, MapPin, Search, Car, Shield, Star, Zap, KeyRound, AlertCircle, X, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, Search, Car, Shield, Star, Zap, KeyRound, AlertCircle, X, ChevronRight, ChevronDown } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useLocations } from '@/components/booking/useLocations';
 
 interface CarSearchHeroProps {
   city: string;
   citySlug: string;
   pageHeading?: string;
   pageDescription?: string;
+  // When true, the city pill becomes a real dropdown (populated from the
+  // self-drive service's assigned locations) instead of a fixed label — for
+  // hub-style pages (e.g. the main /self-drive-car-rentals page) that have
+  // no single city of their own. `city`/`citySlug` are just the initial
+  // selection in this mode.
+  citySelectable?: boolean;
 }
 
-export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: CarSearchHeroProps) {
+export function CarSearchHero({ city, citySlug, pageHeading, pageDescription, citySelectable = false }: CarSearchHeroProps) {
   const router = useRouter();
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('');
@@ -23,6 +30,22 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
   const [dropTime, setDropTime] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [dateError, setDateError] = useState('');
+
+  const { locations } = useLocations(citySelectable ? { serviceSlug: 'self-drive-car-rental' } : {});
+  const [selectedCitySlug, setSelectedCitySlug] = useState(citySlug);
+  const selectedCity = citySelectable
+    ? locations.find((l) => (l.slug || '') === selectedCitySlug)?.name || city
+    : city;
+  const effectiveCitySlug = citySelectable ? selectedCitySlug : citySlug;
+
+  // Default to the first available city once the list loads, if the page
+  // didn't pass an initial one — keeps the search usable without forcing
+  // the visitor to open the dropdown first.
+  useEffect(() => {
+    if (citySelectable && !selectedCitySlug && locations.length > 0) {
+      setSelectedCitySlug(locations[0].slug || '');
+    }
+  }, [citySelectable, selectedCitySlug, locations]);
 
   // Minimum advance booking: pickup must be at least 12 hours from now
   const MIN_ADVANCE_HOURS = 12;
@@ -60,6 +83,7 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
   const handleSearch = () => {
     const newErrors: Record<string, string> = {};
 
+    if (citySelectable && !effectiveCitySlug) newErrors.city = 'Please select a city';
     if (!pickupDate) newErrors.pickupDate = 'Please select pickup date';
     if (!pickupTime) newErrors.pickupTime = 'Please select pickup time';
     if (!dropDate) newErrors.dropDate = 'Please select drop date';
@@ -89,14 +113,14 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
 
     // Navigate to fleet page with search params
     const searchParams = new URLSearchParams({
-      city: citySlug,
+      city: effectiveCitySlug,
       pickupDate,
       pickupTime,
       dropDate,
       dropTime,
     });
 
-    router.push(`/self-drive-car-rentals/${citySlug}/cars?${searchParams.toString()}`);
+    router.push(`/self-drive-car-rentals/${effectiveCitySlug}/cars?${searchParams.toString()}`);
   };
 
   return (
@@ -122,10 +146,12 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
           >
             <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6">
               <MapPin className="w-4 h-4 text-white" />
-              <span className="text-white font-medium">{city}</span>
+              <span className="text-white font-medium">{selectedCity || 'Select your city'}</span>
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
-              {pageHeading || `Self Drive Cars in ${city}`}
+              {pageHeading || (citySelectable
+                ? 'Self Drive Cars Across India'
+                : `Self Drive Cars in ${selectedCity}`)}
             </h1>
             <p className="text-xl text-white/90 max-w-2xl mx-auto">
               {pageDescription || `Drive yourself without a driver. Hatchbacks, Sedans, SUVs starting ₹899/day.`}
@@ -144,7 +170,45 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
               Book Your Self-Drive Car
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className={cn(
+              "grid grid-cols-1 md:grid-cols-2 gap-4 mb-6",
+              citySelectable ? "lg:grid-cols-5" : "lg:grid-cols-4"
+            )}>
+              {/* City (only in dropdown mode) */}
+              {citySelectable && (
+                <div>
+                  <label htmlFor="citySelect" className="block text-sm font-medium text-gray-700 mb-2">
+                    <MapPin className="w-4 h-4 inline mr-1" />
+                    City
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="citySelect"
+                      value={selectedCitySlug}
+                      onChange={(e) => {
+                        setSelectedCitySlug(e.target.value);
+                        setErrors({ ...errors, city: '' });
+                      }}
+                      className={cn(
+                        "w-full appearance-none px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white",
+                        errors.city ? "border-red-500" : "border-gray-200"
+                      )}
+                    >
+                      <option value="" disabled>Select city</option>
+                      {locations.map((loc) => (
+                        <option key={loc.slug || loc.name} value={loc.slug || ''}>
+                          {loc.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {errors.city && (
+                    <p className="text-red-500 text-xs mt-1">{errors.city}</p>
+                  )}
+                </div>
+              )}
+
               {/* Pickup Date */}
               <div>
                 <label htmlFor="pickupDate" className="block text-sm font-medium text-gray-700 mb-2">
@@ -304,7 +368,7 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
                 <span>Need a driver? Book a car with a professional chauffeur.</span>
               </div>
               <a
-                href={`/car-rental${citySlug ? `/${citySlug}` : ''}`}
+                href={`/car-rental${effectiveCitySlug ? `/${effectiveCitySlug}` : ''}`}
                 className="font-bold text-indigo-600 hover:text-indigo-700 underline flex items-center gap-0.5 shrink-0 ml-3"
               >
                 Car Rental

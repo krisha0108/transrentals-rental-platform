@@ -9,21 +9,27 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { launchImageLibrary } from 'react-native-image-picker';
 import { getVendorProfile, logoutVendor, uploadVendorLogo, getBaseURL } from '../../api/client';
-import { showConfirm, showError, showSuccess } from '../../../services/alertService';
+import { showConfirm, showError } from '../../../services/alertService';
+import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
+import { pickCroppedImage } from '../_shared/pickCroppedImage';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g300: '#6EE7B7', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#3B82F6', blueL: '#EFF6FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
-  purple: '#7C3AED', purpleL: '#F5F3FF',
-  orange: '#EA580C', orangeL: '#FFF7ED',
-  indigo: '#4F46E5', indigoL: '#EEF2FF',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald,
+  g100: T.tintEmerald, g50:  T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  purple: T.purple, purpleL: T.purpleLight,
+  orange: T.orange, orangeL: T.orangeL,
+  indigo: T.indigo, indigoL: T.indigoLight,
 };
 
 const MENU_SECTIONS = [
@@ -126,11 +132,8 @@ export default function ProfileScreen({ navigation }) {
 
   const handleUpdateProfileImage = async () => {
     try {
-      const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8, maxWidth: 1024, maxHeight: 1024 });
-      if (result.didCancel) return;
-      if (result.errorCode) { showError(result.errorMessage || 'Failed to pick image'); return; }
-      const asset = result.assets?.[0];
-      if (!asset?.uri) { showError('No image selected'); return; }
+      const asset = await pickCroppedImage({ circle: true, size: 600 });
+      if (!asset) return; // user cancelled the picker or crop screen
       if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) { showError('Image size must be less than 5MB'); return; }
 
       setUploading(true);
@@ -140,7 +143,6 @@ export default function ProfileScreen({ navigation }) {
       const response = await uploadVendorLogo(formData);
       if (response.success) {
         setProfile({ ...profile, logo: response.logo });
-        showSuccess('Profile image updated!');
       }
     } catch (e) {
       showError(e?.response?.data?.error || 'Failed to upload image');
@@ -160,18 +162,28 @@ export default function ProfileScreen({ navigation }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={st.safe} edges={['top']}>
+      <View style={st.root}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.heroSkeleton}>
-          <View style={st.heroTopRow}>
-            <Text style={st.heroTitle}>My Profile</Text>
-          </View>
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.heroSkeleton}>
+          <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
+          <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
+          <SafeAreaView edges={['top']} style={{ paddingHorizontal: 16 }}>
+            <View style={st.heroTopRow}>
+              <View>
+                <View style={st.heroBadge}>
+                  <MaterialCommunityIcons name="store-check" size={11} color={C.g400} />
+                  <Text style={st.heroBadgeTxt}>Vendor Portal</Text>
+                </View>
+                <Text style={st.heroTitle}>My Profile</Text>
+              </View>
+            </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={st.loaderWrap}>
           <ActivityIndicator size="large" color={C.g600} />
           <Text style={st.loaderTxt}>Loading profile...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -188,23 +200,15 @@ export default function ProfileScreen({ navigation }) {
   ];
 
   return (
-    <SafeAreaView style={st.safe} edges={['top']}>
+    <View style={st.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <ScrollView
-        style={st.scroll}
-        contentContainerStyle={st.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
-      >
+      {/* ── Fixed hero header ── */}
+      <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.hero}>
+        <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
+        <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
 
-        {/* ── HERO ── */}
-        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.hero}>
-          {/* Decorative blobs */}
-          <View style={[st.blob, { width: 200, height: 200, top: -80, right: -60, opacity: 0.07 }]} />
-          <View style={[st.blob, { width: 100, height: 100, top: 20, left: -30, opacity: 0.05 }]} />
-          <View style={[st.blob, { width: 60,  height: 60,  bottom: 10, right: 80, opacity: 0.04 }]} />
-
+        <SafeAreaView edges={['top']} style={{ paddingHorizontal: 16 }}>
           {/* Top row */}
           <View style={st.heroTopRow}>
             <View>
@@ -224,7 +228,7 @@ export default function ProfileScreen({ navigation }) {
             {/* Avatar */}
             <TouchableOpacity style={st.avatarWrap} onPress={handleUpdateProfileImage} disabled={uploading}>
               {logoUrl ? (
-                <Image source={{ uri: logoUrl }} style={st.avatar} />
+                <Image source={{ uri: logoUrl }} style={st.avatar} resizeMode="cover" />
               ) : (
                 <LinearGradient colors={[C.g600, C.g500]} style={st.avatarPlaceholder}>
                   <Text style={st.avatarInitial}>{initials}</Text>
@@ -243,14 +247,14 @@ export default function ProfileScreen({ navigation }) {
               <Text style={st.heroName} numberOfLines={1}>{profile?.businessName || 'Business Name'}</Text>
               <Text style={st.heroOwner} numberOfLines={1}>{profile?.ownerName || 'Owner Name'}</Text>
               {profile?.vid && (
-                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10.5, marginTop: 3, fontWeight: '600', letterSpacing: 0.1 }}>ID: {profile.vid}</Text>
+                <Text style={st.heroVid}>ID: {profile.vid}</Text>
               )}
 
               {/* Status pill + View Card button */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 10 }}>
-                <View style={[st.statusPill, { backgroundColor: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.2)' }]}>
+              <View style={st.pillRow}>
+                <View style={[st.statusPill, st.statusPillTone]}>
                   <MaterialCommunityIcons name={statusMeta.mcIcon} size={11} color={statusMeta.color === C.g700 ? C.g400 : '#fff'} />
-                  <Text style={[st.statusTxt, { color: statusMeta.color === C.g700 ? C.g400 : '#fff', fontSize: 10.5 }]}>
+                  <Text style={[st.statusTxt, { color: statusMeta.color === C.g700 ? C.g400 : '#fff' }]}>
                     {statusMeta.label}
                   </Text>
                 </View>
@@ -259,8 +263,8 @@ export default function ProfileScreen({ navigation }) {
                   <TouchableOpacity
                     onPress={() => { setIsFlipped(false); setShowCardModal(true); }}
                     activeOpacity={0.7}
-                    style={[st.statusPill, { backgroundColor: 'rgba(255,255,255,0.18)', borderColor: 'rgba(255,255,255,0.35)', borderWidth: 1.2 }]}>
-                    <Text style={{ fontSize: 11 }}>🎫</Text>
+                    style={[st.statusPill, st.cardBtn]}>
+                    <Text style={st.cardBtnEmoji}>🎫</Text>
                     <Text style={[st.statusTxt, { color: '#fff' }]}>Card</Text>
                   </TouchableOpacity>
                 )}
@@ -280,20 +284,31 @@ export default function ProfileScreen({ navigation }) {
               <Text style={st.contactTxt}>{profile?.phone || '—'}</Text>
             </View>
           </View>
-        </LinearGradient>
 
-        {/* ── STATS ── */}
-        <View style={st.statsGrid}>
-          {stats.map((s, i) => (
-            <View key={i} style={st.statCard}>
-              <View style={[st.statIconBox, { backgroundColor: s.bg }]}>
-                <MaterialCommunityIcons name={s.icon} size={20} color={s.color} />
-              </View>
-              <Text style={st.statValue}>{s.value}</Text>
-              <Text style={st.statLabel}>{s.label}</Text>
+          <View style={{ height: rs(20) }} />
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* ── STATS — static sibling so it can float into the hero's curve
+          without being clipped by the ScrollView's own viewport ── */}
+      <View style={st.statsGrid}>
+        {stats.map((s, i) => (
+          <View key={i} style={st.statCard}>
+            <View style={[st.statIconBox, { backgroundColor: s.bg }]}>
+              <MaterialCommunityIcons name={s.icon} size={20} color={s.color} />
             </View>
-          ))}
-        </View>
+            <Text style={st.statValue}>{s.value}</Text>
+            <Text style={st.statLabel}>{s.label}</Text>
+          </View>
+        ))}
+      </View>
+
+      <ScrollView
+        style={st.scroll}
+        contentContainerStyle={st.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
+      >
 
         {/* ── MENU SECTIONS ── */}
         {MENU_SECTIONS.map((section, si) => (
@@ -332,7 +347,7 @@ export default function ProfileScreen({ navigation }) {
           onPress={() => navigation.navigate('GetStartedScreen')}
           activeOpacity={0.85}
         >
-          <LinearGradient colors={[C.blueL, '#DBEAFE']} style={st.getStartedGrad}>
+          <LinearGradient colors={[C.blueL, shade(C.blueL, -6)]} style={st.getStartedGrad}>
             <View style={st.getStartedIconBox}>
               <MaterialCommunityIcons name="compass-outline" size={20} color={C.blue} />
             </View>
@@ -346,7 +361,7 @@ export default function ProfileScreen({ navigation }) {
 
         {/* ── LOGOUT ── */}
         <TouchableOpacity style={st.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
-          <LinearGradient colors={['#FEE2E2', '#FECACA']} style={st.logoutGrad}>
+          <LinearGradient colors={[C.redL, shade(C.redL, -6)]} style={st.logoutGrad}>
             <View style={st.logoutIconBox}>
               <Icon name="log-out" size={18} color={C.red} />
             </View>
@@ -367,7 +382,7 @@ export default function ProfileScreen({ navigation }) {
       {/* ── FLIP CARD MODAL ── */}
       {showCardModal && (
         <Modal transparent visible={showCardModal} animationType="fade">
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
+          <View style={{ flex: 1, backgroundColor: T.scrim, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
             <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowCardModal(false)} />
 
             <View style={{ width: '100%', maxWidth: 320 }}>
@@ -569,74 +584,84 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </Modal>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const st = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: C.bg },
+  root:   { flex: 1, backgroundColor: C.bg },
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 20 },
+  scrollContent: { paddingTop: 14, paddingBottom: 20 },
 
   /* ── Hero ── */
   hero: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 20,
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: rs(6),
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
     overflow: 'hidden',
   },
   heroSkeleton: {
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20,
+    paddingBottom: rs(20),
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
+    overflow: 'hidden',
   },
-  blob: {
-    position: 'absolute', borderRadius: 999, backgroundColor: '#fff',
+  orbA: {
+    position: 'absolute', top: -rs(50), right: -rs(40), width: rs(180), height: rs(180),
+    borderRadius: rs(90), backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  orbB: {
+    position: 'absolute', top: rs(10), left: -rs(55), width: rs(140), height: rs(140),
+    borderRadius: rs(70), backgroundColor: 'rgba(46,158,119,0.14)',
   },
   heroTopRow: {
-    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18, paddingBottom: 2,
+    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: rs(6), marginBottom: 18, paddingBottom: 2,
   },
   heroBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: 'rgba(82, 231, 122, 0.2)', alignSelf: 'flex-start',
-    paddingHorizontal: 11, paddingVertical: 5.5, borderRadius: 22, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(82, 231, 122, 0.35)', shadowColor: 'rgba(82, 231, 122, 0.3)', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4,
+    paddingHorizontal: 11, paddingVertical: 5.5, borderRadius: 22, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(82, 231, 122, 0.35)',
   },
-  heroBadgeTxt: { fontSize: 11, fontWeight: '800', color: '#52e77a', letterSpacing: 0.4 },
-  heroTitle:    { fontSize: 28, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
+  heroBadgeTxt: { fontFamily: DISPLAY, fontSize: 11, fontWeight: '800', color: '#52e77a', letterSpacing: 0.4 },
+  heroTitle:    { fontFamily: DISPLAY, fontSize: 28, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
   settingsBtn:  {
     width: 42, height: 42, borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.25)',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 5,
   },
 
   /* Avatar */
   heroBody:    { flexDirection: 'row', alignItems: 'flex-start', gap: 15, marginBottom: 16 },
   avatarWrap:  { position: 'relative' },
-  avatar:      { width: 80, height: 80, borderRadius: 22, borderWidth: 3, borderColor: 'rgba(255,255,255,0.35)', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 6 },
+  avatar:      { width: 80, height: 80, borderRadius: 22, borderWidth: 3, borderColor: 'rgba(255,255,255,0.35)' },
   avatarPlaceholder: {
     width: 80, height: 80, borderRadius: 22,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 6,
   },
-  avatarInitial: { fontSize: 34, fontWeight: '900', color: '#fff' },
+  avatarInitial: { fontFamily: DISPLAY, fontSize: 34, fontWeight: '900', color: '#fff' },
   cameraBadge: {
     position: 'absolute', bottom: -5, right: -5,
     width: 30, height: 30, borderRadius: 15,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 2.5, borderColor: C.g800,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3,
   },
 
   /* Info */
   heroInfo:  { flex: 1, justifyContent: 'flex-start' },
-  heroName:  { fontSize: 18, fontWeight: '900', color: '#fff', marginBottom: 2, letterSpacing: 0.2 },
+  heroName:  { fontFamily: DISPLAY, fontSize: 18, fontWeight: '900', color: '#fff', marginBottom: 2, letterSpacing: 0.2 },
   heroOwner: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginBottom: 8, fontWeight: '600', letterSpacing: 0.1 },
+  heroVid:   { color: 'rgba(255,255,255,0.7)', fontSize: 10.5, marginTop: 3, fontWeight: '600', letterSpacing: 0.1 },
+  pillRow:   { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 10 },
   statusPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
     borderWidth: 1.1,
   },
+  statusPillTone: { backgroundColor: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.2)' },
+  cardBtn: { backgroundColor: 'rgba(255,255,255,0.18)', borderColor: 'rgba(255,255,255,0.35)', borderWidth: 1.2 },
+  cardBtnEmoji: { fontSize: 11 },
   statusTxt: { fontSize: 10.5, fontWeight: '800', letterSpacing: 0.15 },
 
   /* Contact strip */
@@ -645,7 +670,7 @@ const st = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 14, paddingHorizontal: 15, paddingVertical: 11,
     borderWidth: 1.2, borderColor: 'rgba(255,255,255,0.18)', gap: 9,
-    marginBottom: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 5,
+    marginBottom: 4,
   },
   contactItem: { flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 },
   contactTxt:  { fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: '600', flex: 1, letterSpacing: 0.1 },
@@ -654,20 +679,20 @@ const st = StyleSheet.create({
   /* ── Stats Grid ── */
   statsGrid: {
     flexDirection: 'row', flexWrap: 'wrap',
-    paddingHorizontal: 16, paddingTop: 16, gap: 10,
+    paddingHorizontal: 16, marginTop: -rs(18), gap: 10,
   },
   statCard: {
     width: '22%', flex: 1,
-    backgroundColor: C.card, borderRadius: 16,
+    backgroundColor: C.card, borderRadius: rs(16),
     alignItems: 'center', paddingVertical: 14, paddingHorizontal: 6,
     borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
+    ...cardShadow,
   },
   statIconBox: {
     width: 38, height: 38, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center', marginBottom: 8,
   },
-  statValue: { fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 3 },
+  statValue: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 3 },
   statLabel: { fontSize: 10, color: C.muted, fontWeight: '600', textAlign: 'center' },
 
   /* ── Sections ── */
@@ -676,10 +701,10 @@ const st = StyleSheet.create({
   sectionTitle: { fontSize: 13, fontWeight: '700', color: C.g700, textTransform: 'uppercase', letterSpacing: 0.5 },
 
   menuCard: {
-    backgroundColor: C.card, borderRadius: 16,
+    backgroundColor: C.card, borderRadius: rs(16),
     borderWidth: 1, borderColor: C.border,
     overflow: 'hidden',
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
+    ...cardShadow,
   },
   menuRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -690,21 +715,21 @@ const st = StyleSheet.create({
     width: 38, height: 38, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center',
   },
-  menuLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: C.text },
+  menuLabel: { fontFamily: DISPLAY, flex: 1, fontSize: 15, fontWeight: '600', color: C.text },
   menuArrow: {
     width: 28, height: 28, borderRadius: 8,
     backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center',
   },
 
   /* ── Get Started CTA ── */
-  getStartedBtn:    { marginHorizontal: 16, marginTop: 20, borderRadius: 16, overflow: 'hidden' },
+  getStartedBtn:    { marginHorizontal: 16, marginTop: 20, borderRadius: rs(16), overflow: 'hidden' },
   getStartedGrad:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 14, gap: 12 },
-  getStartedIconBox:{ width: 38, height: 38, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  getStartedTxt:    { fontSize: 14, fontWeight: '800', color: '#1E3A8A' },
+  getStartedIconBox:{ width: 38, height: 38, borderRadius: 12, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+  getStartedTxt:    { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#1E3A8A' },
   getStartedSub:    { fontSize: 11, color: C.blue, marginTop: 2, fontWeight: '600' },
 
   /* ── Logout ── */
-  logoutBtn:  { marginHorizontal: 16, marginTop: 10, borderRadius: 16, overflow: 'hidden' },
+  logoutBtn:  { marginHorizontal: 16, marginTop: 10, borderRadius: rs(16), overflow: 'hidden' },
   logoutGrad: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 14, paddingVertical: 14, gap: 12,
@@ -713,7 +738,7 @@ const st = StyleSheet.create({
     width: 38, height: 38, borderRadius: 12,
     backgroundColor: '#FECACA', alignItems: 'center', justifyContent: 'center',
   },
-  logoutTxt: { fontSize: 15, fontWeight: '700', color: C.red },
+  logoutTxt: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '700', color: C.red },
 
   /* ── Version ── */
   versionRow: {

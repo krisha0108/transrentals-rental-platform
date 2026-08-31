@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import crashlytics from '@react-native-firebase/crashlytics';
 
 // Catches otherwise-fatal render-time errors anywhere in the tree below it
 // and shows a recoverable fallback screen instead of crashing the whole app.
@@ -19,7 +18,6 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.log('ErrorBoundary caught an error:', error, errorInfo);
-    crashlytics().recordError(error);
   }
 
   handleRetry = () => {

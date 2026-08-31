@@ -4,20 +4,24 @@ import {
   RefreshControl, ActivityIndicator, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getTemplates, deleteTemplate, updateTemplate } from '../../../api/client';
 import { showConfirm, showError, showSuccess } from '../../../../services/alertService';
+import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
 
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  red: '#DC2626', redL: '#FEF2F2',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g400: T.emerald, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  red: T.red, redL: T.redLight,
 };
 
 export default function PackersTemplatesScreen({ navigation }) {
@@ -39,6 +43,10 @@ export default function PackersTemplatesScreen({ navigation }) {
   }, []);
 
   useEffect(() => { fetchTemplates(); }, [fetchTemplates]);
+
+  useFocusEffect(
+    useCallback(() => { fetchTemplates(); }, [fetchTemplates])
+  );
 
   const onRefresh = () => { setRefreshing(true); fetchTemplates(); };
 
@@ -159,7 +167,7 @@ export default function PackersTemplatesScreen({ navigation }) {
     return (
       <View style={s.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.heroMin}>
+        <LinearGradient colors={G.hero} style={s.heroMin}>
           <SafeAreaView edges={['top']}>
             <View style={s.topBar}>
               <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -185,11 +193,12 @@ export default function PackersTemplatesScreen({ navigation }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       <LinearGradient
-        colors={[C.g900, '#064E3B', C.g700]}
+        colors={G.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.heroMin}
       >
-        <View style={s.deco1} /><View style={s.deco2} />
+        <AnimatedOrb style={s.deco1} />
+        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={18} color="#fff" />
@@ -237,21 +246,24 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  heroMin: { paddingHorizontal: 16, paddingBottom: 16 },
-  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(52,211,153,0.08)' },
-  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(52,211,153,0.06)' },
+  heroMin: {
+    paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden',
+    borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20),
+  },
+  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)' },
+  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  heroTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff' },
   heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
 
   list: { padding: 16, paddingBottom: 90 },
 
   card: {
-    backgroundColor: C.card, borderRadius: 16, marginBottom: 16, overflow: 'hidden',
+    backgroundColor: C.card, borderRadius: rs(16), marginBottom: 16, overflow: 'hidden',
     borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3,
+    ...cardShadow,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10 },
   cardHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -260,7 +272,7 @@ const s = StyleSheet.create({
   statusBadgeTxt: { fontSize: 10, fontWeight: '700', color: '#fff' },
 
   cardBody: { padding: 16 },
-  templateName: { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 6 },
+  templateName: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text, marginBottom: 6 },
   description: { fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 18 },
 
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
@@ -280,7 +292,7 @@ const s = StyleSheet.create({
   actionBtnTxt: { fontSize: 12, fontWeight: '700' },
 
   empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 32 },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: C.text, marginTop: 16 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: C.text, marginTop: 16 },
   emptyText: { fontSize: 14, color: C.muted, marginTop: 8, textAlign: 'center', lineHeight: 20 },
   emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 14, backgroundColor: C.g600, borderRadius: 12, marginTop: 24 },
   emptyBtnTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },

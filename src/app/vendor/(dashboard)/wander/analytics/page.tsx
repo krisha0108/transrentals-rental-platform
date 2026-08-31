@@ -22,14 +22,14 @@ export default function VendorWanderAnalyticsPage() {
   }, []);
 
   if (loading) return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+    <div className="min-h-[60dvh] flex flex-col items-center justify-center gap-3">
       <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
       <p className="text-sm text-gray-400 font-medium">Loading analytics...</p>
     </div>
   );
 
   if (!data) return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+    <div className="min-h-[60dvh] flex flex-col items-center justify-center gap-3">
       <AlertCircle className="w-10 h-10 text-red-400" />
       <p className="text-gray-500 font-medium">Failed to load analytics</p>
     </div>
@@ -48,7 +48,7 @@ export default function VendorWanderAnalyticsPage() {
   const maxRevenue = Math.max(...monthlyData.map(d => d.value), 1);
 
   return (
-    <div className="-mx-6 -mt-6 bg-slate-50 min-h-screen">
+    <div className="-mx-6 -mt-6 bg-slate-50 min-h-dvh">
 
       {/* ── Dark Header ── */}
       <div className="relative bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-700 overflow-hidden px-8 pt-8 pb-6">

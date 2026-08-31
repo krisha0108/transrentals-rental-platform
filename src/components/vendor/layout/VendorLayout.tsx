@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { VendorSidebar } from './VendorSidebar';
-import { Menu, Loader2, AlertTriangle, Lock, CheckCircle2, ArrowRight, X, FileText, MapPin, Wrench, Home } from 'lucide-react';
-import { useSession } from 'next-auth/react';
+import { Menu, Loader2, AlertTriangle, Lock, CheckCircle2, ArrowRight, X, FileText, MapPin, Wrench, Home, LogOut } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { ToastProvider } from '@/components/ui/toast';
 import { useVendorWebNotifications } from '@/hooks/useVendorWebNotifications';
@@ -231,41 +231,25 @@ export function VendorLayout({ children }: VendorLayoutProps) {
   useVendorWebNotifications();
   useVendorActivityHeartbeat(status === 'authenticated');
 
-  useEffect(() => {
+  // skipCache=true bypasses the sessionStorage snapshot entirely — used by
+  // the vendor-approved-services-changed listener below so toggling a
+  // service on /vendor/services updates the sidebar immediately instead of
+  // waiting out CACHE_TTL (this effect only re-runs on [status, session],
+  // neither of which changes when a service is toggled).
+  const fetchVendorStatus = useCallback(async (opts?: { skipCache?: boolean }) => {
+    if (status !== 'authenticated') return;
+
     const vendorId = (session?.user as any)?.id || (session?.user as any)?.email || 'unknown';
     const CACHE_KEY = `vendor_profile_cache_${vendorId}`;
     const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-    const fetchVendorStatus = async () => {
-      if (status === 'authenticated') {
-        // Try sessionStorage cache first
-        try {
-          const cached = sessionStorage.getItem(CACHE_KEY);
-          if (cached) {
-            const { data, ts } = JSON.parse(cached);
-            if (Date.now() - ts < CACHE_TTL) {
-              setVendorStatus(data.status);
-              setApprovedServiceIds(data.approvedServiceIds || []);
-              setApprovedServiceSlugs(data.approvedServiceSlugs || []);
-              setOnboardingCounts({
-                docs:      data.documentsCount        || 0,
-                locations: data.locationRequestsCount || 0,
-                services:  data.serviceRequestsCount  || 0,
-              });
-              setHasAddress(!!(data.address && String(data.address).trim()));
-              setStatusLoading(false);
-              return;
-            }
-          }
-        } catch {
-          // sessionStorage not available — fall through to fetch
-        }
-
-        // Cache miss or expired — fetch from API
-        try {
-          const res = await fetch('/api/vendor/profile');
-          if (res.ok) {
-            const data = await res.json();
+    if (!opts?.skipCache) {
+      // Try sessionStorage cache first
+      try {
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const { data, ts } = JSON.parse(cached);
+          if (Date.now() - ts < CACHE_TTL) {
             setVendorStatus(data.status);
             setApprovedServiceIds(data.approvedServiceIds || []);
             setApprovedServiceSlugs(data.approvedServiceSlugs || []);
@@ -275,28 +259,67 @@ export function VendorLayout({ children }: VendorLayoutProps) {
               services:  data.serviceRequestsCount  || 0,
             });
             setHasAddress(!!(data.address && String(data.address).trim()));
-            // Save to cache
-            try {
-              sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
-            } catch { /* ignore quota errors */ }
-          } else {
-            setVendorStatus((session?.user as any)?.status);
+            setStatusLoading(false);
+            return;
           }
-        } catch {
-          setVendorStatus((session?.user as any)?.status);
-        } finally {
-          setStatusLoading(false);
         }
+      } catch {
+        // sessionStorage not available — fall through to fetch
       }
-    };
-    fetchVendorStatus();
+    }
+
+    // Cache miss/expired/skipped — fetch from API
+    try {
+      const res = await fetch('/api/vendor/profile');
+      if (res.ok) {
+        const data = await res.json();
+        setVendorStatus(data.status);
+        setApprovedServiceIds(data.approvedServiceIds || []);
+        setApprovedServiceSlugs(data.approvedServiceSlugs || []);
+        setOnboardingCounts({
+          docs:      data.documentsCount        || 0,
+          locations: data.locationRequestsCount || 0,
+          services:  data.serviceRequestsCount  || 0,
+        });
+        setHasAddress(!!(data.address && String(data.address).trim()));
+        // Save to cache
+        try {
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+        } catch { /* ignore quota errors */ }
+      } else {
+        setVendorStatus((session?.user as any)?.status);
+      }
+    } catch {
+      setVendorStatus((session?.user as any)?.status);
+    } finally {
+      setStatusLoading(false);
+    }
   }, [status, session]);
 
+  useEffect(() => { fetchVendorStatus(); }, [fetchVendorStatus]);
+
+  // /vendor/services dispatches this after activating/deactivating a
+  // service (see toggleServiceActive) so the sidebar reflects it instantly
+  // instead of on the next 5min cache expiry.
+  useEffect(() => {
+    const onServicesChanged = () => fetchVendorStatus({ skipCache: true });
+    window.addEventListener('vendor-approved-services-changed', onServicesChanged);
+    return () => window.removeEventListener('vendor-approved-services-changed', onServicesChanged);
+  }, [fetchVendorStatus]);
+
   const isApproved = vendorStatus === 'APPROVED';
+  const isSuspended = vendorStatus === 'SUSPENDED';
+  // BLOCKED is a harder stop than SUSPENDED — blocked vendors can't even log
+  // in (see vendor-auth-options.ts), so this only ever fires for a session
+  // that was already open when an admin blocked the account mid-session.
+  // Suspended vendors CAN log in and browse the dashboard read-only (same
+  // allowedPagesForPending flow as a pending vendor, below) — every write
+  // route is independently blocked by vendorStatusGuard regardless.
+  const isLockedOut = vendorStatus === 'BLOCKED';
 
   // Redirect non-approved vendors away from pages not in allowedPagesForPending
   useEffect(() => {
-    if (status === 'authenticated' && !statusLoading && !isApproved && pathname) {
+    if (status === 'authenticated' && !statusLoading && !isApproved && !isLockedOut && pathname) {
       const isAllowed = allowedPagesForPending.some(
         page => pathname === page || pathname.startsWith(page + '/')
       );
@@ -308,7 +331,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
         setShowAccessDenied(false);
       }
     }
-  }, [pathname, isApproved, status, statusLoading, router]);
+  }, [pathname, isApproved, isLockedOut, status, statusLoading, router]);
 
   const isOnPreviewPage = !isApproved && previewPages.some(
     p => pathname === p || pathname.startsWith(p + '/')
@@ -323,7 +346,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
 
   if (status === 'loading' || (status === 'authenticated' && statusLoading)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-dvh flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading...</p>
@@ -337,9 +360,35 @@ export function VendorLayout({ children }: VendorLayoutProps) {
     return null;
   }
 
+  if (isLockedOut) {
+    const isBlocked = vendorStatus === 'BLOCKED';
+    return (
+      <div className="min-h-dvh flex items-center justify-center bg-gray-50 p-6">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            {isBlocked ? 'Account Blocked' : 'Account Suspended'}
+          </h2>
+          <p className="text-gray-600 mb-6">
+            ⚠️ Your account is {isBlocked ? 'blocked' : 'suspended'}. Please contact our support team for any query.
+          </p>
+          <button
+            onClick={() => signOut({ callbackUrl: '/vendor/login' })}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-xl font-semibold text-sm hover:bg-gray-800 transition"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (showAccessDenied) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-dvh bg-gray-50">
         <VendorSidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
@@ -348,7 +397,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
           approvedServiceSlugs={approvedServiceSlugs}
         />
         <div className="lg:pl-64">
-          <div className="min-h-screen flex items-center justify-center p-6">
+          <div className="min-h-dvh flex items-center justify-center p-6">
             <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
               <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle className="w-8 h-8 text-yellow-600" />
@@ -368,7 +417,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
   return (
     <VendorVerificationContext.Provider value={contextValue}>
       <ToastProvider>
-        <div className="min-h-screen bg-[#f5f6fa]">
+        <div className="min-h-dvh bg-[#f5f6fa]">
           <VendorSidebar
             isOpen={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
@@ -406,8 +455,21 @@ export function VendorLayout({ children }: VendorLayoutProps) {
               </div>
             )}
 
-            {/* ── Preview Mode Banner ── */}
-            {isOnPreviewPage && (
+            {/* ── Suspended Banner — shown on every page, not just previews ── */}
+            {isSuspended && (
+              <div className="bg-red-50 border-b border-red-200 px-4 sm:px-6 py-2.5 flex items-center gap-2.5">
+                <div className="w-6 h-6 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+                </div>
+                <p className="text-sm text-red-800">
+                  <span className="font-bold">⚠️ Your account is suspended.</span>
+                  <span> Please contact our support team for any query. You can still view your dashboard, but creating or saving is locked.</span>
+                </p>
+              </div>
+            )}
+
+            {/* ── Preview Mode Banner (pending vendors only — suspended gets the banner above instead) ── */}
+            {isOnPreviewPage && !isSuspended && (
               <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-6 h-6 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">

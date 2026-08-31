@@ -165,23 +165,35 @@ export async function GET(request: NextRequest) {
   });
 
   // ── 5. Per-service summary (always full counts, not paginated) ──────────────
+  // Aggregated in the DB across ALL services (not just `targetServices`, which
+  // only spans whatever the row filter narrowed `content` down to) — this
+  // used to be five `.filter()` passes over `content` per service (285 full
+  // scans across all 57 services), and gave wrong (zeroed) counts for every
+  // non-selected service whenever a service filter was applied, since
+  // `content` itself was already scoped to `targetServices` by then.
+  const summaryGroups = await prisma.service_city_content.groupBy({
+    by: ['serviceSlug', 'status', 'source', 'autoUpdate'],
+    _count: { _all: true },
+  });
+
+  const summaryTotals = new Map<string, { withContent: number; published: number; aiGenerated: number; manual: number; autoUpdateOn: number }>();
+  for (const g of summaryGroups) {
+    const t = summaryTotals.get(g.serviceSlug) ?? { withContent: 0, published: 0, aiGenerated: 0, manual: 0, autoUpdateOn: 0 };
+    t.withContent += g._count._all;
+    if (g.status === 'published') t.published += g._count._all;
+    if (g.status === 'ai_generated') t.aiGenerated += g._count._all;
+    if (g.source === 'manual') t.manual += g._count._all;
+    if (g.autoUpdate) t.autoUpdateOn += g._count._all;
+    summaryTotals.set(g.serviceSlug, t);
+  }
+
   const summaryByService = allServiceSlugs.map((slug) => {
-    const label = SERVICE_LABELS[slug].label;
-    const totalLive = locations.length; // every active city is a live URL
-    const withContent = content.filter((c) => c.serviceSlug === slug).length;
-    const published = content.filter((c) => c.serviceSlug === slug && c.status === 'published').length;
-    const aiGenerated = content.filter((c) => c.serviceSlug === slug && c.status === 'ai_generated').length;
-    const manual = content.filter((c) => c.serviceSlug === slug && c.source === 'manual').length;
-    const autoUpdateOn = content.filter((c) => c.serviceSlug === slug && c.autoUpdate).length;
+    const t = summaryTotals.get(slug) ?? { withContent: 0, published: 0, aiGenerated: 0, manual: 0, autoUpdateOn: 0 };
     return {
       slug,
-      name: label,
-      totalLivePages: totalLive,
-      withContent,
-      published,
-      aiGenerated,
-      manual,
-      autoUpdateOn,
+      name: SERVICE_LABELS[slug].label,
+      totalLivePages: locations.length, // every active city is a live URL
+      ...t,
     };
   });
 
@@ -190,7 +202,7 @@ export async function GET(request: NextRequest) {
 
   // ── 6. Overall stats ─────────────────────────────────────────────────────────
   const totalLivePages = allServiceSlugs.length * locations.length;
-  const totalWithContent = content.length;
+  const totalWithContent = [...summaryTotals.values()].reduce((sum, t) => sum + t.withContent, 0);
   const overall = {
     totalServices: allServiceSlugs.length,
     totalCities: locations.length,

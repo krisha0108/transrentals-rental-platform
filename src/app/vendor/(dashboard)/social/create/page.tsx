@@ -269,7 +269,7 @@ export default function CreatePostPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50/40 via-[#F9FAFB] to-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-20 sm:pb-6">
+    <div className="min-h-dvh bg-gradient-to-b from-emerald-50/40 via-[#F9FAFB] to-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-20 sm:pb-6">
       <style jsx global>{`
         @keyframes fade-up { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
         @keyframes slide-in-left { 0% { opacity: 0; transform: translateX(-20px); } 100% { opacity: 1; transform: translateX(0); } }

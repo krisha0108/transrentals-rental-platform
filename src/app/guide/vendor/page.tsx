@@ -76,20 +76,23 @@ function RegStep1Mock() {
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="bg-blue-600 px-5 py-3">
                 <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest">Step 1 of 2</p>
-                <p className="text-white font-bold text-sm">Create Your Vendor Account</p>
+                <p className="text-white font-bold text-sm">Account &amp; Contact</p>
             </div>
             <div className="p-4 space-y-3">
-                <Field label="Company / Business Name" value="Sharma Travels Pvt. Ltd." hint="Use your legal registered name" pin={1} color="blue" />
-                <Field label="Owner / Director Name" value="Rajesh Sharma" pin={2} color="blue" />
+                <Field label="Business Name" value="Sharma Travels" hint="e.g. Raj Bike Rentals" pin={1} color="blue" />
+                <Field label="Business Type" value="Select (optional)" hint="Sole Proprietor / Pvt Ltd / LLP / Partnership…" />
+                <Field label="Owner / Contact Name" value="Rajesh Sharma" pin={2} color="blue" />
+                <Field label="Business Email" value="rajesh@sharmatravels.com" />
+                <Field label="Mobile Number" value="+91 97379 65551" pin={3} color="blue" />
                 <div className="grid grid-cols-2 gap-3">
-                    <Field label="Email Address" value="rajesh@sharmatravels.com" />
-                    <Field label="Phone Number" value="+91 97379 65551" pin={3} color="blue" />
+                    <Field label="Password" value="••••••••••" hint="Minimum 8 characters" />
+                    <Field label="Confirm Password" value="••••••••••" />
                 </div>
                 <div className="bg-blue-600 text-white rounded-lg py-2 text-center text-xs font-bold mt-1">
-                    Continue to Step 2 →
+                    Next Step for Becoming a Vendor →
                 </div>
             </div>
-            <PinLegend items={['Legal business name', 'Director / owner', 'OTP verification']} color="blue" />
+            <PinLegend items={['Legal business name', 'Owner / contact person', 'Used to log in']} color="blue" />
         </div>
     );
 }
@@ -99,22 +102,19 @@ function RegStep2Mock() {
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="bg-blue-600 px-5 py-3">
                 <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest">Step 2 of 2</p>
-                <p className="text-white font-bold text-sm">Business Details</p>
+                <p className="text-white font-bold text-sm">Business Address</p>
             </div>
             <div className="p-4 space-y-3">
+                <Field label="Business Address" value="123, MG Road, Andheri West" hint="Shop / office no., street, landmark" />
                 <div className="grid grid-cols-2 gap-3">
-                    <Field label="GST Number" value="27AABCS1429B1ZB" hint="15-digit GSTIN" pin={1} color="blue" />
-                    <Field label="PAN Number" value="AABCS1429B" hint="10-character PAN" pin={2} color="blue" />
+                    <Field label="City" value="Mumbai" pin={1} color="blue" />
+                    <Field label="State" value="Maharashtra" />
                 </div>
-                <Field label="Business Address" value="123, MG Road, Andheri West" />
-                <div className="grid grid-cols-2 gap-3">
-                    <Field label="City" value="Mumbai" />
-                    <Field label="Pincode" value="400053" />
-                </div>
-                <Field label="Password" value="••••••••••" hint="Minimum 8 characters" pin={3} color="blue" />
-                <div className="bg-blue-600 text-white rounded-lg py-2 text-center text-xs font-bold">Register Account →</div>
+                <Field label="Pincode" value="400053" hint="Optional" />
+                <Field label="Service Location(s)" value="Mumbai ✕  Pune ✕  Nagpur ✕" hint="Search &amp; add at least 1 city — becomes your first location request automatically" pin={2} color="blue" />
+                <div className="bg-blue-600 text-white rounded-lg py-2 text-center text-xs font-bold">Next Step for Becoming a Vendor →</div>
             </div>
-            <PinLegend items={['Must match GST certificate', 'Business PAN', 'Min 8 chars']} color="blue" />
+            <PinLegend items={['City & state required', 'No separate "request a location" step needed later']} color="blue" />
         </div>
     );
 }
@@ -122,24 +122,25 @@ function RegStep2Mock() {
 function RegSuccessMock() {
     return (
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-br from-green-500 to-emerald-600 px-5 py-8 text-center">
-                <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <CheckCircle2 className="w-8 h-8 text-white" />
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-5 py-7 text-center">
+                <div className="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <span className="text-2xl">🎉</span>
                 </div>
-                <p className="text-white font-bold text-base">Registration Successful!</p>
-                <p className="text-green-100 text-xs mt-1">Your vendor account is ready</p>
+                <p className="text-white font-bold text-base">Welcome aboard, Sharma Travels!</p>
+                <p className="text-blue-100 text-xs mt-1">Your vendor account is live. Just 2 quick steps left.</p>
             </div>
             <div className="p-5 space-y-3">
-                <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-200">
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Your Vendor ID</p>
-                    <p className="text-2xl font-black text-slate-800 mt-1 tracking-widest">TR-VEN-02341</p>
-                    <p className="text-[10px] text-slate-400 mt-1">Save this for future reference</p>
+                <div className="flex items-center gap-2 bg-emerald-50 rounded-lg p-3 border border-emerald-100">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <p className="text-xs text-emerald-800 font-medium">Your service location request is already in — no extra step needed</p>
                 </div>
-                <div className="flex items-center gap-2 bg-blue-50 rounded-lg p-3 border border-blue-100">
-                    <span className="text-base">📧</span>
-                    <p className="text-xs text-blue-700 font-medium">Verification email sent to rajesh@sharmatravels.com</p>
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 space-y-2">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">To get fully verified</p>
+                    <div className="flex items-center gap-2 text-xs text-slate-700 font-semibold">📄 Upload documents — business license &amp; vehicle RC</div>
+                    <div className="flex items-center gap-2 text-xs text-slate-700 font-semibold">🔧 Request your services — car, bike, bus, truck &amp; more</div>
                 </div>
-                <div className="bg-blue-600 text-white rounded-lg py-2 text-center text-xs font-bold">Proceed to Login →</div>
+                <div className="bg-blue-600 text-white rounded-lg py-2 text-center text-xs font-bold">Start with Documents →</div>
+                <p className="text-[10px] text-slate-400 text-center">You're auto logged in — no separate login or email verification needed</p>
             </div>
         </div>
     );
@@ -158,7 +159,7 @@ function LoginScreenMock() {
                 <p className="text-indigo-200 text-[10px]">Vendor Portal Login</p>
             </div>
             <div className="p-5 space-y-3">
-                <Field label="Registered Email" value="rajesh@sharmatravels.com" pin={1} color="indigo" />
+                <Field label="Email or Vendor ID" value="rajesh@sharmatravels.com" hint="or vn-0001" pin={1} color="indigo" />
                 <div className="space-y-0.5">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
@@ -177,7 +178,7 @@ function LoginScreenMock() {
                     <span className="text-[10px] text-slate-400 font-medium">256-bit SSL Encrypted & Secure</span>
                 </div>
             </div>
-            <PinLegend items={['Email from registration', 'Password you set at signup']} color="indigo" />
+            <PinLegend items={['Email or your VN-xxxx vendor ID', 'Password you set at signup']} color="indigo" />
         </div>
     );
 }
@@ -234,17 +235,18 @@ function DashboardWelcomeMock() {
 
 function DocListMock() {
     const docs = [
-        { name: 'GST Certificate', status: 'VERIFIED', pin: 1, style: 'bg-green-50 border-green-200 text-green-700', icon: '✅' },
-        { name: 'PAN Card', status: 'UNDER REVIEW', pin: 2, style: 'bg-amber-50 border-amber-200 text-amber-700', icon: '⏳' },
-        { name: 'Address Proof', status: 'PENDING UPLOAD', pin: 3, style: 'bg-red-50 border-red-200 text-red-700', icon: '❌' },
-        { name: 'Aadhaar (Optional)', status: 'UPLOAD', pin: null, style: 'bg-slate-50 border-slate-200 text-slate-500', icon: '—' },
-        { name: 'Cancelled Cheque', status: 'UPLOAD', pin: null, style: 'bg-slate-50 border-slate-200 text-slate-500', icon: '—' },
+        { name: 'Address Proof', required: true, status: 'VERIFIED', pin: 1, style: 'bg-green-50 border-green-200 text-green-700', icon: '✅' },
+        { name: 'PAN Card', required: true, status: 'UNDER REVIEW', pin: 2, style: 'bg-amber-50 border-amber-200 text-amber-700', icon: '⏳' },
+        { name: 'Business Registration', required: false, status: 'UPLOAD', pin: null, style: 'bg-slate-50 border-slate-200 text-slate-500', icon: '—' },
+        { name: 'Cancelled Cheque', required: false, status: 'UPLOAD', pin: null, style: 'bg-slate-50 border-slate-200 text-slate-500', icon: '—' },
+        { name: "Owner's Aadhaar", required: false, status: 'UPLOAD', pin: null, style: 'bg-slate-50 border-slate-200 text-slate-500', icon: '—' },
+        { name: 'GST Certificate', required: false, status: 'UPLOAD', pin: 3, style: 'bg-slate-50 border-slate-200 text-slate-500', icon: '—' },
     ];
     return (
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="bg-purple-700 px-5 py-3 flex items-center justify-between">
-                <p className="text-white font-bold text-sm">KYC Documents</p>
-                <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">1 / 3 Done</span>
+                <p className="text-white font-bold text-sm">My Documents</p>
+                <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">1 / 2 Required Done</span>
             </div>
             <div className="divide-y divide-slate-100">
                 {docs.map(d => (
@@ -253,6 +255,7 @@ function DocListMock() {
                             <span className="text-sm">{d.icon}</span>
                             <div>
                                 <p className="text-sm font-medium text-slate-700">{d.name}</p>
+                                <p className="text-[9px] font-black uppercase tracking-wide text-slate-400">{d.required ? 'Required' : 'Optional'}</p>
                             </div>
                             {d.pin && <Pin n={d.pin} color="purple" />}
                         </div>
@@ -260,7 +263,7 @@ function DocListMock() {
                     </div>
                 ))}
             </div>
-            <PinLegend items={['Already approved', 'Being checked by admin', 'Click to upload']} color="purple" />
+            <PinLegend items={['Already approved', 'Being checked by admin', 'GST is optional now — only Address Proof & PAN are required']} color="purple" />
         </div>
     );
 }
@@ -306,10 +309,10 @@ function DocsApprovedMock() {
                     <ShieldCheck className="w-7 h-7 text-white" />
                 </div>
                 <p className="text-white font-bold text-sm">KYC Status: VERIFIED ✅</p>
-                <p className="text-purple-200 text-xs mt-0.5">All required documents approved</p>
+                <p className="text-purple-200 text-xs mt-0.5">Both required documents approved</p>
             </div>
             <div className="p-5 space-y-2">
-                {['GST Certificate', 'PAN Card', 'Address Proof'].map(d => (
+                {['Address Proof', 'PAN Card'].map(d => (
                     <div key={d} className="flex items-center justify-between bg-green-50 border border-green-100 rounded-lg px-3 py-2.5">
                         <span className="text-sm font-medium text-slate-700">{d}</span>
                         <span className="text-[10px] font-black text-green-700 bg-green-100 border border-green-200 px-2.5 py-1 rounded-full">✅ APPROVED</span>
@@ -342,12 +345,16 @@ function LocationSelectMock() {
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="bg-teal-700 px-5 py-3 flex items-center justify-between">
                 <div>
-                    <p className="text-white font-bold text-sm">Select Your Cities</p>
-                    <p className="text-teal-200 text-[10px]">Where do you offer your fleet?</p>
+                    <p className="text-white font-bold text-sm">Request Locations</p>
+                    <p className="text-teal-200 text-[10px]">Select cities where you want to operate</p>
                 </div>
                 <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">3 selected</span>
             </div>
             <div className="p-4 space-y-3">
+                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                    <span className="text-slate-400 text-sm">🔍</span>
+                    <span className="text-xs text-slate-400">Search states or cities…</span>
+                </div>
                 <div className="grid grid-cols-3 gap-2">
                     {cities.map(c => (
                         <div
@@ -365,7 +372,7 @@ function LocationSelectMock() {
                     <MapPin className="w-3.5 h-3.5 text-teal-600 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-teal-700 font-medium">Mumbai, Pune, Nagpur selected — Admin will review your request within 24–48 hrs</p>
                 </div>
-                <div className="bg-teal-700 text-white rounded-lg py-2 text-center text-xs font-bold">Submit Location Request →</div>
+                <div className="bg-teal-700 text-white rounded-lg py-2 text-center text-xs font-bold">Request Selected (3) →</div>
             </div>
         </div>
     );
@@ -381,8 +388,8 @@ function ServiceSelectMock() {
     return (
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="bg-teal-700 px-5 py-3">
-                <p className="text-white font-bold text-sm">Select Service Categories</p>
-                <p className="text-teal-200 text-[10px] mt-0.5">Choose what fleet you operate</p>
+                <p className="text-white font-bold text-sm">Manage Services</p>
+                <p className="text-teal-200 text-[10px] mt-0.5">Request new services or remove ones you no longer offer</p>
             </div>
             <div className="p-4 space-y-2">
                 {services.map(s => (
@@ -451,26 +458,26 @@ function UnderReviewMock() {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   STEP 10 — RECEIVE & VIEW QUOTE REQUESTS
+   STEP 10 — INCOMING BOOKINGS (Bike Rental — pre-priced, Accept/Decline)
    ───────────────────────────────────────────────────────────── */
 
 function RequestsListMock() {
     const requests = [
-        { id: 'BRQ-0024', ago: '2 hrs ago', vehicle: 'Honda Activa 6G', city: 'Mumbai', days: 3, helmets: 2, budget: '₹600–₹900/day', quotes: 5, status: 'new' },
-        { id: 'BRQ-0023', ago: '5 hrs ago', vehicle: 'Royal Enfield Classic 350', city: 'Goa', days: 5, helmets: 1, budget: null, quotes: 2, status: 'quoted' },
+        { id: 'BK-0024', ago: '2 hrs ago', vehicle: 'Honda Activa 6G', city: 'Mumbai', days: 3, total: '₹2,400', status: 'new' },
+        { id: 'BK-0023', ago: '5 hrs ago', vehicle: 'Royal Enfield Classic 350', city: 'Goa', days: 5, total: '₹8,500', status: 'accepted' },
     ];
     return (
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="bg-sky-700 px-4 py-3 flex items-center justify-between">
                 <div>
-                    <p className="text-white font-bold text-sm">Bike Rental Requests</p>
-                    <p className="text-sky-200 text-[10px]">Incoming customer requests</p>
+                    <p className="text-white font-bold text-sm">Bike Rental Bookings</p>
+                    <p className="text-sky-200 text-[10px]">Already priced by the customer at checkout — you accept or decline</p>
                 </div>
                 <span className="bg-orange-400 text-white text-[10px] font-black px-2.5 py-1 rounded-full">3 New</span>
             </div>
             {/* Tabs */}
             <div className="flex border-b border-slate-100">
-                {['New Requests', 'My Quotes', 'All'].map((t, i) => (
+                {['New', 'Upcoming', 'All'].map((t, i) => (
                     <button key={t} className={`flex-1 text-[10px] font-black py-2 ${i === 0 ? 'text-sky-600 border-b-2 border-sky-500' : 'text-slate-400'}`}>{t}</button>
                 ))}
             </div>
@@ -483,20 +490,18 @@ function RequestsListMock() {
                                 <span className="text-[10px] text-slate-300">· {r.ago}</span>
                             </div>
                             <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${r.status === 'new' ? 'bg-orange-100 text-orange-700 border border-orange-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
-                                {r.status === 'new' ? 'NEW' : '✓ QUOTED'}
+                                {r.status === 'new' ? 'PENDING_VENDOR' : '✓ ACCEPTED'}
                             </span>
                         </div>
                         <div>
                             <p className="text-xs font-bold text-slate-800">🏍️ {r.vehicle}</p>
-                            <p className="text-[10px] text-slate-500">📍 {r.city} · {r.days} days · {r.helmets} helmets</p>
-                            {r.budget && <p className="text-[10px] text-slate-500">💰 Budget: {r.budget}</p>}
-                            <p className="text-[10px] text-slate-400">{r.quotes} quotes received so far</p>
+                            <p className="text-[10px] text-slate-500">📍 {r.city} · {r.days} days · Grand total {r.total}</p>
                         </div>
                         <div className="flex gap-2">
                             <button className="flex-1 text-[10px] font-bold bg-slate-100 text-slate-600 py-1.5 rounded-lg">View Details</button>
                             {r.status === 'new'
-                                ? <button className="flex-1 text-[10px] font-bold bg-sky-600 text-white py-1.5 rounded-lg">Send Quote →</button>
-                                : <button className="flex-1 text-[10px] font-bold bg-green-600 text-white py-1.5 rounded-lg">View Your Quote</button>
+                                ? <button className="flex-1 text-[10px] font-bold bg-emerald-600 text-white py-1.5 rounded-lg">Accept Booking</button>
+                                : <button className="flex-1 text-[10px] font-bold bg-green-600 text-white py-1.5 rounded-lg">Manage Trip →</button>
                             }
                         </div>
                     </div>
@@ -510,19 +515,19 @@ function RequestDetailMock() {
     return (
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="bg-sky-700 px-4 py-3">
-                <p className="text-sky-200 text-[10px] font-semibold">REQUEST DETAILS</p>
-                <p className="text-white font-bold text-sm">#BRQ-2024-0024</p>
+                <p className="text-sky-200 text-[10px] font-semibold">BOOKING DETAILS</p>
+                <p className="text-white font-bold text-sm">#BK-0024</p>
             </div>
             <div className="p-4 space-y-3">
                 <div className="bg-slate-50 rounded-xl border border-slate-200 p-3 space-y-2">
                     {[
                         ['Vehicle', '🏍️ Honda Activa 6G'],
                         ['Location', '📍 Mumbai'],
-                        ['Pickup', 'Jan 15, 2026 · 10:00 AM'],
-                        ['Dropoff', 'Jan 18, 2026 · 10:00 AM'],
                         ['Duration', '3 days'],
-                        ['Helmets', '2 required'],
-                        ['Budget', '₹600 – ₹900 / day'],
+                        ['Daily Rate', '₹800'],
+                        ['Subtotal', '₹2,400'],
+                        ['Security Deposit', '₹2,000'],
+                        ['Grand Total', '₹4,400'],
                     ].map(([k, v]) => (
                         <div key={k} className="flex justify-between text-xs">
                             <span className="text-slate-400 font-medium">{k}</span>
@@ -538,17 +543,23 @@ function RequestDetailMock() {
                     <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-base">👤</div>
                     <div>
                         <p className="text-xs font-bold text-slate-800">Priya Sharma</p>
-                        <p className="text-[10px] text-slate-400">+91 98xxx xxxxx · Revealed after quoting</p>
+                        <p className="text-[10px] text-slate-400">Call / WhatsApp / Email — all shown directly on the booking</p>
                     </div>
                 </div>
-                <div className="bg-sky-600 text-white rounded-lg py-2 text-center text-xs font-bold">Send Quote for this Request →</div>
+                <p className="text-[10px] text-slate-400 text-center">Pricing is fixed by the customer's booking — nothing to set here</p>
+                <div className="flex gap-2">
+                    <div className="flex-1 border border-red-200 text-red-500 rounded-lg py-2 text-center text-xs font-bold">Decline</div>
+                    <div className="flex-1 bg-emerald-500 text-white rounded-lg py-2 text-center text-xs font-bold">Accept Booking</div>
+                </div>
             </div>
         </div>
     );
 }
 
 /* ─────────────────────────────────────────────────────────────
-   STEP 11 — SEND A QUOTE
+   STEP 11 — SEND A QUOTE (Self-Drive Car Rental only — the one service
+   where the vendor sets a custom price. Bike/Car/Bus/Truck bookings
+   arrive pre-priced — see Step 10.)
    ───────────────────────────────────────────────────────────── */
 
 function QuoteVehicleSelectMock() {
@@ -556,23 +567,14 @@ function QuoteVehicleSelectMock() {
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="bg-emerald-700 px-4 py-3 flex items-center justify-between">
                 <p className="text-white font-bold text-sm">Send Quote</p>
-                <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">#BRQ-0024</span>
+                <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">Request: PENDING</span>
             </div>
             <div className="p-4 space-y-3">
                 {/* Request summary bar */}
                 <div className="bg-sky-50 border border-sky-100 rounded-xl p-3 space-y-1">
                     <p className="text-[10px] font-black text-sky-600 uppercase tracking-wider">Request Summary</p>
-                    <p className="text-xs font-bold text-slate-700">🏍️ Honda Activa 6G · Mumbai · 3 days</p>
-                    <p className="text-[10px] text-slate-500">Jan 15 → Jan 18 · 2 helmets needed · Budget: ₹600–₹900/day</p>
-                </div>
-                {/* Template */}
-                <div className="space-y-0.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                        Quick Fill with Template <span className="text-slate-300 font-normal">(optional)</span>
-                    </label>
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 font-medium flex items-center justify-between">
-                        Standard Bike Rental <span className="text-slate-300">▾</span>
-                    </div>
+                    <p className="text-xs font-bold text-slate-700">🚗 Self-Drive · Mumbai · 3 days</p>
+                    <p className="text-[10px] text-slate-500">Jan 15 → Jan 18 · Customer is comparing quotes from multiple vendors</p>
                 </div>
                 {/* Fleet selection */}
                 <div className="space-y-0.5">
@@ -580,21 +582,30 @@ function QuoteVehicleSelectMock() {
                         Select from Your Fleet <Pin n={1} color="blue" />
                     </label>
                     <div className="bg-emerald-50 border-2 border-emerald-300 rounded-lg px-3 py-2 text-xs text-emerald-800 font-bold flex items-center justify-between">
-                        Honda Activa 6G · MH-04-AB-1234 <span className="text-emerald-400">✓</span>
+                        Swift Dzire · MH-04-AB-1234 <span className="text-emerald-400">✓</span>
                     </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                    <Field label="Bike Name *" value="Honda Activa 6G" />
-                    <Field label="Brand" value="Honda" />
+                    <Field label="Car Name *" value="Swift Dzire" />
+                    <Field label="Brand" value="Maruti Suzuki" />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                     <Field label="Registration No." value="MH-04-AB-1234" />
                     <div className="space-y-0.5">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Helmets Included</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Transmission</label>
                         <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 font-medium flex items-center justify-between">
-                            2 Helmets <span className="text-slate-300">▾</span>
+                            Manual <span className="text-slate-300">▾</span>
                         </div>
                     </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-0.5">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fuel Type</label>
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 font-medium flex items-center justify-between">
+                            Petrol <span className="text-slate-300">▾</span>
+                        </div>
+                    </div>
+                    <Field label="Seats" value="5" />
                 </div>
             </div>
             <PinLegend items={['Auto-fills all fields below']} color="blue" />
@@ -607,19 +618,19 @@ function QuotePricingMock() {
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="bg-emerald-700 px-4 py-3">
                 <p className="text-white font-bold text-sm">Set Your Price</p>
-                <p className="text-emerald-200 text-[10px]">3-day rental · Customer budget: ₹600–₹900/day</p>
+                <p className="text-emerald-200 text-[10px]">3-day self-drive rental</p>
             </div>
             <div className="p-4 space-y-3">
                 {/* Hero price field */}
                 <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-3">
                     <label className="text-[10px] font-black text-blue-600 uppercase tracking-wider flex items-center gap-1.5">
-                        <IndianRupee className="w-3 h-3" /> Total Price (3 days) * <Pin n={1} color="blue" />
+                        <IndianRupee className="w-3 h-3" /> Daily Rate * <Pin n={1} color="blue" />
                     </label>
                     <div className="flex items-center gap-2 mt-1.5">
                         <span className="text-lg font-black text-blue-700">₹</span>
-                        <div className="bg-white border border-blue-300 rounded-lg px-3 py-2 text-xl font-black text-blue-700 flex-1">2,400</div>
+                        <div className="bg-white border border-blue-300 rounded-lg px-3 py-2 text-xl font-black text-blue-700 flex-1">800</div>
                     </div>
-                    <p className="text-[10px] text-blue-500 mt-1">₹800/day × 3 days (suggested)</p>
+                    <p className="text-[10px] text-blue-500 mt-1">Total Amount = ₹800/day × 3 days = ₹2,400</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                     <Field label="Security Deposit *" value="₹2,000" hint="Refundable at return" pin={2} color="blue" />
@@ -654,8 +665,8 @@ function QuotePricingMock() {
 }
 
 function QuoteInclusionsMock() {
-    const inclusions = ['Bike with full tank', 'Helmet(s) included', 'Valid insurance', 'Basic maintenance', 'Roadside assistance'];
-    const exclusions = ['Fuel charges', 'Traffic challans/fines', 'Damage due to misuse', 'Personal accident coverage'];
+    const inclusions = ['Car with full tank', 'Valid insurance', 'Basic maintenance', 'Roadside assistance', '24/7 support'];
+    const exclusions = ['Fuel charges', 'Toll & parking fees', 'Traffic challans/fines', 'Damage due to misuse'];
     return (
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="bg-emerald-700 px-4 py-3">
@@ -709,19 +720,12 @@ function QuoteSubmitMock() {
                 <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Notes for Customer <span className="font-normal text-slate-300">(optional)</span></label>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 min-h-[64px] text-xs text-slate-600 italic">
-                        "Bike is in excellent condition, serviced last week. Please carry your original driving license at pickup."
+                        "Car is in excellent condition, serviced last week. Please carry your original driving license at pickup."
                     </div>
                 </div>
-                {/* Self-Drive extra note */}
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1">Self-Drive? Extra fields appear:</p>
-                    <div className="space-y-1">
-                        {['Transmission (Manual / Automatic)', 'Fuel Type (Petrol / CNG / Electric…)', 'Seats (4 / 5 / 6 / 7 seater)', 'Delivery Charges (if customer requested delivery)', 'Pickup Charges'].map(f => (
-                            <div key={f} className="flex items-center gap-1.5 text-[10px] text-blue-700">
-                                <span className="text-blue-400">+</span>{f}
-                            </div>
-                        ))}
-                    </div>
+                <div className="grid grid-cols-2 gap-2">
+                    <Field label="Delivery Charges" value="₹200" hint="If customer requested delivery" />
+                    <Field label="Pickup Charges" value="₹0" hint="Self pickup selected" />
                 </div>
                 <div className="bg-emerald-600 text-white rounded-xl py-3 text-center text-sm font-black">
                     Send Quote (₹2,400) →
@@ -729,7 +733,7 @@ function QuoteSubmitMock() {
                 <div className="bg-green-50 border border-green-100 rounded-xl p-3 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
                     <div>
-                        <p className="text-xs font-bold text-green-700">Quote sent successfully!</p>
+                        <p className="text-xs font-bold text-green-700">Quote status: SENT</p>
                         <p className="text-[10px] text-green-600">Customer will be notified. Redirecting to My Quotes…</p>
                     </div>
                 </div>
@@ -744,9 +748,9 @@ function QuoteSubmitMock() {
 
 function QuotesListMock() {
     const quotes = [
-        { id: 'BKQ-0024', vehicle: 'Honda Activa 6G', city: 'Mumbai', days: 3, total: '₹2,400', status: 'ACCEPTED', statusStyle: 'bg-green-100 text-green-700 border-green-200' },
-        { id: 'BKQ-0023', vehicle: 'Royal Enfield Classic 350', city: 'Goa', days: 5, total: '₹8,500', status: 'VIEWED', statusStyle: 'bg-purple-100 text-purple-700 border-purple-200' },
-        { id: 'BKQ-0022', vehicle: 'Yamaha FZ-S V3', city: 'Pune', days: 2, total: '₹2,800', status: 'SENT', statusStyle: 'bg-blue-100 text-blue-700 border-blue-200' },
+        { id: 'SDQ-0024', vehicle: 'Swift Dzire', city: 'Mumbai', days: 3, total: '₹2,400', status: 'ACCEPTED', statusStyle: 'bg-green-100 text-green-700 border-green-200' },
+        { id: 'SDQ-0023', vehicle: 'Hyundai Creta', city: 'Goa', days: 5, total: '₹8,500', status: 'VIEWED', statusStyle: 'bg-purple-100 text-purple-700 border-purple-200' },
+        { id: 'SDQ-0022', vehicle: 'Baleno', city: 'Pune', days: 2, total: '₹2,800', status: 'SENT', statusStyle: 'bg-blue-100 text-blue-700 border-blue-200' },
     ];
     return (
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -769,7 +773,7 @@ function QuotesListMock() {
                             <span className="text-[10px] font-black text-slate-500">#{q.id}</span>
                             <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${q.statusStyle}`}>{q.status}</span>
                         </div>
-                        <p className="text-xs font-bold text-slate-800">🏍️ {q.vehicle}</p>
+                        <p className="text-xs font-bold text-slate-800">🚗 {q.vehicle}</p>
                         <p className="text-[10px] text-slate-500">📍 {q.city} · {q.days} days · {q.total}</p>
                         <div className="flex gap-1.5">
                             {q.status === 'ACCEPTED'
@@ -791,15 +795,15 @@ function QuoteDetailMock() {
     return (
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-4 text-center">
-                <span className="text-[10px] font-black bg-white/20 text-white px-2.5 py-1 rounded-full">#BKQ-2024-0024</span>
+                <span className="text-[10px] font-black bg-white/20 text-white px-2.5 py-1 rounded-full">#SDQ-0024</span>
                 <p className="text-white font-bold text-sm mt-2">✅ Quote Accepted!</p>
                 <p className="text-green-100 text-[10px] mt-0.5">Customer accepted your quote</p>
             </div>
             <div className="p-4 space-y-3">
                 <div className="bg-slate-50 rounded-xl border border-slate-200 p-3 space-y-2">
                     {[
-                        ['Vehicle', 'Honda Activa 6G (2022)'],
-                        ['Helmets', '2 included'],
+                        ['Vehicle', 'Swift Dzire (2023)'],
+                        ['Transmission / Fuel', 'Manual · Petrol'],
                         ['Daily Rate', '₹800 / day'],
                         ['Total (3 days)', '₹2,400'],
                         ['Advance (30%)', '₹720'],
@@ -872,7 +876,7 @@ function BookingAcceptedMock() {
                     </div>
                 </div>
                 <button className="w-full bg-blue-600 text-white rounded-xl py-3 text-sm font-black flex items-center justify-center gap-2">
-                    <span>🔑</span> Generate &amp; Send OTP to Customer
+                    <span>🔑</span> Send OTP to Customer
                 </button>
             </div>
         </div>
@@ -957,14 +961,12 @@ function VendorOtpEntryMock() {
                         </div>
                     ))}
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-400">
-                    <span>Auto-advances to next box as you type</span>
-                    <span className="text-blue-500 font-bold cursor-pointer">Resend (0:47)</span>
-                </div>
                 <button className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl py-3 text-sm font-black">
-                    Verify OTP &amp; Start Trip 🚀
+                    Verify &amp; Start Trip
                 </button>
-                <p className="text-[10px] text-slate-400 text-center">OTP valid for 15 minutes · Expires at 10:15 AM</p>
+                <button className="w-full border border-slate-200 text-slate-500 rounded-xl py-2 text-xs font-bold">
+                    ↻ Resend OTP
+                </button>
             </div>
         </div>
     );
@@ -988,8 +990,6 @@ function TripInProgressMock() {
                         ['Customer', 'Priya Sharma'],
                         ['Started At', 'Jan 15, 2026 · 10:03 AM'],
                         ['Expected Return', 'Jan 18, 2026 · 10:00 AM'],
-                        ['KM Limit', '300 km total (100/day)'],
-                        ['Extra KM Rate', '₹12 / km beyond limit'],
                     ].map(([k, v]) => (
                         <div key={k} className="flex justify-between text-xs">
                             <span className="text-slate-400 font-medium">{k}</span>
@@ -1002,14 +1002,14 @@ function TripInProgressMock() {
                     <p className="text-[10px] text-purple-500 mt-0.5">When vehicle is returned, click below to complete the trip.</p>
                 </div>
                 <button className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl py-3 text-sm font-black">
-                    🏁 End Trip &amp; Complete Booking
+                    🏁 End Trip &amp; Complete
                 </button>
             </div>
         </div>
     );
 }
 
-/* — Complete trip form — */
+/* — Complete trip: a single button, no odometer/damage form today — */
 function CompleteTrip() {
     return (
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -1018,39 +1018,12 @@ function CompleteTrip() {
                 <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">#BKG-0341</span>
             </div>
             <div className="p-4 space-y-3">
-                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 flex items-start gap-2">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-start gap-2">
                     <span className="text-sm">ℹ️</span>
-                    <p className="text-[10px] text-amber-700 font-medium">Extra KM charges will be auto-calculated from the odometer reading.</p>
+                    <p className="text-xs text-slate-600 font-medium">When the customer returns the vehicle, just click below — no odometer reading or damage form needed today. Amount was already fixed when the booking was accepted.</p>
                 </div>
-                <Field label="Odometer End Reading (km)" value="11,243" hint="Check the bike's odometer at return" pin={1} color="orange" />
-                <div className="space-y-0.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                        Damage Notes <span className="text-slate-300 font-normal">(optional)</span>
-                    </label>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 min-h-[52px] text-xs text-slate-400 italic">
-                        Minor scratches on left panel noted and photographed…
-                    </div>
-                </div>
-                <Field label="Additional Charges (₹)" value="0" hint="Damage fees, cleaning, late return, etc." pin={2} color="orange" />
-                {/* Auto-calculation preview */}
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-3 space-y-1.5">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Auto-calculated Summary</p>
-                    {[
-                        ['Odometer Start', '10,943 km'],
-                        ['Odometer End', '11,243 km'],
-                        ['Total KM Used', '300 km (within limit ✅)'],
-                        ['Extra KM Charges', '₹0'],
-                        ['Additional Charges', '₹0'],
-                    ].map(([k, v]) => (
-                        <div key={k} className="flex justify-between text-xs">
-                            <span className="text-slate-400">{k}</span>
-                            <span className="font-bold text-slate-700">{v}</span>
-                        </div>
-                    ))}
-                </div>
-                <button className="w-full bg-green-600 text-white rounded-xl py-3 text-sm font-black">✅ Mark Trip as Completed</button>
+                <button className="w-full bg-green-600 text-white rounded-xl py-3 text-sm font-black">✅ End Trip &amp; Complete</button>
             </div>
-            <PinLegend items={['Auto-calculates extra KM charges', 'Damage / late fees if any']} color="orange" />
         </div>
     );
 }
@@ -1072,10 +1045,7 @@ function TripCompletedMock() {
                         ['Vehicle', 'Honda Activa 6G'],
                         ['Customer', 'Priya Sharma'],
                         ['Rental Period', 'Jan 15 → Jan 18 (3 days)'],
-                        ['Total KM', '300 km (no extra charges)'],
-                        ['Base Amount', '₹2,400'],
-                        ['Extra Charges', '₹0'],
-                        ['Net Payable', '₹2,400 ✅'],
+                        ['Grand Total', '₹4,400 (fixed at booking)'],
                         ['Payment Status', '💰 PAID'],
                     ].map(([k, v]) => (
                         <div key={k} className="flex justify-between text-xs">
@@ -1715,25 +1685,25 @@ const steps = [
         url: 'https://transrentals.in/vendor/register',
         color: 'blue',
         tips: [
-            'Step 1: Company Name, Owner, Email & Phone',
-            'Step 2: GST/PAN, Address, City & Pincode',
-            'Password: Minimum 8 characters',
+            'Step 1: Business Name, Owner, Email, Phone & Password — no GST/PAN needed here',
+            'Step 2: Address + at least 1 Service Location (this IS your first location request)',
+            'You\'re auto logged in straight to your dashboard — no separate verification email',
         ],
         slides: [
             { label: 'Step 1 – Basic Info', mockup: <RegStep1Mock /> },
             { label: 'Step 2 – Business Details', mockup: <RegStep2Mock /> },
-            { label: 'Success Screen', mockup: <RegSuccessMock /> },
+            { label: 'Welcome Modal (on Dashboard)', mockup: <RegSuccessMock /> },
         ],
     },
     {
         id: 2,
         title: 'Login',
         icon: <LogIn className="w-6 h-6" />,
-        description: 'Access your secure vendor dashboard using your registered email and password.',
+        description: 'Access your secure vendor dashboard using your registered email (or vendor ID) and password.',
         url: 'https://transrentals.in/vendor/login',
         color: 'indigo',
         tips: [
-            'Enter your registered business email',
+            'Enter your registered email OR your VN-xxxx vendor ID',
             'Use the password set during registration',
             'SSL Encrypted & Secure',
         ],
@@ -1746,25 +1716,25 @@ const steps = [
         id: 3,
         title: 'Document Upload (KYC)',
         icon: <FileCheck className="w-6 h-6" />,
-        description: 'Submit your tax and business proofs for verification. Required: GST, PAN, Address Proof.',
+        description: 'Submit your business proofs for verification. Only Address Proof & PAN Card are required — GST is optional.',
         url: '/vendor/documents',
         color: 'purple',
         tips: [
-            'Required: GST Certificate, PAN, Address Proof',
-            'Optional: Aadhaar, Cancelled Cheque',
+            'Required: Address Proof, PAN Card',
+            'Optional: GST Certificate, Business Registration, Cancelled Cheque, Owner\'s Aadhaar',
             'Format: PDF / JPG / PNG (Max 5 MB)',
         ],
         slides: [
             { label: 'Document List', mockup: <DocListMock /> },
             {
-                label: 'Upload GST Certificate',
+                label: 'Upload Address Proof',
                 mockup: (
                     <UploadModalMock
-                        docName="GST Certificate"
+                        docName="Address Proof"
                         requirements={[
+                            'Utility bill, rent agreement, or govt. address proof',
+                            'Utility bills must be less than 3 months old',
                             'Clear & readable scan or photo',
-                            'Must show your GSTIN number clearly',
-                            'File should not be expired',
                         ]}
                     />
                 ),
@@ -1776,30 +1746,30 @@ const steps = [
                         docName="PAN Card"
                         requirements={[
                             'Both sides of the PAN card visible',
-                            'Name must match registration details',
+                            'Business PAN or proprietor PAN accepted',
                             'JPG or PNG preferred',
                         ]}
                     />
                 ),
             },
-            { label: 'All Documents Approved', mockup: <DocsApprovedMock /> },
+            { label: 'Required Documents Approved', mockup: <DocsApprovedMock /> },
         ],
     },
     {
         id: 4,
         title: 'Service & Location Requests',
         icon: <MapPin className="w-6 h-6" />,
-        description: 'Define where you operate and what fleet you bring to TransRentals.',
-        url: '/vendor/locations',
+        description: 'Your first city is already submitted at registration. Use this to request more cities, and to request the services you offer (always required, since registration never asks for these).',
+        url: '/vendor/locations/request',
         color: 'teal',
         tips: [
-            'Select cities where you have your fleet',
-            'Request service categories (Bike/Car/Bus/Truck)',
-            'Admin reviews and approves your request',
+            'Request more cities anytime from "Request Locations"',
+            'Request services from "Manage Services" — required at least once, registration doesn\'t collect these',
+            'Admin reviews and approves within 24–48 hrs',
         ],
         slides: [
-            { label: 'Select Cities', mockup: <LocationSelectMock /> },
-            { label: 'Select Services', mockup: <ServiceSelectMock /> },
+            { label: 'Request Locations', mockup: <LocationSelectMock /> },
+            { label: 'Manage Services', mockup: <ServiceSelectMock /> },
             { label: 'Request Under Review', mockup: <UnderReviewMock /> },
         ],
     },
@@ -1891,49 +1861,49 @@ const steps = [
     },
     {
         id: 10,
-        title: 'Receive & View Quote Requests',
+        title: 'Incoming Bookings (Bike / Car / Bus / Truck)',
         icon: <FileCheck className="w-6 h-6" />,
-        description: 'Customers send rental requests — you see them in real time under "New Requests". View the full request details before deciding to quote.',
-        url: '/vendor/bike-rentals/requests',
+        description: 'For Bike Rental, Car Rental, Bus, Truck and most other services, the customer already paid a fixed price at checkout — the booking lands directly in your dashboard for you to Accept or Decline. There is no vendor pricing step for these.',
+        url: '/vendor/bike-rentals/bookings',
         color: 'sky' as string,
         tips: [
-            'Tab: "New Requests" shows unquoted requests',
-            'Tab: "My Quotes" shows requests you already replied to',
-            'Full customer notes & contact revealed after quoting',
+            'Booking arrives with status PENDING_VENDOR / BROADCASTED',
+            'Accept or Decline — price, deposit & total are already fixed',
+            'Accepted bookings move into Trip Control (Step 13) once payment clears',
         ],
         slides: [
-            { label: 'Requests list with status tabs', mockup: <RequestsListMock /> },
-            { label: 'Request detail — customer info & notes', mockup: <RequestDetailMock /> },
+            { label: 'Incoming bookings list', mockup: <RequestsListMock /> },
+            { label: 'Booking detail — Accept / Decline', mockup: <RequestDetailMock /> },
         ],
     },
     {
         id: 11,
-        title: 'Send a Quote',
+        title: 'Send a Quote (Self-Drive Car Rental only)',
         icon: <Tag className="w-6 h-6" />,
-        description: 'Fill your price, select vehicle from fleet, set inclusions/exclusions, and send the quote. Self-Drive quotes have extra fields: transmission, fuel type, and delivery charges.',
-        url: '/vendor/bike-rentals/requests',
+        description: 'Self-Drive is the one service where you set your own price. The customer sends a request, you pick a car from your fleet, set your price, and send it back as a quote.',
+        url: '/vendor/self-drive/requests',
         color: 'emerald' as string,
         tips: [
-            'Select vehicle from fleet → auto-fills bike name, brand, reg. no.',
-            'Total Price = full rental period (not per day)',
-            'Self-Drive: also fill transmission, fuel type, seats & delivery charges',
+            'Select vehicle from fleet → auto-fills car name, brand, reg. no., transmission & fuel',
+            'Daily Rate × days = Total Amount',
+            'Add delivery / pickup charges if the customer requested them',
         ],
         slides: [
             { label: 'Select vehicle from fleet', mockup: <QuoteVehicleSelectMock /> },
-            { label: 'Set total price, deposit, KM limit & advance', mockup: <QuotePricingMock /> },
+            { label: 'Set daily rate, deposit, KM limit & advance', mockup: <QuotePricingMock /> },
             { label: 'Customise inclusions, exclusions & terms', mockup: <QuoteInclusionsMock /> },
             { label: 'Add notes & submit quote', mockup: <QuoteSubmitMock /> },
         ],
     },
     {
         id: 12,
-        title: 'Manage Your Quotes',
+        title: 'Manage Your Quotes (Self-Drive)',
         icon: <CheckCircle2 className="w-6 h-6" />,
-        description: 'Track every quote you have sent — see if it was Viewed, Accepted, or Expired. Withdraw a quote if needed, or proceed to the booking once accepted.',
-        url: '/vendor/bike-rentals/quotes',
+        description: 'Track every quote you have sent — see if it was Viewed, Accepted, or Withdrawn. Accepted quotes turn into a booking automatically.',
+        url: '/vendor/self-drive/quotes',
         color: 'purple' as string,
         tips: [
-            'Status: Sent → Viewed → Accepted (or Rejected / Expired)',
+            'Status: SENT → VIEWED → ACCEPTED (or WITHDRAWN)',
             'Accepted quotes automatically become bookings',
             'You can Withdraw any Sent or Viewed quote',
         ],
@@ -1946,20 +1916,20 @@ const steps = [
         id: 13,
         title: 'OTP Verification & Trip Lifecycle',
         icon: <ShieldCheck className="w-6 h-6" />,
-        description: 'Every trip starts with a secure 6-digit OTP. You generate it, customer receives it on their phone, you verify it to start the trip — and complete it with odometer reading at return.',
+        description: 'Every trip starts with a secure 6-digit OTP. You send it, customer receives it on their phone, you verify it to start the trip — and complete it with a single button at return.',
         url: '/vendor/bike-rentals/bookings',
         color: 'purple' as string,
         tips: [
-            'Click "Generate & Send OTP" on accepted booking → customer gets push notification',
-            'Ask customer for their OTP → enter all 6 digits to start the trip',
-            'On return: enter odometer reading — extra KM charges are auto-calculated',
+            'Click "Send OTP to Customer" on an accepted booking → customer gets it by push notification',
+            'Ask customer for their OTP → enter all 6 digits, then "Verify & Start Trip"',
+            'On return: "End Trip & Complete" — no odometer or damage form today, amount was fixed at booking',
         ],
         slides: [
-            { label: 'Booking accepted — Generate OTP button', mockup: <BookingAcceptedMock /> },
+            { label: 'Booking accepted — Send OTP button', mockup: <BookingAcceptedMock /> },
             { label: 'OTP sent — customer push notification + display', mockup: <OtpSentMock /> },
             { label: 'Vendor enters 6-digit OTP from customer', mockup: <VendorOtpEntryMock /> },
             { label: 'Trip in progress', mockup: <TripInProgressMock /> },
-            { label: 'Complete trip — odometer + damage notes', mockup: <CompleteTrip /> },
+            { label: 'Complete trip — single button, no form', mockup: <CompleteTrip /> },
             { label: 'Trip completed — booking closed', mockup: <TripCompletedMock /> },
         ],
     },

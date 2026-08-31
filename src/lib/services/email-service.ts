@@ -85,6 +85,18 @@ ${new Date().getFullYear()} TransRentals · India's Vehicle Rental Marketplace
   <meta name="color-scheme" content="light">
   <meta name="supported-color-schemes" content="light">
   <title>${subject}</title>
+  <style>
+    @media only screen and (max-width: 600px) {
+      .email-header { padding: 24px 22px !important; }
+      .email-body { padding: 28px 22px 12px !important; }
+      .email-help { padding: 8px 22px 24px !important; }
+      .email-footer { padding: 18px 22px !important; }
+      .otp-box { padding: 22px 14px !important; }
+      .otp-code { font-size: 30px !important; letter-spacing: 6px !important; }
+      .email-heading { font-size: 19px !important; }
+      .email-outer-pad { padding: 20px 12px !important; }
+    }
+  </style>
 </head>
 <body style="margin:0;padding:0;background-color:#f1f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;color:#0f172a;">
   <!-- Preheader (hidden, shown in inbox preview) -->
@@ -92,12 +104,12 @@ ${new Date().getFullYear()} TransRentals · India's Vehicle Rental Marketplace
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f4;">
     <tr>
-      <td align="center" style="padding:32px 16px;">
+      <td align="center" class="email-outer-pad" style="padding:32px 16px;">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(2,43,26,0.08);">
 
           <!-- Brand header with gradient -->
           <tr>
-            <td style="background:linear-gradient(135deg,#022B1A 0%,#045030 50%,#09B368 100%);padding:32px 40px;">
+            <td class="email-header" style="background:linear-gradient(135deg,#022B1A 0%,#045030 50%,#09B368 100%);padding:32px 40px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="vertical-align:middle;">
@@ -129,8 +141,8 @@ ${new Date().getFullYear()} TransRentals · India's Vehicle Rental Marketplace
 
           <!-- Body -->
           <tr>
-            <td style="padding:40px 40px 16px;">
-              <h1 style="margin:0 0 12px;color:#022B1A;font-size:22px;font-weight:700;letter-spacing:-0.3px;">${heading}</h1>
+            <td class="email-body" style="padding:40px 40px 16px;">
+              <h1 class="email-heading" style="margin:0 0 12px;color:#022B1A;font-size:22px;font-weight:700;letter-spacing:-0.3px;">${heading}</h1>
               <p style="margin:0 0 24px;color:#475569;font-size:15px;line-height:1.65;">
                 Hello,<br>${message}
               </p>
@@ -138,9 +150,9 @@ ${new Date().getFullYear()} TransRentals · India's Vehicle Rental Marketplace
               <!-- OTP box -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td align="center" style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:14px;padding:28px 20px;">
+                  <td align="center" class="otp-box" style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:14px;padding:28px 20px;">
                     <div style="color:#047857;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">Your verification code</div>
-                    <div style="font-family:'SF Mono',Menlo,Consolas,monospace;font-size:38px;font-weight:700;letter-spacing:10px;color:#022B1A;line-height:1;">${otp}</div>
+                    <div class="otp-code" style="font-family:'SF Mono',Menlo,Consolas,monospace;font-size:38px;font-weight:700;letter-spacing:10px;color:#022B1A;line-height:1;">${otp}</div>
                     <div style="color:#475569;font-size:13px;margin-top:14px;">
                       Expires in <strong style="color:#022B1A;">10 minutes</strong> · One-time use
                     </div>
@@ -168,7 +180,7 @@ ${new Date().getFullYear()} TransRentals · India's Vehicle Rental Marketplace
 
           <!-- Help -->
           <tr>
-            <td style="padding:8px 40px 32px;">
+            <td class="email-help" style="padding:8px 40px 32px;">
               <div style="border-top:1px solid #e2e8f0;padding-top:24px;color:#64748b;font-size:13px;line-height:1.6;">
                 Need help? Write to us at <a href="mailto:support@transrentals.in" style="color:#045030;font-weight:600;text-decoration:none;">support@transrentals.in</a>
                 or visit <a href="https://transrentals.in" style="color:#045030;font-weight:600;text-decoration:none;">transrentals.in</a>.
@@ -178,7 +190,7 @@ ${new Date().getFullYear()} TransRentals · India's Vehicle Rental Marketplace
 
           <!-- Footer -->
           <tr>
-            <td style="background:#f8fafc;padding:22px 40px;border-top:1px solid #e2e8f0;">
+            <td class="email-footer" style="background:#f8fafc;padding:22px 40px;border-top:1px solid #e2e8f0;">
               <p style="margin:0 0 6px;color:#0f172a;font-size:12px;font-weight:600;">TransRentals</p>
               <p style="margin:0;color:#94a3b8;font-size:11px;line-height:1.6;">
                 India's Vehicle Rental Marketplace · Bike, Car, Bus, Truck & more<br>
@@ -291,18 +303,28 @@ ${new Date().getFullYear()} TransRentals · India's Vehicle Rental Marketplace
   <meta name="color-scheme" content="light">
   <meta name="supported-color-schemes" content="light">
   <title>${emailSubject}</title>
+  <style>
+    @media only screen and (max-width: 600px) {
+      .email-header { padding: 24px 22px !important; }
+      .email-body { padding: 28px 22px 12px !important; }
+      .email-help { padding: 8px 22px 24px !important; }
+      .email-footer { padding: 18px 22px !important; }
+      .email-heading { font-size: 19px !important; }
+      .email-outer-pad { padding: 20px 12px !important; }
+    }
+  </style>
 </head>
 <body style="margin:0;padding:0;background-color:#f1f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;color:#0f172a;">
   <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${preheader}</div>
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f4;">
     <tr>
-      <td align="center" style="padding:32px 16px;">
+      <td align="center" class="email-outer-pad" style="padding:32px 16px;">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(2,43,26,0.08);">
 
           <!-- Brand header with gradient -->
           <tr>
-            <td style="background:linear-gradient(135deg,#022B1A 0%,#045030 50%,#09B368 100%);padding:32px 40px;">
+            <td class="email-header" style="background:linear-gradient(135deg,#022B1A 0%,#045030 50%,#09B368 100%);padding:32px 40px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="vertical-align:middle;">
@@ -328,8 +350,8 @@ ${new Date().getFullYear()} TransRentals · India's Vehicle Rental Marketplace
 
           <!-- Body -->
           <tr>
-            <td style="padding:40px 40px 16px;">
-              <h1 style="margin:0 0 12px;color:#022B1A;font-size:22px;font-weight:700;letter-spacing:-0.3px;">We've replied to your message</h1>
+            <td class="email-body" style="padding:40px 40px 16px;">
+              <h1 class="email-heading" style="margin:0 0 12px;color:#022B1A;font-size:22px;font-weight:700;letter-spacing:-0.3px;">We've replied to your message</h1>
               <p style="margin:0 0 24px;color:#475569;font-size:15px;line-height:1.65;">
                 Hi ${name},<br>You reached out to us about <strong style="color:#022B1A;">${subject}</strong>. Here's our reply:
               </p>
@@ -352,7 +374,7 @@ ${new Date().getFullYear()} TransRentals · India's Vehicle Rental Marketplace
 
           <!-- Help -->
           <tr>
-            <td style="padding:8px 40px 32px;">
+            <td class="email-help" style="padding:8px 40px 32px;">
               <div style="border-top:1px solid #e2e8f0;padding-top:24px;color:#64748b;font-size:13px;line-height:1.6;">
                 Need to follow up? Reply to this email, or write to us at <a href="mailto:support@transrentals.in" style="color:#045030;font-weight:600;text-decoration:none;">support@transrentals.in</a>.
               </div>
@@ -361,7 +383,7 @@ ${new Date().getFullYear()} TransRentals · India's Vehicle Rental Marketplace
 
           <!-- Footer -->
           <tr>
-            <td style="background:#f8fafc;padding:22px 40px;border-top:1px solid #e2e8f0;">
+            <td class="email-footer" style="background:#f8fafc;padding:22px 40px;border-top:1px solid #e2e8f0;">
               <p style="margin:0 0 6px;color:#0f172a;font-size:12px;font-weight:600;">TransRentals</p>
               <p style="margin:0;color:#94a3b8;font-size:11px;line-height:1.6;">
                 India's Vehicle Rental Marketplace · Bike, Car, Bus, Truck & more<br>
@@ -445,16 +467,27 @@ export async function sendWanderBookingEmail(params: {
   const html = `
     <!DOCTYPE html>
     <html>
-    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        @media only screen and (max-width: 600px) {
+          .wander-outer-pad { padding: 20px 12px !important; }
+          .wander-header { padding: 22px 22px !important; }
+          .wander-body { padding: 22px 22px !important; }
+          .wander-row td { padding: 10px 12px !important; font-size: 12px !important; }
+        }
+      </style>
+    </head>
     <body style="margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f4f4f4;">
       <table role="presentation" style="width:100%;border-collapse:collapse;">
-        <tr><td align="center" style="padding:40px 0;">
-          <table role="presentation" style="width:600px;border-collapse:collapse;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-            <tr><td style="padding:30px 40px;background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:12px 12px 0 0;">
+        <tr><td align="center" class="wander-outer-pad" style="padding:40px 0;">
+          <table role="presentation" style="width:600px;max-width:100%;border-collapse:collapse;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+            <tr><td class="wander-header" style="padding:30px 40px;background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:12px 12px 0 0;">
               <h1 style="margin:0;color:#fff;font-size:22px;">🗺️ TransRentals Wander</h1>
               <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Tour Booking ${statusLabel}</p>
             </td></tr>
-            <tr><td style="padding:30px 40px;">
+            <tr><td class="wander-body" style="padding:30px 40px;">
               <p style="color:#374151;font-size:16px;margin:0 0 20px;">Hi <strong>${customerName}</strong>,</p>
               <p style="color:#6b7280;font-size:14px;line-height:1.6;margin:0 0 24px;">
                 ${status === 'CONFIRMED'
@@ -462,19 +495,19 @@ export async function sendWanderBookingEmail(params: {
                   : 'Your quote has been accepted. Please complete the advance payment to confirm your booking.'}
               </p>
               <table style="width:100%;border-collapse:collapse;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;">
-                <tr><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Booking #</td>
+                <tr class="wander-row"><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Booking #</td>
                     <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#111827;font-size:13px;font-weight:600;text-align:right;">${bookingNumber}</td></tr>
-                <tr><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Tour</td>
+                <tr class="wander-row"><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Tour</td>
                     <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#111827;font-size:13px;font-weight:600;text-align:right;">${tourTitle}</td></tr>
-                <tr><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Travel Date</td>
+                <tr class="wander-row"><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Travel Date</td>
                     <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#111827;font-size:13px;font-weight:600;text-align:right;">${travelDate}</td></tr>
-                <tr><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Group Size</td>
+                <tr class="wander-row"><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Group Size</td>
                     <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#111827;font-size:13px;font-weight:600;text-align:right;">${groupSize} person${groupSize !== 1 ? 's' : ''}</td></tr>
-                <tr><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Amount</td>
+                <tr class="wander-row"><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Amount</td>
                     <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#4f46e5;font-size:15px;font-weight:700;text-align:right;">₹${amount.toLocaleString('en-IN')}</td></tr>
-                <tr><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Operator</td>
+                <tr class="wander-row"><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Operator</td>
                     <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#111827;font-size:13px;font-weight:600;text-align:right;">${vendorName}</td></tr>
-                <tr><td style="padding:12px 16px;color:#6b7280;font-size:13px;">Status</td>
+                <tr class="wander-row"><td style="padding:12px 16px;color:#6b7280;font-size:13px;">Status</td>
                     <td style="padding:12px 16px;text-align:right;"><span style="background:${statusColor}15;color:${statusColor};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;">${statusLabel}</span></td></tr>
               </table>
               <p style="color:#9ca3af;font-size:12px;margin:24px 0 0;text-align:center;">

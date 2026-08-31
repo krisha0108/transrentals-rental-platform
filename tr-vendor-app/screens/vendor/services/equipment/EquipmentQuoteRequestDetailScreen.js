@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, ActivityIndicator, StatusBar, Linking,
+  RefreshControl, StatusBar, Linking, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -10,24 +10,36 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getQuoteRequestById, getBaseURL, getSessionToken } from '../../../api/client';
 import { showError, showInfo } from '../../../../services/alertService';
+import { SC as T, G, rs, cardShadow, shade } from '../../_shared/theme';
+import { DISPLAY } from '../../_shared/typography';
+import AnimatedOrb from '../../_shared/AnimatedOrb';
+
+// How far the ticket summary card rides up over the hero's rounded bottom
+// edge — same technique/constant role as BikeQuoteDetailScreen's ticket.
+// The hero's own bottom padding is shortened by the same amount and the
+// scroll content gets it back as paddingTop, so the gap stays the same,
+// only the overlap changes.
+const TICKET_OVERLAP = 40;
 
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#2563EB', blueL: '#EFF6FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  red: '#DC2626', redL: '#FEF2F2',
+  g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald,
+  g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.blue, blueL: T.blueLight,
+  amber: T.amber, amberL: T.amberLight,
+  red: T.red, redL: T.redLight,
+  purple: T.purple, purpleL: T.purpleLight,
 };
 
 const STATUS_CONFIG = {
-  PENDING:         { color: C.amber,  bg: C.amberL,  icon: 'time-outline',           label: 'Pending' },
-  QUOTES_RECEIVED: { color: C.blue,   bg: C.blueL,   icon: 'document-text-outline',  label: 'Quotes Received' },
-  QUOTED:          { color: C.blue,   bg: C.blueL,   icon: 'document-text-outline',  label: 'Quoted' },
-  ACCEPTED:        { color: C.g600,   bg: C.g50,     icon: 'checkmark-circle',        label: 'Accepted' },
-  REJECTED:        { color: C.red,    bg: C.redL,    icon: 'close-circle',            label: 'Rejected' },
-  EXPIRED:         { color: C.muted,  bg: '#F8FAFC', icon: 'alert-circle-outline',    label: 'Expired' },
+  PENDING:         { color: C.amber, bg: C.amberL, border: '#FDE68A', icon: 'time-outline',             label: 'Pending' },
+  QUOTED:          { color: C.blue,  bg: C.blueL,  border: '#BFDBFE', icon: 'paper-plane-outline',      label: 'Quote Sent' },
+  QUOTES_RECEIVED: { color: C.blue,  bg: C.blueL,  border: '#BFDBFE', icon: 'document-text-outline',    label: 'Quotes Received' },
+  ACCEPTED:        { color: C.g600,  bg: C.g50,    border: C.g100,    icon: 'checkmark-circle-outline', label: 'Accepted' },
+  REJECTED:        { color: C.red,   bg: C.redL,   border: '#FECACA', icon: 'close-circle-outline',     label: 'Rejected' },
+  EXPIRED:         { color: C.muted, bg: '#F8FAFC', border: C.border, icon: 'alert-circle-outline',     label: 'Expired' },
 };
 
 const EQUIPMENT_TYPE_MAP = {
@@ -39,6 +51,32 @@ const EQUIPMENT_TYPE_MAP = {
 const JOB_DURATION_MAP = {
   '1': '1 to 5 Days', '2': '6 to 15 Days', '3': '16 to 30 Days', '4': 'More than 30 Days',
 };
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+// Reusable section card — icon + title header inside one bordered card,
+// same shape BikeQuoteDetailScreen's sibling Section uses.
+function Section({ iconName, iconLib = 'ion', iconColor, title, children }) {
+  const renderIcon = () => {
+    if (iconLib === 'mci') return <MaterialCommunityIcons name={iconName} size={15} color={iconColor || C.g700} />;
+    if (iconLib === 'feather') return <Icon name={iconName} size={15} color={iconColor || C.g700} />;
+    return <Ionicons name={iconName} size={15} color={iconColor || C.g700} />;
+  };
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHead}>
+        <View style={[styles.cardIcon, { backgroundColor: `${iconColor || C.g700}15` }]}>
+          {renderIcon()}
+        </View>
+        <Text style={styles.cardTitle}>{title}</Text>
+      </View>
+      {children}
+    </View>
+  );
+}
 
 export default function EquipmentQuoteRequestDetailScreen({ route, navigation }) {
   const { requestId } = route.params || {};
@@ -70,61 +108,77 @@ export default function EquipmentQuoteRequestDetailScreen({ route, navigation })
 
   const onRefresh = () => { setRefreshing(true); fetchRequestDetail(); };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const handleSendQuote = () => {
+    navigation.navigate('EquipmentSendQuote', { requestId: request.id || request._id });
   };
 
+  // ── Loading state ────────────────────────────────────────────
   if (loading) {
     return (
-      <View style={s.safe}>
+      <View style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.heroMin}>
+        <LinearGradient colors={G.hero} style={styles.headerGrad}>
+          <AnimatedOrb style={styles.deco1} />
           <SafeAreaView edges={['top']}>
-            <View style={s.topBar}>
-              <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+            <View style={styles.topBar}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                 <Icon name="arrow-left" size={18} color="#fff" />
               </TouchableOpacity>
-              <View style={s.titleWrap}>
-                <MaterialCommunityIcons name="hammer-wrench" size={18} color={C.g400} />
-                <Text style={s.heroTitle}>Request Details</Text>
+              <View style={styles.titleWrap}>
+                <MaterialCommunityIcons name="hammer-wrench" size={18} color={C.amber} />
+                <Text style={styles.heroTitle}>Quote Request</Text>
               </View>
               <View style={{ width: 36 }} />
             </View>
           </SafeAreaView>
         </LinearGradient>
-        <View style={s.centered}><ActivityIndicator size="large" color={C.g600} /></View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          {[1, 2, 3].map(i => (
+            <View key={i} style={[styles.card, { marginBottom: 12 }]}>
+              <View style={{ width: '40%', height: 14, backgroundColor: '#E2E8F0', borderRadius: 7, marginBottom: 12 }} />
+              <View style={{ width: '80%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, marginBottom: 8 }} />
+              <View style={{ width: '60%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6 }} />
+            </View>
+          ))}
+        </ScrollView>
       </View>
     );
   }
 
+  // ── Not found ────────────────────────────────────────────────
   if (!request) {
     return (
-      <View style={s.safe}>
+      <View style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.heroMin}>
+        <LinearGradient colors={G.hero} style={styles.headerGrad}>
+          <AnimatedOrb style={styles.deco1} />
           <SafeAreaView edges={['top']}>
-            <View style={s.topBar}>
-              <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+            <View style={styles.topBar}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                 <Icon name="arrow-left" size={18} color="#fff" />
               </TouchableOpacity>
-              <Text style={s.heroTitle}>Request Details</Text>
+              <View style={styles.titleWrap}>
+                <MaterialCommunityIcons name="hammer-wrench" size={18} color={C.amber} />
+                <Text style={styles.heroTitle}>Quote Request</Text>
+              </View>
               <View style={{ width: 36 }} />
             </View>
           </SafeAreaView>
         </LinearGradient>
-        <View style={s.centered}>
-          <Ionicons name="clipboard-outline" size={64} color={C.muted} />
-          <Text style={s.emptyTitle}>Request Not Found</Text>
+        <View style={styles.emptyState}>
+          <Ionicons name="clipboard-outline" size={56} color={C.muted} />
+          <Text style={styles.emptyTitle}>Request Not Found</Text>
+          <Text style={styles.emptySubtitle}>This request may have been removed</Text>
         </View>
       </View>
     );
   }
 
   const status = request.status?.toUpperCase() || 'PENDING';
-  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING;
+  const sc = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING;
   const requestNumber = request.requestNumber || request.request_number || (request.id || request._id)?.toString().slice(-8);
 
+  // Data
   const customerName  = request.customerName || request.customer_name || 'Customer';
   const customerEmail = request.customerEmail || request.customer_email;
   const customerPhone = request.customerPhone || request.customer_phone;
@@ -145,287 +199,529 @@ export default function EquipmentQuoteRequestDetailScreen({ route, navigation })
   };
 
   const equipmentCategory = request.equipmentCategory || request.equipment_category;
-  const equipmentTypeRaw = request.equipmentType || request.equipment_type;
-  const equipmentType = EQUIPMENT_TYPE_MAP[equipmentTypeRaw] || equipmentTypeRaw;
-  const equipmentName = request.equipmentName || request.equipment_name || request.specificModel;
-  const companyName = request.companyName || request.company_name;
-  const quantity = request.quantity || 1;
-  const rentalDays = request.rentalDays || request.rental_days;
-  const jobDurationRaw = request.jobDuration || request.job_duration || request.rentalDuration;
-  const jobDuration = JOB_DURATION_MAP[jobDurationRaw] || jobDurationRaw;
+  const equipmentTypeRaw  = request.equipmentType || request.equipment_type;
+  const equipmentType     = EQUIPMENT_TYPE_MAP[equipmentTypeRaw] || equipmentTypeRaw;
+  const equipmentName     = request.equipmentName || request.equipment_name || request.specificModel;
+  const companyName       = request.companyName || request.company_name;
+  const quantity          = request.quantity || 1;
+  const rentalDays        = request.rentalDays || request.rental_days;
+  const jobDurationRaw    = request.jobDuration || request.job_duration || request.rentalDuration;
+  const jobDuration       = JOB_DURATION_MAP[jobDurationRaw] || jobDurationRaw;
 
-  const deliveryCity = request.deliveryCity || request.delivery_city || request.pickupCity;
+  const deliveryCity    = request.deliveryCity || request.delivery_city || request.pickupCity;
   const deliveryAddress = request.deliveryAddress || request.delivery_address;
-  const siteType = request.siteType || request.site_type;
+  const siteType        = request.siteType || request.site_type;
 
   const startDate = request.startDate || request.start_date || request.pickupDate;
-  const endDate = request.endDate || request.end_date;
+  const endDate   = request.endDate || request.end_date;
 
-  const needOperator = request.needOperator || request.need_operator;
-  const needDelivery = request.needDelivery || request.need_delivery;
+  const needOperator     = request.needOperator || request.need_operator;
+  const needDelivery     = request.needDelivery || request.need_delivery;
   const needInstallation = request.needInstallation || request.need_installation;
 
   const notes = request.requirements || request.customerNotes || request.notes || request.description;
 
-  const handleSendQuote = () => {
-    navigation.navigate('EquipmentSendQuote', { requestId: request.id || request._id });
-  };
+  const canSendQuote = !request.hasQuoted && (status === 'PENDING' || status === 'QUOTES_RECEIVED');
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <LinearGradient
-        colors={[C.g900, '#064E3B', C.g700]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={s.hero}
-      >
-        <View style={s.deco1} /><View style={s.deco2} />
-        <View style={s.topBar}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={s.titleWrap}>
-            <MaterialCommunityIcons name="hammer-wrench" size={18} color={C.g400} />
-            <Text style={s.heroTitle}>Request Details</Text>
+      {/* ══ Hero ══════════════════════════════════════════════════════════ */}
+      <LinearGradient colors={G.hero} style={styles.headerGrad}>
+        <AnimatedOrb style={styles.deco1} />
+        <AnimatedOrb style={styles.deco2} delay={1200} dx={-10} dy={8} />
+        <SafeAreaView edges={['top']}>
+          <View style={styles.topBar}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.titleWrap}>
+              <MaterialCommunityIcons name="hammer-wrench" size={18} color={C.amber} />
+              <Text style={styles.heroTitle}>Quote Request</Text>
+            </View>
+            <TouchableOpacity onPress={onRefresh} style={styles.backBtn}>
+              <Icon name="refresh-cw" size={16} color="#fff" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={s.backBtn} onPress={onRefresh}>
-            <Icon name="refresh-cw" size={16} color={C.g400} />
-          </TouchableOpacity>
-        </View>
 
-        <View style={s.heroCard}>
-          <View style={s.heroRow}>
-            <View>
-              <Text style={s.heroReqNum}>Request #{requestNumber}</Text>
-              <Text style={s.heroService}>Equipment Rental</Text>
+          {/* Identity block — who this request is from */}
+          <View style={styles.identityBlock}>
+            <View style={styles.identityIcon}>
+              <Text style={styles.identityIconTxt}>{customerName.charAt(0).toUpperCase()}</Text>
             </View>
-            <View style={[s.statusPill, { backgroundColor: cfg.bg }]}>
-              <Ionicons name={cfg.icon} size={12} color={cfg.color} />
-              <Text style={[s.statusPillTxt, { color: cfg.color }]}>{cfg.label}</Text>
+            <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
+              <Text style={styles.identityLabel}>QUOTE REQUEST FROM</Text>
+              <Text style={styles.identityName} numberOfLines={1}>{customerName}</Text>
+              {customerPhone ? (
+                <View style={styles.identityPhoneRow}>
+                  <Ionicons name="call-outline" size={12} color="rgba(255,255,255,0.7)" />
+                  <Text style={styles.identityPhoneTxt}>{customerPhone}</Text>
+                </View>
+              ) : null}
             </View>
           </View>
-          {request.hasQuoted && (
-            <View style={s.quotedBanner}>
-              <Ionicons name="checkmark-circle" size={14} color={C.g600} />
-              <Text style={s.quotedBannerTxt}>
-                Quote sent{request.vendorQuote?.grandTotal ? ` · ₹${Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}` : ''}
-              </Text>
+
+          {/* Quick action — mirrors bottom bar's conditional action */}
+          {(request.hasQuoted || canSendQuote) && (
+            <View style={styles.heroActionRow}>
+              {request.hasQuoted ? (
+                <View style={styles.quotedPill}>
+                  <Ionicons name="checkmark-circle" size={13} color="#fff" />
+                  <Text style={styles.quotedPillText}>Quoted</Text>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.sendQuickBtn} onPress={handleSendQuote} activeOpacity={0.85}>
+                  <Ionicons name="paper-plane" size={13} color="#fff" />
+                  <Text style={styles.sendQuickBtnText}>Send Quote</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView
-        style={s.scroll}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g400} colors={[C.g600]} />}
-        contentContainerStyle={s.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g500]} tintColor={C.g500} />}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* Customer */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Customer</Text>
-          <View style={s.card}>
-            <InfoRow icon={<Ionicons name="person" size={16} color={C.muted} />} label="Name" value={customerName} />
-            {customerEmail && <InfoRow icon={<Ionicons name="mail" size={16} color={C.muted} />} label="Email" value={customerEmail} />}
-            {customerPhone ? (
-              <TouchableOpacity
-                onPress={handleCallCustomer}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 4 }}
-              >
+        {/* ── Ticket summary — request #, status & rental period, floated over hero ── */}
+        <View style={styles.ticketWrap}>
+          <LinearGradient
+            colors={[sc.color, shade(sc.color, -18)]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={styles.ticketRail}
+          />
+          <View style={styles.ticketUpperStub}>
+            <View style={styles.ticketIconBox}>
+              <Ionicons name="document-text-outline" size={20} color={C.g700} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.ticketLabel}>REQUEST #</Text>
+              <Text style={styles.ticketNumber} numberOfLines={1}>{requestNumber}</Text>
+            </View>
+            <View style={[styles.statusPill, { backgroundColor: sc.bg, borderColor: sc.color + '40' }]}>
+              <Ionicons name={sc.icon} size={12} color={sc.color} />
+              <Text style={[styles.statusPillTxt, { color: sc.color }]}>{sc.label}</Text>
+            </View>
+          </View>
+
+          {/* Perforation — torn-ticket edge, echoes the My Quotes list card */}
+          <View style={styles.perforationRow}>
+            <View style={styles.notchLeft} />
+            <View style={styles.dashLine} />
+            <View style={styles.notchRight} />
+          </View>
+
+          <View style={styles.ticketLowerStub}>
+            <View style={styles.ticketRouteIconWrap}>
+              <Ionicons name="calendar-outline" size={16} color={C.g700} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.ticketRouteLabel}>RENTAL PERIOD</Text>
+              <Text style={styles.ticketRouteValue} numberOfLines={1}>
+                {startDate ? `${formatDate(startDate)}${endDate ? `  →  ${formatDate(endDate)}` : ''}` : 'Dates not specified'}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Quick contact — Call (existing handler) + Email (mailto:, same
+            already-fetched customerEmail, no new data/fetch) */}
+        {(customerPhone || customerEmail) && (
+          <View style={styles.contactRow}>
+            {customerPhone && (
+              <TouchableOpacity style={styles.contactBtn} onPress={handleCallCustomer} activeOpacity={0.8}>
                 <Ionicons name="call" size={16} color={C.g600} />
-                <Text style={{ color: C.g600, fontWeight: '700', fontSize: 14 }}>Call Customer</Text>
+                <Text style={styles.contactBtnTxt}>Call</Text>
               </TouchableOpacity>
-            ) : null}
-          </View>
-        </View>
-
-        {/* Equipment Details */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Equipment Details</Text>
-          <View style={s.card}>
-            {equipmentCategory && <InfoRow icon={<MaterialCommunityIcons name="shape-outline" size={16} color={C.muted} />} label="Category" value={equipmentCategory} />}
-            {equipmentType && <InfoRow icon={<MaterialCommunityIcons name="tag-outline" size={16} color={C.muted} />} label="Equipment Type" value={equipmentType} />}
-            {equipmentName && <InfoRow icon={<MaterialCommunityIcons name="hammer-wrench" size={16} color={C.g600} />} label="Model / Name" value={equipmentName} />}
-            <InfoRow icon={<Ionicons name="layers-outline" size={16} color={C.muted} />} label="Quantity" value={`${quantity}`} />
-            {rentalDays && <InfoRow icon={<Ionicons name="calendar-outline" size={16} color={C.muted} />} label="Rental Days" value={`${rentalDays} days`} />}
-            {jobDuration && <InfoRow icon={<Ionicons name="time-outline" size={16} color={C.muted} />} label="Duration" value={jobDuration} />}
-            {companyName && <InfoRow icon={<Ionicons name="business-outline" size={16} color={C.muted} />} label="Company" value={companyName} />}
-          </View>
-        </View>
-
-        {/* Delivery Location */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Delivery Location</Text>
-          <View style={s.card}>
-            {deliveryCity && <InfoRow icon={<Ionicons name="location" size={16} color={C.g600} />} label="City" value={deliveryCity} />}
-            {deliveryAddress && <InfoRow icon={<Ionicons name="navigate" size={16} color={C.muted} />} label="Address" value={deliveryAddress} />}
-            {siteType && <InfoRow icon={<MaterialCommunityIcons name="home-city-outline" size={16} color={C.muted} />} label="Site Type" value={siteType} />}
-          </View>
-        </View>
-
-        {/* Rental Period */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Rental Period</Text>
-          <View style={s.card}>
-            {startDate && <InfoRow icon={<Ionicons name="calendar" size={16} color={C.g600} />} label="Start Date" value={formatDate(startDate)} />}
-            {endDate && <InfoRow icon={<Ionicons name="calendar" size={16} color={C.red} />} label="End Date" value={formatDate(endDate)} />}
-          </View>
-        </View>
-
-        {/* Service Requirements */}
-        {(needOperator !== undefined || needDelivery !== undefined || needInstallation !== undefined) && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Service Requirements</Text>
-            <View style={s.card}>
-              {needOperator !== undefined && (
-                <View style={s.reqRow}>
-                  <Ionicons name={needOperator ? 'checkmark-circle' : 'close-circle'} size={18} color={needOperator ? C.g600 : C.red} />
-                  <Text style={s.reqText}>Operator Required</Text>
-                </View>
-              )}
-              {needDelivery !== undefined && (
-                <View style={s.reqRow}>
-                  <Ionicons name={needDelivery ? 'checkmark-circle' : 'close-circle'} size={18} color={needDelivery ? C.g600 : C.red} />
-                  <Text style={s.reqText}>Delivery Required</Text>
-                </View>
-              )}
-              {needInstallation !== undefined && (
-                <View style={s.reqRow}>
-                  <Ionicons name={needInstallation ? 'checkmark-circle' : 'close-circle'} size={18} color={needInstallation ? C.g600 : C.red} />
-                  <Text style={s.reqText}>Installation Required</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* Notes */}
-        {notes && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Customer Notes</Text>
-            <View style={s.card}>
-              <Text style={s.notesText}>{notes}</Text>
-            </View>
-          </View>
-        )}
-
-        {/* Timeline */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Timeline</Text>
-          <View style={s.card}>
-            <View style={s.timelineRow}>
-              <Ionicons name="add-circle" size={14} color={C.g600} />
-              <Text style={s.timelineText}>Received on {formatDate(request.createdAt || request.created_at)}</Text>
-            </View>
-            {request.updatedAt && request.updatedAt !== request.createdAt && (
-              <View style={s.timelineRow}>
-                <Ionicons name="refresh" size={14} color={C.muted} />
-                <Text style={s.timelineText}>Updated on {formatDate(request.updatedAt)}</Text>
-              </View>
+            )}
+            {customerEmail && (
+              <TouchableOpacity style={styles.contactBtn} onPress={() => Linking.openURL(`mailto:${customerEmail}`)} activeOpacity={0.8}>
+                <Ionicons name="mail" size={16} color={C.blue} />
+                <Text style={[styles.contactBtnTxt, { color: C.blue }]}>Email</Text>
+              </TouchableOpacity>
             )}
           </View>
-        </View>
+        )}
+
+        {/* Already quoted banner */}
+        {request.hasQuoted && (
+          <View style={styles.quotedBanner}>
+            <View style={styles.quotedBannerIcon}>
+              <Ionicons name="checkmark-circle" size={20} color={C.g600} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.quotedBannerTitle}>You've already sent a quote</Text>
+              {request.vendorQuote?.grandTotal ? (
+                <Text style={styles.quotedBannerAmt}>
+                  ₹{Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}
+                  {request.vendorQuote?.status ? `  ·  ${request.vendorQuote.status}` : ''}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        )}
+
+        {/* Equipment Details */}
+        {(equipmentName || equipmentType || equipmentCategory) ? (
+          <Section iconName="hammer-wrench" iconLib="mci" iconColor={C.amber} title="Equipment Details">
+            <View style={styles.equipBox}>
+              <View style={styles.equipIconWrap}>
+                <MaterialCommunityIcons name="hammer-wrench" size={28} color={C.amber} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.equipName}>{equipmentName || equipmentType || 'Equipment'}</Text>
+                {equipmentType && equipmentName ? <Text style={styles.equipSub}>{equipmentType}</Text> : null}
+                {equipmentCategory ? (
+                  <View style={styles.catPill}>
+                    <Text style={styles.catPillText}>{equipmentCategory}</Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          </Section>
+        ) : null}
+
+        {/* Rental Details — period rail + fact grid (same fields, new layout) */}
+        <Section iconName="calendar-outline" iconColor={C.g600} title="Rental Details">
+          {startDate ? (
+            <View style={styles.routeWrap}>
+              <View style={styles.routeGutter}>
+                <View style={[styles.routeDot, { backgroundColor: C.g600 }]} />
+                {endDate ? <View style={styles.routeLine} /> : null}
+                {endDate ? <View style={[styles.routeDot, { backgroundColor: C.red }]} /> : null}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.routeLabel}>START DATE</Text>
+                <Text style={styles.routeValue}>{formatDate(startDate)}</Text>
+                {endDate ? (
+                  <>
+                    <Text style={[styles.routeLabel, { marginTop: 10 }]}>END DATE</Text>
+                    <Text style={styles.routeValue}>{formatDate(endDate)}</Text>
+                  </>
+                ) : null}
+              </View>
+            </View>
+          ) : null}
+
+          <View style={styles.factGrid}>
+            <View style={styles.factCell}>
+              <Text style={styles.factLabel}>QUANTITY</Text>
+              <Text style={styles.factValue}>{quantity}</Text>
+              <Text style={styles.factSub}>{quantity === 1 ? 'Unit' : 'Units'}</Text>
+            </View>
+            {rentalDays ? (
+              <View style={styles.factCell}>
+                <Text style={styles.factLabel}>RENTAL DAYS</Text>
+                <Text style={styles.factValue}>{rentalDays}</Text>
+                <Text style={styles.factSub}>Days</Text>
+              </View>
+            ) : null}
+            {jobDuration ? (
+              <View style={styles.factCell}>
+                <Text style={styles.factLabel}>DURATION</Text>
+                <Text style={styles.factValue}>{jobDuration}</Text>
+              </View>
+            ) : null}
+            {companyName ? (
+              <View style={styles.factCell}>
+                <Text style={styles.factLabel}>COMPANY</Text>
+                <Text style={styles.factValue}>{companyName}</Text>
+              </View>
+            ) : null}
+          </View>
+        </Section>
+
+        {/* Delivery Location */}
+        {(deliveryCity || deliveryAddress || siteType) ? (
+          <Section iconName="location-outline" iconColor={C.blue} title="Delivery Location">
+            {deliveryCity ? (
+              <View style={styles.deliveryRow}>
+                <Ionicons name="location" size={16} color={C.blue} />
+                <Text style={styles.deliveryText}>{deliveryCity}</Text>
+              </View>
+            ) : null}
+            {deliveryAddress ? (
+              <View style={styles.deliveryRow}>
+                <Ionicons name="navigate-outline" size={16} color={C.muted} />
+                <Text style={styles.deliveryText}>{deliveryAddress}</Text>
+              </View>
+            ) : null}
+            {siteType ? (
+              <View style={styles.deliveryRow}>
+                <MaterialCommunityIcons name="home-city-outline" size={16} color={C.muted} />
+                <Text style={styles.deliveryText}>{siteType}</Text>
+              </View>
+            ) : null}
+          </Section>
+        ) : null}
+
+        {/* Service Requirements */}
+        {(needOperator !== undefined || needDelivery !== undefined || needInstallation !== undefined) ? (
+          <Section iconName="checkmark-done-outline" iconColor={C.g600} title="Service Requirements">
+            {needOperator !== undefined && (
+              <View style={styles.reqRow}>
+                <Ionicons name={needOperator ? 'checkmark-circle' : 'close-circle'} size={18} color={needOperator ? C.g600 : C.red} />
+                <Text style={styles.reqText}>Operator Required</Text>
+              </View>
+            )}
+            {needDelivery !== undefined && (
+              <View style={styles.reqRow}>
+                <Ionicons name={needDelivery ? 'checkmark-circle' : 'close-circle'} size={18} color={needDelivery ? C.g600 : C.red} />
+                <Text style={styles.reqText}>Delivery Required</Text>
+              </View>
+            )}
+            {needInstallation !== undefined && (
+              <View style={styles.reqRow}>
+                <Ionicons name={needInstallation ? 'checkmark-circle' : 'close-circle'} size={18} color={needInstallation ? C.g600 : C.red} />
+                <Text style={styles.reqText}>Installation Required</Text>
+              </View>
+            )}
+          </Section>
+        ) : null}
+
+        {/* Notes */}
+        {notes ? (
+          <Section iconName="chatbox-outline" iconColor={C.purple} title="Customer Notes">
+            <Text style={styles.notesText}>{notes}</Text>
+          </Section>
+        ) : null}
+
+        {/* Timeline — dot + connecting line, same 2 real events as before */}
+        <Section iconName="time-outline" iconColor={C.muted} title="Request Timeline">
+          <View style={styles.tlRow}>
+            <View style={styles.tlGutter}>
+              <View style={[styles.tlDot, { backgroundColor: C.g500 }]} />
+              {request.updatedAt && request.updatedAt !== request.createdAt ? <View style={styles.tlLine} /> : null}
+            </View>
+            <Text style={styles.timelineText}>Received · {formatDate(request.createdAt || request.created_at)}</Text>
+          </View>
+          {request.updatedAt && request.updatedAt !== request.createdAt ? (
+            <View style={styles.tlRow}>
+              <View style={styles.tlGutter}>
+                <View style={[styles.tlDot, { backgroundColor: C.muted }]} />
+              </View>
+              <Text style={styles.timelineText}>Updated · {formatDate(request.updatedAt)}</Text>
+            </View>
+          ) : null}
+        </Section>
       </ScrollView>
 
-      {/* Bottom Bar */}
-      {!request.hasQuoted && (status === 'PENDING' || status === 'QUOTES_RECEIVED') && (
-        <View style={s.bottomBar}>
-          <TouchableOpacity style={s.sendQuoteBtn} onPress={handleSendQuote}>
-            <Ionicons name="paper-plane" size={18} color="#fff" />
-            <Text style={s.bottomBtnTxt}>Send Quote to Customer</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      {request.hasQuoted && (status === 'ACCEPTED' || request.vendorQuote?.status === 'ACCEPTED') && (
-        <View style={s.bottomBar}>
+      {/* Bottom bar */}
+      {request.hasQuoted && (status === 'ACCEPTED' || request.vendorQuote?.status === 'ACCEPTED') ? (
+        <View style={styles.bottomBar}>
           <TouchableOpacity
-            style={[s.sendQuoteBtn, { backgroundColor: C.blue }]}
+            style={styles.primaryBtnWrap}
+            activeOpacity={0.9}
             onPress={() => {
               if (bookingId) navigation.navigate('EquipmentBookingDetail', { bookingId });
               else showInfo('Booking details will appear in your Bookings section shortly.');
             }}
           >
-            <Ionicons name="document-text-outline" size={18} color="#fff" />
-            <Text style={s.bottomBtnTxt}>View Booking Details</Text>
+            <LinearGradient colors={G.ocean} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnInner}>
+              <Ionicons name="document-text-outline" size={18} color="#fff" />
+              <Text style={styles.bottomBtnText}>View Booking Details</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
-      )}
-      {request.hasQuoted && status !== 'ACCEPTED' && request.vendorQuote?.status !== 'ACCEPTED' && (
-        <View style={[s.bottomBar, { backgroundColor: C.g50, borderTopColor: C.g100 }]}>
-          <View style={s.quotedBottomRow}>
-            <Ionicons name="checkmark-circle" size={20} color={C.g600} />
-            <View style={{ flex: 1 }}>
-              <Text style={s.quotedBottomTitle}>Quote Already Sent</Text>
-              {request.vendorQuote?.grandTotal && (
-                <Text style={s.quotedBottomSub}>₹{Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}{request.vendorQuote?.status ? ` · ${request.vendorQuote.status}` : ''}</Text>
-              )}
-            </View>
+      ) : canSendQuote ? (
+        <View style={styles.bottomBar}>
+          <TouchableOpacity style={styles.primaryBtnWrap} activeOpacity={0.9} onPress={handleSendQuote}>
+            <LinearGradient colors={G.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnInner}>
+              <Ionicons name="paper-plane" size={18} color="#fff" />
+              <Text style={styles.bottomBtnText}>Send Quote to Customer</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      ) : request.hasQuoted && status !== 'ACCEPTED' && request.vendorQuote?.status !== 'ACCEPTED' ? (
+        <View style={styles.quotedSentBar}>
+          <Ionicons name="checkmark-circle" size={20} color={C.g600} />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.quotedSentText}>Quote Already Sent</Text>
+            {request.vendorQuote?.grandTotal ? (
+              <Text style={styles.quotedSentAmt}>
+                ₹{Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}
+                {request.vendorQuote?.status ? `  ·  ${request.vendorQuote.status}` : ''}
+              </Text>
+            ) : null}
           </View>
         </View>
-      )}
-    </SafeAreaView>
-  );
-}
-
-function InfoRow({ icon, label, value }) {
-  return (
-    <View style={s.infoRow}>
-      {icon}
-      <View style={s.infoContent}>
-        <Text style={s.infoLabel}>{label}</Text>
-        <Text style={s.infoValue}>{value}</Text>
-      </View>
+      ) : null}
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.bg },
 
-  hero: { paddingHorizontal: 16, paddingBottom: 20 },
-  heroMin: { paddingHorizontal: 16, paddingBottom: 16 },
-  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(52,211,153,0.08)' },
-  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(52,211,153,0.06)' },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12 },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  // ── Hero ──────────────────────────────────────────────────────────────
+  headerGrad: { paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
+  deco1: { position: 'absolute', width: 190, height: 190, borderRadius: 95, backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40 },
+  deco2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)', bottom: -10, left: 40 },
+
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 16 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  heroTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
-  heroCard: { marginTop: 16, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  heroRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  heroReqNum: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  heroService: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
-  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  // Identity block (customer avatar + name + phone)
+  identityBlock: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 2 },
+  identityIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  identityIconTxt: { fontFamily: DISPLAY, fontSize: 19, fontWeight: '800', color: '#fff' },
+  identityLabel: { fontSize: 9.5, color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: 1.2, marginBottom: 3 },
+  identityName: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff' },
+  identityPhoneRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
+  identityPhoneTxt: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
+
+  // Hero quick action
+  heroActionRow: { flexDirection: 'row', paddingTop: 14 },
+  quotedPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 12, paddingVertical: 7,
+    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
+  },
+  quotedPillText: { fontSize: 12.5, fontWeight: '700', color: '#fff' },
+  sendQuickBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.18)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)',
+  },
+  sendQuickBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+
+  scrollContent: { paddingHorizontal: 16, paddingTop: TICKET_OVERLAP, paddingBottom: 100 },
+
+  // ── Ticket summary card — request #, status, rental period; overlaps hero bottom ──
+  ticketWrap: {
+    marginTop: -TICKET_OVERLAP, backgroundColor: C.card,
+    borderRadius: rs(16), overflow: 'hidden', borderWidth: 1, borderColor: C.border,
+    marginBottom: 12, ...cardShadow,
+  },
+  ticketRail: { height: 3, width: '100%' },
+  ticketUpperStub: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingBottom: 14 },
+  ticketIconBox: {
+    width: rs(44), height: rs(44), borderRadius: rs(12),
+    backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
+  },
+  ticketLabel: { fontSize: 9.5, color: C.muted, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
+  ticketNumber: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '900', color: C.text, letterSpacing: -0.3 },
+
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
   statusPillTxt: { fontSize: 11, fontWeight: '700' },
-  quotedBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)' },
-  quotedBannerTxt: { fontSize: 13, color: C.g400, fontWeight: '600' },
 
-  scroll: { flex: 1 },
-  content: { padding: 16, paddingBottom: 100 },
+  perforationRow: { height: 2, justifyContent: 'center' },
+  dashLine: { marginHorizontal: 20, borderTopWidth: 1, borderColor: C.border, borderStyle: 'dashed' },
+  notchLeft: { position: 'absolute', left: -9, top: -8, width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg },
+  notchRight: { position: 'absolute', right: -9, top: -8, width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg },
 
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: C.sub, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  card: { backgroundColor: C.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: C.border, gap: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
+  ticketLowerStub: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, paddingTop: 14 },
+  ticketRouteIconWrap: { width: rs(30), height: rs(30), borderRadius: rs(9), backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center' },
+  ticketRouteLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
+  ticketRouteValue: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '800', color: C.g700 },
 
-  infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  infoContent: { flex: 1 },
-  infoLabel: { fontSize: 11, color: C.muted, marginBottom: 2 },
-  infoValue: { fontSize: 14, color: C.text, fontWeight: '600' },
+  // Quick contact row
+  contactRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  contactBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    backgroundColor: C.card, borderRadius: rs(14), paddingVertical: 12,
+    borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
+  },
+  contactBtnTxt: { fontSize: 13, fontWeight: '800', color: C.g600 },
 
-  reqRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  // Quoted banner
+  quotedBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.g50, padding: 14, borderRadius: 12,
+    borderWidth: 1, borderColor: C.g100, marginBottom: 12,
+  },
+  quotedBannerIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.g100, justifyContent: 'center', alignItems: 'center' },
+  quotedBannerTitle: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.g700 },
+  quotedBannerAmt: { fontSize: 12, color: C.g600, marginTop: 2 },
+
+  // ── Section card ──────────────────────────────────────────────────────
+  card: {
+    backgroundColor: C.card, borderRadius: rs(16), padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
+  },
+  cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  cardIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
+
+  // Equipment
+  equipBox: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  equipIconWrap: {
+    width: 52, height: 52, borderRadius: 14,
+    backgroundColor: C.amberL, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: '#FDE68A',
+  },
+  equipName: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
+  equipSub: { fontSize: 12, color: C.sub, marginTop: 2 },
+  catPill: {
+    alignSelf: 'flex-start', backgroundColor: C.amberL,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginTop: 6,
+    borderWidth: 1, borderColor: '#FDE68A',
+  },
+  catPillText: { fontSize: 11, fontWeight: '600', color: C.amber },
+
+  // Rental period rail inside Rental Details
+  routeWrap: { flexDirection: 'row', paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: C.border, marginBottom: 12 },
+  routeGutter: { width: 20, alignItems: 'center', marginRight: 10 },
+  routeDot: { width: 9, height: 9, borderRadius: 4.5 },
+  routeLine: { width: 1.5, flex: 1, minHeight: 24, backgroundColor: C.border, marginVertical: 3 },
+  routeLabel: { fontSize: 10, fontWeight: '700', color: C.muted, letterSpacing: 0.5 },
+  routeValue: { fontSize: 14, fontWeight: '700', color: C.text, marginTop: 2 },
+
+  // Fact grid (quantity/rental days/duration/company)
+  factGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  factCell: { flexGrow: 1, minWidth: '30%', backgroundColor: C.g50, borderRadius: rs(12), padding: 10 },
+  factLabel: { fontSize: 9, fontWeight: '700', color: C.g700, letterSpacing: 0.5, marginBottom: 4 },
+  factValue: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text },
+  factSub: { fontSize: 11, color: C.sub, marginTop: 1 },
+
+  // Delivery Location
+  deliveryRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
+  deliveryText: { fontSize: 14, color: C.text, fontWeight: '600', flex: 1 },
+
+  // Service Requirements
+  reqRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   reqText: { fontSize: 14, color: C.text, fontWeight: '500' },
-  notesText: { fontSize: 14, color: C.sub, lineHeight: 20 },
-  timelineRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  timelineText: { fontSize: 13, color: C.sub },
 
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: C.text, marginTop: 16 },
+  // Notes
+  notesText: { fontSize: 14, color: C.sub, lineHeight: 22 },
 
-  bottomBar: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: C.border, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 8 },
-  sendQuoteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.g600, paddingVertical: 14, borderRadius: 12 },
-  bottomBtnTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  quotedBottomRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  quotedBottomTitle: { fontSize: 14, fontWeight: '700', color: C.g700 },
-  quotedBottomSub: { fontSize: 12, color: C.g600, marginTop: 2 },
+  // Timeline (dot + connecting line)
+  tlRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  tlGutter: { width: 18, alignItems: 'center' },
+  tlDot: { width: 8, height: 8, borderRadius: 4, marginTop: 3 },
+  tlLine: { width: 1.5, flex: 1, minHeight: 16, backgroundColor: C.border, marginVertical: 2 },
+  timelineText: { fontSize: 13, color: C.sub, marginLeft: 6, paddingBottom: 10 },
+
+  // ── Bottom bar ────────────────────────────────────────────────────────
+  bottomBar: {
+    paddingHorizontal: 16, paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 14,
+    backgroundColor: C.card,
+    borderTopWidth: 1, borderTopColor: C.border,
+    ...cardShadow,
+  },
+  primaryBtnWrap: { borderRadius: rs(14), overflow: 'hidden' },
+  primaryBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
+  bottomBtnText: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: '#fff' },
+
+  quotedSentBar: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: C.g50,
+    borderTopWidth: 1, borderTopColor: C.g100,
+  },
+  quotedSentText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.g700 },
+  quotedSentAmt: { fontSize: 12, color: C.g600, marginTop: 1 },
+
+  // Empty / Loading
+  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text, marginTop: 14 },
+  emptySubtitle: { fontSize: 13, color: C.muted, marginTop: 6, textAlign: 'center', paddingHorizontal: 32 },
 });

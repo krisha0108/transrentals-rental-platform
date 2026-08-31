@@ -430,7 +430,7 @@ export default function VendorLuxuryBookingDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F8F9FB] pb-12 animate-pulse">
+      <div className="min-h-dvh bg-[#F8F9FB] pb-12 animate-pulse">
         {/* Header Skeleton */}
         <div className="w-full bg-white border-b border-[#EEEEEE] px-6 py-5">
           <div className="flex flex-wrap items-center justify-between gap-6">
@@ -661,7 +661,7 @@ export default function VendorLuxuryBookingDetailPage() {
   const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING_PAYMENT;
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB] text-[#1F2A37] font-sans pb-12">
+    <div className="min-h-dvh bg-[#F8F9FB] text-[#1F2A37] font-sans pb-12">
       {/* Header Premium Identity Zone */}
       <div className="w-full bg-white border-b border-[#EEEEEE] sticky top-0 z-50 transition-all duration-300 shadow-sm">
         <div className="w-full px-6 py-5">

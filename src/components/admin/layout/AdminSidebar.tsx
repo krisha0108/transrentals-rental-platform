@@ -453,6 +453,7 @@ const adminItems: NavItem[] = [
       { name: 'Performance', href: '/admin/analytics/performance', icon: Gauge },
       { name: 'Pages', href: '/admin/analytics/pages', icon: FileBarChart },
       { name: 'SEO Audits', href: '/admin/analytics/seo', icon: TrendingUp },
+      { name: 'Site Audit', href: '/admin/analytics/site-audit', icon: Search },
       { name: 'Rankings', href: '/admin/analytics/rankings', icon: BarChart3 },
       { name: 'Clicks', href: '/admin/analytics/clicks', icon: MousePointer },
       { name: 'Backlinks', href: '/admin/analytics/backlinks', icon: Link2 },

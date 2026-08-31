@@ -19,6 +19,7 @@ import {
   Car,
   Eye,
 } from 'lucide-react';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 interface Conversation {
   id: string;
@@ -125,6 +126,20 @@ export default function ManagerChatsPage() {
     fetchConversations();
   };
 
+  useManagerPageHeader(
+    'Chat Conversations',
+    'View conversations between vendors and customers',
+    <button
+      key="refresh"
+      onClick={handleRefresh}
+      disabled={isRefreshing}
+      title="Refresh"
+      className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+    >
+      <RefreshCw className={`w-5 h-5 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`} />
+    </button>
+  );
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -160,22 +175,6 @@ export default function ManagerChatsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Chat Conversations</h1>
-          <p className="text-gray-500 mt-1">View conversations between vendors and customers</p>
-        </div>
-        <button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
-
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-3 gap-4">

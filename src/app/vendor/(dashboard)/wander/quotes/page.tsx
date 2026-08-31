@@ -65,7 +65,7 @@ export default function VendorWanderQuotesPage() {
   const accepted = requests.filter(r => r.status === 'ACCEPTED').length;
 
   return (
-    <div className="-mx-6 -mt-6 bg-slate-50 min-h-screen">
+    <div className="-mx-6 -mt-6 bg-slate-50 min-h-dvh">
 
       {/* ── Dark Header ── */}
       <div className="relative bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-700 overflow-hidden px-8 pt-8 pb-6">

@@ -347,7 +347,7 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
             ))}
           </div>
         </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content
@@ -365,9 +365,11 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
+            '@type': 'Service',
+            serviceType: 'One Way Car Rental',
             name: `One Way Car Rental from ${locationName}`,
             description: `One-way car rental service from ${locationName}. Drop at different city.`,
+            areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',

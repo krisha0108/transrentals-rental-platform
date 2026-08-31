@@ -40,6 +40,14 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'You do not have access to this booking' }, { status: 403 });
     }
 
+    let intermediateStops: any[] = [];
+    try {
+      if (booking.intermediateStops) {
+        const parsed = JSON.parse(booking.intermediateStops);
+        if (Array.isArray(parsed)) intermediateStops = parsed;
+      }
+    } catch { /* malformed/legacy data — treat as no stops */ }
+
     return NextResponse.json({
       success: true,
       booking: {
@@ -52,14 +60,18 @@ export async function GET(
         tripType:        booking.tripType,
         carCategory:     booking.carCategory,
         carCategoryName: booking.carCategoryName,
+        locationName:    booking.locationName,
         pickupCity:      booking.pickupCity,
         dropCity:        booking.dropCity,
         pickupAddress:   booking.pickupAddress,
         dropAddress:     booking.dropAddress,
+        intermediateStops,
         pickupDate:      booking.pickupDate,
         pickupTime:      booking.pickupTime,
         returnDate:      booking.returnDate,
+        returnTime:      booking.returnTime,
         totalDays:       booking.totalDays,
+        totalHours:      booking.totalHours,
         localPackageId:   booking.localPackageId,
         localPackageHours: booking.localPackageHours,
         localPackageKm:   booking.localPackageKm,

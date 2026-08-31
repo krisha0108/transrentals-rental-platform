@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
   MapPin, AlertCircle, Users, CheckCircle2, RefreshCw, Search, ChevronRight,
   MapPinOff, Layers, Building2, Plane, Home, TreePine, Globe2,
@@ -78,6 +79,20 @@ export default function ManagerVendorsByLocationPage() {
     }
   }, [search, type, service]);
 
+  useManagerPageHeader(
+    'Location Coverage',
+    'How many approved vendors — and which services — serve each of your assigned locations',
+    <button
+      key="refresh"
+      onClick={() => fetchData(true)}
+      disabled={isRefreshing}
+      title="Refresh"
+      className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+    >
+      <RefreshCw className={`w-5 h-5 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`} />
+    </button>
+  );
+
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // Debounce search
@@ -89,45 +104,20 @@ export default function ManagerVendorsByLocationPage() {
   return (
     <div className="space-y-6 pb-10">
 
-      {/* ══ HEADER ══════════════════════════════════════════════════ */}
-      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 text-white">
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 10% 60%, #10b981 0%, transparent 50%), radial-gradient(circle at 90% 20%, #059669 0%, transparent 50%)' }} />
-        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px)', backgroundSize: '24px 24px' }} />
-
-        <div className="relative px-6 sm:px-8 py-7 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <MapPin className="w-5 h-5 text-emerald-400" />
-              <span className="text-slate-400 text-xs font-semibold tracking-widest uppercase">My Coverage</span>
+      {/* ══ CONTROLS ════════════════════════════════════════════════ */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        {/* Summary pills */}
+        <div className="flex gap-3 flex-wrap">
+          {[
+            { label: 'Locations', value: rows.length, color: 'bg-slate-50 border-slate-200 text-slate-700' },
+            { label: 'Approvals', value: totalLinks, color: 'bg-blue-50 border-blue-200 text-blue-700' },
+            { label: 'Active', value: activeLinks, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+          ].map((s) => (
+            <div key={s.label} className={`flex flex-col items-center px-4 py-2.5 rounded-xl border ${s.color}`}>
+              <span className="text-xl font-black">{isLoading ? '—' : s.value}</span>
+              <span className="text-[10px] font-semibold tracking-wide uppercase mt-0.5 opacity-70">{s.label}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold mb-1">Location Coverage</h1>
-            <p className="text-slate-400 text-sm">How many approved vendors — and which services — serve each of your assigned locations</p>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            {/* Summary pills */}
-            <div className="flex gap-3 flex-wrap">
-              {[
-                { label: 'Locations', value: rows.length, color: 'bg-white/10 border-white/15 text-white' },
-                { label: 'Approvals', value: totalLinks, color: 'bg-blue-500/20 border-blue-400/30 text-blue-300' },
-                { label: 'Active', value: activeLinks, color: 'bg-emerald-500/20 border-emerald-400/30 text-emerald-300' },
-              ].map((s) => (
-                <div key={s.label} className={`flex flex-col items-center px-4 py-2.5 rounded-xl border ${s.color}`}>
-                  <span className="text-xl font-black">{isLoading ? '—' : s.value}</span>
-                  <span className="text-[10px] font-semibold tracking-wide uppercase mt-0.5 opacity-80">{s.label}</span>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => fetchData(true)}
-              disabled={isRefreshing}
-              className="shrink-0 p-2.5 rounded-xl border border-white/15 bg-white/10 hover:bg-white/15 transition-colors"
-              title="Refresh"
-            >
-              <RefreshCw className={`w-4 h-4 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
+          ))}
         </div>
       </div>
 

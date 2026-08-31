@@ -293,6 +293,8 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<{ type: string; id?: string } | null>(null);
+  const [suspendReason, setSuspendReason] = useState('');
+  const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   // CRM tags
@@ -479,6 +481,8 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
         await fetchVendor();
         setShowRejectModal(false);
         setRejectionReason('');
+        setShowSuspendModal(false);
+        setSuspendReason('');
       } else {
         const error = await res.json();
         alert(error.error || 'Action failed');
@@ -1267,7 +1271,7 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                 label: 'Suspend',
                 icon: <AlertTriangle className="w-4 h-4" />,
                 itemClass: 'text-purple-700 hover:bg-purple-50',
-                onClick: () => { setStatusDropdownOpen(false); handleVendorAction('SUSPEND'); },
+                onClick: () => { setStatusDropdownOpen(false); setShowSuspendModal(true); },
               });
             }
 
@@ -1613,6 +1617,17 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">Rejected</p>
+                      <p className="text-sm text-gray-500">Reason: {vendor.rejectionReason}</p>
+                    </div>
+                  </div>
+                )}
+                {vendor.status === 'SUSPENDED' && vendor.rejectionReason && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                      <AlertTriangle className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Suspended</p>
                       <p className="text-sm text-gray-500">Reason: {vendor.rejectionReason}</p>
                     </div>
                   </div>
@@ -3193,6 +3208,48 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                   <XCircle className="w-4 h-4 mr-2" />
                 )}
                 Reject
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Suspend Modal */}
+      {showSuspendModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Suspension Reason</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              This is recorded on the vendor's account for your team's reference. The vendor will only see a generic "contact support" message — not this reason.
+            </p>
+            <textarea
+              value={suspendReason}
+              onChange={(e) => setSuspendReason(e.target.value)}
+              placeholder="Why is this vendor being suspended?"
+              rows={4}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 mb-4"
+            />
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowSuspendModal(false);
+                  setSuspendReason('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+                onClick={() => handleVendorAction('SUSPEND', suspendReason)}
+                disabled={!suspendReason.trim() || !!actionLoading}
+              >
+                {actionLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                )}
+                Suspend
               </Button>
             </div>
           </div>

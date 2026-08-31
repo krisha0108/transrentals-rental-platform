@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, ActivityIndicator, Modal, TextInput, Linking, Share, ScrollView, StatusBar,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -9,18 +10,22 @@ import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getP2PVehicles, requestP2PVehicle, getP2PComments, addP2PComment } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
+import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import AnimatedOrb from '../_shared/AnimatedOrb';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399', g300: '#6EE7B7',
-  g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F8FAFC', surface: '#FFFFFF',
-  text: '#0F172A', sub: '#334155', muted: '#94A3B8',
-  border: '#E2E8F0', borderMed: '#CBD5E1',
-  amber: '#F59E0B', amberBg: '#FFFBEB',
-  red: '#EF4444', redBg: '#FEF2F2',
-  blue: '#3B82F6', blueBg: '#EFF6FF', blueDark: '#1D4ED8',
-  purple: '#8B5CF6', purpleBg: '#F5F3FF',
+  g950: T.forestDark, g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep,
+  g600: T.emerald600, g500: T.emerald500,
+  g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, surface: T.card,
+  text: T.ink, sub: T.text, muted: T.subText,
+  border: T.border, borderMed: '#CBD5E1',
+  amber: T.amber,
+  red: T.red,
+  purple: T.purple, purpleBg: T.tintPlum,
 };
 
 function fmtDate(d) {
@@ -421,10 +426,10 @@ export default function BrowseVehiclesScreen({ navigation }) {
   const ListHeader = () => (
     <>
       {/* ── Gradient Header ── */}
-      <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.header}>
+      <LinearGradient colors={G.hero} style={s.header}>
         {/* Decorative circles */}
-        <View style={s.decCircle1} />
-        <View style={s.decCircle2} />
+        <AnimatedOrb style={s.decCircle1} />
+        <AnimatedOrb style={s.decCircle2} delay={1200} dx={-10} dy={8} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerInner}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -557,9 +562,9 @@ export default function BrowseVehiclesScreen({ navigation }) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg }}>
         <StatusBar barStyle="light-content" backgroundColor={C.g950} />
-        <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.header}>
-          <View style={s.decCircle1} />
-          <View style={s.decCircle2} />
+        <LinearGradient colors={G.hero} style={s.header}>
+          <AnimatedOrb style={s.decCircle1} />
+          <AnimatedOrb style={s.decCircle2} delay={1200} dx={-10} dy={8} />
           <SafeAreaView edges={['top']}>
             <View style={s.headerInner}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -636,11 +641,12 @@ export default function BrowseVehiclesScreen({ navigation }) {
 
       {/* ── Request Modal ── */}
       <Modal visible={reqModal} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setReqModal(false)} />
           <View style={s.modalSheet}>
             {/* Modal Header */}
-            <LinearGradient colors={[C.g950, C.g800]} style={s.modalHeaderGrad}>
+            <LinearGradient colors={[T.forestDark, T.forest]} style={s.modalHeaderGrad}>
               <View style={s.modalHandle} />
               <View style={s.modalHeaderRow}>
                 <View style={s.modalIconWrap}>
@@ -817,6 +823,7 @@ export default function BrowseVehiclesScreen({ navigation }) {
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <CustomAlert
@@ -846,12 +853,12 @@ const s = StyleSheet.create({
   header: { paddingBottom: 18, overflow: 'hidden', position: 'relative' },
   decCircle1: {
     position: 'absolute', width: 180, height: 180, borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     top: -60, right: -40,
   },
   decCircle2: {
     position: 'absolute', width: 120, height: 120, borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(255,255,255,0.045)',
     top: 20, right: 60,
   },
   headerInner: {
@@ -864,7 +871,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   headerCenter: { flex: 1 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
   headerSub: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
   addBtnWrap: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden' },
   addBtnGrad: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -874,10 +881,9 @@ const s = StyleSheet.create({
   searchBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16, borderWidth: 1.5, borderColor: '#E2E8F0',
+    borderRadius: rs(16), borderWidth: 1.5, borderColor: '#E2E8F0',
     paddingHorizontal: 14, paddingVertical: 2,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
+    ...cardShadow,
   },
   searchInput: { flex: 1, fontSize: 14, color: C.text, paddingVertical: 10 },
   searchClearBtn: {
@@ -914,8 +920,7 @@ const s = StyleSheet.create({
     backgroundColor: C.surface, borderRadius: 12,
     borderWidth: 1, borderColor: C.border,
     paddingHorizontal: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
+    ...cardShadow,
   },
   cityInput: { flex: 1, fontSize: 13, color: C.text, paddingVertical: 9 },
   cityArrow: {
@@ -936,15 +941,11 @@ const s = StyleSheet.create({
   card: {
     marginHorizontal: 14,
     backgroundColor: C.surface,
-    borderRadius: 18,
+    borderRadius: rs(18),
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.09,
-    shadowRadius: 10,
-    elevation: 4,
     borderWidth: 1,
     borderColor: C.border,
+    ...cardShadow,
   },
 
   // Card Header Band
@@ -955,7 +956,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center', alignItems: 'center',
   },
-  cardVehName: { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.2 },
+  cardVehName: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.2 },
   cardPlateText: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2, letterSpacing: 0.5 },
   cardSvcBadge: {
     paddingHorizontal: 10, paddingVertical: 5,
@@ -1002,7 +1003,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'flex-start',
     marginBottom: 12,
   },
-  priceVal: { fontSize: 28, fontWeight: '900', color: C.g700, letterSpacing: -0.8 },
+  priceVal: { fontFamily: DISPLAY, fontSize: 28, fontWeight: '900', color: C.g700, letterSpacing: -0.8 },
   priceLabel: { fontSize: 11, color: C.muted, fontWeight: '500', marginTop: 1 },
   partPrice: { fontSize: 12, color: C.sub, marginTop: 3 },
   dateChipStack: { gap: 6, alignItems: 'flex-end' },
@@ -1123,8 +1124,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 18, paddingVertical: 10,
     borderRadius: 12, borderWidth: 1, borderColor: C.border,
     backgroundColor: C.surface,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
+    ...cardShadow,
   },
   pageBtnDisabled: { opacity: 0.4 },
   pageBtnText: { fontSize: 13, fontWeight: '600', color: C.g700 },
@@ -1139,26 +1139,25 @@ const s = StyleSheet.create({
   emptyIconWrap: {
     width: 90, height: 90, borderRadius: 45,
     justifyContent: 'center', alignItems: 'center', marginBottom: 6,
-    shadowColor: C.g800, shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25, shadowRadius: 12, elevation: 6,
+    ...cardShadow,
   },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: C.text },
+  emptyTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '700', color: C.text },
   emptyMsg: { fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 20 },
   emptyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 28, paddingVertical: 14,
-    borderRadius: 14, marginTop: 6,
+    borderRadius: rs(14), marginTop: 6,
   },
   emptyBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
   // ── Request Modal ──
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
+    flex: 1, backgroundColor: T.scrim,
     justifyContent: 'flex-end',
   },
   modalSheet: {
     backgroundColor: C.surface,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     overflow: 'hidden',
   },
   modalHeaderGrad: { paddingTop: 10, paddingBottom: 18, paddingHorizontal: 20 },
@@ -1173,7 +1172,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center', alignItems: 'center',
   },
-  modalTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: '#fff' },
+  modalTitle: { flex: 1, fontFamily: DISPLAY, fontSize: 18, fontWeight: '700', color: '#fff' },
   modalCloseBtn: {
     width: 34, height: 34, borderRadius: 17,
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -1183,14 +1182,14 @@ const s = StyleSheet.create({
   // Modal Vehicle Summary
   modalSummary: {
     flexDirection: 'row', alignItems: 'center',
-    borderRadius: 14, padding: 13, marginBottom: 14,
+    borderRadius: rs(14), padding: 13, marginBottom: 14,
     borderWidth: 1, borderColor: C.g100,
   },
   modalSummaryIcon: {
     width: 40, height: 40, borderRadius: 12,
     justifyContent: 'center', alignItems: 'center',
   },
-  modalSummaryTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  modalSummaryTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '700', color: C.text },
   modalSummaryRoute: { fontSize: 12, color: C.sub, marginTop: 2 },
 
   // Modal Info Grid
@@ -1234,7 +1233,7 @@ const s = StyleSheet.create({
   toggleText: { fontSize: 13, fontWeight: '600', color: C.sub },
   toggleTextActive: { color: C.g700, fontWeight: '700' },
 
-  submitBtnWrap: { borderRadius: 14, overflow: 'hidden', marginTop: 20 },
+  submitBtnWrap: { borderRadius: rs(14), overflow: 'hidden', marginTop: 20 },
   submitBtn: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center', gap: 9, paddingVertical: 16,

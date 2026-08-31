@@ -10,16 +10,20 @@ import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getB2BOpenBookings, submitB2BQuote, getVendorFleet, getStaffDrivers, getB2BTrips, getTemplates, getTemplateById, b2bDriverAction, b2bVerifyOtp } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
+import { SC as T, G, rs, shade, cardShadow, SHEET_RADIUS } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
 
+// Same key names this screen already uses everywhere below — only the
+// values now come from the shared "Elevate" theme instead of hardcoded hex.
 const C = {
-  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857', g600: '#059669',
-  g500: '#10B981', g400: '#34D399', g300: '#6EE7B7', g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F0FDF9', surface: '#FFFFFF',
-  text: '#1E293B', sub: '#475569', muted: '#94A3B8', border: '#E2E8F0',
-  amber: '#F59E0B', amberBg: '#FFFBEB', amberDark: '#D97706',
-  red: '#EF4444', redBg: '#FEF2F2',
-  blue: '#3B82F6', blueBg: '#EFF6FF',
-  purple: '#8B5CF6', purpleBg: '#F5F3FF',
+  g950: T.forestDark, g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
+  g500: T.emerald500, g300: T.oceanLight, g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, surface: T.card,
+  text: T.ink, sub: T.text, muted: T.subText, border: T.border,
+  amber: T.amber, amberBg: T.amberLight, amberDark: shade(T.amber, -15),
+  red: T.red, redBg: T.redLight,
+  blue: T.blue, blueBg: T.blueLight,
+  purple: T.purple, purpleBg: T.tintPlum,
 };
 
 const BOOKING_STATUS_CONFIG = {
@@ -650,7 +654,7 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
   if (loading) {
     return (
       <SafeAreaView style={s.safe} edges={['top']}>
-        <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.header}>
+        <LinearGradient colors={G.hero} style={s.header}>
           <View style={s.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
               <Icon name="arrow-left" size={22} color="#fff" />
@@ -670,7 +674,7 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
   if (!booking) {
     return (
       <SafeAreaView style={s.safe} edges={['top']}>
-        <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.header}>
+        <LinearGradient colors={G.hero} style={s.header}>
           <View style={s.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
               <Icon name="arrow-left" size={22} color="#fff" />
@@ -777,7 +781,7 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
       />
 
       {/* Header */}
-      <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.header}>
+      <LinearGradient colors={G.hero} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Icon name="arrow-left" size={22} color="#fff" />
@@ -1629,6 +1633,7 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
       {/* ── Fleet Modal ──────────────────────────────────────────── */}
       <Modal visible={fleetModalOpen} animationType="slide" transparent
         onRequestClose={() => { setFleetModalOpen(false); setFleetSearch(''); }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <TouchableOpacity style={s.modalBackdrop} activeOpacity={1}
           onPress={() => { setFleetModalOpen(false); setFleetSearch(''); }} />
         <View style={s.modalSheet}>
@@ -1697,6 +1702,7 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
             />
           )}
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Driver Modal ─────────────────────────────────────────── */}
@@ -1745,7 +1751,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700', fontFamily: DISPLAY },
   headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 1 },
 
   /* Scroll */
@@ -1754,12 +1760,12 @@ const s = StyleSheet.create({
 
   /* Card */
   card: {
-    backgroundColor: C.surface, borderRadius: 16,
+    backgroundColor: C.surface, borderRadius: rs(16),
     borderWidth: 1, borderColor: C.border,
     padding: 16, marginBottom: 12,
-    elevation: 1, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
+    ...cardShadow,
   },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 4 },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 4, fontFamily: DISPLAY },
   cardSub: { fontSize: 12, color: C.sub, marginBottom: 12 },
 
   /* Loading */
@@ -1802,7 +1808,7 @@ const s = StyleSheet.create({
 
   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText: { fontSize: 14, color: C.sub },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginTop: 12 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginTop: 12, fontFamily: DISPLAY },
   emptySub: { fontSize: 13, color: C.sub, marginTop: 4, textAlign: 'center' },
 
   /* Booking Info */
@@ -1812,7 +1818,7 @@ const s = StyleSheet.create({
     backgroundColor: C.g50, borderWidth: 1, borderColor: C.g300,
     justifyContent: 'center', alignItems: 'center',
   },
-  serviceTypeText: { fontSize: 15, fontWeight: '700', color: C.text },
+  serviceTypeText: { fontSize: 15, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
   bookingNumText: { fontSize: 12, color: C.muted, marginTop: 2 },
   statusChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 5 },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
@@ -1844,7 +1850,7 @@ const s = StyleSheet.create({
 
   /* Already Quoted */
   quotedCard: {
-    backgroundColor: C.g50, borderRadius: 16, borderWidth: 1, borderColor: C.g300,
+    backgroundColor: C.g50, borderRadius: rs(16), borderWidth: 1, borderColor: C.g300,
     padding: 16, marginBottom: 12,
   },
   quotedHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
@@ -1852,12 +1858,12 @@ const s = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: C.g100, justifyContent: 'center', alignItems: 'center',
   },
-  quotedTitle: { fontSize: 15, fontWeight: '700', color: C.g700 },
+  quotedTitle: { fontSize: 15, fontWeight: '700', color: C.g700, fontFamily: DISPLAY },
   quotedSub: { fontSize: 12, color: C.g600 },
   quotedBody: { gap: 4 },
   quotedTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6 },
   quotedTotalLabel: { fontSize: 13, fontWeight: '600', color: C.text },
-  quotedTotalVal: { fontSize: 20, fontWeight: '800', color: C.g700 },
+  quotedTotalVal: { fontSize: 20, fontWeight: '800', color: C.g700, fontFamily: DISPLAY },
   qStatusChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
   qStatusDot: { width: 6, height: 6, borderRadius: 3 },
   qStatusText: { fontSize: 11, fontWeight: '700' },
@@ -1920,7 +1926,7 @@ const s = StyleSheet.create({
   vehicleCard: { backgroundColor: C.bg, borderRadius: 12, borderWidth: 1, borderColor: C.border, padding: 12 },
   vehicleCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   vehicleIconWrap: { width: 36, height: 36, borderRadius: 9, backgroundColor: C.g50, borderWidth: 1, borderColor: C.g300, justifyContent: 'center', alignItems: 'center' },
-  vehicleCardName: { fontSize: 13, fontWeight: '700', color: C.text },
+  vehicleCardName: { fontSize: 13, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
   vehicleCardPlate: { fontSize: 11, color: C.muted, marginTop: 1 },
   removeBtn: { padding: 4 },
 
@@ -1960,38 +1966,38 @@ const s = StyleSheet.create({
   summaryDivider: { height: 1, backgroundColor: C.border, marginVertical: 8 },
   summaryTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   summaryTotalLabel: { fontSize: 15, fontWeight: '700', color: C.text },
-  summaryTotalVal: { fontSize: 22, fontWeight: '800', color: C.g700 },
+  summaryTotalVal: { fontSize: 22, fontWeight: '800', color: C.g700, fontFamily: DISPLAY },
   summaryVehicleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderRadius: 8, backgroundColor: C.bg, paddingHorizontal: 10, marginBottom: 6 },
   summaryVehicleName: { fontSize: 13, fontWeight: '600', color: C.text },
   summaryDriverName: { fontSize: 11, color: C.muted, marginTop: 1 },
-  summaryVehiclePrice: { fontSize: 14, fontWeight: '700', color: C.text, marginLeft: 8 },
+  summaryVehiclePrice: { fontSize: 14, fontWeight: '700', color: C.text, marginLeft: 8, fontFamily: DISPLAY },
   summaryTotalBox: { backgroundColor: C.g50, borderRadius: 10, borderWidth: 1, borderColor: C.g300, padding: 12 },
   summaryTotalBoxLabel: { fontSize: 12, color: C.g600, marginBottom: 2 },
   termsNum: { fontSize: 13, fontWeight: '700', color: C.g700, minWidth: 18 },
 
   /* Submit */
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 14, paddingVertical: 15 },
-  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: rs(14), paddingVertical: 15 },
+  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', fontFamily: DISPLAY },
 
   /* Closed */
   closedCard: {
     alignItems: 'center', padding: 32,
-    backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border,
+    backgroundColor: C.surface, borderRadius: rs(16), borderWidth: 1, borderColor: C.border,
     marginBottom: 12,
   },
-  closedTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginTop: 10 },
+  closedTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginTop: 10, fontFamily: DISPLAY },
   closedSub: { fontSize: 13, color: C.sub, marginTop: 4, textAlign: 'center' },
 
   /* Modals */
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: T.scrim },
   modalSheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: C.surface, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     maxHeight: '80%',
   },
   modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginTop: 10 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: C.text },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 4 },
   searchInput: { flex: 1, fontSize: 14, color: C.text, padding: 0 },
   modalList: { paddingHorizontal: 12, paddingBottom: 40 },
@@ -2000,7 +2006,7 @@ const s = StyleSheet.create({
   fleetItem: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 10, marginBottom: 4 },
   fleetItemSelected: { backgroundColor: C.g50 },
   fleetItemIcon: { width: 38, height: 38, borderRadius: 9, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
-  fleetItemName: { fontSize: 14, fontWeight: '600', color: C.text },
+  fleetItemName: { fontSize: 14, fontWeight: '600', color: C.text, fontFamily: DISPLAY },
   fleetItemPlate: { fontSize: 12, color: C.muted, marginTop: 1 },
 
   /* Grand total KM row */
@@ -2023,11 +2029,11 @@ const s = StyleSheet.create({
 
   /* Template modal */
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    flex: 1, backgroundColor: T.scrim,
     justifyContent: 'flex-end',
   },
   templateModal: {
-    backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: C.surface, borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
     maxHeight: '75%',
   },
   templateModalHeader: {
@@ -2035,7 +2041,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12,
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  templateModalTitle: { fontSize: 17, fontWeight: '700', color: C.text },
+  templateModalTitle: { fontSize: 17, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
   templateModalSub: { fontSize: 12, color: C.muted, marginTop: 2 },
   templateModalClose: {
     width: 32, height: 32, borderRadius: 16,
@@ -2045,7 +2051,7 @@ const s = StyleSheet.create({
   templateLoadingText: { fontSize: 13, color: C.sub },
   templateItem: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: C.bg, borderRadius: 14, padding: 14, marginBottom: 8,
+    backgroundColor: C.bg, borderRadius: rs(14), padding: 14, marginBottom: 8,
     borderWidth: 1, borderColor: C.border,
   },
   templateItemLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -2053,7 +2059,7 @@ const s = StyleSheet.create({
     width: 44, height: 44, borderRadius: 12,
     backgroundColor: C.purpleBg, justifyContent: 'center', alignItems: 'center',
   },
-  templateItemName: { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 5 },
+  templateItemName: { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 5, fontFamily: DISPLAY },
   templateItemMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   templateCatChip: {
     backgroundColor: C.g50, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
@@ -2062,6 +2068,6 @@ const s = StyleSheet.create({
   templateCatText: { fontSize: 10, fontWeight: '700', color: C.g700 },
   templateMetaText: { fontSize: 11, color: C.muted },
   templateEmpty: { alignItems: 'center', paddingVertical: 40, gap: 8 },
-  templateEmptyText: { fontSize: 15, fontWeight: '600', color: C.text },
+  templateEmptyText: { fontSize: 15, fontWeight: '600', color: C.text, fontFamily: DISPLAY },
   templateEmptySub: { fontSize: 12, color: C.sub },
 });

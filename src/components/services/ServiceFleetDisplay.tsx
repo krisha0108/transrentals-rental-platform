@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Car, Loader2, ChevronRight, Users, Fuel, Settings } from 'lucide-react';
+import { Car, Bike, ChevronRight, ArrowRight, Users, Fuel, Gauge, KeyRound, LayoutGrid } from 'lucide-react';
 
 interface Vehicle {
   id: string;
@@ -107,38 +107,46 @@ export function ServiceFleetDisplay({
     return null;
   }
 
+  const bookHref = locationSlug ? `/${serviceSlug}/${locationSlug}/bikes` : `/${serviceSlug}#locations`;
+
   return (
-    <section className="py-16 bg-white">
+    <section className="py-16 md:py-20 bg-white">
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">{title}</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Browse our wide selection of vehicles available for rent
-          </p>
+          <span className="inline-block text-xs font-bold tracking-widest text-emerald-600 mb-2">
+            EXPLORE &amp; RIDE
+          </span>
+          <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-3">{title}</h2>
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="w-8 h-0.5 rounded-full bg-emerald-500" />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          </div>
         </div>
 
         {/* Category Tabs */}
         {showCategories && categories.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
+          <div className="flex flex-wrap justify-center gap-2.5 mb-10">
             <button
               onClick={() => setSelectedCategory('')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition ${selectedCategory === ''
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition ${selectedCategory === ''
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-white text-gray-700 border border-gray-200 hover:border-emerald-300 hover:text-emerald-700'
                 }`}
             >
-              All
+              <LayoutGrid className="w-3.5 h-3.5" />
+              All Bikes
             </button>
             {categories.map((category) => (
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.slug)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${selectedCategory === category.slug
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition ${selectedCategory === category.slug
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-white text-gray-700 border border-gray-200 hover:border-emerald-300 hover:text-emerald-700'
                   }`}
               >
-                {category.icon && <span className="mr-1">{category.icon}</span>}
+                {category.icon ? <span>{category.icon}</span> : <Bike className="w-3.5 h-3.5" />}
                 {category.name}
               </button>
             ))}
@@ -147,8 +155,15 @@ export function ServiceFleetDisplay({
 
         {/* Fleet Grid */}
         {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-2xl border border-gray-100 p-4 animate-pulse">
+                <div className="h-4 w-20 bg-gray-200 rounded-full mb-4" />
+                <div className="aspect-[4/3] bg-gray-100 rounded-xl mb-4" />
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                <div className="h-3 bg-gray-100 rounded w-1/2" />
+              </div>
+            ))}
           </div>
         ) : fleet.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
@@ -156,90 +171,83 @@ export function ServiceFleetDisplay({
             <p>No vehicles found in this category</p>
           </div>
         ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
           {fleet.map((vehicle) => (
             <div
               key={vehicle.id}
-              className="bg-gray-50 rounded-xl overflow-hidden hover:shadow-lg transition group"
+              className="bg-white rounded-2xl border border-gray-100 hover:border-emerald-200 hover:shadow-lg transition-all group flex flex-col p-4"
             >
+              {/* Category badge */}
+              {vehicle.category && vehicle.category !== 'Uncategorized' && (
+                <span className="self-start bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-full mb-3">
+                  {vehicle.category}
+                </span>
+              )}
+
               {/* Vehicle Image */}
-              <div className="relative h-48 bg-gray-100">
+              <div className="relative h-36 md:h-40 mb-3">
                 {vehicle.image ? (
                   <Image
                     src={vehicle.image}
                     alt={vehicle.name}
                     fill
-                    className="object-contain p-4 group-hover:scale-105 transition"
+                    className="object-contain group-hover:scale-105 transition-transform"
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full">
-                    <Car className="w-16 h-16 text-gray-300" />
+                    <Bike className="w-14 h-14 text-gray-200" />
                   </div>
-                )}
-                {vehicle.category && vehicle.category !== 'Uncategorized' && (
-                  <span className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                    {vehicle.category}
-                  </span>
                 )}
               </div>
 
               {/* Vehicle Details */}
-              <div className="p-4">
-                {vehicle.brand && (() => {
-                  const name = vehicle.name.toLowerCase();
-                  const brand = vehicle.brand.toLowerCase();
-                  const brandFirst = brand.split(/[\s-]/)[0];
-                  return !name.startsWith(brand) && !name.startsWith(brandFirst);
-                })() && (
-                  <div className="flex items-center gap-2 mb-2">
-                    {vehicle.brandLogo && (
-                      <Image
-                        src={vehicle.brandLogo}
-                        alt={vehicle.brand}
-                        width={24}
-                        height={24}
-                        className="object-contain"
-                      />
-                    )}
-                    <span className="text-sm text-gray-500">{vehicle.brand}</span>
-                  </div>
+              <h3 className="text-[15px] font-bold text-gray-900 mb-1.5 leading-snug">
+                {vehicle.name}
+              </h3>
+
+              {/* Specs */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mb-4">
+                {vehicle.engineCC && (
+                  <span className="inline-flex items-center gap-1">
+                    <Gauge className="w-3.5 h-3.5" />
+                    {vehicle.engineCC}cc
+                  </span>
                 )}
-
-                <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-blue-600 transition">
-                  {vehicle.name}
-                </h3>
-
-                {/* Specs */}
-                <div className="flex flex-wrap gap-3 text-sm text-gray-600 mb-3">
-                  {vehicle.seatingCapacity && (
-                    <div className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      <span>{vehicle.seatingCapacity} Seats</span>
-                    </div>
-                  )}
-                  {vehicle.fuelType && (
-                    <div className="flex items-center gap-1">
-                      <Fuel className="w-4 h-4" />
-                      <span>{vehicle.fuelType}</span>
-                    </div>
-                  )}
-                  {vehicle.transmission && (
-                    <div className="flex items-center gap-1">
-                      <Settings className="w-4 h-4" />
-                      <span>{vehicle.transmission}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Price */}
-                {vehicle.basePricePerDay && (
-                  <div className="border-t pt-3">
-                    <p className="text-xs text-gray-500 font-medium mb-0.5">Starting from</p>
-                    <span className="text-2xl font-bold text-blue-600">
-                      ₹{vehicle.basePricePerDay.toLocaleString()}
-                    </span>
-                  </div>
+                {vehicle.mileage && (
+                  <span className="inline-flex items-center gap-1">
+                    <Fuel className="w-3.5 h-3.5" />
+                    {vehicle.mileage}
+                  </span>
                 )}
+                {vehicle.transmission && (
+                  <span className="inline-flex items-center gap-1">
+                    <KeyRound className="w-3.5 h-3.5" />
+                    {vehicle.transmission}
+                  </span>
+                )}
+                {vehicle.seatingCapacity && (
+                  <span className="inline-flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5" />
+                    {vehicle.seatingCapacity} Seats
+                  </span>
+                )}
+              </div>
+
+              {/* Price + Book Now */}
+              <div className="mt-auto flex items-center justify-between gap-2 pt-3 border-t border-gray-100">
+                {vehicle.basePricePerDay ? (
+                  <span className="text-lg font-black text-gray-900">
+                    ₹{vehicle.basePricePerDay.toLocaleString()}
+                    <span className="text-xs font-medium text-gray-400">{priceUnit}</span>
+                  </span>
+                ) : <span />}
+                <Link
+                  href={bookHref}
+                  className="inline-flex items-center gap-1 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 text-xs font-bold px-3 py-2 rounded-lg transition-colors shrink-0"
+                >
+                  Book Now
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
             </div>
           ))}
@@ -248,13 +256,13 @@ export function ServiceFleetDisplay({
 
         {/* View All Button */}
         {showViewAll && fleet.length >= limit && (
-          <div className="text-center mt-8">
+          <div className="text-center mt-10">
             <Link
               href={`/${serviceSlug}#locations`}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 text-gray-800 font-bold text-sm rounded-full hover:border-emerald-400 hover:text-emerald-700 transition-colors"
             >
-              View All Vehicles
-              <ChevronRight className="w-5 h-5" />
+              View All Bikes
+              <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
         )}

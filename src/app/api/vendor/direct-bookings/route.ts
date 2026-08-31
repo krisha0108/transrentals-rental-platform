@@ -54,8 +54,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Block rejected/suspended/blocked vendors from write operations
-  const _guard = await vendorStatusGuard(auth.vendorId!);
+  // Block rejected/blocked vendors — suspended vendors can still record
+  // their own direct bookings (offline/personal, not platform-routed).
+  const _guard = await vendorStatusGuard(auth.vendorId!, { allowSuspended: true });
   if (_guard.blocked) return _guard.response;
 
   const body = await request.json();

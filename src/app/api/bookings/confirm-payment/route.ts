@@ -18,6 +18,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!paymentProof || !String(paymentProof).trim()) {
+      return NextResponse.json(
+        { error: 'Payment screenshot is required' },
+        { status: 400 }
+      );
+    }
+
     // Try to find bike booking first
     let bikeBooking = await prisma.bike_bookings.findUnique({
       where: { id: bookingId },

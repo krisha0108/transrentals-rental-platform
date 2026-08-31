@@ -18,6 +18,7 @@ import {
     Filter,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 interface VendorPerformance {
     id: string;
@@ -141,6 +142,20 @@ export default function VendorPerformancePage() {
         }
     };
 
+    useManagerPageHeader(
+        'Vendor Performance',
+        'Quote acceptance rates and live activity for vendors in your assigned locations.',
+        <button
+            key="refresh"
+            onClick={fetchPerformance}
+            disabled={refreshing}
+            title="Refresh"
+            className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+        >
+            <RefreshCcw className={`w-5 h-5 text-gray-700 ${refreshing ? 'animate-spin' : ''}`} />
+        </button>
+    );
+
     const fetchPresence = async () => {
         try {
             const res = await fetch('/api/admin/vendors/presence');
@@ -222,28 +237,6 @@ export default function VendorPerformancePage() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            {/* Header Section */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-700 via-green-600 to-emerald-600 px-6 py-7 shadow-sm">
-                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 85% 20%, white 0%, transparent 45%)' }} />
-                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                            <TrendingUp className="w-7 h-7" />
-                            Vendor Performance
-                        </h1>
-                        <p className="text-green-50/90 mt-1">Quote acceptance rates and live activity for vendors in your assigned locations.</p>
-                    </div>
-                    <button
-                        onClick={fetchPerformance}
-                        disabled={refreshing}
-                        className="flex items-center justify-center h-10 px-4 bg-white/15 border border-white/25 text-white rounded-lg hover:bg-white/25 transition backdrop-blur disabled:opacity-50 font-medium"
-                    >
-                        <RefreshCcw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                        Refresh Stats
-                    </button>
-                </div>
-            </div>
-
             {/* Stats Overview */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 <div className="p-6 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition group">

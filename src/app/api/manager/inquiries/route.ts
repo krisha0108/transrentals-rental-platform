@@ -52,12 +52,23 @@ export async function GET(request: NextRequest) {
           name: ms.services.name,
           slug: ms.services.slug,
         })),
+        locations: [],
+        stats: { total: 0, pending: 0, quoted: 0, accepted: 0, rejected: 0 },
+        pagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
       });
     }
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
     const serviceFilter = searchParams.get('service') || 'all';
+    const statusFilter = searchParams.get('status') || 'all';
+    const sourceFilter = searchParams.get('source') || 'all';
+    const locationFilter = searchParams.get('location') || 'all';
+    const dateFilter = searchParams.get('date') || 'all';
+    const actionedFilter = searchParams.get('actioned') || 'all';
+    const search = (searchParams.get('search') || '').trim().toLowerCase();
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.max(1, parseInt(searchParams.get('limit') || '10', 10));
 
     // Helper to check if service is assigned (exact match or known aliases)
     const isServiceAssigned = (serviceSlug: string): boolean => {
@@ -373,10 +384,87 @@ export async function GET(request: NextRequest) {
       slug: svc.slug,
     }));
 
+    // Unique locations for the filter dropdown — from the full assigned-scope
+    // result, not the post-filter list, so the dropdown doesn't shrink as
+    // other filters narrow the results (matches prior client-side behavior).
+    const uniqueLocations = Array.from(
+      new Set(allInquiries.map((i) => i.locationName).filter(Boolean))
+    ).sort();
+
+    // Same date-bucket logic the page used to run client-side.
+    const matchesDateFilter = (inquiry: any): boolean => {
+      if (dateFilter === 'all') return true;
+      const inquiryDate = new Date(inquiry.createdAt);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      switch (dateFilter) {
+        case 'today':
+          return inquiryDate >= today;
+        case 'yesterday': {
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          return inquiryDate >= yesterday && inquiryDate < today;
+        }
+        case 'thisMonth':
+          return inquiryDate >= new Date(now.getFullYear(), now.getMonth(), 1);
+        case 'lastMonth': {
+          const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+          return inquiryDate >= lastMonthStart && inquiryDate <= lastMonthEnd;
+        }
+        default:
+          return true;
+      }
+    };
+
+    let filtered = allInquiries.filter(matchesDateFilter);
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((i) => i.status === statusFilter);
+    }
+    if (sourceFilter !== 'all') {
+      filtered = filtered.filter((i) => (i.source || 'web') === sourceFilter);
+    }
+    if (locationFilter !== 'all') {
+      filtered = filtered.filter((i) => i.locationName === locationFilter);
+    }
+    if (actionedFilter !== 'all') {
+      filtered = filtered.filter((i) =>
+        actionedFilter === 'actioned' ? !!i.lastActionType : !i.lastActionType
+      );
+    }
+    if (search) {
+      filtered = filtered.filter(
+        (i) =>
+          i.requestNumber?.toLowerCase().includes(search) ||
+          i.customerName?.toLowerCase().includes(search) ||
+          i.customerPhone?.includes(search) ||
+          i.customerEmail?.toLowerCase().includes(search) ||
+          i.locationName?.toLowerCase().includes(search) ||
+          i.serviceName?.toLowerCase().includes(search)
+      );
+    }
+
+    const stats = {
+      total: filtered.length,
+      pending: filtered.filter((i) => i.status === 'PENDING').length,
+      quoted: filtered.filter((i) => i.status === 'QUOTED').length,
+      accepted: filtered.filter((i) => i.status === 'ACCEPTED').length,
+      rejected: filtered.filter((i) => i.status === 'REJECTED').length,
+    };
+
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const skip = (page - 1) * limit;
+    const paginatedInquiries = filtered.slice(skip, skip + limit);
+
     return NextResponse.json({
       success: true,
-      inquiries: allInquiries,
+      inquiries: paginatedInquiries,
       services: uniqueServices,
+      locations: uniqueLocations,
+      stats,
+      pagination: { page, limit, total, totalPages },
     });
   } catch (error: any) {
     logger.error('Manager inquiries error', error);

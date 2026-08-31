@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import { shapeAuditForClient } from '@/lib/seo/audit-engine';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,23 +33,16 @@ export async function GET(request: NextRequest) {
       prisma.seo_audits.count(),
     ]);
 
-    // Parse JSON fields
-    const formattedAudits = audits.map(audit => ({
-      ...audit,
-      issues: audit.issues ? JSON.parse(audit.issues) : [],
-      warnings: audit.warnings ? JSON.parse(audit.warnings) : [],
-      passed: audit.passed ? JSON.parse(audit.passed) : [],
-      structuredDataTypes: audit.structuredDataTypes ? JSON.parse(audit.structuredDataTypes) : [],
-    }));
+    const formattedAudits = audits.map((audit) => shapeAuditForClient(audit));
 
-    // Calculate summary stats
-    const avgOverallScore = audits.length > 0
+    // Summary stats, shaped to match what the dashboard renders
+    const averageScore = audits.length > 0
       ? Math.round(audits.reduce((sum, a) => sum + a.overallScore, 0) / audits.length)
       : 0;
 
     const scoreDistribution = {
       good: audits.filter(a => a.overallScore >= 80).length,
-      needsImprovement: audits.filter(a => a.overallScore >= 60 && a.overallScore < 80).length,
+      needsWork: audits.filter(a => a.overallScore >= 60 && a.overallScore < 80).length,
       poor: audits.filter(a => a.overallScore < 60).length,
     };
 
@@ -61,10 +55,10 @@ export async function GET(request: NextRequest) {
         pages: Math.ceil(total / limit),
       },
       summary: {
-        total,
-        avgOverallScore,
+        totalPages: total,
+        averageScore,
         scoreDistribution,
-        lastAudit: audits[0]?.lastAuditDate || null,
+        lastAuditDate: audits[0]?.lastAuditDate || new Date().toISOString(),
       },
     });
   } catch (error) {
