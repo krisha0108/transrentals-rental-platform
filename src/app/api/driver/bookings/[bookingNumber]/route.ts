@@ -19,6 +19,38 @@ function generateCarRentalOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// vendor_fleets.images ek JSON string hai — kabhi { front, back, ... } object,
+// kabhi URLs ka array. Seedha [0] lene par pehla AKSHAR milta tha ("{"), URL nahi.
+function firstVehicleImage(images: any): string | null {
+  if (!images) return null;
+
+  let parsed: any = images;
+  if (typeof images === 'string') {
+    const raw = images.trim();
+    if (!raw) return null;
+    // koi purana row seedha ek URL rakh sakta hai
+    if (raw[0] !== '{' && raw[0] !== '[') return raw;
+    try { parsed = JSON.parse(raw); } catch { return null; }
+  }
+
+  const pick = (list: any[]) => {
+    const url = list.find((x) => typeof x === 'string' && x.trim());
+    return url ? url.trim() : null;
+  };
+
+  if (Array.isArray(parsed)) return pick(parsed);
+  if (parsed && typeof parsed === 'object') {
+    // wahi kram jo customer ko dikhta hai — pehle front, phir jo mile
+    const order = ['front', 'back', 'leftSide', 'rightSide', 'left', 'right', 'inside', 'interior'];
+    for (const key of order) {
+      const v = parsed[key];
+      if (typeof v === 'string' && v.trim()) return v.trim();
+    }
+    return pick(Object.values(parsed));
+  }
+  return null;
+}
+
 function normalizePhone(phone: string | null | undefined): string {
   if (!phone) return '';
   const digits = phone.replace(/\D/g, '');
@@ -185,7 +217,7 @@ export async function GET(
         }
 
         const v = b2bTrip.vehicle;
-        const vehicleImage = v?.vehicle_models?.sideImage || v?.chauffeur_vehicle_categories?.image || (v?.images && v.images.length > 0 ? v.images[0] : null);
+        const vehicleImage = v?.vehicle_models?.sideImage || v?.chauffeur_vehicle_categories?.image || firstVehicleImage(v?.images);
         const brandName = v?.vehicle_models?.brands?.name || v?.brands?.name || '';
         const modelName = v?.vehicle_models?.name || '';
 

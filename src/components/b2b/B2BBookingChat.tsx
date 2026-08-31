@@ -181,12 +181,16 @@ export default function B2BBookingChat({ bookingId, customerId, customerName, de
       {/* Inline Button */}
       <button
         onClick={openChat}
-        className="w-full flex items-center justify-center gap-2.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white py-3.5 rounded-xl font-semibold text-sm transition-all shadow-sm shadow-green-200"
+        className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl text-white font-bold text-[13px] transition-transform hover:-translate-y-0.5 active:translate-y-0"
+        style={{
+          background: 'linear-gradient(180deg,#0EA47E,#056B3E)',
+          boxShadow: '0 16px 30px -16px rgba(4,50,31,.9)',
+        }}
       >
-        <MessageCircle className="w-5 h-5" />
+        <MessageCircle className="w-4 h-4" />
         Chat with Vendor
         {totalUnread > 0 && (
-          <span className="bg-white text-green-700 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+          <span className="bg-white text-emerald-800 text-[11px] font-black rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center">
             {totalUnread}
           </span>
         )}
@@ -194,35 +198,35 @@ export default function B2BBookingChat({ bookingId, customerId, customerName, de
 
       {/* Center Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4" onClick={closeChat}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" style={{ background: 'rgba(6,20,14,.62)', backdropFilter: 'blur(7px)' }} onClick={closeChat}>
           <div
-            className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl flex flex-col shadow-2xl overflow-hidden"
-            style={{ height: '85vh', maxHeight: '600px' }}
+            className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-[18px] flex flex-col overflow-hidden border border-[#DFE8E2]"
+            style={{ height: '85vh', maxHeight: '600px', boxShadow: '0 44px 84px -42px rgba(3,26,16,.85)' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className={`flex items-center gap-3 px-4 py-4 text-white ${selectedVendor ? 'bg-gradient-to-r from-green-600 to-emerald-600' : 'bg-gradient-to-r from-green-600 to-emerald-600'}`}>
+            <div className="flex items-center gap-3 px-4 py-4 text-white" style={{ background: 'linear-gradient(118deg,#042115 0%,#06412A 46%,#067C4A 100%)' }}>
               {selectedVendor ? (
                 <>
-                  <button onClick={() => { setSelectedVendor(null); setMessages([]); }} className="p-1.5 hover:bg-white/20 rounded-lg transition">
+                  <button onClick={() => { setSelectedVendor(null); setMessages([]); }} className="p-1.5 hover:bg-white/20 rounded-lg transition flex-shrink-0">
                     <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <div className="w-9 h-9 bg-white/25 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-white/15 border border-white/25 backdrop-blur-sm flex items-center justify-center font-bold text-sm flex-shrink-0">
                     {selectedVendor.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-sm truncate">{selectedVendor.name}</p>
-                    {selectedVendor.phone && <p className="text-xs text-green-100">{selectedVendor.phone}</p>}
+                    {selectedVendor.phone && <p className="text-xs text-white/60 tabular-nums">{selectedVendor.phone}</p>}
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="w-9 h-9 bg-white/25 rounded-full flex items-center justify-center flex-shrink-0">
-                    <MessageCircle className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-xl bg-white/15 border border-white/25 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                    <MessageCircle className="w-4 h-4" />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className="font-bold text-sm">Vendor Chat</p>
-                    <p className="text-xs text-green-100">Select a vendor to start chatting</p>
+                    <p className="text-xs text-white/60">Select a vendor to start chatting</p>
                   </div>
                 </>
               )}
@@ -236,16 +240,16 @@ export default function B2BBookingChat({ bookingId, customerId, customerName, de
               <div className="flex-1 overflow-y-auto bg-white">
                 {loadingVendors ? (
                   <div className="flex flex-col justify-center items-center h-full gap-3">
-                    <Loader2 className="w-8 h-8 animate-spin text-green-500" />
-                    <p className="text-sm text-gray-400">Loading vendors...</p>
+                    <Loader2 className="w-7 h-7 animate-spin text-[#09B368]" />
+                    <p className="text-xs text-[#9DAAA2]">Loading vendors...</p>
                   </div>
                 ) : vendors.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-400 px-8">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-                      <Building2 className="w-8 h-8 text-gray-300" />
+                  <div className="flex flex-col items-center justify-center h-full px-8">
+                    <div className="w-14 h-14 rounded-2xl bg-white border border-[#DFE8E2] flex items-center justify-center mb-4">
+                      <Building2 className="w-6 h-6 text-[#C2CDC6]" />
                     </div>
-                    <p className="font-semibold text-gray-500 text-center">No vendors assigned yet</p>
-                    <p className="text-sm text-center mt-1 text-gray-400">Chat will be available after vendor confirmation.</p>
+                    <p className="font-semibold text-[#3F4C45] text-center text-sm">No vendors assigned yet</p>
+                    <p className="text-xs text-center mt-1 text-[#9DAAA2]">Chat will be available after vendor confirmation.</p>
                   </div>
                 ) : (
                   <div className="p-3 space-y-2">
@@ -253,23 +257,24 @@ export default function B2BBookingChat({ bookingId, customerId, customerName, de
                       <button
                         key={vendor.id}
                         onClick={() => setSelectedVendor(vendor)}
-                        className="w-full flex items-center gap-3 px-4 py-3.5 bg-gray-50 hover:bg-green-50 hover:border-green-200 border border-gray-100 rounded-2xl text-left transition-all"
+                        className="w-full flex items-center gap-3 px-4 py-3.5 bg-[#F8FBF9] hover:bg-[#E9F7F0] border border-[#DFE8E2] hover:border-[#C3E5D4] rounded-2xl text-left transition-all"
                       >
-                        <div className="w-11 h-11 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center font-bold text-white text-base flex-shrink-0 shadow-sm">
+                        <div className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-white text-base flex-shrink-0"
+                          style={{ background: 'linear-gradient(140deg,#045030,#09B368)' }}>
                           {vendor.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm text-gray-900 truncate">{vendor.name}</p>
-                          <p className="text-xs text-gray-400 truncate mt-0.5">
+                          <p className="font-semibold text-sm text-[#0A140F] truncate">{vendor.name}</p>
+                          <p className="text-xs text-[#9DAAA2] truncate mt-0.5">
                             {vendor.lastMessage || 'Tap to start chatting'}
                           </p>
                         </div>
                         {vendor.unreadCount > 0 ? (
-                          <span className="bg-green-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center flex-shrink-0">
+                          <span className="bg-[#09B368] text-white text-xs font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center flex-shrink-0">
                             {vendor.unreadCount}
                           </span>
                         ) : (
-                          <ChevronLeft className="w-4 h-4 text-gray-300 rotate-180 flex-shrink-0" />
+                          <ChevronLeft className="w-4 h-4 text-[#C2CDC6] rotate-180 flex-shrink-0" />
                         )}
                       </button>
                     ))}
@@ -281,39 +286,39 @@ export default function B2BBookingChat({ bookingId, customerId, customerName, de
             {/* Chat Messages */}
             {selectedVendor && (
               <>
-                <div className="flex-1 overflow-y-auto px-4 py-3 bg-gray-50">
+                <div className="flex-1 overflow-y-auto px-4 py-3 bg-[#F8FBF9]">
                   {loadingMessages ? (
                     <div className="flex justify-center items-center h-full">
-                      <Loader2 className="w-7 h-7 animate-spin text-green-500" />
+                      <Loader2 className="w-7 h-7 animate-spin text-[#09B368]" />
                     </div>
                   ) : messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
-                      <div className="w-14 h-14 rounded-2xl bg-white border border-gray-200 flex items-center justify-center shadow-sm">
-                        <MessageCircle className="w-7 h-7 text-gray-300" />
+                    <div className="flex flex-col items-center justify-center h-full gap-3">
+                      <div className="w-14 h-14 rounded-2xl bg-white border border-[#DFE8E2] flex items-center justify-center">
+                        <MessageCircle className="w-6 h-6 text-[#C2CDC6]" />
                       </div>
                       <div className="text-center">
-                        <p className="text-sm font-medium text-gray-500">No messages yet</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Say hello to get started!</p>
+                        <p className="text-sm font-medium text-[#3F4C45]">No messages yet</p>
+                        <p className="text-xs text-[#9DAAA2] mt-0.5">Say hello to get started!</p>
                       </div>
                     </div>
                   ) : (
                     groupByDate(messages).map(group => (
                       <div key={group.date}>
                         <div className="flex justify-center my-3">
-                          <span className="bg-white text-gray-400 text-xs px-3 py-1 rounded-full border border-gray-200 shadow-sm">{group.date}</span>
+                          <span className="bg-white text-[#9DAAA2] text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-[#DFE8E2]">{group.date}</span>
                         </div>
                         {group.messages.map(msg => (
                           <div key={msg.id} className={`flex mb-2 ${msg.senderType === 'customer' ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 ${
                               msg.senderType === 'customer'
-                                ? 'bg-green-600 text-white rounded-br-sm shadow-sm'
-                                : 'bg-white text-gray-900 rounded-bl-sm shadow-sm border border-gray-100'
+                                ? 'bg-[#056B3E] text-white rounded-br-sm'
+                                : 'bg-white text-[#0A140F] rounded-bl-sm border border-[#DFE8E2]'
                             }`}>
                               {msg.senderType === 'vendor' && msg.senderName && (
-                                <p className="text-[10px] font-bold text-green-600 mb-1 uppercase tracking-wide">{msg.senderName}</p>
+                                <p className="text-[10px] font-bold text-[#056B3E] mb-1 uppercase tracking-wide">{msg.senderName}</p>
                               )}
                               <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                              <p className={`text-[10px] mt-1 ${msg.senderType === 'customer' ? 'text-green-200 text-right' : 'text-gray-400'}`}>
+                              <p className={`text-[10px] mt-1 tabular-nums ${msg.senderType === 'customer' ? 'text-white/55 text-right' : 'text-[#9DAAA2]'}`}>
                                 {formatTime(msg.createdAt)}
                               </p>
                             </div>
@@ -326,8 +331,8 @@ export default function B2BBookingChat({ bookingId, customerId, customerName, de
                 </div>
 
                 {/* Input */}
-                <div className="px-3 py-3 bg-white border-t border-gray-100">
-                  <div className="flex items-center gap-2 bg-gray-100 rounded-2xl px-3 py-1.5">
+                <div className="px-3 py-3 bg-white border-t border-[#DFE8E2]">
+                  <div className="flex items-center gap-2 bg-[#F2F7F3] border border-[#DFE8E2] rounded-2xl px-3 py-1.5">
                     <input
                       ref={inputRef}
                       type="text"
@@ -335,15 +340,15 @@ export default function B2BBookingChat({ bookingId, customerId, customerName, de
                       onChange={e => setNewMessage(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                       placeholder="Type a message..."
-                      className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none py-1.5"
+                      className="flex-1 bg-transparent text-sm text-[#0A140F] placeholder-[#9DAAA2] focus:outline-none py-1.5"
                     />
                     <button
                       onClick={sendMessage}
                       disabled={!newMessage.trim() || sending}
                       className={`w-9 h-9 rounded-xl flex items-center justify-center transition flex-shrink-0 ${
                         newMessage.trim() && !sending
-                          ? 'bg-green-600 text-white hover:bg-green-700 shadow-sm'
-                          : 'text-gray-400'
+                          ? 'bg-[#056B3E] text-white hover:bg-[#045030]'
+                          : 'text-[#C2CDC6]'
                       }`}
                     >
                       {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

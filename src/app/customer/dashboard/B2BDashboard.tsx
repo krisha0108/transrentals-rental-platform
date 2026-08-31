@@ -45,6 +45,32 @@ const TRIP_TYPE_LABELS: Record<string, string> = {
   ONE_WAY: 'One Way', ROUND_TRIP: 'Round Trip', HOURLY: 'Local / Hourly', SELF_DRIVE: 'Self Drive',
 };
 
+// Presentation only — how far along the four-segment stage bar is drawn, and
+// which tone the row wears. No status is added, renamed or reordered.
+const STAGE_STEP: Record<string, number> = {
+  OPEN_FOR_QUOTES: 1, QUOTES_RECEIVED: 1, SUPER_QUOTE_SENT: 2,
+  CONFIRMED: 3, TRIPS_CREATED: 3, IN_PROGRESS: 3,
+  COMPLETED: 4, INVOICED: 4, PAID: 4, CANCELLED: 0,
+};
+
+const STAGE_TONE: Record<string, { text: string; bar: string; line: string; wash: string }> = {
+  OPEN_FOR_QUOTES:  { text: 'text-[#1D4ED8]', bar: 'bg-[#1D4ED8]', line: 'border-[#C4D6F6]', wash: 'bg-[#EDF3FE]' },
+  QUOTES_RECEIVED:  { text: 'text-[#1D4ED8]', bar: 'bg-[#1D4ED8]', line: 'border-[#C4D6F6]', wash: 'bg-[#EDF3FE]' },
+  SUPER_QUOTE_SENT: { text: 'text-[#6D28D9]', bar: 'bg-[#6D28D9]', line: 'border-[#DCCEFA]', wash: 'bg-[#F3EEFE]' },
+  CONFIRMED:        { text: 'text-[#056B3E]', bar: 'bg-[#09B368]', line: 'border-[#C3E5D4]', wash: 'bg-[#EAF8F1]' },
+  TRIPS_CREATED:    { text: 'text-[#0B7C74]', bar: 'bg-[#0B7C74]', line: 'border-[#BBE2DE]', wash: 'bg-[#E7F5F3]' },
+  IN_PROGRESS:      { text: 'text-[#0B7C74]', bar: 'bg-[#0B7C74]', line: 'border-[#BBE2DE]', wash: 'bg-[#E7F5F3]' },
+  COMPLETED:        { text: 'text-[#6F7C74]', bar: 'bg-[#6F7C74]', line: 'border-[#DFE8E2]', wash: 'bg-[#F5F8F6]' },
+  INVOICED:         { text: 'text-[#B4700F]', bar: 'bg-[#B4700F]', line: 'border-[#EFE0BE]', wash: 'bg-[#FDF7EA]' },
+  PAID:             { text: 'text-[#056B3E]', bar: 'bg-[#09B368]', line: 'border-[#C3E5D4]', wash: 'bg-[#EAF8F1]' },
+  CANCELLED:        { text: 'text-[#BE123C]', bar: 'bg-[#BE123C]', line: 'border-[#F6C9D4]', wash: 'bg-[#FDEEF2]' },
+};
+
+// "CUSTOM_BULK" is a database value; it should not reach the screen raw.
+const serviceLabel = (t: string) =>
+  t === 'self-drive' ? 'Self Drive'
+    : String(t || '').replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
+
 const STATUS_FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'active', label: 'Active' },
@@ -56,9 +82,13 @@ interface B2BDashboardProps {
   customerId: string;
   customerName: string;
   companyName: string | null;
+  /** The dashboard's view switch, rendered inside this hero. */
+  viewSwitch?: React.ReactNode;
+  /** "Manage Company", which used to sit in the strip above the hero. */
+  manageCompany?: React.ReactNode;
 }
 
-export default function B2BDashboard({ customerId, customerName, companyName }: B2BDashboardProps) {
+export default function B2BDashboard({ customerId, customerName, companyName, viewSwitch, manageCompany }: B2BDashboardProps) {
   const [bookings, setBookings] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,289 +186,572 @@ export default function B2BDashboard({ customerId, customerName, companyName }: 
     );
   }
 
-  return (
-    <div className="space-y-4 pb-8">
-      {/* Company Header with Stats */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#022B1A] via-[#045030] to-[#09B368] rounded-2xl p-5 text-white shadow-lg">
-        {/* checkered grid overlay */}
-        <div className="absolute inset-0 opacity-[0.06] rounded-2xl"
-          style={{backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '32px 32px'}} />
-        {/* glow blobs */}
-        <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-[#09B368]/30 blur-3xl" />
-        <div className="absolute bottom-0 left-1/4 w-36 h-36 rounded-full bg-[#056040]/40 blur-2xl" />
+  const notInvoiced = Math.max(0, stats.totalValue - stats.paidValue - stats.unpaidValue);
+  // Same gutter the personal hero uses, so the two line up edge to edge.
+  const GUTTER = { paddingLeft: 'max(24px, calc((100vw - 1240px) / 2))' } as const;
+  const GUTTER_R = { paddingRight: 'max(24px, calc((100vw - 1240px) / 2))' } as const;
+  const ROAD = [Car, Bus, Truck, Package];
 
-        <div className="relative flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <p className="text-white/70 text-xs font-medium mb-0.5">Corporate Transport Dashboard</p>
-              <h2 className="text-lg font-bold text-white">{companyName || 'B2B Corporate'}</h2>
+  return (
+    <>
+
+      {/* ══════════════ HERO — as built in the mockup: a stacked panel,
+           with the money card straddling its bottom edge ══════════════ */}
+      <div className="relative overflow-hidden bg-[linear-gradient(124deg,#022416_0%,#04442B_44%,#067C4A_100%)] pb-[98px] text-white">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.08]"
+          style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '44px 44px' }} />
+        <div className="pointer-events-none absolute inset-0"
+          style={{ backgroundImage: 'radial-gradient(820px 340px at 84% -30%, rgba(255,255,255,.20), transparent 62%), radial-gradient(560px 300px at 4% 128%, rgba(1,30,17,.62), transparent 62%)' }} />
+        <div className="pointer-events-none absolute -right-28 -top-32 h-[340px] w-[340px] rounded-full bg-[#09B368]/30 blur-[72px]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
+        {/* view switch, and managing the company */}
+        {(viewSwitch || manageCompany) && (
+          <div className="relative z-10 mx-auto flex max-w-[1320px] flex-wrap items-center gap-3.5 px-5 pt-5 sm:px-8 lg:px-10">
+            {viewSwitch}
+          </div>
+        )}
+
+        {/* who the account belongs to, and what you can do about it */}
+        <div className="relative z-10 mx-auto flex max-w-[1320px] flex-wrap items-center gap-6 px-5 pt-5 sm:px-8 lg:px-10">
+          <div className="flex items-center gap-[17px]">
+            <span className="grid h-[50px] w-[50px] flex-none place-items-center rounded-[16px] border-2 border-white/30 bg-white/[0.12] backdrop-blur-sm">
+              <Building2 className="h-[22px] w-[22px]" />
+            </span>
+            <div className="min-w-0">
+              <p className="flex items-center gap-2.5 text-[9px] font-bold uppercase tracking-[0.2em] text-white/[0.56]">
+                <span className="h-px w-[22px] bg-white/[0.34]" />
+                Corporate transport
+              </p>
+              <h2 className="quote-serif mt-1.5 text-[27px] font-medium leading-[0.95] tracking-[-0.022em] [text-shadow:0_2px_24px_rgba(0,0,0,.3)] sm:text-[33px]">
+                {companyName || 'B2B Corporate'}
+              </h2>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href={`/customer/b2b-bookings/invoices?customer_id=${customerId}`}
-              className="px-3 py-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 backdrop-blur-sm">
-              <FileText className="w-3.5 h-3.5" /> Invoices
-            </Link>
-            <Link href={`/customer/b2b-bookings?customer_id=${customerId}`}
-              className="px-3 py-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 backdrop-blur-sm">
-              View All <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+
+          {manageCompany && <div className="ml-auto">{manageCompany}</div>}
         </div>
 
-        {/* Booking Count Stats */}
-        <div className="relative grid grid-cols-4 gap-2.5">
+        {/* the four counts — ek hi rail, chaar alag dabbe nahi */}
+        <div className="relative z-10 mx-auto mt-6 flex max-w-[1320px] flex-wrap border-t border-white/[0.16] px-5 sm:px-8 lg:px-10">
           {[
-            { label: 'Total', value: stats.total },
-            { label: 'Active', value: stats.active },
-            { label: 'Pending', value: stats.pending },
-            { label: 'Completed', value: stats.completed },
-          ].map(s => (
-            <div key={s.label} className="bg-white/15 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
-              <div className="text-xl font-bold text-white">{s.value}</div>
-              <div className="text-[11px] text-white/70">{s.label}</div>
+            { label: 'Bookings',     value: stats.total,     note: 'All time' },
+            { label: 'On the road',  value: stats.active,    note: 'Confirmed & running' },
+            { label: 'Awaiting you', value: stats.pending,   note: 'Out for quotes' },
+            { label: 'Completed',    value: stats.completed, note: 'Delivered & invoiced' },
+          ].map(({ label, value, note }, i) => (
+            <div key={label}
+              className={"flex flex-1 basis-[150px] items-center gap-3 border-r border-white/[0.14] py-4 pr-5 last:border-r-0 "
+                + (i === 0 ? '' : 'sm:pl-5')}>
+              <p className={"flex-none text-[25px] font-bold leading-none tracking-[-0.025em] tabular-nums "
+                + (value === 0 ? 'text-white/[0.42]' : '')}>
+                {value}
+              </p>
+              <p className="min-w-0 text-[10px] font-bold uppercase leading-none tracking-[0.16em] text-white/[0.6]">
+                {label}
+                <small className="mt-[3px] block truncate text-[10.5px] font-normal normal-case tracking-normal text-white/[0.45]">
+                  {note}
+                </small>
+              </p>
             </div>
           ))}
         </div>
-
-        {/* Payment Summary */}
-        {stats.totalValue > 0 && (
-          <div className="relative bg-white/10 border border-white/10 rounded-xl p-3.5 mt-3 flex items-center justify-between backdrop-blur-sm">
-            <div className="flex items-center gap-5 flex-wrap">
-              <div>
-                <div className="text-[11px] text-white/60">Total Booking Value</div>
-                <div className="text-lg font-bold text-white">{formatCurrency(stats.totalValue)}</div>
-              </div>
-              <div className="w-px h-8 bg-white/20" />
-              <div>
-                <div className="text-[11px] text-white/60">Paid</div>
-                <div className="text-base font-bold text-green-300">{formatCurrency(stats.paidValue)}</div>
-              </div>
-              {stats.unpaidValue > 0 && (
-                <>
-                  <div className="w-px h-8 bg-white/20" />
-                  <div>
-                    <div className="text-[11px] text-white/60">Pending Payment</div>
-                    <div className="text-base font-bold text-yellow-300">{formatCurrency(stats.unpaidValue)}</div>
-                  </div>
-                </>
-              )}
-            </div>
-            <IndianRupee className="w-7 h-7 text-white/20" />
-          </div>
-        )}
       </div>
 
-      {/* Action Alerts */}
-      {actionNeeded > 0 && (
-        <div className="bg-purple-50 border border-purple-200 rounded-xl p-3.5 flex items-center gap-3 shadow-sm">
-          <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-            <AlertCircle className="w-5 h-5 text-purple-600" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-purple-800">{actionNeeded} Quote{actionNeeded > 1 ? 's' : ''} Ready for Review</p>
-            <p className="text-xs text-purple-600">Review and accept to confirm your booking</p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-purple-400" />
-        </div>
-      )}
+      {/* ══════════════ MONEY — straddling the hero's edge ══════════════ */}
+      <div className="relative z-20 mx-auto -mt-[76px] max-w-[1320px] px-5 sm:px-8 lg:px-10">
+        <div className="overflow-hidden rounded-[20px] border border-[#DFE8E2] bg-white shadow-[0_30px_60px_-34px_rgba(4,50,31,.38)]">
+          <div className="grid grid-cols-1 sm:grid-cols-3">
+            <div className="border-b border-[#DFE8E2] px-6 py-[15px] sm:border-b-0 sm:border-r">
+              <div className="flex items-center justify-between gap-3">
+                <p className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[#9DAAA2]">
+                  <span className="grid h-5 w-5 flex-none place-items-center rounded-md bg-[#F8FBF9] text-[#6F7C74]"><IndianRupee className="h-3 w-3" /></span>
+                  Booking value
+                </p>
+                <p className="truncate text-[10.5px] text-[#9DAAA2]">
+                  {stats.totalValue === 0 ? 'Nothing quoted yet' : 'Across ' + stats.total + ' booking' + (stats.total !== 1 ? 's' : '')}
+                </p>
+              </div>
+              <p className={"quote-serif mt-2 text-[29px] font-medium leading-none tabular-nums tracking-[-0.015em] " + (stats.totalValue === 0 ? 'text-[#C2CDC6]' : '')}>
+                {formatCurrency(stats.totalValue)}
+              </p>
+            </div>
 
-      {invoiceStats.overdueCount > 0 && (
-        <Link href={`/customer/b2b-bookings/invoices?customer_id=${customerId}`}
-          className="flex items-center gap-3 p-3.5 rounded-xl border bg-red-50 border-red-200 text-red-700 shadow-sm">
-          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold">{invoiceStats.overdueCount} Overdue Invoice{invoiceStats.overdueCount > 1 ? 's' : ''}</p>
-            <p className="text-xs text-red-600">Clear pending payments to avoid service disruption</p>
-          </div>
-          <ChevronRight className="w-4 h-4" />
-        </Link>
-      )}
+            <div className="border-b border-[#DFE8E2] px-6 py-[15px] sm:border-b-0 sm:border-r">
+              <div className="flex items-center justify-between gap-3">
+                <p className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[#9DAAA2]">
+                  <span className="grid h-5 w-5 flex-none place-items-center rounded-md bg-[#F8FBF9] text-[#6F7C74]"><CheckCircle className="h-3 w-3" /></span>
+                  Paid
+                </p>
+                <p className="truncate text-[10.5px] text-[#9DAAA2]">{stats.paidValue === 0 ? 'Nothing settled yet' : 'Settled so far'}</p>
+              </div>
+              <p className={"quote-serif mt-2 text-[29px] font-medium leading-none tabular-nums tracking-[-0.015em] " + (stats.paidValue === 0 ? 'text-[#C2CDC6]' : '')}>
+                {formatCurrency(stats.paidValue)}
+              </p>
+            </div>
 
-      {/* Pending Invoices */}
-      {recentInvoices.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-semibold text-sm text-gray-900 flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-orange-500" /> Pending Payments
-            </h3>
-            <Link href={`/customer/b2b-bookings/invoices?customer_id=${customerId}`}
-              className="text-xs text-emerald-600 font-medium">View All</Link>
+            <div className={"px-6 py-[15px] " + (stats.unpaidValue > 0 ? 'bg-gradient-to-b from-[#FDF6E7] to-white' : '')}>
+              <div className="flex items-center justify-between gap-3">
+                <p className={"flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] " + (stats.unpaidValue > 0 ? 'text-[#B4700F]' : 'text-[#9DAAA2]')}>
+                  <span className={"grid h-5 w-5 flex-none place-items-center rounded-md " + (stats.unpaidValue > 0 ? 'bg-white text-[#B4700F]' : 'bg-[#F8FBF9] text-[#6F7C74]')}><Clock className="h-3 w-3" /></span>
+                  Pending payment
+                </p>
+                <p className={"truncate text-[10.5px] " + (invoiceStats.overdueCount > 0 ? 'font-bold text-[#BE123C]' : stats.unpaidValue > 0 ? 'text-[#B4700F]' : 'text-[#9DAAA2]')}>
+                  {invoiceStats.overdueCount > 0
+                    ? invoiceStats.overdueCount + ' invoice' + (invoiceStats.overdueCount > 1 ? 's' : '') + ', overdue'
+                    : stats.unpaidValue > 0 ? 'Invoice raised, not settled' : 'Nothing outstanding'}
+                </p>
+              </div>
+              <p className={"quote-serif mt-2 text-[29px] font-medium leading-none tabular-nums tracking-[-0.015em] " + (
+                stats.unpaidValue === 0 ? 'text-[#C2CDC6]' : 'text-[#8A5409]')}>
+                {formatCurrency(stats.unpaidValue)}
+              </p>
+            </div>
           </div>
-          <div className="divide-y divide-gray-100">
-            {recentInvoices.map((inv: any) => {
-              const isOverdue = new Date(inv.dueDate) < new Date();
-              return (
-                <div key={inv.id} className="p-3.5 flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isOverdue ? 'bg-red-50' : 'bg-orange-50'}`}>
-                    <FileText className={`w-4 h-4 ${isOverdue ? 'text-red-500' : 'text-orange-500'}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-semibold text-gray-800">{inv.invoiceNumber}</span>
-                      {isOverdue && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700">OVERDUE</span>}
-                    </div>
-                    <div className="text-[11px] text-gray-500">Due: {formatDate(inv.dueDate)}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className={`text-sm font-bold ${isOverdue ? 'text-red-700' : 'text-gray-900'}`}>{formatCurrency(inv.totalAmount)}</div>
-                    <a href={`/invoice/b2b/${inv.id}`} target="_blank"
-                      className={`text-[11px] font-medium ${isOverdue ? 'text-red-600' : 'text-orange-600'}`}>
-                      Pay Now
-                    </a>
-                  </div>
+
+          {stats.totalValue > 0 && (
+            <div className="border-t border-[#DFE8E2] bg-[#F8FBF9] px-6 py-[13px]">
+              <div className="flex items-center gap-4">
+                <p className="flex-none text-[9px] font-bold uppercase tracking-[0.18em] text-[#9DAAA2]">How much is settled</p>
+                <div className="flex h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-[#DFE8E2]">
+                  <span className="block bg-[#09B368]" style={{ flexGrow: stats.paidValue }} title={'Paid ' + formatCurrency(stats.paidValue)} />
+                  <span className={"block " + (invoiceStats.overdueCount > 0 ? 'bg-[#BE123C]' : 'bg-[#B4700F]')} style={{ flexGrow: stats.unpaidValue }} title={(invoiceStats.overdueCount > 0 ? 'Overdue ' : 'Invoiced ') + formatCurrency(stats.unpaidValue)} />
+                  <span className="block bg-[#CBD9D1]" style={{ flexGrow: notInvoiced }} title={'Not invoiced ' + formatCurrency(notInvoiced)} />
                 </div>
+                <b className="flex-none text-[11px] font-semibold tabular-nums text-[#6F7C74]">
+                  {formatCurrency(stats.paidValue)} of {formatCurrency(stats.totalValue)}
+                </b>
+              </div>
+              <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5 text-[11px] text-[#6F7C74]">
+                <span className="inline-flex items-center gap-2"><i className="h-[7px] w-[7px] rounded-full bg-[#09B368]" />Paid <b className="font-bold tabular-nums text-[#0A140F]">{formatCurrency(stats.paidValue)}</b></span>
+                <span className="inline-flex items-center gap-2"><i className={"h-[7px] w-[7px] rounded-full " + (invoiceStats.overdueCount > 0 ? 'bg-[#BE123C]' : 'bg-[#B4700F]')} />{invoiceStats.overdueCount > 0 ? 'Overdue' : 'Invoiced'} <b className="font-bold tabular-nums text-[#0A140F]">{formatCurrency(stats.unpaidValue)}</b></span>
+                {notInvoiced > 0 && (
+                  <span className="inline-flex items-center gap-2"><i className="h-[7px] w-[7px] rounded-full bg-[#CBD9D1]" />Not invoiced <b className="font-bold tabular-nums text-[#0A140F]">{formatCurrency(notInvoiced)}</b></span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* everything below the hero sits in the page's own gutter */}
+      <div className="mx-auto max-w-[1320px] space-y-4 px-5 pb-10 pt-9 sm:px-8 lg:px-10">
+
+      {/* ══════════════ NEEDS YOU ══════════════ */}
+      {/* One entry per thing, ranked by cost of leaving it. The overdue invoice
+          used to appear three times over — banner, list and row strip. */}
+      {(invoiceStats.overdueCount > 0 || actionNeeded > 0) && (
+        <div className="pt-2">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#9DAAA2]">Needs you</p>
+              <h3 className="quote-serif mt-1.5 text-[27px] font-medium leading-none tracking-[-0.02em]">
+                {invoiceStats.overdueCount > 0 && actionNeeded > 0 ? 'Two things are waiting' : 'One thing is waiting'}
+              </h3>
+            </div>
+            <span className="text-[11px] text-[#9DAAA2]">Ranked by what it costs to leave</span>
+          </div>
+
+          <div className="space-y-3">
+            {invoiceStats.overdueCount > 0 && (() => {
+              const inv = recentInvoices.find((i: any) => new Date(i.dueDate) < new Date()) || recentInvoices[0];
+              if (!inv) return null;
+              return (
+                <a key="overdue" href={"/invoice/b2b/" + inv.id} target="_blank" rel="noopener noreferrer"
+                  className="relative grid items-center gap-4 overflow-hidden rounded-[20px] border border-[#F6C9D4] bg-white px-6 py-5 pl-7 shadow-[0_1px_3px_rgba(4,50,31,.07),0_8px_20px_-16px_rgba(4,50,31,.14)] transition hover:-translate-y-0.5 hover:shadow-[0_30px_60px_-34px_rgba(4,50,31,.34)] sm:grid-cols-[44px_minmax(0,1fr)_auto]">
+                  <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-[#E8607F] to-[#BE123C]" />
+                  <span className="grid h-11 w-11 flex-none place-items-center rounded-[14px] bg-[#FDEBEF] text-[#BE123C]">
+                    <FileText className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#BE123C]">
+                      Invoice overdue{invoiceStats.overdueCount > 1 ? ' × ' + invoiceStats.overdueCount : ''}
+                    </p>
+                    <p className="quote-serif mt-1 text-[23px] font-medium leading-tight tracking-[-0.018em]">
+                      {formatCurrency(inv.totalAmount)} is past its due date
+                    </p>
+                    <p className="mt-2 flex flex-wrap items-center gap-2 text-[11.5px] text-[#6F7C74]">
+                      <b className="font-mono font-semibold text-[#3F4C45]">{inv.invoiceNumber}</b>
+                      <i className="inline-block h-[3px] w-[3px] rounded-full bg-[#C2CDC6]" />
+                      due {formatDate(inv.dueDate)}
+                      <i className="inline-block h-[3px] w-[3px] rounded-full bg-[#C2CDC6]" />
+                      service can be paused if it stays unpaid
+                    </p>
+                  </div>
+                  <span className="inline-flex flex-none items-center gap-2 rounded-xl bg-gradient-to-b from-[#DB2C50] to-[#BE123C] px-5 py-3 text-[12.5px] font-bold text-white shadow-[0_14px_26px_-14px_rgba(190,18,60,.9)]">
+                    Pay {formatCurrency(inv.totalAmount)} <ChevronRight className="h-4 w-4" />
+                  </span>
+                </a>
               );
-            })}
+            })()}
+
+            {actionNeeded > 0 && (() => {
+              const qb = bookings.find((b: any) => b.status === 'SUPER_QUOTE_SENT');
+              if (!qb) return null;
+              return (
+                <Link key="quote" href={"/customer/b2b-bookings/" + qb.id + "?customer_id=" + customerId}
+                  className="relative grid items-center gap-4 overflow-hidden rounded-[20px] border border-[#DCCEFA] bg-white px-6 py-5 pl-7 shadow-[0_1px_3px_rgba(4,50,31,.07),0_8px_20px_-16px_rgba(4,50,31,.14)] transition hover:-translate-y-0.5 hover:shadow-[0_30px_60px_-34px_rgba(4,50,31,.34)] sm:grid-cols-[44px_minmax(0,1fr)_auto]">
+                  <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-[#8B5CF6] to-[#6D28D9]" />
+                  <span className="grid h-11 w-11 flex-none place-items-center rounded-[14px] bg-[#F3EEFE] text-[#6D28D9]">
+                    <AlertCircle className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#6D28D9]">
+                      Quote ready{actionNeeded > 1 ? ' × ' + actionNeeded : ''}
+                    </p>
+                    <p className="quote-serif mt-1 text-[23px] font-medium leading-tight tracking-[-0.018em]">
+                      Accept to lock the {qb.pickupLocation || 'requested'} fleet
+                    </p>
+                    <p className="mt-2 flex flex-wrap items-center gap-2 text-[11.5px] text-[#6F7C74]">
+                      <b className="font-mono font-semibold text-[#3F4C45]">{qb.bookingNumber}</b>
+                      {qb.finalAmount > 0 && (<><i className="inline-block h-[3px] w-[3px] rounded-full bg-[#C2CDC6]" />{formatCurrency(qb.finalAmount)}</>)}
+                      <i className="inline-block h-[3px] w-[3px] rounded-full bg-[#C2CDC6]" />
+                      {qb.vehiclesRequired} vehicle{qb.vehiclesRequired !== 1 ? 's' : ''}
+                      {qb.passengerCount ? ' for ' + qb.passengerCount + ' passengers' : ''}
+                      {qb.scheduledDate && (<><i className="inline-block h-[3px] w-[3px] rounded-full bg-[#C2CDC6]" />travel on {formatDate(qb.scheduledDate)}</>)}
+                    </p>
+                  </div>
+                  <span className="inline-flex flex-none items-center gap-2 rounded-xl bg-gradient-to-b from-[#7C3AED] to-[#6D28D9] px-5 py-3 text-[12.5px] font-bold text-white shadow-[0_14px_26px_-14px_rgba(109,40,217,.9)]">
+                    Review &amp; accept <ChevronRight className="h-4 w-4" />
+                  </span>
+                </Link>
+              );
+            })()}
           </div>
         </div>
       )}
 
-      {/* Filters */}
-      {bookings.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-3 shadow-sm space-y-2">
-          <div className="flex items-center gap-2 overflow-x-auto">
-            {STATUS_FILTERS.map(f => (
-              <button key={f.key} onClick={() => setStatusFilter(f.key)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
-                  statusFilter === f.key
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}>
-                {f.label}
-                {f.key === 'all' ? ` (${bookings.length})` :
-                 f.key === 'active' ? ` (${stats.active})` :
-                 f.key === 'pending' ? ` (${stats.pending})` :
-                 ` (${stats.completed})`}
-              </button>
-            ))}
+      {/* ══════════════ PENDING PAYMENTS ══════════════ */}
+      {recentInvoices.length > 0 && (
+        <div className="overflow-hidden rounded-[22px] border border-[#DFE8E2] bg-white shadow-[0_1px_3px_rgba(4,50,31,.07),0_8px_20px_-16px_rgba(4,50,31,.14)]">
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#EFE0BE] bg-gradient-to-r from-[#FDF6E7] to-[#FAFCFB] px-5 py-4">
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#B4700F]">Raised against your bookings</p>
+              <h3 className="quote-serif mt-1 text-[21px] font-semibold leading-none text-[#8A5409]">Pending payments</h3>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="flex-none rounded-full bg-[#B4700F] px-2.5 py-[2px] text-[10px] font-bold tabular-nums text-white">
+                {recentInvoices.length}
+              </span>
+              <Link href={"/customer/b2b-bookings/invoices?customer_id=" + customerId}
+                className="inline-flex items-center gap-2 rounded-full border border-[#EFE0BE] bg-white px-3.5 py-1.5 text-[11.5px] font-semibold text-[#B4700F] transition hover:border-[#B4700F] hover:bg-[#FDF6E7]">
+                View all <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
-          {serviceTypes.length > 1 && (
-            <div className="flex items-center gap-2 overflow-x-auto">
-              <Filter className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-              <button onClick={() => setServiceFilter('all')}
-                className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition ${
-                  serviceFilter === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}>All Services</button>
-              {serviceTypes.map(st => {
-                const Icon = SERVICE_ICONS[st] || Truck;
+
+          {recentInvoices.map((inv: any) => {
+            const isOverdue = new Date(inv.dueDate) < new Date();
+            return (
+              <a key={inv.id} href={"/invoice/b2b/" + inv.id} target="_blank" rel="noopener noreferrer"
+                className="flex flex-wrap items-center gap-4 border-b border-[#DFE8E2] px-5 py-4 transition last:border-b-0 hover:bg-[#F8FBF9]">
+                <span className={"grid h-10 w-10 flex-none place-items-center rounded-xl " + (isOverdue ? 'bg-[#FDEBEF] text-[#BE123C]' : 'bg-[#FDF6E7] text-[#B4700F]')}>
+                  <FileText className="h-[18px] w-[18px]" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-[12px] font-bold text-[#3F4C45]">{inv.invoiceNumber}</span>
+                    {isOverdue && (
+                      <span className="rounded-full border border-[#F6C9D4] bg-[#FDEBEF] px-2 py-[2px] text-[8.5px] font-bold uppercase tracking-[0.12em] text-[#BE123C]">
+                        Overdue
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-[11px] tabular-nums text-[#9DAAA2]">Due {formatDate(inv.dueDate)}</p>
+                </div>
+                <div className="flex-none text-right">
+                  <p className={"quote-serif text-[21px] font-medium leading-none tabular-nums " + (isOverdue ? 'text-[#9F0F32]' : 'text-[#0A140F]')}>
+                    {formatCurrency(inv.totalAmount)}
+                  </p>
+                  <p className={"mt-1.5 text-[11px] font-bold " + (isOverdue ? 'text-[#BE123C]' : 'text-[#B4700F]')}>Pay now &rarr;</p>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── what you can do, sitting on top of the list it acts on ── */}
+      <div className="flex flex-wrap items-center gap-2.5 pt-2">
+        <Link href={"/customer/b2b-bookings/create?customer_id=" + customerId}
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-b from-[#09B368] to-[#056B3E] px-[18px] py-[11px] text-[12.5px] font-bold text-white shadow-[0_14px_26px_-16px_rgba(4,50,31,.9)] transition hover:-translate-y-0.5">
+          <Plus className="h-[15px] w-[15px]" /> Raise a requirement
+        </Link>
+        <Link href={"/customer/b2b-bookings/invoices?customer_id=" + customerId}
+          className="inline-flex items-center gap-2 rounded-xl border border-[#CBD9D1] bg-white px-[18px] py-[11px] text-[12.5px] font-bold text-[#3F4C45] transition hover:-translate-y-0.5 hover:border-[#09B368] hover:text-[#056B3E]">
+          <FileText className="h-[15px] w-[15px]" /> Invoices
+        </Link>
+        <Link href={"/customer/b2b-bookings?customer_id=" + customerId}
+          className="inline-flex items-center gap-2 rounded-xl border border-[#CBD9D1] bg-white px-[18px] py-[11px] text-[12.5px] font-bold text-[#3F4C45] transition hover:-translate-y-0.5 hover:border-[#09B368] hover:text-[#056B3E]">
+          All bookings <ChevronRight className="h-[15px] w-[15px]" />
+        </Link>
+      </div>
+
+      {/* ══════════════ BOOKINGS ══════════════ */}
+      <div className="pt-4">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#9DAAA2]">Raised by your company</p>
+            <h3 className="quote-serif mt-1.5 text-[27px] font-medium leading-none tracking-[-0.02em]">Bookings</h3>
+          </div>
+          {bookings.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              {STATUS_FILTERS.map((f) => {
+                const n = f.key === 'all' ? bookings.length
+                  : f.key === 'active' ? stats.active
+                  : f.key === 'pending' ? stats.pending
+                  : stats.completed;
+                const on = statusFilter === f.key;
                 return (
-                  <button key={st} onClick={() => setServiceFilter(st)}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition flex items-center gap-1.5 capitalize ${
-                      serviceFilter === st ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                    }`}>
-                    <Icon className="w-3 h-3" />
-                    {st === 'self-drive' ? 'Self Drive' : st}
+                  <button key={f.key} type="button" onClick={() => setStatusFilter(f.key)}
+                    className={"inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[11.5px] font-semibold transition " + (
+                      on ? 'border-[#04321F] bg-[#04321F] text-white'
+                         : n === 0 ? 'border-dashed border-[#CBD9D1] text-[#C2CDC6]'
+                         : 'border-[#CBD9D1] bg-white text-[#3F4C45] hover:border-[#09B368] hover:text-[#056B3E]')}>
+                    {f.label} <span className="tabular-nums opacity-60">{n}</span>
                   </button>
                 );
               })}
             </div>
           )}
         </div>
-      )}
 
-      {/* Bookings List */}
-      {bookings.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-2xl border shadow-sm">
-          <Building2 className="w-14 h-14 text-gray-200 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium mb-1">No B2B bookings yet</p>
-          <p className="text-sm text-gray-400 mb-4">Create your first corporate bulk booking</p>
-          <Link href={`/customer/b2b-bookings/create?customer_id=${customerId}`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition">
-            <Plus className="w-4 h-4" /> Create Booking
-          </Link>
-        </div>
-      ) : filteredBookings.length === 0 ? (
-        <div className="text-center py-10 bg-white rounded-xl border">
-          <Filter className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No bookings match the selected filters</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filteredBookings.map((b: any) => {
-            const ServiceIcon = SERVICE_ICONS[b.serviceType] || Truck;
-            const serviceColor = SERVICE_COLORS[b.serviceType] || 'bg-gray-50 text-gray-600';
-            const isActionNeeded = b.status === 'SUPER_QUOTE_SENT';
-            const unpaidInvoice = unpaidInvoiceByBookingId.get(b.id);
-            const isInvoiceReady = !!unpaidInvoice;
-            const isInvoiceOverdue = isInvoiceReady && new Date(unpaidInvoice.dueDate) < new Date();
+        {bookings.length > 0 && serviceTypes.length > 1 && (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-[#9DAAA2]">
+              <Filter className="h-3 w-3" /> Service
+            </span>
+            <button type="button" onClick={() => setServiceFilter('all')}
+              className={"rounded-full border px-3.5 py-1.5 text-[11.5px] font-semibold transition " + (
+                serviceFilter === 'all' ? 'border-[#04321F] bg-[#04321F] text-white'
+                  : 'border-[#CBD9D1] bg-white text-[#3F4C45] hover:border-[#09B368] hover:text-[#056B3E]')}>
+              All services
+            </button>
+            {serviceTypes.map((st: any) => {
+              const Icon = SERVICE_ICONS[st] || Truck;
+              const n = bookings.filter((b: any) => b.serviceType === st).length;
+              return (
+                <button key={st} type="button" onClick={() => setServiceFilter(st)}
+                  className={"inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[11.5px] font-semibold transition " + (
+                    serviceFilter === st ? 'border-[#04321F] bg-[#04321F] text-white'
+                      : 'border-[#CBD9D1] bg-white text-[#3F4C45] hover:border-[#09B368] hover:text-[#056B3E]')}>
+                  <Icon className="h-3 w-3" /> {serviceLabel(st)} <span className="tabular-nums opacity-60">{n}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-            return (
-              <Link key={b.id} href={`/customer/b2b-bookings/${b.id}?customer_id=${customerId}`}
-                className={`block bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-all ${
-                  isActionNeeded ? 'border-purple-300 ring-1 ring-purple-200'
-                  : isInvoiceOverdue ? 'border-red-300 ring-1 ring-red-200'
-                  : isInvoiceReady ? 'border-orange-300 ring-1 ring-orange-200'
-                  : 'border-gray-200'
-                }`}>
-                {isActionNeeded && (
-                  <div className="bg-purple-50 px-4 py-1.5 text-xs font-semibold text-purple-700 flex items-center gap-1.5 border-b border-purple-200">
-                    <AlertCircle className="w-3.5 h-3.5" /> Quote ready — tap to review & accept
-                  </div>
-                )}
-                {isInvoiceReady && !isActionNeeded && (
-                  <div className={`px-4 py-1.5 text-xs font-semibold flex items-center justify-between gap-2 border-b ${
-                    isInvoiceOverdue
-                      ? 'bg-red-50 text-red-700 border-red-200'
-                      : 'bg-orange-50 text-orange-700 border-orange-200'
-                  }`}>
-                    <span className="flex items-center gap-1.5 truncate">
-                      <FileText className="w-3.5 h-3.5 flex-shrink-0" />
-                      Invoice {unpaidInvoice.invoiceNumber} generated · {formatCurrency(unpaidInvoice.totalAmount)}
-                      {isInvoiceOverdue ? ' · OVERDUE' : ` · Due ${formatDate(unpaidInvoice.dueDate)}`}
+        {bookings.length === 0 ? (
+          <div className="rounded-[22px] border border-[#DFE8E2] bg-white py-16 text-center shadow-[0_1px_3px_rgba(4,50,31,.07)]">
+            <Building2 className="mx-auto mb-4 h-12 w-12 text-[#DFE8E2]" />
+            <p className="quote-serif text-[24px] font-medium text-[#0A140F]">No corporate bookings yet</p>
+            <p className="mx-auto mt-2 max-w-xs text-[12.5px] text-[#9DAAA2]">Raise your first requirement and vendors will quote against it.</p>
+            <Link href={"/customer/b2b-bookings/create?customer_id=" + customerId}
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-b from-[#09B368] to-[#056B3E] px-5 py-2.5 text-[12.5px] font-bold text-white shadow-[0_14px_26px_-16px_rgba(4,50,31,.9)] transition hover:-translate-y-0.5">
+              <Plus className="h-4 w-4" /> Raise a requirement
+            </Link>
+          </div>
+        ) : filteredBookings.length === 0 ? (
+          <div className="rounded-[22px] border border-[#DFE8E2] bg-white py-14 text-center shadow-[0_1px_3px_rgba(4,50,31,.07)]">
+            <Filter className="mx-auto mb-3 h-9 w-9 text-[#DFE8E2]" />
+            <p className="quote-serif text-[22px] font-medium text-[#0A140F]">Nothing matches those filters</p>
+            <p className="mt-2 text-[12.5px] text-[#9DAAA2]">Try another status or service.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredBookings.map((b: any, idx: number) => {
+              const ServiceIcon = SERVICE_ICONS[b.serviceType] || Truck;
+              const isActionNeeded = b.status === 'SUPER_QUOTE_SENT';
+              const unpaidInvoice = unpaidInvoiceByBookingId.get(b.id);
+              const isInvoiceReady = !!unpaidInvoice;
+              const isInvoiceOverdue = isInvoiceReady && new Date(unpaidInvoice.dueDate) < new Date();
+              const step = STAGE_STEP[b.status] ?? 1;
+              const tone = STAGE_TONE[b.status]
+                || { text: 'text-[#6F7C74]', bar: 'bg-[#6F7C74]', line: 'border-[#DFE8E2]', wash: 'bg-[#F8FBF9]' };
+              const flag = isActionNeeded ? 'v' : isInvoiceOverdue ? 'r' : isInvoiceReady ? 'a' : '';
+              /* Invoice ki haalat stage se upar jaati hai — warna har booking apne
+                 stage ka hi rang pehanti hai. */
+              const line = flag === 'r' ? 'border-[#F6C9D4]' : flag === 'a' ? 'border-[#EFE0BE]' : tone.line;
+              const wash = flag === 'r' ? 'bg-[#FDEBEF]' : flag === 'a' ? 'bg-[#FDF6E7]' : tone.wash;
+              const stripe = flag === 'r' ? 'bg-[#BE123C]' : flag === 'a' ? 'bg-[#B4700F]' : tone.bar;
+
+              return (
+                <Link key={b.id} href={"/customer/b2b-bookings/" + b.id + "?customer_id=" + customerId}
+                  className={"group relative grid overflow-hidden rounded-[22px] border bg-white shadow-[0_1px_3px_rgba(4,50,31,.07),0_8px_20px_-16px_rgba(4,50,31,.14)] transition hover:-translate-y-0.5 hover:shadow-[0_30px_60px_-34px_rgba(4,50,31,.34)] lg:grid-cols-[64px_minmax(0,1fr)_232px] " + line}>
+
+                  {/* stage ka rang — har chaudai par dikhta hai, rail chhoti screen par chhup jaati hai */}
+                  <span className={"pointer-events-none absolute inset-y-0 left-0 z-10 w-[3px] " + stripe} />
+
+                  {/* rail */}
+                  <div className={"hidden flex-col items-center justify-center gap-3 border-r py-5 lg:flex " + line + " " + wash}>
+                    <span className="w-px flex-1 bg-[#CBD9D1]" />
+                    <span className={"grid h-9 w-9 flex-none place-items-center rounded-xl " + (SERVICE_COLORS[b.serviceType] || 'bg-[#F8FBF9] text-[#6F7C74]')}>
+                      <ServiceIcon className="h-[17px] w-[17px]" />
                     </span>
-                    <span className="font-bold whitespace-nowrap">Pay now →</span>
+                    <span className="font-mono text-[9.5px] font-bold text-[#C2CDC6]">{String(idx + 1).padStart(2, '0')}</span>
+                    <span className="w-px flex-1 bg-[#CBD9D1]" />
                   </div>
-                )}
-                <div className="p-4 flex items-center gap-4">
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${serviceColor}`}>
-                    <ServiceIcon className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-mono text-sm font-bold text-gray-800">{b.bookingNumber}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${STATUS_COLORS[b.status]}`}>
+
+                  {/* body */}
+                  <div className="min-w-0 px-5 py-4 sm:px-6">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className={"grid h-8 w-8 flex-none place-items-center rounded-lg lg:hidden " + (SERVICE_COLORS[b.serviceType] || 'bg-[#F8FBF9] text-[#6F7C74]')}>
+                        <ServiceIcon className="h-4 w-4" />
+                      </span>
+                      <span className="font-mono text-[12px] font-bold text-[#6F7C74]">{b.bookingNumber}</span>
+                      <span className={"rounded-full border px-2.5 py-[3px] text-[8.5px] font-bold uppercase tracking-[0.12em] " + (STATUS_COLORS[b.status] || 'bg-gray-100 text-gray-600 border-gray-200')}>
                         {STATUS_LABELS[b.status] || b.status}
                       </span>
+                      {isInvoiceOverdue && (
+                        <span className="rounded-full border border-[#F6C9D4] bg-[#FDEBEF] px-2.5 py-[3px] text-[8.5px] font-bold uppercase tracking-[0.12em] text-[#BE123C]">
+                          Overdue
+                        </span>
+                      )}
                     </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                      <span className="flex items-center gap-1 capitalize">
-                        <Car className="w-3 h-3" />
-                        {b.vehiclesRequired} {b.serviceType === 'self-drive' ? 'Self Drive' : b.serviceType}
-                        {b.passengerCount ? ` / ${b.passengerCount} pax` : ''}
+
+                    <h4 className="quote-serif mt-1.5 text-[21px] font-medium leading-[1.12] tracking-[-0.018em] text-[#0A140F]">
+                      {serviceLabel(b.serviceType)}
+                      {b.pickupLocation ? <> &mdash; {b.pickupLocation}</> : null}
+                    </h4>
+
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[11.5px] text-[#6F7C74]">
+                      {b.pickupLocation && (
+                        <span className="inline-flex items-center gap-1.5">
+                          <MapPin className="h-3 w-3 flex-none text-[#9DAAA2]" />
+                          <b className="font-semibold text-[#3F4C45]">{b.pickupLocation}</b>
+                          {b.dropLocation && (
+                            <>
+                              <span className="h-px w-3 flex-none bg-[#CBD9D1]" />
+                              <b className="font-semibold text-[#3F4C45]">{b.dropLocation}</b>
+                            </>
+                          )}
+                        </span>
+                      )}
+                      {b.scheduledDate && (
+                        <>
+                          <i className="inline-block h-[3px] w-[3px] flex-none rounded-full bg-[#C2CDC6]" />
+                          <span className="inline-flex items-center gap-1.5 tabular-nums">
+                            <Calendar className="h-3 w-3 flex-none text-[#9DAAA2]" />
+                            {formatDate(b.scheduledDate)}
+                          </span>
+                        </>
+                      )}
+                      <i className="inline-block h-[3px] w-[3px] flex-none rounded-full bg-[#C2CDC6]" />
+                      <span><b className="font-semibold text-[#3F4C45]">{b.vehiclesRequired}</b> vehicle{b.vehiclesRequired !== 1 ? 's' : ''}</span>
+                      {b.passengerCount ? (<><i className="inline-block h-[3px] w-[3px] flex-none rounded-full bg-[#C2CDC6]" /><span>{b.passengerCount} passengers</span></>) : null}
+                      {b.tripType ? (<><i className="inline-block h-[3px] w-[3px] flex-none rounded-full bg-[#C2CDC6]" /><span>{TRIP_TYPE_LABELS[b.tripType] || b.tripType}</span></>) : null}
+                      {b._count?.trips > 0 ? (<><i className="inline-block h-[3px] w-[3px] flex-none rounded-full bg-[#C2CDC6]" /><span>{b._count.trips} trip{b._count.trips !== 1 ? 's' : ''} run</span></>) : null}
+
+                      {/* the stage closes the row, so the eye lands on it last */}
+                      <span className={"ml-auto flex flex-none items-center gap-2.5 whitespace-nowrap " + tone.text}>
+                        <span className="flex items-center gap-2 text-[12px] font-bold">
+                          <i className="h-[7px] w-[7px] flex-none rounded-full bg-current" />
+                          {STATUS_LABELS[b.status] || b.status}
+                        </span>
+                        <span className="flex gap-[3px]">
+                          {[1, 2, 3, 4].map((seg) => (
+                            <i key={seg} className={"h-[3px] w-[18px] rounded-full " + (seg <= step ? tone.bar : 'bg-[#DFE8E2]')} />
+                          ))}
+                        </span>
                       </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" /> {b.pickupLocation}
-                        {b.dropLocation && ` → ${b.dropLocation}`}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" /> {formatDate(b.scheduledDate)}
-                      </span>
-                      <span className="text-gray-400">{TRIP_TYPE_LABELS[b.tripType] || b.tripType}</span>
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0 flex items-center gap-3">
-                    {b.finalAmount > 0 && (
-                      <div>
-                        <div className="text-lg font-bold text-emerald-700">{formatCurrency(b.finalAmount)}</div>
-                        {b._count?.trips > 0 && (
-                          <div className="text-[10px] text-gray-400">{b._count.trips} trips</div>
-                        )}
-                      </div>
+
+                  {/* stub */}
+                  <div className={"relative flex flex-col justify-center border-t px-6 py-4 lg:border-l lg:border-t-0 " + (
+                    flag === 'v' ? 'border-[#DCCEFA] bg-gradient-to-b from-[#F6F2FE] to-[#F1EBFD]'
+                      : flag === 'r' ? 'border-[#F6C9D4] bg-gradient-to-b from-[#FEF1F4] to-[#FDE8EE]'
+                      : flag === 'a' ? 'border-[#EFE0BE] bg-gradient-to-b from-[#FDF9EF] to-[#FCF4E4]'
+                      : 'border-[#DFE8E2] bg-[#F2F7F3]')}>
+                    <p className="text-[8.5px] font-bold uppercase tracking-[0.18em] text-[#9DAAA2]">
+                      {isInvoiceReady ? 'Invoiced' : b.finalAmount > 0 ? 'Quoted' : 'Value'}
+                    </p>
+                    {b.finalAmount > 0 ? (
+                      <p className={"quote-serif mt-1.5 text-[25px] font-medium leading-none tabular-nums tracking-[-0.02em] " + (isInvoiceOverdue ? 'text-[#9F0F32]' : 'text-[#0A140F]')}>
+                        {formatCurrency(b.finalAmount)}
+                      </p>
+                    ) : (
+                      <p className="quote-serif mt-1.5 text-[17px] italic leading-none text-[#C2CDC6]">Not quoted yet</p>
                     )}
-                    <ChevronRight className="w-5 h-5 text-gray-300" />
+                    {isInvoiceReady ? (
+                      <>
+                        <p className="mt-2 font-mono text-[10.5px] font-semibold text-[#6F7C74]">{unpaidInvoice.invoiceNumber}</p>
+                        <p className={"mt-1 text-[10.5px] " + (isInvoiceOverdue ? 'font-semibold text-[#BE123C]' : 'text-[#B4700F]')}>
+                          {isInvoiceOverdue ? 'Overdue since ' + formatDate(unpaidInvoice.dueDate) : 'Due ' + formatDate(unpaidInvoice.dueDate)}
+                        </p>
+                        {unpaidInvoice.totalAmount !== b.finalAmount && (
+                          <p className="mt-1 text-[10.5px] tabular-nums text-[#9DAAA2]">Invoiced {formatCurrency(unpaidInvoice.totalAmount)}</p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="mt-2 text-[10.5px] text-[#9DAAA2]">
+                        {b.status === 'PAID' ? 'Paid in full' : b.finalAmount > 0 ? 'Not invoiced yet' : 'Awaiting vendor quotes'}
+                      </p>
+                    )}
+
+                    {(isActionNeeded || isInvoiceReady) && (
+                      <span className={"mt-3 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-[11.5px] font-bold text-white " + (
+                        isActionNeeded ? 'bg-gradient-to-b from-[#7C3AED] to-[#6D28D9] shadow-[0_12px_24px_-14px_rgba(109,40,217,.9)]'
+                          : isInvoiceOverdue ? 'bg-gradient-to-b from-[#DB2C50] to-[#BE123C] shadow-[0_12px_24px_-14px_rgba(190,18,60,.9)]'
+                          : 'bg-gradient-to-b from-[#D9930F] to-[#B4700F] shadow-[0_12px_24px_-14px_rgba(180,112,15,.85)]')}>
+                        {isActionNeeded ? 'Review & accept' : 'Pay now'}
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </span>
+                    )}
                   </div>
-                </div>
-              </Link>
-            );
-          })}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ══════════════ FOOT ══════════════ */}
+      <div className="pt-6">
+        <p className="mb-3 text-[9px] font-bold uppercase tracking-[0.2em] text-[#9DAAA2]">Your company</p>
+        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+          <Link href={"/customer/b2b-bookings/invoices?customer_id=" + customerId}
+            className="rounded-[18px] border border-[#DFE8E2] bg-white px-5 py-4 shadow-[0_1px_3px_rgba(4,50,31,.07)] transition hover:-translate-y-0.5 hover:border-[#C3E5D4] hover:shadow-[0_30px_60px_-34px_rgba(4,50,31,.34)]">
+            <div className="flex items-center gap-3">
+              <span className={"grid h-8 w-8 flex-none place-items-center rounded-[11px] " + (invoiceStats.overdueCount > 0 ? 'bg-[#FDEBEF] text-[#BE123C]' : 'bg-[#FDF6E7] text-[#B4700F]')}>
+                <FileText className="h-4 w-4" />
+              </span>
+              <b className="text-[12.5px]">Invoices</b>
+              <ChevronRight className="ml-auto h-4 w-4 flex-none text-[#C2CDC6]" />
+            </div>
+            <p className="quote-serif mt-2.5 text-[19px] leading-none tabular-nums">{formatCurrency(invoiceStats.unpaidAmount)}</p>
+            <p className="mt-1.5 text-[11px] leading-[1.6] text-[#9DAAA2]">
+              {invoiceStats.overdueCount > 0
+                ? invoiceStats.overdueCount + ' overdue of ' + invoices.length + ' raised.'
+                : invoices.length + ' invoice' + (invoices.length !== 1 ? 's' : '') + ' raised, nothing overdue.'}
+            </p>
+          </Link>
+
+          <Link href={"/customer/b2b-bookings?customer_id=" + customerId}
+            className="rounded-[18px] border border-[#DFE8E2] bg-white px-5 py-4 shadow-[0_1px_3px_rgba(4,50,31,.07)] transition hover:-translate-y-0.5 hover:border-[#C3E5D4] hover:shadow-[0_30px_60px_-34px_rgba(4,50,31,.34)]">
+            <div className="flex items-center gap-3">
+              <span className="grid h-8 w-8 flex-none place-items-center rounded-[11px] bg-[#E9F7F0] text-[#056B3E]"><Briefcase className="h-4 w-4" /></span>
+              <b className="text-[12.5px]">All bookings</b>
+              <ChevronRight className="ml-auto h-4 w-4 flex-none text-[#C2CDC6]" />
+            </div>
+            <p className="quote-serif mt-2.5 text-[19px] leading-none">{companyName || 'B2B Corporate'}</p>
+            <p className="mt-1.5 text-[11px] leading-[1.6] text-[#9DAAA2]">Every corporate booking on this account, with filters.</p>
+          </Link>
+
+          <Link href="/customer/helpdesk"
+            className="rounded-[18px] border border-[#DFE8E2] bg-white px-5 py-4 shadow-[0_1px_3px_rgba(4,50,31,.07)] transition hover:-translate-y-0.5 hover:border-[#C3E5D4] hover:shadow-[0_30px_60px_-34px_rgba(4,50,31,.34)]">
+            <div className="flex items-center gap-3">
+              <span className="grid h-8 w-8 flex-none place-items-center rounded-[11px] bg-[#E8F0FE] text-[#1D4ED8]"><ExternalLink className="h-4 w-4" /></span>
+              <b className="text-[12.5px]">Helpdesk</b>
+              <ChevronRight className="ml-auto h-4 w-4 flex-none text-[#C2CDC6]" />
+            </div>
+            <p className="quote-serif mt-2.5 text-[19px] leading-none">Raise a ticket</p>
+            <p className="mt-1.5 text-[11px] leading-[1.6] text-[#9DAAA2]">Anything the booking pages cannot settle for you.</p>
+          </Link>
         </div>
-      )}
-    </div>
+      </div>
+      </div>
+    </>
   );
 }

@@ -48,6 +48,8 @@ export async function GET(request: NextRequest) {
           createdAt: true,
           pickupDate: true,
           locationName: true,
+          vendors_bike_bookings_acceptedVendorIdTovendors: { select: { businessName: true, ownerName: true } },
+          vendors_bike_bookings_assignedVendorIdTovendors: { select: { businessName: true, ownerName: true } },
         },
         orderBy: { createdAt: 'desc' },
         take: 50,
@@ -73,6 +75,8 @@ export async function GET(request: NextRequest) {
           createdAt: true,
           pickupDate: true,
           locationName: true,
+          vendors_car_bookings_acceptedVendorIdTovendors: { select: { businessName: true, ownerName: true } },
+          vendors_car_bookings_assignedVendorIdTovendors: { select: { businessName: true, ownerName: true } },
         },
         orderBy: { createdAt: 'desc' },
         take: 50,
@@ -99,6 +103,8 @@ export async function GET(request: NextRequest) {
           createdAt: true,
           pickupDate: true,
           locationName: true,
+          vendors_chauffeur_bookings_acceptedVendorIdTovendors: { select: { businessName: true, ownerName: true } },
+          vendors_chauffeur_bookings_assignedVendorIdTovendors: { select: { businessName: true, ownerName: true } },
         },
         orderBy: { createdAt: 'desc' },
         take: 50,
@@ -117,6 +123,12 @@ export async function GET(request: NextRequest) {
         amount: b.totalAmount || 0,
         date: b.createdAt.toISOString(),
         created_at: b.createdAt.toISOString(),
+        vendor_name:
+          b.vendors_bike_bookings_acceptedVendorIdTovendors?.businessName ||
+          b.vendors_bike_bookings_acceptedVendorIdTovendors?.ownerName ||
+          b.vendors_bike_bookings_assignedVendorIdTovendors?.businessName ||
+          b.vendors_bike_bookings_assignedVendorIdTovendors?.ownerName ||
+          null,
       })),
       ...carExpenses.map((b) => ({
         id: b.id,
@@ -126,6 +138,12 @@ export async function GET(request: NextRequest) {
         amount: b.grandTotal || 0,
         date: b.createdAt.toISOString(),
         created_at: b.createdAt.toISOString(),
+        vendor_name:
+          b.vendors_car_bookings_acceptedVendorIdTovendors?.businessName ||
+          b.vendors_car_bookings_acceptedVendorIdTovendors?.ownerName ||
+          b.vendors_car_bookings_assignedVendorIdTovendors?.businessName ||
+          b.vendors_car_bookings_assignedVendorIdTovendors?.ownerName ||
+          null,
       })),
       ...chauffeurExpenses.map((b) => ({
         id: b.id,
@@ -135,6 +153,12 @@ export async function GET(request: NextRequest) {
         amount: b.grandTotal || 0,
         date: b.createdAt.toISOString(),
         created_at: b.createdAt.toISOString(),
+        vendor_name:
+          b.vendors_chauffeur_bookings_acceptedVendorIdTovendors?.businessName ||
+          b.vendors_chauffeur_bookings_acceptedVendorIdTovendors?.ownerName ||
+          b.vendors_chauffeur_bookings_assignedVendorIdTovendors?.businessName ||
+          b.vendors_chauffeur_bookings_assignedVendorIdTovendors?.ownerName ||
+          null,
       })),
     ];
 
