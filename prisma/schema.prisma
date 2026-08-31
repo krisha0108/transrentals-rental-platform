@@ -7271,6 +7271,26 @@ model vendor_activity_sessions {
   @@index([vendorId, date])
 }
 
+// Digital e-signature record for the vendor partnership/referral agreement
+// (see /vendor/partnership-agreement). One vendor may sign more than once
+// if a new agreementVersion is published — the latest row per vendor is
+// the one currently in effect.
+model vendor_partnership_agreements {
+  id               String   @id @default(cuid())
+  vendorId         String
+  agreementVersion String   @default("v1")
+  signedByName     String
+  signedByTitle    String?
+  queryNote        String?  @db.Text
+  termMonths       Int      @default(12)
+  ipAddress        String?
+  userAgent        String?  @db.Text
+  acceptedAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  @@index([vendorId])
+}
+
 model manager_action_logs {
   id             String              @id @default(cuid())
   recordType     String // 'INQUIRY' | 'BOOKING'

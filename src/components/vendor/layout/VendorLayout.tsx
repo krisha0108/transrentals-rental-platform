@@ -22,6 +22,7 @@ const allowedPagesForPending = [
   '/vendor/documents',
   '/vendor/profile',
   '/vendor/bank-details',
+  '/vendor/partnership-agreement',
   '/vendor/notifications',
   '/vendor/notification-settings',
   '/vendor/support',

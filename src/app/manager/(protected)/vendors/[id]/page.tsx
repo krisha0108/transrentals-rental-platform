@@ -437,6 +437,18 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
     fetchVendor();
   }, [id]);
 
+  const [partnershipAgreement, setPartnershipAgreement] = useState<{
+    signed: boolean;
+    latest: { signedByName: string; signedByTitle: string | null; queryNote: string | null; acceptedAt: string; agreementVersion: string } | null;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/admin/vendors/${id}/partnership-agreement`)
+      .then((res) => res.json())
+      .then(setPartnershipAgreement)
+      .catch(() => {});
+  }, [id]);
+
   // Optimistic CRM tag toggle — adds/removes locally, then syncs server.
   // Rolls back on failure. Mirrors the vendor list page behaviour.
   const handleToggleTag = async (tag: string, present: boolean) => {
@@ -1670,6 +1682,48 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                   <span className="font-semibold">{vendor._count.fleets}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Partnership Agreement */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Partnership Agreement
+              </h3>
+              {!partnershipAgreement ? (
+                <p className="text-sm text-gray-400">Loading…</p>
+              ) : partnershipAgreement.signed && partnershipAgreement.latest ? (
+                <div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        Signed by {partnershipAgreement.latest.signedByName}
+                        {partnershipAgreement.latest.signedByTitle ? `, ${partnershipAgreement.latest.signedByTitle}` : ''}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(partnershipAgreement.latest.acceptedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                        {' · '}Agreement {partnershipAgreement.latest.agreementVersion}
+                      </p>
+                    </div>
+                  </div>
+                  {partnershipAgreement.latest.queryNote && (
+                    <div className="mt-3 ml-11 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-600">Vendor query</p>
+                      <p className="mt-0.5 text-sm text-amber-800">{partnershipAgreement.latest.queryNote}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <p className="text-sm text-gray-500">Not yet signed by this vendor.</p>
+                </div>
+              )}
             </div>
 
             {/* Pending Requests */}
