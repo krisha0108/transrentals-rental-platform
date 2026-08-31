@@ -626,6 +626,7 @@ const profileItems: NavItem[] = [
   { name: 'Business Profile', href: '/vendor/profile', icon: Building2 },
   { name: 'Documents', href: '/vendor/documents', icon: FileText },
   { name: 'Bank Details', href: '/vendor/bank-details', icon: DollarSign },
+  { name: 'Partnership Agreement', href: '/vendor/partnership-agreement', icon: FileSignature },
 ];
 
 export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceIds = [], approvedServiceSlugs = [] }: VendorSidebarProps) {
