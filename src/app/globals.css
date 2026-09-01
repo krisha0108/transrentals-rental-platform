@@ -6,3 +6,34 @@
 .quote-serif {
   font-family: var(--quote-display), Georgia, serif;
 }
+
+/* ── Customer financials: the hero's perforated seam and its motion ──────── */
+.fin-perf { background: repeating-linear-gradient(180deg, rgba(255,255,255,.26) 0 6px, transparent 6px 12px); }
+.fin-perf::before,
+.fin-perf::after { content: ""; position: absolute; left: -9px; width: 18px; height: 18px; border-radius: 9999px; background: #fff; }
+.fin-perf::before { top: -9px; }
+.fin-perf::after { bottom: -9px; }
+
+@keyframes finPan { to { background-position: -40px -40px; } }
+.fin-grid { animation: finPan 26s linear infinite; }
+
+@keyframes finRise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.fin-rise { animation: finRise .66s cubic-bezier(.2, .9, .25, 1) var(--d, 0s) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fin-grid, .fin-rise { animation: none; }
+}
+
+/* ── Helpdesk dialogs: the veil and the panel's entrance ─────────────────── */
+@keyframes hdVeilIn { from { opacity: 0; } to { opacity: 1; } }
+.hd-veil { animation: hdVeilIn .2s ease-out both; }
+
+@keyframes hdPanelIn {
+  from { opacity: 0; transform: translateY(16px) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+.hd-panel { animation: hdPanelIn .3s cubic-bezier(.2, .9, .25, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hd-veil, .hd-panel { animation: none; }
+}

@@ -52,10 +52,12 @@ import {
   Zap,
   ExternalLink,
   TrendingUp,
+  Search,
 
 } from 'lucide-react';
 import B2BDashboard from './B2BDashboard';
 import TourDashboard from './TourDashboard';
+import DashboardViewSwitch from './DashboardViewSwitch';
 import { quoteDisplay } from '@/lib/quote-font';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import NotificationPanel from '@/components/customer/NotificationPanel';
@@ -246,6 +248,8 @@ export default function CustomerDashboardPage() {
   const [showLocationFilter, setShowLocationFilter] = useState(false);
   const [locationSearch, setLocationSearch] = useState('');
   const [serviceSearch, setServiceSearch] = useState('');
+  // Free-text search over the journeys ledger.
+  const [journeySearch, setJourneySearch] = useState('');
 
   // Profile edit modal
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -468,8 +472,35 @@ export default function CustomerDashboardPage() {
       filtered = filtered.filter((b) => b.is_quote_request && b.all_quotes_expired);
     }
 
+    // Punctuation is flattened on both sides before comparing. The row prints
+    // the booking number as "#TQR-2026-6452" while the field holds it without
+    // the hash, so a customer copying what they see would otherwise get nothing.
+    const flatten = (v: unknown) =>
+      String(v ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const terms = journeySearch.split(/s+/).map(flatten).filter(Boolean);
+    if (terms.length) {
+      filtered = filtered.filter((b) => {
+        // Every term has to land somewhere, so "ahmedabad bike" narrows rather
+        // than widens. Matched against the fields the row actually prints.
+        const hay = flatten(
+          [
+            b.booking_number,
+            b.service_name,
+            b.location_name,
+            b.destination,
+            b.trip_type,
+            b.goods_type,
+            b.status,
+          ]
+            .filter(Boolean)
+            .join(' ')
+        );
+        return terms.every((t) => hay.includes(t));
+      });
+    }
+
     setFilteredBookings(filtered);
-  }, [selectedService, selectedLocation, showExpiredQuotesOnly, bookings]);
+  }, [selectedService, selectedLocation, showExpiredQuotesOnly, journeySearch, bookings]);
 
   // Extract unique services from bookings, always include Luxury Car Rental
   useEffect(() => {
@@ -504,7 +535,7 @@ export default function CustomerDashboardPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedService, selectedLocation, activeTab, bookings.length]);
+  }, [selectedService, selectedLocation, journeySearch, activeTab, bookings.length]);
 
   const fetchLiveChats = async () => {
     // Live chats feature - currently not implemented in local database
@@ -1384,61 +1415,43 @@ export default function CustomerDashboardPage() {
           </div>
         )}
 
-        {/* Dashboard view switch — same three views, as a segmented control */}
-        <div className="mx-auto max-w-[1320px] px-5 sm:px-8 lg:px-10 pt-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="inline-flex rounded-full border border-[#D4DFD8] bg-[#F4F8F5] p-[3px]">
-              {customer?.isB2B && customer?.b2bStatus === 'APPROVED' && (
-                <button
-                  onClick={() => setDashboardView('b2b')}
-                  className={`inline-flex items-center gap-2 rounded-full px-[18px] py-2 text-[12.5px] transition ${
-                    dashboardView === 'b2b' ? 'bg-[#061A11] font-semibold text-white' : 'font-medium text-[#78857C] hover:text-[#0B1610]'
-                  }`}
-                >
-                  <Building2 className="h-3.5 w-3.5" /> B2B Dashboard
-                </button>
-              )}
-              <button
-                onClick={() => setDashboardView('personal')}
-                className={`inline-flex items-center gap-2 rounded-full px-[18px] py-2 text-[12.5px] transition ${
-                  dashboardView === 'personal' ? 'bg-[#061A11] font-semibold text-white' : 'font-medium text-[#78857C] hover:text-[#0B1610]'
-                }`}
-              >
-                <Car className="h-3.5 w-3.5" /> {customer?.isB2B ? 'Personal' : 'My Bookings'}
-              </button>
-              <button
-                onClick={() => setDashboardView('tour')}
-                className={`inline-flex items-center gap-2 rounded-full px-[18px] py-2 text-[12.5px] transition ${
-                  dashboardView === 'tour' ? 'bg-[#061A11] font-semibold text-white' : 'font-medium text-[#78857C] hover:text-[#0B1610]'
-                }`}
-              >
-                <Compass className="h-3.5 w-3.5" /> Tours
-              </button>
-            </div>
-            {customer?.isB2B && customer?.b2bStatus === 'APPROVED' && (
-              <button
-                onClick={() => setShowCompanyModal(true)}
-                className="inline-flex items-center gap-2 text-[12.5px] font-semibold text-[#056B3E]"
-              >
-                <Edit3 className="h-3.5 w-3.5" /> Manage Company
-              </button>
-            )}
-          </div>
-        </div>
-
         {/* B2B Dashboard View */}
         {dashboardView === 'b2b' && customer?.isB2B ? (
-          <div className="mx-auto max-w-[1320px] px-5 sm:px-8 lg:px-10 py-6">
+          // No wrapper: the company hero is full-bleed like the personal one, so
+          // the component carries its own gutters below it.
+          <>
             <B2BDashboard
               customerId={String(customer.id)}
               customerName={customer.name}
               companyName={customer.companyName || null}
+              viewSwitch={<DashboardViewSwitch
+                view={dashboardView as any}
+                onChange={(v) => setDashboardView(v as any)}
+                showB2B={Boolean(customer?.isB2B && customer?.b2bStatus === 'APPROVED')}
+                personalLabel={customer?.isB2B ? 'Personal' : 'My Bookings'}
+              />}
+              manageCompany={
+                <button
+                  onClick={() => setShowCompanyModal(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/15 px-3 py-2 text-xs font-semibold backdrop-blur-sm transition hover:bg-white/25"
+                >
+                  <Edit3 className="h-3.5 w-3.5" /> Manage Company
+                </button>
+              }
             />
-          </div>
+          </>
         ) : dashboardView === 'tour' ? (
           // No wrapper: the tours hero is full-bleed like the bookings one, so
           // the component carries its own gutters below it.
-          <TourDashboard customerId={String(customer?.id)} />
+          <TourDashboard
+            customerId={String(customer?.id)}
+            viewSwitch={<DashboardViewSwitch
+              view={dashboardView as any}
+              onChange={(v) => setDashboardView(v as any)}
+              showB2B={Boolean(customer?.isB2B && customer?.b2bStatus === 'APPROVED')}
+              personalLabel={customer?.isB2B ? 'Personal' : 'My Bookings'}
+            />}
+          />
         ) : (
         <>
 
@@ -1514,6 +1527,12 @@ export default function CustomerDashboardPage() {
                   {customer?.name || 'Customer'}
                 </h1>
                 <p className="mt-1.5 text-[12.5px] tracking-[0.02em] text-white/[0.55]">Vehicle rental portal</p>
+                <DashboardViewSwitch
+                  view={dashboardView as any}
+                  onChange={(v) => setDashboardView(v as any)}
+                  showB2B={Boolean(customer?.isB2B && customer?.b2bStatus === 'APPROVED')}
+                  personalLabel={customer?.isB2B ? 'Personal' : 'My Bookings'}
+                />
               </div>
             </div>
           </div>
@@ -1706,7 +1725,29 @@ export default function CustomerDashboardPage() {
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#A6B1AA]">Your record</p>
               <h2 className="quote-serif mt-2 text-[40px] font-medium leading-none">Journeys</h2>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Search — booking number, service, city, status */}
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-[13px] top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#A6B1AA]" />
+                <input
+                  type="text"
+                  value={journeySearch}
+                  onChange={(e) => setJourneySearch(e.target.value)}
+                  placeholder="Search journeys..."
+                  aria-label="Search journeys"
+                  className="w-[200px] rounded-full border border-[#D4DFD8] bg-white py-2 pl-9 pr-8 text-[12px] text-[#0B1610] transition placeholder:text-[#A6B1AA] focus:border-[#09B368] focus:outline-none"
+                />
+                {journeySearch && (
+                  <button
+                    type="button"
+                    onClick={() => setJourneySearch('')}
+                    aria-label="Clear search"
+                    className="absolute right-[11px] top-1/2 -translate-y-1/2 text-[#A6B1AA] transition hover:text-[#0B1610]"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
               {/* Service Filter */}
               <div className="relative">
                 <button
@@ -1840,7 +1881,7 @@ export default function CustomerDashboardPage() {
               {[0, 1, 2, 3, 4, 5].map((i) => (
                 <div
                   key={i}
-                  className="grid grid-cols-[44px_1fr] items-center gap-x-4 gap-y-3 border-b border-[#E7EEE9] py-4 lg:grid-cols-[40px_minmax(0,200px)_minmax(0,1fr)_minmax(0,190px)_138px_104px_14px] lg:gap-y-0"
+                  className="grid grid-cols-[44px_1fr] items-center gap-x-4 gap-y-3 border-b border-[#E7EEE9] py-4 lg:grid-cols-[40px_minmax(150px,1.1fr)_minmax(150px,1.15fr)_minmax(140px,1fr)_120px_120px_14px] lg:gap-y-0"
                 >
                   <span className="h-9 w-9 animate-pulse rounded-xl bg-[#EAF0EC]" />
                   <div>
@@ -1866,14 +1907,33 @@ export default function CustomerDashboardPage() {
             </div>
           ) : filteredBookings.length === 0 ? (
             <div className="flex flex-col items-center gap-3 border-t border-[#E7EEE9] py-20">
-              <Calendar className="h-7 w-7 text-[#09B368]" />
-              <p className="quote-serif text-[24px] font-medium text-[#0B1610]">No {activeTab.toLowerCase()} bookings</p>
-              <p className="max-w-xs text-center text-xs text-[#A6B1AA]">
-                {activeTab === 'Open' ? 'Create a new booking to get started!' : `No ${activeTab.toLowerCase()} bookings yet.`}
-              </p>
-              <Link href="/" className="mt-1 inline-flex items-center gap-2 rounded-full bg-[#09B368] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#078F53]">
-                <Sparkles className="h-3.5 w-3.5" /> Book Now
-              </Link>
+              {journeySearch.trim() ? (
+                <>
+                  <Search className="h-7 w-7 text-[#A6B1AA]" />
+                  <p className="quote-serif text-[24px] font-medium text-[#0B1610]">No matches</p>
+                  <p className="max-w-xs text-center text-xs text-[#A6B1AA]">
+                    Nothing in {activeTab.toLowerCase()} matches &ldquo;{journeySearch.trim()}&rdquo;. Try a booking number, service or city.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setJourneySearch('')}
+                    className="mt-1 inline-flex items-center gap-2 rounded-full border border-[#D4DFD8] bg-white px-5 py-2.5 text-xs font-semibold text-[#46524A] transition hover:border-[#09B368] hover:text-[#056B3E]"
+                  >
+                    <X className="h-3.5 w-3.5" /> Clear search
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Calendar className="h-7 w-7 text-[#09B368]" />
+                  <p className="quote-serif text-[24px] font-medium text-[#0B1610]">No {activeTab.toLowerCase()} bookings</p>
+                  <p className="max-w-xs text-center text-xs text-[#A6B1AA]">
+                    {activeTab === 'Open' ? 'Create a new booking to get started!' : `No ${activeTab.toLowerCase()} bookings yet.`}
+                  </p>
+                  <Link href="/" className="mt-1 inline-flex items-center gap-2 rounded-full bg-[#09B368] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#078F53]">
+                    <Sparkles className="h-3.5 w-3.5" /> Book Now
+                  </Link>
+                </>
+              )}
             </div>
           ) : (
             <div className="border-t border-[#E7EEE9]">
@@ -1910,7 +1970,7 @@ export default function CustomerDashboardPage() {
                       <div
                         key={booking.id}
                         onClick={() => window.open(getBookingUrl(booking), '_blank')}
-                        className="group relative grid cursor-pointer grid-cols-[44px_1fr] lg:grid-cols-[40px_minmax(0,200px)_minmax(0,1fr)_minmax(0,190px)_138px_104px_14px] items-center gap-x-4 gap-y-3 border-b border-[#E7EEE9] py-4 pr-2 transition lg:gap-y-0"
+                        className="group relative grid cursor-pointer grid-cols-[44px_1fr] lg:grid-cols-[40px_minmax(150px,1.1fr)_minmax(150px,1.15fr)_minmax(140px,1fr)_120px_120px_14px] items-center gap-x-4 gap-y-3 border-b border-[#E7EEE9] py-4 pr-2 transition lg:gap-y-0"
                       >
                         <span className="absolute -inset-x-4 inset-y-0 z-0 rounded-lg bg-[#F4F8F5] opacity-0 transition group-hover:opacity-100" />
 
@@ -1950,13 +2010,13 @@ export default function CustomerDashboardPage() {
                         {/* Schedule — its own column, so the row's spare width
                             carries information instead of sitting empty. */}
                         <div className="relative z-10 col-span-2 min-w-0 lg:col-span-1">
-                          <p className="flex flex-wrap items-center gap-x-2 text-[12.5px] text-[#46524A] lg:justify-end">
+                          <p className="flex flex-wrap items-center gap-x-3 text-[12.5px] text-[#46524A]">
                             <span className="tabular-nums">{formatDate(booking.journey_datetime)}</span>
                             <span className="text-[#D4DFD8]">·</span>
                             <span className="tabular-nums">{formatTime(booking.journey_datetime)}</span>
                           </p>
                           {(!!booking.passengers || booking.goods_type) && (
-                            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[11px] text-[#A6B1AA] lg:justify-end">
+                            <p className="mt-1.5 flex flex-wrap items-center gap-x-3 text-[11px] text-[#A6B1AA]">
                               {!!booking.passengers && (
                                 <span><span className="tabular-nums">{booking.passengers}</span> passengers</span>
                               )}
@@ -2234,9 +2294,11 @@ export default function CustomerDashboardPage() {
             <h2 className="quote-serif mt-2 text-[40px] font-medium leading-none">Profile &amp; support</h2>
           </div>
 
-          {/* The three columns stretch to a shared height. Column one puts its
-              slack into My inquiries, so all three end on the same line. */}
-          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.12fr_1fr]">
+          {/* items-start: each column takes its own height. Sharing one height
+              looked tidy until a column grew on its own data (the rewards card
+              on a connected account) — the other two then stretched with it and
+              their cards went hollow, the content stranded in a tall empty box. */}
+          <div className="mt-6 grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_1.12fr_1fr]">
 
             {/* ── profile + inquiries ── */}
             <div className="flex flex-col gap-4">
@@ -2316,9 +2378,9 @@ export default function CustomerDashboardPage() {
                 </div>
               </div>
 
-              {/* `grow` (not flex-1) so the card takes the column's leftover
-                  height without ever being squeezed under its own content. */}
-              <div className="flex grow flex-col overflow-hidden rounded-2xl border border-[#F0E3C4] bg-white transition-colors hover:border-[#E3CE99]">
+              {/* Sized by its own content — no leftover column height to absorb
+                  now that the columns no longer share one. */}
+              <div className="flex flex-col overflow-hidden rounded-2xl border border-[#F0E3C4] bg-white transition-colors hover:border-[#E3CE99]">
                 <div className="flex items-end justify-between gap-2.5 border-b border-[#F0E3C4] bg-gradient-to-r from-[#FEF8EA] to-[#FFFDF7] px-5 py-4">
                   <div>
                     <p className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-[#B4700F]">Raised by you</p>
@@ -2330,7 +2392,7 @@ export default function CustomerDashboardPage() {
                 </div>
 
                 {contactInquiries.length === 0 ? (
-                  <div className="flex flex-1 flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
                     <p className="flex items-center gap-2.5 text-[12px] text-[#A6B1AA]">
                       <Inbox className="h-4 w-4 flex-none text-[#E5C075]" />
                       No inquiries raised yet.
@@ -2342,7 +2404,13 @@ export default function CustomerDashboardPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="flex flex-col">
+                    {/* Two rows tall (a row measures ~70px), then it scrolls — so a
+                        fourth inquiry lengthens the list, not the card. Same
+                        treatment as the notification panel, scrollbar included.
+                        Deliberately not flex-col: in a flex column a max-height
+                        makes the rows shrink to fit instead of overflowing, so
+                        nothing would ever scroll. */}
+                    <div className="max-h-[140px] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                       {contactInquiries.slice(0, 4).map((inq: any) => {
                         // Status reads as a dot + word rather than a filled pill, so
                         // four stacked rows don't turn into four blocks of colour.

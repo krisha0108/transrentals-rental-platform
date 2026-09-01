@@ -90,6 +90,469 @@ const TYPE_LABELS: Record<string, string> = {
   'self-drive': 'Self-Drive', wander: 'Wander', wander_booking: 'Wander',
 };
 
+// ─── Scoped stylesheet (presentation only) ───────────────────────────────────
+
+const CXX_CSS = `
+.cxx{
+  --card:#FFFFFF; --card-2:#F7FAF8; --sunk:#F1F6F3;
+  --rule:#E0E8E3; --rule-2:#CAD8D0; --rule-3:#B4C7BC;
+  --ink:#08150F; --ink-2:#2C3A33; --body:#4B5A52; --muted:#75837B; --faint:#9AA8A0; --ghost:#BECAC3;
+  --forest:#062E1D; --em:#056B3E; --em-2:#09B368; --em-3:#3FD79A;
+  --mint:#E7F6EF; --mint-2:#CDEADC;
+  --teal:#0B7C74; --teal-bg:#E2F3F1; --teal-ln:#B6E0DB;
+  --indigo:#4338CA; --indigo-bg:#EDEEFD; --indigo-ln:#CBD0F8;
+  --amber:#A96509; --amber-bg:#FCF4E4; --amber-ln:#ECDCB8;
+  --rose:#B0143C; --rose-bg:#FCE9ED;
+  --serif:var(--quote-display, Georgia, "Times New Roman", serif);
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --lift-1:0 1px 2px rgba(6,46,29,.05), 0 6px 16px -12px rgba(6,46,29,.28);
+  --lift-2:0 2px 6px rgba(6,46,29,.06), 0 22px 44px -30px rgba(6,46,29,.5);
+  color:var(--ink);
+}
+.cxx *{box-sizing:border-box}
+.cxx button{font:inherit; color:inherit; background:none; border:none; cursor:pointer; padding:0}
+.cxx a{color:inherit; text-decoration:none}
+.cxx ::-webkit-scrollbar{width:9px; height:9px}
+.cxx ::-webkit-scrollbar-thumb{background:var(--rule-2); border:3px solid var(--card); border-radius:9px}
+.cxx ::-webkit-scrollbar-track{background:transparent}
+.cxx .eyebrow{margin:0; font-family:var(--mono); font-size:9.5px; font-weight:600; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--faint)}
+.cxx .tnum{font-variant-numeric:tabular-nums}
+.cxx .mono{font-family:var(--mono)}
+
+@keyframes cxxIn{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)}}
+@keyframes cxxUp{from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:translateY(0)}}
+@keyframes cxxShim{0%{background-position:-200% 0} 100%{background-position:200% 0}}
+.cxx .msg-in{animation:cxxIn .25s ease-out}
+.cxx .fade-in-up{animation:cxxUp .35s ease-out}
+.cxx .shimmer-teal{background:linear-gradient(90deg,#E7F6EF 25%,#CDEADC 50%,#E7F6EF 75%);
+  background-size:200% 100%; animation:cxxShim 1.5s ease-in-out infinite}
+
+/* ── frame ── */
+.cxx .frame{flex:1; min-width:0; min-height:0; display:grid;
+  grid-template-columns:66px 306px minmax(0,1fr) 312px;
+  border-radius:22px; overflow:hidden; background:var(--card);
+  box-shadow:var(--lift-2), 0 0 0 1px var(--rule)}
+.cxx .frame.noctx{grid-template-columns:66px 306px minmax(0,1fr)}
+
+/* ── 1. channel spine ── */
+.cxx .spine{display:flex; flex-direction:column; align-items:center; gap:5px; padding:14px 0 12px;
+  background:linear-gradient(178deg,#0A4A2E 0%,#062E1D 58%,#042115 100%); color:#fff}
+.cxx .crest{width:36px; height:36px; border-radius:12px; display:grid; place-items:center;
+  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.16);
+  color:var(--em-3); margin-bottom:12px; flex:none}
+.cxx .ch{position:relative; width:46px; flex:none; padding:9px 0 7px; border-radius:13px;
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  color:rgba(255,255,255,.52); transition:background .18s, color .18s}
+.cxx .ch:hover{background:rgba(255,255,255,.07); color:rgba(255,255,255,.86)}
+.cxx .ch .lbl{font-size:9px; font-weight:600; letter-spacing:.04em}
+.cxx .ch .dot{position:absolute; top:5px; right:5px; min-width:16px; height:16px; padding:0 4px;
+  border-radius:999px; font-size:9.5px; font-weight:700; line-height:16px;
+  background:#E11D48; color:#fff; box-shadow:0 0 0 2px #08301E; font-variant-numeric:tabular-nums}
+.cxx .ch.on{background:rgba(255,255,255,.13); color:#fff; box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
+.cxx .ch.on::before{content:""; position:absolute; left:-14px; top:12px; bottom:12px; width:3px;
+  border-radius:0 3px 3px 0; background:var(--em-3)}
+.cxx .spine .foot{margin-top:auto; display:flex; flex-direction:column; align-items:center; gap:9px}
+.cxx .spine .foot .me{width:32px; height:32px; border-radius:999px; display:grid; place-items:center;
+  font-size:12px; font-weight:700; background:rgba(255,255,255,.14); color:#fff;
+  border:1px solid rgba(255,255,255,.2)}
+
+/* ── 2. rail ── */
+.cxx .rail{display:flex; flex-direction:column; min-width:0; min-height:0;
+  border-right:1px solid var(--rule); background:var(--card-2)}
+.cxx .rhead{flex:none; padding:16px 16px 12px; border-bottom:1px solid var(--rule)}
+.cxx .rhead h1{margin:0; font-family:var(--serif); font-size:27px; font-weight:600; line-height:1;
+  letter-spacing:-.01em}
+.cxx .rsub{display:flex; align-items:center; gap:7px; margin:7px 0 0}
+.cxx .rsub p{margin:0; font-size:12px; color:var(--muted); overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap}
+.cxx .refresh{margin-left:auto; flex:none; width:27px; height:27px; border-radius:9px; display:grid;
+  place-items:center; color:var(--faint); transition:background .18s, color .18s}
+.cxx .refresh:hover{background:var(--sunk); color:var(--em)}
+.cxx .tally{flex:none; display:inline-flex; align-items:center; gap:5px; border-radius:999px;
+  padding:1px 8px 1px 5px; background:var(--mint); border:1px solid var(--mint-2);
+  font-size:11px; font-weight:700; color:var(--em); font-variant-numeric:tabular-nums}
+.cxx .tally i{width:5px; height:5px; border-radius:999px; background:var(--em-2)}
+
+.cxx .seek{position:relative; display:flex; align-items:center; margin-top:12px}
+.cxx .seek .si{position:absolute; left:11px; color:var(--faint); pointer-events:none}
+.cxx .seek input{width:100%; border-radius:11px; border:1px solid var(--rule-2); background:var(--card);
+  padding:9px 12px 9px 34px; font-size:13px; color:var(--ink);
+  transition:border-color .18s, box-shadow .18s}
+.cxx .seek input::placeholder{color:var(--ghost)}
+.cxx .seek input:focus{outline:none; border-color:var(--em-2); box-shadow:0 0 0 3.5px rgba(9,179,104,.12)}
+
+.cxx .tabrow{position:relative; margin-top:10px}
+.cxx .tabrow::after{content:""; position:absolute; right:0; top:0; bottom:0; width:28px;
+  pointer-events:none; background:linear-gradient(90deg,rgba(247,250,248,0),var(--card-2))}
+.cxx .tabs{display:flex; gap:5px; overflow-x:auto; scrollbar-width:none; padding-bottom:1px}
+.cxx .tabs::-webkit-scrollbar{display:none}
+.cxx .tab{flex:none; position:relative; padding:5px 3px 7px; font-size:12.5px; font-weight:500;
+  color:var(--muted); white-space:nowrap; margin-right:9px; transition:color .18s}
+.cxx .tab:hover{color:var(--ink-2)}
+.cxx .tab::after{content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  border-radius:2px; background:transparent; transition:background .18s}
+.cxx .tab.on{color:var(--ink); font-weight:700}
+.cxx .tab.on::after{background:var(--em-2)}
+
+.cxx .threads{flex:1; min-height:0; overflow-y:auto; padding:4px 8px 10px}
+.cxx .dayline{display:flex; align-items:center; gap:9px; padding:13px 6px 6px; position:sticky; top:0;
+  z-index:2; background:linear-gradient(180deg,var(--card-2) 62%,rgba(247,250,248,0))}
+.cxx .dayline .ln{flex:1; height:1px; background:var(--rule)}
+
+.cxx .conv{position:relative; width:100%; display:flex; gap:11px; text-align:left; border-radius:14px;
+  padding:11px 11px 11px 12px; margin-bottom:6px; overflow:hidden;
+  background:var(--card);
+  box-shadow:0 1px 2px rgba(6,46,29,.04), inset 0 0 0 1px var(--rule);
+  transition:box-shadow .2s cubic-bezier(.4,0,.2,1), transform .2s cubic-bezier(.4,0,.2,1),
+             background .2s ease}
+
+/* service colour ka wash — baayin se aata hai */
+.cxx .conv::after{content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+  border-radius:inherit; opacity:0; transition:opacity .2s ease;
+  background:linear-gradient(96deg,
+    color-mix(in srgb, var(--sc,#75837B) 11%, transparent) 0%,
+    transparent 52%)}
+.cxx .conv:hover::after{opacity:1}
+.cxx .conv.on::after{opacity:.72}
+
+/* left accent bar — hover par khulta hai, select par tik jaata hai */
+.cxx .conv::before{content:""; position:absolute; left:0; top:12px; bottom:12px; width:3px; z-index:2;
+  border-radius:0 3px 3px 0; background:var(--sc,var(--em-2));
+  transform:scaleY(0); transform-origin:center; opacity:.6;
+  transition:transform .24s cubic-bezier(.34,1.4,.64,1), opacity .2s ease}
+.cxx .conv:hover::before{transform:scaleY(1)}
+.cxx .conv.on::before{transform:scaleY(1); opacity:1}
+
+.cxx .conv > *{position:relative; z-index:1}
+
+.cxx .conv:hover{transform:translateY(-2px);
+  box-shadow:0 4px 10px -4px rgba(6,46,29,.13), 0 14px 26px -18px rgba(6,46,29,.5),
+             inset 0 0 0 1px color-mix(in srgb, var(--sc,#75837B) 26%, var(--rule))}
+.cxx .conv:active{transform:translateY(0) scale(.995);
+  transition-duration:.08s}
+.cxx .conv.on{transform:none;
+  box-shadow:var(--lift-1), inset 0 0 0 1.5px color-mix(in srgb, var(--sc,#75837B) 42%, var(--rule))}
+.cxx .conv.on:hover{transform:none;
+  box-shadow:0 4px 10px -4px rgba(6,46,29,.13), 0 14px 26px -18px rgba(6,46,29,.5),
+             inset 0 0 0 1.5px color-mix(in srgb, var(--sc,#75837B) 55%, var(--rule))}
+
+/* avatar zara sa uthta hai aur uske around service colour ki ring aati hai */
+.cxx .conv .face{transition:transform .24s cubic-bezier(.34,1.4,.64,1), box-shadow .2s ease}
+.cxx .conv:hover .face{transform:scale(1.06);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--sc,#75837B) 13%, transparent)}
+.cxx .conv:hover .cname{color:var(--ink)}
+.cxx .conv:hover .last{color:var(--body)}
+.cxx .conv .cname,.cxx .conv .last{transition:color .2s ease}
+.cxx .face{position:relative; width:38px; height:38px; flex:none; border-radius:12px; display:grid;
+  place-items:center; overflow:hidden; font-size:13px; font-weight:700;
+  background:var(--fbg,#EFF3F1); color:var(--sc,#75837B)}
+.cxx .face img{width:100%; height:100%; object-fit:cover}
+.cxx .conv .cbody{flex:1; min-width:0}
+.cxx .conv .r1{display:flex; align-items:center; gap:8px}
+.cxx .conv .cname{flex:1; min-width:0; font-size:13.5px; font-weight:600; color:var(--ink-2);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.cxx .conv.new .cname{font-weight:800; color:var(--ink)}
+.cxx .conv .when{flex:none; font-size:10.5px; font-family:var(--mono); color:var(--faint)}
+.cxx .conv.new .when{color:var(--em); font-weight:700}
+.cxx .conv .r2{display:flex; align-items:center; gap:7px; margin-top:3px}
+.cxx .conv .last{flex:1; min-width:0; margin:0; font-size:12.5px; color:var(--faint);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.cxx .conv.new .last{color:var(--body)}
+.cxx .conv .last .mine{color:var(--ghost); display:inline-flex; vertical-align:-2px; margin-right:3px}
+.cxx .conv .r3{display:flex; align-items:center; gap:6px; margin-top:5px}
+.cxx .chip{flex:none; border-radius:6px; padding:1px 6px; font-size:9.5px; font-weight:700;
+  letter-spacing:.05em; text-transform:uppercase; background:var(--fbg,#EFF3F1); color:var(--sc,#75837B)}
+.cxx .ref{flex:none; font-family:var(--mono); font-size:10px; color:var(--ghost); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap}
+.cxx .n{flex:none; min-width:19px; height:19px; padding:0 5px; border-radius:999px; font-size:10.5px;
+  font-weight:700; line-height:19px; text-align:center; background:var(--em); color:#fff;
+  font-variant-numeric:tabular-nums}
+.cxx .n.teal{background:var(--teal)}
+.cxx .n.indigo{background:var(--indigo)}
+.cxx .stack{flex:none; display:inline-flex; align-items:center; border-radius:999px;
+  border:1px solid var(--rule-2); background:var(--card); padding:0 6px; height:18px;
+  font-size:10px; font-weight:600; color:var(--muted)}
+
+.cxx .void{padding:44px 20px; text-align:center}
+.cxx .void .g{width:46px; height:46px; margin:0 auto 12px; border-radius:15px; display:grid;
+  place-items:center; background:var(--sunk); color:var(--ghost)}
+.cxx .void b{display:block; font-size:13px; font-weight:600; color:var(--ink-2)}
+.cxx .void span{display:block; margin-top:3px; font-size:12px; color:var(--faint)}
+.cxx .skel{display:flex; align-items:center; gap:11px; padding:11px}
+.cxx .skel .a{width:38px; height:38px; border-radius:12px; flex:none}
+.cxx .skel .b{flex:1; display:flex; flex-direction:column; gap:6px}
+.cxx .skel .b i{display:block; height:9px; border-radius:5px}
+
+/* ── 3. thread ── */
+.cxx .room{display:flex; flex-direction:column; min-width:0; min-height:0; background:var(--card)}
+.cxx .thead{flex:none; display:flex; align-items:center; gap:12px; padding:13px 18px;
+  border-bottom:1px solid var(--rule)}
+.cxx .icon{width:32px; height:32px; flex:none; border-radius:10px; display:grid; place-items:center;
+  color:var(--muted); transition:background .18s, color .18s}
+.cxx .icon:hover{background:var(--sunk); color:var(--ink-2)}
+.cxx .backb{display:none}
+.cxx .infob{display:none}
+.cxx .veil{display:none}
+.cxx .thead .ttl{min-width:0; flex:1}
+.cxx .thead h2{margin:0; font-family:var(--serif); font-size:19px; font-weight:600; line-height:1.2;
+  letter-spacing:-.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.cxx .thead .under{display:flex; align-items:center; gap:8px; margin-top:2px; flex-wrap:wrap}
+.cxx .thead .under p{margin:0; font-size:11px; color:var(--muted)}
+.cxx .thead .under p b{font-family:var(--mono); font-size:10.5px; font-weight:600; color:var(--ink-2)}
+.cxx .tone{flex:none; border-radius:7px; padding:2px 8px; font-size:10px; font-weight:700;
+  letter-spacing:.05em; text-transform:uppercase; background:var(--fbg,#EFF3F1); color:var(--sc,#75837B);
+  border:1px solid transparent}
+.cxx .tone.live{background:var(--mint); color:var(--em); border-color:var(--mint-2)}
+.cxx .act{display:inline-flex; align-items:center; gap:6px; border-radius:10px; padding:7px 12px;
+  font-size:12px; font-weight:600; border:1px solid var(--rule-2); background:var(--card);
+  color:var(--ink-2); white-space:nowrap;
+  transition:border-color .18s, color .18s, background .18s}
+.cxx .act:hover{border-color:var(--rule-3); background:var(--card-2)}
+.cxx .act.key{border-color:transparent; color:#fff;
+  background:linear-gradient(178deg,#0A5F3A,#04361F); box-shadow:0 10px 18px -14px rgba(6,46,29,.9)}
+.cxx .act.key:hover{background:linear-gradient(178deg,#0B6C42,#053E24)}
+
+.cxx .docks{flex:none; display:flex; align-items:center; gap:8px; padding:9px 18px;
+  border-bottom:1px solid var(--rule); background:var(--card-2); overflow-x:auto; scrollbar-width:none}
+.cxx .docks::-webkit-scrollbar{display:none}
+.cxx .dock{flex:none; display:inline-flex; align-items:center; gap:7px; border-radius:10px;
+  border:1px solid var(--rule-2); background:var(--card); padding:5px 11px; font-size:11.5px;
+  font-weight:500; color:var(--muted); white-space:nowrap; transition:border-color .18s, color .18s}
+.cxx .dock:hover{border-color:var(--rule-3); color:var(--ink-2)}
+.cxx .dock .no{font-family:var(--mono); font-size:10.5px; opacity:.75}
+.cxx .dock.on{color:#fff; border-color:transparent; background:linear-gradient(178deg,#0A4A2E,#062E1D)}
+.cxx .dock.on::before{content:""; width:6px; height:6px; border-radius:999px; flex:none;
+  background:var(--sc,var(--em-3))}
+.cxx .dock.on .no{opacity:.72}
+.cxx .dock .n{height:16px; min-width:16px; line-height:16px; font-size:9.5px}
+.cxx .sw{flex:none; position:relative; display:flex; align-items:center}
+.cxx .sw select{appearance:none; border-radius:10px; border:1px solid var(--rule-2);
+  background:var(--card); padding:6px 27px 6px 11px; font-size:11.5px; font-weight:600;
+  color:var(--ink-2); cursor:pointer}
+.cxx .sw select:focus{outline:none; border-color:var(--em-2)}
+.cxx .sw .cv{position:absolute; right:9px; color:var(--faint); pointer-events:none}
+
+.cxx .flow{flex:1; min-height:0; overflow-y:auto;
+  padding:14px 22px 6px;
+  background:
+    radial-gradient(600px 320px at 100% -12%, rgba(9,179,104,.055), transparent 64%),
+    linear-gradient(180deg,var(--card-2) 0%, var(--card) 34%)}
+.cxx .stamp{display:flex; justify-content:center; margin:16px 0 10px}
+.cxx .stamp span{border-radius:999px; border:1px solid var(--rule); background:var(--card);
+  padding:3px 13px; font-family:var(--mono); font-size:9.5px; font-weight:600; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--muted)}
+.cxx .msg{display:flex; align-items:flex-end; gap:9px; margin-top:9px}
+.cxx .msg.mine{justify-content:flex-end}
+.cxx .msg.run{margin-top:2px}
+.cxx .who{width:26px; height:26px; flex:none; margin-bottom:17px; border-radius:9px; display:grid;
+  place-items:center; overflow:hidden; font-size:10px; font-weight:700;
+  background:var(--fbg,#EFF3F1); color:var(--sc,#75837B)}
+.cxx .who img{width:100%; height:100%; object-fit:cover}
+.cxx .who.hole{background:none}
+.cxx .wrap{max-width:min(760px,72%); display:flex; flex-direction:column; gap:3px}
+.cxx .msg.mine .wrap{align-items:flex-end}
+.cxx .say{position:relative; border-radius:16px 16px 16px 5px; padding:9px 13px;
+  border:1px solid var(--rule); background:var(--card); box-shadow:var(--lift-1)}
+.cxx .msg.run .say{border-radius:16px}
+.cxx .msg.mine .say{border-radius:16px 16px 5px 16px; border-color:transparent; color:#fff;
+  background:linear-gradient(176deg,#0C8F5C 0%,#054F2F 100%);
+  box-shadow:0 10px 20px -16px rgba(6,46,29,.95)}
+.cxx .msg.mine.run .say{border-radius:16px}
+.cxx .msg.mine .say.teal{background:linear-gradient(176deg,#12A79D,#08514C)}
+.cxx .say p{margin:0; font-size:13.5px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere;
+  color:var(--ink-2)}
+.cxx .msg.mine .say p{color:#fff}
+.cxx .say.pic{padding:5px}
+.cxx .tail{display:flex; align-items:center; gap:5px; padding:0 3px; font-family:var(--mono);
+  font-size:9.5px; color:var(--faint); font-variant-numeric:tabular-nums}
+.cxx .tail .tk{display:inline-flex; color:var(--ghost)}
+.cxx .tail .tk.seen{color:var(--em-2)}
+.cxx .shotwrap{position:relative; display:block; border-radius:13px; overflow:hidden; line-height:0}
+.cxx .shotwrap img{display:block; max-width:250px; max-height:250px; border-radius:13px;
+  object-fit:cover}
+.cxx .shotwrap .grab{position:absolute; inset:0; display:grid; place-items:center; color:#fff;
+  background:rgba(8,21,15,0); opacity:0; transition:opacity .18s, background .18s}
+.cxx .shotwrap:hover .grab{opacity:1; background:rgba(8,21,15,.28)}
+.cxx .doc{display:flex; align-items:center; gap:10px; border-radius:11px; padding:8px 10px;
+  background:var(--card-2); border:1px solid var(--rule)}
+.cxx .msg.mine .doc{background:rgba(255,255,255,.13); border-color:rgba(255,255,255,.22)}
+.cxx .doc .ext{width:32px; height:32px; flex:none; border-radius:9px; display:grid; place-items:center;
+  background:var(--rose-bg); color:var(--rose)}
+.cxx .msg.mine .doc .ext{background:rgba(255,255,255,.2); color:#fff}
+.cxx .doc .fn{min-width:0; font-size:12.5px; font-weight:600; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap}
+.cxx .doc .pull{margin-left:auto; flex:none; display:grid; place-items:center; opacity:.6}
+
+/* ── compose ── */
+.cxx .desk{flex:none; position:relative; border-top:1px solid var(--rule); background:var(--card);
+  padding:10px 20px 13px}
+.cxx .desk .glow{position:absolute; left:0; right:0; top:0; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(9,179,104,.34),transparent)}
+.cxx .rising{display:flex; align-items:center; gap:9px; margin-bottom:9px; border-radius:12px;
+  border:1px solid var(--mint-2); background:var(--mint); padding:8px 12px; font-size:12px;
+  font-weight:600; color:var(--em)}
+.cxx .pen{display:flex; align-items:flex-end; gap:9px}
+.cxx .orb{width:40px; height:40px; flex:none; border-radius:13px; display:grid; place-items:center;
+  color:var(--muted); border:1px solid transparent;
+  transition:background .18s, color .18s, border-color .18s}
+.cxx .orb:hover{background:var(--sunk); color:var(--em)}
+.cxx .orb:disabled{opacity:.4; cursor:default}
+.cxx .orb.lit{background:var(--amber-bg); border-color:var(--amber-ln); color:var(--amber)}
+.cxx .slate{flex:1; min-width:0; display:flex; align-items:flex-end; gap:3px; border-radius:16px;
+  border:1px solid var(--rule-2); background:var(--card-2); padding:2px 4px 2px 14px;
+  transition:border-color .18s, box-shadow .18s, background .18s}
+.cxx .slate:focus-within{border-color:var(--em-2); background:var(--card);
+  box-shadow:0 0 0 3.5px rgba(9,179,104,.12)}
+.cxx .slate textarea{flex:1; min-width:0; border:none; background:none; resize:none; padding:10px 0;
+  font-size:13.5px; line-height:1.45; color:var(--ink); font-family:inherit}
+.cxx .slate textarea:focus{outline:none}
+.cxx .slate textarea::placeholder{color:var(--ghost)}
+.cxx .fly{width:40px; height:40px; flex:none; border-radius:13px; display:grid; place-items:center;
+  color:#fff; background:linear-gradient(176deg,#0C8F5C,#054F2F);
+  box-shadow:0 12px 22px -15px rgba(6,46,29,.95);
+  transition:transform .18s, opacity .18s, box-shadow .18s}
+.cxx .fly:hover{transform:translateY(-2px)}
+.cxx .fly:disabled{opacity:.35; transform:none; box-shadow:none; cursor:default}
+.cxx .fly.teal{background:linear-gradient(176deg,#12A79D,#08514C)}
+.cxx .emojipad{position:absolute; bottom:100%; right:16px; margin-bottom:8px; z-index:50;
+  border-radius:16px; overflow:hidden; border:1px solid var(--rule-2); box-shadow:var(--lift-2)}
+
+/* ── 4. details ── */
+.cxx .ctx{display:flex; flex-direction:column; min-width:0; min-height:0;
+  border-left:1px solid var(--rule); background:var(--card-2)}
+.cxx .ctx .ctop{flex:none; display:flex; align-items:center; padding:13px 15px;
+  border-bottom:1px solid var(--rule)}
+.cxx .ctx .shut{margin-left:auto; display:none}
+.cxx .ctx .cscroll{flex:1; min-height:0; overflow-y:auto; padding:15px}
+.cxx .plate{border-radius:16px; border:1px solid var(--rule); background:var(--card); padding:15px;
+  box-shadow:var(--lift-1)}
+.cxx .plate + .plate{margin-top:12px}
+.cxx .plate .phead{display:flex; align-items:center; gap:8px; margin-bottom:11px}
+.cxx .plate .phead .ln{flex:1; height:1px; background:var(--rule)}
+.cxx .cardv{display:flex; flex-direction:column; align-items:center; text-align:center}
+.cxx .cardv .face{width:52px; height:52px; border-radius:16px; font-size:17px}
+.cxx .cardv h3{margin:11px 0 0; font-family:var(--serif); font-size:19px; font-weight:600;
+  line-height:1.2; letter-spacing:-.01em}
+.cxx .cardv .pair{display:flex; flex-wrap:wrap; justify-content:center; gap:7px; margin-top:9px}
+.cxx .rows{width:100%; margin-top:14px}
+.cxx .kv{display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--rule);
+  text-align:left}
+.cxx .kv:first-child{border-top:none}
+.cxx .kv .k{flex:none; width:66px}
+.cxx .kv .v{flex:1; min-width:0; font-size:12.5px; font-weight:600; color:var(--ink-2);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.cxx .kv .v.mono{font-family:var(--mono); font-size:11.5px}
+.cxx .pairbtn{display:grid; grid-template-columns:1fr 1fr; gap:7px; width:100%; margin-top:13px}
+.cxx .pairbtn .act{justify-content:center}
+.cxx .pairbtn.one{grid-template-columns:1fr}
+.cxx .item{display:flex; align-items:center; gap:10px; width:100%; border-radius:11px; padding:9px;
+  text-align:left; transition:background .16s}
+.cxx .item:hover{background:var(--card-2)}
+.cxx .item.on{background:var(--sunk); box-shadow:inset 0 0 0 1px var(--rule)}
+.cxx .item .sq{width:30px; height:30px; flex:none; border-radius:9px; display:grid; place-items:center;
+  background:var(--fbg,#EFF3F1); color:var(--sc,#75837B)}
+.cxx .item .it{flex:1; min-width:0}
+.cxx .item .it b{display:block; font-size:12.5px; font-weight:600; color:var(--ink-2);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.cxx .item .it span{display:block; font-family:var(--mono); font-size:10px; color:var(--faint)}
+.cxx .tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:7px}
+.cxx .tile{position:relative; aspect-ratio:1; border-radius:11px; overflow:hidden; display:block;
+  background:var(--sunk); box-shadow:inset 0 0 0 1px var(--rule)}
+.cxx .tile img{width:100%; height:100%; object-fit:cover; display:block}
+.cxx .filerow{display:flex; align-items:center; gap:9px; padding:8px 0; border-top:1px solid var(--rule)}
+.cxx .filerow:first-child{border-top:none}
+.cxx .filerow .ext{width:28px; height:28px; flex:none; border-radius:8px; display:grid;
+  place-items:center; background:var(--rose-bg); color:var(--rose)}
+.cxx .filerow .it{flex:1; min-width:0}
+.cxx .filerow .it b{display:block; font-size:12px; font-weight:600; color:var(--ink-2);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.cxx .filerow .it span{font-family:var(--mono); font-size:9.5px; color:var(--faint)}
+
+/* ── empty room ── */
+.cxx .hollow{flex:1; display:grid; place-items:center; padding:32px;
+  background:
+    radial-gradient(600px 320px at 100% -12%, rgba(9,179,104,.055), transparent 64%),
+    linear-gradient(180deg,var(--card-2) 0%, var(--card) 34%)}
+.cxx .hollow .in{text-align:center; max-width:330px}
+.cxx .hollow .g{width:64px; height:64px; margin:0 auto 16px; border-radius:21px; display:grid;
+  place-items:center; background:var(--mint); border:1px solid var(--mint-2); color:var(--em)}
+.cxx .hollow .g.t{background:var(--teal-bg); border-color:var(--teal-ln); color:var(--teal)}
+.cxx .hollow .g.i{background:var(--indigo-bg); border-color:var(--indigo-ln); color:var(--indigo)}
+.cxx .hollow h2{margin:0; font-family:var(--serif); font-size:25px; font-weight:600;
+  letter-spacing:-.015em}
+.cxx .hollow p{margin:8px 0 0; font-size:13px; color:var(--muted)}
+.cxx .midblank{display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:46vh; text-align:center}
+.cxx .midblank .g{width:52px; height:52px; margin:0 auto 12px; border-radius:17px; display:grid;
+  place-items:center; background:var(--mint); border:1px solid var(--mint-2); color:var(--em)}
+.cxx .midblank p{margin:0; font-size:13px; color:var(--muted)}
+.cxx .spin{width:22px; height:22px; border-radius:999px; border:3px solid var(--mint-2);
+  border-top-color:var(--em); animation:cxxSpin .8s linear infinite; margin:36px auto}
+@keyframes cxxSpin{to{transform:rotate(360deg)}}
+.cxx .dotspin{width:16px; height:16px; border-radius:999px; border:2px solid rgba(255,255,255,.45);
+  border-top-color:#fff; animation:cxxSpin .8s linear infinite}
+
+/* ── login gate ── */
+.cxx.gate{display:grid; place-items:center; min-height:calc(100vh - 64px); padding:24px}
+.cxx .gateBox{max-width:360px; text-align:center; border-radius:20px; border:1px solid var(--rule);
+  background:var(--card); box-shadow:var(--lift-2); padding:36px 28px}
+.cxx .gateBox .g{width:56px; height:56px; margin:0 auto 15px; border-radius:19px; display:grid;
+  place-items:center; background:var(--mint); border:1px solid var(--mint-2); color:var(--em)}
+.cxx .gateBox h2{margin:0; font-family:var(--serif); font-size:25px; font-weight:600}
+.cxx .gateBox p{margin:7px 0 0; font-size:13px; color:var(--muted)}
+.cxx .gateGo{display:inline-flex; align-items:center; gap:8px; margin-top:18px; border-radius:12px;
+  padding:11px 20px; font-size:13.5px; font-weight:700; color:#fff;
+  background:linear-gradient(178deg,#0A5F3A,#04361F)}
+
+/* ── choti screen — sabse aakhir me ── */
+@media (max-width:1180px){
+  .cxx .frame{grid-template-columns:66px 288px minmax(0,1fr)}
+  .cxx .ctx{position:fixed; top:74px; right:12px; bottom:12px; width:318px; z-index:60;
+    border-radius:20px; border:1px solid var(--rule); box-shadow:var(--lift-2);
+    transform:translateX(calc(100% + 20px)); transition:transform .24s ease}
+  .cxx .ctx.open{transform:none}
+  .cxx .ctx .shut{display:grid}
+  .cxx .veil{display:block; position:fixed; inset:0; z-index:59; background:rgba(8,21,15,.28); opacity:0;
+    pointer-events:none; transition:opacity .24s}
+  .cxx .veil.open{opacity:1; pointer-events:auto}
+  .cxx .infob{display:grid}
+}
+@media (max-width:900px){
+  .cxx.chatroot{padding-left:0; padding-right:0; padding-bottom:0}
+  .cxx .frame{grid-template-columns:minmax(0,1fr); border-radius:0; box-shadow:none;
+    padding-bottom:60px}
+  .cxx .spine{position:fixed; left:0; right:0; bottom:0; z-index:70; height:60px;
+    flex-direction:row; justify-content:space-around; align-items:center; gap:0; padding:0 8px}
+  .cxx .spine .crest,.cxx .spine .foot{display:none}
+  .cxx .ch{width:auto; flex:1; padding:7px 0 6px; border-radius:12px}
+  .cxx .ch.on::before{left:50%; transform:translateX(-50%); top:0; bottom:auto; width:24px; height:3px;
+    border-radius:0 0 3px 3px}
+  .cxx .ch .dot{top:2px; right:calc(50% - 24px)}
+  .cxx .rail{border-right:none}
+  .cxx .rail.away,.cxx .room.away{display:none}
+  .cxx .backb{display:grid}
+  .cxx .ctx{top:0; right:0; bottom:60px; width:min(318px,88vw); border-radius:0}
+  .cxx .flow{padding:12px 14px 6px}
+  .cxx .desk{padding:9px 12px 12px}
+  .cxx .wrap{max-width:84%}
+  .cxx .thead{padding:11px 12px; gap:9px}
+  .cxx .thead h2{font-size:16.5px}
+  .cxx .thead .act{padding:9px; gap:0}
+  .cxx .thead .act .lb{display:none}
+  .cxx .docks{padding:8px 12px}
+  .cxx .rhead{padding:14px 14px 11px}
+  .cxx .emojipad{right:8px; left:8px}
+}
+@media (prefers-reduced-motion:reduce){
+  .cxx *{transition:none !important; animation:none !important}
+}
+`;
+
+// Ek hi service colour se pill ka background aur text — dono nikal lete hain.
+const tint = (c: string): React.CSSProperties =>
+  ({ ['--sc' as any]: c, ['--fbg' as any]: `${c}18` } as React.CSSProperties);
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CustomerChatPage() {
@@ -122,6 +585,7 @@ export default function CustomerChatPage() {
   const [driverLastSince, setDriverLastSince] = useState<string | null>(null);
   const [driverNewMsg, setDriverNewMsg] = useState('');
   const [isDriverSending, setIsDriverSending] = useState(false);
+  const [showCtx, setShowCtx] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -573,17 +1037,31 @@ export default function CustomerChatPage() {
     ...uniqueTypes.map(t => ({ id: t, label: TYPE_LABELS[t] || t })),
   ];
 
+  // ── Presentational helpers (UI only — no data/flow changes) ──
+  const modeUnread = chatMode === 'vendor' ? totalUnread : chatMode === 'driver' ? driverTotalUnread : agentTotalUnread;
+  const activeDriverConv = driverConversations.find((c: any) => c.id === selectedDriverConvId) || null;
+  const activeAgentConv = agentConversations.find(c => c.id === selectedAgentConvId) || null;
+  const headSc = SERVICE_COLORS[selectedConversation?.bookingType || ''] || '#6B7280';
+  const roomOpen = chatMode === 'vendor' ? !!selectedVendorGroup
+    : chatMode === 'driver' ? !!selectedDriverConvId
+    : !!selectedAgentConvId;
+  const railAway = roomOpen && !showMobileSidebar;
+  const sharedImages = messages.filter(m => m.messageType === 'IMAGE' && m.attachmentUrl).slice(-6).reverse();
+  const sharedFiles = messages.filter(m => m.messageType === 'FILE' && m.attachmentUrl).slice(-5).reverse();
+  const railTitle = chatMode === 'vendor' ? 'My Chats' : chatMode === 'driver' ? 'Driver Chats' : 'Agent Chats';
+
   // ── Not logged in ──
   if (!isLoading && !customer) {
     return (
       <>
         <CustomerHeader showBackButton backHref="/" title="Messages" />
-        <div className="flex items-center justify-center h-screen pt-16">
-          <div className="text-center bg-white rounded-2xl shadow p-10">
-            <MessageCircle className="w-10 h-10 text-teal-300 mx-auto mb-3" />
-            <h2 className="text-base font-bold text-gray-700 mb-1">Please log in</h2>
-            <p className="text-sm text-gray-400">Login to view your chats with vendors</p>
-            <Link href="/customer/login" className="mt-4 inline-block px-5 py-2 bg-teal-600 text-white text-sm font-semibold rounded-xl hover:bg-teal-700 transition-colors">Go to Login</Link>
+        <style dangerouslySetInnerHTML={{ __html: CXX_CSS }} />
+        <div className="cxx gate pt-16">
+          <div className="gateBox">
+            <span className="g"><MessageCircle className="w-7 h-7" /></span>
+            <h2>Please log in</h2>
+            <p>Login to view your chats with vendors</p>
+            <Link href="/customer/login" className="gateGo">Go to Login</Link>
           </div>
         </div>
       </>
@@ -593,138 +1071,136 @@ export default function CustomerChatPage() {
   return (
     <>
     <CustomerHeader showBackButton backHref="/customer/dashboard" title="Messages" />
-    <div className="pt-16 h-screen flex flex-col px-4 pb-4 bg-gray-50">
-    <div className="flex-1 flex flex-col rounded-2xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-200/60 bg-[#F9FAFB] min-h-0">
+    <style dangerouslySetInnerHTML={{ __html: CXX_CSS }} />
 
-      <style jsx>{`
-        @keyframes msgIn { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
-        @keyframes shimmer { 0% { background-position:-200% 0 } 100% { background-position:200% 0 } }
-        @keyframes fadeInUp { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
-        @keyframes pulseTeal { 0%,100% { box-shadow:0 0 0 0 rgba(13,148,136,0.3) } 50% { box-shadow:0 0 0 6px rgba(13,148,136,0) } }
-        .msg-in { animation: msgIn 0.25s ease-out; }
-        .fade-in-up { animation: fadeInUp 0.35s ease-out; }
-        .chat-bg { background: linear-gradient(135deg,#f0fdfa 0%,#f9fafb 40%,#ccfbf1 100%); }
-        .shimmer-teal { background: linear-gradient(90deg,#99f6e4 25%,#5eead4 50%,#99f6e4 75%); background-size:200% 100%; animation:shimmer 1.5s ease-in-out infinite; }
-        .pulse-ring { animation: pulseTeal 2s ease-in-out infinite; }
-      `}</style>
+    <div className="cxx chatroot pt-16 h-screen flex flex-col p-3 bg-[#E9EEEB]">
+      <div className="frame">
 
-      {/* Teal accent strip */}
-      <div className="h-1 bg-gradient-to-r from-teal-500 to-teal-600 flex-shrink-0" />
+        {/* ══════ 1. CHANNEL SPINE — mode switch ══════ */}
+        <nav className="spine">
+          <span className="crest"><MessageCircle className="w-[18px] h-[18px]" /></span>
 
-      <div className="flex flex-1 min-h-0">
+          <button
+            onClick={() => { setChatMode('vendor'); setSelectedDriverConvId(null); setSelectedAgentConvId(null); }}
+            className={`ch${chatMode === 'vendor' ? ' on' : ''}`}
+            title="Vendor chats">
+            <Building2 className="w-[18px] h-[18px]" />
+            <span className="lbl">Vendor</span>
+            {totalUnread > 0 && <span className="dot tnum">{totalUnread}</span>}
+          </button>
 
-        {/* ══════ SIDEBAR ══════ */}
-        <div className={`w-[300px] bg-white flex flex-col flex-shrink-0 border-r border-gray-200 ${!showMobileSidebar && selectedVendorGroup ? 'hidden lg:flex' : 'flex'}`}>
+          <button
+            onClick={() => { setChatMode('driver'); setSelectedVendorGroup(null); setActiveConvId(null); setSelectedAgentConvId(null); fetchDriverConversations(); }}
+            className={`ch${chatMode === 'driver' ? ' on' : ''}`}
+            title="Driver chats">
+            <Car className="w-[18px] h-[18px]" />
+            <span className="lbl">Driver</span>
+            {driverTotalUnread > 0 && <span className="dot tnum">{driverTotalUnread}</span>}
+          </button>
 
-          <div className="px-4 pt-4 pb-2.5 bg-white border-b border-gray-100">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h1 className="text-lg font-extrabold text-gray-900">My Chats</h1>
-                <p className="text-[11px] text-gray-400 mt-0.5">{customer?.name || 'Customer'}</p>
+          <button
+            onClick={() => { setChatMode('agent'); setSelectedVendorGroup(null); setActiveConvId(null); setSelectedDriverConvId(null); fetchAgentConversations(); }}
+            className={`ch${chatMode === 'agent' ? ' on' : ''}`}
+            title="Travel agent chats">
+            <Star className="w-[18px] h-[18px]" />
+            <span className="lbl">Agent</span>
+            {agentTotalUnread > 0 && <span className="dot tnum">{agentTotalUnread}</span>}
+          </button>
+
+          <div className="foot">
+            <span className="me">{(customer?.name || 'C').charAt(0).toUpperCase()}</span>
+          </div>
+        </nav>
+
+        {/* ══════ 2. CONVERSATION RAIL ══════ */}
+        <aside className={`rail${railAway ? ' away' : ''}`}>
+          <div className="rhead">
+            <h1>{railTitle}</h1>
+            <div className="rsub">
+              <p>{customer?.name || 'Customer'}</p>
+              {modeUnread > 0 && <span className="tally"><i />{modeUnread} unread</span>}
+              <button
+                onClick={chatMode === 'vendor' ? fetchConversations : chatMode === 'driver' ? fetchDriverConversations : fetchAgentConversations}
+                className="refresh" title="Refresh">
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="seek">
+              <Search className="w-3.5 h-3.5 si" />
+              <input type="text" placeholder="Search vendors..." value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)} />
+            </div>
+
+            <div className="tabrow">
+              <div className="tabs">
+                {tabs.map(tab => (
+                  <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                    className={`tab${activeTab === tab.id ? ' on' : ''}`}>
+                    {tab.label}
+                  </button>
+                ))}
               </div>
-              <div className="flex items-center gap-1.5">
-                {(() => {
-                  const u = chatMode === 'vendor' ? totalUnread : chatMode === 'driver' ? driverTotalUnread : agentTotalUnread;
-                  return u > 0 && (
-                    <span className="bg-teal-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">{u}</span>
-                  );
-                })()}
-                <button onClick={chatMode === 'vendor' ? fetchConversations : chatMode === 'driver' ? fetchDriverConversations : fetchAgentConversations} className="p-1.5 hover:bg-teal-50 rounded-lg transition-colors group">
-                  <RefreshCw className="w-3.5 h-3.5 text-gray-400 group-hover:text-teal-600 transition-colors" />
-                </button>
-              </div>
-            </div>
-            {/* Mode toggle */}
-            <div className="flex gap-1 mb-2.5">
-              <button onClick={() => { setChatMode('vendor'); setSelectedDriverConvId(null); setSelectedAgentConvId(null); }}
-                className={`flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 ${chatMode === 'vendor' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-teal-50 hover:text-teal-700'}`}>
-                Vendor
-                {chatMode !== 'vendor' && totalUnread > 0 && <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{totalUnread}</span>}
-              </button>
-              <button onClick={() => { setChatMode('driver'); setSelectedVendorGroup(null); setActiveConvId(null); setSelectedAgentConvId(null); fetchDriverConversations(); }}
-                className={`flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 ${chatMode === 'driver' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'}`}>
-                Driver
-                {chatMode !== 'driver' && driverTotalUnread > 0 && <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{driverTotalUnread}</span>}
-              </button>
-              <button onClick={() => { setChatMode('agent'); setSelectedVendorGroup(null); setActiveConvId(null); setSelectedDriverConvId(null); fetchAgentConversations(); }}
-                className={`flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 ${chatMode === 'agent' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-indigo-50 hover:text-indigo-700'}`}>
-                Agent
-                {chatMode !== 'agent' && agentTotalUnread > 0 && <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{agentTotalUnread}</span>}
-              </button>
-            </div>
-
-            <div className="relative mb-2.5">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Search vendors..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-gray-50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-white border border-gray-200 focus:border-teal-400 transition-all placeholder:text-gray-400" />
-            </div>
-
-            <div className="flex gap-1 overflow-x-auto scrollbar-hide pb-0.5">
-              {tabs.map(tab => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0 ${activeTab === tab.id ? 'bg-teal-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:text-teal-700 hover:bg-teal-50'}`}>
-                  {tab.label}
-                </button>
-              ))}
             </div>
           </div>
 
-          {/* List */}
-          <div className="flex-1 overflow-y-auto px-2 pt-1">
+          {/* ── list ── */}
+          <div className="threads">
             {chatMode === 'agent' ? (
               /* Travel-agent conversations list */
               !customer?.phone ? (
-                <div className="text-center py-14 fade-in-up">
-                  <Building2 className="w-8 h-8 text-indigo-200 mx-auto mb-2" />
-                  <p className="text-xs text-gray-400 font-medium">Phone number missing</p>
-                  <p className="text-[11px] text-gray-300 mt-1">Agent chats are matched by phone</p>
+                <div className="void fade-in-up">
+                  <span className="g"><Building2 className="w-5 h-5" /></span>
+                  <b>Phone number missing</b>
+                  <span>Agent chats are matched by phone</span>
                 </div>
               ) : isLoadingAgentConvs ? (
-                <div className="p-1">{[...Array(4)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-3 p-2.5">
-                    <div className="w-10 h-10 shimmer-teal rounded-full flex-shrink-0" />
-                    <div className="flex-1 space-y-1.5">
-                      <div className="h-3 shimmer-teal rounded w-24" />
-                      <div className="h-2 shimmer-teal rounded w-32" />
-                    </div>
+                <div>{[...Array(4)].map((_, i) => (
+                  <div key={i} className="skel">
+                    <div className="a shimmer-teal" />
+                    <div className="b"><i className="shimmer-teal" style={{ width: '58%' }} /><i className="shimmer-teal" style={{ width: '84%' }} /></div>
                   </div>
                 ))}</div>
               ) : agentConversations.length === 0 ? (
-                <div className="text-center py-14 fade-in-up">
-                  <Building2 className="w-8 h-8 text-indigo-200 mx-auto mb-2" />
-                  <p className="text-xs text-gray-400 font-medium">No agent chats yet</p>
-                  <p className="text-[11px] text-gray-300 mt-1">Agents will reach out about your travel enquiries</p>
+                <div className="void fade-in-up">
+                  <span className="g"><Building2 className="w-5 h-5" /></span>
+                  <b>No agent chats yet</b>
+                  <span>Agents will reach out about your travel enquiries</span>
                 </div>
               ) : (
-                <div className="pb-1 pt-1">
+                <div>
                   {agentConversations.map((conv) => {
                     const isActive = selectedAgentConvId === conv.id;
                     const agencyName = conv.agency?.agencyName || 'Travel Agent';
                     return (
                       <button key={conv.id}
-                        onClick={() => setSelectedAgentConvId(conv.id)}
-                        className={`w-full p-2.5 text-left rounded-xl flex items-center gap-3 mb-0.5 transition-all ${isActive ? 'bg-indigo-50 border border-indigo-200/60' : 'hover:bg-indigo-50/40 border border-transparent'}`}>
-                        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0 overflow-hidden">
+                        onClick={() => { setSelectedAgentConvId(conv.id); setShowMobileSidebar(false); }}
+                        style={tint('#4338CA')}
+                        className={`conv${isActive ? ' on' : ''}${conv.unreadCount > 0 ? ' new' : ''}`}>
+                        <span className="face">
                           {conv.agency?.logo
-                            ? <img src={conv.agency.logo} alt="" className="w-10 h-10 object-cover rounded-full" />
+                            ? <img src={conv.agency.logo} alt="" />
                             : agencyName.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-center gap-1">
-                            <span className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-600'}`}>{agencyName}</span>
-                            <span className="text-xs text-gray-400 flex-shrink-0">
+                        </span>
+                        <span className="cbody">
+                          <span className="r1">
+                            <span className="cname">{agencyName}</span>
+                            <span className="when">
                               {conv.lastMessageAt ? new Date(conv.lastMessageAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : ''}
                             </span>
-                          </div>
-                          <div className="flex justify-between items-center mt-0.5">
-                            <p className="text-[13px] text-gray-400 truncate">
-                              {conv.lastMessage?.senderType === 'customer' && <span className="text-gray-300">You: </span>}
+                          </span>
+                          <span className="r2">
+                            <span className="last">
+                              {conv.lastMessage?.senderType === 'customer' && <span className="mine">You: </span>}
                               {conv.lastMessage?.content || conv.subject || 'No messages'}
-                            </p>
-                            {conv.unreadCount > 0 && <span className="bg-indigo-600 text-white text-xs font-bold rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center ml-1">{conv.unreadCount}</span>}
-                          </div>
-                          {conv.subject && <p className="text-[10px] text-gray-300 mt-0.5 truncate">{conv.subject}</p>}
-                        </div>
+                            </span>
+                            {conv.unreadCount > 0 && <span className="n indigo tnum">{conv.unreadCount}</span>}
+                          </span>
+                          <span className="r3">
+                            <span className="chip">Agent</span>
+                            {conv.subject && <span className="ref">{conv.subject}</span>}
+                          </span>
+                        </span>
                       </button>
                     );
                   })}
@@ -733,71 +1209,71 @@ export default function CustomerChatPage() {
             ) : chatMode === 'driver' ? (
               /* Driver conversations list */
               isLoadingDriverConvs ? (
-                <div className="p-1">{[...Array(4)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-3 p-2.5">
-                    <div className="w-10 h-10 shimmer-teal rounded-full flex-shrink-0" />
-                    <div className="flex-1 space-y-1.5">
-                      <div className="h-3 shimmer-teal rounded w-24" />
-                      <div className="h-2 shimmer-teal rounded w-32" />
-                    </div>
+                <div>{[...Array(4)].map((_, i) => (
+                  <div key={i} className="skel">
+                    <div className="a shimmer-teal" />
+                    <div className="b"><i className="shimmer-teal" style={{ width: '58%' }} /><i className="shimmer-teal" style={{ width: '84%' }} /></div>
                   </div>
                 ))}</div>
               ) : driverConversations.length === 0 ? (
-                <div className="text-center py-14 fade-in-up">
-                  <Car className="w-8 h-8 text-emerald-200 mx-auto mb-2" />
-                  <p className="text-xs text-gray-400 font-medium">No driver chats</p>
-                  <p className="text-[11px] text-gray-300 mt-1">Driver chats appear after booking acceptance</p>
+                <div className="void fade-in-up">
+                  <span className="g"><Car className="w-5 h-5" /></span>
+                  <b>No driver chats</b>
+                  <span>Driver chats appear after booking acceptance</span>
                 </div>
               ) : (
-                <div className="pb-1 pt-1">
-                  {driverConversations.map(conv => {
+                <div>
+                  {driverConversations.map((conv: any) => {
                     const isActive = selectedDriverConvId === conv.id;
                     const driverName = conv.driver?.name || 'Driver';
                     return (
                       <button key={conv.id}
-                        onClick={() => setSelectedDriverConvId(conv.id)}
-                        className={`w-full p-2.5 text-left rounded-xl flex items-center gap-3 mb-0.5 transition-all ${isActive ? 'bg-emerald-50 border border-emerald-200/60' : 'hover:bg-emerald-50/40 border border-transparent'}`}>
-                        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-sm flex-shrink-0">
-                          {driverName.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-center gap-1">
-                            <span className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-600'}`}>{driverName}</span>
-                            <span className="text-xs text-gray-400 flex-shrink-0">{conv.lastMessageAt ? new Date(conv.lastMessageAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : ''}</span>
-                          </div>
-                          <div className="flex justify-between items-center mt-0.5">
-                            <p className="text-[13px] text-gray-400 truncate">{conv.lastMessage?.content || 'No messages'}</p>
-                            {conv.unreadCount > 0 && <span className="bg-emerald-600 text-white text-xs font-bold rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center ml-1">{conv.unreadCount}</span>}
-                          </div>
-                          <p className="text-[10px] text-gray-300 mt-0.5">{conv.bookingNumber ? `#${conv.bookingNumber}` : 'Chauffeur booking'}</p>
-                        </div>
+                        onClick={() => { setSelectedDriverConvId(conv.id); setShowMobileSidebar(false); }}
+                        style={tint('#0B7C74')}
+                        className={`conv${isActive ? ' on' : ''}${conv.unreadCount > 0 ? ' new' : ''}`}>
+                        <span className="face">{driverName.charAt(0).toUpperCase()}</span>
+                        <span className="cbody">
+                          <span className="r1">
+                            <span className="cname">{driverName}</span>
+                            <span className="when">{conv.lastMessageAt ? new Date(conv.lastMessageAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : ''}</span>
+                          </span>
+                          <span className="r2">
+                            <span className="last">{conv.lastMessage?.content || 'No messages'}</span>
+                            {conv.unreadCount > 0 && <span className="n teal tnum">{conv.unreadCount}</span>}
+                          </span>
+                          <span className="r3">
+                            <span className="chip">Driver</span>
+                            <span className="ref">{conv.bookingNumber ? `#${conv.bookingNumber}` : 'Chauffeur booking'}</span>
+                          </span>
+                        </span>
                       </button>
                     );
                   })}
                 </div>
               )
             ) : isLoading ? (
-              <div className="p-1">{[...Array(6)].map((_, i) => (
-                <div key={i} className="flex items-center gap-3 p-2.5">
-                  <div className="w-10 h-10 shimmer-teal rounded-full flex-shrink-0" />
-                  <div className="flex-1 space-y-1.5"><div className="h-3 shimmer-teal rounded w-24" /><div className="h-2 shimmer-teal rounded w-32" /></div>
+              <div>{[...Array(6)].map((_, i) => (
+                <div key={i} className="skel">
+                  <div className="a shimmer-teal" />
+                  <div className="b"><i className="shimmer-teal" style={{ width: '58%' }} /><i className="shimmer-teal" style={{ width: '84%' }} /></div>
                 </div>
               ))}</div>
             ) : vendorGroups.length === 0 ? (
-              <div className="text-center py-14 fade-in-up">
-                <MessageCircle className="w-8 h-8 text-teal-200 mx-auto mb-2" />
-                <p className="text-xs text-gray-400 font-medium">No conversations yet</p>
-                <p className="text-[11px] text-gray-300 mt-1">Start a chat from your booking page</p>
+              <div className="void fade-in-up">
+                <span className="g"><MessageCircle className="w-5 h-5" /></span>
+                <b>No conversations yet</b>
+                <span>Start a chat from your booking page</span>
               </div>
             ) : (
-              <div className="pb-1">
+              <div>
                 {groupedVendors.map(section => (
                   <div key={section.label}>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 py-2 mt-1">{section.label}</p>
+                    <div className="dayline"><p className="eyebrow">{section.label}</p><span className="ln" /></div>
                     {section.items.map(vg => {
                       const isSelected = selectedVendorGroup?.vendorId === vg.vendorId;
                       const latestConv = vg.conversations[0];
                       const sc = SERVICE_COLORS[latestConv?.bookingType] || '#6B7280';
+                      const ref = latestConv?.bookingNumber || latestConv?.bookingId || '';
 
                       return (
                         <button key={vg.vendorId}
@@ -808,37 +1284,33 @@ export default function CustomerChatPage() {
                             setSelectedVendorGroup(vg);
                             setActiveConvId(latest?.id || vg.conversations[0]?.id || null);
                           }}
-                          className={`w-full p-2.5 text-left rounded-xl flex items-center gap-3 mb-0.5 transition-all duration-200 ${
-                            isSelected ? 'bg-teal-50 shadow-sm border border-teal-200/60 ring-1 ring-teal-200/40' : 'hover:bg-teal-50/40 border border-transparent'
-                          }`}>
-                          {isSelected && <div className="w-[3px] h-8 bg-teal-600 rounded-full flex-shrink-0 -ml-0.5" />}
+                          style={tint(sc)}
+                          className={`conv${isSelected ? ' on' : ''}${vg.totalUnread > 0 ? ' new' : ''}`}>
 
-                          {/* Vendor avatar */}
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all overflow-hidden ${isSelected ? 'ring-2 ring-teal-300/50' : ''}`}
-                            style={{ backgroundColor: `${sc}18`, color: sc }}>
-                            {vg.logo
-                              ? <img src={vg.logo} alt="" className="w-10 h-10 object-cover rounded-full" />
-                              : <Building2 className="w-5 h-5" style={{ color: sc }} />}
-                          </div>
+                          <span className="face">
+                            {vg.logo ? <img src={vg.logo} alt="" /> : <Building2 className="w-[17px] h-[17px]" />}
+                          </span>
 
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1">
-                              <span className={`text-sm truncate ${vg.totalUnread > 0 ? 'font-bold text-gray-900' : isSelected ? 'font-semibold text-gray-900' : 'font-medium text-gray-600'}`}>{vg.vendorName}</span>
-                              <span className={`text-xs flex-shrink-0 ${vg.totalUnread > 0 ? 'text-teal-600 font-bold' : 'text-gray-400'}`}>{vg.lastMessageAt ? formatTime(vg.lastMessageAt) : ''}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-1 mt-0.5">
-                              <p className={`text-[13px] truncate ${vg.totalUnread > 0 ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
-                                {vg.lastMessage?.senderType === 'customer' && <CheckCheck className="w-3 h-3 inline mr-0.5 text-teal-400" />}
+                          <span className="cbody">
+                            <span className="r1">
+                              <span className="cname">{vg.vendorName}</span>
+                              <span className="when">{vg.lastMessageAt ? formatTime(vg.lastMessageAt) : ''}</span>
+                            </span>
+                            <span className="r2">
+                              <span className="last">
+                                {vg.lastMessage?.senderType === 'customer' && <span className="mine"><CheckCheck className="w-3 h-3" /></span>}
                                 {vg.lastMessage?.content || 'No messages'}
-                              </p>
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                {vg.conversations.length > 1 && (
-                                  <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full font-medium">{vg.conversations.length}</span>
-                                )}
-                                {vg.totalUnread > 0 && <span className="bg-teal-600 text-white text-xs font-bold rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center">{vg.totalUnread}</span>}
-                              </div>
-                            </div>
-                          </div>
+                              </span>
+                            </span>
+                            <span className="r3">
+                              {latestConv && <span className="chip">{TYPE_LABELS[latestConv.bookingType] || latestConv.bookingType}</span>}
+                              {ref && <span className="ref">#{ref.slice(-8)}</span>}
+                              {vg.conversations.length > 1 && (
+                                <span className="stack">{vg.conversations.length} bookings</span>
+                              )}
+                              {vg.totalUnread > 0 && <span className="n tnum" style={{ marginLeft: 'auto' }}>{vg.totalUnread}</span>}
+                            </span>
+                          </span>
                         </button>
                       );
                     })}
@@ -847,230 +1319,207 @@ export default function CustomerChatPage() {
               </div>
             )}
           </div>
-        </div>
+        </aside>
 
-        {/* ══════ CHAT AREA ══════ */}
-        <div className={`flex-1 flex flex-col min-w-0 ${showMobileSidebar && !selectedVendorGroup && !selectedDriverConvId && !selectedAgentConvId ? 'hidden lg:flex' : 'flex'}`}>
+        {/* ══════ 3. THREAD ══════ */}
+        <section className={`room${railAway ? '' : ' away'}`}>
           {chatMode === 'agent' ? (
             !selectedAgentConvId ? (
-              <div className="flex-1 flex items-center justify-center chat-bg">
-                <div className="text-center bg-white/80 backdrop-blur-md rounded-3xl px-10 py-8 shadow-sm fade-in-up">
-                  <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                    <Building2 className="w-7 h-7 text-indigo-500" />
-                  </div>
-                  <h2 className="text-base font-bold text-gray-600 mb-0.5">Select an agent conversation</h2>
-                  <p className="text-sm text-gray-400">Choose a travel agent to view messages</p>
+              <div className="hollow">
+                <div className="in fade-in-up">
+                  <span className="g i"><Building2 className="w-7 h-7" /></span>
+                  <h2>Select an agent conversation</h2>
+                  <p>Choose a travel agent to view messages</p>
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col min-h-0 p-3 bg-white">
-                {(() => {
-                  const conv = agentConversations.find((c) => c.id === selectedAgentConvId);
-                  const agencyName = conv?.agency?.agencyName || 'Travel Agent';
-                  return (
-                    <>
-                      <div className="flex items-center gap-3 px-2 pb-3 border-b border-gray-100 mb-2 flex-shrink-0">
-                        <button onClick={() => { setSelectedAgentConvId(null); setShowMobileSidebar(true); }} className="p-1.5 hover:bg-indigo-50 rounded-lg lg:hidden transition-colors">
-                          <ArrowLeft className="w-4 h-4 text-gray-500" />
-                        </button>
-                        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-base flex-shrink-0">
-                          {agencyName.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h2 className="text-sm font-bold text-gray-900 truncate">{agencyName}</h2>
-                          <p className="text-xs text-gray-400 truncate">{conv?.subject || 'Travel enquiry'}</p>
-                        </div>
-                        {conv?.agency?.phone && (
-                          <a href={`tel:${conv.agency.phone}`} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors text-indigo-700 text-xs font-semibold">
-                            <Phone className="w-3.5 h-3.5" />Call
-                          </a>
-                        )}
-                      </div>
-                      <div className="flex-1 min-h-0">
-                        <TravelAgentChat
-                          key={selectedAgentConvId}
-                          conversationId={selectedAgentConvId}
-                          senderType="customer"
-                          senderName={customer?.name || 'Customer'}
-                          customerPhone={customer?.phone || ''}
-                          hideHeader
-                          heightClass="flex-1 min-h-0"
-                          className="h-full"
-                        />
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
+              <>
+                <div className="thead">
+                  <button onClick={() => { setSelectedAgentConvId(null); setShowMobileSidebar(true); }} className="icon backb" aria-label="Back">
+                    <ArrowLeft className="w-[17px] h-[17px]" />
+                  </button>
+                  <span className="face" style={tint('#4338CA')}>
+                    {activeAgentConv?.agency?.logo
+                      ? <img src={activeAgentConv.agency.logo} alt="" />
+                      : (activeAgentConv?.agency?.agencyName || 'Travel Agent').charAt(0).toUpperCase()}
+                  </span>
+                  <div className="ttl">
+                    <h2>{activeAgentConv?.agency?.agencyName || 'Travel Agent'}</h2>
+                    <div className="under">
+                      <span className="tone" style={tint('#4338CA')}>Travel agent</span>
+                      <p>{activeAgentConv?.subject || 'Travel enquiry'}</p>
+                    </div>
+                  </div>
+                  {activeAgentConv?.agency?.phone && (
+                    <a href={`tel:${activeAgentConv.agency.phone}`} className="act">
+                      <Phone className="w-3.5 h-3.5" /><span className="lb">Call</span>
+                    </a>
+                  )}
+                  <button onClick={() => setShowCtx(v => !v)} className="icon infob" aria-label="Details">
+                    <Zap className="w-[17px] h-[17px]" />
+                  </button>
+                </div>
+                <div className="flex-1 min-h-0">
+                  <TravelAgentChat
+                    key={selectedAgentConvId}
+                    conversationId={selectedAgentConvId}
+                    senderType="customer"
+                    senderName={customer?.name || 'Customer'}
+                    customerPhone={customer?.phone || ''}
+                    hideHeader
+                    heightClass="flex-1 min-h-0"
+                    className="h-full"
+                  />
+                </div>
+              </>
             )
           ) : chatMode === 'driver' && !selectedDriverConvId ? (
-            <div className="flex-1 flex items-center justify-center chat-bg">
-              <div className="text-center bg-white/80 backdrop-blur-md rounded-3xl px-10 py-8 shadow-sm fade-in-up">
-                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                  <Car className="w-7 h-7 text-emerald-500" />
-                </div>
-                <h2 className="text-base font-bold text-gray-600 mb-0.5">Select a driver conversation</h2>
-                <p className="text-sm text-gray-400">Choose a driver to view messages</p>
+            <div className="hollow">
+              <div className="in fade-in-up">
+                <span className="g t"><Car className="w-7 h-7" /></span>
+                <h2>Select a driver conversation</h2>
+                <p>Choose a driver to view messages</p>
               </div>
             </div>
           ) : chatMode === 'driver' && selectedDriverConvId ? (
-            /* Driver chat area */
+            /* ── Driver chat area ── */
             <>
-              {/* Driver chat header */}
-              {(() => {
-                const conv = driverConversations.find(c => c.id === selectedDriverConvId);
-                const driverName = conv?.driver?.name || 'Driver';
-                const bNum = conv?.bookingNumber || null;
-                return (
-                  <div className="bg-white px-5 py-3 flex items-center justify-between border-b border-gray-200 flex-shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="flex items-center gap-3">
-                      <button onClick={() => { setSelectedDriverConvId(null); setShowMobileSidebar(true); }} className="p-1.5 hover:bg-emerald-50 rounded-lg lg:hidden transition-colors">
-                        <ArrowLeft className="w-4 h-4 text-gray-500" />
-                      </button>
-                      <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-base flex-shrink-0">
-                        {driverName.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <h2 className="text-sm font-bold text-gray-900">{driverName}</h2>
-                        {bNum ? (
-                          <p className="text-xs text-gray-400 mt-0.5">Booking <span className="text-gray-600 font-semibold">#{bNum}</span></p>
-                        ) : (
-                          <p className="text-xs text-gray-400">Driver • Chauffeur booking</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {bNum && (
-                        <Link href={conv?.bookingType === 'car' ? `/customer/car-bookings/${bNum}` : `/customer/car-rental-bookings/${bNum}`}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors text-emerald-700 text-xs font-semibold">
-                          <Eye className="w-3.5 h-3.5" />View
-                        </Link>
-                      )}
-                      {conv?.driver?.phone && (
-                        <a href={`tel:${conv.driver.phone}`} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors text-emerald-700 text-xs font-semibold">
-                          <Phone className="w-3.5 h-3.5" />Call
-                        </a>
-                      )}
-                    </div>
+              <div className="thead">
+                <button onClick={() => { setSelectedDriverConvId(null); setShowMobileSidebar(true); }} className="icon backb" aria-label="Back">
+                  <ArrowLeft className="w-[17px] h-[17px]" />
+                </button>
+                <span className="face" style={tint('#0B7C74')}>
+                  {(activeDriverConv?.driver?.name || 'Driver').charAt(0).toUpperCase()}
+                </span>
+                <div className="ttl">
+                  <h2>{activeDriverConv?.driver?.name || 'Driver'}</h2>
+                  <div className="under">
+                    <span className="tone" style={tint('#0B7C74')}>Driver</span>
+                    {activeDriverConv?.bookingNumber
+                      ? <p>Booking <b>#{activeDriverConv.bookingNumber}</b></p>
+                      : <p>Chauffeur booking</p>}
                   </div>
-                );
-              })()}
-              {/* Driver messages */}
-              <div className="flex-1 overflow-y-auto chat-bg">
-                <div className="px-3 py-3">
-                  {isLoadingDriverMsgs ? (
-                    <div className="flex items-center justify-center h-32"><div className="animate-spin w-5 h-5 border-[3px] border-emerald-100 border-t-emerald-600 rounded-full" /></div>
-                  ) : driverMessages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-[50vh]">
-                      <div className="bg-white/80 rounded-2xl px-6 py-5 text-center shadow-sm">
-                        <p className="text-sm text-gray-400">No messages yet. Start the conversation!</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {driverMessages.map((msg: any, idx: number) => {
-                        const isCustomer = msg.senderType === 'customer';
-                        const showDate = idx === 0 || new Date(msg.createdAt).toDateString() !== new Date(driverMessages[idx - 1].createdAt).toDateString();
-                        return (
-                          <div key={msg.id} className="msg-in">
-                            {showDate && (
-                              <div className="flex justify-center my-3">
-                                <span className="bg-white/90 text-gray-500 text-xs font-medium px-3 py-1 rounded-md shadow-sm">
-                                  {new Date(msg.createdAt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-                                </span>
-                              </div>
+                </div>
+                {activeDriverConv?.bookingNumber && (
+                  <Link href={activeDriverConv?.bookingType === 'car' ? `/customer/car-bookings/${activeDriverConv.bookingNumber}` : `/customer/car-rental-bookings/${activeDriverConv.bookingNumber}`}
+                    className="act key">
+                    <Eye className="w-3.5 h-3.5" /><span className="lb">View</span>
+                  </Link>
+                )}
+                {activeDriverConv?.driver?.phone && (
+                  <a href={`tel:${activeDriverConv.driver.phone}`} className="act">
+                    <Phone className="w-3.5 h-3.5" /><span className="lb">Call</span>
+                  </a>
+                )}
+                <button onClick={() => setShowCtx(v => !v)} className="icon infob" aria-label="Details">
+                  <Zap className="w-[17px] h-[17px]" />
+                </button>
+              </div>
+
+              <div className="flow">
+                {isLoadingDriverMsgs ? (
+                  <div className="spin" />
+                ) : driverMessages.length === 0 ? (
+                  <div className="midblank fade-in-up">
+                    <span className="g"><Send className="w-6 h-6" /></span>
+                    <p>No messages yet. Start the conversation!</p>
+                  </div>
+                ) : (
+                  <>
+                    {driverMessages.map((msg: any, idx: number) => {
+                      const isCustomer = msg.senderType === 'customer';
+                      const showDate = idx === 0 || new Date(msg.createdAt).toDateString() !== new Date(driverMessages[idx - 1].createdAt).toDateString();
+                      const isSameSender = idx > 0 && driverMessages[idx - 1].senderType === msg.senderType && !showDate;
+                      return (
+                        <div key={msg.id} className="msg-in">
+                          {showDate && (
+                            <div className="stamp">
+                              <span>{new Date(msg.createdAt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                            </div>
+                          )}
+                          <div className={`msg${isCustomer ? ' mine' : ''}${isSameSender ? ' run' : ''}`}>
+                            {!isCustomer && (
+                              isSameSender
+                                ? <span className="who hole" />
+                                : <span className="who" style={tint('#0B7C74')}><Car className="w-3.5 h-3.5" /></span>
                             )}
-                            <div className={`flex ${isCustomer ? 'justify-end' : 'justify-start'} mt-2`}>
-                              {!isCustomer && (
-                                <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center mr-1.5 mt-auto flex-shrink-0">
-                                  <Car className="w-3.5 h-3.5 text-emerald-600" />
-                                </div>
-                              )}
-                              <div className={`max-w-[68%] px-3 py-[7px] ${isCustomer ? 'bg-teal-600 text-white rounded-2xl rounded-br-md' : 'bg-white text-gray-800 border border-gray-100 shadow-sm rounded-2xl rounded-bl-md'}`}>
-                                <p className="text-sm leading-[1.5] whitespace-pre-wrap break-words">{msg.content}</p>
-                                <div className={`flex items-center justify-end gap-0.5 mt-[2px] ${isCustomer ? 'text-white/50' : 'text-gray-300'}`}>
-                                  <span className="text-xs">{new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
-                                  {isCustomer && <Check className="w-3 h-3" />}
-                                </div>
+                            <div className="wrap">
+                              <div className={`say${isCustomer ? ' teal' : ''}`}>
+                                <p>{msg.content}</p>
+                              </div>
+                              <div className="tail">
+                                {new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                {isCustomer && <span className="tk"><Check className="w-3 h-3" /></span>}
                               </div>
                             </div>
                           </div>
-                        );
-                      })}
-                      <div ref={messagesEndRef} />
-                    </>
-                  )}
-                </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </>
+                )}
               </div>
-              {/* Driver message input */}
-              <div className="bg-white border-t border-gray-200 px-4 py-2.5 flex-shrink-0">
-                <form onSubmit={e => { e.preventDefault(); sendDriverMessage(); }} className="flex items-end gap-2">
-                  <div className="flex-1 flex items-end bg-gray-50 rounded-2xl px-4 py-1 border border-gray-200 focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-500/10 focus-within:bg-white transition-all">
+
+              <div className="desk">
+                <span className="glow" />
+                <form onSubmit={e => { e.preventDefault(); sendDriverMessage(); }} className="pen">
+                  <div className="slate">
                     <textarea value={driverNewMsg} onChange={e => setDriverNewMsg(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDriverMessage(); } }}
-                      placeholder="Type a message..." rows={1}
-                      className="flex-1 py-2 bg-transparent resize-none text-sm focus:outline-none placeholder:text-gray-400 leading-[1.4]"
-                      style={{ maxHeight: '80px' }} />
+                      placeholder="Type a message..." rows={1} style={{ maxHeight: '110px' }} />
                   </div>
-                  <button type="submit" disabled={!driverNewMsg.trim() || isDriverSending}
-                    className="h-10 w-10 bg-emerald-600 text-white rounded-xl disabled:opacity-40 hover:bg-emerald-700 transition-all shadow-md flex items-center justify-center flex-shrink-0">
-                    {isDriverSending ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="w-[18px] h-[18px]" />}
+                  <button type="submit" disabled={!driverNewMsg.trim() || isDriverSending} className="fly teal">
+                    {isDriverSending ? <span className="dotspin" /> : <Send className="w-[17px] h-[17px]" />}
                   </button>
                 </form>
               </div>
             </>
           ) : !selectedVendorGroup ? (
-            <div className="flex-1 flex items-center justify-center chat-bg">
-              <div className="text-center bg-white/80 backdrop-blur-md rounded-3xl px-10 py-8 shadow-sm fade-in-up">
-                <div className="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-3 pulse-ring">
-                  <MessageCircle className="w-7 h-7 text-teal-500" />
-                </div>
-                <h2 className="text-base font-bold text-gray-600 mb-0.5">Select a conversation</h2>
-                <p className="text-sm text-gray-400">Choose a vendor to start chatting</p>
+            <div className="hollow">
+              <div className="in fade-in-up">
+                <span className="g"><MessageCircle className="w-7 h-7" /></span>
+                <h2>Select a conversation</h2>
+                <p>Choose a vendor to start chatting</p>
               </div>
             </div>
           ) : (
+            /* ── Vendor chat area ── */
             <>
-              {/* ── HEADER ── */}
-              <div className="bg-white px-5 py-3 flex items-center justify-between border-b border-gray-200 flex-shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                <div className="flex items-center gap-3">
-                  <button onClick={() => { setSelectedVendorGroup(null); setActiveConvId(null); setShowMobileSidebar(true); }}
-                    className="p-1.5 hover:bg-teal-50 rounded-lg lg:hidden transition-colors">
-                    <ArrowLeft className="w-4 h-4 text-gray-500" />
-                  </button>
+              <div className="thead">
+                <button onClick={() => { setSelectedVendorGroup(null); setActiveConvId(null); setShowMobileSidebar(true); }}
+                  className="icon backb" aria-label="Back">
+                  <ArrowLeft className="w-[17px] h-[17px]" />
+                </button>
 
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ring-2 ring-teal-400/40 pulse-ring overflow-hidden`}
-                    style={{ backgroundColor: `${SERVICE_COLORS[selectedConversation?.bookingType || ''] || '#6B7280'}15` }}>
-                    {selectedVendorGroup.logo
-                      ? <img src={selectedVendorGroup.logo} alt="" className="w-10 h-10 object-cover rounded-full" />
-                      : <Building2 className="w-5 h-5 text-teal-600" />}
-                  </div>
+                <span className="face" style={tint(headSc)}>
+                  {selectedVendorGroup.logo
+                    ? <img src={selectedVendorGroup.logo} alt="" />
+                    : <Building2 className="w-[17px] h-[17px]" />}
+                </span>
 
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-sm font-bold text-gray-900 truncate">{selectedVendorGroup.vendorName}</h2>
-                      {selectedConversation && (
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: `${SERVICE_COLORS[selectedConversation.bookingType] || '#6B7280'}10`, color: SERVICE_COLORS[selectedConversation.bookingType] || '#6B7280' }}>
-                          {TYPE_LABELS[selectedConversation.bookingType] || selectedConversation.bookingType}
-                        </span>
-                      )}
-                    </div>
+                <div className="ttl">
+                  <h2>{selectedVendorGroup.vendorName}</h2>
+                  <div className="under">
+                    {selectedConversation && (
+                      <span className="tone" style={tint(headSc)}>
+                        {TYPE_LABELS[selectedConversation.bookingType] || selectedConversation.bookingType}
+                      </span>
+                    )}
                     {selectedConversation?.bookingId && (
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Booking <span className="text-gray-500 font-medium">#{(selectedConversation.bookingNumber || selectedConversation.bookingId).slice(-8)}</span>
-                      </p>
+                      <p>Booking <b>#{(selectedConversation.bookingNumber || selectedConversation.bookingId).slice(-8)}</b></p>
                     )}
                   </div>
                 </div>
 
                 {selectedVendorGroup.phone && (
-                  <a href={`tel:${selectedVendorGroup.phone}`}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors text-teal-700 text-xs font-semibold">
-                    <Phone className="w-3.5 h-3.5" />
-                    Call
+                  <a href={`tel:${selectedVendorGroup.phone}`} className="act">
+                    <Phone className="w-3.5 h-3.5" /><span className="lb">Call</span>
                   </a>
                 )}
+                <button onClick={() => setShowCtx(v => !v)} className="icon infob" aria-label="Details">
+                  <Zap className="w-[17px] h-[17px]" />
+                </button>
               </div>
 
               {/* ── BOOKING SWITCHER ── */}
@@ -1079,13 +1528,12 @@ export default function CustomerChatPage() {
                 const useDropdown = convs.length > 3;
 
                 return (
-                  <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide flex-shrink-0">Booking:</span>
+                  <div className="docks">
+                    <p className="eyebrow" style={{ flex: 'none' }}>Booking</p>
 
                     {useDropdown ? (
-                      <div className="relative">
-                        <select value={activeConvId || ''} onChange={e => setActiveConvId(e.target.value)}
-                          className="appearance-none pl-3 pr-8 py-1.5 rounded-lg text-[11px] font-semibold border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent cursor-pointer text-gray-700">
+                      <div className="sw">
+                        <select value={activeConvId || ''} onChange={e => setActiveConvId(e.target.value)}>
                           {convs.map(conv => (
                             <option key={conv.id} value={conv.id}>
                               {TYPE_LABELS[conv.bookingType] || conv.bookingType}
@@ -1094,166 +1542,342 @@ export default function CustomerChatPage() {
                             </option>
                           ))}
                         </select>
-                        <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <ChevronDown className="w-3 h-3 cv" />
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-                        {convs.map(conv => {
-                          const isActive = activeConvId === conv.id;
-                          const color = SERVICE_COLORS[conv.bookingType] || '#6B7280';
-                          return (
-                            <button key={conv.id} onClick={() => setActiveConvId(conv.id)}
-                              className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${isActive ? 'text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                              style={isActive ? { backgroundColor: color } : {}}>
-                              {TYPE_LABELS[conv.bookingType] || conv.bookingType}
-                              {(conv.bookingNumber || conv.bookingId) && (
-                                <span className="opacity-70">#{(conv.bookingNumber || conv.bookingId || '').slice(-6)}</span>
-                              )}
-                              {conv.unreadCount > 0 && !isActive && (
-                                <span className="bg-teal-600 text-white text-[9px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">{conv.unreadCount}</span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      convs.map(conv => {
+                        const isActive = activeConvId === conv.id;
+                        const color = SERVICE_COLORS[conv.bookingType] || '#6B7280';
+                        return (
+                          <button key={conv.id} onClick={() => setActiveConvId(conv.id)}
+                            style={tint(color)}
+                            className={`dock${isActive ? ' on' : ''}`}>
+                            {TYPE_LABELS[conv.bookingType] || conv.bookingType}
+                            {(conv.bookingNumber || conv.bookingId) && (
+                              <span className="no">#{(conv.bookingNumber || conv.bookingId || '').slice(-6)}</span>
+                            )}
+                            {conv.unreadCount > 0 && !isActive && (
+                              <span className="n tnum">{conv.unreadCount}</span>
+                            )}
+                          </button>
+                        );
+                      })
                     )}
                   </div>
                 );
               })()}
 
               {/* ── MESSAGES ── */}
-              <div className="flex-1 overflow-y-auto chat-bg relative">
-                <div className="relative px-3 py-3">
-                  {isLoadingMessages ? (
-                    <div className="flex items-center justify-center h-32">
-                      <div className="animate-spin w-5 h-5 border-[3px] border-teal-100 border-t-teal-600 rounded-full" />
-                    </div>
-                  ) : messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-[50vh]">
-                      <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-5 text-center shadow-sm fade-in-up">
-                        <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center mx-auto mb-2">
-                          <Send className="w-6 h-6 text-teal-400" />
-                        </div>
-                        <p className="text-sm text-gray-400">Send a message to start the conversation!</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {messages.map((msg, idx) => {
-                        const isCustomer = msg.senderType === 'customer';
-                        const showDate = idx === 0 || new Date(msg.createdAt).toDateString() !== new Date(messages[idx - 1].createdAt).toDateString();
-                        const isSameSender = idx > 0 && messages[idx - 1].senderType === msg.senderType && !showDate;
-                        const isLastInGroup = idx === messages.length - 1 || messages[idx + 1]?.senderType !== msg.senderType;
+              <div className="flow">
+                {isLoadingMessages ? (
+                  <div className="spin" />
+                ) : messages.length === 0 ? (
+                  <div className="midblank fade-in-up">
+                    <span className="g"><Send className="w-6 h-6" /></span>
+                    <p>Send a message to start the conversation!</p>
+                  </div>
+                ) : (
+                  <>
+                    {messages.map((msg, idx) => {
+                      const isCustomer = msg.senderType === 'customer';
+                      const showDate = idx === 0 || new Date(msg.createdAt).toDateString() !== new Date(messages[idx - 1].createdAt).toDateString();
+                      const isSameSender = idx > 0 && messages[idx - 1].senderType === msg.senderType && !showDate;
+                      const isLastInGroup = idx === messages.length - 1 || messages[idx + 1]?.senderType !== msg.senderType;
 
-                        return (
-                          <div key={msg.id} className="msg-in">
-                            {showDate && (
-                              <div className="flex justify-center my-3">
-                                <span className="bg-white/90 backdrop-blur-sm text-gray-500 text-xs font-medium px-3 py-1 rounded-md shadow-sm">
-                                  {new Date(msg.createdAt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-                                </span>
-                              </div>
+                      return (
+                        <div key={msg.id} className="msg-in">
+                          {showDate && (
+                            <div className="stamp">
+                              <span>{new Date(msg.createdAt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                            </div>
+                          )}
+                          <div className={`msg${isCustomer ? ' mine' : ''}${isSameSender ? ' run' : ''}`}>
+                            {!isCustomer && (
+                              isSameSender
+                                ? <span className="who hole" />
+                                : (
+                                  <span className="who" style={tint(headSc)}>
+                                    {selectedVendorGroup.logo
+                                      ? <img src={selectedVendorGroup.logo} alt="" />
+                                      : <Building2 className="w-3.5 h-3.5" />}
+                                  </span>
+                                )
                             )}
-                            <div className={`flex ${isCustomer ? 'justify-end' : 'justify-start'} ${isSameSender ? 'mt-[2px]' : 'mt-2'}`}>
-                              {!isCustomer && !isSameSender && (
-                                <div className="w-6 h-6 rounded-full bg-teal-100 flex items-center justify-center mr-1.5 mt-auto flex-shrink-0 overflow-hidden">
-                                  {selectedVendorGroup.logo
-                                    ? <img src={selectedVendorGroup.logo} alt="" className="w-6 h-6 object-cover rounded-full" />
-                                    : <Building2 className="w-3.5 h-3.5 text-teal-600" />}
-                                </div>
-                              )}
-                              {!isCustomer && isSameSender && <div className="w-6 mr-1.5 flex-shrink-0" />}
 
-                              <div className={`max-w-[68%] ${
-                                isCustomer
-                                  ? `bg-teal-600 text-white shadow-sm shadow-teal-200/30 ${isLastInGroup ? 'rounded-2xl rounded-br-md' : 'rounded-2xl'}`
-                                  : `bg-white text-gray-800 border border-gray-100 shadow-sm ${isLastInGroup ? 'rounded-2xl rounded-bl-md' : 'rounded-2xl'}`
-                              } ${msg.messageType === 'IMAGE' ? 'p-1' : 'px-3 py-[7px]'}`}>
-
+                            <div className="wrap">
+                              <div className={`say${msg.messageType === 'IMAGE' ? ' pic' : ''}${!isLastInGroup ? ' run' : ''}`}>
                                 {msg.messageType === 'IMAGE' && msg.attachmentUrl && (
-                                  <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="block relative group">
-                                    <img src={msg.attachmentUrl} alt="" className="rounded-[12px] max-w-[250px] max-h-[250px] object-cover" />
-                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 rounded-[12px] transition-colors flex items-center justify-center">
-                                      <Download className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" />
-                                    </div>
+                                  <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="shotwrap">
+                                    <img src={msg.attachmentUrl} alt="" />
+                                    <span className="grab"><Download className="w-5 h-5" /></span>
                                   </a>
                                 )}
 
                                 {msg.messageType === 'FILE' && msg.attachmentUrl && (
-                                  <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer"
-                                    className={`flex items-center gap-2 p-2 rounded-lg ${isCustomer ? 'bg-white/10' : 'bg-gray-50'}`}>
-                                    <FileIcon className={`w-3.5 h-3.5 ${isCustomer ? 'text-white/80' : 'text-teal-600'}`} />
-                                    <span className={`text-sm font-medium truncate ${isCustomer ? 'text-white/90' : 'text-gray-600'}`}>{msg.attachmentName || 'File'}</span>
+                                  <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="doc">
+                                    <span className="ext"><FileIcon className="w-3.5 h-3.5" /></span>
+                                    <span className="fn">{msg.attachmentName || 'File'}</span>
+                                    <span className="pull"><Download className="w-3.5 h-3.5" /></span>
                                   </a>
                                 )}
 
-                                {msg.content && msg.messageType !== 'IMAGE' && (
-                                  <p className="text-sm leading-[1.5] whitespace-pre-wrap break-words">{msg.content}</p>
+                                {msg.content && msg.messageType !== 'IMAGE'
+                                  && !(msg.messageType === 'FILE' && msg.content === msg.attachmentName) && (
+                                  <p style={msg.messageType === 'FILE' ? { marginTop: '7px' } : undefined}>{msg.content}</p>
                                 )}
+                              </div>
 
-                                <div className={`flex items-center justify-end gap-0.5 ${msg.messageType === 'IMAGE' ? 'px-1 pb-0.5' : 'mt-[2px]'} ${isCustomer ? 'text-white/50' : 'text-gray-300'}`}>
-                                  <span className="text-xs">{new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
-                                  {isCustomer && (msg.status === 'READ' ? <CheckCheck className="w-3 h-3 text-teal-200" /> : msg.status === 'DELIVERED' ? <CheckCheck className="w-3 h-3" /> : <Check className="w-3 h-3" />)}
-                                </div>
+                              <div className="tail">
+                                {new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                {isCustomer && (
+                                  msg.status === 'READ'
+                                    ? <span className="tk seen"><CheckCheck className="w-3 h-3" /></span>
+                                    : msg.status === 'DELIVERED'
+                                      ? <span className="tk"><CheckCheck className="w-3 h-3" /></span>
+                                      : <span className="tk"><Check className="w-3 h-3" /></span>
+                                )}
                               </div>
                             </div>
                           </div>
-                        );
-                      })}
-                      <div ref={messagesEndRef} />
-                    </>
-                  )}
-                </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </>
+                )}
               </div>
 
               {/* ── INPUT BAR ── */}
-              <div className="bg-white border-t border-gray-200 px-4 py-2.5 flex-shrink-0 relative">
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-teal-300/40 to-transparent" />
+              <div className="desk">
+                <span className="glow" />
 
                 {showEmojiPicker && (
-                  <div ref={emojiRef} className="absolute bottom-full right-4 mb-2 z-50 shadow-2xl rounded-2xl overflow-hidden border border-gray-200">
+                  <div ref={emojiRef} className="emojipad">
                     <EmojiPicker onEmojiClick={(d: any) => { setNewMessage(p => p + d.emoji); inputRef.current?.focus(); }} width={320} height={380} searchPlaceHolder="Search emoji..." previewConfig={{ showPreview: false }} />
                   </div>
                 )}
 
                 {isUploading && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 mb-2 bg-teal-50 rounded-lg border border-teal-100">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />
-                    <span className="text-xs font-medium text-teal-700">Uploading...</span>
+                  <div className="rising">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Uploading...
                   </div>
                 )}
 
                 <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleFileSelect} className="hidden" />
 
-                <form onSubmit={e => { e.preventDefault(); sendMessage(newMessage); }} className="flex items-end gap-2">
-                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
-                    className="h-10 w-10 flex items-center justify-center hover:bg-teal-50 rounded-xl text-gray-400 hover:text-teal-600 transition-colors disabled:opacity-40 flex-shrink-0">
-                    <Paperclip className="w-5 h-5" />
+                <form onSubmit={e => { e.preventDefault(); sendMessage(newMessage); }} className="pen">
+                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="orb" title="Attach">
+                    <Paperclip className="w-[19px] h-[19px]" />
                   </button>
 
-                  <div className="flex-1 flex items-end bg-gray-50 rounded-2xl px-4 py-1 border border-gray-200 focus-within:border-teal-400 focus-within:ring-2 focus-within:ring-teal-500/10 focus-within:bg-white focus-within:shadow-sm transition-all gap-1">
+                  <div className="slate">
                     <textarea ref={inputRef} value={newMessage} onChange={e => setNewMessage(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(newMessage); } }}
-                      placeholder="Type a message..." rows={1}
-                      className="flex-1 py-2 bg-transparent resize-none text-sm focus:outline-none placeholder:text-gray-400 leading-[1.4]"
-                      style={{ maxHeight: '80px' }} />
+                      placeholder="Type a message..." rows={1} style={{ maxHeight: '110px' }} />
                     <button type="button" onClick={() => setShowEmojiPicker(p => !p)}
-                      className={`h-8 w-8 flex items-center justify-center rounded-lg transition-colors mb-0.5 flex-shrink-0 ${showEmojiPicker ? 'text-amber-500 bg-amber-50' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}>
-                      <Smile className="w-5 h-5" />
+                      className={`orb${showEmojiPicker ? ' lit' : ''}`} title="Emoji">
+                      <Smile className="w-[19px] h-[19px]" />
                     </button>
                   </div>
 
-                  <button type="submit" disabled={(!newMessage.trim() && !isUploading) || isSending}
-                    className="h-10 w-10 bg-teal-600 text-white rounded-xl disabled:opacity-40 hover:bg-teal-700 transition-all shadow-md shadow-teal-200/50 flex items-center justify-center flex-shrink-0 hover:scale-105 active:scale-95">
-                    {isSending ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="w-[18px] h-[18px]" />}
+                  <button type="submit" disabled={(!newMessage.trim() && !isUploading) || isSending} className="fly">
+                    {isSending ? <span className="dotspin" /> : <Send className="w-[17px] h-[17px]" />}
                   </button>
                 </form>
               </div>
             </>
           )}
-        </div>
+        </section>
+
+        {/* ══════ 4. DETAILS ══════ */}
+        <aside className={`ctx${showCtx ? ' open' : ''}`}>
+          <div className="ctop">
+            <p className="eyebrow">Details</p>
+            <button className="icon shut" onClick={() => setShowCtx(false)} aria-label="Close">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="cscroll">
+            {chatMode === 'vendor' && selectedVendorGroup ? (
+              <>
+                <div className="plate cardv">
+                  <span className="face" style={tint(headSc)}>
+                    {selectedVendorGroup.logo
+                      ? <img src={selectedVendorGroup.logo} alt="" />
+                      : <Building2 className="w-[22px] h-[22px]" />}
+                  </span>
+                  <h3>{selectedVendorGroup.vendorName}</h3>
+                  <div className="pair">
+                    {selectedConversation && (
+                      <span className="tone" style={tint(headSc)}>
+                        {TYPE_LABELS[selectedConversation.bookingType] || selectedConversation.bookingType}
+                      </span>
+                    )}
+                    {selectedConversation?.status && <span className="tone live">{selectedConversation.status}</span>}
+                  </div>
+                  <div className="rows">
+                    {selectedConversation?.bookingId && (
+                      <div className="kv">
+                        <span className="k eyebrow">Booking</span>
+                        <span className="v mono">#{(selectedConversation.bookingNumber || selectedConversation.bookingId).slice(-8)}</span>
+                      </div>
+                    )}
+                    {selectedConversation?.subject && (
+                      <div className="kv"><span className="k eyebrow">Subject</span><span className="v">{selectedConversation.subject}</span></div>
+                    )}
+                    <div className="kv">
+                      <span className="k eyebrow">Chats</span>
+                      <span className="v tnum">{selectedVendorGroup.conversations.length}</span>
+                    </div>
+                    {selectedVendorGroup.phone && (
+                      <div className="kv"><span className="k eyebrow">Phone</span><span className="v mono">{selectedVendorGroup.phone}</span></div>
+                    )}
+                    {selectedVendorGroup.lastMessageAt && (
+                      <div className="kv"><span className="k eyebrow">Last seen</span><span className="v">{formatTime(selectedVendorGroup.lastMessageAt)}</span></div>
+                    )}
+                  </div>
+                  {selectedVendorGroup.phone && (
+                    <div className="pairbtn one">
+                      <a href={`tel:${selectedVendorGroup.phone}`} className="act key">
+                        <Phone className="w-3.5 h-3.5" />Call vendor
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                <div className="plate">
+                  <div className="phead"><p className="eyebrow">Bookings with this vendor</p><span className="ln" /></div>
+                  {selectedVendorGroup.conversations.map(conv => {
+                    const c = SERVICE_COLORS[conv.bookingType] || '#6B7280';
+                    return (
+                      <button key={conv.id} onClick={() => setActiveConvId(conv.id)}
+                        style={tint(c)}
+                        className={`item${activeConvId === conv.id ? ' on' : ''}`}>
+                        <span className="sq"><Building2 className="w-[15px] h-[15px]" /></span>
+                        <span className="it">
+                          <b>{TYPE_LABELS[conv.bookingType] || conv.bookingType}</b>
+                          <span>{conv.bookingNumber ? `#${conv.bookingNumber}` : conv.bookingId ? `#${conv.bookingId.slice(-8)}` : 'No booking ref'}</span>
+                        </span>
+                        {conv.unreadCount > 0 && <span className="n tnum">{conv.unreadCount}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {(sharedImages.length > 0 || sharedFiles.length > 0) && (
+                  <div className="plate">
+                    <div className="phead"><p className="eyebrow">Shared in this chat</p><span className="ln" /></div>
+                    {sharedImages.length > 0 && (
+                      <div className="tiles">
+                        {sharedImages.slice(0, 6).map(m => (
+                          <a key={m.id} className="tile" href={m.attachmentUrl} target="_blank" rel="noopener noreferrer">
+                            <img src={m.attachmentUrl} alt="" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    {sharedFiles.length > 0 && (
+                      <div style={{ marginTop: sharedImages.length > 0 ? '11px' : 0 }}>
+                        {sharedFiles.map(m => (
+                          <div key={m.id} className="filerow">
+                            <span className="ext"><FileIcon className="w-3.5 h-3.5" /></span>
+                            <span className="it">
+                              <b>{m.attachmentName || 'File'}</b>
+                              <span>{formatTime(m.createdAt)}</span>
+                            </span>
+                            <a className="icon" href={m.attachmentUrl} target="_blank" rel="noopener noreferrer" aria-label="Download">
+                              <Download className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : chatMode === 'driver' && activeDriverConv ? (
+              <div className="plate cardv">
+                <span className="face" style={tint('#0B7C74')}>
+                  {(activeDriverConv?.driver?.name || 'Driver').charAt(0).toUpperCase()}
+                </span>
+                <h3>{activeDriverConv?.driver?.name || 'Driver'}</h3>
+                <div className="pair">
+                  <span className="tone" style={tint('#0B7C74')}>Driver</span>
+                </div>
+                <div className="rows">
+                  <div className="kv">
+                    <span className="k eyebrow">Booking</span>
+                    <span className="v mono">{activeDriverConv?.bookingNumber ? `#${activeDriverConv.bookingNumber}` : 'Chauffeur booking'}</span>
+                  </div>
+                  {activeDriverConv?.driver?.phone && (
+                    <div className="kv"><span className="k eyebrow">Phone</span><span className="v mono">{activeDriverConv.driver.phone}</span></div>
+                  )}
+                  {activeDriverConv?.lastMessageAt && (
+                    <div className="kv"><span className="k eyebrow">Last seen</span><span className="v">{formatTime(activeDriverConv.lastMessageAt)}</span></div>
+                  )}
+                </div>
+                <div className={`pairbtn${activeDriverConv?.bookingNumber && activeDriverConv?.driver?.phone ? '' : ' one'}`}>
+                  {activeDriverConv?.driver?.phone && (
+                    <a href={`tel:${activeDriverConv.driver.phone}`} className="act">
+                      <Phone className="w-3.5 h-3.5" />Call
+                    </a>
+                  )}
+                  {activeDriverConv?.bookingNumber && (
+                    <Link href={activeDriverConv?.bookingType === 'car' ? `/customer/car-bookings/${activeDriverConv.bookingNumber}` : `/customer/car-rental-bookings/${activeDriverConv.bookingNumber}`}
+                      className="act key">
+                      <Eye className="w-3.5 h-3.5" />View
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ) : chatMode === 'agent' && activeAgentConv ? (
+              <div className="plate cardv">
+                <span className="face" style={tint('#4338CA')}>
+                  {activeAgentConv?.agency?.logo
+                    ? <img src={activeAgentConv.agency.logo} alt="" />
+                    : (activeAgentConv?.agency?.agencyName || 'Travel Agent').charAt(0).toUpperCase()}
+                </span>
+                <h3>{activeAgentConv?.agency?.agencyName || 'Travel Agent'}</h3>
+                <div className="pair">
+                  <span className="tone" style={tint('#4338CA')}>Travel agent</span>
+                  {activeAgentConv?.status && <span className="tone live">{activeAgentConv.status}</span>}
+                </div>
+                <div className="rows">
+                  {activeAgentConv?.subject && (
+                    <div className="kv"><span className="k eyebrow">Enquiry</span><span className="v">{activeAgentConv.subject}</span></div>
+                  )}
+                  {activeAgentConv?.agency?.phone && (
+                    <div className="kv"><span className="k eyebrow">Phone</span><span className="v mono">{activeAgentConv.agency.phone}</span></div>
+                  )}
+                  {activeAgentConv?.createdAt && (
+                    <div className="kv"><span className="k eyebrow">Started</span><span className="v">{new Date(activeAgentConv.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span></div>
+                  )}
+                  {activeAgentConv?.lastMessageAt && (
+                    <div className="kv"><span className="k eyebrow">Last seen</span><span className="v">{formatTime(activeAgentConv.lastMessageAt)}</span></div>
+                  )}
+                </div>
+                {activeAgentConv?.agency?.phone && (
+                  <div className="pairbtn one">
+                    <a href={`tel:${activeAgentConv.agency.phone}`} className="act key">
+                      <Phone className="w-3.5 h-3.5" />Call agent
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="void">
+                <span className="g"><MessageCircle className="w-5 h-5" /></span>
+                <b>Nothing selected</b>
+                <span>Open a conversation to see its details</span>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        <div className={`veil${showCtx ? ' open' : ''}`} onClick={() => setShowCtx(false)} />
       </div>
-    </div>
     </div>
     </>
   );

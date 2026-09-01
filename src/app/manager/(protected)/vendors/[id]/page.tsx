@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import {
   ArrowLeft,
   Store,
@@ -435,6 +436,23 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
 
   useEffect(() => {
     fetchVendor();
+  }, [id]);
+
+  const [partnershipAgreement, setPartnershipAgreement] = useState<{
+    signed: boolean;
+    latest: {
+      signedByName: string; signedByTitle: string | null; queryNote: string | null;
+      acceptedAt: string; agreementVersion: string; termMonths: number;
+      reviewStatus: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+      reviewedAt: string | null; reviewNote: string | null; reviewedByName: string | null;
+    } | null;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/admin/vendors/${id}/partnership-agreement`)
+      .then((res) => res.json())
+      .then(setPartnershipAgreement)
+      .catch(() => {});
   }, [id]);
 
   // Optimistic CRM tag toggle — adds/removes locally, then syncs server.
@@ -1670,6 +1688,105 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                   <span className="font-semibold">{vendor._count.fleets}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Partnership Agreement */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Partnership Agreement
+                </h3>
+                {partnershipAgreement?.signed && partnershipAgreement.latest && (
+                  <Link
+                    href="/manager/vendor-agreements"
+                    className="text-xs font-semibold text-emerald-600 hover:text-emerald-700"
+                  >
+                    Review queue →
+                  </Link>
+                )}
+              </div>
+
+              {!partnershipAgreement ? (
+                <p className="text-sm text-gray-400">Loading…</p>
+              ) : partnershipAgreement.signed && partnershipAgreement.latest ? (
+                (() => {
+                  const a = partnershipAgreement.latest!;
+                  // The vendor's signature and the manager's decision are two
+                  // separate steps — show both, not just "signed".
+                  const tone =
+                    a.reviewStatus === 'ACCEPTED'
+                      ? { wrap: 'bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500', text: 'text-emerald-800', label: 'Approved by TransRentals', Icon: CheckCircle }
+                      : a.reviewStatus === 'REJECTED'
+                        ? { wrap: 'bg-rose-50 border-rose-200', dot: 'bg-rose-500', text: 'text-rose-800', label: 'Rejected by TransRentals', Icon: XCircle }
+                        : { wrap: 'bg-amber-50 border-amber-200', dot: 'bg-amber-500', text: 'text-amber-800', label: 'Awaiting manager review', Icon: Clock };
+                  const ToneIcon = tone.Icon;
+                  return (
+                    <div>
+                      {/* Where this agreement stands right now */}
+                      <div className={`flex items-start gap-3 rounded-lg border px-3.5 py-3 ${tone.wrap}`}>
+                        <span className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${tone.dot}`}>
+                          <ToneIcon className="w-4 h-4 text-white" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className={`font-semibold text-sm ${tone.text}`}>{tone.label}</p>
+                          <p className={`text-xs mt-0.5 ${tone.text} opacity-80`}>
+                            {a.reviewStatus === 'PENDING'
+                              ? 'The vendor has signed. A manager still has to accept it.'
+                              : `${a.reviewedByName ? `${a.reviewedByName} · ` : ''}${
+                                  a.reviewedAt
+                                    ? new Date(a.reviewedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+                                    : ''
+                                }`}
+                          </p>
+                          {a.reviewNote && (
+                            <p className={`text-xs mt-1.5 ${tone.text}`}>{a.reviewNote}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* What the vendor signed */}
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 rounded-lg border border-gray-200 bg-gray-50 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 overflow-hidden">
+                        <div className="px-3.5 py-2.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Signed on</p>
+                          <p className="mt-0.5 text-sm font-bold text-gray-900 tabular-nums">
+                            {new Date(a.acceptedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                          </p>
+                        </div>
+                        <div className="px-3.5 py-2.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Term</p>
+                          <p className="mt-0.5 text-sm font-bold text-gray-900">
+                            <span className="tabular-nums">{a.termMonths}</span> months
+                          </p>
+                        </div>
+                        <div className="px-3.5 py-2.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Agreement</p>
+                          <p className="mt-0.5 text-sm font-bold text-gray-900 font-mono">{a.agreementVersion}</p>
+                        </div>
+                      </div>
+
+                      <p className="mt-2.5 text-sm text-gray-600">
+                        Signed by <span className="font-semibold text-gray-900">{a.signedByName}</span>
+                        {a.signedByTitle ? <span className="text-gray-400"> · {a.signedByTitle}</span> : null}
+                      </p>
+
+                      {a.queryNote && (
+                        <div className="mt-3 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-600">Vendor query</p>
+                          <p className="mt-0.5 text-sm text-amber-800">{a.queryNote}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()
+              ) : (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <p className="text-sm text-gray-500">Not yet signed by this vendor.</p>
+                </div>
+              )}
             </div>
 
             {/* Pending Requests */}

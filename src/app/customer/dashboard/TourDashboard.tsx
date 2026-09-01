@@ -8,7 +8,7 @@ import {
   ChevronRight, CheckCircle, AlertCircle, Hourglass,
   Play, Flag, XCircle, MessageSquare, IndianRupee, UserPlus,
   Building2, Tag, Mountain, Tent, Ship, Mail, ArrowRight,
-  TreePine, Landmark, Bike, Waves, Snowflake,
+  TreePine, Landmark, Bike, Waves, Snowflake, Search, X,
 } from 'lucide-react';
 
 // Same twelve statuses and the same labels as before. The marker is an icon
@@ -41,15 +41,52 @@ function parseImages(val: string | null): string[] {
 
 interface TourDashboardProps {
   customerId: string;
+  /** The dashboard's view switch, rendered inside this hero. */
+  viewSwitch?: React.ReactNode;
 }
 
-export default function TourDashboard({ customerId }: TourDashboardProps) {
+export default function TourDashboard({ customerId, viewSwitch }: TourDashboardProps) {
   const [tab, setTab] = useState<'requests' | 'bookings' | 'wishlist' | 'groups'>('requests');
   const [requests, setRequests] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [wishlists, setWishlists] = useState<any[]>([]);
   const [groups, setGroups]     = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
+  const [search, setSearch]     = useState('');
+  const [page, setPage]         = useState(1);
+
+  const PER_PAGE = 6;
+
+  // Punctuation is flattened on both sides, so a code copied off a card with
+  // its separators still lands. Every term must match — search narrows.
+  const flatten = (v: unknown) =>
+    String(v ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const terms = search.split(/\s+/).map(flatten).filter(Boolean);
+  const searching = terms.length > 0;
+  const keep = (parts: unknown[]) => {
+    if (!searching) return true;
+    const hay = flatten(parts.filter(Boolean).join(' '));
+    return terms.every((t) => hay.includes(t));
+  };
+
+  // Matched against what each card prints, so the result agrees with the screen.
+  const fRequests = requests.filter((r: any) =>
+    keep([r.listing?.title, r.listing?.category?.name, r.listing?.mainLocation?.name, r.status, r.bookingFor]));
+  const fBookings = bookings.filter((b: any) =>
+    keep([b.quoteRequest?.listing?.title, b.quoteRequest?.listing?.category?.name,
+          b.quoteRequest?.listing?.mainLocation?.name, b.bookingId, b.status, b.quote?.vendor?.businessName]));
+  const fWishlists = wishlists.filter((w: any) =>
+    keep([w.listing?.title, w.listing?.category?.name, w.listing?.mainLocation?.name,
+          w.listing?.vendor?.businessName, w.listing?.duration]));
+  const fGroups = groups.filter((g: any) => keep([g.name, g.groupCode]));
+
+  const activeList: any[] =
+    tab === 'requests' ? fRequests : tab === 'bookings' ? fBookings : tab === 'wishlist' ? fWishlists : fGroups;
+  const totalPages = Math.max(1, Math.ceil(activeList.length / PER_PAGE));
+  const paged = (arr: any[]) => arr.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  // A narrowed list left on page 4 would render blank, so both reset the paging.
+  useEffect(() => { setPage(1); }, [tab, search]);
 
   useEffect(() => {
     if (!customerId) return;
@@ -83,11 +120,11 @@ export default function TourDashboard({ customerId }: TourDashboardProps) {
   }
 
   const TABS = [
-    { key: 'requests', label: 'Quote requests', count: requests.length,  icon: MessageSquare, tint: 'text-[#B4700F]', bar: 'bg-[#B4700F]' },
-    { key: 'bookings', label: 'My bookings',    count: bookings.length,  icon: Calendar,      tint: 'text-[#09B368]', bar: 'bg-[#09B368]' },
+    { key: 'requests', label: 'Quote requests', count: fRequests.length,  icon: MessageSquare, tint: 'text-[#B4700F]', bar: 'bg-[#B4700F]' },
+    { key: 'bookings', label: 'My bookings',    count: fBookings.length,  icon: Calendar,      tint: 'text-[#09B368]', bar: 'bg-[#09B368]' },
     // the heart and the user-plus are the marks the old view used here
-    { key: 'wishlist', label: 'Saved',          count: wishlists.length, icon: Heart,         tint: 'text-[#BE123C]', bar: 'bg-[#BE123C]' },
-    { key: 'groups',   label: 'Groups',         count: groups.length,    icon: UserPlus,      tint: 'text-[#0B7C74]', bar: 'bg-[#0B7C74]' },
+    { key: 'wishlist', label: 'Saved',          count: fWishlists.length, icon: Heart,         tint: 'text-[#BE123C]', bar: 'bg-[#BE123C]' },
+    { key: 'groups',   label: 'Groups',         count: fGroups.length,    icon: UserPlus,      tint: 'text-[#0B7C74]', bar: 'bg-[#0B7C74]' },
   ] as const;
 
   const HERO_STATS = [
@@ -201,6 +238,7 @@ export default function TourDashboard({ customerId }: TourDashboardProps) {
               Your tours
             </h1>
             <p className="mt-1.5 text-[12.5px] tracking-[0.02em] text-white/[0.55]">Curated experiences from verified operators</p>
+            {viewSwitch}
 
             {/* the left half was empty; this is the one thing worth knowing */}
             {nextTrip && (
@@ -218,13 +256,6 @@ export default function TourDashboard({ customerId }: TourDashboardProps) {
               </p>
             )}
 
-            <Link
-              href="/wander"
-              className="group mt-3 inline-flex w-fit items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/[0.62] transition hover:text-white"
-            >
-              Explore all tours
-              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-            </Link>
           </div>
         </div>
 
@@ -257,8 +288,44 @@ export default function TourDashboard({ customerId }: TourDashboardProps) {
 
       {/* ══════════════ TRIPS & REQUESTS ══════════════ */}
       <div className="mx-auto max-w-[1320px] px-5 pb-16 pt-14 sm:px-8 lg:px-10">
-        <p className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-[#A6B1AA]">Your travel</p>
-        <h2 className="quote-serif mt-2 text-[34px] font-medium leading-none sm:text-[40px]">Trips &amp; requests</h2>
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+          <div>
+            <p className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-[#A6B1AA]">Your travel</p>
+            <h2 className="quote-serif mt-2 text-[34px] font-medium leading-none sm:text-[40px]">Trips &amp; requests</h2>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-[13px] top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#A6B1AA]" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search trips..."
+                aria-label="Search trips and requests"
+                className="w-[210px] rounded-full border border-[#D4DFD8] bg-white py-2 pl-9 pr-8 text-[12px] text-[#0B1610] transition placeholder:text-[#A6B1AA] focus:border-[#B4700F] focus:outline-none"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  aria-label="Clear search"
+                  className="absolute right-[11px] top-1/2 -translate-y-1/2 text-[#A6B1AA] transition hover:text-[#0B1610]"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            {/* was a faint link buried in the hero; out here it can be the real CTA */}
+            <Link
+              href="/wander"
+              className="group/cta inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#D9930F] to-[#B4700F] px-[18px] py-2.5 text-[12px] font-semibold text-white shadow-[0_10px_22px_-12px_rgba(180,112,15,.85)] transition hover:-translate-y-0.5"
+            >
+              <Compass className="h-3.5 w-3.5" />
+              Explore all tours
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/cta:translate-x-[3px]" />
+            </Link>
+          </div>
+        </div>
 
         {/* one strip, a column per tab — counts carried by the display face */}
         <div className="mb-8 mt-[22px] grid grid-cols-2 overflow-hidden rounded-2xl border border-[#E7EEE9] sm:grid-cols-4">
@@ -298,12 +365,13 @@ export default function TourDashboard({ customerId }: TourDashboardProps) {
 
         {/* ── QUOTE REQUESTS ── */}
         {tab === 'requests' && (
-          requests.length === 0 ? (
-            <EmptyState message="No tour quote requests yet" sub="Browse tours and request quotes to get started!" link="/wander" linkText="Explore Tours" accent="amber" />
+          fRequests.length === 0 ? (
+            searching ? <NoMatches query={search.trim()} onClear={() => setSearch('')} />
+              : <EmptyState message="No tour quote requests yet" sub="Browse tours and request quotes to get started!" link="/wander" linkText="Explore Tours" accent="amber" />
           ) : (
             <>
               <SectionCap label="Out for quotes" />
-              {requests.map((req, i) => {
+              {paged(fRequests).map((req: any, i: number) => {
                 const listing = req.listing;
                 const images = parseImages(listing?.images);
                 const sc = STATUS_CONFIG[req.status] || STATUS_CONFIG.PENDING;
@@ -363,23 +431,19 @@ export default function TourDashboard({ customerId }: TourDashboardProps) {
                 );
               })}
 
-              <div className="mt-7 flex justify-center">
-                <Link href="/wander" className="inline-flex items-center justify-center gap-2 rounded-full border border-[#EBD5A3] px-5 py-2.5 text-[12px] font-semibold text-[#A9600C] transition hover:border-[#B45309] hover:bg-[#FEF8EA]">
-                  <Compass className="h-3.5 w-3.5" /> Explore tours
-                </Link>
-              </div>
             </>
           )
         )}
 
         {/* ── MY BOOKINGS ── */}
         {tab === 'bookings' && (
-          bookings.length === 0 ? (
-            <EmptyState message="No tour bookings yet" sub="Accept a quote to create your first booking" accent="green" />
+          fBookings.length === 0 ? (
+            searching ? <NoMatches query={search.trim()} onClear={() => setSearch('')} />
+              : <EmptyState message="No tour bookings yet" sub="Accept a quote to create your first booking" accent="green" />
           ) : (
             <>
               <SectionCap label="Confirmed with an operator" />
-              {bookings.map((booking, i) => {
+              {paged(fBookings).map((booking: any, i: number) => {
                 const listing = booking.quoteRequest?.listing;
                 const images = parseImages(listing?.images);
                 const sc = STATUS_CONFIG[booking.status] || STATUS_CONFIG.CONFIRMED;
@@ -437,13 +501,14 @@ export default function TourDashboard({ customerId }: TourDashboardProps) {
 
         {/* ── SAVED ── */}
         {tab === 'wishlist' && (
-          wishlists.length === 0 ? (
-            <EmptyState message="No saved tours yet" sub="Tap the heart icon on any tour to save it here" link="/wander" linkText="Explore Tours" accent="rose" />
+          fWishlists.length === 0 ? (
+            searching ? <NoMatches query={search.trim()} onClear={() => setSearch('')} />
+              : <EmptyState message="No saved tours yet" sub="Tap the heart icon on any tour to save it here" link="/wander" linkText="Explore Tours" accent="rose" />
           ) : (
             <>
               <SectionCap label="Kept for later" />
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {wishlists.map((w: any, i: number) => {
+                {paged(fWishlists).map((w: any, i: number) => {
                   const listing = w.listing;
                   if (!listing) return null;
                   const images = parseImages(listing.images);
@@ -493,13 +558,14 @@ export default function TourDashboard({ customerId }: TourDashboardProps) {
 
         {/* ── GROUPS ── */}
         {tab === 'groups' && (
-          groups.length === 0 ? (
-            <EmptyState message="No group trips yet" sub='Go to a tour page and click "Plan with Friends" to create your first group' link="/wander" linkText="Explore Tours" accent="teal" />
+          fGroups.length === 0 ? (
+            searching ? <NoMatches query={search.trim()} onClear={() => setSearch('')} />
+              : <EmptyState message="No group trips yet" sub='Go to a tour page and click "Plan with Friends" to create your first group' link="/wander" linkText="Explore Tours" accent="teal" />
           ) : (
             <>
               <SectionCap label="Planning together" />
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {groups.map((g: any) => {
+                {paged(fGroups).map((g: any) => {
                   const planningTrips  = (g.trips || []).filter((t: any) => t.status === 'PLANNING').length;
                   const submittedTrips = (g.trips || []).filter((t: any) => t.status === 'SUBMITTED').length;
                   const members = g.members || [];
@@ -542,6 +608,32 @@ export default function TourDashboard({ customerId }: TourDashboardProps) {
               </div>
             </>
           )
+        )}
+
+        {activeList.length > 0 && (
+          <div className="flex items-center justify-between py-[26px] text-[12px] text-[#78857C]">
+            <span className="tabular-nums">
+              Page {page} of {totalPages} · showing {paged(activeList).length} of {activeList.length}
+            </span>
+            <div className="flex gap-2.5">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                disabled={page === 1}
+                className={`rounded-full border px-[18px] py-2 text-[12px] font-semibold transition ${page === 1 ? 'cursor-not-allowed border-[#E7EEE9] text-[#D4DFD8]' : 'border-[#D4DFD8] text-[#46524A] hover:border-[#B4700F] hover:text-[#B4700F]'}`}
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                disabled={page === totalPages}
+                className={`rounded-full border px-[18px] py-2 text-[12px] font-semibold transition ${page === totalPages ? 'cursor-not-allowed border-[#E7EEE9] text-[#D4DFD8]' : 'border-[#D4DFD8] text-[#46524A] hover:border-[#B4700F] hover:text-[#B4700F]'}`}
+              >
+                Next
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </>
@@ -806,6 +898,25 @@ const EMPTY_TONE = {
   rose:  { mark: 'text-[#BE123C]', cta: 'bg-[#BE123C] hover:bg-[#9F0F33]', icon: Heart },
   teal:  { mark: 'text-[#0B7C74]', cta: 'bg-[#0B7C74] hover:bg-[#09635D]', icon: UserPlus },
 };
+
+function NoMatches({ query, onClear }: { query: string; onClear: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-3 border-t border-[#E7EEE9] py-20">
+      <Search className="h-7 w-7 text-[#A6B1AA]" />
+      <p className="quote-serif text-[24px] font-medium text-[#0B1610]">No matches</p>
+      <p className="max-w-xs text-center text-xs text-[#A6B1AA]">
+        Nothing here matches &ldquo;{query}&rdquo;. Try a tour name, destination or operator.
+      </p>
+      <button
+        type="button"
+        onClick={onClear}
+        className="mt-1 inline-flex items-center gap-2 rounded-full border border-[#D4DFD8] bg-white px-5 py-2.5 text-xs font-semibold text-[#46524A] transition hover:border-[#B4700F] hover:text-[#B4700F]"
+      >
+        <X className="h-3.5 w-3.5" /> Clear search
+      </button>
+    </div>
+  );
+}
 
 function EmptyState({ message, sub, link, linkText, accent = 'green' }: { message: string; sub: string; link?: string; linkText?: string; accent?: 'green' | 'amber' | 'rose' | 'teal' }) {
   const t = EMPTY_TONE[accent];
