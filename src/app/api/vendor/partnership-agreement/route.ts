@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { AGREEMENT_VERSION, TERM_OPTIONS_MONTHS, DEFAULT_TERM_MONTHS } from '@/lib/content/partnership-agreement';
+import { getAllActiveManagers, getManagersForLocation, notifyManagers } from '@/lib/notifications/manager-notify';
+import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,8 +26,16 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     currentVersion: CURRENT_VERSION,
-    signed: !!latest && latest.agreementVersion === CURRENT_VERSION,
+    // A rejected signature doesn't count — the vendor is asked to sign again.
+    signed:
+      !!latest &&
+      latest.agreementVersion === CURRENT_VERSION &&
+      latest.reviewStatus !== 'REJECTED',
     agreement: latest || null,
+    // Signing is only half the flow — a manager still has to accept it.
+    reviewStatus: latest?.reviewStatus || null,
+    reviewedAt: latest?.reviewedAt || null,
+    reviewNote: latest?.reviewNote || null,
   });
 }
 
@@ -65,7 +75,9 @@ export async function POST(request: NextRequest) {
     where: { vendorId: auth.vendorId, agreementVersion: CURRENT_VERSION },
     orderBy: { acceptedAt: 'desc' },
   });
-  if (existing) {
+  // A rejected signature is superseded by a fresh one, so only an untouched
+  // or already-accepted record short-circuits here.
+  if (existing && existing.reviewStatus !== 'REJECTED') {
     return NextResponse.json({ success: true, agreement: existing });
   }
 
@@ -88,6 +100,52 @@ export async function POST(request: NextRequest) {
       userAgent,
     },
   });
+
+  // Tell the managers who look after this vendor that there's something to
+  // review. Best-effort: a notification failure must never fail the signing.
+  try {
+    const vendor = await prisma.vendors.findUnique({
+      where: { id: auth.vendorId },
+      select: { businessName: true, vid: true },
+    });
+    const approvedLocations = await prisma.vendor_approved_locations.findMany({
+      where: { vendorId: auth.vendorId, isActive: true },
+      select: { locationId: true },
+    });
+
+    // Scope to the managers who cover this vendor's locations; if the vendor
+    // has none yet (they can sign before their first location is approved),
+    // fall back to every active manager so the request is never orphaned.
+    const scoped = await Promise.all(
+      approvedLocations.map((l) => getManagersForLocation(l.locationId)),
+    );
+    let managerIds = [...new Set(scoped.flat())];
+    if (managerIds.length === 0) managerIds = await getAllActiveManagers();
+
+    const vendorLabel = vendor?.businessName
+      ? `${vendor.businessName}${vendor.vid ? ` (${vendor.vid.toUpperCase()})` : ''}`
+      : 'A vendor';
+
+    await notifyManagers(managerIds, {
+      type: 'NEW_VENDOR_AGREEMENT_SIGNED',
+      title: 'Vendor signed the partnership agreement',
+      body:
+        `${vendorLabel} was signed by ${signedByName}` +
+        `${signedByTitle ? `, ${signedByTitle}` : ''} · ${termMonths}-month term` +
+        `${queryNote ? ' · has a question' : ''}. Review and accept it.`,
+      link: '/manager/vendor-agreements',
+      metadata: {
+        vendorId: auth.vendorId,
+        agreementId: created.id,
+        agreementVersion: CURRENT_VERSION,
+        termMonths,
+        hasQuery: !!queryNote,
+      },
+      dedupeKey: created.id,
+    });
+  } catch (error) {
+    logger.error('Failed to notify managers of a signed partnership agreement', error);
+  }
 
   return NextResponse.json({ success: true, agreement: created });
 }

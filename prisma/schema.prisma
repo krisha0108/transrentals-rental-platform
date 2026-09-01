@@ -2627,21 +2627,21 @@ model route_pricing {
 // by the GSC URL Inspection and PageSpeed Insights integrations, checked on
 // their own independent schedules against the same row.
 model site_audit_pages {
-  id                String    @id
-  url               String    @unique @db.VarChar(1000)
-  sourceSitemap     String?
+  id            String  @id
+  url           String  @unique @db.VarChar(1000)
+  sourceSitemap String?
 
   // Our own HTTP crawl
-  httpStatus        Int?
-  redirectTo        String?   @db.VarChar(1000)
-  crawlError        String?
-  lastCrawledAt     DateTime?
+  httpStatus    Int?
+  redirectTo    String?   @db.VarChar(1000)
+  crawlError    String?
+  lastCrawledAt DateTime?
 
   // GSC URL Inspection API (added in a later phase)
-  isIndexed         Boolean?
-  indexingVerdict   String?
-  indexingIssues    String?   @db.Text
-  lastInspectedAt   DateTime?
+  isIndexed       Boolean?
+  indexingVerdict String?
+  indexingIssues  String?   @db.Text
+  lastInspectedAt DateTime?
 
   // PageSpeed Insights (added in a later phase)
   lcpMs             Int?
@@ -2650,8 +2650,8 @@ model site_audit_pages {
   performanceScore  Int?
   lastVitalsCheckAt DateTime?
 
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([httpStatus])
   @@index([isIndexed])
@@ -7212,10 +7212,10 @@ model vendor_call_logs {
 // Real-time "is this manager online right now" — one row per manager,
 // upserted on every heartbeat ping from the manager panel.
 model manager_presence {
-  managerId String   @id
+  managerId  String   @id
   lastPingAt DateTime
-  isIdle    Boolean  @default(false)
-  updatedAt DateTime @updatedAt
+  isIdle     Boolean  @default(false)
+  updatedAt  DateTime @updatedAt
 }
 
 // Per-day active/idle time totals for a manager, built by extending the
@@ -7247,11 +7247,11 @@ model manager_activity_sessions {
 // dashboard and the app at once gets two independent rows, each written by
 // its own heartbeat, instead of the two clients overwriting a shared row.
 model vendor_presence {
-  vendorId  String
-  platform  String   @default("web") // "web" | "app" — which client this row tracks
+  vendorId   String
+  platform   String   @default("web") // "web" | "app" — which client this row tracks
   lastPingAt DateTime
-  isIdle    Boolean  @default(false)
-  updatedAt DateTime @updatedAt
+  isIdle     Boolean  @default(false)
+  updatedAt  DateTime @updatedAt
 
   @@id([vendorId, platform])
   @@index([vendorId])
@@ -7288,7 +7288,23 @@ model vendor_partnership_agreements {
   acceptedAt       DateTime @default(now())
   createdAt        DateTime @default(now())
 
+  // Manager review of the vendor's signature. A vendor can sign at any
+  // time; the partnership is only counted as in force once a manager
+  // accepts it here.
+  reviewStatus vendor_agreement_review_status @default(PENDING)
+  reviewedAt   DateTime?
+  reviewedById String?
+  reviewNote   String?                        @db.Text
+  updatedAt    DateTime                       @default(now()) @updatedAt
+
   @@index([vendorId])
+  @@index([reviewStatus, acceptedAt])
+}
+
+enum vendor_agreement_review_status {
+  PENDING
+  ACCEPTED
+  REJECTED
 }
 
 model manager_action_logs {
@@ -7353,16 +7369,16 @@ enum manager_action_type {
 // pick, since both go through the same vendor_location_requests /
 // vendor_service_requests tables). Mirrors travel_agent_notifications.
 model manager_notifications {
-  id          String                    @id @default(cuid())
-  managerId   String
-  type        manager_notification_type
-  title       String
-  body        String                    @db.Text
-  link        String? // optional in-app deep link
-  metadata    String?                   @db.Text // optional JSON payload (parsed in app)
-  isRead      Boolean                   @default(false)
-  readAt      DateTime?
-  createdAt   DateTime                  @default(now())
+  id        String                    @id @default(cuid())
+  managerId String
+  type      manager_notification_type
+  title     String
+  body      String                    @db.Text
+  link      String? // optional in-app deep link
+  metadata  String?                   @db.Text // optional JSON payload (parsed in app)
+  isRead    Boolean                   @default(false)
+  readAt    DateTime?
+  createdAt DateTime                  @default(now())
 
   admin_users admin_users @relation(fields: [managerId], references: [id], onDelete: Cascade)
 
@@ -7375,6 +7391,7 @@ enum manager_notification_type {
   NEW_SERVICE_REQUEST
   NEW_CONTACT_INQUIRY
   NEW_TRAVEL_AGENT_REGISTRATION
+  NEW_VENDOR_AGREEMENT_SIGNED
 }
 
 model service_city_content {

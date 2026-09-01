@@ -12,7 +12,8 @@ export type ManagerNotificationType =
   | 'NEW_LOCATION_REQUEST'
   | 'NEW_SERVICE_REQUEST'
   | 'NEW_CONTACT_INQUIRY'
-  | 'NEW_TRAVEL_AGENT_REGISTRATION';
+  | 'NEW_TRAVEL_AGENT_REGISTRATION'
+  | 'NEW_VENDOR_AGREEMENT_SIGNED';
 
 export interface NotifyManagersInput {
   type: ManagerNotificationType;

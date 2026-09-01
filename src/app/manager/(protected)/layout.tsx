@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail, UserCog, Bell, MapPinPlus, Layers, MapPinOff, Search } from 'lucide-react';
+import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail, UserCog, Bell, MapPinPlus, Layers, MapPinOff, Search, FileSignature } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { ToastProvider } from '@/components/ui/toast';
@@ -19,6 +19,7 @@ const SIDEBAR_LINKS = [
   { href: '/manager/vendors', label: 'Vendors', icon: Store },
   { href: '/manager/vendors/by-location', label: 'Location Coverage', icon: MapPin },
   { href: '/manager/vendors/coverage-gaps', label: 'Coverage Gaps', icon: MapPinOff },
+  { href: '/manager/vendor-agreements', label: 'Vendor Agreements', icon: FileSignature },
   { href: '/manager/drivers', label: 'Drivers', icon: Users },
   { href: '/manager/travel-agents', label: 'Travel Agents', icon: Plane },
   { href: '/manager/b2b', label: 'B2B Bookings', icon: Briefcase },
@@ -33,7 +34,12 @@ const SIDEBAR_LINKS = [
 
 interface ManagerNotification {
   id: string;
-  type: 'NEW_LOCATION_REQUEST' | 'NEW_SERVICE_REQUEST' | 'NEW_CONTACT_INQUIRY' | 'NEW_TRAVEL_AGENT_REGISTRATION';
+  type:
+    | 'NEW_LOCATION_REQUEST'
+    | 'NEW_SERVICE_REQUEST'
+    | 'NEW_CONTACT_INQUIRY'
+    | 'NEW_TRAVEL_AGENT_REGISTRATION'
+    | 'NEW_VENDOR_AGREEMENT_SIGNED';
   title: string;
   body: string;
   link: string | null;
@@ -57,11 +63,13 @@ function ManagerSidebar({
   onClose,
   vendorBadgeCount,
   notificationsBadgeCount,
+  agreementBadgeCount,
 }: {
   isOpen: boolean;
   onClose: () => void;
   vendorBadgeCount: number;
   notificationsBadgeCount: number;
+  agreementBadgeCount: number;
 }) {
   const { data: session } = useSession();
   const pathname = usePathname();
@@ -69,6 +77,7 @@ function ManagerSidebar({
   const badgeCountByHref: Record<string, number> = {
     '/manager/vendors': vendorBadgeCount,
     '/manager/notifications': notificationsBadgeCount,
+    '/manager/vendor-agreements': agreementBadgeCount,
   };
   // Longest-prefix match so a nested route (e.g. /manager/vendors/by-location)
   // highlights its own link instead of also lighting up the shorter parent link.
@@ -197,6 +206,7 @@ const NOTIFICATION_ICON: Record<string, any> = {
   NEW_SERVICE_REQUEST: Layers,
   NEW_CONTACT_INQUIRY: Mail,
   NEW_TRAVEL_AGENT_REGISTRATION: Plane,
+  NEW_VENDOR_AGREEMENT_SIGNED: FileSignature,
 };
 
 function ManagerNotificationBell({
@@ -294,6 +304,7 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<ManagerNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [vendorUnreadCount, setVendorUnreadCount] = useState(0);
+  const [agreementUnreadCount, setAgreementUnreadCount] = useState(0);
 
   useManagerActivityHeartbeat(status === 'authenticated' && session?.user?.role === 'MANAGER');
 
@@ -306,6 +317,7 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
       setUnreadCount(data.unreadCount || 0);
       const byType = data.unreadByType || {};
       setVendorUnreadCount((byType.NEW_LOCATION_REQUEST || 0) + (byType.NEW_SERVICE_REQUEST || 0));
+      setAgreementUnreadCount(byType.NEW_VENDOR_AGREEMENT_SIGNED || 0);
     } catch {
       // silent — notifications are non-critical, don't disrupt the page
     }
@@ -403,6 +415,7 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         vendorBadgeCount={vendorUnreadCount}
+        agreementBadgeCount={agreementUnreadCount}
         notificationsBadgeCount={unreadCount}
       />
 

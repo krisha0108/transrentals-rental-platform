@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import {
   FileText, CheckCircle, Loader2, IndianRupee, FileCheck2, AlertTriangle, Scale,
-  PenLine, Download, Info, CalendarClock, MessageSquare,
+  PenLine, Download, Info, CalendarClock, MessageSquare, Clock, XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -33,12 +33,19 @@ interface SignedAgreement {
   termMonths: number;
   acceptedAt: string;
   agreementVersion: string;
+  // Filled in once a manager has looked at the signature.
+  reviewStatus?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | null;
+  reviewedAt?: string | null;
+  reviewNote?: string | null;
 }
 
 export default function VendorPartnershipAgreementPage() {
   const [loading, setLoading] = useState(true);
   const [signed, setSigned] = useState(false);
   const [agreement, setAgreement] = useState<SignedAgreement | null>(null);
+  // A manager can send a signature back; the vendor then signs again, so the
+  // rejected record is kept around just to show them why.
+  const [rejected, setRejected] = useState<SignedAgreement | null>(null);
 
   const [signedByName, setSignedByName] = useState('');
   const [designationChoice, setDesignationChoice] = useState('');
@@ -56,6 +63,7 @@ export default function VendorPartnershipAgreementPage() {
       const data = await res.json();
       setSigned(!!data.signed);
       setAgreement(data.agreement || null);
+      setRejected(data.agreement?.reviewStatus === 'REJECTED' ? data.agreement : null);
     } catch {
       setError('Failed to load agreement status');
     } finally {
@@ -100,6 +108,7 @@ export default function VendorPartnershipAgreementPage() {
       if (data.success) {
         setSigned(true);
         setAgreement(data.agreement);
+        setRejected(null);
       } else {
         setError(data.error || 'Failed to sign agreement');
       }
@@ -165,10 +174,21 @@ export default function VendorPartnershipAgreementPage() {
                 <CheckCircle className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="font-semibold text-emerald-900">
-                  Signed by {agreement.signedByName}
-                  {agreement.signedByTitle ? `, ${agreement.signedByTitle}` : ''}
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold text-emerald-900">
+                    Signed by {agreement.signedByName}
+                    {agreement.signedByTitle ? `, ${agreement.signedByTitle}` : ''}
+                  </p>
+                  {agreement.reviewStatus === 'ACCEPTED' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+                      <CheckCircle className="w-3 h-3" /> Accepted by TransRentals
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700">
+                      <Clock className="w-3 h-3" /> Awaiting TransRentals review
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-emerald-700">
                   {new Date(agreement.acceptedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
                   {' · '}Agreement {agreement.agreementVersion}
@@ -183,6 +203,17 @@ export default function VendorPartnershipAgreementPage() {
               {agreement.signedByName}
             </p>
           </div>
+          {agreement.reviewStatus === 'ACCEPTED' && agreement.reviewedAt && (
+            <p className="mt-3 text-sm text-emerald-700">
+              Accepted on {new Date(agreement.reviewedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+              {agreement.reviewNote ? ` — ${agreement.reviewNote}` : ''}
+            </p>
+          )}
+          {agreement.reviewStatus !== 'ACCEPTED' && (
+            <p className="mt-3 text-sm text-emerald-700/80">
+              Your signature has been sent to the TransRentals team. You&apos;ll see it marked accepted here once a manager reviews it.
+            </p>
+          )}
           {agreement.queryNote && (
             <div className="mt-4 pt-4 border-t border-emerald-200/60">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">Your query, sent to TransRentals</p>
@@ -269,6 +300,26 @@ export default function VendorPartnershipAgreementPage() {
 
           {/* Sign form */}
           <div id="sign" className="scroll-mt-6 print:hidden">
+            {rejected && !signed && (
+              <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-full bg-rose-500 flex items-center justify-center flex-shrink-0">
+                    <XCircle className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-rose-900">TransRentals sent your signature back</p>
+                    {rejected.reviewNote && <p className="mt-1 text-sm text-rose-800">{rejected.reviewNote}</p>}
+                    <p className="mt-1.5 text-xs text-rose-600">
+                      Signed {new Date(rejected.acceptedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                      {rejected.reviewedAt
+                        ? ` · reviewed ${new Date(rejected.reviewedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
+                        : ''}
+                      {' · '}Please sign again below.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             {!signed ? (
               <div className="rounded-2xl border-2 border-emerald-200 bg-white shadow-md shadow-emerald-100/30 overflow-hidden">
                 <div className="px-6 py-4 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 flex items-center gap-2.5">
