@@ -60,14 +60,14 @@ const TOP_CITIES = [
 
 export const metadata: Metadata = {
   title: 'Car Rental India | Self Drive & Chauffeur-Driven | Starting ₹999/Day | TransRentals',
-  description: 'Rent cars across India at the best prices. Self-drive cars, chauffeur-driven sedans, SUVs, and hatchbacks available in 250+ cities. Verified vendors, instant booking.',
+  description: 'Car rental across India at the best prices. Self-drive cars, chauffeur-driven sedans, SUVs, and hatchbacks available in 250+ cities. Verified vendors, instant booking.',
   keywords: ['car rental', 'car on rent', 'self drive car', 'car hire India', 'rent a car', 'car booking', 'car rental near me', 'outstation cab', 'chauffeur driven car'],
   alternates: {
     canonical: 'https://transrentals.in/car-rental',
   },
   openGraph: {
     title: 'Car Rental India | Self Drive & Chauffeur-Driven | Starting ₹999/Day | TransRentals',
-    description: 'Book self-drive cars and cars with drivers across 250+ Indian cities. Verified vendors, best prices, instant booking.',
+    description: 'Car rental with self-drive or driver across 250+ Indian cities. Verified vendors, best prices, instant booking.',
     type: 'website',
     url: 'https://transrentals.in/car-rental',
     images: [{ url: 'https://transrentals.in/images/og/car-rental.jpg', width: 1200, height: 630, alt: 'Car Rental India - TransRentals' }],
@@ -77,7 +77,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Car Rental India | Starting ₹999/Day | TransRentals',
-    description: 'Book self-drive cars and cars with drivers across 250+ Indian cities. Verified vendors, best prices.',
+    description: 'Car rental with self-drive or driver across 250+ Indian cities. Verified vendors, best prices.',
     images: ['https://transrentals.in/images/og/car-rental.jpg'],
   },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
@@ -153,7 +153,7 @@ export default function CarRentalPage() {
         citySlug=""
         serviceSlug="car-rental"
         serviceTitle="Car Rental"
-        headingLine1="Drive Your Way,"
+        headingLine1="Car Rental"
         headingLine2="Across India"
         subheading="Rent cars with driver or self-drive across 250+ cities. Roundtrip, one-way, airport transfers."
         heroVariant="aurora"

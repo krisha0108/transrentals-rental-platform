@@ -82,7 +82,7 @@ const BASE_METADATA: Metadata = {
     siteName: 'TransRentals',
     images: [
       {
-        url: '/images/og-image.jpg',
+        url: '/api/og',
         width: 1200,
         height: 630,
         alt: 'TransRentals - Vehicle Rental Marketplace',
@@ -94,7 +94,7 @@ const BASE_METADATA: Metadata = {
     title: 'TransRentals - India\'s Largest Vehicle Rental Marketplace',
     description:
       'Rent bikes, cars, buses, trucks & equipment across 150+ cities in India.',
-    images: ['/images/og-image.jpg'],
+    images: ['/api/og'],
     creator: '@transrentals',
   },
   robots: {
