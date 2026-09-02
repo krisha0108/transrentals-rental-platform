@@ -48,6 +48,7 @@ interface Manager {
   email: string;
   phone: string | null;
   isActive: boolean;
+  canManageCarRentalContent: boolean;
   createdAt: string;
   locations: Location[];
   services: Service[];
@@ -73,6 +74,7 @@ export default function ManagersPage() {
     phone: '',
     password: '',
     isActive: true,
+    canManageCarRentalContent: false,
     locationIds: [] as string[],
     serviceIds: [] as string[],
   });
@@ -154,6 +156,7 @@ export default function ManagersPage() {
         email: formData.email,
         phone: formData.phone || null,
         isActive: formData.isActive,
+        canManageCarRentalContent: formData.canManageCarRentalContent,
         locationIds: formData.locationIds,
         serviceIds: formData.serviceIds,
       };
@@ -212,6 +215,7 @@ export default function ManagersPage() {
       phone: item.phone || '',
       password: '',
       isActive: item.isActive,
+      canManageCarRentalContent: item.canManageCarRentalContent,
       locationIds: item.locations.map((l) => l.id),
       serviceIds: item.services.map((s) => s.id),
     });
@@ -226,6 +230,7 @@ export default function ManagersPage() {
       phone: '',
       password: '',
       isActive: true,
+      canManageCarRentalContent: false,
       locationIds: [],
       serviceIds: [],
     });
@@ -367,11 +372,21 @@ export default function ManagersPage() {
                     </td>
                     <td className="px-5 py-3 text-sm text-gray-600">{item.phone || '—'}</td>
                     <td className="px-5 py-3">
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                        item.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {item.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                          item.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {item.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                        {item.canManageCarRentalContent && (
+                          <span
+                            className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700"
+                            title="Can manage Car Rental routes, packages, city pricing & distances"
+                          >
+                            Car Rental
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-3">
                       {(() => {
@@ -731,7 +746,7 @@ export default function ManagersPage() {
                 </div>
               </div>
 
-              <div className="border-t pt-4">
+              <div className="border-t pt-4 space-y-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -740,6 +755,15 @@ export default function ManagersPage() {
                     className="rounded border-gray-300"
                   />
                   <span className="text-sm">Active</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.canManageCarRentalContent}
+                    onChange={(e) => setFormData({ ...formData, canManageCarRentalContent: e.target.checked })}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm">Can manage Car Rental content (routes, packages, city pricing &amp; distances)</span>
                 </label>
               </div>
 

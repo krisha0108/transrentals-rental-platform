@@ -2731,7 +2731,24 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
 
   return (
     <HeroVariantContext.Provider value={variant}>
-    <section className={variant === 'compact' ? 'bg-slate-50 pb-8 pt-14 sm:pb-10 sm:pt-16' : 'relative bg-[#0b1420] pb-14 pt-16 text-white sm:pt-20'}>
+    <section className={variant === 'compact' ? 'relative bg-slate-50 pb-8 pt-14 sm:pb-10 sm:pt-16' : 'relative bg-[#0b1420] pb-14 pt-16 text-white sm:pt-20'}>
+      {variant === 'compact' && (
+        // Decorative hanging matki — purely visual. Fixed (not absolute) so
+        // it stays pinned to the viewport corner across the whole page while
+        // scrolling, sitting right at the very top edge (above the header,
+        // touching the green promo strip) rather than scrolling away with
+        // this section. Chroma-keyed to a real alpha-channel animated WebP
+        // (source render only ever shipped with a baked-in off-white
+        // backing) — see scratch_remove_bg.py for the one-off conversion
+        // script.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src="/images/decor/hanging-matki.webp"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none fixed top-0 right-0 z-[60] w-36 sm:w-44 lg:w-52"
+        />
+      )}
       {variant === 'hero' && (
         <div className="absolute inset-0 overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -2804,8 +2821,10 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                   // button height and label position 100% still: nothing here ever
                   // depends on `active`. The circle badge is a separate, always-64px
                   // decorative layer. Only the image's transform (pure paint, no layout
-                  // effect) animates its visual size within that fixed space.
-                  const scale = (active ? 1.5 : 1.15) * (tab.imageScale ?? 1) * (hovered ? 0.7 : 1);
+                  // effect) animates its visual size within that fixed space — hover
+                  // adds a bit of extra height on top of the resting scale, nothing else.
+                  const baseScale = (active ? 1.5 : 1.15) * (tab.imageScale ?? 1);
+                  const scale = hovered ? baseScale * 1.15 : baseScale;
                   return (
                     <button
                       key={tab.key}

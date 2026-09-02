@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import crypto from 'crypto';
+import { authorizeCarRentalContentAccess } from '@/lib/auth/car-rental-content-access';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,12 @@ export async function GET(
     // Handle both Promise and direct params (Next.js 14.2+ compatibility)
     const resolvedParams = 'then' in params ? await params : params;
     const serviceSlug = resolvedParams.slug;
+
+    const access = await authorizeCarRentalContentAccess(serviceSlug);
+    if (!access.ok) {
+      return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+    }
+
     const { searchParams } = new URL(request.url);
     const vehicleCategoryId = searchParams.get('vehicleCategoryId');
     const locationId = searchParams.get('locationId');
@@ -65,6 +72,12 @@ export async function POST(
     // Handle both Promise and direct params (Next.js 14.2+ compatibility)
     const resolvedParams = 'then' in params ? await params : params;
     const serviceSlug = resolvedParams.slug;
+
+    const access = await authorizeCarRentalContentAccess(serviceSlug);
+    if (!access.ok) {
+      return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+    }
+
     const body = await request.json();
     const {
       vehicleCategoryId,
@@ -173,7 +186,13 @@ export async function DELETE(
   try {
     // Handle both Promise and direct params (Next.js 14.2+ compatibility)
     const resolvedParams = 'then' in params ? await params : params;
-    const _serviceSlug = resolvedParams.slug; // Reserved for future filtering
+    const serviceSlug = resolvedParams.slug;
+
+    const access = await authorizeCarRentalContentAccess(serviceSlug);
+    if (!access.ok) {
+      return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

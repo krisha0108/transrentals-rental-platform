@@ -1,9 +1,85 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Search, X, SlidersHorizontal, AlertTriangle, MapPin, ChevronDown } from 'lucide-react';
+
+// Searchable dropdown — filter/type to narrow a long city list instead of
+// scrolling a native <select>. Mirrors the pattern used on the manager
+// Car Rental One-Way page and the other City Pricing/Routes/Packages/
+// Distances admin & manager pages.
+function SearchableSelect({
+  value, onChange, options, placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { id: string; name: string }[];
+  placeholder: string;
+}) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const filtered = options.filter((o) => o.name.toLowerCase().includes(query.toLowerCase()));
+  const selected = options.find((o) => o.id === value);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => { setOpen(!open); setQuery(''); }}
+        className={`w-full px-3 py-2 text-sm border rounded-lg text-left bg-white flex items-center justify-between gap-2 transition ${
+          open ? 'border-blue-500 ring-2 ring-blue-500' : 'border-gray-200 hover:border-gray-300'
+        }`}
+      >
+        <span className={selected ? 'text-gray-900 truncate' : 'text-gray-400 truncate'}>
+          {selected ? selected.name : placeholder}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input
+                autoFocus
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Search city..."
+              />
+            </div>
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            {filtered.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => { onChange(o.id); setOpen(false); setQuery(''); }}
+                className={`w-full px-3 py-2 text-sm text-left hover:bg-blue-50 transition ${
+                  value === o.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                }`}
+              >
+                {o.name}
+              </button>
+            ))}
+            {filtered.length === 0 && <p className="px-3 py-3 text-sm text-gray-400 text-center">No cities found</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface Location {
   id: string;
@@ -62,6 +138,11 @@ export default function ServiceOneWayPage() {
   const [rates, setRates] = useState<{
     [vehicleCategoryId: string]: { price: number; km: number; duration: string; tolls: number };
   }>({});
+
+  // Filters
+  const [search, setSearch] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterIncomplete, setFilterIncomplete] = useState(false);
 
   // Fetch locations and vehicle categories
   useEffect(() => {
@@ -137,6 +218,23 @@ export default function ServiceOneWayPage() {
   const availableFromLocations = locations.filter(
     (loc) => loc.id !== baseLocationId && !groupedRoutes[loc.id]
   );
+
+  // Filtered "from" location rows
+  const filteredGroupedRoutes = Object.values(groupedRoutes).filter(({ fromLocation, routes: locationRoutes }) => {
+    const q = search.trim().toLowerCase();
+    const matchSearch = !q || fromLocation.name.toLowerCase().includes(q);
+    const matchCategory = !filterCategory || locationRoutes.some((r) => r.vehicleCategoryId === filterCategory);
+    const matchIncomplete = !filterIncomplete || locationRoutes.length < vehicleCategories.length;
+    return matchSearch && matchCategory && matchIncomplete;
+  });
+
+  const activeFilterCount = [search.trim(), filterCategory, filterIncomplete ? 'incomplete' : ''].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setSearch('');
+    setFilterCategory('');
+    setFilterIncomplete(false);
+  };
 
   // Open modal to add new from location
   const openAddModal = () => {
@@ -271,32 +369,29 @@ export default function ServiceOneWayPage() {
       </div>
 
       {/* Base Location Selector */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <label className="block text-sm font-medium text-blue-900 mb-2">
-          Select Your Base Location (Destination City)
+      <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-xl p-4 mb-6 shadow-sm">
+        <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-800 mb-2">
+          <MapPin className="w-3.5 h-3.5 text-blue-500" /> Select Your Base Location (Destination City)
         </label>
-        <select
-          value={baseLocationId}
-          onChange={(e) => setBaseLocationId(e.target.value)}
-          className="w-full max-w-md px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="">-- Select Base City --</option>
-          {locations.map((loc) => (
-            <option key={loc.id} value={loc.id}>
-              {loc.name}
-            </option>
-          ))}
-        </select>
+        <div className="max-w-md">
+          <SearchableSelect
+            value={baseLocationId}
+            onChange={setBaseLocationId}
+            options={locations}
+            placeholder="-- Select Base City --"
+          />
+        </div>
         {baseLocation && (
-          <p className="mt-2 text-sm text-blue-700">
-            Showing one-way rates for trips ending in <strong>{baseLocation.name}</strong>
+          <p className="mt-2 text-sm text-gray-500">
+            Showing one-way rates for trips ending in <strong className="text-blue-600">{baseLocation.name}</strong>
           </p>
         )}
       </div>
 
       {!baseLocationId ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-gray-500">Select a base location to manage one-way rates</p>
+        <div className="bg-white border border-dashed border-gray-200 rounded-xl py-12 text-center">
+          <MapPin className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+          <p className="text-sm text-gray-500">Select a base location to manage one-way rates</p>
         </div>
       ) : loading ? (
         <div className="flex items-center justify-center py-12">
@@ -318,6 +413,73 @@ export default function ServiceOneWayPage() {
             )}
           </div>
 
+          {/* Filters */}
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <SlidersHorizontal className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-medium text-gray-700">Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700">
+                    {activeFilterCount} active
+                  </span>
+                )}
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="ml-auto flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition"
+                  >
+                    <X className="w-3.5 h-3.5" /> Clear all
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-3 flex-wrap items-center">
+                <div className="relative min-w-[200px] flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by from-city name..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">All Vehicle Categories</option>
+                  {vehicleCategories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => setFilterIncomplete((v) => !v)}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition ${
+                    filterIncomplete
+                      ? 'bg-amber-50 border-amber-300 text-amber-700'
+                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <AlertTriangle className={`w-3.5 h-3.5 ${filterIncomplete ? 'text-amber-600' : ''}`} />
+                  Incomplete
+                </button>
+              </div>
+
+              {activeFilterCount > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
+                  <span className="font-medium">Showing:</span>
+                  <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                    {filteredGroupedRoutes.length} of {Object.keys(groupedRoutes).length} from-cities
+                  </span>
+                </div>
+              )}
+            </div>
+
           {/* Routes Table */}
           {Object.keys(groupedRoutes).length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -325,6 +487,10 @@ export default function ServiceOneWayPage() {
               <p className="text-sm text-gray-400 mt-1">
                 Click "Add From Location" to add rates
               </p>
+            </div>
+          ) : filteredGroupedRoutes.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">No from-cities match your filters</p>
             </div>
           ) : (
             <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -348,7 +514,7 @@ export default function ServiceOneWayPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {Object.values(groupedRoutes).map(({ fromLocation, routes: locationRoutes }) => (
+                  {filteredGroupedRoutes.map(({ fromLocation, routes: locationRoutes }) => (
                     <tr key={fromLocation.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">{fromLocation.name}</div>
@@ -427,18 +593,12 @@ export default function ServiceOneWayPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     From Location (Pickup City)
                   </label>
-                  <select
+                  <SearchableSelect
                     value={selectedFromLocation}
-                    onChange={(e) => setSelectedFromLocation(e.target.value)}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">-- Select City --</option>
-                    {availableFromLocations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedFromLocation}
+                    options={availableFromLocations}
+                    placeholder="-- Select City --"
+                  />
                 </div>
               )}
 

@@ -43,6 +43,7 @@ model admin_users {
   updatedAt                       DateTime                   @updatedAt
   createdById                     String?
   phone                           String?
+  canManageCarRentalContent       Boolean                    @default(false)
   admin_users                     admin_users?               @relation("admin_usersToadmin_users", fields: [createdById], references: [id])
   other_admin_users               admin_users[]              @relation("admin_usersToadmin_users")
   b2b_invoices                    b2b_invoices[]
@@ -66,6 +67,10 @@ model admin_users {
   manager_action_logs             manager_action_logs[]
   inquiry_tag_assignments         inquiry_tag_assignments[]
   manager_notifications           manager_notifications[]
+  chauffeur_local_packages_created chauffeur_local_packages[] @relation("chauffeur_local_packages_createdBy")
+  chauffeur_local_packages_updated chauffeur_local_packages[] @relation("chauffeur_local_packages_updatedBy")
+  chauffeur_route_packages_created chauffeur_route_packages[] @relation("chauffeur_route_packages_createdBy")
+  chauffeur_route_packages_updated chauffeur_route_packages[] @relation("chauffeur_route_packages_updatedBy")
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -1045,14 +1050,20 @@ model chauffeur_local_packages {
   isPopular                    Boolean                      @default(false)
   displayOrder                 Int                          @default(0)
   isActive                     Boolean                      @default(true)
+  createdById                  String?
+  updatedById                  String?
   createdAt                    DateTime                     @default(now())
   updatedAt                    DateTime                     @updatedAt
   locations                    locations?                   @relation(fields: [locationId], references: [id], onDelete: Cascade)
   chauffeur_vehicle_categories chauffeur_vehicle_categories @relation(fields: [vehicleCategoryId], references: [id], onDelete: Cascade)
+  createdBy                    admin_users?                 @relation("chauffeur_local_packages_createdBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy                    admin_users?                 @relation("chauffeur_local_packages_updatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@unique([vehicleCategoryId, locationId, hours, kms])
   @@index([locationId])
   @@index([vehicleCategoryId])
+  @@index([createdById])
+  @@index([updatedById])
 }
 
 model chauffeur_route_packages {
@@ -1072,6 +1083,8 @@ model chauffeur_route_packages {
   isPopular                                                    Boolean                      @default(false)
   displayOrder                                                 Int                          @default(0)
   isActive                                                     Boolean                      @default(true)
+  createdById                                                  String?
+  updatedById                                                  String?
   createdAt                                                    DateTime                     @default(now())
   updatedAt                                                    DateTime                     @updatedAt
   isAirportTransfer                                            Boolean                      @default(false)
@@ -1079,11 +1092,15 @@ model chauffeur_route_packages {
   locations_chauffeur_route_packages_fromLocationIdTolocations locations                    @relation("chauffeur_route_packages_fromLocationIdTolocations", fields: [fromLocationId], references: [id], onDelete: Cascade)
   locations_chauffeur_route_packages_toLocationIdTolocations   locations                    @relation("chauffeur_route_packages_toLocationIdTolocations", fields: [toLocationId], references: [id], onDelete: Cascade)
   chauffeur_vehicle_categories                                 chauffeur_vehicle_categories @relation(fields: [vehicleCategoryId], references: [id], onDelete: Cascade)
+  createdBy                                                    admin_users?                 @relation("chauffeur_route_packages_createdBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy                                                    admin_users?                 @relation("chauffeur_route_packages_updatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@unique([vehicleCategoryId, fromLocationId, toLocationId])
   @@index([fromLocationId])
   @@index([toLocationId])
   @@index([vehicleCategoryId])
+  @@index([createdById])
+  @@index([updatedById])
 }
 
 model chauffeur_vehicle_categories {

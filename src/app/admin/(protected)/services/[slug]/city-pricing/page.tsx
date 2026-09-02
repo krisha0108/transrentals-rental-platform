@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   MapPin, Car, Plus, Trash2, Save, Loader2, IndianRupee,
   ArrowLeft, Download, Search, Pencil, X, ChevronDown,
-  AlertCircle, Layers, CheckSquare, Square,
+  AlertCircle, Layers, CheckSquare, Square, SlidersHorizontal,
 } from 'lucide-react';
 
 interface VehicleCategory { id: string; name: string; slug: string; }
@@ -232,6 +232,7 @@ export default function ServiceCityPricingPage() {
   const [search, setSearch] = useState('');
   const [filterState, setFilterState] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'' | 'active' | 'inactive'>('');
 
   const fetchData = async () => {
     try {
@@ -433,9 +434,19 @@ export default function ServiceCityPricingPage() {
         cityState.toLowerCase().includes(q);
       const matchCat = !filterCategory || p.vehicleCategoryId === filterCategory;
       const matchState = !filterState || cityState === filterState;
-      return matchSearch && matchCat && matchState;
+      const matchStatus = !filterStatus || (filterStatus === 'active' ? p.isActive : !p.isActive);
+      return matchSearch && matchCat && matchState && matchStatus;
     });
-  }, [pricing, search, filterCategory, filterState, locations]);
+  }, [pricing, search, filterCategory, filterState, filterStatus, locations]);
+
+  const activeFilterCount = [search.trim(), filterState, filterCategory, filterStatus].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setSearch('');
+    setFilterState('');
+    setFilterCategory('');
+    setFilterStatus('');
+  };
 
   // Group: State → City → [pricing entries]
   const grouped = useMemo(() => {
@@ -520,32 +531,69 @@ export default function ServiceCityPricingPage() {
         </span>
       </div>
 
-      {/* Search & Filters */}
-      <div className="flex gap-3 flex-wrap items-center">
-        <div className="relative flex-1 min-w-56">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input type="text" placeholder="Search by state, city or vehicle..."
-            value={search} onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-              <X className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600" />
+      {/* Filters */}
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <SlidersHorizontal className="w-4 h-4 text-gray-400" />
+          <span className="text-sm font-medium text-gray-700">Filters</span>
+          {activeFilterCount > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700">
+              {activeFilterCount} active
+            </span>
+          )}
+          {activeFilterCount > 0 && (
+            <button
+              onClick={clearFilters}
+              className="ml-auto flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition"
+            >
+              <X className="w-3.5 h-3.5" /> Clear all
             </button>
           )}
         </div>
-        <div className="w-48">
-          <SearchableSelect value={filterState} onChange={setFilterState} options={allStates} placeholder="All States" />
+
+        <div className="flex gap-3 flex-wrap items-center">
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input type="text" placeholder="Search by state, city or vehicle..."
+              value={search} onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div className="w-48">
+            <SearchableSelect value={filterState} onChange={setFilterState} options={allStates} placeholder="All States" />
+          </div>
+          <div className="w-48">
+            <SearchableSelect value={filterCategory} onChange={setFilterCategory} options={categories} placeholder="All Vehicles" />
+          </div>
+          <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+            {([
+              { key: '', label: 'All' },
+              { key: 'active', label: 'Active' },
+              { key: 'inactive', label: 'Inactive' },
+            ] as const).map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setFilterStatus(s.key)}
+                className={`px-3 py-2 text-sm font-medium transition ${
+                  filterStatus === s.key
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="w-48">
-          <SearchableSelect value={filterCategory} onChange={setFilterCategory} options={categories} placeholder="All Vehicles" />
-        </div>
-        {(search || filterState || filterCategory) && (
-          <button onClick={() => { setSearch(''); setFilterState(''); setFilterCategory(''); }}
-            className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg bg-white">
-            Clear
-          </button>
+
+        {activeFilterCount > 0 && (
+          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
+            <span className="font-medium">Showing:</span>
+            <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+              {filteredPricing.length} of {pricing.length} configs
+            </span>
+          </div>
         )}
-        <span className="text-sm text-gray-400 ml-auto">{filteredPricing.length} config{filteredPricing.length !== 1 ? 's' : ''}</span>
       </div>
 
       {/* Content — State → City → Vehicle cards */}
