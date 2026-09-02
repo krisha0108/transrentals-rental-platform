@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import crypto from 'crypto';
+import { authorizeCarRentalContentAccess } from '@/lib/auth/car-rental-content-access';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,12 @@ export async function GET(
     // Handle both Promise and direct params (Next.js 14.2+ compatibility)
     const resolvedParams = 'then' in params ? await params : params;
     const serviceSlug = resolvedParams.slug;
+
+    const access = await authorizeCarRentalContentAccess(serviceSlug);
+    if (!access.ok) {
+      return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+    }
+
     const { searchParams } = new URL(request.url);
     const vehicleCategoryId = searchParams.get('vehicleCategoryId');
     const fromLocationId = searchParams.get('fromLocationId');
@@ -37,6 +44,8 @@ export async function GET(
         chauffeur_vehicle_categories: { select: { id: true, name: true, slug: true } },
         locations_chauffeur_route_packages_fromLocationIdTolocations: { select: { id: true, name: true, slug: true } },
         locations_chauffeur_route_packages_toLocationIdTolocations: { select: { id: true, name: true, slug: true } },
+        createdBy: { select: { id: true, name: true, role: true } },
+        updatedBy: { select: { id: true, name: true, role: true } },
       },
       orderBy: [
         { chauffeur_vehicle_categories: { displayOrder: 'asc' } },
@@ -76,6 +85,12 @@ export async function POST(
     // Handle both Promise and direct params (Next.js 14.2+ compatibility)
     const resolvedParams = 'then' in params ? await params : params;
     const serviceSlug = resolvedParams.slug;
+
+    const access = await authorizeCarRentalContentAccess(serviceSlug);
+    if (!access.ok) {
+      return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+    }
+
     const body = await request.json();
     const {
       vehicleCategoryId,
@@ -139,6 +154,8 @@ export async function POST(
         isActive: isActive !== false,
         isAirportTransfer: isAirportTransfer || false,
         forcePackagePricing: forcePackagePricing || false,
+        createdById: access.actorId,
+        updatedById: access.actorId,
       },
       update: {
         estimatedKm: estimatedKm || 0,
@@ -155,11 +172,14 @@ export async function POST(
         isActive: isActive !== false,
         isAirportTransfer: isAirportTransfer || false,
         forcePackagePricing: forcePackagePricing || false,
+        updatedById: access.actorId,
       },
       include: {
         chauffeur_vehicle_categories: { select: { id: true, name: true } },
         locations_chauffeur_route_packages_fromLocationIdTolocations: { select: { id: true, name: true } },
         locations_chauffeur_route_packages_toLocationIdTolocations: { select: { id: true, name: true } },
+        createdBy: { select: { id: true, name: true, role: true } },
+        updatedBy: { select: { id: true, name: true, role: true } },
       },
     });
 
@@ -195,6 +215,12 @@ export async function DELETE(
     // Handle both Promise and direct params (Next.js 14.2+ compatibility)
     const resolvedParams = 'then' in params ? await params : params;
     const _serviceSlug = resolvedParams.slug; // Reserved for future filtering
+
+    const access = await authorizeCarRentalContentAccess(_serviceSlug);
+    if (!access.ok) {
+      return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

@@ -7,7 +7,7 @@ import {
   MapPin, Plus, Trash2, Save, Loader2, ArrowRight,
   Clock, AlertCircle, ArrowLeft,
   Search, Pencil, Route, ShieldCheck, X, ChevronDown, Wand2, CheckCircle,
-  Layers, CheckSquare, Square,
+  Layers, CheckSquare, Square, SlidersHorizontal, BadgeCheck,
 } from 'lucide-react';
 
 interface Location { id: string; name: string; slug: string; }
@@ -157,6 +157,8 @@ export default function ServiceDistancesPage() {
   const [search, setSearch] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
+  const [filterVerified, setFilterVerified] = useState(false);
+  const [filterPermit, setFilterPermit] = useState(false);
 
   // Bulk auto-fetch state
   const [showBulk, setShowBulk] = useState(false);
@@ -326,9 +328,24 @@ export default function ServiceDistancesPage() {
         (d.routeVia || '').toLowerCase().includes(q);
       const matchFrom = !filterFrom || d.fromLocationId === filterFrom;
       const matchTo = !filterTo || d.toLocationId === filterTo;
-      return matchSearch && matchFrom && matchTo;
+      const matchVerified = !filterVerified || d.isVerified;
+      const matchPermit = !filterPermit || d.statePermit;
+      return matchSearch && matchFrom && matchTo && matchVerified && matchPermit;
     });
-  }, [distances, search, filterFrom, filterTo]);
+  }, [distances, search, filterFrom, filterTo, filterVerified, filterPermit]);
+
+  const activeFilterCount = [
+    search.trim(), filterFrom, filterTo,
+    filterVerified ? 'verified' : '', filterPermit ? 'permit' : '',
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setSearch('');
+    setFilterFrom('');
+    setFilterTo('');
+    setFilterVerified(false);
+    setFilterPermit(false);
+  };
 
   const grouped = useMemo(() => {
     const g: Record<string, CityDistance[]> = {};
@@ -410,56 +427,94 @@ export default function ServiceDistancesPage() {
         </span>
       </div>
 
-      {/* Search & Filters */}
-      <div className="flex gap-3 flex-wrap items-center">
-        {/* Text search */}
-        <div className="relative flex-1 min-w-56">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by city name or route..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-              <X className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600" />
+      {/* Filters */}
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <SlidersHorizontal className="w-4 h-4 text-gray-400" />
+          <span className="text-sm font-medium text-gray-700">Filters</span>
+          {activeFilterCount > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700">
+              {activeFilterCount} active
+            </span>
+          )}
+          {activeFilterCount > 0 && (
+            <button
+              onClick={clearFilters}
+              className="ml-auto flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition"
+            >
+              <X className="w-3.5 h-3.5" /> Clear all
             </button>
           )}
         </div>
 
-        {/* From filter — searchable */}
-        <div className="w-52">
-          <SearchableSelect
-            value={filterFrom}
-            onChange={setFilterFrom}
-            options={locations}
-            placeholder="All Origins"
-          />
-        </div>
+        <div className="flex gap-3 flex-wrap items-center">
+          {/* Text search */}
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by city name or route..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-        {/* To filter — searchable */}
-        <div className="w-52">
-          <SearchableSelect
-            value={filterTo}
-            onChange={setFilterTo}
-            options={locations}
-            placeholder="All Destinations"
-          />
-        </div>
+          {/* From filter — searchable */}
+          <div className="w-52">
+            <SearchableSelect
+              value={filterFrom}
+              onChange={setFilterFrom}
+              options={locations}
+              placeholder="All Origins"
+            />
+          </div>
 
-        {(search || filterFrom || filterTo) && (
+          {/* To filter — searchable */}
+          <div className="w-52">
+            <SearchableSelect
+              value={filterTo}
+              onChange={setFilterTo}
+              options={locations}
+              placeholder="All Destinations"
+            />
+          </div>
+
           <button
-            onClick={() => { setSearch(''); setFilterFrom(''); setFilterTo(''); }}
-            className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg bg-white"
+            type="button"
+            onClick={() => setFilterVerified((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition ${
+              filterVerified
+                ? 'bg-green-50 border-green-300 text-green-700'
+                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
           >
-            Clear
+            <ShieldCheck className={`w-3.5 h-3.5 ${filterVerified ? 'text-green-600' : ''}`} />
+            Verified
           </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterPermit((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition ${
+              filterPermit
+                ? 'bg-purple-50 border-purple-300 text-purple-700'
+                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <BadgeCheck className={`w-3.5 h-3.5 ${filterPermit ? 'text-purple-600' : ''}`} />
+            Permit
+          </button>
+        </div>
+
+        {activeFilterCount > 0 && (
+          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
+            <span className="font-medium">Showing:</span>
+            <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+              {filtered.length} of {distances.length} routes
+            </span>
+          </div>
         )}
-        <span className="text-sm text-gray-400 ml-auto">
-          {filtered.length} route{filtered.length !== 1 ? 's' : ''}
-        </span>
       </div>
 
       {/* Routes — Grouped by Origin, Horizontal Cards */}

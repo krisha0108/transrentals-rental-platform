@@ -18,6 +18,8 @@ import {
   Download,
   Plane,
   Zap,
+  Search,
+  X,
 } from 'lucide-react';
 
 interface VehicleCategory {
@@ -54,6 +56,8 @@ interface RoutePackage {
   chauffeur_vehicle_categories: { id: string; name: string; slug: string };
   fromLocation: { id: string; name: string; slug: string };
   toLocation: { id: string; name: string; slug: string };
+  createdBy: { id: string; name: string; role: string } | null;
+  updatedBy: { id: string; name: string; role: string } | null;
 }
 
 const SERVICE_TITLES: Record<string, string> = {
@@ -96,6 +100,11 @@ export default function ServiceRoutesPage() {
   const [formData, setFormData] = useState(defaultFormData);
   const [filterCategory, setFilterCategory] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'' | 'active' | 'inactive'>('');
+  const [filterPopular, setFilterPopular] = useState(false);
+  const [filterAirport, setFilterAirport] = useState(false);
+  const [filterSearch, setFilterSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchData = async () => {
@@ -311,8 +320,33 @@ export default function ServiceRoutesPage() {
   const filteredRoutes = routes.filter((r) => {
     if (filterCategory && r.vehicleCategoryId !== filterCategory) return false;
     if (filterFrom && r.fromLocationId !== filterFrom) return false;
+    if (filterTo && r.toLocationId !== filterTo) return false;
+    if (filterStatus === 'active' && !r.isActive) return false;
+    if (filterStatus === 'inactive' && r.isActive) return false;
+    if (filterPopular && !r.isPopular) return false;
+    if (filterAirport && !r.isAirportTransfer) return false;
+    if (filterSearch.trim()) {
+      const q = filterSearch.trim().toLowerCase();
+      const haystack = `${r.fromLocation.name} ${r.toLocation.name}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
     return true;
   });
+
+  const activeFilterCount = [
+    filterCategory, filterFrom, filterTo, filterStatus,
+    filterPopular ? 'popular' : '', filterAirport ? 'airport' : '', filterSearch.trim(),
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setFilterCategory('');
+    setFilterFrom('');
+    setFilterTo('');
+    setFilterStatus('');
+    setFilterPopular(false);
+    setFilterAirport(false);
+    setFilterSearch('');
+  };
 
   // Group by vehicle category
   const groupedByCategory: Record<string, RoutePackage[]> = {};
@@ -386,32 +420,121 @@ export default function ServiceRoutesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 mb-6">
-        <select
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Vehicle Categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+      <div className="mb-6">
+        {activeFilterCount > 0 && (
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700">
+              {activeFilterCount} active
+            </span>
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition"
+            >
+              <X className="w-3.5 h-3.5" /> Clear all
+            </button>
+            <span className="text-xs text-gray-400 ml-auto">
+              {filteredRoutes.length} of {routes.length} routes
+            </span>
+          </div>
+        )}
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={filterSearch}
+              onChange={(e) => setFilterSearch(e.target.value)}
+              placeholder="Search by city name..."
+              className="pl-9 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
 
-        <select
-          value={filterFrom}
-          onChange={(e) => setFilterFrom(e.target.value)}
-          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Origin Cities</option>
-          {locations.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
-            </option>
-          ))}
-        </select>
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Vehicle Categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filterFrom}
+            onChange={(e) => setFilterFrom(e.target.value)}
+            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Origin Cities</option>
+            {locations.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filterTo}
+            onChange={(e) => setFilterTo(e.target.value)}
+            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Destination Cities</option>
+            {locations.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex rounded-lg border overflow-hidden">
+            {([
+              { key: '', label: 'All' },
+              { key: 'active', label: 'Active' },
+              { key: 'inactive', label: 'Inactive' },
+            ] as const).map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setFilterStatus(s.key)}
+                className={`px-3 py-2 text-sm font-medium transition ${
+                  filterStatus === s.key
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setFilterPopular((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition ${
+              filterPopular
+                ? 'bg-amber-50 border-amber-300 text-amber-700'
+                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <Star className={`w-3.5 h-3.5 ${filterPopular ? 'fill-amber-500 text-amber-500' : ''}`} />
+            Popular
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterAirport((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition ${
+              filterAirport
+                ? 'bg-blue-50 border-blue-300 text-blue-700'
+                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <Plane className="w-3.5 h-3.5" />
+            Airport
+          </button>
+        </div>
       </div>
 
       {/* Form Modal */}
@@ -728,6 +851,7 @@ export default function ServiceRoutesPage() {
                       <th className="px-4 py-3 text-right">Round-trip</th>
                       <th className="px-4 py-3 text-right">Toll Est.</th>
                       <th className="px-4 py-3 text-center">Status</th>
+                      <th className="px-4 py-3 text-left">Last Edited By</th>
                       <th className="px-4 py-3 text-center">Actions</th>
                     </tr>
                   </thead>
@@ -782,6 +906,20 @@ export default function ServiceRoutesPage() {
                           >
                             {route.isActive ? 'Active' : 'Inactive'}
                           </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {route.updatedBy ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-gray-700">{route.updatedBy.name}</span>
+                              {route.updatedBy.role === 'MANAGER' && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-100 text-indigo-700">
+                                  Manager
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex justify-center gap-1">

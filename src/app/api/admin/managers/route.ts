@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
         email: true,
         phone: true,
         isActive: true,
+        canManageCarRentalContent: true,
         createdAt: true,
         manager_locations: {
           include: {
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
       email: m.email,
       phone: m.phone,
       isActive: m.isActive,
+      canManageCarRentalContent: m.canManageCarRentalContent,
       createdAt: m.createdAt,
       locations: m.manager_locations.map((ml) => ml.locations),
       services: m.manager_services.map((ms) => ms.services),
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, email, phone, password, isActive, locationIds, serviceIds } = body;
+    const { name, email, phone, password, isActive, canManageCarRentalContent, locationIds, serviceIds } = body;
 
     // Validate required fields
     if (!name || !email || !password) {
@@ -132,6 +134,7 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         role: 'MANAGER',
         isActive: isActive !== false,
+        canManageCarRentalContent: canManageCarRentalContent === true,
         createdById: currentUser.id,
         manager_locations: {
           create: (locationIds || []).map((locationId: string) => ({
@@ -152,6 +155,7 @@ export async function POST(request: NextRequest) {
         email: true,
         phone: true,
         isActive: true,
+        canManageCarRentalContent: true,
         createdAt: true,
         manager_locations: {
           include: {

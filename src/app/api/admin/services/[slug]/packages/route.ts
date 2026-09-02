@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import crypto from 'crypto';
+import { authorizeCarRentalContentAccess } from '@/lib/auth/car-rental-content-access';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,10 @@ function generateId(): string {
 // Query params:
 //   locationSlug  — if provided, returns only packages for that location + global (locationId=null)
 //                   if omitted (admin panel), returns ALL packages unfiltered
+// Intentionally public/unauthenticated — the customer-facing booking page
+// (src/app/(services)/car-rental/[location]/book/page.tsx) and the SmartShivi
+// chatbot widget both read package pricing from here directly, unauthenticated.
+// Only the write endpoints below (POST/PATCH/DELETE) are access-gated.
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -66,6 +71,8 @@ export async function GET(
             slug: true,
           },
         },
+        createdBy: { select: { id: true, name: true, role: true } },
+        updatedBy: { select: { id: true, name: true, role: true } },
       },
     });
 
@@ -89,6 +96,8 @@ export async function GET(
         isActive: p.isActive,
         chauffeur_vehicle_categories: p.chauffeur_vehicle_categories,
         location: p.locations,
+        createdBy: p.createdBy,
+        updatedBy: p.updatedBy,
       })),
     });
   } catch (error: any) {
@@ -107,6 +116,12 @@ export async function POST(
 ) {
   try {
     const { slug: serviceSlug } = await params;
+
+    const access = await authorizeCarRentalContentAccess(serviceSlug);
+    if (!access.ok) {
+      return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+    }
+
     const body = await request.json();
     const {
       vehicleCategoryId,
@@ -164,6 +179,8 @@ export async function POST(
         isPopular: isPopular || false,
         displayOrder: displayOrder || 0,
         isActive: isActive !== false,
+        createdById: access.actorId,
+        updatedById: access.actorId,
       },
       include: {
         chauffeur_vehicle_categories: {
@@ -180,6 +197,8 @@ export async function POST(
             slug: true,
           },
         },
+        createdBy: { select: { id: true, name: true, role: true } },
+        updatedBy: { select: { id: true, name: true, role: true } },
       },
     });
 
@@ -205,6 +224,12 @@ export async function PATCH(
 ) {
   try {
     const { slug: serviceSlug } = await params;
+
+    const access = await authorizeCarRentalContentAccess(serviceSlug);
+    if (!access.ok) {
+      return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+    }
+
     const body = await request.json();
     const {
       id,
@@ -258,6 +283,7 @@ export async function PATCH(
     if (isPopular !== undefined) updateData.isPopular = isPopular;
     if (displayOrder !== undefined) updateData.displayOrder = displayOrder;
     if (isActive !== undefined) updateData.isActive = isActive;
+    updateData.updatedById = access.actorId;
 
     const pkg = await prisma.chauffeur_local_packages.update({
       where: { id },
@@ -277,6 +303,8 @@ export async function PATCH(
             slug: true,
           },
         },
+        createdBy: { select: { id: true, name: true, role: true } },
+        updatedBy: { select: { id: true, name: true, role: true } },
       },
     });
 
@@ -295,8 +323,18 @@ export async function PATCH(
 }
 
 // DELETE - Delete package
-export async function DELETE(request: NextRequest) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
   try {
+    const { slug: serviceSlug } = await params;
+
+    const access = await authorizeCarRentalContentAccess(serviceSlug);
+    if (!access.ok) {
+      return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

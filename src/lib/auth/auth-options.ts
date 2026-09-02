@@ -74,6 +74,7 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             role: user.role,
             userType: 'admin',
+            canManageCarRentalContent: user.canManageCarRentalContent,
           };
         } catch (error: any) {
           console.error('[Admin Auth] Error:', error.message);
@@ -235,6 +236,7 @@ export const authOptions: NextAuthOptions = {
         token.status = (user as any).status;
         token.phone = (user as any).phone;
         token.ownerName = (user as any).ownerName;
+        token.canManageCarRentalContent = (user as any).canManageCarRentalContent;
       }
       return token;
     },
@@ -246,6 +248,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).status = token.status;
         (session.user as any).phone = token.phone;
         (session.user as any).ownerName = token.ownerName;
+        (session.user as any).canManageCarRentalContent = token.canManageCarRentalContent;
       }
       return session;
     },

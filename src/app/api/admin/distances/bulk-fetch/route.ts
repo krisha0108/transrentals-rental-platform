@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
 import crypto from 'crypto';
+import { authorizeCarRentalContentAccess } from '@/lib/auth/car-rental-content-access';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120; // 2 min — geocoding + OSRM can take time
@@ -118,6 +119,11 @@ export async function POST(request: NextRequest) {
 
     if (!serviceSlug) {
       return NextResponse.json({ success: false, error: 'serviceSlug is required' }, { status: 400 });
+    }
+
+    const access = await authorizeCarRentalContentAccess(serviceSlug);
+    if (!access.ok) {
+      return NextResponse.json({ success: false, error: access.error }, { status: access.status });
     }
 
     const isInter = mode === 'inter';
