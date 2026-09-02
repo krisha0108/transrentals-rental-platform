@@ -20,9 +20,25 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     orderBy: { acceptedAt: 'desc' },
   });
 
+  // vendor_partnership_agreements has no relation to admin_users, so the
+  // reviewing manager's name is stitched in with one extra lookup.
+  const reviewerIds = [...new Set(agreements.map((a: any) => a.reviewedById).filter(Boolean))];
+  const reviewers = reviewerIds.length
+    ? await prisma.admin_users.findMany({
+        where: { id: { in: reviewerIds as string[] } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const nameById = new Map(reviewers.map((r) => [r.id, r.name]));
+
+  const withReviewer = agreements.map((a: any) => ({
+    ...a,
+    reviewedByName: a.reviewedById ? nameById.get(a.reviewedById) || null : null,
+  }));
+
   return NextResponse.json({
-    signed: agreements.length > 0,
-    latest: agreements[0] || null,
-    history: agreements,
+    signed: withReviewer.length > 0,
+    latest: withReviewer[0] || null,
+    history: withReviewer,
   });
 }
