@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 const ITEMS_PER_PAGE = 20;
@@ -115,8 +116,10 @@ const buildPaginationRange = (current: number, total: number, window = 5) => {
   return pages;
 };
 
-export default function ManagerHelpdeskPage() {
+function ManagerHelpdeskPageInner() {
   useManagerPageHeader('Helpdesk', 'Manage support tickets and contact inquiries in one place.');
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [items, setItems] = useState<UnifiedItem[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalItems: 0,
@@ -133,14 +136,19 @@ export default function ManagerHelpdeskPage() {
     totalPages: 1,
   });
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [submitterFilter, setSubmitterFilter] = useState('');
-  const [dateRangePreset, setDateRangePreset] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  // Filters initialize from the URL (once, on mount) so that navigating to a
+  // detail page and back — which remounts this page fresh, since Next's
+  // router cache doesn't retain dynamic routes by default — restores the
+  // filters instead of resetting them. See the effect below that keeps the
+  // URL in sync as filters change.
+  const [search, setSearch] = useState(() => searchParams?.get('search') || '');
+  const [typeFilter, setTypeFilter] = useState(() => searchParams?.get('type') || '');
+  const [statusFilter, setStatusFilter] = useState(() => searchParams?.get('status') || '');
+  const [submitterFilter, setSubmitterFilter] = useState(() => searchParams?.get('submitter') || '');
+  const [dateRangePreset, setDateRangePreset] = useState(() => searchParams?.get('dateRangePreset') || '');
+  const [dateFrom, setDateFrom] = useState(() => searchParams?.get('dateFrom') || '');
+  const [dateTo, setDateTo] = useState(() => searchParams?.get('dateTo') || '');
+  const [currentPage, setCurrentPage] = useState(() => Number(searchParams?.get('page')) || 1);
 
   const handleDateRangePresetChange = (value: string) => {
     setDateRangePreset(value);
@@ -186,6 +194,23 @@ export default function ManagerHelpdeskPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Mirror filters into the URL (replace, not push, so filter changes don't
+  // pile up browser-history entries) — this is what lets "back" from a
+  // detail page land on a URL that still encodes the filters.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (typeFilter) params.set('type', typeFilter);
+    if (statusFilter) params.set('status', statusFilter);
+    if (submitterFilter) params.set('submitter', submitterFilter);
+    if (dateRangePreset) params.set('dateRangePreset', dateRangePreset);
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    const qs = params.toString();
+    router.replace(`/manager/helpdesk${qs ? `?${qs}` : ''}`, { scroll: false });
+  }, [search, typeFilter, statusFilter, submitterFilter, dateRangePreset, dateFrom, dateTo, currentPage, router]);
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -513,5 +538,17 @@ export default function ManagerHelpdeskPage() {
           )}
       </section>
     </div>
+  );
+}
+
+export default function ManagerHelpdeskPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+      </div>
+    }>
+      <ManagerHelpdeskPageInner />
+    </Suspense>
   );
 }
