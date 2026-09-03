@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { Crown, Star, Shield, Car, MapPin, Clock } from 'lucide-react';
-import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
+import { LuxuryBookingHero } from '@/components/luxury';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { HowToSchema, BreadcrumbSchema } from '@/components/seo/schemas';
@@ -60,20 +60,9 @@ export default function LuxuryCarRentalPage() {
           { name: 'Enjoy the Experience', text: 'Your luxury car arrives ready for you — fully fuelled, sanitised, and with a professional driver if opted.' },
         ]}
       />
-      {/* Hero Section */}
-      <SimpleServiceHero
-        badge="Premium Collection"
-        title="Luxury & Exotic"
-        titleHighlight="Car Rental"
-        description="Experience the extraordinary. BMW, Mercedes, Ferrari, Lamborghini, Rolls-Royce. Book your dream car!"
-        features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-green-600' },
-          { icon: 'zap', text: '20+ Exotic Cars', color: 'text-purple-600' },
-        ]}
-        gradientFrom="purple-50"
-        gradientTo="amber-50"
-      />
+      {/* Hero Section — same booking hero the city pages use. With no
+          citySlug the pick-up field decides which city to book in. */}
+      <LuxuryBookingHero />
 
       {/* Fleet Display from Database */}
       <div id="fleet">

@@ -75,11 +75,14 @@ const POPULAR_ROUTES: Record<string, { to: string; distance: number }[]> = {
 };
 
 interface LuxuryBookingHeroProps {
-  city: string;
-  citySlug: string;
+  // Both are absent on the service landing page (/luxury-car-rental), where
+  // the pick-up chooser decides the city instead.
+  city?: string;
+  citySlug?: string;
 }
 
-export function LuxuryBookingHero({ city, citySlug }: LuxuryBookingHeroProps) {
+export function LuxuryBookingHero({ city = '', citySlug = '' }: LuxuryBookingHeroProps) {
+  const cityFixed = !!citySlug;
   // Trip type state
   const [tripType, setTripType] = useState<TripType>('local');
   const [outstationMode, setOutstationMode] = useState<OutstationMode>('round-trip');
@@ -209,7 +212,16 @@ export function LuxuryBookingHero({ city, citySlug }: LuxuryBookingHeroProps) {
       params.set('terminalAddress', terminalAddress);
     }
 
-    window.location.href = `/luxury-car-rental/${citySlug}/book?${params.toString()}`;
+    // On a city page the slug is fixed; on the landing page it comes from
+    // whichever pick-up city the visitor chose.
+    const chosen = cities.find((c) => c.id === selectedPickupCityId);
+    const bookingSlug = citySlug || chosen?.slug || '';
+    if (!bookingSlug) {
+      alert('Please select a pickup city');
+      return;
+    }
+
+    window.location.href = `/luxury-car-rental/${bookingSlug}/book?${params.toString()}`;
   };
 
   const popularRoutes = POPULAR_ROUTES[citySlug] || POPULAR_ROUTES['delhi'] || [];
@@ -229,7 +241,16 @@ export function LuxuryBookingHero({ city, citySlug }: LuxuryBookingHeroProps) {
       {/* Gold gradient overlay */}
       <div className="absolute top-0 left-0 w-1/3 h-full bg-gradient-to-r from-amber-900/20 to-transparent" />
 
-      <div className="relative container-custom py-12 lg:py-16">
+      <div
+        className={
+          'relative container-custom pb-12 lg:pb-16 ' +
+          // The site header is fixed and is at its tallest in the tablet range,
+          // where the breadcrumb strip above the city hero no longer clears it —
+          // so both variants reserve extra room there. They only differ on
+          // mobile, where the city page still has that strip above it.
+          (cityFixed ? 'pt-12 md:pt-28 lg:pt-20' : 'pt-16 md:pt-28 lg:pt-20')
+        }
+      >
         <div className="grid lg:grid-cols-2 gap-10 items-start">
           {/* Left - Hero Content */}
           <div className="text-center lg:text-left">
@@ -239,7 +260,9 @@ export function LuxuryBookingHero({ city, citySlug }: LuxuryBookingHeroProps) {
               className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-amber-600/10 backdrop-blur-sm border border-amber-500/30 rounded-full px-4 py-2 mb-6"
             >
               <Crown className="w-4 h-4 text-amber-400" />
-              <span className="text-sm font-medium text-amber-300">Luxury Car Rental in {city}</span>
+              <span className="text-sm font-medium text-amber-300">
+                Luxury Car Rental {city ? `in ${city}` : 'across India'}
+              </span>
             </motion.div>
 
             <motion.h1

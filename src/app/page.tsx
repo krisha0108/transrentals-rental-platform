@@ -2741,12 +2741,18 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
         // (source render only ever shipped with a baked-in off-white
         // backing) — see scratch_remove_bg.py for the one-off conversion
         // script.
+        // Hidden below lg — at phone AND tablet widths (including 768px)
+        // the header's right-side nav ("For Travel Agents" etc.) sits right
+        // where this pins, and it visually crowds/covers those links since
+        // it's fixed (out of layout flow, so the header never reserves
+        // space for it). Only shown from lg (1024px) up, where the header
+        // has enough room that the two don't collide.
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src="/images/decor/hanging-matki.webp"
           alt=""
           aria-hidden="true"
-          className="pointer-events-none fixed top-0 right-0 z-[60] w-36 sm:w-44 lg:w-52"
+          className="pointer-events-none fixed top-0 right-0 z-[60] hidden lg:block lg:w-52"
         />
       )}
       {variant === 'hero' && (

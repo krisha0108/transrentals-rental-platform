@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
   ArrowLeft,
   User,
@@ -66,6 +67,28 @@ export default function ManagerInquiryDetailPage() {
   useEffect(() => {
     fetchInquiry();
   }, [inquiryId]);
+
+  useManagerPageHeader(
+    'Contact Inquiry',
+    inquiry ? `INQ-${inquiry.id.slice(-6).toUpperCase()} • Received ${formatDateTime(inquiry.created_at)}` : undefined,
+    inquiry ? (
+      <div className="flex items-center gap-2">
+        <span className="px-2.5 py-1 rounded-full text-xs font-semibold border border-orange-200 bg-orange-50 text-orange-700">
+          Inquiry
+        </span>
+        {(() => {
+          const opt = STATUS_OPTIONS.find((o) => o.value === inquiry.status) || STATUS_OPTIONS[0];
+          const Icon = opt.icon;
+          return (
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${opt.pill}`}>
+              <Icon className="w-3 h-3" />
+              {opt.label}
+            </span>
+          );
+        })()}
+      </div>
+    ) : undefined,
+  );
 
   const handleSaveStatus = async () => {
     if (!inquiry) return;
@@ -146,44 +169,24 @@ export default function ManagerInquiryDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
+      {/* Back link */}
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200">
         <button
           onClick={() => router.back()}
-          className="p-2 hover:bg-slate-100 rounded-lg transition"
+          className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to Helpdesk
         </button>
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold text-slate-900">Contact Inquiry</h1>
-            <span className="px-3 py-1 rounded-full text-xs font-semibold border border-orange-200 bg-orange-50 text-orange-700">
-              Inquiry
-            </span>
-            {(() => {
-              const opt = STATUS_OPTIONS.find((o) => o.value === inquiry.status) || STATUS_OPTIONS[0];
-              const Icon = opt.icon;
-              return (
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${opt.pill}`}>
-                  <Icon className="w-3 h-3" />
-                  {opt.label}
-                </span>
-              );
-            })()}
-          </div>
-          <p className="text-slate-500 text-sm mt-1">
-            INQ-{inquiry.id.slice(-6).toUpperCase()} &bull; Received {formatDateTime(inquiry.created_at)}
-          </p>
-        </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-6 items-start">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Message Details */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+              <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-orange-600" />
                 Message Details
               </h2>
@@ -191,7 +194,7 @@ export default function ManagerInquiryDetailPage() {
             <div className="p-6 space-y-4">
               <div>
                 <p className="text-sm text-slate-500 mb-1">Subject</p>
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-base font-semibold text-slate-900">
                   {inquiry.subject || 'No Subject'}
                 </h3>
               </div>
@@ -204,30 +207,72 @@ export default function ManagerInquiryDetailPage() {
             </div>
           </div>
 
-          {/* Quick Actions */}
+          {/* Status & Resolution */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h2 className="font-semibold text-slate-900">Quick Actions</h2>
+              <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-orange-600" />
+                Status & Resolution
+              </h2>
             </div>
-            <div className="p-6">
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href={`mailto:${inquiry.email}?subject=Re: ${inquiry.subject || 'Your inquiry'}`}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
-                >
-                  <Mail className="w-4 h-4" />
-                  Reply via Email
-                </a>
-                {inquiry.phone && (
-                  <a
-                    href={`tel:${inquiry.phone}`}
-                    className="inline-flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition"
-                  >
-                    <Phone className="w-4 h-4" />
-                    Call Customer
-                  </a>
-                )}
-              </div>
+            <div className="p-6 space-y-4">
+              {inquiry.resolution && ['RESOLVED', 'CLOSED'].includes(inquiry.status) ? (
+                <div className={`rounded-xl p-4 border ${inquiry.status === 'CLOSED' ? 'bg-gray-50 border-gray-200' : 'bg-green-50 border-green-100'}`}>
+                  <p className={`text-sm mb-1 ${inquiry.status === 'CLOSED' ? 'text-gray-600' : 'text-green-600'}`}>
+                    {inquiry.status === 'CLOSED' ? 'Closed' : 'Resolved'} on {formatDateTime(inquiry.resolved_at)}
+                  </p>
+                  <p className={`whitespace-pre-wrap ${inquiry.status === 'CLOSED' ? 'text-gray-900' : 'text-green-900'}`}>{inquiry.resolution}</p>
+                </div>
+              ) : null}
+
+              {!['RESOLVED', 'CLOSED'].includes(inquiry.status) && (
+                <>
+                  <div className="max-w-xs">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Update Status</label>
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value as StatusValue)}
+                      className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    >
+                      {STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Resolution Notes</label>
+                    <textarea
+                      value={resolution}
+                      onChange={(e) => setResolution(e.target.value)}
+                      placeholder="Add notes about how this inquiry was resolved..."
+                      rows={5}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                    />
+                  </div>
+
+                  {saveError && (
+                    <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{saveError}</p>
+                  )}
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleSaveStatus}
+                      disabled={saving}
+                      className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-orange-600 text-white font-medium rounded-xl hover:bg-orange-700 transition disabled:opacity-50"
+                    >
+                      {saving ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                      ) : saved ? (
+                        <><CheckCircle className="w-4 h-4" /> Saved!</>
+                      ) : (
+                        <><Save className="w-4 h-4" /> Save Changes</>
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -237,116 +282,64 @@ export default function ManagerInquiryDetailPage() {
           {/* Contact Details */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+              <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
                 <User className="w-5 h-5 text-orange-600" />
                 Contact Details
               </h2>
             </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center">
-                    <User className="w-7 h-7 text-orange-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">{inquiry.name}</p>
-                    <p className="text-sm text-slate-500">Website Visitor</p>
-                  </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <User className="w-7 h-7 text-orange-600" />
                 </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-900 truncate">{inquiry.name}</p>
+                  <p className="text-sm text-slate-500">Website Visitor</p>
+                </div>
+              </div>
 
-                <div className="space-y-3 pt-4 border-t border-slate-100">
+              <div className="space-y-3 pt-4 border-t border-slate-100">
+                <div className="flex items-center gap-3 text-sm">
+                  <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                  <a href={`mailto:${inquiry.email}`} className="text-slate-700 hover:text-indigo-600 hover:underline truncate">
+                    {inquiry.email}
+                  </a>
+                </div>
+                {inquiry.phone && (
                   <div className="flex items-center gap-3 text-sm">
-                    <Mail className="w-4 h-4 text-slate-400" />
-                    <a href={`mailto:${inquiry.email}`} className="text-indigo-600 hover:underline">
-                      {inquiry.email}
+                    <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    <a href={`tel:${inquiry.phone}`} className="text-slate-700 hover:text-indigo-600 hover:underline">
+                      {inquiry.phone}
                     </a>
                   </div>
-                  {inquiry.phone && (
-                    <div className="flex items-center gap-3 text-sm">
-                      <Phone className="w-4 h-4 text-slate-400" />
-                      <a href={`tel:${inquiry.phone}`} className="text-indigo-600 hover:underline">
-                        {inquiry.phone}
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Status & Resolution */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h2 className="font-semibold text-slate-900">Status & Resolution</h2>
-            </div>
-            <div className="p-6 space-y-5">
-              <div>
-                <p className="text-xs uppercase tracking-widest text-slate-400 mb-2">Change Status</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {STATUS_OPTIONS.map((opt) => {
-                    const Icon = opt.icon;
-                    const isSelected = status === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setStatus(opt.value)}
-                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition ${
-                          isSelected
-                            ? `${opt.pill} ring-2 ring-offset-1 ring-current`
-                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4 flex-shrink-0" />
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-xs uppercase tracking-widest text-slate-400 mb-2">Resolution Notes</p>
-                <textarea
-                  value={resolution}
-                  onChange={(e) => setResolution(e.target.value)}
-                  placeholder="Add notes about how this inquiry was resolved..."
-                  rows={4}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100 resize-none"
-                />
-              </div>
-
-              {saveError && (
-                <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{saveError}</p>
-              )}
-
-              <button
-                type="button"
-                onClick={handleSaveStatus}
-                disabled={saving || (status === inquiry.status && resolution === (inquiry.resolution || ''))}
-                className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold transition ${
-                  saved
-                    ? 'bg-green-600 text-white'
-                    : status === inquiry.status && resolution === (inquiry.resolution || '')
-                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                    : 'bg-orange-600 text-white hover:bg-orange-700'
-                }`}
-              >
-                {saving ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
-                ) : saved ? (
-                  <><CheckCircle className="w-4 h-4" /> Saved!</>
-                ) : (
-                  <><Save className="w-4 h-4" /> Save Changes</>
                 )}
-              </button>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-4 border-t border-slate-100">
+                <a
+                  href={`mailto:${inquiry.email}?subject=Re: ${inquiry.subject || 'Your inquiry'}`}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition"
+                >
+                  <Mail className="w-4 h-4" />
+                  Reply via Email
+                </a>
+                {inquiry.phone && (
+                  <a
+                    href={`tel:${inquiry.phone}`}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-xl hover:bg-slate-50 transition"
+                  >
+                    <Phone className="w-4 h-4" />
+                    Call Customer
+                  </a>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Timeline */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+              <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
                 <Clock className="w-5 h-5 text-orange-600" />
                 Timeline
               </h2>
@@ -375,7 +368,7 @@ export default function ManagerInquiryDetailPage() {
 
           {/* Tips */}
           <div className="bg-orange-50 rounded-2xl border border-orange-100 p-6">
-            <h3 className="font-semibold text-orange-900 mb-2">Response Tips</h3>
+            <h3 className="text-base font-semibold text-orange-900 mb-2">Response Tips</h3>
             <ul className="space-y-2 text-sm text-orange-700">
               <li>Respond within 24 hours</li>
               <li>Address all questions in their message</li>
