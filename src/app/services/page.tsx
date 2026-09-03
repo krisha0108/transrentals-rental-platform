@@ -6,6 +6,7 @@ import {
   Search, ArrowRight, ChevronDown, MapPin, Map, Headphones,
   Bike, Car, CarTaxiFront, Bus, Truck, Construction, BadgeCheck, Tag, ShieldCheck, LayoutGrid,
   BadgeIndianRupee, Zap, CheckCircle2, Sparkles, SlidersHorizontal, FileCheck2,
+  MessageCircleQuestion, Plus,
 } from 'lucide-react';
 import { SERVICES } from '@/lib/constants/services';
 import { FAQSchema } from '@/components/seo/schemas';
@@ -593,27 +594,70 @@ export default function ServicesPage() {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-16 md:py-20 bg-white border-t border-gray-100">
-        <div className="container mx-auto px-4 max-w-3xl">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Frequently Asked Questions</h2>
-            <p className="text-gray-500">Common questions about renting vehicles on TransRentals</p>
+      {/* FAQs */}
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+          }}
+        />
+
+        <div className="container mx-auto px-4 relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] text-primary-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              GOOD TO KNOW
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+            </span>
+            <h2 className="mt-4 text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Frequently Asked <span className="text-primary">Questions</span>
+            </h2>
+            <p className="mt-3 text-base text-gray-600">
+              Common questions about renting vehicles on TransRentals
+            </p>
           </div>
-          <div className="space-y-3">
+
+          <div className="max-w-5xl mx-auto space-y-3">
             {SERVICES_FAQS.map((faq, idx) => {
               const isOpen = openFaq === idx;
               return (
-                <div key={idx} className={`bg-gray-50 rounded-xl border transition-colors ${isOpen ? 'border-emerald-200' : 'border-gray-100'}`}>
+                <div
+                  key={idx}
+                  className={`rounded-2xl bg-white border shadow-sm transition-all ${
+                    isOpen ? 'border-primary-200 shadow-md' : 'border-gray-100'
+                  }`}
+                >
                   <button
+                    type="button"
                     onClick={() => setOpenFaq(isOpen ? null : idx)}
-                    className="w-full flex items-center justify-between gap-4 text-left px-5 py-4"
+                    aria-expanded={isOpen}
+                    className="w-full flex items-center gap-4 px-4 sm:px-5 py-4 text-left"
                   >
-                    <h3 className={`font-semibold text-sm md:text-base ${isOpen ? 'text-emerald-700' : 'text-gray-900'}`}>{faq.q}</h3>
-                    <ChevronDown className={`h-4 w-4 shrink-0 text-emerald-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                    <span className="shrink-0 w-9 h-9 rounded-full bg-primary-50 grid place-items-center">
+                      <MessageCircleQuestion className="w-[18px] h-[18px] text-primary" />
+                    </span>
+                    <h3 className="flex-1 font-bold text-[15px] leading-snug text-gray-900">
+                      {faq.q}
+                    </h3>
+                    <span
+                      className={`shrink-0 w-8 h-8 rounded-lg grid place-items-center transition-all duration-200 ${
+                        isOpen ? 'rotate-45 bg-primary text-white' : 'bg-gray-50 text-gray-500'
+                      }`}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </span>
                   </button>
                   {isOpen && (
-                    <p className="text-gray-600 text-sm leading-relaxed px-5 pb-4">{faq.a}</p>
+                    <p className="px-4 sm:px-5 pb-5 sm:pl-[4.25rem] text-[14px] leading-relaxed text-gray-500">
+                      {faq.a}
+                    </p>
                   )}
                 </div>
               );

@@ -3,6 +3,19 @@ import { prisma } from '@/lib/db/prisma';
 import { getParentServiceSlug } from '@/lib/constants/service-mapping';
 
 import logger from '@/lib/security/logger';
+// settings.value is `String @db.Text`, so everything in it comes back as raw
+// JSON text. Returning it unparsed handed the page a string where it expected
+// an object, and the first nested read (ctaSection.visible) threw.
+function parseSetting<T>(raw: unknown, fallback: T): T {
+  if (raw === null || raw === undefined || raw === '') return fallback;
+  if (typeof raw === 'object') return raw as T;
+  try {
+    return JSON.parse(String(raw)) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 // Public API - Fetch page content for a service (used by frontend)
 export async function GET(
   request: NextRequest,
@@ -75,7 +88,7 @@ export async function GET(
         where: { key: `service_blog_${parentSlug}` },
       });
     }
-    const blogData = (blogSetting?.value as any) || { posts: [] };
+    const blogData = parseSetting<any>(blogSetting?.value, { posts: [] });
     const publishedPosts = (blogData.posts || [])
       .filter((p: any) => p.status === 'published')
       .slice(0, 3);
@@ -89,7 +102,7 @@ export async function GET(
         where: { key: `service_knowledge_base_${parentSlug}` },
       });
     }
-    const kbData = (kbSetting?.value as any) || { articles: [] };
+    const kbData = parseSetting<any>(kbSetting?.value, { articles: [] });
     const publishedArticles = (kbData.articles || [])
       .filter((a: any) => a.status === 'published')
       .slice(0, 5);
@@ -99,7 +112,9 @@ export async function GET(
       slug,
       parentSlug,
       isInherited: parentSlug !== slug && !!setting?.value,
-      content: setting?.value || defaultContent,
+      // Merged over the defaults so a CMS record that predates a newer
+      // section still comes back with every key the page reads.
+      content: { ...defaultContent, ...parseSetting<any>(setting?.value, {}) },
       blogPosts: publishedPosts,
       helpArticles: publishedArticles,
     });

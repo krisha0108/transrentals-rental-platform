@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -26,8 +26,37 @@ const FEATURE_HIGHLIGHTS = [
 
 const POPULAR_SEARCHES = ['Scooty', 'Sports Bike', 'Bullet', 'Activa', 'Honda', 'Yamaha'];
 
+interface ServiceCity {
+  slug: string;
+  name: string;
+  displayName?: string;
+}
+
 export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDescription }: BikeSearchHeroProps) {
   const router = useRouter();
+
+  // The service landing page (/bike-on-rent) has no city of its own, so the
+  // pick-up field becomes a chooser there. City pages keep the fixed label.
+  const cityFixed = !!citySlug;
+  const [cities, setCities] = useState<ServiceCity[]>([]);
+  const [chosenCity, setChosenCity] = useState('');
+
+  useEffect(() => {
+    if (cityFixed) return;
+    let cancelled = false;
+    fetch('/api/services/bike-on-rent/locations')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d?.locations) return;
+        setCities(d.locations);
+      })
+      .catch(() => {
+        // A failed list just leaves the chooser empty — the page still renders.
+      });
+    return () => { cancelled = true; };
+  }, [cityFixed]);
+
+  const searchCitySlug = cityFixed ? citySlug : chosenCity;
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('');
   const [dropDate, setDropDate] = useState('');
@@ -71,6 +100,7 @@ export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDesc
   const handleSearch = () => {
     const newErrors: Record<string, string> = {};
 
+    if (!cityFixed && !chosenCity) newErrors.city = 'Please select a city';
     if (!pickupDate) newErrors.pickupDate = 'Please select pickup date';
     if (!pickupTime) newErrors.pickupTime = 'Please select pickup time';
     if (!dropDate) newErrors.dropDate = 'Please select drop date';
@@ -100,14 +130,14 @@ export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDesc
 
     // Navigate to fleet page with search params
     const searchParams = new URLSearchParams({
-      city: citySlug,
+      city: searchCitySlug,
       pickupDate,
       pickupTime,
       dropDate,
       dropTime,
     });
 
-    router.push(`/bike-on-rent/${citySlug}/bikes?${searchParams.toString()}`);
+    router.push(`/bike-on-rent/${searchCitySlug}/bikes?${searchParams.toString()}`);
   };
 
   const scrollToFleet = () => {
@@ -126,7 +156,16 @@ export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDesc
           <div className="absolute inset-0 bg-gradient-to-r from-white via-white/40 to-transparent md:via-white/10" />
         </div>
 
-        <div className="relative container-custom pt-8 md:pt-10 pb-16 md:pb-24 min-h-[440px] md:min-h-[560px] lg:min-h-[640px] flex flex-col justify-start">
+        <div
+          className={cn(
+            'relative container-custom pb-16 md:pb-24 min-h-[440px] md:min-h-[560px] lg:min-h-[640px] flex flex-col justify-start',
+            // The site header is fixed, and it is at its tallest in the tablet
+            // range — where the breadcrumb strip above the city hero no longer
+            // clears it, so both variants reserve extra room there. The landing
+            // page has nothing above it at all, so it reserves the most.
+            cityFixed ? 'pt-8 md:pt-24 lg:pt-10' : 'pt-16 md:pt-32 lg:pt-24',
+          )}
+        >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -134,22 +173,31 @@ export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDesc
           >
             <span className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wide text-emerald-700 bg-emerald-100 px-3.5 py-2 rounded-full mb-5">
               <Star className="w-4 h-4 fill-emerald-600 text-emerald-600" />
-              #1 BIKE RENTAL PLATFORM IN {city.toUpperCase()}
+              #1 BIKE RENTAL PLATFORM {city ? `IN ${city.toUpperCase()}` : 'IN INDIA'}
             </span>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 mb-4 leading-tight">
               {pageHeading ? (
                 pageHeading
-              ) : (
+              ) : city ? (
                 <>
                   Bike on Rent
                   <br />
                   <span className="text-emerald-600">in {city}</span>
                 </>
+              ) : (
+                <>
+                  Rent Bikes
+                  <br />
+                  <span className="text-emerald-600">Starting @&#8377;399/Day</span>
+                </>
               )}
             </h1>
             <p className="text-gray-600 text-base md:text-lg mb-8 max-w-lg">
-              {pageDescription || `Rent bikes at best prices and explore ${city} on two wheels. Flexible plans, easy booking, zero hassle.`}
+              {pageDescription ||
+                (city
+                  ? `Rent bikes at best prices and explore ${city} on two wheels. Flexible plans, easy booking, zero hassle.`
+                  : 'Royal Enfield, KTM, Honda, Yamaha and more across 150+ cities. Flexible plans, easy booking, zero hassle.')}
             </p>
 
             {/* Feature highlights */}
@@ -171,7 +219,20 @@ export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDesc
       </div>
 
       {/* Search card — floats on plain white, overlapping the hero's rounded edge */}
-      <div className="relative container-custom -mt-24 md:-mt-28">
+      {/* Pulled further up over the hero on desktop so the search card sits
+          closer to the headline. Mobile keeps the smaller offset — the feature
+          cards wrap to two rows there, and a big pull hides the second row
+          behind this card. Tablets sit between the two: the hero is short but
+          the cards are already in one row, so they need a middle value. */}
+      <div
+        className={cn(
+          'relative container-custom -mt-8',
+          // The landing page reserves extra room at the top for the fixed
+          // header, which makes its hero taller — so it pulls the card up
+          // further to keep the same gap under the feature cards.
+          cityFixed ? 'md:-mt-16 lg:-mt-44' : 'lg:-mt-[7.5rem]',
+        )}
+      >
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -192,9 +253,32 @@ export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDesc
                 <MapPin className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
                 Pick-up Location
               </label>
-              <div className="flex items-center px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-900 font-medium text-sm">
-                {city}
-              </div>
+              {cityFixed ? (
+                <div className="flex items-center px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-900 font-medium text-sm">
+                  {city}
+                </div>
+              ) : (
+                <>
+                  <select
+                    value={chosenCity}
+                    onChange={(e) => {
+                      setChosenCity(e.target.value);
+                      setErrors((prev) => ({ ...prev, city: '' }));
+                    }}
+                    aria-label="Pick-up city"
+                    className={cn(
+                      'w-full px-4 py-3 border-2 rounded-xl bg-white text-gray-900 font-medium text-sm cursor-pointer focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 transition-all',
+                      errors.city ? 'border-red-400' : 'border-gray-200',
+                    )}
+                  >
+                    <option value="">{cities.length ? 'Select city' : 'Loading cities…'}</option>
+                    {cities.map((c) => (
+                      <option key={c.slug} value={c.slug}>{c.displayName || c.name}</option>
+                    ))}
+                  </select>
+                  {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
+                </>
+              )}
             </div>
 
             {/* Pickup Date */}
