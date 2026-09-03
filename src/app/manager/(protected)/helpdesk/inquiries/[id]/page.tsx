@@ -186,7 +186,7 @@ export default function ManagerInquiryDetailPage() {
           {/* Message Details */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+              <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-orange-600" />
                 Message Details
               </h2>
@@ -194,7 +194,7 @@ export default function ManagerInquiryDetailPage() {
             <div className="p-6 space-y-4">
               <div>
                 <p className="text-sm text-slate-500 mb-1">Subject</p>
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-base font-semibold text-slate-900">
                   {inquiry.subject || 'No Subject'}
                 </h3>
               </div>
@@ -210,7 +210,7 @@ export default function ManagerInquiryDetailPage() {
           {/* Status & Resolution */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+              <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-orange-600" />
                 Status & Resolution
               </h2>
@@ -282,7 +282,7 @@ export default function ManagerInquiryDetailPage() {
           {/* Contact Details */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+              <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
                 <User className="w-5 h-5 text-orange-600" />
                 Contact Details
               </h2>
@@ -339,7 +339,7 @@ export default function ManagerInquiryDetailPage() {
           {/* Timeline */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+              <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
                 <Clock className="w-5 h-5 text-orange-600" />
                 Timeline
               </h2>
@@ -368,7 +368,7 @@ export default function ManagerInquiryDetailPage() {
 
           {/* Tips */}
           <div className="bg-orange-50 rounded-2xl border border-orange-100 p-6">
-            <h3 className="font-semibold text-orange-900 mb-2">Response Tips</h3>
+            <h3 className="text-base font-semibold text-orange-900 mb-2">Response Tips</h3>
             <ul className="space-y-2 text-sm text-orange-700">
               <li>Respond within 24 hours</li>
               <li>Address all questions in their message</li>
