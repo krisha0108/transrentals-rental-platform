@@ -32,12 +32,6 @@ function formatCertDateTime(d: Date): string {
   return `${formatCertDate(d)}, ${time}`;
 }
 
-// AGREEMENT_VERSION is stored as e.g. "v3" — strip the leading "v" so the
-// certificate reads "Version 3" rather than the redundant "Version v3".
-function versionNumber(agreementVersion: string): string {
-  return agreementVersion.replace(/^v/i, '');
-}
-
 export function buildAgreementCertificatePdf(
   agreement: {
     signedByName: string;
@@ -193,7 +187,7 @@ export function buildAgreementCertificatePdf(
   y += 6.5;
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...GREEN_DARK);
-  doc.text(`TransRentals Vendor Partnership, Service & Settlement Agreement (Version ${versionNumber(agreement.agreementVersion)})`, cx, y, { align: 'center' });
+  doc.text('TransRentals Vendor Partnership, Service & Settlement Agreement', cx, y, { align: 'center' });
   y += 6.5;
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...MUTED);
@@ -204,10 +198,10 @@ export function buildAgreementCertificatePdf(
   const acceptedAt = new Date(agreement.acceptedAt);
   const cols = [
     {
-      label: 'AGREEMENT VERSION',
-      value: `Version ${versionNumber(agreement.agreementVersion)}`,
-      detail: 'Vendor Partnership,\nService & Settlement\nAgreement',
-      icon: 'shield',
+      label: 'VENDOR ID',
+      value: vendor?.vid ? vendor.vid.toUpperCase() : '—',
+      detail: 'Unique reference for\nthis vendor partnership\non TransRentals.',
+      icon: 'id',
     },
     {
       label: 'EFFECTIVE DATE',
@@ -247,7 +241,12 @@ export function buildAgreementCertificatePdf(
     doc.circle(colCx, iconY, 6, 'S');
     doc.setDrawColor(...GREEN);
     doc.setLineWidth(0.5);
-    if (col.icon === 'shield') {
+    if (col.icon === 'id') {
+      doc.rect(colCx - 3.8, iconY - 2.7, 7.6, 5.4, 'S');
+      doc.circle(colCx - 1.7, iconY - 0.5, 0.9, 'S');
+      doc.line(colCx + 0.3, iconY - 1.2, colCx + 2.4, iconY - 1.2);
+      doc.line(colCx + 0.3, iconY + 0.3, colCx + 2.4, iconY + 0.3);
+    } else if (col.icon === 'shield') {
       doc.line(colCx - 2.5, iconY, colCx - 0.5, iconY + 2.2);
       doc.line(colCx - 0.5, iconY + 2.2, colCx + 3, iconY - 2.2);
     } else if (col.icon === 'calendar') {
