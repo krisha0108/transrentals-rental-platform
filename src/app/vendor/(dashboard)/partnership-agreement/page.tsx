@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import {
   FileText, CheckCircle, Loader2, IndianRupee, FileCheck2, AlertTriangle, Scale,
-  PenLine, Download, Info, CalendarClock, MessageSquare, Clock, XCircle,
+  PenLine, Download, Info, CalendarClock, MessageSquare, Clock, XCircle, Award,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -204,10 +204,19 @@ export default function VendorPartnershipAgreementPage() {
             </p>
           </div>
           {agreement.reviewStatus === 'ACCEPTED' && agreement.reviewedAt && (
-            <p className="mt-3 text-sm text-emerald-700">
-              Accepted on {new Date(agreement.reviewedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
-              {agreement.reviewNote ? ` — ${agreement.reviewNote}` : ''}
-            </p>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-emerald-700">
+                Accepted on {new Date(agreement.reviewedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                {agreement.reviewNote ? ` — ${agreement.reviewNote}` : ''}
+              </p>
+              <a
+                href="/api/vendor/partnership-agreement/certificate"
+                className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-emerald-200 hover:bg-emerald-700 transition-colors"
+              >
+                <Award className="w-3.5 h-3.5" />
+                Download Certificate
+              </a>
+            </div>
           )}
           {agreement.reviewStatus !== 'ACCEPTED' && (
             <p className="mt-3 text-sm text-emerald-700/80">
