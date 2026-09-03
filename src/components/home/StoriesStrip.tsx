@@ -217,7 +217,13 @@ export function StoriesStrip() {
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (dragStartXRef.current === null) return;
     const delta = e.clientX - dragStartXRef.current;
-    if (Math.abs(delta) > 6) draggedRef.current = true;
+    // A real click/tap almost never lands at exactly 0px of movement —
+    // mouse and (especially) touch input naturally jitter a few pixels
+    // between pointerdown and pointerup. At 6px that jitter alone was
+    // enough to get misclassified as a drag, which then preventDefault/
+    // stopPropagation'd the click and silently ate the "Read Story" tap
+    // on the center card's <Link>. 15px still catches real drags quickly.
+    if (Math.abs(delta) > 15) draggedRef.current = true;
     setDragDeltaX(Math.max(-160, Math.min(160, delta)));
   };
   const endDrag = (commit: boolean) => {
