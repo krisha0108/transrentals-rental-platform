@@ -158,10 +158,15 @@ export function DynamicServicePage({
     return iconMap[iconName] || Star;
   };
 
-  // Merge with fallback content
-  const pageContent = content || (fallbackContent as PageContent);
+  // Actually merge, rather than picking one or the other: a CMS record that
+  // predates a section (or arrives partial) then falls back key by key
+  // instead of leaving a hole the render walks straight into.
+  const pageContent = {
+    ...(fallbackContent as PageContent),
+    ...(content && typeof content === 'object' ? content : {}),
+  } as PageContent;
 
-  if (loading || !pageContent) {
+  if (loading || !pageContent || !pageContent.hero) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -407,20 +412,20 @@ export function DynamicServicePage({
       )}
 
       {/* CTA Section */}
-      {pageContent.ctaSection.visible && (
+      {pageContent.ctaSection?.visible && (
         <section className="py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              {pageContent.ctaSection.title}
+              {pageContent.ctaSection?.title}
             </h2>
             <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
-              {pageContent.ctaSection.subtitle}
+              {pageContent.ctaSection?.subtitle}
             </p>
             <Link
-              href={pageContent.ctaSection.buttonLink}
+              href={pageContent.ctaSection?.buttonLink || '#booking'}
               className="inline-flex items-center gap-2 px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition shadow-lg"
             >
-              {pageContent.ctaSection.buttonText}
+              {pageContent.ctaSection?.buttonText}
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
