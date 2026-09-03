@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar, Clock, MapPin, Search, Bike, Shield, Star,
-  Headphones, FileCheck, AlertCircle, X,
+  Headphones, FileCheck, AlertCircle, X, ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { MiniDateInput, MiniTimeInput } from '@/components/booking/MiniDateInput';
 
 interface BikeSearchHeroProps {
   city?: string;
@@ -30,6 +31,85 @@ interface ServiceCity {
   slug: string;
   name: string;
   displayName?: string;
+}
+
+// Searchable city dropdown — type to filter instead of scrolling a long
+// native <select>. Mirrors the pattern used on CarSearchHero.
+function CitySearchSelect({
+  value, onChange, options, placeholder, error,
+}: {
+  value: string;
+  onChange: (slug: string) => void;
+  options: ServiceCity[];
+  placeholder: string;
+  error?: string;
+}) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const filtered = options.filter((o) => (o.displayName || o.name).toLowerCase().includes(query.toLowerCase()));
+  const selected = options.find((o) => o.slug === value);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => { setOpen((o) => !o); setQuery(''); }}
+        className={cn(
+          'w-full flex items-center justify-between gap-2 px-4 py-3 border-2 rounded-xl text-sm text-left bg-white transition-all',
+          open ? 'border-emerald-500 ring-2 ring-emerald-400/30' : (error ? 'border-red-400' : 'border-gray-200')
+        )}
+      >
+        <span className={selected ? 'text-gray-900 font-medium truncate' : 'text-gray-400 truncate'}>
+          {selected ? (selected.displayName || selected.name) : placeholder}
+        </span>
+        <ChevronDown className={cn('w-4 h-4 text-gray-400 flex-shrink-0 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input
+                autoFocus
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                placeholder="Search city..."
+              />
+            </div>
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            {filtered.map((o) => (
+              <button
+                key={o.slug}
+                type="button"
+                onClick={() => { onChange(o.slug); setOpen(false); setQuery(''); }}
+                className={cn(
+                  'w-full px-4 py-2.5 text-sm text-left hover:bg-emerald-50 transition',
+                  o.slug === value ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'
+                )}
+              >
+                {o.displayName || o.name}
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <p className="px-4 py-3 text-sm text-gray-400 text-center">No cities found</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDescription }: BikeSearchHeroProps) {
@@ -82,20 +162,6 @@ export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDesc
   };
 
   const minBookingDate = getMinBookingDate();
-
-  // Generate time options (every 30 minutes)
-  const timeOptions = [];
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const hour = h.toString().padStart(2, '0');
-      const minute = m.toString().padStart(2, '0');
-      const time24 = `${hour}:${minute}`;
-      const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-      const ampm = h < 12 ? 'AM' : 'PM';
-      const timeLabel = `${hour12}:${minute} ${ampm}`;
-      timeOptions.push({ value: time24, label: timeLabel });
-    }
-  }
 
   const handleSearch = () => {
     const newErrors: Record<string, string> = {};
@@ -259,23 +325,16 @@ export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDesc
                 </div>
               ) : (
                 <>
-                  <select
+                  <CitySearchSelect
                     value={chosenCity}
-                    onChange={(e) => {
-                      setChosenCity(e.target.value);
+                    onChange={(slug) => {
+                      setChosenCity(slug);
                       setErrors((prev) => ({ ...prev, city: '' }));
                     }}
-                    aria-label="Pick-up city"
-                    className={cn(
-                      'w-full px-4 py-3 border-2 rounded-xl bg-white text-gray-900 font-medium text-sm cursor-pointer focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 transition-all',
-                      errors.city ? 'border-red-400' : 'border-gray-200',
-                    )}
-                  >
-                    <option value="">{cities.length ? 'Select city' : 'Loading cities…'}</option>
-                    {cities.map((c) => (
-                      <option key={c.slug} value={c.slug}>{c.displayName || c.name}</option>
-                    ))}
-                  </select>
+                    options={cities}
+                    placeholder={cities.length ? 'Select city' : 'Loading cities…'}
+                    error={errors.city}
+                  />
                   {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
                 </>
               )}
@@ -287,23 +346,18 @@ export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDesc
                 <Calendar className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
                 Pickup Date
               </label>
-              <input
-                id="pickupDate"
-                type="date"
-                min={minBookingDate}
+              <MiniDateInput
                 value={pickupDate}
-                onChange={(e) => {
-                  setPickupDate(e.target.value);
+                min={minBookingDate}
+                error={errors.pickupDate}
+                onChange={(v) => {
+                  setPickupDate(v);
                   setErrors({ ...errors, pickupDate: '' });
                   setDateError('');
-                  if (!dropDate || e.target.value > dropDate) {
-                    setDropDate(e.target.value);
+                  if (!dropDate || v > dropDate) {
+                    setDropDate(v);
                   }
                 }}
-                className={cn(
-                  'w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 transition-all text-sm',
-                  errors.pickupDate ? 'border-red-500' : 'border-gray-200'
-                )}
               />
               {errors.pickupDate && <p className="text-red-500 text-xs mt-1">{errors.pickupDate}</p>}
             </div>
@@ -314,25 +368,15 @@ export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDesc
                 <Clock className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
                 Pickup Time
               </label>
-              <select
-                id="pickupTime"
+              <MiniTimeInput
                 value={pickupTime}
-                aria-label="Pickup time"
-                onChange={(e) => {
-                  setPickupTime(e.target.value);
+                error={errors.pickupTime}
+                onChange={(v) => {
+                  setPickupTime(v);
                   setErrors({ ...errors, pickupTime: '' });
                   setDateError('');
                 }}
-                className={cn(
-                  'w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 transition-all text-sm',
-                  errors.pickupTime ? 'border-red-500' : 'border-gray-200'
-                )}
-              >
-                <option value="">Select Time</option>
-                {timeOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+              />
               {errors.pickupTime && <p className="text-red-500 text-xs mt-1">{errors.pickupTime}</p>}
             </div>
 
@@ -342,19 +386,14 @@ export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDesc
                 <Calendar className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
                 Return Date
               </label>
-              <input
-                id="dropDate"
-                type="date"
-                min={pickupDate || minBookingDate}
+              <MiniDateInput
                 value={dropDate}
-                onChange={(e) => {
-                  setDropDate(e.target.value);
+                min={pickupDate || minBookingDate}
+                error={errors.dropDate}
+                onChange={(v) => {
+                  setDropDate(v);
                   setErrors({ ...errors, dropDate: '' });
                 }}
-                className={cn(
-                  'w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 transition-all text-sm',
-                  errors.dropDate ? 'border-red-500' : 'border-gray-200'
-                )}
               />
               {errors.dropDate && <p className="text-red-500 text-xs mt-1">{errors.dropDate}</p>}
             </div>
@@ -365,24 +404,14 @@ export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDesc
                 <Clock className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
                 Return Time
               </label>
-              <select
-                id="dropTime"
+              <MiniTimeInput
                 value={dropTime}
-                aria-label="Return time"
-                onChange={(e) => {
-                  setDropTime(e.target.value);
+                error={errors.dropTime}
+                onChange={(v) => {
+                  setDropTime(v);
                   setErrors({ ...errors, dropTime: '' });
                 }}
-                className={cn(
-                  'w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 transition-all text-sm',
-                  errors.dropTime ? 'border-red-500' : 'border-gray-200'
-                )}
-              >
-                <option value="">Select Time</option>
-                {timeOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+              />
               {errors.dropTime && <p className="text-red-500 text-xs mt-1">{errors.dropTime}</p>}
             </div>
 
