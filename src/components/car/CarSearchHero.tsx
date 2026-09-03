@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, MapPin, Search, Car, Shield, Star, Zap, KeyRound, AlertCircle, X, ChevronRight, ChevronDown } from 'lucide-react';
@@ -8,6 +8,7 @@ import { AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useLocations } from '@/components/booking/useLocations';
+import { MiniDateInput, MiniTimeInput } from '@/components/booking/MiniDateInput';
 
 interface CarSearchHeroProps {
   city: string;
@@ -20,6 +21,85 @@ interface CarSearchHeroProps {
   // no single city of their own. `city`/`citySlug` are just the initial
   // selection in this mode.
   citySelectable?: boolean;
+}
+
+// Searchable city dropdown — type to filter instead of scrolling a long
+// native <select>. Only used in citySelectable mode (hub pages with no
+// single fixed city of their own).
+function CitySearchSelect({
+  value, onChange, options, error,
+}: {
+  value: string;
+  onChange: (slug: string) => void;
+  options: { slug?: string; name: string }[];
+  error?: string;
+}) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const filtered = options.filter((o) => o.name.toLowerCase().includes(query.toLowerCase()));
+  const selected = options.find((o) => (o.slug || '') === value);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => { setOpen((o) => !o); setQuery(''); }}
+        className={cn(
+          'w-full flex items-center justify-between gap-2 px-4 py-3.5 border-2 rounded-xl text-base text-left bg-white transition-all',
+          open ? 'border-primary ring-2 ring-primary/30' : (error ? 'border-red-500' : 'border-gray-200')
+        )}
+      >
+        <span className={selected ? 'text-gray-900 truncate' : 'text-gray-400 truncate'}>
+          {selected ? selected.name : 'Select city'}
+        </span>
+        <ChevronDown className={cn('w-4 h-4 text-gray-400 flex-shrink-0 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input
+                autoFocus
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+                placeholder="Search city..."
+              />
+            </div>
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            {filtered.map((o) => (
+              <button
+                key={o.slug || o.name}
+                type="button"
+                onClick={() => { onChange(o.slug || ''); setOpen(false); setQuery(''); }}
+                className={cn(
+                  'w-full px-4 py-2.5 text-sm text-left hover:bg-primary-50 transition',
+                  (o.slug || '') === value ? 'bg-primary-50 text-primary font-medium' : 'text-gray-700'
+                )}
+              >
+                {o.name}
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <p className="px-4 py-3 text-sm text-gray-400 text-center">No cities found</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function CarSearchHero({ city, citySlug, pageHeading, pageDescription, citySelectable = false }: CarSearchHeroProps) {
@@ -65,20 +145,6 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription, ci
   };
 
   const minBookingDate = getMinBookingDate();
-
-  // Generate time options (every 30 minutes)
-  const timeOptions = [];
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const hour = h.toString().padStart(2, '0');
-      const minute = m.toString().padStart(2, '0');
-      const time24 = `${hour}:${minute}`;
-      const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-      const ampm = h < 12 ? 'AM' : 'PM';
-      const timeLabel = `${hour12}:${minute} ${ampm}`;
-      timeOptions.push({ value: time24, label: timeLabel });
-    }
-  }
 
   const handleSearch = () => {
     const newErrors: Record<string, string> = {};
@@ -149,11 +215,11 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription, ci
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="order-2 lg:order-1 lg:mt-12 w-full lg:max-w-lg bg-white rounded-3xl shadow-2xl shadow-gray-900/10 border border-gray-100 p-6 md:p-7"
+            className="order-2 lg:order-1 lg:mt-12 w-full lg:max-w-xl bg-white rounded-3xl shadow-2xl shadow-gray-900/10 border border-gray-100 p-7 md:p-8"
           >
-            <div className="flex items-center gap-2 text-gray-900 font-bold text-[15px] mb-5">
-              <span className="w-7 h-7 rounded-full bg-primary-50 flex items-center justify-center shrink-0">
-                <Car className="w-3.5 h-3.5 text-primary" />
+            <div className="flex items-center gap-2.5 text-gray-900 font-bold text-lg mb-6">
+              <span className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center shrink-0">
+                <Car className="w-4 h-4 text-primary" />
               </span>
               Book Your Self-Drive Car
             </div>
@@ -162,34 +228,21 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription, ci
                 {/* City (only in dropdown mode) */}
                 {citySelectable && (
                   <div className="min-w-0">
-                    <label htmlFor="citySelect" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                      <MapPin className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
+                    <label htmlFor="citySelect" className="block text-sm font-semibold text-gray-500 mb-2">
+                      <MapPin className="w-4 h-4 inline mr-1 -mt-0.5" />
                       City
                     </label>
-                    <div className="relative">
-                      <select
-                        id="citySelect"
-                        value={selectedCitySlug}
-                        onChange={(e) => {
-                          setSelectedCitySlug(e.target.value);
-                          setErrors({ ...errors, city: '' });
-                        }}
-                        className={cn(
-                          "w-full appearance-none px-4 py-3 border-2 rounded-xl text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all bg-white",
-                          errors.city ? "border-red-500" : "border-gray-200"
-                        )}
-                      >
-                        <option value="" disabled>Select city</option>
-                        {locations.map((loc) => (
-                          <option key={loc.slug || loc.name} value={loc.slug || ''}>
-                            {loc.name}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
+                    <CitySearchSelect
+                      value={selectedCitySlug}
+                      onChange={(slug) => {
+                        setSelectedCitySlug(slug);
+                        setErrors({ ...errors, city: '' });
+                      }}
+                      options={locations}
+                      error={errors.city}
+                    />
                     {errors.city && (
-                      <p className="text-red-500 text-xs mt-1">{errors.city}</p>
+                      <p className="text-red-500 text-sm mt-1">{errors.city}</p>
                     )}
                   </div>
                 )}
@@ -200,31 +253,26 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription, ci
               <div className="grid grid-cols-2 gap-3">
                 {/* Pickup Date */}
                   <div className="min-w-0">
-                    <label htmlFor="pickupDate" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                      <Calendar className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
+                    <label className="block text-sm font-semibold text-gray-500 mb-2">
+                      <Calendar className="w-4 h-4 inline mr-1 -mt-0.5" />
                       Pickup Date
                     </label>
-                    <input
-                      id="pickupDate"
-                      type="date"
-                      min={minBookingDate}
+                    <MiniDateInput
                       value={pickupDate}
-                      onChange={(e) => {
-                        setPickupDate(e.target.value);
+                      min={minBookingDate}
+                      error={errors.pickupDate}
+                      onChange={(v) => {
+                        setPickupDate(v);
                         setErrors({ ...errors, pickupDate: '' });
                         setDateError('');
                         // Auto-set drop date if not set
-                        if (!dropDate || e.target.value > dropDate) {
-                          setDropDate(e.target.value);
+                        if (!dropDate || v > dropDate) {
+                          setDropDate(v);
                         }
                       }}
-                      className={cn(
-                        "w-full px-4 py-3 border-2 rounded-xl text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all",
-                        errors.pickupDate ? "border-red-500" : "border-gray-200"
-                      )}
                     />
                     {errors.pickupDate && (
-                      <p className="text-red-500 text-xs mt-1">{errors.pickupDate}</p>
+                      <p className="text-red-500 text-sm mt-1">{errors.pickupDate}</p>
                     )}
                   </div>
 
@@ -232,33 +280,21 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription, ci
 
                 {/* Pickup Time */}
                   <div className="min-w-0">
-                    <label htmlFor="pickupTime" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                      <Clock className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
+                    <label className="block text-sm font-semibold text-gray-500 mb-2">
+                      <Clock className="w-4 h-4 inline mr-1 -mt-0.5" />
                       Pickup Time
                     </label>
-                    <select
-                      id="pickupTime"
+                    <MiniTimeInput
                       value={pickupTime}
-                      aria-label="Pickup time"
-                      onChange={(e) => {
-                        setPickupTime(e.target.value);
+                      error={errors.pickupTime}
+                      onChange={(v) => {
+                        setPickupTime(v);
                         setErrors({ ...errors, pickupTime: '' });
                         setDateError('');
                       }}
-                      className={cn(
-                        "w-full px-4 py-3 border-2 rounded-xl text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all",
-                        errors.pickupTime ? "border-red-500" : "border-gray-200"
-                      )}
-                    >
-                      <option value="">Select Time</option>
-                      {timeOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
+                    />
                     {errors.pickupTime && (
-                      <p className="text-red-500 text-xs mt-1">{errors.pickupTime}</p>
+                      <p className="text-red-500 text-sm mt-1">{errors.pickupTime}</p>
                     )}
                   </div>
 
@@ -269,26 +305,21 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription, ci
               <div className="grid grid-cols-2 gap-3">
                 {/* Drop Date */}
                   <div className="min-w-0">
-                    <label htmlFor="dropDate" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                      <Calendar className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
+                    <label className="block text-sm font-semibold text-gray-500 mb-2">
+                      <Calendar className="w-4 h-4 inline mr-1 -mt-0.5" />
                       Drop-off Date
                     </label>
-                    <input
-                      id="dropDate"
-                      type="date"
-                      min={pickupDate || minBookingDate}
+                    <MiniDateInput
                       value={dropDate}
-                      onChange={(e) => {
-                        setDropDate(e.target.value);
+                      min={pickupDate || minBookingDate}
+                      error={errors.dropDate}
+                      onChange={(v) => {
+                        setDropDate(v);
                         setErrors({ ...errors, dropDate: '' });
                       }}
-                      className={cn(
-                        "w-full px-4 py-3 border-2 rounded-xl text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all",
-                        errors.dropDate ? "border-red-500" : "border-gray-200"
-                      )}
                     />
                     {errors.dropDate && (
-                      <p className="text-red-500 text-xs mt-1">{errors.dropDate}</p>
+                      <p className="text-red-500 text-sm mt-1">{errors.dropDate}</p>
                     )}
                   </div>
 
@@ -296,32 +327,20 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription, ci
 
                 {/* Drop Time */}
                   <div className="min-w-0">
-                    <label htmlFor="dropTime" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                      <Clock className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
+                    <label className="block text-sm font-semibold text-gray-500 mb-2">
+                      <Clock className="w-4 h-4 inline mr-1 -mt-0.5" />
                       Drop-off Time
                     </label>
-                    <select
-                      id="dropTime"
+                    <MiniTimeInput
                       value={dropTime}
-                      aria-label="Drop-off time"
-                      onChange={(e) => {
-                        setDropTime(e.target.value);
+                      error={errors.dropTime}
+                      onChange={(v) => {
+                        setDropTime(v);
                         setErrors({ ...errors, dropTime: '' });
                       }}
-                      className={cn(
-                        "w-full px-4 py-3 border-2 rounded-xl text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all",
-                        errors.dropTime ? "border-red-500" : "border-gray-200"
-                      )}
-                    >
-                      <option value="">Select Time</option>
-                      {timeOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
+                    />
                     {errors.dropTime && (
-                      <p className="text-red-500 text-xs mt-1">{errors.dropTime}</p>
+                      <p className="text-red-500 text-sm mt-1">{errors.dropTime}</p>
                     )}
                   </div>
               </div>
@@ -331,9 +350,9 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription, ci
                 <Button
                   onClick={handleSearch}
                   size="lg"
-                  className="w-full bg-primary hover:bg-primary-600 text-white font-bold px-8 py-3 text-[15px] rounded-xl shadow-md hover:shadow-lg transition-all"
+                  className="w-full bg-primary hover:bg-primary-600 text-white font-bold px-8 py-3.5 text-base rounded-xl shadow-md hover:shadow-lg transition-all"
                 >
-                  <Search className="w-4 h-4 mr-2" />
+                  <Search className="w-5 h-5 mr-2" />
                   Search Cars
                 </Button>
               </div>
@@ -362,7 +381,7 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription, ci
                 )}
               </AnimatePresence>
               {/* Car Rental (with driver) promo link */}
-              <div className="flex items-center justify-between gap-3 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-xs mt-4">
+              <div className="flex items-center justify-between gap-3 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3.5 text-sm mt-4">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Shield className="w-4 h-4 shrink-0 text-primary" />
                   <span>Need a driver? Book a car with a professional chauffeur.</span>
@@ -372,7 +391,7 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription, ci
                   className="font-bold text-primary hover:text-primary-600 flex items-center gap-1 shrink-0"
                 >
                   Car Rental
-                  <ChevronRight className="w-3 h-3" />
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </a>
               </div>
           </motion.div>
