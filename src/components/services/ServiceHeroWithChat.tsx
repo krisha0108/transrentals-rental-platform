@@ -7,7 +7,7 @@ import {
   Users, Calendar, ArrowRight, BadgeCheck,
   Clock, Headphones, Minus, Plus, Bus, Navigation2,
   Search, ChevronDown, X, Check, ArrowLeft, User, Lock, Home, Flag,
-  HardHat, Wrench, Package, Mail, Truck, ShieldCheck, Tag, UserCheck,
+  HardHat, Wrench, Package, Mail, Truck, ShieldCheck, Tag, UserCheck, Building2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DynamicChatBookingHero } from '@/components/booking/DynamicChatBookingHero';
@@ -17,10 +17,17 @@ import { useCustomerAuth } from '@/hooks/useCustomer';
 /* ──────────────────────────── TYPES ──────────────────────────── */
 
 interface FeatureProp {
-  icon: 'star' | 'shield' | 'zap';
+  icon: 'star' | 'shield' | 'zap' | 'bus' | 'users' | 'tag' | 'clock' | 'check' | 'headphones' | 'map';
   text: string;
   color: string;
+  /** Photo wale hero me label ke neeche chhoti line (equipment hero jaisa). */
+  sub?: string;
 }
+
+const FEATURE_ICONS = {
+  star: Star, shield: Shield, zap: Zap, bus: Bus, users: Users,
+  tag: Tag, clock: Clock, check: BadgeCheck, headphones: Headphones, map: MapPin,
+} as const;
 
 export interface ServiceHeroWithChatProps {
   badge: string;
@@ -37,7 +44,11 @@ export interface ServiceHeroWithChatProps {
   cityName?: string;
   priceAnchor?: string;
   heroHighlights?: string[];
-  bookingVariant?: 'bus' | 'equipment' | 'truck';
+  bookingVariant?: 'bus' | 'equipment' | 'truck' | 'tempo';
+  /** Light hero ke peeche ek photo. Na dene par pehle jaisa gradient hi rehta hai. */
+  backgroundImage?: string;
+  /** Photo wale hero me features ke neeche stats card. Khaali ho to card nahi aata. */
+  heroStats?: { icon: FeatureProp['icon']; value: string; label: string }[];
 }
 
 /* ──────────────────────────── CONSTANTS ──────────────────────── */
@@ -46,6 +57,11 @@ const TRIP_TYPES = [
   { value: 'outstation', label: 'Outstation', sub: 'Intercity, out of city', Icon: Navigation2 },
   { value: 'local',      label: 'Local City',  sub: 'Within city travel',    Icon: Home },
 ];
+
+/* Photo wale hero par text ke peeche safed halo — parda halka rakhne ke
+   baawajood heading padhi ja sake. */
+const HERO_PHOTO_TEXT_HALO =
+  '0 1px 3px rgba(0,0,0,0.6), 0 2px 10px rgba(0,0,0,0.45), 0 0 26px rgba(0,0,0,0.4)';
 
 const REQUIREMENT_CHIPS = [
   'AC', 'Non AC', 'Decoration', 'Music System',
@@ -227,12 +243,16 @@ function RV({ label, value, full }: { label: string; value: string; full?: boole
 
 type FormStep = 1 | 2 | 3 | 4 | 5;
 
-function BusBookingWidget({ cityName, serviceType }: { cityName: string; serviceType?: string }) {
+function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { cityName: string; serviceType?: string; variant?: 'bus' | 'tempo' }) {
   const [step, setStep] = useState<FormStep>(1);
+  // Tempo Traveller wahi bus-family flow chalata hai, bas teen field zyada:
+  // return time, booking purpose aur (company hone par) vehicles count —
+  // taaki form Shivi ke poore sawaal-set se mel khaye.
+  const isTempo = variant === 'tempo';
 
   const [locations, setLocations] = useState<{ name: string }[]>([]);
   useEffect(() => {
-    fetch('/api/locations?serviceSlug=bus-rental&type=CITY')
+    fetch(`/api/locations?serviceSlug=${variant === 'tempo' ? 'tempo-traveller' : 'bus-rental'}&type=CITY`)
       .then(r => r.json())
       .then(d => { if (d.locations) setLocations(d.locations); })
       .catch(() => {});
@@ -252,6 +272,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
   const [travelDate, setTravelDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
   const [pickupTime, setPickupTime] = useState('09:00');
+  const [returnTime, setReturnTime] = useState('');
   const [passengers, setPassengers] = useState(10);
   const [paxRaw,     setPaxRaw]     = useState('10');
   const [err2,       setErr2]       = useState('');
@@ -263,6 +284,8 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
   const [guestOverride, setGuestOverride] = useState(false);
   const [selectedChips, setSelectedChips] = useState<string[]>([]);
   const [notes,         setNotes]         = useState('');
+  const [bookingPurpose, setBookingPurpose] = useState<'personal' | 'company'>('personal');
+  const [vehiclesRaw,   setVehiclesRaw]   = useState('1');
   const [err3,          setErr3]          = useState('');
 
   // Submit
@@ -304,6 +327,10 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
     if (!name.trim()) { setErr3('Please enter your name'); return; }
     if (phone.replace(/\D/g, '').length < 10) { setErr3('Please enter a valid 10-digit mobile number'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setErr3('Please enter a valid email address'); return; }
+    if (isTempo && bookingPurpose === 'company') {
+      const nv = parseInt(vehiclesRaw, 10);
+      if (isNaN(nv) || nv < 1) { setErr3('Please enter how many vehicles you need'); return; }
+    }
     setErr3(''); setStep(4);
   };
 
@@ -312,6 +339,11 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
     try {
       const req = [
         ...selectedChips,
+        // Company booking par vehicles count requirements me bhi likh dete hain —
+        // guest quote-request row par uska apna column nahi hota.
+        ...(isTempo && bookingPurpose === 'company'
+          ? [`Corporate booking · ${parseInt(vehiclesRaw, 10) || 1} vehicle(s) required`]
+          : []),
         ...(notes.trim() ? [notes.trim()] : []),
       ].join(', ') || undefined;
 
@@ -329,10 +361,19 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
           pickupDate:    travelDate,
           pickupTime,
           returnDate:    returnDate || undefined,
+          returnTime:    returnTime || undefined,
           passengers,
           tripType,
           requirements:  req,
           needAC:        selectedChips.includes('AC'),
+          ...(isTempo ? {
+            vehicleCategoryName: vReco.name,
+            taBookingMode: bookingPurpose === 'company' ? 'COMPANY' : 'PERSONAL',
+            ...(bookingPurpose === 'company' ? {
+              numberOfVehicles: parseInt(vehiclesRaw, 10) || 1,
+              numberOfPersons: passengers,
+            } : {}),
+          } : {}),
         }),
       });
       const data = await res.json();
@@ -346,8 +387,9 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
   };
 
   const resetForm = () => {
-    setStep(1); setTravelDate(''); setReturnDate(''); setToCity('');
+    setStep(1); setTravelDate(''); setReturnDate(''); setReturnTime(''); setToCity('');
     setPickupAddress(''); setDropAddress(''); setNotes(''); setSelectedChips([]);
+    setBookingPurpose('personal'); setVehiclesRaw('1');
     setGuestOverride(false);
     if (!isAuthenticated) { setName(''); setPhone(''); setEmail(''); }
   };
@@ -512,12 +554,35 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
               </div>
             </div>
 
-            <label className={lblCls}>Pickup Time</label>
-            <div className="relative mb-3.5">
-              <span className={iconCls}><Clock /></span>
-              <input type="time" value={pickupTime}
-                onChange={e => setPickupTime(e.target.value)} className={inputCls} />
-            </div>
+            {isTempo ? (
+              <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+                <div>
+                  <label className={lblCls}>Pickup Time</label>
+                  <div className="relative">
+                    <span className={iconCls}><Clock /></span>
+                    <input type="time" value={pickupTime}
+                      onChange={e => setPickupTime(e.target.value)} className={inputCls} />
+                  </div>
+                </div>
+                <div>
+                  <label className={lblCls}>Return Time <small className="text-[11px] text-slate-400 font-normal">(optional)</small></label>
+                  <div className="relative">
+                    <span className={iconCls}><Clock /></span>
+                    <input type="time" value={returnTime}
+                      onChange={e => setReturnTime(e.target.value)} className={inputCls} />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <label className={lblCls}>Pickup Time</label>
+                <div className="relative mb-3.5">
+                  <span className={iconCls}><Clock /></span>
+                  <input type="time" value={pickupTime}
+                    onChange={e => setPickupTime(e.target.value)} className={inputCls} />
+                </div>
+              </>
+            )}
 
             <label className={lblCls}>Passengers</label>
             <div className="flex items-center justify-between border border-slate-200 rounded-xl p-2.5 bg-white mb-3.5">
@@ -638,6 +703,45 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
               </>
             )}
 
+            {isTempo && (
+              <>
+                <label className={lblCls}>Booking For</label>
+                <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+                  {([
+                    { v: 'personal', label: 'Personal', sub: 'Family / friends', Icon: User },
+                    { v: 'company',  label: 'Company',  sub: 'Corporate trip',   Icon: Building2 },
+                  ] as const).map(o => (
+                    <button key={o.v} type="button" onClick={() => { setBookingPurpose(o.v); setErr3(''); }}
+                      className={`relative flex items-center gap-2.5 p-3 rounded-2xl border text-left transition-all ${
+                        bookingPurpose === o.v
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:-translate-y-px'
+                      }`}>
+                      <span className={`w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 ${bookingPurpose === o.v ? 'bg-white' : 'bg-slate-50'}`}>
+                        <o.Icon className={`w-4 h-4 ${bookingPurpose === o.v ? 'text-green-600' : 'text-slate-400'}`} />
+                      </span>
+                      <span className="flex flex-col leading-tight">
+                        <b className="text-[13px] font-bold text-slate-700">{o.label}</b>
+                        <small className="text-[10.5px] text-slate-400">{o.sub}</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {bookingPurpose === 'company' && (
+                  <>
+                    <label className={lblCls}>Number of Vehicles <span className="text-red-500">*</span></label>
+                    <div className="relative mb-3.5">
+                      <span className={iconCls}><Bus /></span>
+                      <input type="number" min={1} max={50} placeholder="How many vehicles do you need?"
+                        value={vehiclesRaw} onChange={e => { setVehiclesRaw(e.target.value); setErr3(''); }}
+                        className={inputCls} />
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
             <label className={lblCls}>
               Special requirements <small className="text-[11px] text-slate-400 font-normal ml-1">(optional)</small>
             </label>
@@ -694,13 +798,17 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
               <RV label="Journey Date" value={travelDate} />
               <RV label="Return Date" value={returnDate || 'Not set'} />
               <RV label="Pickup Time" value={pickupTime} />
+              {isTempo && <RV label="Return Time" value={returnTime || 'Not set'} />}
               <RV label="Passengers" value={`${passengers} passengers`} />
+              {isTempo && <RV label="Recommended" value={vReco.name} />}
             </ReviewSection>
 
             <ReviewSection title="Contact Details" icon={<User />} onEdit={() => setStep(3)}>
               <RV label="Name" value={name} />
               <RV label="Mobile" value={phone} />
               <RV label="Email" value={email} />
+              {isTempo && <RV label="Booking For" value={bookingPurpose === 'company' ? 'Company' : 'Personal'} />}
+              {isTempo && bookingPurpose === 'company' && <RV label="Vehicles Needed" value={vehiclesRaw} />}
             </ReviewSection>
 
             {(selectedChips.length > 0 || notes.trim()) && (
@@ -1977,24 +2085,65 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
 
 /* ──────────────────────────── BOOKING CARD ───────────────────── */
 
-export function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityName: string; serviceType?: string; variant?: 'bus' | 'equipment' | 'truck' }) {
+export function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityName: string; serviceType?: string; variant?: 'bus' | 'equipment' | 'truck' | 'tempo' }) {
   const [showChat, setShowChat] = useState(false);
   const isEquipment = variant === 'equipment';
   const isTruck = variant === 'truck';
+  const isTempo = variant === 'tempo';
+  // Tempo card equipment/truck jaisa panel hai — scrollable body aur
+  // footer me AI assistant toggle. `isPanel` teenon ko ek saath rakhta hai.
+  const isPanel = isEquipment || isTruck || isTempo;
+
+  // Body scrollable hai.
+  //  • Form par: toggle karte hi upar se shuru ho.
+  //  • Chat par: naye message aur date-time/calendar panel message list ke
+  //    NEECHE aate hain, isliye body ko content ke saath neeche pinned rakhte
+  //    hain — warna panel aadha kata dikhta hai.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+
+    if (!showChat) {
+      el.scrollTop = 0;
+      const id = requestAnimationFrame(() => { el.scrollTop = 0; });
+      return () => cancelAnimationFrame(id);
+    }
+
+    const pin = () => { el.scrollTop = el.scrollHeight; };
+    pin();
+    const raf = requestAnimationFrame(pin);
+    const ro = new ResizeObserver(pin);
+    Array.from(el.children).forEach((c) => ro.observe(c));
+    const mo = new MutationObserver(pin);
+    mo.observe(el, { childList: true, subtree: true });
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); mo.disconnect(); };
+  }, [showChat]);
 
   return (
-    <div className={`w-full min-w-0 shrink-0 order-1 lg:order-2 ${!isEquipment && !isTruck ? 'lg:max-w-md lg:ml-auto' : 'lg:w-[500px]'}`}>
-      <div className={`bg-white shadow-2xl shadow-black/20 overflow-hidden flex flex-col ${!isEquipment && !isTruck ? 'rounded-2xl' : 'rounded-[28px] lg:h-[620px]'}`}>
+    <div className={`w-full min-w-0 shrink-0 ${isTempo ? '' : 'order-1 lg:order-2'} ${
+      isTempo ? '' : (!isPanel ? 'lg:max-w-md lg:ml-auto' : 'lg:w-[500px]')
+    }`}>
+      <div className={`bg-white shadow-2xl shadow-black/20 overflow-hidden flex flex-col ${
+        !isPanel
+          ? 'rounded-2xl'
+          : isTempo
+            // Equipment card jaisa: min-height fix, aur body khud scroll
+            // karta hai — isliye chat ka date-time panel bina page zoom
+            // kiye poora dikhta hai.
+            ? 'rounded-[28px] lg:min-h-[705px]'
+            : 'rounded-[28px] lg:h-[620px]'
+      }`}>
 
         {/* Header – 72px (equipment/truck); content-driven height on mobile for bus so wrapped text never clips */}
         <div className={`flex items-center justify-between shrink-0 gap-2 ${
-          !isEquipment && !isTruck
+          !isPanel
             ? 'min-h-[72px] py-3 px-4 sm:px-6 bg-gradient-to-r from-green-700 to-green-600'
             : 'h-[72px] px-[18px] border-b border-gray-100'
         }`}>
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div className={`relative w-[42px] h-[42px] rounded-[13px] flex items-center justify-center shrink-0 ${
-              !isEquipment && !isTruck
+              !isPanel
                 ? 'bg-white/15'
                 : 'bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-lg shadow-emerald-200/60'
             }`}>
@@ -2007,16 +2156,16 @@ export function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityNa
               <span className="absolute bottom-[-1px] right-[-1px] w-[11px] h-[11px] rounded-full bg-emerald-400 border-2 border-white" />
             </div>
             <div className="min-w-0">
-              <p className={`text-[15px] sm:text-[17px] font-black leading-tight tracking-tight whitespace-nowrap ${!isEquipment && !isTruck ? 'text-white' : 'text-gray-900'}`}>
-                {isEquipment ? 'Book Your Equipment' : isTruck ? 'Book Your Truck' : 'Book Your Bus'}
+              <p className={`text-[15px] sm:text-[17px] font-black leading-tight tracking-tight whitespace-nowrap ${!isPanel ? 'text-white' : 'text-gray-900'}`}>
+                {isEquipment ? 'Book Your Equipment' : isTruck ? 'Book Your Truck' : isTempo ? 'Book Tempo Traveller' : 'Book Your Bus'}
               </p>
-              <p className={`text-[10.5px] sm:text-[11.5px] mt-0.5 truncate ${!isEquipment && !isTruck ? 'text-green-100' : 'text-gray-400'}`}>Free quote · No advance payment</p>
+              <p className={`text-[10.5px] sm:text-[11.5px] mt-0.5 truncate ${!isPanel ? 'text-green-100' : 'text-gray-400'}`}>Free quote · No advance payment</p>
             </div>
           </div>
           {showChat ? (
             <button onClick={() => setShowChat(false)}
               className={`shrink-0 text-[11.5px] font-bold rounded-[9px] px-3 py-1.5 transition-colors whitespace-nowrap ${
-                !isEquipment && !isTruck
+                !isPanel
                   ? 'text-green-700 bg-white hover:bg-green-50'
                   : 'text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100'
               }`}>
@@ -2024,21 +2173,21 @@ export function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityNa
             </button>
           ) : (
             <div className={`shrink-0 flex items-center gap-1 text-xs font-semibold rounded-full whitespace-nowrap ${
-              !isEquipment && !isTruck
+              !isPanel
                 ? 'gap-1 px-2 sm:px-2.5 py-1 text-green-700 bg-white'
                 : 'gap-1.5 text-[11px] font-bold px-3 py-1.5 text-emerald-700 bg-emerald-50 border border-emerald-200'
             }`}>
-              {!isEquipment && !isTruck ? <ShieldCheck className="w-3.5 h-3.5" /> : <Shield className="w-3 h-3" />}
-              {!isEquipment && !isTruck ? <><span className="hidden sm:inline">100% </span>Secure</> : '100% Secure'}
+              {!isPanel ? <ShieldCheck className="w-3.5 h-3.5" /> : <Shield className="w-3 h-3" />}
+              {!isPanel ? <><span className="hidden sm:inline">100% </span>Secure</> : '100% Secure'}
             </div>
           )}
         </div>
 
         {/* Body – scrollable on fixed-height variants, natural height for bus */}
-        <div className={`${
-          !isEquipment && !isTruck
+        <div ref={bodyRef} className={`${
+          !isPanel
             ? 'p-6 pt-4'
-            : `px-[18px] py-4 flex-1 min-h-0 overflow-y-auto
+            : `px-[18px] py-4 flex-1 min-h-0 overflow-y-auto ${isTempo ? 'max-h-[520px]' : ''}
           [&::-webkit-scrollbar]:w-1.5
           [&::-webkit-scrollbar-track]:bg-transparent
           [&::-webkit-scrollbar-thumb]:bg-gray-200
@@ -2050,12 +2199,12 @@ export function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityNa
               ? <EquipmentBookingWidget cityName={cityName} serviceType={serviceType} />
               : isTruck
                 ? <TruckBookingWidget cityName={cityName} serviceType={serviceType} />
-                : <BusBookingWidget cityName={cityName} serviceType={serviceType} />
+                : <BusBookingWidget cityName={cityName} serviceType={serviceType} variant={isTempo ? 'tempo' : 'bus'} />
           }
         </div>
 
         {/* Footer */}
-        {!isEquipment && !isTruck ? (
+        {!isPanel ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-6 py-4 border-t border-slate-100 bg-white shrink-0">
             {[
               { icon: Tag, text: 'Best Price', sub: 'Guaranteed' },
@@ -2071,6 +2220,31 @@ export function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityNa
                 </div>
               </div>
             ))}
+          </div>
+        ) : isTempo ? (
+          /* Equipment-rental form jaisa footer — 4 stats grid me, neeche
+             poori chaudai ka AI assistant toggle. */
+          <div className="px-6 py-4 border-t border-slate-100 bg-white shrink-0">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+              {[
+                { icon: Tag,         text: 'Best Price',    sub: 'Guaranteed' },
+                { icon: ShieldCheck, text: '500+ Verified', sub: 'Operators'  },
+                { icon: Clock,       text: '15 Min',        sub: 'Callback'   },
+                { icon: UserCheck,   text: '24/7',          sub: 'Support'    },
+              ].map(item => (
+                <div key={item.text} className="flex items-center gap-2">
+                  <item.icon className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <div className="text-[11px] leading-tight text-slate-600">
+                    <div className="font-semibold text-slate-900">{item.text}</div>
+                    {item.sub}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setShowChat(v => !v)}
+              className="w-full flex items-center justify-center gap-1.5 text-[13px] font-bold text-green-700 hover:text-green-600 transition-colors whitespace-nowrap pt-1">
+              {showChat ? '← Back to form' : <>Book with AI Assistant <ChevronRight className="w-3.5 h-3.5" /></>}
+            </button>
           </div>
         ) : (
           <div className="flex items-center justify-between px-[18px] h-[70px] border-t border-gray-100 bg-white shrink-0">
@@ -2119,6 +2293,8 @@ export function ServiceHeroWithChat({
   priceAnchor   = '',
   heroHighlights = [],
   bookingVariant = 'bus',
+  backgroundImage,
+  heroStats = [],
 }: ServiceHeroWithChatProps) {
 
   /* ── PREMIUM HERO (showQuickForm = true) ── */
@@ -2216,7 +2392,52 @@ export function ServiceHeroWithChat({
 
   /* ── ORIGINAL LIGHT HERO (other services) ── */
   return (
-    <section id="booking" className={`relative bg-gradient-to-br from-${gradientFrom} via-white to-${gradientTo} overflow-hidden`}>
+    <section
+      id="booking"
+      className={`relative bg-gradient-to-br from-${gradientFrom} via-white to-${gradientTo} overflow-hidden`}
+      /* 100 / 2.31 = 43.3vw — image ke apne anupat jitna, isliye CSS koi crop
+         nahi karta. Oonchai khud image me upar aur neeche se kam ki gayi hai. */
+      style={backgroundImage ? { minHeight: 'min(43.3vw, 700px)' } : undefined}
+    >
+      {/* Optional hero photo. Uske upar safed parda, taaki heading aur
+          booking widget dono jaise the waise padhe ja saken. */}
+      {/* Hero photo. Band ki oonchai image ke apne anupat (1717x916 ≈ 1.87)
+          par bandhi hai, isliye na upar se kuch kata hai na neeche se.
+          Koi safed parda nahi — photo apne poore rang me. */}
+      {backgroundImage && (
+        <div aria-hidden className="absolute inset-0 pointer-events-none">
+          <div
+            className="absolute inset-0 bg-no-repeat bg-cover bg-center"
+            style={{ backgroundImage: `url('${backgroundImage}')` }}
+          />
+          {/* Ek saman kaala parda + halka upar-neeche gehrapan. Tailwind ke
+              opacity modifiers ki jagah seedha gradient, taaki maatra bilkul
+              wahi mile jo likhi hai. */}
+          <div className="absolute inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.12)' }} />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(to bottom, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.12) 100%)',
+            }}
+          />
+        </div>
+      )}
+
+      {/* Baayin taraf ki khaali jagah ke liye dotted pattern. Sirf desktop par. */}
+      {backgroundImage && (
+        <div
+          aria-hidden
+          className="hidden lg:block absolute inset-y-0 left-0 w-[46%] pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(rgba(255,255,255,0.95) 2px, transparent 2px)',
+            backgroundSize: '24px 24px',
+            WebkitMaskImage: 'radial-gradient(600px 500px at 12% 60%, #000 0%, #000 45%, transparent 82%)',
+            maskImage: 'radial-gradient(600px 500px at 12% 60%, #000 0%, #000 45%, transparent 82%)',
+          }}
+        />
+      )}
+
       <div className="absolute inset-0 opacity-5">
         <motion.div
           className="absolute top-0 left-0 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl"
@@ -2224,42 +2445,179 @@ export function ServiceHeroWithChat({
           transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
         />
       </div>
-      <div className="container-custom relative py-12 md:py-16">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
-            <MapPin className="w-4 h-4" />
-            <span>{formatPriceHighlight(badge)}</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
-            {pageHeading || (
-              <>
-                {title}<br />
-                <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  {formatPriceHighlight(titleHighlight)}
-                </span>
-              </>
-            )}
-          </h1>
-          <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-            {pageDescription || description}
-          </p>
-        </div>
+      <div
+        className={`container-custom relative ${
+          backgroundImage ? 'py-12 md:py-16 lg:pt-16 lg:pb-6' : 'py-12 md:py-16'
+        }`}
+      >
+        {/* Ek hi content, do layout — photo wale hero me form baayin aur
+            details daayin; baaki pages par pehle jaisa centered. */}
+        {(() => {
+          const badgeEl = backgroundImage ? (
+            <div className="inline-flex items-center gap-2.5 bg-white shadow-lg shadow-black/25 ring-1 ring-black/[0.04] pl-2 pr-4 py-2 rounded-full mb-6">
+              <span className="w-6 h-6 rounded-full bg-primary-50 flex items-center justify-center shrink-0">
+                <MapPin className="w-3.5 h-3.5 text-primary-600" />
+              </span>
+              <span className="text-[13.5px] font-bold tracking-tight text-gray-900">
+                {formatPriceHighlight(badge)}
+              </span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
+              <MapPin className="w-4 h-4" />
+              <span>{formatPriceHighlight(badge)}</span>
+            </div>
+          );
 
-        <DynamicChatBookingHero hideHeader serviceType={serviceType} />
+          const titleEl = (
+            <h1
+              className={
+                backgroundImage
+                  ? 'text-[2rem] leading-[1.08] md:text-[2.5rem] lg:text-[3rem] font-black tracking-tight text-white mb-4 max-w-[16ch]'
+                  : 'text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4'
+              }
+              style={backgroundImage ? { textShadow: HERO_PHOTO_TEXT_HALO } : undefined}
+            >
+              {pageHeading || (
+                <>
+                  {title}<br />
+                  {/* Photo wale hero par gradient-clip text kaam nahi karta —
+                      text-shadow transparent glyphs ke peeche paint hota hai
+                      aur bharav dhul jaata hai. Isliye wahan thos brand rang. */}
+                  <span
+                    className={
+                      backgroundImage
+                        ? 'text-primary-400'
+                        : 'bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent'
+                    }
+                  >
+                    {formatPriceHighlight(titleHighlight)}
+                  </span>
+                </>
+              )}
+            </h1>
+          );
 
-        <div className="flex flex-wrap items-center justify-center gap-6 mt-8">
-          {features.map((feature) => {
-            const Icon = feature.icon === 'star' ? Star : feature.icon === 'shield' ? Shield : Zap;
+          const descEl = (
+            <p
+              className={
+                backgroundImage
+                  ? 'text-[15px] md:text-[17px] leading-relaxed text-white font-semibold max-w-[31rem]'
+                  : 'text-lg md:text-xl text-gray-600 max-w-3xl mx-auto'
+              }
+              style={backgroundImage ? { textShadow: HERO_PHOTO_TEXT_HALO } : undefined}
+            >
+              {pageDescription || description}
+            </p>
+          );
+
+          const featuresEl = backgroundImage ? (
+            /* Equipment hero jaisa: gol safed icon, neeche bold label aur
+               ek halki sub-line. Photo par saaf padhne ke liye halo bhi. */
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 max-w-[36rem] mx-auto lg:mx-0">
+              {features.map((feature) => {
+                const Icon = FEATURE_ICONS[feature.icon] ?? Star;
+                return (
+                  <div key={feature.text} className="flex flex-col items-center lg:items-start gap-2">
+                    <div className="w-11 h-11 rounded-full bg-white shadow-lg shadow-black/25 ring-1 ring-black/[0.04] flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-primary-600" strokeWidth={2.1} />
+                    </div>
+                    <div
+                      className="text-xs leading-snug text-center lg:text-left text-white/85"
+                      style={{ textShadow: HERO_PHOTO_TEXT_HALO }}
+                    >
+                      <div className="font-bold text-[13px] text-white">{feature.text}</div>
+                      {feature.sub}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-center gap-6 mt-8">
+              {features.map((feature) => {
+                const Icon = feature.icon === 'star' ? Star : feature.icon === 'shield' ? Shield : Zap;
+                return (
+                  <div key={feature.text} className="flex items-center gap-2">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-md ${feature.color}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">{feature.text}</span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+
+          // Photo wale hero me `bookingVariant` dene par poora booking card
+          // aata hai — form + footer se "Book with AI Assistant" toggle.
+          // Na dene par pehle jaisa sirf Shivi ka chat.
+          const statsEl = backgroundImage && heroStats.length > 0 ? (
+            /* Stats card — safed, har khaane ke beech halki lakeer, icon
+               green tinted circle me aur aankda bada-bold. */
+            <div className="mt-6 bg-white rounded-2xl shadow-xl shadow-black/20 ring-1 ring-black/[0.04] px-2 py-4 grid grid-cols-2 sm:grid-cols-4 max-w-[36rem] mx-auto lg:mx-0">
+              {heroStats.map((stat, i) => {
+                const Icon = FEATURE_ICONS[stat.icon] ?? Star;
+                return (
+                  <div
+                    key={stat.label}
+                    className={`flex flex-col items-center lg:items-start gap-1 px-3 ${
+                      i % 2 === 1 ? 'border-l border-gray-100' : ''
+                    } ${i >= 2 ? 'border-t sm:border-t-0 pt-3 sm:pt-0' : ''} ${
+                      i === 2 ? 'sm:border-l sm:border-gray-100' : ''
+                    }`}
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-primary-50 flex items-center justify-center">
+                      <Icon className="w-[15px] h-[15px] text-primary-600" strokeWidth={2.2} />
+                    </span>
+                    <div className="text-[19px] font-black tracking-tight text-gray-900 tabular-nums leading-none mt-1">
+                      {stat.value}
+                    </div>
+                    <div className="text-[11.5px] leading-snug text-gray-500 text-center lg:text-left">
+                      {stat.label}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null;
+
+          const formEl = bookingVariant === 'tempo'
+            ? <BookingCard cityName={cityName} serviceType={serviceType} variant="tempo" />
+            : <DynamicChatBookingHero hideHeader serviceType={serviceType} />;
+
+          if (!backgroundImage) {
             return (
-              <div key={feature.text} className="flex items-center gap-2">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-md ${feature.color}`}>
-                  <Icon className="w-5 h-5" />
+              <>
+                <div className="text-center mb-8">
+                  {badgeEl}
+                  {titleEl}
+                  {descEl}
                 </div>
-                <span className="text-sm font-medium text-gray-700">{feature.text}</span>
-              </div>
+                {formEl}
+                {featuresEl}
+              </>
             );
-          })}
-        </div>
+          }
+
+          return (
+            <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8 lg:gap-14 items-start">
+              {/* LEFT — booking form */}
+              <div className="order-2 lg:order-1 w-full lg:mt-4 lg:max-w-md">
+                {formEl}
+              </div>
+
+              {/* RIGHT — badge, title, description aur features */}
+              <div className="order-1 lg:order-2 min-w-0 text-center lg:text-left lg:pt-10">
+                {badgeEl}
+                {titleEl}
+                {descEl}
+                {featuresEl}
+                {statsEl}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </section>
   );
