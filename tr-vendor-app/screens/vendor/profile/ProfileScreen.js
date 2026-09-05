@@ -11,10 +11,10 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorProfile, logoutVendor, uploadVendorLogo, getBaseURL } from '../../api/client';
 import { showConfirm, showError } from '../../../services/alertService';
-import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
+import { SC as T, G, rs, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
 import { pickCroppedImage } from '../_shared/pickCroppedImage';
+import HeroWorldMap from '../_shared/heroWorldMap';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -32,6 +32,10 @@ const C = {
   indigo: T.indigo, indigoL: T.indigoLight,
 };
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 const MENU_SECTIONS = [
   {
     section: 'Account',
@@ -48,6 +52,8 @@ const MENU_SECTIONS = [
     items: [
       { name: 'My Services',  icon: 'layers',   mcIcon: 'car-multiple',  route: 'VendorServices',   color: C.purple, bg: C.purpleL },
       { name: 'My Locations', icon: 'map-pin',  mcIcon: 'map-marker-outline', route: 'VendorLocations',  color: C.orange, bg: C.orangeL },
+      { name: 'Fleet',        icon: 'truck',    mcIcon: 'garage-variant', route: 'FleetListScreen', color: C.blue,   bg: C.blueL },
+      { name: 'Staff',        icon: 'users',    mcIcon: 'account-group-outline', route: 'StaffListScreen', color: C.indigo, bg: C.indigoL },
     ],
   },
   {
@@ -75,6 +81,7 @@ const STATUS_META = {
   UNDER_REVIEW:       { label: 'Under Review',      color: C.blue,   bg: C.blueL,  icon: 'eye',                    mcIcon: 'magnify-scan' },
   REJECTED:           { label: 'Rejected',          color: C.red,    bg: C.redL,   icon: 'x-circle',               mcIcon: 'close-circle-outline' },
 };
+
 
 export default function ProfileScreen({ navigation }) {
   const [loading, setLoading]     = useState(true);
@@ -164,24 +171,59 @@ export default function ProfileScreen({ navigation }) {
     return (
       <View style={st.root}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.heroSkeleton}>
-          <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
-          <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
-          <SafeAreaView edges={['top']} style={{ paddingHorizontal: 16 }}>
-            <View style={st.heroTopRow}>
-              <View>
+
+        <View style={st.hero}>
+          <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.heroTop}>
+            <HeroWorldMap />
+            <SafeAreaView edges={['top']} style={{ paddingHorizontal: 16 }}>
+              <View style={st.heroTopbar}>
                 <View style={st.heroBadge}>
-                  <MaterialCommunityIcons name="store-check" size={11} color={C.g400} />
+                  <MaterialCommunityIcons name="store-check" size={11} color="#fff" />
                   <Text style={st.heroBadgeTxt}>Vendor Portal</Text>
                 </View>
-                <Text style={st.heroTitle}>My Profile</Text>
+                <View style={st.settingsBtn} />
+              </View>
+
+              <View style={st.heroRow}>
+                <Bone w={rs(56)} h={rs(56)} r={rs(17)} style={{ backgroundColor: 'rgba(255,255,255,0.18)' }} />
+                <View style={st.heroInfo}>
+                  <Bone w={140} h={16} style={{ backgroundColor: 'rgba(255,255,255,0.22)', marginBottom: 6 }} />
+                  <Bone w={100} h={12} style={{ backgroundColor: 'rgba(255,255,255,0.16)', marginBottom: 8 }} />
+                  <Bone w={80} h={16} r={20} style={{ backgroundColor: 'rgba(255,255,255,0.16)' }} />
+                </View>
+              </View>
+            </SafeAreaView>
+          </LinearGradient>
+
+          <View style={st.heroStatic}>
+            <Bone w={160} h={11} style={{ backgroundColor: 'rgba(255,255,255,0.12)' }} />
+          </View>
+        </View>
+
+        <View style={st.scrollContent}>
+          <View style={st.statsRail}>
+            {[0, 1, 2, 3].map(i => (
+              <View key={i} style={[st.stat, i !== 3 && st.statDivider]}>
+                <Bone w={24} h={24} r={8} style={{ marginBottom: 5 }} />
+                <Bone w={26} h={13} style={{ marginBottom: 4 }} />
+                <Bone w={40} h={8} />
+              </View>
+            ))}
+          </View>
+
+          {[3, 4, 2, 2].map((rowCount, si) => (
+            <View key={si} style={st.section}>
+              <Bone w={90} h={11} style={{ marginBottom: 10 }} />
+              <View style={st.groupCard}>
+                {Array.from({ length: rowCount }).map((_, ii) => (
+                  <View key={ii} style={[st.menuRow, ii !== rowCount - 1 && st.menuRowDivider]}>
+                    <Bone w={34} h={34} r={10} />
+                    <Bone w={120} h={13} />
+                  </View>
+                ))}
               </View>
             </View>
-          </SafeAreaView>
-        </LinearGradient>
-        <View style={st.loaderWrap}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={st.loaderTxt}>Loading profile...</Text>
+          ))}
         </View>
       </View>
     );
@@ -203,104 +245,81 @@ export default function ProfileScreen({ navigation }) {
     <View style={st.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      {/* ── Fixed hero header ── */}
-      <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.hero}>
-        <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
-
-        <SafeAreaView edges={['top']} style={{ paddingHorizontal: 16 }}>
-          {/* Top row */}
-          <View style={st.heroTopRow}>
-            <View>
+      {/* ── Header / hero — a single card, edge-to-edge at the top.
+          Gradient top (badge, gear, avatar, name, status/rating) + a
+          static solid-color panel underneath (VID/email/phone/Card). No
+          floating orbs, no separate cover-band + ID-card pieces. ── */}
+      <View style={st.hero}>
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.heroTop}>
+          <HeroWorldMap />
+          <SafeAreaView edges={['top']} style={{ paddingHorizontal: 16 }}>
+            <View style={st.heroTopbar}>
               <View style={st.heroBadge}>
-                <MaterialCommunityIcons name="store-check" size={11} color={C.g400} />
+                <MaterialCommunityIcons name="store-check" size={11} color="#fff" />
                 <Text style={st.heroBadgeTxt}>Vendor Portal</Text>
               </View>
-              <Text style={st.heroTitle}>My Profile</Text>
+              <TouchableOpacity style={st.settingsBtn} onPress={() => navigation.navigate('BusinessProfileScreen')}>
+                <Icon name="settings" size={15} color="rgba(255,255,255,0.85)" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={st.settingsBtn} onPress={() => navigation.navigate('BusinessProfileScreen')}>
-              <Icon name="settings" size={18} color="rgba(255,255,255,0.85)" />
-            </TouchableOpacity>
-          </View>
 
-          {/* Avatar + Info */}
-          <View style={st.heroBody}>
-            {/* Avatar */}
-            <TouchableOpacity style={st.avatarWrap} onPress={handleUpdateProfileImage} disabled={uploading}>
-              {logoUrl ? (
-                <Image source={{ uri: logoUrl }} style={st.avatar} resizeMode="cover" />
-              ) : (
-                <LinearGradient colors={[C.g600, C.g500]} style={st.avatarPlaceholder}>
-                  <Text style={st.avatarInitial}>{initials}</Text>
-                </LinearGradient>
-              )}
-              <LinearGradient colors={[C.g600, C.g500]} style={st.cameraBadge}>
-                {uploading
-                  ? <ActivityIndicator size="small" color="#fff" />
-                  : <Icon name="camera" size={12} color="#fff" />
-                }
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Name & Status */}
-            <View style={st.heroInfo}>
-              <Text style={st.heroName} numberOfLines={1}>{profile?.businessName || 'Business Name'}</Text>
-              <Text style={st.heroOwner} numberOfLines={1}>{profile?.ownerName || 'Owner Name'}</Text>
-              {profile?.vid && (
-                <Text style={st.heroVid}>ID: {profile.vid}</Text>
-              )}
-
-              {/* Status pill + View Card button */}
-              <View style={st.pillRow}>
-                <View style={[st.statusPill, st.statusPillTone]}>
-                  <MaterialCommunityIcons name={statusMeta.mcIcon} size={11} color={statusMeta.color === C.g700 ? C.g400 : '#fff'} />
-                  <Text style={[st.statusTxt, { color: statusMeta.color === C.g700 ? C.g400 : '#fff' }]}>
-                    {statusMeta.label}
-                  </Text>
-                </View>
-
-                {profile && (
-                  <TouchableOpacity
-                    onPress={() => { setIsFlipped(false); setShowCardModal(true); }}
-                    activeOpacity={0.7}
-                    style={[st.statusPill, st.cardBtn]}>
-                    <Text style={st.cardBtnEmoji}>🎫</Text>
-                    <Text style={[st.statusTxt, { color: '#fff' }]}>Card</Text>
-                  </TouchableOpacity>
+            <View style={st.heroRow}>
+              <TouchableOpacity style={st.avatarWrap} onPress={handleUpdateProfileImage} disabled={uploading}>
+                {logoUrl ? (
+                  <Image source={{ uri: logoUrl }} style={st.avatar} resizeMode="cover" />
+                ) : (
+                  <LinearGradient colors={[C.g600, C.g500]} style={st.avatarPlaceholder}>
+                    <Text style={st.avatarInitial}>{initials}</Text>
+                  </LinearGradient>
                 )}
+                <LinearGradient colors={[T.gold, T.goldLight]} style={st.cameraBadge}>
+                  {uploading
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Icon name="camera" size={9} color="#fff" />
+                  }
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <View style={st.heroInfo}>
+                <Text style={st.heroName} numberOfLines={1}>{profile?.businessName || 'Business Name'}</Text>
+                <Text style={st.heroOwner} numberOfLines={1}>{profile?.ownerName || 'Owner Name'}</Text>
+                <View style={st.heroPills}>
+                  <View style={st.pill}>
+                    <MaterialCommunityIcons name={statusMeta.mcIcon} size={10} color="#fff" />
+                    <Text style={st.pillTxt}>{statusMeta.label}</Text>
+                  </View>
+                  {profile?.rating != null && (
+                    <View style={[st.pill, st.pillRating]}>
+                      <MaterialCommunityIcons name="star" size={10} color={T.goldLight} />
+                      <Text style={[st.pillTxt, { color: T.goldLight }]}>{profile.rating.toFixed(1)}</Text>
+                    </View>
+                  )}
+                </View>
               </View>
             </View>
-          </View>
+          </SafeAreaView>
+        </LinearGradient>
 
-          {/* Contact strip */}
-          <View style={st.contactStrip}>
-            <View style={st.contactItem}>
-              <Icon name="mail" size={12} color="rgba(255,255,255,0.5)" />
-              <Text style={st.contactTxt} numberOfLines={1}>{profile?.email || '—'}</Text>
-            </View>
-            <View style={st.contactDot} />
-            <View style={st.contactItem}>
-              <Icon name="phone" size={12} color="rgba(255,255,255,0.5)" />
-              <Text style={st.contactTxt}>{profile?.phone || '—'}</Text>
-            </View>
-          </View>
-
-          <View style={{ height: rs(20) }} />
-        </SafeAreaView>
-      </LinearGradient>
-
-      {/* ── STATS — static sibling so it can float into the hero's curve
-          without being clipped by the ScrollView's own viewport ── */}
-      <View style={st.statsGrid}>
-        {stats.map((s, i) => (
-          <View key={i} style={st.statCard}>
-            <View style={[st.statIconBox, { backgroundColor: s.bg }]}>
-              <MaterialCommunityIcons name={s.icon} size={20} color={s.color} />
-            </View>
-            <Text style={st.statValue}>{s.value}</Text>
-            <Text style={st.statLabel}>{s.label}</Text>
-          </View>
-        ))}
+        <View style={st.heroStatic}>
+          {profile?.vid && (
+            <>
+              <Text style={st.heroStaticTxt}>ID <Text style={st.heroStaticBold}>{profile.vid}</Text></Text>
+              <Text style={st.heroStaticSep}>•</Text>
+            </>
+          )}
+          <Text style={st.heroStaticTxt} numberOfLines={1}>{profile?.email || '—'}</Text>
+          <Text style={st.heroStaticSep}>•</Text>
+          <Text style={st.heroStaticTxt}>{profile?.phone || '—'}</Text>
+          {profile && (
+            <TouchableOpacity
+              onPress={() => { setIsFlipped(false); setShowCardModal(true); }}
+              activeOpacity={0.7}
+              style={st.cardFlipBtn}>
+              <Text style={st.cardFlipBtnEmoji}>🎫</Text>
+              <Text style={st.cardFlipBtnTxt}>Card</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <ScrollView
@@ -309,6 +328,19 @@ export default function ProfileScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
       >
+
+        {/* ── STATS — one compact rail with dividers, same data as before ── */}
+        <View style={st.statsRail}>
+          {stats.map((s, i) => (
+            <View key={i} style={[st.stat, i !== stats.length - 1 && st.statDivider]}>
+              <View style={[st.statIconBox, { backgroundColor: s.bg }]}>
+                <MaterialCommunityIcons name={s.icon} size={13} color={s.color} />
+              </View>
+              <Text style={st.statValue}>{s.value}</Text>
+              <Text style={st.statLabel}>{s.label}</Text>
+            </View>
+          ))}
+        </View>
 
         {/* ── MENU SECTIONS ── */}
         {MENU_SECTIONS.map((section, si) => (
@@ -319,21 +351,19 @@ export default function ProfileScreen({ navigation }) {
               <Text style={st.sectionTitle}>{section.section}</Text>
             </View>
 
-            <View style={st.menuCard}>
+            <View style={st.groupCard}>
               {section.items.map((item, ii) => (
                 <TouchableOpacity
                   key={ii}
-                  style={[st.menuRow, ii < section.items.length - 1 && st.menuRowBorder]}
+                  style={[st.menuRow, ii !== section.items.length - 1 && st.menuRowDivider]}
                   onPress={() => item.route && navigation.navigate(item.route)}
-                  activeOpacity={0.75}
+                  activeOpacity={0.7}
                 >
-                  <View style={[st.menuIconBox, { backgroundColor: item.bg }]}>
-                    <MaterialCommunityIcons name={item.mcIcon} size={18} color={item.color} />
+                  <View style={[st.menuRowIconBox, { backgroundColor: item.bg }]}>
+                    <MaterialCommunityIcons name={item.mcIcon} size={17} color={item.color} />
                   </View>
-                  <Text style={st.menuLabel}>{item.name}</Text>
-                  <View style={st.menuArrow}>
-                    <Icon name="chevron-right" size={16} color={C.muted} />
-                  </View>
+                  <Text style={st.menuRowLabel} numberOfLines={1}>{item.name}</Text>
+                  <Icon name="chevron-right" size={17} color={C.muted} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -342,32 +372,37 @@ export default function ProfileScreen({ navigation }) {
 
         {/* ── GET STARTED CTA — visible to all vendors right above Logout
             so it stays one tap from anywhere in the app ── */}
-        <TouchableOpacity
-          style={st.getStartedBtn}
-          onPress={() => navigation.navigate('GetStartedScreen')}
-          activeOpacity={0.85}
-        >
-          <LinearGradient colors={[C.blueL, shade(C.blueL, -6)]} style={st.getStartedGrad}>
-            <View style={st.getStartedIconBox}>
-              <MaterialCommunityIcons name="compass-outline" size={20} color={C.blue} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={st.getStartedTxt}>Get Started</Text>
-              <Text style={st.getStartedSub}>Setup guide & feature tour</Text>
-            </View>
-            <Icon name="chevron-right" size={18} color={C.blue} />
-          </LinearGradient>
-        </TouchableOpacity>
+        <View style={st.section}>
+          <View style={st.sectionHead}>
+            <MaterialCommunityIcons name="compass-outline" size={14} color={C.g600} />
+            <Text style={st.sectionTitle}>Next Step</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('GetStartedScreen')}
+            activeOpacity={0.85}
+          >
+            <LinearGradient colors={[C.g700, C.g900]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.getStartedCard}>
+              <View style={st.getStartedIconCircle}>
+                <MaterialCommunityIcons name="compass-outline" size={20} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={st.getStartedTxt}>Get Started</Text>
+                <Text style={st.getStartedSub}>Setup guide & feature tour</Text>
+              </View>
+              <LinearGradient colors={[T.gold, T.goldLight]} style={st.getStartedPill}>
+                <Text style={st.getStartedPillTxt}>Continue</Text>
+              </LinearGradient>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
 
         {/* ── LOGOUT ── */}
-        <TouchableOpacity style={st.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
-          <LinearGradient colors={[C.redL, shade(C.redL, -6)]} style={st.logoutGrad}>
-            <View style={st.logoutIconBox}>
-              <Icon name="log-out" size={18} color={C.red} />
-            </View>
-            <Text style={st.logoutTxt}>Logout</Text>
-            <Icon name="chevron-right" size={16} color={C.red} style={{ marginLeft: 'auto' }} />
-          </LinearGradient>
+        <TouchableOpacity style={st.logoutCard} onPress={handleLogout} activeOpacity={0.8}>
+          <View style={st.logoutIconBox}>
+            <Icon name="log-out" size={16} color={C.red} />
+          </View>
+          <Text style={st.logoutTxt}>Logout</Text>
+          <Icon name="chevron-right" size={16} color={C.red} style={{ marginLeft: 'auto' }} />
         </TouchableOpacity>
 
         {/* ── VERSION ── */}
@@ -450,16 +485,16 @@ export default function ProfileScreen({ navigation }) {
 
                         {/* Text */}
                         <View style={{ alignItems: 'center', gap: 7 }}>
-                          <Text style={{ fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.7)', letterSpacing: 1.4 }}>TRANSRENTALS</Text>
+                          <Text style={{ fontSize: 11, fontWeight: '900', color: 'rgba(255,255,255,0.7)', letterSpacing: 1.4 }}>TRANSRENTALS</Text>
                           <View style={{ alignItems: 'center', gap: 0 }}>
                             <Text style={{ fontSize: 22, fontWeight: '900', color: '#fff', textAlign: 'center', letterSpacing: 0.8, lineHeight: 24 }}>TRUSTED</Text>
                             <Text style={{ fontSize: 22, fontWeight: '900', color: '#52e77a', textAlign: 'center', letterSpacing: 0.8, lineHeight: 24 }}>VENDOR</Text>
                           </View>
                           <View style={{ width: 32, height: 1.2, backgroundColor: 'rgba(82, 231, 122, 0.6)', marginTop: 2 }} />
-                          <Text style={{ fontSize: 13, fontWeight: '800', color: '#fff', textAlign: 'center', letterSpacing: 0.2, marginTop: 3 }}>{profile?.businessName}</Text>
+                          <Text style={{ fontSize: 14, fontWeight: '800', color: '#fff', textAlign: 'center', letterSpacing: 0.2, marginTop: 3 }}>{profile?.businessName}</Text>
                           {profile?.vid && (
                             <View style={{ backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, borderWidth: 0.8, borderColor: 'rgba(82, 231, 122, 0.3)', marginTop: 5 }}>
-                              <Text style={{ fontSize: 10, fontWeight: '900', color: '#52e77a', letterSpacing: 1.3 }}>{profile.vid.toUpperCase()}</Text>
+                              <Text style={{ fontSize: 11, fontWeight: '900', color: '#52e77a', letterSpacing: 1.3 }}>{profile.vid.toUpperCase()}</Text>
                             </View>
                           )}
                         </View>
@@ -468,7 +503,7 @@ export default function ProfileScreen({ navigation }) {
 
                     {/* Bottom section */}
                     <View style={{ alignItems: 'center', gap: 8, paddingTop: 10, borderTopWidth: 1.2, borderTopColor: 'rgba(255,255,255,0.15)' }}>
-                      <Text style={{ fontSize: 9.5, fontWeight: '700', color: 'rgba(255,255,255,0.5)', letterSpacing: 1 }}>Tap to flip</Text>
+                      <Text style={{ fontSize: 10.5, fontWeight: '700', color: 'rgba(255,255,255,0.5)', letterSpacing: 1 }}>Tap to flip</Text>
                       <View style={{ flexDirection: 'row', gap: 2.5 }}>
                         <View style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: 'rgba(82, 231, 122, 0.6)' }} />
                         <View style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: 'rgba(82, 231, 122, 0.4)' }} />
@@ -499,7 +534,7 @@ export default function ProfileScreen({ navigation }) {
                         <Text style={{ fontSize: 7.5, fontWeight: '800', color: 'rgba(255,255,255,0.55)', letterSpacing: 1.8 }}>TRANSRENTALS</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: profile?.status === 'APPROVED' ? 'rgba(34, 197, 94, 0.18)' : profile?.status === 'PENDING' ? 'rgba(234, 179, 8, 0.18)' : 'rgba(239, 68, 68, 0.18)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, borderWidth: 1, borderColor: profile?.status === 'APPROVED' ? 'rgba(34, 197, 94, 0.35)' : profile?.status === 'PENDING' ? 'rgba(234, 179, 8, 0.35)' : 'rgba(239, 68, 68, 0.35)', shadowColor: profile?.status === 'APPROVED' ? '#22c55e' : '#ef4444', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4 }}>
                           <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: profile?.status === 'APPROVED' ? '#22c55e' : profile?.status === 'PENDING' ? '#eab308' : '#ef4444', shadowColor: profile?.status === 'APPROVED' ? '#22c55e' : '#ef4444', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.5, shadowRadius: 2 }} />
-                          <Text style={{ fontSize: 9, fontWeight: '800', color: profile?.status === 'APPROVED' ? '#22c55e' : profile?.status === 'PENDING' ? '#eab308' : '#ef4444', letterSpacing: 0.8 }}>{profile?.status}</Text>
+                          <Text style={{ fontSize: 10, fontWeight: '800', color: profile?.status === 'APPROVED' ? '#22c55e' : profile?.status === 'PENDING' ? '#eab308' : '#ef4444', letterSpacing: 0.8 }}>{profile?.status}</Text>
                         </View>
                       </View>
 
@@ -510,11 +545,11 @@ export default function ProfileScreen({ navigation }) {
                         </View>
                         <View style={{ flex: 1, justifyContent: 'center' }}>
                           <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800', marginBottom: 4, letterSpacing: 0.3 }}>{profile?.businessName}</Text>
-                          <Text style={{ color: '#4ade80', fontSize: 12, fontWeight: '600', marginBottom: 6 }}>{profile?.ownerName}</Text>
+                          <Text style={{ color: '#4ade80', fontSize: 13, fontWeight: '600', marginBottom: 6 }}>{profile?.ownerName}</Text>
                           {profile?.vid && (
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(82, 231, 122, 0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 1.2, borderColor: 'rgba(82, 231, 122, 0.3)', alignSelf: 'flex-start', shadowColor: 'rgba(82, 231, 122, 0.2)', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 3 }}>
                               <MaterialCommunityIcons name="shield-check" size={10} color="#52e77a" />
-                              <Text style={{ fontSize: 10, fontWeight: '900', color: '#52e77a', letterSpacing: 1.2 }}>{profile.vid.toUpperCase()}</Text>
+                              <Text style={{ fontSize: 11, fontWeight: '900', color: '#52e77a', letterSpacing: 1.2 }}>{profile.vid.toUpperCase()}</Text>
                             </View>
                           )}
                         </View>
@@ -526,32 +561,32 @@ export default function ProfileScreen({ navigation }) {
                           <>
                             <View style={{ backgroundColor: 'rgba(82, 231, 122, 0.08)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, borderLeftWidth: 2.5, borderLeftColor: '#52e77a' }}>
                               <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#52e77a', letterSpacing: 1.1, marginBottom: 3 }}>GST NO</Text>
-                              <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#fff', letterSpacing: 0.2 }}>{profile.gstNumber}</Text>
+                              <Text style={{ fontSize: 10.5, fontWeight: '800', color: '#fff', letterSpacing: 0.2 }}>{profile.gstNumber}</Text>
                             </View>
                           </>
                         )}
                         <View style={{ flexDirection: 'row', gap: 10 }}>
                           <View style={{ flex: 1, backgroundColor: 'rgba(82, 231, 122, 0.08)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, borderLeftWidth: 2.5, borderLeftColor: '#52e77a' }}>
                             <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#52e77a', letterSpacing: 1.1, marginBottom: 3 }}>PHONE</Text>
-                            <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#fff' }}>{profile?.phone}</Text>
+                            <Text style={{ fontSize: 10.5, fontWeight: '800', color: '#fff' }}>{profile?.phone}</Text>
                           </View>
                           {(profile?.city || profile?.state) && (
                             <View style={{ flex: 1, backgroundColor: 'rgba(82, 231, 122, 0.08)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, borderLeftWidth: 2.5, borderLeftColor: '#52e77a' }}>
                               <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#52e77a', letterSpacing: 1.1, marginBottom: 3 }}>LOCATION</Text>
-                              <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#fff' }}>{[profile?.city, profile?.state].filter(Boolean).join(', ')}</Text>
+                              <Text style={{ fontSize: 10.5, fontWeight: '800', color: '#fff' }}>{[profile?.city, profile?.state].filter(Boolean).join(', ')}</Text>
                             </View>
                           )}
                         </View>
                         {profile?.email && (
                           <View style={{ backgroundColor: 'rgba(82, 231, 122, 0.08)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, borderLeftWidth: 2.5, borderLeftColor: '#52e77a' }}>
                             <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#52e77a', letterSpacing: 1.1, marginBottom: 3 }}>EMAIL</Text>
-                            <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#fff', numberOfLines: 1 }}>{profile.email}</Text>
+                            <Text style={{ fontSize: 10.5, fontWeight: '800', color: '#fff', numberOfLines: 1 }}>{profile.email}</Text>
                           </View>
                         )}
                         {profile?.businessType && (
                           <View style={{ backgroundColor: 'rgba(82, 231, 122, 0.08)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, borderLeftWidth: 2.5, borderLeftColor: '#52e77a' }}>
                             <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#52e77a', letterSpacing: 1.1, marginBottom: 3 }}>BUSINESS TYPE</Text>
-                            <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#fff' }}>{profile.businessType}</Text>
+                            <Text style={{ fontSize: 10.5, fontWeight: '800', color: '#fff' }}>{profile.businessType}</Text>
                           </View>
                         )}
                       </View>
@@ -563,7 +598,7 @@ export default function ProfileScreen({ navigation }) {
                         ) : (
                           <MaterialCommunityIcons name="clock-outline" size={12} color="#eab308" />
                         )}
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: profile?.status === 'APPROVED' ? '#22c55e' : '#eab308', letterSpacing: 0.3 }}>{profile?.status === 'APPROVED' ? 'Verified Vendor' : 'Pending Approval'}</Text>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: profile?.status === 'APPROVED' ? '#22c55e' : '#eab308', letterSpacing: 0.3 }}>{profile?.status === 'APPROVED' ? 'Verified Vendor' : 'Pending Approval'}</Text>
                       </View>
                       {profile?.createdAt && (
                         <Text style={{ fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.4)' }}>Since {new Date(profile.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</Text>
@@ -576,7 +611,7 @@ export default function ProfileScreen({ navigation }) {
               </View>
 
               <TouchableOpacity onPress={() => setShowCardModal(false)} style={{ marginTop: 16, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12 }}>
-                <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600', fontSize: 12 }}>Close</Text>
+                <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600', fontSize: 13 }}>Close</Text>
               </TouchableOpacity>
             </View>
 
@@ -593,161 +628,148 @@ const st = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingTop: 14, paddingBottom: 20 },
 
-  /* ── Hero ── */
-  hero: {
-    paddingHorizontal: 0,
-    paddingTop: 0,
-    paddingBottom: rs(6),
-    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
+  /* ── Header / hero — edge-to-edge, not a floating margined card.
+      hero-top: the gradient part (badge, gear, avatar, name, pills).
+      hero-static: a flat, non-gradient, non-animated panel underneath it
+      (VID/email/phone/Card) — only its bottom corners are rounded. ── */
+  hero: { marginBottom: 14 },
+  heroTop: {
+    paddingHorizontal: 16, paddingBottom: 22, paddingTop: 8,
     overflow: 'hidden',
   },
-  heroSkeleton: {
-    paddingBottom: rs(20),
-    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
-    overflow: 'hidden',
-  },
-  orbA: {
-    position: 'absolute', top: -rs(50), right: -rs(40), width: rs(180), height: rs(180),
-    borderRadius: rs(90), backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  orbB: {
-    position: 'absolute', top: rs(10), left: -rs(55), width: rs(140), height: rs(140),
-    borderRadius: rs(70), backgroundColor: 'rgba(46,158,119,0.14)',
-  },
-  heroTopRow: {
-    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: rs(6), marginBottom: 18, paddingBottom: 2,
+  heroTopbar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 6, paddingBottom: 16,
   },
   heroBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(82, 231, 122, 0.2)', alignSelf: 'flex-start',
-    paddingHorizontal: 11, paddingVertical: 5.5, borderRadius: 22, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(82, 231, 122, 0.35)',
+    backgroundColor: 'rgba(255,255,255,0.1)', alignSelf: 'flex-start',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)',
   },
-  heroBadgeTxt: { fontFamily: DISPLAY, fontSize: 11, fontWeight: '800', color: '#52e77a', letterSpacing: 0.4 },
-  heroTitle:    { fontFamily: DISPLAY, fontSize: 28, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
+  heroBadgeTxt: { fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 0.3, textTransform: 'uppercase' },
   settingsBtn:  {
-    width: 42, height: 42, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: 30, height: 30, borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.25)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)',
   },
-
-  /* Avatar */
-  heroBody:    { flexDirection: 'row', alignItems: 'flex-start', gap: 15, marginBottom: 16 },
+  heroRow: { flexDirection: 'row', alignItems: 'center', gap: 13 },
   avatarWrap:  { position: 'relative' },
-  avatar:      { width: 80, height: 80, borderRadius: 22, borderWidth: 3, borderColor: 'rgba(255,255,255,0.35)' },
+  avatar:      { width: rs(56), height: rs(56), borderRadius: rs(17), borderWidth: 2, borderColor: T.gold },
   avatarPlaceholder: {
-    width: 80, height: 80, borderRadius: 22,
+    width: rs(56), height: rs(56), borderRadius: rs(17),
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)',
+    borderWidth: 2, borderColor: T.gold,
   },
-  avatarInitial: { fontFamily: DISPLAY, fontSize: 34, fontWeight: '900', color: '#fff' },
+  avatarInitial: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '900', color: '#fff' },
   cameraBadge: {
-    position: 'absolute', bottom: -5, right: -5,
-    width: 30, height: 30, borderRadius: 15,
+    position: 'absolute', bottom: -4, right: -4,
+    width: 19, height: 19, borderRadius: 9,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2.5, borderColor: C.g800,
+    borderWidth: 2, borderColor: T.forest,
   },
+  heroInfo: { flex: 1, minWidth: 0 },
+  heroName: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '700', color: '#fff' },
+  heroOwner: { fontSize: 13, color: 'rgba(255,255,255,0.62)', marginTop: 2, fontWeight: '600' },
+  heroPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  pill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 2.5, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  pillRating: { backgroundColor: 'rgba(221,163,63,0.2)' },
+  pillTxt: { fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 0.1 },
 
-  /* Info */
-  heroInfo:  { flex: 1, justifyContent: 'flex-start' },
-  heroName:  { fontFamily: DISPLAY, fontSize: 18, fontWeight: '900', color: '#fff', marginBottom: 2, letterSpacing: 0.2 },
-  heroOwner: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginBottom: 8, fontWeight: '600', letterSpacing: 0.1 },
-  heroVid:   { color: 'rgba(255,255,255,0.7)', fontSize: 10.5, marginTop: 3, fontWeight: '600', letterSpacing: 0.1 },
-  pillRow:   { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 10 },
-  statusPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
-    borderWidth: 1.1,
+  heroStatic: {
+    flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6,
+    backgroundColor: T.forestDark, paddingHorizontal: 18, paddingVertical: 9,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
+    borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22),
   },
-  statusPillTone: { backgroundColor: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.2)' },
-  cardBtn: { backgroundColor: 'rgba(255,255,255,0.18)', borderColor: 'rgba(255,255,255,0.35)', borderWidth: 1.2 },
-  cardBtnEmoji: { fontSize: 11 },
-  statusTxt: { fontSize: 10.5, fontWeight: '800', letterSpacing: 0.15 },
+  heroStaticTxt:  { fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: '600' },
+  heroStaticBold: { color: 'rgba(255,255,255,0.85)', fontWeight: '800' },
+  heroStaticSep:  { fontSize: 12, color: 'rgba(255,255,255,0.25)' },
+  cardFlipBtn: {
+    marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)',
+    borderRadius: 14, paddingHorizontal: 9, paddingVertical: 4,
+  },
+  cardFlipBtnEmoji: { fontSize: 11 },
+  cardFlipBtnTxt: { fontSize: 11, fontWeight: '700', color: '#fff' },
 
-  /* Contact strip */
-  contactStrip: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 14, paddingHorizontal: 15, paddingVertical: 11,
-    borderWidth: 1.2, borderColor: 'rgba(255,255,255,0.18)', gap: 9,
-    marginBottom: 4,
-  },
-  contactItem: { flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 },
-  contactTxt:  { fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: '600', flex: 1, letterSpacing: 0.1 },
-  contactDot:  { width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'rgba(255,255,255,0.3)' },
-
-  /* ── Stats Grid ── */
-  statsGrid: {
-    flexDirection: 'row', flexWrap: 'wrap',
-    paddingHorizontal: 16, marginTop: -rs(18), gap: 10,
-  },
-  statCard: {
-    width: '22%', flex: 1,
-    backgroundColor: C.card, borderRadius: rs(16),
-    alignItems: 'center', paddingVertical: 14, paddingHorizontal: 6,
+  /* ── Stats rail — one card, thin dividers, compact ── */
+  statsRail: {
+    flexDirection: 'row',
+    marginHorizontal: 16, backgroundColor: C.card, borderRadius: rs(18),
     borderWidth: 1, borderColor: C.border,
     ...cardShadow,
   },
+  stat: { flex: 1, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 4 },
+  statDivider: { borderRightWidth: 1, borderRightColor: C.border },
   statIconBox: {
-    width: 38, height: 38, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 8,
+    width: 24, height: 24, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 5,
   },
-  statValue: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 3 },
-  statLabel: { fontSize: 10, color: C.muted, fontWeight: '600', textAlign: 'center' },
+  statValue: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text, marginBottom: 1 },
+  statLabel: { fontSize: 8.5, color: C.muted, fontWeight: '600', textAlign: 'center' },
 
   /* ── Sections ── */
   section:      { paddingHorizontal: 16, marginTop: 20 },
   sectionHead:  { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: C.g700, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: C.g700, textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  menuCard: {
+  /* ── Action grid (replaces the bordered menu list) ── */
+  /* ── Menu sections — one grouped card per section, rows + chevron ── */
+  groupCard: {
     backgroundColor: C.card, borderRadius: rs(16),
     borderWidth: 1, borderColor: C.border,
     overflow: 'hidden',
     ...cardShadow,
   },
   menuRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 14, paddingVertical: 13, gap: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 14, paddingVertical: 13,
   },
-  menuRowBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
-  menuIconBox:   {
-    width: 38, height: 38, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
+  menuRowDivider: { borderBottomWidth: 1, borderBottomColor: C.border },
+  menuRowIconBox: {
+    width: 34, height: 34, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  menuLabel: { fontFamily: DISPLAY, flex: 1, fontSize: 15, fontWeight: '600', color: C.text },
-  menuArrow: {
-    width: 28, height: 28, borderRadius: 8,
-    backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center',
-  },
+  menuRowLabel: { fontFamily: DISPLAY, flex: 1, fontSize: 13.5, fontWeight: '700', color: C.text },
 
   /* ── Get Started CTA ── */
-  getStartedBtn:    { marginHorizontal: 16, marginTop: 20, borderRadius: rs(16), overflow: 'hidden' },
-  getStartedGrad:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 14, gap: 12 },
-  getStartedIconBox:{ width: 38, height: 38, borderRadius: 12, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-  getStartedTxt:    { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#1E3A8A' },
-  getStartedSub:    { fontSize: 11, color: C.blue, marginTop: 2, fontWeight: '600' },
+  getStartedCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderRadius: rs(16), padding: 14,
+  },
+  getStartedIconCircle: {
+    width: 40, height: 40, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  getStartedTxt:    { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: '800', color: '#fff' },
+  getStartedSub:    { fontSize: 11.5, color: 'rgba(255,255,255,0.68)', marginTop: 2, fontWeight: '600' },
+  getStartedPill:   {
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 20, flexShrink: 0,
+  },
+  getStartedPillTxt: { fontSize: 12, fontWeight: '800', color: '#3a2a06' },
 
   /* ── Logout ── */
-  logoutBtn:  { marginHorizontal: 16, marginTop: 10, borderRadius: rs(16), overflow: 'hidden' },
-  logoutGrad: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 14, paddingVertical: 14, gap: 12,
+  logoutCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 16, marginTop: 10, padding: 13,
+    backgroundColor: C.redL, borderRadius: rs(16),
   },
   logoutIconBox: {
-    width: 38, height: 38, borderRadius: 12,
+    width: 32, height: 32, borderRadius: 10,
     backgroundColor: '#FECACA', alignItems: 'center', justifyContent: 'center',
   },
-  logoutTxt: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '700', color: C.red },
+  logoutTxt: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '700', color: C.red },
 
   /* ── Version ── */
   versionRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, marginTop: 20,
   },
-  versionTxt: { fontSize: 12, color: C.muted, fontWeight: '500' },
-
-  /* ── Loader ── */
-  loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
-  loaderTxt:  { fontSize: 14, color: C.muted },
+  versionTxt: { fontSize: 13, color: C.muted, fontWeight: '500' },
 });

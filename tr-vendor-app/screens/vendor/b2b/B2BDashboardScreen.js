@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, ActivityIndicator, StatusBar, Platform,
+  RefreshControl, StatusBar, Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -11,7 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getB2BStats, getB2BMyQuotes } from '../../api/client';
 import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -37,6 +37,10 @@ const QUOTE_STATUS = {
 const fmt = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '--';
 const fmtPrice = (n) => (n || 0).toLocaleString('en-IN');
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 export default function B2BDashboardScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -85,8 +89,7 @@ export default function B2BDashboardScreen({ navigation }) {
 
       {/* ── Fixed header (does not scroll) ── */}
       <LinearGradient colors={G.hero} style={[s.headerGrad, { paddingTop: insets.top + 12 }]}>
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.headerBtn} activeOpacity={0.8}>
@@ -98,27 +101,6 @@ export default function B2BDashboardScreen({ navigation }) {
           </View>
           <View style={{ width: 36 }} />
         </View>
-
-        {/* Stats strip */}
-        <View style={s.statsStrip}>
-          {[
-            { label: 'Open Requests', value: stats.openBookings, icon: 'briefcase-outline',     route: 'B2BOpenBookings' },
-            { label: 'My Quotes',     value: stats.myQuotes,     icon: 'file-document-outline', route: 'B2BMyQuotes'     },
-          ].map((item, i) => (
-            <React.Fragment key={i}>
-              {i > 0 && <View style={s.stripDiv} />}
-              <TouchableOpacity
-                style={s.stripItem}
-                onPress={() => navigation.navigate(item.route)}
-                activeOpacity={0.7}
-              >
-                <MCI name={item.icon} size={15} color="rgba(255,255,255,0.55)" style={{ marginBottom: 4 }} />
-                <Text style={s.stripValue}>{loading ? '—' : item.value}</Text>
-                <Text style={s.stripLabel}>{item.label}</Text>
-              </TouchableOpacity>
-            </React.Fragment>
-          ))}
-        </View>
       </LinearGradient>
 
       <ScrollView
@@ -129,12 +111,87 @@ export default function B2BDashboardScreen({ navigation }) {
       >
         {/* ── Body content ── */}
         {loading ? (
-          <View style={s.loadingWrap}>
-            <ActivityIndicator size="large" color={C.g600} />
-            <Text style={s.loadingText}>Loading...</Text>
-          </View>
+          <>
+            {/* Stats strip skeleton — separate cards, one per stat */}
+            <View style={[s.statsStrip, s.statsStripBody]}>
+              {[0, 1].map((i) => (
+                <View key={i} style={s.stripCard}>
+                  <Bone w={32} h={32} r={10} />
+                  <View style={{ flex: 1 }}>
+                    <Bone w={30} h={16} r={4} style={{ marginBottom: 4 }} />
+                    <Bone w={80} h={11} r={3} />
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            {/* Quick Actions skeleton */}
+            <View style={s.section}>
+              <Text style={s.sectionLabel}>Quick Actions</Text>
+              <View style={s.actionsGrid}>
+                {[0, 1].map((i) => (
+                  <View key={i} style={s.actionCard}>
+                    <Bone w={42} h={42} r={12} />
+                    <View style={s.actionText}>
+                      <Bone w={110} h={13} style={{ marginBottom: 6 }} />
+                      <Bone w={140} h={11} />
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Recent Quotes skeleton */}
+            <View style={s.section}>
+              <Text style={s.sectionLabel}>Recent Quotes</Text>
+              <View style={s.card}>
+                {[0, 1].map((i) => (
+                  <React.Fragment key={i}>
+                    {i > 0 && <View style={s.divider} />}
+                    <View style={s.quoteRow}>
+                      <Bone w={8} h={8} r={4} />
+                      <View style={s.quoteBody}>
+                        <View style={s.quoteTopRow}>
+                          <Bone w={70} h={12} />
+                          <Bone w={60} h={13} />
+                        </View>
+                        <View style={s.quoteBotRow}>
+                          <Bone w={100} h={11} />
+                          <Bone w={64} h={16} r={6} />
+                        </View>
+                        <Bone w={80} h={10} />
+                      </View>
+                    </View>
+                  </React.Fragment>
+                ))}
+              </View>
+            </View>
+          </>
         ) : (
           <>
+            {/* Stats strip — separate cards, one per stat */}
+            <View style={[s.statsStrip, s.statsStripBody]}>
+              {[
+                { label: 'Open Requests', value: stats.openBookings, icon: 'briefcase-outline',     route: 'B2BOpenBookings', color: C.blue,   bg: C.blueBg   },
+                { label: 'My Quotes',     value: stats.myQuotes,     icon: 'file-document-outline', route: 'B2BMyQuotes',     color: C.purple, bg: C.purpleBg },
+              ].map((item, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={s.stripCard}
+                  onPress={() => navigation.navigate(item.route)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[s.stripIconBox, { backgroundColor: item.bg }]}>
+                    <MCI name={item.icon} size={16} color={item.color} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.stripValue}>{item.value}</Text>
+                    <Text style={s.stripLabel}>{item.label}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             {/* Quick Actions */}
             <View style={s.section}>
               <Text style={s.sectionLabel}>Quick Actions</Text>
@@ -269,18 +326,14 @@ const s = StyleSheet.create({
   scrollContent: {},
 
   /* Header */
-  headerGrad: { paddingHorizontal: 16, paddingBottom: 20 },
-  deco1: {
-    position: 'absolute', width: 160, height: 160, borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.04)', top: -30, right: -30,
+  headerGrad: {
+    paddingHorizontal: 16, paddingBottom: 8,
+    overflow: 'hidden',
+    borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22),
   },
-  deco2: {
-    position: 'absolute', width: 100, height: 100, borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.03)', bottom: 0, left: -20,
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingBottom: 14,
   },
   headerBtn: {
     width: 36, height: 36, borderRadius: 18,
@@ -289,23 +342,28 @@ const s = StyleSheet.create({
   },
   headerCenter: { flex: 1, alignItems: 'center' },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700', fontFamily: DISPLAY },
-  headerSub: { color: 'rgba(255,255,255,0.6)', fontSize: 11, marginTop: 2 },
+  headerSub: { color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 },
 
-  statsStrip: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: rs(14),
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+  statsStrip: { flexDirection: 'row', gap: 10 },
+  statsStripBody: { paddingHorizontal: 16, paddingTop: 16 },
+  stripCard: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.surface, borderRadius: rs(14),
+    borderWidth: 1, borderColor: C.border, ...cardShadow,
+    paddingHorizontal: 12, paddingVertical: 10,
   },
-  stripDiv: { width: 1, backgroundColor: 'rgba(255,255,255,0.15)', marginVertical: 10 },
-  stripItem: { flex: 1, alignItems: 'center', paddingVertical: 12 },
-  stripValue: { color: '#fff', fontSize: 22, fontWeight: '800', fontFamily: DISPLAY },
-  stripLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 10, marginTop: 2, textAlign: 'center' },
+  stripIconBox: {
+    width: 32, height: 32, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  stripValue: { color: C.text, fontSize: 16, fontWeight: '800', fontFamily: DISPLAY },
+  stripLabel: { color: C.muted, fontSize: 11, marginTop: 1 },
 
   /* Section */
   section: { paddingHorizontal: 16, paddingTop: 20 },
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   sectionLabel: { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 10 },
-  viewAll: { fontSize: 13, fontWeight: '600', color: C.g600 },
+  viewAll: { fontSize: 14, fontWeight: '600', color: C.g600 },
 
   /* Card */
   card: {
@@ -327,22 +385,22 @@ const s = StyleSheet.create({
   actionIconBox: { width: 42, height: 42, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   actionText: { flex: 1 },
   actionTitle: { fontSize: 14, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
-  actionSub: { fontSize: 12, color: C.muted, marginTop: 1 },
+  actionSub: { fontSize: 13, color: C.muted, marginTop: 1 },
   actionBadge: { minWidth: 28, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 },
-  actionBadgeText: { fontSize: 12, fontWeight: '800' },
+  actionBadgeText: { fontSize: 13, fontWeight: '800' },
 
   /* Quotes */
   quoteRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
   quoteDot: { width: 8, height: 8, borderRadius: 4 },
   quoteBody: { flex: 1 },
   quoteTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 },
-  quoteNum: { fontSize: 12, fontWeight: '700', color: C.text },
-  quotePrice: { fontSize: 13, fontWeight: '800', color: C.g600, fontFamily: DISPLAY },
+  quoteNum: { fontSize: 13, fontWeight: '700', color: C.text },
+  quotePrice: { fontSize: 14, fontWeight: '800', color: C.g600, fontFamily: DISPLAY },
   quoteBotRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 },
-  quoteCompany: { fontSize: 12, color: C.sub, flex: 1, marginRight: 8 },
+  quoteCompany: { fontSize: 13, color: C.sub, flex: 1, marginRight: 8 },
   statusChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
-  statusChipText: { fontSize: 9, fontWeight: '700' },
-  quoteDate: { fontSize: 10, color: C.muted },
+  statusChipText: { fontSize: 10, fontWeight: '700' },
+  quoteDate: { fontSize: 11, color: C.muted },
 
   /* Empty */
   emptyCard: {
@@ -351,26 +409,23 @@ const s = StyleSheet.create({
     alignItems: 'center', paddingVertical: 28, paddingHorizontal: 20, gap: 6,
   },
   emptyTitle: { fontSize: 14, fontWeight: '700', color: C.text, marginTop: 4, fontFamily: DISPLAY },
-  emptySub: { fontSize: 12, color: C.sub, textAlign: 'center', lineHeight: 18 },
+  emptySub: { fontSize: 13, color: C.sub, textAlign: 'center', lineHeight: 18 },
   emptyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: C.g50, borderRadius: 20, marginTop: 8,
     paddingHorizontal: 16, paddingVertical: 8,
     borderWidth: 1, borderColor: C.g300,
   },
-  emptyBtnText: { fontSize: 13, fontWeight: '600', color: C.g700 },
+  emptyBtnText: { fontSize: 14, fontWeight: '600', color: C.g700 },
 
   /* How It Works */
   howRow: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 16 },
   howLeft: { alignItems: 'center', width: 36, marginRight: 12 },
   howNumBox: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center' },
-  howNumText: { fontSize: 13, fontWeight: '800' },
+  howNumText: { fontSize: 14, fontWeight: '800' },
   howLine: { width: 1.5, height: 24, backgroundColor: C.border, marginTop: 4 },
   howContent: { flex: 1, paddingBottom: 8 },
-  howTitle: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 3, fontFamily: DISPLAY },
-  howDesc: { fontSize: 12, color: C.sub, lineHeight: 18 },
+  howTitle: { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 3, fontFamily: DISPLAY },
+  howDesc: { fontSize: 13, color: C.sub, lineHeight: 18 },
 
-  /* Loading */
-  loadingWrap: { alignItems: 'center', paddingTop: 80, gap: 10 },
-  loadingText: { fontSize: 13, color: C.muted },
 });

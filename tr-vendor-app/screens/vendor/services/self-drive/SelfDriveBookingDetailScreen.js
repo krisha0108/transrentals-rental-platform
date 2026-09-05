@@ -31,7 +31,11 @@ import {
 } from '../../../api/client';
 import { SC as T, G, rs, cardShadow, shade } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 // How far the ticket summary card rides up over the hero's rounded bottom
 // edge. Same technique/constant role as the bike sibling detail screens'
@@ -293,8 +297,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
       <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={styles.hero}>
-          <AnimatedOrb style={styles.deco1} />
-          <AnimatedOrb style={styles.deco2} delay={1200} dx={-10} dy={8} />
+          <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']}>
             <View style={styles.topBar}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -308,10 +311,128 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
             </View>
           </SafeAreaView>
         </LinearGradient>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={C.g500} />
-          <Text style={styles.loadingText}>Loading booking details...</Text>
-        </View>
+
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Identity card skeleton — now a body panel */}
+          <View style={styles.identityCard}>
+            <View style={styles.identityBlock}>
+              <Bone w={rs(48)} h={rs(48)} r={rs(14)} />
+              <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12), gap: 6 }}>
+                <Bone w={70} h={9} r={3} />
+                <Bone w={130} h={16} r={4} />
+                <Bone w={100} h={11} r={4} />
+              </View>
+            </View>
+          </View>
+
+          {/* Ticket summary skeleton */}
+          <View style={styles.ticketWrap}>
+            <View style={[styles.ticketRail, { backgroundColor: '#DDE4EE' }]} />
+            <View style={styles.ticketUpperStub}>
+              <Bone w={rs(44)} h={rs(44)} r={rs(12)} />
+              <View style={{ flex: 1, gap: 5 }}>
+                <Bone w={60} h={9} r={3} />
+                <Bone w={100} h={16} r={4} />
+              </View>
+              <Bone w={70} h={22} r={20} />
+            </View>
+            <View style={styles.perforationRow}>
+              <View style={styles.dashLine} />
+            </View>
+            <View style={styles.ticketLowerStub}>
+              <Bone w={rs(30)} h={rs(30)} r={rs(9)} />
+              <View style={{ flex: 1, gap: 5 }}>
+                <Bone w={90} h={9} r={3} />
+                <Bone w={120} h={16} r={4} />
+              </View>
+            </View>
+          </View>
+
+          {/* Status strip skeleton */}
+          <View style={styles.statusStrip}>
+            {[0,1,2].map(i => (
+              <React.Fragment key={i}>
+                {i > 0 && <View style={styles.statusLine} />}
+                <View style={styles.statusStep}>
+                  <Bone w={24} h={24} r={12} />
+                  <Bone w={44} h={9} r={3} style={{ marginTop: 6 }} />
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+
+          {/* Status banner skeleton */}
+          <View style={styles.statusBanner}>
+            <Bone w={26} h={26} r={13} />
+            <View style={styles.statusTextWrap}>
+              <Bone w={110} h={14} r={4} style={{ marginBottom: 6 }} />
+              <Bone w={140} h={10} r={4} />
+            </View>
+          </View>
+
+          {/* Customer Information card skeleton */}
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Bone w={34} h={34} r={10} />
+              <Bone w={150} h={13} r={4} />
+            </View>
+            <View style={styles.customerGrid}>
+              <View style={styles.infoBox}>
+                <Bone w={40} h={40} r={12} />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Bone w={50} h={9} r={3} />
+                  <Bone w={100} h={13} r={4} />
+                </View>
+              </View>
+            </View>
+            <View style={styles.quickActions}>
+              <Bone h={40} r={12} style={{ flex: 1 }} />
+              <Bone h={40} r={12} style={{ flex: 1 }} />
+            </View>
+          </View>
+
+          {/* Vehicle & Trip card skeleton */}
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Bone w={34} h={34} r={10} />
+              <Bone w={140} h={13} r={4} />
+            </View>
+            <View style={styles.vehicleBox}>
+              <Bone w={64} h={64} r={16} />
+              <View style={{ flex: 1, gap: 6 }}>
+                <Bone w={130} h={15} r={4} />
+                <Bone w={90} h={11} r={4} />
+              </View>
+            </View>
+            <View style={styles.rentalRail}>
+              <View style={styles.rentalGutter}>
+                <Bone w={10} h={10} r={5} />
+                <View style={styles.rentalLine} />
+                <Bone w={10} h={10} r={5} />
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Bone w={50} h={9} r={3} />
+                <Bone w={100} h={14} r={4} style={{ marginBottom: rs(12) }} />
+                <Bone w={60} h={9} r={3} />
+                <Bone w={90} h={14} r={4} />
+              </View>
+            </View>
+          </View>
+
+          {/* Payment Summary card skeleton */}
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Bone w={34} h={34} r={10} />
+              <Bone w={140} h={13} r={4} />
+            </View>
+            {[0,1,2].map(i => (
+              <View key={i} style={styles.payRow}>
+                <Bone w={70} h={11} r={4} />
+                <Bone w={60} h={11} r={4} />
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -321,8 +442,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
       <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={styles.hero}>
-          <AnimatedOrb style={styles.deco1} />
-          <AnimatedOrb style={styles.deco2} delay={1200} dx={-10} dy={8} />
+          <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']}>
             <View style={styles.topBar}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -366,8 +486,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
 
       {/* ══ Hero ═════════════════════════════════════════════════════════ */}
       <LinearGradient colors={G.hero} style={styles.hero}>
-        <AnimatedOrb style={styles.deco1} />
-        <AnimatedOrb style={styles.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
         <SafeAreaView edges={['top']}>
           <View style={styles.topBar}>
@@ -380,18 +499,6 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
             </View>
             <View style={{ width: 36 }} />
           </View>
-
-          {/* Identity block — booking # + customer, mirrors sibling detail screens */}
-          <View style={styles.identityBlock}>
-            <View style={styles.identityIcon}>
-              <MaterialCommunityIcons name="car-side" size={24} color="#fff" />
-            </View>
-            <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12) }}>
-              <Text style={styles.identityLabel}>BOOKING #</Text>
-              <Text style={styles.identityName} numberOfLines={1}>{booking.bookingNumber || booking.id}</Text>
-              <Text style={styles.identitySub} numberOfLines={1}>{booking.customerName || 'Customer'}</Text>
-            </View>
-          </View>
         </SafeAreaView>
       </LinearGradient>
 
@@ -403,6 +510,20 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
         }
         showsVerticalScrollIndicator={false}
       >
+        {/* Identity card — booking # + customer, now a body panel */}
+        <View style={styles.identityCard}>
+          <View style={styles.identityBlock}>
+            <View style={styles.identityIcon}>
+              <MaterialCommunityIcons name="car-side" size={24} color={C.g700} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12) }}>
+              <Text style={styles.identityLabel}>BOOKING #</Text>
+              <Text style={styles.identityName} numberOfLines={1}>{booking.bookingNumber || booking.id}</Text>
+              <Text style={styles.identitySub} numberOfLines={1}>{booking.customerName || 'Customer'}</Text>
+            </View>
+          </View>
+        </View>
+
         {/* ── Ticket summary — status & grand total, floated over the hero ── */}
         <View style={styles.ticketWrap}>
           <LinearGradient
@@ -1016,11 +1137,6 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 32,
   },
-  loadingText: {
-    fontSize: 14,
-    color: C.muted,
-    marginTop: 8,
-  },
   emptyIconWrap: {
     width: 80, height: 80, borderRadius: 40,
     backgroundColor: C.g50,
@@ -1032,20 +1148,13 @@ const styles = StyleSheet.create({
 
   // ── Hero ──────────────────────────────────────────────────────────────
   hero: {
-    paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden',
+    paddingHorizontal: 16, paddingBottom: 12, overflow: 'hidden',
     borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
   },
-  deco1: {
-    position: 'absolute', width: 190, height: 190, borderRadius: 95,
-    backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40,
-  },
-  deco2: {
-    position: 'absolute', width: 120, height: 120, borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.045)', bottom: -10, left: 40,
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   topBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 10, marginBottom: 16,
+    paddingTop: 10,
   },
   backBtn: {
     width: 36, height: 36, borderRadius: 18,
@@ -1055,15 +1164,16 @@ const styles = StyleSheet.create({
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   heroTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
-  identityBlock: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 2 },
+  identityCard: { backgroundColor: C.card, borderRadius: rs(16), padding: 14, borderWidth: 1, borderColor: C.border, ...cardShadow, marginBottom: 14 },
+  identityBlock: { flexDirection: 'row', alignItems: 'center' },
   identityIcon: {
     width: rs(48), height: rs(48), borderRadius: rs(14),
-    backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
     alignItems: 'center', justifyContent: 'center',
   },
-  identityLabel: { fontSize: 9.5, color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: 1.4, marginBottom: 3 },
-  identityName: { fontFamily: DISPLAY, fontSize: 19, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
-  identitySub: { fontSize: 12.5, color: 'rgba(255,255,255,0.65)', fontWeight: '600', marginTop: 3 },
+  identityLabel: { fontSize: 10.5, color: C.muted, fontWeight: '700', letterSpacing: 1.4, marginBottom: 3 },
+  identityName: { fontFamily: DISPLAY, fontSize: 19, fontWeight: '900', color: C.text, letterSpacing: -0.3 },
+  identitySub: { fontSize: 13.5, color: C.muted, fontWeight: '600', marginTop: 3 },
 
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingTop: TICKET_OVERLAP, paddingBottom: 40 },
@@ -1080,11 +1190,11 @@ const styles = StyleSheet.create({
     width: rs(44), height: rs(44), borderRadius: rs(12),
     backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
   },
-  ticketLabel: { fontSize: 9.5, color: C.muted, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
+  ticketLabel: { fontSize: 10.5, color: C.muted, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
   ticketNumber: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '900', color: C.text, letterSpacing: -0.3 },
 
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
-  statusPillTxt: { fontSize: 11, fontWeight: '700' },
+  statusPillTxt: { fontSize: 12, fontWeight: '700' },
 
   perforationRow: { height: 2, justifyContent: 'center' },
   dashLine: { marginHorizontal: 20, borderTopWidth: 1, borderColor: C.border, borderStyle: 'dashed' },
@@ -1096,7 +1206,7 @@ const styles = StyleSheet.create({
     width: rs(30), height: rs(30), borderRadius: rs(9),
     backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
   },
-  ticketAmountLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
+  ticketAmountLabel: { fontSize: 11, color: C.muted, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
   ticketAmountVal: { fontFamily: DISPLAY, fontSize: 24, fontWeight: '900', color: C.g700, letterSpacing: -0.4 },
 
   // ── Status progression strip ──
@@ -1110,8 +1220,8 @@ const styles = StyleSheet.create({
   statusDot: { width: 24, height: 24, borderRadius: 12, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   statusDotDone: { backgroundColor: C.g500, borderColor: C.g500 },
   statusDotCurrent: { backgroundColor: C.amber, borderColor: C.amber },
-  statusDotNum: { fontSize: 11, fontWeight: '800', color: C.muted },
-  statusStepLbl: { fontSize: 10, fontWeight: '600', color: C.muted, textAlign: 'center' },
+  statusDotNum: { fontSize: 12, fontWeight: '800', color: C.muted },
+  statusStepLbl: { fontSize: 11, fontWeight: '600', color: C.muted, textAlign: 'center' },
 
   // ── Status banner ──
   statusBanner: {
@@ -1122,7 +1232,7 @@ const styles = StyleSheet.create({
   },
   statusTextWrap: { flex: 1 },
   statusLabel: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
-  statusDate: { fontSize: 12, color: C.muted },
+  statusDate: { fontSize: 13, color: C.muted },
 
   // ── Cards ──
   card: {
@@ -1139,18 +1249,18 @@ const styles = StyleSheet.create({
   cardHead0: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   quoteBody: { marginTop: 14, gap: 10 },
   quoteSub: { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, gap: 8 },
-  quoteSubTitle: { fontSize: 11, fontWeight: '800', color: C.sub, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
-  quoteLiTxt: { flex: 1, fontSize: 12.5, color: C.sub, lineHeight: 18 },
+  quoteSubTitle: { fontSize: 12, fontWeight: '800', color: C.sub, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
+  quoteLiTxt: { flex: 1, fontSize: 13.5, color: C.sub, lineHeight: 18 },
   pillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingRight: 12, paddingLeft: 7, borderRadius: 20 },
   pillPip: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  pillTxt: { fontSize: 12, fontWeight: '600' },
+  pillTxt: { fontSize: 13, fontWeight: '600' },
   termsCard: { backgroundColor: C.bg, borderRadius: rs(12), padding: 11 },
   termLine: { flexDirection: 'row', gap: 8, marginBottom: 7 },
-  termNum: { fontSize: 12, fontWeight: '800', color: C.text },
-  termTxt: { flex: 1, fontSize: 12, color: C.sub, lineHeight: 18 },
+  termNum: { fontSize: 13, fontWeight: '800', color: C.text },
+  termTxt: { flex: 1, fontSize: 13, color: C.sub, lineHeight: 18 },
   quoteNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: C.bg, borderRadius: rs(10), padding: 10, marginTop: 4 },
-  quoteValid: { fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 6 },
+  quoteValid: { fontSize: 12, color: C.muted, fontStyle: 'italic', marginTop: 6 },
   totalRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: C.g50, borderRadius: rs(12), padding: 14,
@@ -1161,8 +1271,8 @@ const styles = StyleSheet.create({
 
   // Generic pay row (quote details + payment summary)
   payRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
-  payLabel: { fontSize: 13, color: C.sub },
-  payVal: { fontSize: 13, fontWeight: '600', color: C.text },
+  payLabel: { fontSize: 14, color: C.sub },
+  payVal: { fontSize: 14, fontWeight: '600', color: C.text },
 
   // Customer grid
   customerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12 },
@@ -1170,27 +1280,27 @@ const styles = StyleSheet.create({
   infoBoxFull: { minWidth: '100%' },
   infoIconBox: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   infoContent: { flex: 1 },
-  infoLabel: { fontSize: 12, color: C.muted, marginBottom: 2 },
+  infoLabel: { fontSize: 13, color: C.muted, marginBottom: 2 },
   infoValue: { fontSize: 14, fontWeight: '600', color: C.text },
 
   // Quick actions
   quickActions: { flexDirection: 'row', gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border },
   quickActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 12 },
-  quickActionText: { fontSize: 13, fontWeight: '600' },
+  quickActionText: { fontSize: 14, fontWeight: '600' },
 
   // Vehicle box
   vehicleBox: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, backgroundColor: C.bg, borderRadius: 12, marginBottom: 16 },
   vehicleIconWrap: { width: 64, height: 64, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   vehicleInfo: { flex: 1 },
   vehicleName: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text, marginBottom: 4 },
-  vehicleDetails: { fontSize: 13, color: C.muted },
+  vehicleDetails: { fontSize: 14, color: C.muted },
   assignedBadge: { marginTop: 8, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: C.g50, borderRadius: 12, alignSelf: 'flex-start' },
-  assignedText: { fontSize: 11, fontWeight: '600', color: C.g700 },
+  assignedText: { fontSize: 12, fontWeight: '600', color: C.g700 },
 
   // Trip info grid
   tripInfoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
   tripInfoItem: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'flex-start' },
-  tripInfoLabel: { fontSize: 11, color: C.muted, textTransform: 'uppercase', fontWeight: '600', marginBottom: 4 },
+  tripInfoLabel: { fontSize: 12, color: C.muted, textTransform: 'uppercase', fontWeight: '600', marginBottom: 4 },
   tripInfoValue: { fontSize: 14, fontWeight: '600', color: C.text },
 
   // Rental period rail (pickup → drop-off)
@@ -1202,9 +1312,9 @@ const styles = StyleSheet.create({
   rentalGutter: { alignItems: 'center', paddingTop: 3 },
   rentalDot: { width: 10, height: 10, borderRadius: 5 },
   rentalLine: { width: 2, flex: 1, minHeight: rs(28), backgroundColor: C.border, marginVertical: 4 },
-  rentalLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 0.6 },
+  rentalLabel: { fontSize: 11, color: C.muted, fontWeight: '700', letterSpacing: 0.6 },
   rentalValue: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '700', color: C.text, marginTop: 2 },
-  rentalTime: { fontSize: 12, color: C.sub, marginTop: 1 },
+  rentalTime: { fontSize: 13, color: C.sub, marginTop: 1 },
 
   // Payment summary
   paymentDetails: { gap: 2 },
@@ -1217,8 +1327,8 @@ const styles = StyleSheet.create({
 
   // Trip control / OTP
   messageBox: { padding: 12, borderRadius: 8, borderWidth: 1, marginBottom: 16 },
-  messageText: { fontSize: 13, fontWeight: '500' },
-  tripControlDesc: { fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 18 },
+  messageText: { fontSize: 14, fontWeight: '500' },
+  tripControlDesc: { fontSize: 14, color: C.muted, marginBottom: 16, lineHeight: 18 },
   otpBtnWrap: { borderRadius: 12, overflow: 'hidden', marginBottom: 12 },
   otpBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
   otpButton: {
@@ -1233,9 +1343,9 @@ const styles = StyleSheet.create({
     backgroundColor: C.g50, borderRadius: 12, borderWidth: 1, borderColor: C.g100, marginBottom: 16,
   },
   otpSentTitle: { fontSize: 14, fontWeight: '700', color: C.g700, marginBottom: 4 },
-  otpSentDesc: { fontSize: 12, color: C.muted, lineHeight: 16 },
+  otpSentDesc: { fontSize: 13, color: C.muted, lineHeight: 16 },
   otpInputSection: { marginBottom: 16 },
-  otpInputLabel: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 8 },
+  otpInputLabel: { fontSize: 14, fontWeight: '600', color: C.text, marginBottom: 8 },
   otpInputWrapper: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingHorizontal: 16, paddingVertical: 12,
@@ -1247,7 +1357,7 @@ const styles = StyleSheet.create({
   completedCard: { backgroundColor: C.greenL, borderColor: C.green },
   completedInner: { alignItems: 'center', paddingVertical: 12 },
   completedTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.green, marginTop: 12 },
-  completedDesc: { fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 18, textAlign: 'center', marginTop: 8 },
+  completedDesc: { fontSize: 14, color: C.muted, marginBottom: 16, lineHeight: 18, textAlign: 'center', marginTop: 8 },
 
   // Notes
   notesBox: { padding: 14, backgroundColor: C.amberL, borderRadius: 12 },

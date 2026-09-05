@@ -14,7 +14,7 @@ import { getFleetService, addFleetService } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
 import { SC as T, G, TONES, rs, rf, GUT, shade, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already used everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -32,6 +32,10 @@ const SERVICE_TYPES = [
   'Coolant Change', 'Transmission Fluid', 'Battery Replacement', 'AC Service',
   'Full Service', 'Wheel Alignment', 'Clutch Repair', 'Engine Repair', 'Body Work', 'Other',
 ];
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 function fmt(n) { return Math.round(n || 0).toLocaleString('en-IN'); }
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'; }
@@ -179,18 +183,63 @@ export default function ServiceMaintenanceScreen({ navigation }) {
   if (loading) return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-      <LinearGradient colors={G.hero} style={styles.headerGradLoading}>
+
+      <LinearGradient colors={G.hero} style={styles.headerGrad}>
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
           <View style={styles.headerTopRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Icon name="arrow-left" size={rs(20)} color="#fff" />
             </TouchableOpacity>
-            <Text style={styles.loadTitle}>Service & Maintenance</Text>
-            <View style={{ width: rs(40) }} />
+            <View style={styles.titleWrap}>
+              <View style={styles.heroBadge}>
+                <MaterialCommunityIcons name="wrench-outline" size={rs(11)} color={C.g400} />
+                <Text style={styles.heroBadgeTxt}>Fleet Management</Text>
+              </View>
+              <Text style={styles.headerTitle}>Service & Maintenance</Text>
+            </View>
+            <TouchableOpacity onPress={openAdd} style={styles.addCircle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Icon name="plus" size={rs(20)} color="#fff" />
+            </TouchableOpacity>
           </View>
         </SafeAreaView>
       </LinearGradient>
-      <View style={styles.centered}><ActivityIndicator size="large" color={C.g600} /></View>
+
+      <View style={styles.summaryWrap}>
+        <View style={[styles.summaryCard, cardShadow]}>
+          {[0, 1, 2].map((i) => (
+            <React.Fragment key={i}>
+              {i > 0 && <View style={styles.summaryDivider} />}
+              <View style={styles.summaryItem}>
+                <Bone w={36} h={8} style={{ marginBottom: 5 }} />
+                <Bone w={40} h={13} />
+              </View>
+            </React.Fragment>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.scroll}>
+        {[0, 1, 2].map((i) => (
+          <View key={i} style={[styles.card, cardShadow]}>
+            <View style={[styles.cardRail, { backgroundColor: '#DDE4EE' }]} />
+            <View style={styles.cardInner}>
+              <View style={styles.cardTopStripe}>
+                <Bone w={rs(38)} h={rs(38)} r={rs(11)} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Bone w={120} h={13} style={{ marginBottom: 6 }} />
+                  <Bone w={150} h={10} />
+                </View>
+                <Bone w={60} h={15} />
+              </View>
+              <View style={styles.cardDetails}>
+                <Bone w={70} h={11} />
+                <Bone w={50} h={11} />
+              </View>
+            </View>
+          </View>
+        ))}
+      </View>
     </View>
   );
 
@@ -200,28 +249,23 @@ export default function ServiceMaintenanceScreen({ navigation }) {
 
       {/* ── Hero header ── */}
       <LinearGradient colors={G.hero} style={styles.headerGrad}>
-        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Icon name="arrow-left" size={rs(20)} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }} />
+            <View style={styles.titleWrap}>
+              <View style={styles.heroBadge}>
+                <MaterialCommunityIcons name="wrench-outline" size={rs(11)} color={C.g400} />
+                <Text style={styles.heroBadgeTxt}>Fleet Management</Text>
+              </View>
+              <Text style={styles.headerTitle}>Service & Maintenance</Text>
+            </View>
             <TouchableOpacity onPress={openAdd} style={styles.addCircle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Icon name="plus" size={rs(20)} color="#fff" />
             </TouchableOpacity>
           </View>
-
-          <View style={styles.heroBadge}>
-            <MaterialCommunityIcons name="wrench-outline" size={rs(12)} color={C.g400} />
-            <Text style={styles.heroBadgeTxt}>Fleet Management</Text>
-          </View>
-          <Text style={styles.bigTitle}>Service & Maintenance</Text>
-          <Text style={styles.bigSub}>Track servicing & repairs</Text>
-
-          {/* spacer so the floating summary card can tuck into the curve */}
-          <View style={{ height: rs(28) }} />
         </SafeAreaView>
       </LinearGradient>
 
@@ -468,26 +512,16 @@ export default function ServiceMaintenanceScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   root:    { flex: 1, backgroundColor: C.bg },
-  centered:{ flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   // ── Hero header ──
   headerGrad: {
     overflow: 'hidden',
     borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
-    paddingBottom: rs(4),
+    paddingBottom: rs(8),
   },
-  headerGradLoading: { paddingBottom: rs(14) },
-  orbA: {
-    position: 'absolute', top: -rs(50), right: -rs(30),
-    width: rs(170), height: rs(170), borderRadius: rs(85),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(60), left: -rs(40),
-    width: rs(150), height: rs(150), borderRadius: rs(75),
-    backgroundColor: 'rgba(46,158,120,0.16)',
-  },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(10) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: rs(10) },
+  titleWrap: { alignItems: 'center', justifyContent: 'center', minHeight: rs(38) },
   backCircle: {
     width: rs(38), height: rs(38), borderRadius: rs(19),
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -499,19 +533,17 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
     justifyContent: 'center', alignItems: 'center',
   },
-  loadTitle: { fontFamily: DISPLAY, fontSize: rf(17), fontWeight: '800', color: '#fff' },
 
   heroBadge: {
     flexDirection: 'row', alignItems: 'center', gap: rs(5),
-    backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start',
-    paddingHorizontal: rs(10), paddingVertical: rs(4), borderRadius: 999, marginBottom: rs(6),
+    backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'center',
+    paddingHorizontal: rs(10), paddingVertical: rs(4), borderRadius: 999, marginBottom: rs(4),
   },
   heroBadgeTxt: { fontFamily: DISPLAY, fontSize: rf(10.5), fontWeight: '700', color: C.g400, letterSpacing: 0.4 },
-  bigTitle: { fontFamily: DISPLAY, fontSize: rf(25), color: '#fff', letterSpacing: 0.2, fontWeight: '800' },
-  bigSub:   { fontFamily: DISPLAY, fontSize: rf(12.5), color: 'rgba(255,255,255,0.68)', fontWeight: '600', marginTop: rs(3) },
+  headerTitle: { fontFamily: DISPLAY, fontSize: rf(19), color: '#fff', letterSpacing: -0.2, fontWeight: '800' },
 
   // Floating summary card — tucks into the hero's bottom curve.
-  summaryWrap: { marginHorizontal: GUT, marginTop: -rs(24) },
+  summaryWrap: { marginHorizontal: GUT, marginTop: rs(14) },
   summaryCard: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: C.card, borderRadius: rs(18),

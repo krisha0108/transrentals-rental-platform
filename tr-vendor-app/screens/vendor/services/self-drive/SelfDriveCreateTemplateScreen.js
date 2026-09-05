@@ -2,7 +2,7 @@
  * SelfDriveCreateTemplateScreen.js - Create new self-drive quote template
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, StatusBar, Switch, Dimensions,
@@ -16,7 +16,7 @@ import { createTemplate } from '../../../api/client';
 import { showError, showSuccess } from '../../../../services/alertService';
 import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
 
 const { width: W } = Dimensions.get('window');
 
@@ -115,6 +115,10 @@ const catIcon = (id) => {
   return cat ? cat.icon : 'car';
 };
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 export default function SelfDriveCreateTemplateScreen({ navigation }) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
@@ -132,6 +136,12 @@ export default function SelfDriveCreateTemplateScreen({ navigation }) {
   const [newInclusion, setNewInclusion] = useState('');
   const [newExclusion, setNewExclusion] = useState('');
   const [newTerm, setNewTerm] = useState('');
+  const [initializing, setInitializing] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setInitializing(false), 350);
+    return () => clearTimeout(t);
+  }, []);
 
   const loadSuggestion = (sg) => {
     setName(sg.name); setCategory(sg.category); setDescription(sg.description);
@@ -185,14 +195,68 @@ export default function SelfDriveCreateTemplateScreen({ navigation }) {
     </View>
   );
 
+  if (initializing) {
+    return (
+      <SafeAreaView style={s.container} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={G.hero} style={s.hero}>
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+          <View style={s.heroRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={s.heroTitle}>New Template</Text>
+              <Text style={s.heroSub}>Create a reusable self-drive quote template</Text>
+            </View>
+            <View style={s.heroBadge}>
+              <MaterialCommunityIcons name="car" size={20} color={C.g400} />
+            </View>
+          </View>
+        </LinearGradient>
+
+        <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={s.section}>
+            <View style={s.sectionHead}>
+              <View style={[s.sectionIconBox, { backgroundColor: C.indigoL }]} />
+              <Bone w={130} h={14} />
+            </View>
+            <Bone w={80} h={12} style={{ marginBottom: 7 }} />
+            <Bone w="100%" h={42} r={12} style={{ marginBottom: 12 }} />
+            <Bone w={60} h={12} style={{ marginBottom: 7 }} />
+            <View style={[s.catGrid, { marginBottom: 12 }]}>
+              {[0, 1, 2].map(i => <Bone key={i} w={90} h={32} r={20} />)}
+            </View>
+            <Bone w={90} h={12} style={{ marginBottom: 7 }} />
+            <Bone w="100%" h={80} r={12} />
+          </View>
+
+          <View style={s.section}>
+            <View style={s.sectionHead}>
+              <View style={[s.sectionIconBox, { backgroundColor: C.g50 }]} />
+              <Bone w={100} h={14} />
+            </View>
+            <View style={s.rateGrid}>
+              {[0, 1, 2, 3].map(i => (
+                <View key={i} style={s.rateField}>
+                  <Bone w={90} h={12} style={{ marginBottom: 7 }} />
+                  <Bone w="100%" h={42} r={12} />
+                </View>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* Hero Header */}
       <LinearGradient colors={G.hero} style={s.hero}>
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <View style={s.heroRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
             <Icon name="arrow-left" size={22} color="#fff" />
@@ -452,17 +516,10 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20, overflow: 'hidden',
     borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20),
   },
-  deco1: {
-    position: 'absolute', width: 160, height: 160, borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.07)', top: -50, right: -30,
-  },
-  deco2: {
-    position: 'absolute', width: 70, height: 70, borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.05)', top: 15, right: 80,
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   heroTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: '#fff' },
-  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   backBtn: {
     width: 40, height: 40, borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -493,9 +550,9 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: C.g100,
   },
   quickTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '700', color: C.text },
-  quickSub: { fontSize: 12, color: C.sub, marginTop: 2 },
+  quickSub: { fontSize: 13, color: C.sub, marginTop: 2 },
   quickSkip: { paddingHorizontal: 10, paddingVertical: 6 },
-  quickSkipText: { fontSize: 13, fontWeight: '600', color: C.g700 },
+  quickSkipText: { fontSize: 14, fontWeight: '600', color: C.g700 },
   sgCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingHorizontal: 16, paddingVertical: 13,
@@ -505,13 +562,13 @@ const s = StyleSheet.create({
     width: 36, height: 36, borderRadius: 10,
     backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center',
   },
-  sgName: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 2 },
-  sgDesc: { fontSize: 12, color: C.sub },
+  sgName: { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 2 },
+  sgDesc: { fontSize: 13, color: C.sub },
   sgRate: {
     backgroundColor: C.g50, paddingHorizontal: 8, paddingVertical: 4,
     borderRadius: 8, borderWidth: 1, borderColor: C.g100,
   },
-  sgRateText: { fontSize: 11, fontWeight: '700', color: C.g700 },
+  sgRateText: { fontSize: 12, fontWeight: '700', color: C.g700 },
 
   // Section
   section: {
@@ -522,9 +579,9 @@ const s = StyleSheet.create({
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
   sectionIconBox: { width: 32, height: 32, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
   sectionTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '700', color: C.text },
-  sectionNote: { fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 17 },
+  sectionNote: { fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 17 },
 
-  label: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 7 },
+  label: { fontSize: 14, fontWeight: '600', color: C.text, marginBottom: 7 },
   optional: { fontWeight: '400', color: C.muted },
 
   input: {
@@ -542,7 +599,7 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderColor: C.border,
   },
   catChipActive: { backgroundColor: C.g700, borderColor: C.g700 },
-  catChipText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  catChipText: { fontSize: 14, fontWeight: '600', color: C.sub },
   catChipTextActive: { color: '#fff' },
 
   rateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 0 },
@@ -561,14 +618,14 @@ const s = StyleSheet.create({
     width: 20, height: 20, borderRadius: 10,
     justifyContent: 'center', alignItems: 'center',
   },
-  listItemText: { flex: 1, fontSize: 13, color: C.text, lineHeight: 18 },
+  listItemText: { flex: 1, fontSize: 14, color: C.text, lineHeight: 18 },
   removeBtn: { padding: 4 },
   termNumBox: {
     width: 22, height: 22, borderRadius: 6, backgroundColor: C.indigo,
     justifyContent: 'center', alignItems: 'center',
   },
-  termNumText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  emptyHint: { fontSize: 12, color: C.muted, textAlign: 'center', paddingVertical: 8 },
+  termNumText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  emptyHint: { fontSize: 13, color: C.muted, textAlign: 'center', paddingVertical: 8 },
 
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   checkbox: {
@@ -578,7 +635,7 @@ const s = StyleSheet.create({
   },
   checkboxOn: { backgroundColor: C.g700, borderColor: C.g700 },
   checkLabel: { fontSize: 14, fontWeight: '600', color: C.text, marginBottom: 2 },
-  checkSub: { fontSize: 12, color: C.muted },
+  checkSub: { fontSize: 13, color: C.muted },
 
   // Footer
   footer: {

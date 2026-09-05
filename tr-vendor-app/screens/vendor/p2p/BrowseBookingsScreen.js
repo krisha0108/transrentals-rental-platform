@@ -12,7 +12,7 @@ import { getP2PBookings, acceptP2PBooking, getVendorFleet, getStaffDrivers, getP
 import CustomAlert from '../../../components/CustomAlert';
 import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -34,6 +34,10 @@ const URG = {
   MEDIUM: { accent: C.amber, bg: '#FEF3C7', text: '#D97706', label: 'MEDIUM', dot: '#F59E0B' },
   LOW: { accent: C.g600, bg: C.g50, text: C.g700, label: 'LOW', dot: C.g500 },
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 function fmtDate(d) {
   return d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -61,6 +65,7 @@ export default function BrowseBookingsScreen({ navigation }) {
   const [serviceFilter, setServiceFilter] = useState('all');
   const [urgencyFilter, setUrgencyFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
 
   // Accept modal
   const [accModal, setAccModal] = useState(false);
@@ -494,8 +499,7 @@ export default function BrowseBookingsScreen({ navigation }) {
       {/* ── HEADER ── */}
       <LinearGradient colors={G.hero} style={s.header}>
         {/* Decorative orbs */}
-        <AnimatedOrb style={s.decCircle1} />
-        <AnimatedOrb style={s.decCircle2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerInner}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -505,6 +509,12 @@ export default function BrowseBookingsScreen({ navigation }) {
               <Text style={s.headerTitle}>Load Requests</Text>
               <Text style={s.headerSub}>Find bookings that need partners</Text>
             </View>
+            <TouchableOpacity
+              onPress={() => { setSearchOpen(v => !v); if (searchOpen) { setSearch(''); doSearch(); } }}
+              style={[s.backBtn, { marginRight: 8 }]}
+            >
+              <Icon name={searchOpen ? 'x' : 'search'} size={20} color="#fff" />
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('PostBookingScreen')} style={s.addBtn}>
               <LinearGradient colors={[C.g600, C.g500]} style={s.addBtnGrad}>
                 <Icon name="plus" size={20} color="#fff" />
@@ -515,6 +525,7 @@ export default function BrowseBookingsScreen({ navigation }) {
       </LinearGradient>
 
       {/* ── SEARCH BAR ── */}
+      {searchOpen && (
       <View style={s.searchWrap}>
         <View style={s.searchBox}>
           <Icon name="search" size={16} color={C.g600} />
@@ -526,6 +537,7 @@ export default function BrowseBookingsScreen({ navigation }) {
             placeholderTextColor={C.muted}
             onSubmitEditing={doSearch}
             returnKeyType="search"
+            autoFocus
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => { setSearch(''); doSearch(); }}>
@@ -536,6 +548,7 @@ export default function BrowseBookingsScreen({ navigation }) {
           )}
         </View>
       </View>
+      )}
 
       {/* ── SERVICE FILTERS ── */}
       <View style={s.filterSection}>
@@ -604,8 +617,7 @@ export default function BrowseBookingsScreen({ navigation }) {
       <View style={s.flex}>
         <StatusBar barStyle="light-content" backgroundColor={C.g950} />
         <LinearGradient colors={G.hero} style={s.header}>
-          <AnimatedOrb style={s.decCircle1} />
-          <AnimatedOrb style={s.decCircle2} delay={1200} dx={-10} dy={8} />
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']}>
             <View style={s.headerInner}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -619,12 +631,69 @@ export default function BrowseBookingsScreen({ navigation }) {
             </View>
           </SafeAreaView>
         </LinearGradient>
-        <View style={s.loadingCenter}>
-          <View style={s.loadingSpinnerWrap}>
-            <ActivityIndicator size="large" color={C.g600} />
-          </View>
-          <Text style={s.loadingTxt}>Loading load requests...</Text>
-        </View>
+        <ScrollView contentContainerStyle={{ paddingBottom: 30, paddingTop: 14, gap: 14, paddingHorizontal: 16 }} showsVerticalScrollIndicator={false}>
+          {[0, 1, 2].map(i => (
+            <View key={i} style={s.card}>
+              <View style={[s.urgAccentBar, { backgroundColor: C.g100 }]} />
+              <View style={s.cardInner}>
+                <View style={s.cardTopRow}>
+                  <Bone w={110} h={20} r={8} />
+                  <View style={s.earnBlock}>
+                    <Bone w={60} h={9} style={{ marginBottom: 4 }} />
+                    <Bone w={70} h={16} />
+                  </View>
+                </View>
+
+                <View style={s.routeBar}>
+                  <View style={s.routeEndWrap}>
+                    <View style={s.routeFromDot} />
+                    <Bone w={60} h={11} />
+                  </View>
+                  <View style={s.routeMid}>
+                    <View style={s.routeLine} />
+                    <MCI name="package-variant-closed" size={15} color={C.border} />
+                    <View style={s.routeLine} />
+                  </View>
+                  <View style={s.routeEndWrap}>
+                    <View style={s.routeToDot} />
+                    <Bone w={60} h={11} />
+                  </View>
+                </View>
+
+                <View style={s.posterRow}>
+                  <Bone w={34} h={34} r={17} />
+                  <View style={s.posterInfo}>
+                    <Bone w={110} h={12} style={{ marginBottom: 6 }} />
+                    <Bone w={80} h={10} />
+                  </View>
+                </View>
+
+                <View style={s.tripInfoRow}>
+                  <Bone w={80} h={22} r={8} />
+                  <Bone w={70} h={22} r={8} />
+                  <Bone w={90} h={22} r={8} />
+                </View>
+
+                <View style={s.budgetCard}>
+                  <View style={s.budgetRow}>
+                    <Bone w={100} h={11} />
+                    <Bone w={70} h={13} />
+                  </View>
+                  <View style={s.budgetDivider} />
+                  <View style={s.budgetRow}>
+                    <Bone w={90} h={12} />
+                    <Bone w={80} h={16} />
+                  </View>
+                </View>
+
+                <View style={s.actionsRow}>
+                  <Bone w="100%" h={40} r={10} style={{ flex: 1 }} />
+                  <Bone w={40} h={40} r={10} />
+                </View>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       </View>
     );
   }
@@ -888,15 +957,8 @@ const s = StyleSheet.create({
   flex: { flex: 1, backgroundColor: C.bg },
 
   // ── HEADER ──
-  header: { paddingBottom: 20, overflow: 'hidden' },
-  decCircle1: {
-    position: 'absolute', width: 200, height: 200, borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40,
-  },
-  decCircle2: {
-    position: 'absolute', width: 140, height: 140, borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.045)', top: 20, left: -50,
-  },
+  header: { paddingBottom: 20, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerInner: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingTop: 14, gap: 12,
@@ -908,7 +970,7 @@ const s = StyleSheet.create({
   },
   headerCenter: { flex: 1 },
   headerTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
   addBtn: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden' },
   addBtnGrad: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
@@ -937,7 +999,7 @@ const s = StyleSheet.create({
     backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
   },
   filterPillActive: { backgroundColor: C.g700, borderColor: C.g700 },
-  filterPillTxt: { fontSize: 12, fontWeight: '600', color: C.muted },
+  filterPillTxt: { fontSize: 13, fontWeight: '600', color: C.muted },
   filterPillTxtActive: { color: '#fff', fontWeight: '700' },
   urgDotFilter: { width: 7, height: 7, borderRadius: 3.5 },
 
@@ -947,7 +1009,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 8,
   },
   resultDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: C.g500 },
-  resultTxt: { fontSize: 12, color: C.muted, fontWeight: '600' },
+  resultTxt: { fontSize: 13, color: C.muted, fontWeight: '600' },
 
   // ── LIST ──
   listContent: { paddingBottom: 36, gap: 12, paddingTop: 4 },
@@ -978,10 +1040,10 @@ const s = StyleSheet.create({
     borderRadius: 8, alignSelf: 'flex-start',
   },
   urgDot: { width: 6, height: 6, borderRadius: 3 },
-  urgBadgeTxt: { fontSize: 10, fontWeight: '800', letterSpacing: 0.4 },
+  urgBadgeTxt: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4 },
   earnBlock: { alignItems: 'flex-end' },
   earnLabel: {
-    fontSize: 9, color: C.muted, fontWeight: '700',
+    fontSize: 10, color: C.muted, fontWeight: '700',
     letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3,
   },
   earnAmt: {
@@ -1000,9 +1062,9 @@ const s = StyleSheet.create({
   routeToDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.red },
   routeMid: { flex: 0.6, flexDirection: 'row', alignItems: 'center', gap: 4 },
   routeLine: { flex: 1, height: 1.5, backgroundColor: C.border },
-  routeCity: { fontSize: 12, fontWeight: '700', color: C.text, textAlign: 'center' },
+  routeCity: { fontSize: 13, fontWeight: '700', color: C.text, textAlign: 'center' },
   postingNum: {
-    fontSize: 10, color: C.muted, fontWeight: '600',
+    fontSize: 11, color: C.muted, fontWeight: '600',
     fontFamily: 'monospace', textAlign: 'center', marginBottom: 10,
   },
 
@@ -1016,14 +1078,14 @@ const s = StyleSheet.create({
     width: 36, height: 36, borderRadius: 18,
     justifyContent: 'center', alignItems: 'center',
   },
-  posterInitial: { fontSize: 13, fontWeight: '800', color: '#fff' },
+  posterInitial: { fontSize: 14, fontWeight: '800', color: '#fff' },
   posterInfo: { flex: 1 },
-  posterName: { fontSize: 13, fontWeight: '700', color: C.text },
+  posterName: { fontSize: 14, fontWeight: '700', color: C.text },
   posterMeta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
-  posterCity: { fontSize: 11, color: C.muted },
+  posterCity: { fontSize: 12, color: C.muted },
   ratingWrap: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  ratingTxt: { fontSize: 11, fontWeight: '700', color: C.amber },
-  posterTime: { fontSize: 10, color: C.muted, fontWeight: '500' },
+  ratingTxt: { fontSize: 12, fontWeight: '700', color: C.amber },
+  posterTime: { fontSize: 11, color: C.muted, fontWeight: '500' },
 
   // Trip info chips
   tripInfoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
@@ -1033,7 +1095,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 9, paddingVertical: 5,
     borderWidth: 1, borderColor: C.g100,
   },
-  tripChipTxt: { fontSize: 11, fontWeight: '600', color: C.g700 },
+  tripChipTxt: { fontSize: 12, fontWeight: '600', color: C.g700 },
 
   // Details row
   detailsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
@@ -1042,7 +1104,7 @@ const s = StyleSheet.create({
     backgroundColor: '#F1F5F9', paddingHorizontal: 9,
     paddingVertical: 5, borderRadius: 8,
   },
-  detailTxt: { fontSize: 11, color: C.sub, fontWeight: '500' },
+  detailTxt: { fontSize: 12, color: C.sub, fontWeight: '500' },
 
   // Reason box
   reasonBox: {
@@ -1050,7 +1112,7 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFBEB', borderRadius: 10, padding: 9,
     marginBottom: 10, borderWidth: 1, borderColor: '#FDE68A',
   },
-  reasonTxt: { fontSize: 12, color: '#92400E', flex: 1, lineHeight: 17 },
+  reasonTxt: { fontSize: 13, color: '#92400E', flex: 1, lineHeight: 17 },
 
   // Budget breakdown card
   budgetCard: {
@@ -1061,9 +1123,9 @@ const s = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', marginBottom: 6,
   },
-  budgetRowLabel: { fontSize: 12, color: C.muted, fontWeight: '500' },
-  budgetRowVal: { fontSize: 13, color: C.sub, fontWeight: '700' },
-  budgetPct: { fontSize: 10, color: C.muted, fontWeight: '400' },
+  budgetRowLabel: { fontSize: 13, color: C.muted, fontWeight: '500' },
+  budgetRowVal: { fontSize: 14, color: C.sub, fontWeight: '700' },
+  budgetPct: { fontSize: 11, color: C.muted, fontWeight: '400' },
   budgetDivider: { height: 1, backgroundColor: C.border, marginVertical: 6 },
   budgetEarnVal: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '900', color: C.g600 },
 
@@ -1075,7 +1137,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 5,
     borderWidth: 1, borderColor: '#FDE68A',
   },
-  reqBadgeTxt: { fontSize: 11, fontWeight: '600', color: '#D97706' },
+  reqBadgeTxt: { fontSize: 12, fontWeight: '600', color: '#D97706' },
 
   // Actions
   actionsRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
@@ -1084,7 +1146,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center', gap: 7, paddingVertical: 13,
   },
-  acceptBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff', letterSpacing: 0.2 },
+  acceptBtnTxt: { fontSize: 14, fontWeight: '700', color: '#fff', letterSpacing: 0.2 },
   iconActionBtn: {
     width: 46, height: 46, borderRadius: 13,
     backgroundColor: C.g50, justifyContent: 'center',
@@ -1098,7 +1160,7 @@ const s = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: '#F1F5F9',
   },
   socialBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  socialTxt: { fontSize: 12, color: C.muted, fontWeight: '500' },
+  socialTxt: { fontSize: 13, color: C.muted, fontWeight: '500' },
 
   // Share menu
   shareMenu: {
@@ -1113,28 +1175,28 @@ const s = StyleSheet.create({
     width: 30, height: 30, borderRadius: 8,
     backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center',
   },
-  shareOptionTxt: { fontSize: 13, color: C.text, fontWeight: '500' },
+  shareOptionTxt: { fontSize: 14, color: C.text, fontWeight: '500' },
 
   // Comments
   commentsSection: { marginTop: 8 },
   commentsDivider: { height: 1, backgroundColor: '#F1F5F9', marginBottom: 10 },
-  noCommentsTxt: { fontSize: 12, color: C.muted, textAlign: 'center', paddingVertical: 12 },
+  noCommentsTxt: { fontSize: 13, color: C.muted, textAlign: 'center', paddingVertical: 12 },
   commentItem: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   commentAvatar: {
     width: 28, height: 28, borderRadius: 14,
     justifyContent: 'center', alignItems: 'center',
   },
-  commentInitial: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  commentInitial: { fontSize: 11, fontWeight: '700', color: '#fff' },
   commentHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  commentName: { fontSize: 12, fontWeight: '600', color: C.text },
-  commentTime: { fontSize: 10, color: C.muted },
-  commentMsg: { fontSize: 12, color: C.sub, marginTop: 2, lineHeight: 17 },
+  commentName: { fontSize: 13, fontWeight: '600', color: C.text },
+  commentTime: { fontSize: 11, color: C.muted },
+  commentMsg: { fontSize: 13, color: C.sub, marginTop: 2, lineHeight: 17 },
   commentInputRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
   commentInput: {
     flex: 1, backgroundColor: '#F8FAFC',
     borderWidth: 1, borderColor: C.border,
     borderRadius: 10, paddingHorizontal: 12,
-    paddingVertical: 8, fontSize: 13, color: C.text,
+    paddingVertical: 8, fontSize: 14, color: C.text,
   },
   commentSendBtn: {
     width: 38, height: 38, borderRadius: 10,
@@ -1157,21 +1219,9 @@ const s = StyleSheet.create({
     borderColor: C.border, backgroundColor: C.surface,
   },
   pageBtnDisabled: { opacity: 0.4 },
-  pageBtnTxt: { fontSize: 13, fontWeight: '600', color: C.g700 },
+  pageBtnTxt: { fontSize: 14, fontWeight: '600', color: C.g700 },
   pageInfoPill: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 12 },
-  pageInfoTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
-
-  // Loading
-  loadingCenter: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14,
-  },
-  loadingSpinnerWrap: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: C.surface, justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
-  },
-  loadingTxt: { fontSize: 13, color: C.muted, fontWeight: '500' },
+  pageInfoTxt: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
   // Empty state
   emptyWrap: {
@@ -1183,7 +1233,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', marginBottom: 4,
   },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: C.text, letterSpacing: -0.2 },
-  emptyMsg: { fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 20 },
+  emptyMsg: { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 20 },
   emptyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 28, paddingVertical: 14,
@@ -1235,7 +1285,7 @@ const s = StyleSheet.create({
   },
   modalSummaryInfo: { flex: 1 },
   modalSummaryNum: {
-    fontSize: 10, color: C.muted, fontFamily: 'monospace',
+    fontSize: 11, color: C.muted, fontFamily: 'monospace',
     fontWeight: '600', marginBottom: 3,
   },
   modalSummaryTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '700', color: C.text },
@@ -1248,12 +1298,12 @@ const s = StyleSheet.create({
   modalRouteToDot: {
     width: 8, height: 8, borderRadius: 4, backgroundColor: C.red,
   },
-  modalSummaryRoute: { fontSize: 12, color: C.sub },
+  modalSummaryRoute: { fontSize: 13, color: C.sub },
   modalDateRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
-  modalDateTxt: { fontSize: 11, color: C.g700, fontWeight: '600' },
+  modalDateTxt: { fontSize: 12, color: C.g700, fontWeight: '600' },
   modalEarnTag: { alignItems: 'flex-end' },
   modalEarnTagLabel: {
-    fontSize: 9, color: C.muted, fontWeight: '700',
+    fontSize: 10, color: C.muted, fontWeight: '700',
     letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3,
   },
   modalEarnTagAmt: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '900', color: C.g600, letterSpacing: -0.5 },
@@ -1265,12 +1315,12 @@ const s = StyleSheet.create({
     borderRadius: 12, padding: 10,
     alignItems: 'center', borderWidth: 1, borderColor: C.border,
   },
-  modalTileLabel: { fontSize: 9, color: C.muted, fontWeight: '600', marginBottom: 4 },
-  modalTileVal: { fontSize: 13, fontWeight: '800', color: C.text },
+  modalTileLabel: { fontSize: 10, color: C.muted, fontWeight: '600', marginBottom: 4 },
+  modalTileVal: { fontSize: 14, fontWeight: '800', color: C.text },
 
   // Field sections
   fieldLabel: {
-    fontSize: 10, fontWeight: '700', color: C.muted,
+    fontSize: 11, fontWeight: '700', color: C.muted,
     letterSpacing: 0.8, marginBottom: 8, marginTop: 4,
   },
   fieldCard: {
@@ -1301,7 +1351,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: C.g100,
   },
   pickChipTxt: {
-    fontSize: 12, color: C.g700, fontWeight: '600', maxWidth: 120,
+    fontSize: 13, color: C.g700, fontWeight: '600', maxWidth: 120,
   },
 
   // Submit

@@ -33,7 +33,7 @@ import {
 } from '../../api/client';
 import { SC as T, G, rs, rf, shade, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already used everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -73,6 +73,10 @@ const getServiceIcon = (slug) => {
 const HERO_TAIL = rs(26);
 const STATS_OVERLAP = rs(22);
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 export default function VendorServicesScreen({ navigation }) {
   const [allServices, setAllServices] = useState([]);
   const [approvedServiceIds, setApprovedServiceIds] = useState([]);
@@ -95,6 +99,7 @@ export default function VendorServicesScreen({ navigation }) {
 
   // Search
   const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const fetchServices = useCallback(async () => {
     try {
@@ -210,9 +215,8 @@ export default function VendorServicesScreen({ navigation }) {
     return (
       <View style={st.root}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={G.hero} style={st.heroLoading}>
-          <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
-          <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
+        <LinearGradient colors={G.hero} style={st.hero}>
+          <CornerGrid style={st.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']} style={{ paddingHorizontal: rs(16) }}>
             <View style={st.heroNav}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
@@ -224,14 +228,40 @@ export default function VendorServicesScreen({ navigation }) {
                   <Text style={st.heroBadgeTxt}>Vendor Portal</Text>
                 </View>
                 <Text style={st.heroTitle}>My Services</Text>
+                <Text style={st.heroSub}>Manage your offerings</Text>
               </View>
               <View style={{ width: rs(40) }} />
             </View>
+            <View style={{ height: HERO_TAIL }} />
           </SafeAreaView>
         </LinearGradient>
-        <View style={st.loaderWrap}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={st.loaderTxt}>Loading services...</Text>
+
+        <View style={st.statsWrap}>
+          <View style={[st.statsCard, cardShadow]}>
+            {[0, 1, 2].map(i => (
+              <React.Fragment key={i}>
+                {i > 0 && <View style={st.statDivider} />}
+                <View style={st.statCell}>
+                  <Bone w={20} h={13} style={{ marginBottom: 4 }} />
+                  <Bone w={45} h={9} />
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+        </View>
+
+        <View style={st.scrollContent}>
+          <View style={st.servicesList}>
+            {[0, 1, 2, 3].map(i => (
+              <View key={i} style={[st.serviceCard, { backgroundColor: C.card, borderColor: C.border }]}>
+                <Bone w={rs(46)} h={rs(46)} r={rs(14)} />
+                <View style={st.serviceInfo}>
+                  <Bone w={130} h={14} style={{ marginBottom: 8 }} />
+                  <Bone w={80} h={16} r={20} />
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
       </View>
     );
@@ -244,8 +274,7 @@ export default function VendorServicesScreen({ navigation }) {
       {/* ── HERO — static sibling so it can never be clipped by the
           ScrollView's own viewport ── */}
       <LinearGradient colors={G.hero} style={st.hero}>
-        <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={st.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: rs(16) }}>
           <View style={st.heroNav}>
@@ -260,7 +289,12 @@ export default function VendorServicesScreen({ navigation }) {
               <Text style={st.heroTitle}>My Services</Text>
               <Text style={st.heroSub}>Manage your offerings</Text>
             </View>
-            <View style={{ width: rs(40) }} />
+            <TouchableOpacity
+              onPress={() => { setSearchOpen(v => !v); if (searchOpen) setSearch(''); }}
+              style={st.backBtn}
+            >
+              <Ionicons name={searchOpen ? 'close' : 'search'} size={20} color="#fff" />
+            </TouchableOpacity>
           </View>
 
           {/* spacer so the floating stats card can tuck into the curve */}
@@ -300,6 +334,7 @@ export default function VendorServicesScreen({ navigation }) {
 
         {/* Search + Select All row */}
         <View style={st.searchRow}>
+          {searchOpen && (
           <View style={st.searchBox}>
             <Ionicons name="search" size={16} color={C.muted} />
             <TextInput
@@ -308,6 +343,7 @@ export default function VendorServicesScreen({ navigation }) {
               placeholderTextColor={C.muted}
               value={search}
               onChangeText={setSearch}
+              autoFocus
             />
             {search.length > 0 && (
               <TouchableOpacity onPress={() => setSearch('')}>
@@ -315,6 +351,7 @@ export default function VendorServicesScreen({ navigation }) {
               </TouchableOpacity>
             )}
           </View>
+          )}
           {availableServices.length > 0 && (
             <TouchableOpacity style={st.selectAllBtn} onPress={handleSelectAll}>
               <Ionicons
@@ -685,8 +722,6 @@ export default function VendorServicesScreen({ navigation }) {
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   scrollContent: { paddingHorizontal: rs(16), paddingTop: rs(16), paddingBottom: rs(100) },
-  loaderWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: rs(10) },
-  loaderTxt: { fontSize: rf(14), color: C.muted },
 
   /* ── Hero ── */
   hero: {
@@ -695,22 +730,7 @@ const st = StyleSheet.create({
     borderBottomRightRadius: rs(26),
     overflow: 'hidden',
   },
-  heroLoading: {
-    paddingBottom: rs(14),
-    borderBottomLeftRadius: rs(26),
-    borderBottomRightRadius: rs(26),
-    overflow: 'hidden',
-  },
-  orbA: {
-    position: 'absolute', top: -rs(60), right: -rs(40),
-    width: rs(180), height: rs(180), borderRadius: rs(90),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(60), left: -rs(40),
-    width: rs(150), height: rs(150), borderRadius: rs(75),
-    backgroundColor: 'rgba(46,158,120,0.16)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
 
   heroNav: { flexDirection: 'row', alignItems: 'flex-start', gap: rs(10), marginTop: rs(6), paddingTop: rs(4) },
   backBtn: {

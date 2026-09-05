@@ -8,6 +8,7 @@ import {
   Clock, Headphones, Minus, Plus, Bus, Navigation2,
   Search, ChevronDown, X, Check, ArrowLeft, User, Lock, Home, Flag,
   HardHat, Wrench, Package, Mail, Truck, ShieldCheck, Tag, UserCheck,
+  Briefcase, Building2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DynamicChatBookingHero } from '@/components/booking/DynamicChatBookingHero';
@@ -227,7 +228,7 @@ function RV({ label, value, full }: { label: string; value: string; full?: boole
 
 type FormStep = 1 | 2 | 3 | 4 | 5;
 
-function BusBookingWidget({ cityName, serviceType }: { cityName: string; serviceType?: string }) {
+export function BusBookingWidget({ cityName, serviceType }: { cityName: string; serviceType?: string }) {
   const [step, setStep] = useState<FormStep>(1);
 
   const [locations, setLocations] = useState<{ name: string }[]>([]);
@@ -265,9 +266,27 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
   const [notes,         setNotes]         = useState('');
   const [err3,          setErr3]          = useState('');
 
+  // Step 3 – Personal vs Company (real B2B routing when approved)
+  const [bookingPurpose,    setBookingPurpose]    = useState<'personal' | 'company'>('personal');
+  const [isB2BApproved,     setIsB2BApproved]     = useState(false);
+  const [vehiclesRequired,  setVehiclesRequired]  = useState(1);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem('customer');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setIsB2BApproved(!!parsed?.isB2B && parsed?.b2bStatus === 'APPROVED');
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   // Submit
   const [loading, setLoading] = useState(false);
   const [submitErr, setSubmitErr] = useState('');
+  const [lastSubmitType, setLastSubmitType] = useState<'quote' | 'b2b'>('quote');
+  const [lastB2BBookingNumber, setLastB2BBookingNumber] = useState('');
 
   const today  = new Date().toISOString().split('T')[0];
   const vReco  = getVehicleReco(passengers);
@@ -310,6 +329,42 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
   const onSubmit = async () => {
     setLoading(true); setSubmitErr('');
     try {
+      if (bookingPurpose === 'company' && isB2BApproved && customer) {
+        // Real corporate booking — routes into b2b_bookings, not the
+        // regular quote-request pool.
+        const b2bTripType = tripType === 'local' ? 'HOURLY' : (returnDate ? 'ROUND_TRIP' : 'ONE_WAY');
+        const specialNotes = [
+          ...selectedChips,
+          ...(notes.trim() ? [notes.trim()] : []),
+        ].join(', ') || undefined;
+
+        const res = await fetch('/api/b2b/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerId:       String(customer.id),
+            serviceType:      'bus',
+            vehiclesRequired,
+            passengerCount:   passengers,
+            vehicleCategory:  'standard',
+            pickupLocation:   fromCity.trim(),
+            dropLocation:     toCity.trim() || undefined,
+            tripType:         b2bTripType,
+            scheduledDate:    travelDate,
+            scheduledTime:    pickupTime,
+            returnDate:       returnDate || undefined,
+            returnTime:       returnDate ? pickupTime : undefined,
+            specialNotes,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.status !== 'success') throw new Error(data.error || 'Something went wrong');
+        setLastB2BBookingNumber(data.booking?.bookingNumber || '');
+        setLastSubmitType('b2b');
+        setStep(5);
+        return;
+      }
+
       const req = [
         ...selectedChips,
         ...(notes.trim() ? [notes.trim()] : []),
@@ -337,6 +392,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Something went wrong');
+      setLastSubmitType('quote');
       setStep(5);
     } catch (err: unknown) {
       setSubmitErr(err instanceof Error ? err.message : 'Please try again.');
@@ -348,7 +404,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
   const resetForm = () => {
     setStep(1); setTravelDate(''); setReturnDate(''); setToCity('');
     setPickupAddress(''); setDropAddress(''); setNotes(''); setSelectedChips([]);
-    setGuestOverride(false);
+    setGuestOverride(false); setBookingPurpose('personal'); setVehiclesRequired(1);
     if (!isAuthenticated) { setName(''); setPhone(''); setEmail(''); }
   };
 
@@ -373,15 +429,34 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
             <path fill="none" stroke="#16C47F" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" d="M14 27l8 8 16-16" />
           </svg>
         </motion.div>
-        <h2 className="text-[21px] font-black text-slate-900 mb-2">You&apos;re all set</h2>
-        <p className="text-sm text-slate-500 mb-4">Our operators are preparing your quotes.</p>
-        <div className="inline-flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-4 py-3 mb-5">
-          <Clock className="w-5 h-5 text-green-600 shrink-0" />
-          <div className="text-left">
-            <small className="block text-[11px] text-slate-400">Expected callback</small>
-            <b className="text-sm text-green-700">within 15 minutes</b>
-          </div>
-        </div>
+        {lastSubmitType === 'b2b' ? (
+          <>
+            <h2 className="text-[21px] font-black text-slate-900 mb-2">Corporate Booking Created</h2>
+            <p className="text-sm text-slate-500 mb-4">Vendors will be notified and start sending quotes shortly.</p>
+            <div className="inline-flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-4 py-3 mb-5">
+              <Building2 className="w-5 h-5 text-green-600 shrink-0" />
+              <div className="text-left">
+                <small className="block text-[11px] text-slate-400">Booking ID</small>
+                <b className="text-sm text-green-700">{lastB2BBookingNumber || 'N/A'}</b>
+              </div>
+            </div>
+            <a href="/customer/dashboard" className="text-sm text-green-700 hover:text-green-600 transition-colors font-semibold mb-2">
+              Go to B2B Dashboard
+            </a>
+          </>
+        ) : (
+          <>
+            <h2 className="text-[21px] font-black text-slate-900 mb-2">You&apos;re all set</h2>
+            <p className="text-sm text-slate-500 mb-4">Our operators are preparing your quotes.</p>
+            <div className="inline-flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-4 py-3 mb-5">
+              <Clock className="w-5 h-5 text-green-600 shrink-0" />
+              <div className="text-left">
+                <small className="block text-[11px] text-slate-400">Expected callback</small>
+                <b className="text-sm text-green-700">within 15 minutes</b>
+              </div>
+            </div>
+          </>
+        )}
         <button onClick={resetForm} className="text-sm text-slate-400 hover:text-slate-500 transition-colors font-medium">
           New Request
         </button>
@@ -658,6 +733,76 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
               rows={3} maxLength={250}
               className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 placeholder:text-slate-400 focus:outline-none focus:border-green-400 focus:ring-4 focus:ring-green-50 transition-all resize-none mb-1" />
 
+            {isB2BApproved && (
+              <>
+              <label className={`${lblCls} mt-3.5`}>Is this booking for personal use or your company/organization?</label>
+              <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+                <button type="button" onClick={() => setBookingPurpose('personal')}
+                  className={`relative flex items-center gap-2.5 p-3 rounded-2xl border text-left transition-all ${
+                    bookingPurpose === 'personal'
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:-translate-y-px'
+                  }`}>
+                  <span className={`w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 ${bookingPurpose === 'personal' ? 'bg-white' : 'bg-slate-50'}`}>
+                    <User className={`w-4 h-4 ${bookingPurpose === 'personal' ? 'text-green-600' : 'text-slate-400'}`} />
+                  </span>
+                  <b className="text-[13px] font-bold text-slate-700">Personal</b>
+                  <span className={`absolute top-2 right-2 w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                    bookingPurpose === 'personal' ? 'border-green-500 bg-green-500' : 'border-slate-200 bg-white'
+                  }`}>
+                    {bookingPurpose === 'personal' && <Check className="w-2.5 h-2.5 text-white" />}
+                  </span>
+                </button>
+                <button type="button" onClick={() => setBookingPurpose('company')}
+                  className={`relative flex items-center gap-2.5 p-3 rounded-2xl border text-left transition-all ${
+                    bookingPurpose === 'company'
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:-translate-y-px'
+                  }`}>
+                  <span className={`w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 ${bookingPurpose === 'company' ? 'bg-white' : 'bg-slate-50'}`}>
+                    <Briefcase className={`w-4 h-4 ${bookingPurpose === 'company' ? 'text-green-600' : 'text-slate-400'}`} />
+                  </span>
+                  <b className="text-[13px] font-bold text-slate-700">Company / Corporate</b>
+                  <span className={`absolute top-2 right-2 w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                    bookingPurpose === 'company' ? 'border-green-500 bg-green-500' : 'border-slate-200 bg-white'
+                  }`}>
+                    {bookingPurpose === 'company' && <Check className="w-2.5 h-2.5 text-white" />}
+                  </span>
+                </button>
+              </div>
+
+              {bookingPurpose === 'company' && (
+                <>
+                  <label className={lblCls}>How many buses do you need?</label>
+                  <div className="flex items-center justify-between border border-slate-200 rounded-xl p-2.5 bg-white mb-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-8 h-8 rounded-[10px] bg-green-50 flex items-center justify-center shrink-0">
+                        <Building2 className="w-4 h-4 text-green-600" />
+                      </span>
+                      <span className="flex flex-col leading-tight">
+                        <b className="text-[13px] font-bold text-slate-700">{vehiclesRequired} {vehiclesRequired === 1 ? 'Bus' : 'Buses'}</b>
+                        <small className="text-[10.5px] text-slate-400">Vehicles required</small>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button type="button"
+                        onClick={() => setVehiclesRequired(n => Math.max(1, n - 1))}
+                        className="w-8 h-8 rounded-[9px] border border-slate-200 bg-white text-green-700 text-[18px] font-semibold flex items-center justify-center hover:bg-green-50 hover:border-green-400 active:scale-90 transition-all">
+                        −
+                      </button>
+                      <span className="w-8 text-center text-[15px] font-black text-slate-900">{vehiclesRequired}</span>
+                      <button type="button"
+                        onClick={() => setVehiclesRequired(n => Math.min(500, n + 1))}
+                        className="w-8 h-8 rounded-[9px] border border-slate-200 bg-white text-green-700 text-[18px] font-semibold flex items-center justify-center hover:bg-green-50 hover:border-green-400 active:scale-90 transition-all">
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+              </>
+            )}
+
             {err3 && <p className="text-xs text-red-500 font-semibold mb-2">{err3}</p>}
 
             <div className="flex gap-2.5 mt-4">
@@ -703,6 +848,15 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
               <RV label="Email" value={email} />
             </ReviewSection>
 
+            {isB2BApproved && (
+              <ReviewSection title="Booking For" icon={<Briefcase />} onEdit={() => setStep(3)}>
+                <RV label="Purpose" value={bookingPurpose === 'company' ? 'Company / Corporate' : 'Personal'} />
+                {bookingPurpose === 'company' && (
+                  <RV label="Buses Required" value={String(vehiclesRequired)} />
+                )}
+              </ReviewSection>
+            )}
+
             {(selectedChips.length > 0 || notes.trim()) && (
               <ReviewSection title="Requirements" icon={<MessageCircle />} onEdit={() => setStep(3)}>
                 {selectedChips.length > 0 && (
@@ -729,7 +883,11 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
               </button>
               <button type="button" onClick={onSubmit} disabled={loading}
                 className="flex-1 h-12 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-all text-sm">
-                {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</> : 'Get Instant Quotes'}
+                {loading
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</>
+                  : bookingPurpose === 'company' && isB2BApproved
+                    ? 'Create Corporate Booking'
+                    : 'Get Instant Quotes'}
               </button>
             </div>
             <p className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">

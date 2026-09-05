@@ -17,7 +17,11 @@ import {
 } from '../../../api/client';
 import { SC as T, G, rs, shade, cardShadow } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const { width: W } = Dimensions.get('window');
 
@@ -219,10 +223,79 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
             </View>
           </SafeAreaView>
         </LinearGradient>
-        <View style={s.centered}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={s.centeredTxt}>Loading booking...</Text>
-        </View>
+
+        <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Booking summary card skeleton — now a body panel */}
+          <View style={s.heroCard}>
+            <View style={s.heroCardTop}>
+              <View>
+                <Bone w={70} h={9} r={3} style={{ marginBottom: 6 }} />
+                <Bone w={110} h={22} r={5} />
+              </View>
+              <Bone w={80} h={22} r={11} />
+            </View>
+            <Bone w={140} h={10} r={4} />
+          </View>
+
+          {/* Status strip skeleton */}
+          <View style={s.statusStrip}>
+            {[0,1,2].map(i => (
+              <React.Fragment key={i}>
+                {i > 0 && <View style={s.statusLine} />}
+                <View style={s.statusStep}>
+                  <Bone w={24} h={24} r={12} />
+                  <Bone w={44} h={9} r={3} style={{ marginTop: 6 }} />
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+
+          {/* Customer card skeleton */}
+          <View style={s.card}>
+            <View style={s.cardHead}>
+              <Bone w={34} h={34} r={10} />
+              <Bone w={100} h={13} r={4} />
+            </View>
+            <View style={s.customerRow}>
+              <Bone w={46} h={46} r={23} />
+              <View style={{ flex: 1, gap: 6 }}>
+                <Bone w={130} h={13} r={4} />
+                <Bone w={90} h={10} r={4} />
+              </View>
+            </View>
+            <View style={s.contactRow}>
+              <Bone h={36} r={10} style={{ flex: 1 }} />
+              <Bone h={36} r={10} style={{ flex: 1 }} />
+              <Bone h={36} r={10} style={{ flex: 1 }} />
+            </View>
+          </View>
+
+          {/* Vehicle & Trip card skeleton */}
+          <View style={s.card}>
+            <View style={s.cardHead}>
+              <Bone w={34} h={34} r={10} />
+              <Bone w={120} h={13} r={4} />
+            </View>
+            <Bone w="100%" h={72} r={14} />
+          </View>
+
+          {/* Payment Summary card skeleton */}
+          <View style={s.card}>
+            <View style={s.cardHead}>
+              <Bone w={34} h={34} r={10} />
+              <Bone w={140} h={13} r={4} />
+            </View>
+            <View style={s.payList}>
+              {[0,1,2].map(i => (
+                <View key={i} style={s.payRow}>
+                  <Bone w={70} h={11} r={4} />
+                  <Bone w={60} h={11} r={4} />
+                </View>
+              ))}
+            </View>
+            <Bone w="100%" h={48} r={12} />
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -272,8 +345,7 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.hero}
       >
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -285,8 +357,18 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
           </View>
           <View style={{ width: 36 }} />
         </View>
+      </LinearGradient>
 
-        {/* Booking summary card in header */}
+      {/* ══ Body ═════════════════════════════════════════════════════════════ */}
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g400} colors={[C.g600]} />
+        }
+      >
+        {/* Booking summary card — now a body panel, matches real layout */}
         <View style={s.heroCard}>
           <View style={s.heroCardTop}>
             <View>
@@ -300,28 +382,18 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
           </View>
           <View style={s.heroMeta}>
             <View style={s.heroMetaItem}>
-              <Ionicons name="calendar-outline" size={11} color="rgba(255,255,255,0.4)" />
+              <Ionicons name="calendar-outline" size={11} color={C.muted} />
               <Text style={s.heroMetaTxt}>Created {formatDate(booking.createdAt)}</Text>
             </View>
             {booking.totalDays > 0 && (
               <View style={s.heroMetaItem}>
-                <Ionicons name="time-outline" size={11} color="rgba(255,255,255,0.4)" />
+                <Ionicons name="time-outline" size={11} color={C.muted} />
                 <Text style={s.heroMetaTxt}>{booking.totalDays} Day{booking.totalDays > 1 ? 's' : ''}</Text>
               </View>
             )}
           </View>
         </View>
-      </LinearGradient>
 
-      {/* ══ Body ═════════════════════════════════════════════════════════════ */}
-      <ScrollView
-        style={s.scroll}
-        contentContainerStyle={s.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g400} colors={[C.g600]} />
-        }
-      >
         {/* ── Status progression: Quoted → Accepted → Pickup OTP ── */}
         {(() => {
           const st = booking.status;
@@ -872,31 +944,25 @@ const s = StyleSheet.create({
   centeredTxt: { fontSize: 14, color: C.muted },
 
   // ── Hero ──────────────────────────────────────────────────────────────────
-  hero: { paddingHorizontal: 16, paddingBottom: 20, overflow: 'hidden' },
-  deco1: {
-    position: 'absolute', width: W * 0.55, height: W * 0.55,
-    borderRadius: W * 0.275, backgroundColor: 'rgba(52,211,153,0.06)',
-    top: -W * 0.18, right: -W * 0.1,
+  hero: {
+    paddingHorizontal: 16, paddingBottom: 12, overflow: 'hidden',
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
   },
-  deco2: {
-    position: 'absolute', width: W * 0.32, height: W * 0.32,
-    borderRadius: W * 0.16, backgroundColor: 'rgba(16,185,129,0.05)',
-    bottom: 0, left: W * 0.38,
-  },
-  topBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 16 },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
+  topBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10 },
   backBtn:   { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   heroTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
-  heroCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: rs(16), padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
+  heroCard: { backgroundColor: C.card, borderRadius: rs(16), padding: 16, borderWidth: 1, borderColor: C.border, ...cardShadow, marginBottom: 14 },
   heroCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 },
-  heroLabel:  { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 4 },
-  heroNumber: { fontFamily: DISPLAY, fontSize: 26, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  heroLabel:  { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 1.5, marginBottom: 4 },
+  heroNumber: { fontFamily: DISPLAY, fontSize: 26, fontWeight: '900', color: C.text, letterSpacing: -0.5 },
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
-  statusPillTxt: { fontSize: 11, fontWeight: '700' },
+  statusPillTxt: { fontSize: 12, fontWeight: '700' },
   heroMeta:     { flexDirection: 'row', gap: 16 },
   heroMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  heroMetaTxt:  { fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: '500' },
+  heroMetaTxt:  { fontSize: 12, color: C.muted, fontWeight: '500' },
 
   // ── Alert banner ──────────────────────────────────────────────────────────
   alertBanner: {
@@ -906,7 +972,7 @@ const s = StyleSheet.create({
   },
   alertIconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   alertTitle:   { fontSize: 14, fontWeight: '700', color: C.g700, marginBottom: 3 },
-  alertDesc:    { fontSize: 12, color: C.sub, lineHeight: 17 },
+  alertDesc:    { fontSize: 13, color: C.sub, lineHeight: 17 },
 
   // ── Card ──────────────────────────────────────────────────────────────────
   card: {
@@ -926,36 +992,36 @@ const s = StyleSheet.create({
   statusDot:   { width: 24, height: 24, borderRadius: 12, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   statusDotDone:    { backgroundColor: C.g600, borderColor: C.g600 },
   statusDotCurrent: { backgroundColor: C.blue, borderColor: C.blue },
-  statusDotNum:     { fontSize: 11, fontWeight: '800', color: C.muted },
-  statusStepLbl:    { fontSize: 10, fontWeight: '600', color: C.muted, textAlign: 'center' },
+  statusDotNum:     { fontSize: 12, fontWeight: '800', color: C.muted },
+  statusStepLbl:    { fontSize: 11, fontWeight: '600', color: C.muted, textAlign: 'center' },
 
   // Collapsible quote details
   quoteHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   quoteBody: { marginTop: 14, gap: 10 },
   quoteSub:      { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, gap: 8 },
-  quoteSubTitle: { fontSize: 11, fontWeight: '800', color: C.sub, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
-  quoteLiTxt:    { flex: 1, fontSize: 12.5, color: C.sub, lineHeight: 18 },
+  quoteSubTitle: { fontSize: 12, fontWeight: '800', color: C.sub, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
+  quoteLiTxt:    { flex: 1, fontSize: 13.5, color: C.sub, lineHeight: 18 },
   pillWrap:      { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   pill:          { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingRight: 12, paddingLeft: 7, borderRadius: 20 },
   pillPip:       { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  pillTxt:       { fontSize: 12, fontWeight: '600' },
+  pillTxt:       { fontSize: 13, fontWeight: '600' },
   termsCard:     { backgroundColor: C.bg, borderRadius: rs(12), padding: 11 },
   termLine:      { flexDirection: 'row', gap: 8, marginBottom: 7 },
-  termNum:       { fontSize: 12, fontWeight: '800', color: C.text },
-  termTxt:       { flex: 1, fontSize: 12, color: C.sub, lineHeight: 18 },
+  termNum:       { fontSize: 13, fontWeight: '800', color: C.text },
+  termTxt:       { flex: 1, fontSize: 13, color: C.sub, lineHeight: 18 },
   quoteNote:     { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: C.bg, borderRadius: rs(10), padding: 10, marginTop: 4 },
-  quoteValid:    { fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 6 },
+  quoteValid:    { fontSize: 12, color: C.muted, fontStyle: 'italic', marginTop: 6 },
 
   // ── Customer ──────────────────────────────────────────────────────────────
   customerRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   avatar:        { width: 46, height: 46, borderRadius: 23, backgroundColor: C.blueL, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.blue + '20' },
   avatarTxt:     { fontSize: 18, fontWeight: '800', color: C.blue },
   customerName:  { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 2 },
-  customerEmail: { fontSize: 12, color: C.muted },
+  customerEmail: { fontSize: 13, color: C.muted },
 
   contactRow: { flexDirection: 'row', gap: 8 },
   contactBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 10, borderWidth: 1 },
-  contactTxt: { fontSize: 12, fontWeight: '700' },
+  contactTxt: { fontSize: 13, fontWeight: '700' },
 
   // ── Vehicle ───────────────────────────────────────────────────────────────
   vehicleBox: {
@@ -966,28 +1032,28 @@ const s = StyleSheet.create({
   },
   vehicleIconWrap: { width: 58, height: 58, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.amber + '28' },
   vehicleName:     { fontSize: 16, fontWeight: '800', color: C.text, marginBottom: 3 },
-  vehicleSub:      { fontSize: 12, color: C.sub },
+  vehicleSub:      { fontSize: 13, color: C.sub },
   assignedBadge:   { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 7, alignSelf: 'flex-start', backgroundColor: C.g100, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  assignedTxt:     { fontSize: 11, fontWeight: '600', color: C.g700 },
+  assignedTxt:     { fontSize: 12, fontWeight: '600', color: C.g700 },
 
   tripMetaRow:   { flexDirection: 'row', gap: 12, marginBottom: 14 },
   tripMetaItem:  { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   tripMetaIcon:  { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  tripMetaLabel: { fontSize: 10, color: C.muted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  tripMetaValue: { fontSize: 13, fontWeight: '700', color: C.text },
+  tripMetaLabel: { fontSize: 11, color: C.muted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  tripMetaValue: { fontSize: 14, fontWeight: '700', color: C.text },
 
   dateRow:  { flexDirection: 'row', gap: 10 },
   dateBox:  { flex: 1, padding: 12, borderRadius: 12, borderWidth: 1 },
   dateDot:  { width: 8, height: 8, borderRadius: 4, marginBottom: 6 },
-  dateLabel:{ fontSize: 9, fontWeight: '800', letterSpacing: 1.2, marginBottom: 5 },
-  dateVal:  { fontSize: 12, fontWeight: '700', color: C.text, marginBottom: 2 },
-  dateTime: { fontSize: 11, color: C.sub, fontWeight: '500' },
+  dateLabel:{ fontSize: 10, fontWeight: '800', letterSpacing: 1.2, marginBottom: 5 },
+  dateVal:  { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 2 },
+  dateTime: { fontSize: 12, color: C.sub, fontWeight: '500' },
 
   // ── Payment ───────────────────────────────────────────────────────────────
   payList: { gap: 10, marginBottom: 12 },
   payRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  payLabel:{ fontSize: 13, color: C.sub },
-  payVal:  { fontSize: 13, fontWeight: '600', color: C.text },
+  payLabel:{ fontSize: 14, color: C.sub },
+  payVal:  { fontSize: 14, fontWeight: '600', color: C.text },
   totalRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: C.g50, borderRadius: 12, padding: 14,
@@ -998,14 +1064,14 @@ const s = StyleSheet.create({
 
   // ── Trip Control ──────────────────────────────────────────────────────────
   msgBox: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, marginBottom: 12 },
-  msgTxt: { fontSize: 12, fontWeight: '500', flex: 1 },
-  tripDesc: { fontSize: 13, color: C.sub, marginBottom: 14, lineHeight: 19 },
+  msgTxt: { fontSize: 13, fontWeight: '500', flex: 1 },
+  tripDesc: { fontSize: 14, color: C.sub, marginBottom: 14, lineHeight: 19 },
 
   infoAlert:      { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12, borderRadius: 12, borderWidth: 1, marginBottom: 14 },
-  infoAlertTitle: { fontSize: 13, fontWeight: '700', marginBottom: 2 },
-  infoAlertDesc:  { fontSize: 12, color: C.sub, lineHeight: 16 },
+  infoAlertTitle: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  infoAlertDesc:  { fontSize: 13, color: C.sub, lineHeight: 16 },
 
-  otpLbl: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 8 },
+  otpLbl: { fontSize: 14, fontWeight: '600', color: C.text, marginBottom: 8 },
   otpInputWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 2, borderColor: C.border, borderRadius: 14, backgroundColor: C.bg, marginBottom: 14 },
   otpInput: { flex: 1, fontSize: 24, fontWeight: '800', letterSpacing: 8, textAlign: 'center', color: C.text },
 
@@ -1016,11 +1082,11 @@ const s = StyleSheet.create({
   // ── Completed ─────────────────────────────────────────────────────────────
   trophyRing:     { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   completedTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: C.g700, marginBottom: 6 },
-  completedDesc:  { fontSize: 13, color: C.sub, textAlign: 'center' },
+  completedDesc:  { fontSize: 14, color: C.sub, textAlign: 'center' },
 
   // ── Notes ─────────────────────────────────────────────────────────────────
   notesBox: { padding: 12, backgroundColor: C.amberL, borderRadius: 12, borderWidth: 1, borderColor: C.amber + '22' },
-  notesTxt: { fontSize: 13, color: C.text, lineHeight: 20 },
+  notesTxt: { fontSize: 14, color: C.text, lineHeight: 20 },
 
   // ── Action Bar ────────────────────────────────────────────────────────────
   actionBar: {

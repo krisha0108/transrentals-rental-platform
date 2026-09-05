@@ -24,7 +24,7 @@ import { apiGet, apiPost } from '../../api/client';
 import { showError, showSuccess } from '../../../services/alertService';
 import { SC as T, G, rs, rf, GUT, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already used everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -44,6 +44,10 @@ const C = {
 // between the hero and the ScrollView so it can never be clipped.
 const HERO_TAIL = rs(24);
 const BANNER_OVERLAP = rs(18);
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 export default function BankDetailsScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
@@ -131,8 +135,7 @@ export default function BankDetailsScreen({ navigation }) {
       {/* ── HERO — static sibling so it can never be clipped by the
           ScrollView's own viewport ── */}
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
-        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
           <View style={styles.headerRow}>
@@ -148,11 +151,7 @@ export default function BankDetailsScreen({ navigation }) {
 
           <View style={styles.heroBody}>
             <View style={styles.heroIconWrap}>
-              {loading ? (
-                <ActivityIndicator size="large" color={C.g400} />
-              ) : (
-                <MaterialCommunityIcons name="bank-outline" size={rs(32)} color={C.g400} />
-              )}
+              <MaterialCommunityIcons name="bank-outline" size={rs(32)} color={C.g400} />
             </View>
             <Text style={styles.heroTitle}>Bank Details</Text>
             <Text style={styles.heroSub}>Secure payout account management</Text>
@@ -173,7 +172,40 @@ export default function BankDetailsScreen({ navigation }) {
         </View>
       </View>
 
-      {!loading && (
+      {loading ? (
+        <View style={styles.scroll}>
+          <View style={styles.cardWrap}>
+            <View style={[styles.cardTile, cardShadow]}>
+              <View style={[styles.cardRail, { backgroundColor: '#DDE4EE' }]} />
+              <View style={styles.cardBody}>
+                <View style={styles.emvRow}>
+                  <Bone w={rs(34)} h={rs(25)} r={rs(5)} />
+                  <View style={{ flex: 1 }} />
+                  <Bone w={70} h={rs(22)} r={999} />
+                </View>
+                <Bone w={180} h={rf(19)} style={{ marginBottom: rs(12) }} />
+                <View style={styles.cardBottomRow}>
+                  <View style={{ flex: 1 }}>
+                    <Bone w={80} h={9} style={{ marginBottom: 6 }} />
+                    <Bone w={120} h={13} />
+                  </View>
+                  <View>
+                    <Bone w={70} h={9} style={{ marginBottom: 6 }} />
+                    <Bone w={90} h={13} />
+                  </View>
+                </View>
+                <View style={styles.issuerRow}>
+                  <Bone w={rs(32)} h={rs(32)} r={rs(10)} />
+                  <View style={{ flex: 1 }}>
+                    <Bone w={110} h={13} style={{ marginBottom: 5 }} />
+                    <Bone w={90} h={10} />
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : (
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={styles.scroll}
@@ -362,6 +394,7 @@ export default function BankDetailsScreen({ navigation }) {
   );
 }
 
+
 /* ───────── Sub-components ───────── */
 
 // Purely decorative EMV contact-plate graphic, same anatomy as
@@ -406,16 +439,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: rs(26),
     overflow: 'hidden',
   },
-  orbA: {
-    position: 'absolute', top: -rs(60), right: -rs(40),
-    width: rs(180), height: rs(180), borderRadius: rs(90),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(60), left: -rs(40),
-    width: rs(150), height: rs(150), borderRadius: rs(75),
-    backgroundColor: 'rgba(46,158,120,0.16)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',

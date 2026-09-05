@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet,
+  View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet,
   RefreshControl, ActivityIndicator, Alert, Dimensions,
   Image, StatusBar, Platform, Modal, Animated,
 } from 'react-native';
@@ -16,7 +16,7 @@ import {
 import { getFullImageURL } from '../../api/client';
 import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -47,6 +47,10 @@ const formatTimeAgo = (dateStr) => {
   if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
   return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 function AvatarCircle({ name, logo, size = 40 }) {
   const [imgErr, setImgErr] = useState(false);
@@ -358,17 +362,61 @@ export default function SocialProfileScreen({ route, navigation }) {
     return (
       <View style={st.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g950} translucent={false} />
-        <LinearGradient colors={G.hero} style={[st.loadingHero, { paddingTop: insets.top + rs(10) }]}>
-          <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
-          <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
-          <TouchableOpacity style={st.backBtnGlass} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={20} color="#fff" />
-          </TouchableOpacity>
-        </LinearGradient>
-        <View style={st.loadingBody}>
-          <ActivityIndicator color={C.g600} size="large" />
-          <Text style={st.loadingText}>Loading profile...</Text>
-        </View>
+        <ScrollView contentContainerStyle={st.list} showsVerticalScrollIndicator={false}>
+          <LinearGradient colors={G.hero} style={[st.hero, { paddingTop: insets.top + rs(10) }]}>
+            <CornerGrid style={st.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+            <View style={st.topBar}>
+              <TouchableOpacity style={st.backBtnGlass} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-left" size={20} color="#fff" />
+              </TouchableOpacity>
+              <Bone w={rs(60)} h={rs(14)} style={{ backgroundColor: 'rgba(255,255,255,0.25)' }} />
+              <View style={st.topBarSpacer} />
+            </View>
+            <View style={st.heroContent}>
+              <View style={st.avatarRing}>
+                <Bone w={rs(68)} h={rs(68)} r={rs(34)} style={{ backgroundColor: 'rgba(255,255,255,0.25)' }} />
+              </View>
+              <View style={st.heroInfo}>
+                <Bone w={rs(140)} h={rs(16)} style={{ backgroundColor: 'rgba(255,255,255,0.25)', marginBottom: rs(6) }} />
+                <Bone w={rs(90)} h={rs(12)} style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+              </View>
+            </View>
+          </LinearGradient>
+
+          <View style={st.statsRow}>
+            {[0, 1, 2, 3].map((i) => (
+              <View key={i} style={[st.statCell, i > 0 && st.statCellDivider]}>
+                <Bone w={28} h={28} r={8} style={{ marginBottom: rs(3) }} />
+                <Bone w={24} h={14} style={{ marginBottom: rs(3) }} />
+                <Bone w={40} h={10} />
+              </View>
+            ))}
+          </View>
+
+          <View style={st.tabsRow}>
+            <Bone w="48%" h={rs(36)} r={10} />
+            <Bone w="48%" h={rs(36)} r={10} />
+          </View>
+
+          {[0, 1].map((i) => (
+            <View key={i} style={st.postCard}>
+              <View style={[st.postAccent, { backgroundColor: '#DDE4EE' }]} />
+              <View style={st.postBody}>
+                <View style={st.postHeader}>
+                  <Bone w={60} h={18} r={20} />
+                  <Bone w={50} h={11} />
+                </View>
+                <Bone w="90%" h={13} style={{ marginTop: rs(4) }} />
+                <Bone w="60%" h={13} style={{ marginTop: rs(6), marginBottom: rs(10) }} />
+                <View style={st.postFooter}>
+                  <Bone w={50} h={14} />
+                  <Bone w={50} h={14} />
+                  <Bone w={50} h={14} />
+                </View>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       </View>
     );
   }
@@ -378,8 +426,7 @@ export default function SocialProfileScreen({ route, navigation }) {
     <>
       {/* Hero gradient */}
       <LinearGradient colors={G.hero} style={[st.hero, { paddingTop: insets.top + rs(10) }]}>
-        <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={st.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
         {/* Top bar */}
         <View style={st.topBar}>
@@ -618,20 +665,8 @@ export default function SocialProfileScreen({ route, navigation }) {
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
 
-  // Loading
-  loadingHero: { paddingHorizontal: rs(16), paddingBottom: rs(20), borderBottomLeftRadius: rs(28), borderBottomRightRadius: rs(28), overflow: 'hidden' },
-  loadingBody: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: rs(12) },
-  loadingText: { fontFamily: DISPLAY, fontSize: rs(14), color: C.muted, fontWeight: '600' },
-
   // Ambient orbs
-  orbA: {
-    position: 'absolute', top: -rs(46), right: -rs(32), width: rs(175), height: rs(175),
-    borderRadius: rs(88), backgroundColor: 'rgba(228,192,102,0.10)',
-  },
-  orbB: {
-    position: 'absolute', bottom: rs(10), left: -rs(40), width: rs(145), height: rs(145),
-    borderRadius: rs(73), backgroundColor: 'rgba(23,166,124,0.14)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
 
   // Glass back button
   backBtnGlass: {

@@ -21,7 +21,7 @@ import { getStaffPayroll, markStaffPayment } from '../../api/staff-api';
 import { showError, showSuccess, showInfo, showConfirm } from '../../../services/alertService';
 import { SC as T, G, rs, rf, GUT, shade, cardShadow, rowShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already used — only the values now come from
 // the shared "Elevate" theme instead of hardcoded hex, mirroring the mapping
@@ -50,6 +50,10 @@ const PAYMENT_METHODS = [
   { key: 'UPI', label: 'UPI', icon: 'smartphone' },
   { key: 'CHEQUE', label: 'Cheque', icon: 'file-text' },
 ];
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const fmt = (n) => {
   if (n === undefined || n === null) return '0';
@@ -160,27 +164,23 @@ export default function StaffPayrollScreen({ navigation }) {
 
   const GradHeader = () => (
     <LinearGradient colors={G.hero} style={styles.header}>
-      <AnimatedOrb style={styles.orbA} />
-      <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+      <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
       <SafeAreaView edges={['top']} style={styles.headerSafe}>
         <View style={styles.headerTopRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
             <Icon name="arrow-left" size={rs(20)} color="#fff" />
           </TouchableOpacity>
-          <View style={{ flex: 1 }} />
+          <View style={styles.titleWrap}>
+            <View style={styles.heroBadge}>
+              <MaterialCommunityIcons name="cash-multiple" size={rs(11)} color={C.g400} />
+              <Text style={styles.heroBadgeTxt}>Team Finance</Text>
+            </View>
+            <Text style={styles.headerTitle}>Staff Payroll</Text>
+          </View>
           <TouchableOpacity onPress={onRefresh} style={styles.refreshCircle}>
             <Icon name="refresh-cw" size={rs(17)} color="rgba(255,255,255,0.7)" />
           </TouchableOpacity>
         </View>
-
-        <View style={styles.heroBadge}>
-          <MaterialCommunityIcons name="cash-multiple" size={rs(12)} color={C.g400} />
-          <Text style={styles.heroBadgeTxt}>Team Finance</Text>
-        </View>
-        <Text style={styles.bigTitle}>Staff Payroll</Text>
-        <Text style={styles.bigSub}>{MONTH_NAMES[month]} {year}</Text>
-
-        <View style={{ height: rs(30) }} />
       </SafeAreaView>
     </LinearGradient>
   );
@@ -190,7 +190,55 @@ export default function StaffPayrollScreen({ navigation }) {
       <View style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <GradHeader />
-        <View style={styles.loader}><ActivityIndicator size="large" color={C.g600} /></View>
+
+        <View style={styles.statsWrap}>
+          <View style={[styles.statsCard]}>
+            {[0, 1, 2, 3].map((i) => (
+              <View key={i} style={styles.statItem}>
+                <Bone w={40} h={15} style={{ marginBottom: 4 }} />
+                <Bone w={34} h={9} />
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.monthBar}>
+          <View style={styles.monthArrow} />
+          <View style={styles.monthPill}>
+            <Icon name="calendar" size={rs(14)} color={C.g600} />
+            <Text style={styles.monthLabel}>{MONTH_NAMES[month]} {year}</Text>
+          </View>
+          <View style={styles.monthArrow} />
+        </View>
+
+        <View style={styles.scroll}>
+          <View style={styles.progressCard}>
+            <View style={styles.progressTop}>
+              <Bone w={120} h={13} />
+              <Bone w={60} h={11} />
+            </View>
+            <View style={styles.progressBarBg} />
+          </View>
+
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={styles.staffCard}>
+              <View style={[styles.cardRail, { backgroundColor: '#DDE4EE' }]} />
+              <View style={styles.cardInnerWrap}>
+                <View style={styles.cardTop}>
+                  <Bone w={40} h={40} r={12} style={{ marginRight: 10 }} />
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <Bone w={110} h={13} />
+                    <Bone w={80} h={10} />
+                  </View>
+                  <Bone w={60} h={16} />
+                </View>
+                <View style={[styles.calcBox, { backgroundColor: '#F1F5F9' }]}>
+                  <Bone w="100%" h={40} r={10} />
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
@@ -536,7 +584,6 @@ function DetailRow({ label, value, bold, color }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
-  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   // Hero header
   header: {
@@ -545,15 +592,9 @@ const styles = StyleSheet.create({
     paddingBottom: rs(8),
   },
   headerSafe: { paddingHorizontal: GUT },
-  orbA: {
-    position: 'absolute', top: -rs(46), right: -rs(30), width: rs(150), height: rs(150),
-    borderRadius: rs(75), backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(40), left: -rs(34), width: rs(120), height: rs(120),
-    borderRadius: rs(60), backgroundColor: 'rgba(255,255,255,0.045)',
-  },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(14) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: rs(10) },
+  titleWrap: { alignItems: 'center', justifyContent: 'center', minHeight: rs(40) },
   backCircle: {
     width: rs(40), height: rs(40), borderRadius: rs(20),
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -566,13 +607,12 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
 
-  heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 8 },
+  heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 4 },
   heroBadgeTxt: { fontSize: rf(11), fontWeight: '600', color: C.g400, fontFamily: DISPLAY },
-  bigTitle: { fontSize: rf(24), fontWeight: '700', color: '#fff', fontFamily: DISPLAY, letterSpacing: 0.2, marginBottom: 3 },
-  bigSub: { fontSize: rf(12.5), color: 'rgba(255,255,255,0.7)', fontWeight: '600', fontFamily: DISPLAY },
+  headerTitle: { fontFamily: DISPLAY, fontSize: rf(19), color: '#fff', letterSpacing: -0.2, fontWeight: '800' },
 
   // Floating stats card
-  statsWrap: { marginHorizontal: GUT, marginTop: -rs(24) },
+  statsWrap: { marginHorizontal: GUT, marginTop: rs(14) },
   statsCard: {
     flexDirection: 'row',
     backgroundColor: C.card, borderRadius: rs(16),
@@ -648,11 +688,11 @@ const styles = StyleSheet.create({
   },
   paidBadgeText: { fontSize: 8, fontWeight: '900', color: '#fff' },
   cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-  cardRole: { fontSize: 10, fontWeight: '700', color: C.blue, textTransform: 'capitalize' },
-  cardPhone: { fontSize: 10, color: C.muted },
+  cardRole: { fontSize: 11, fontWeight: '700', color: C.blue, textTransform: 'capitalize' },
+  cardPhone: { fontSize: 11, color: C.muted },
   cardRight: { alignItems: 'flex-end', marginLeft: 8 },
   cardNetSalary: { fontSize: rf(16), fontWeight: '800', color: C.text, fontFamily: DISPLAY },
-  cardNetLabel: { fontSize: 9, color: C.muted, fontWeight: '600' },
+  cardNetLabel: { fontSize: 10, color: C.muted, fontWeight: '600' },
 
   // Salary Breakdown Box
   calcBox: {
@@ -674,8 +714,8 @@ const styles = StyleSheet.create({
   salaryBarBg: { height: 8, borderRadius: 4, backgroundColor: C.redL, overflow: 'hidden' },
   salaryBarEarned: { height: 8, borderRadius: 4, backgroundColor: C.g600 },
   salaryBarLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
-  salaryBarPct: { fontSize: 10, fontWeight: '800', color: C.g600 },
-  salaryBarRight: { fontSize: 10, fontWeight: '600', color: C.muted },
+  salaryBarPct: { fontSize: 11, fontWeight: '800', color: C.g600 },
+  salaryBarRight: { fontSize: 11, fontWeight: '600', color: C.muted },
 
   // Attendance Bar
   attBar: {
@@ -683,7 +723,7 @@ const styles = StyleSheet.create({
   },
   attItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   attDot: { width: 7, height: 7, borderRadius: 4 },
-  attText: { fontSize: 10, color: C.muted, fontWeight: '600' },
+  attText: { fontSize: 11, color: C.muted, fontWeight: '600' },
 
   // Detail Box
   detailBox: {
@@ -692,8 +732,8 @@ const styles = StyleSheet.create({
   },
   detailGrid: { gap: 6 },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  detailLabel: { fontSize: 12, color: C.muted, fontWeight: '500' },
-  detailValue: { fontSize: 12, color: C.sub, fontWeight: '700' },
+  detailLabel: { fontSize: 13, color: C.muted, fontWeight: '500' },
+  detailValue: { fontSize: 13, color: C.sub, fontWeight: '700' },
   detailDivider: { height: 1, backgroundColor: C.border, marginVertical: 4 },
 
   // Bank Box
@@ -701,9 +741,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8,
     marginTop: 10, backgroundColor: C.blueL, borderRadius: 10, padding: 10,
   },
-  bankName: { fontSize: 11, fontWeight: '700', color: C.text },
-  bankAcc: { fontSize: 10, color: C.muted, marginTop: 1 },
-  bankIfsc: { fontSize: 9, fontWeight: '700', color: C.blue, backgroundColor: '#DBEAFE', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  bankName: { fontSize: 12, fontWeight: '700', color: C.text },
+  bankAcc: { fontSize: 11, color: C.muted, marginTop: 1 },
+  bankIfsc: { fontSize: 10, fontWeight: '700', color: C.blue, backgroundColor: '#DBEAFE', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
 
   // Pay Button
   payBtn: {
@@ -711,13 +751,13 @@ const styles = StyleSheet.create({
     marginTop: 12, backgroundColor: C.g600, paddingVertical: 12, borderRadius: 12,
     ...rowShadow,
   },
-  payBtnText: { color: '#fff', fontWeight: '800', fontSize: 13, fontFamily: DISPLAY },
+  payBtnText: { color: '#fff', fontWeight: '800', fontSize: 14, fontFamily: DISPLAY },
 
   paidInfo: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     marginTop: 10, backgroundColor: C.g50, borderRadius: 10, padding: 10,
   },
-  paidInfoText: { fontSize: 11, color: C.g700, fontWeight: '600', flex: 1 },
+  paidInfoText: { fontSize: 12, color: C.g700, fontWeight: '600', flex: 1 },
 
   // Empty
   emptyCardWrap: {
@@ -755,7 +795,7 @@ const styles = StyleSheet.create({
   },
   emptyArtTagTxt: { fontSize: 8.5, fontWeight: '700', color: C.g700, letterSpacing: 0.6, fontFamily: DISPLAY },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 4, fontFamily: DISPLAY, textAlign: 'center' },
-  emptyDesc: { fontSize: 13, color: C.muted, textAlign: 'center' },
+  emptyDesc: { fontSize: 14, color: C.muted, textAlign: 'center' },
 
   // Modal — ScrollView lives INSIDE modalContent (after the sheet handle),
   // wrapping header + body + confirm button. modalContent is height-capped
@@ -771,7 +811,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
   mTitle: { fontSize: 19, fontWeight: '800', color: C.text, letterSpacing: -0.3, fontFamily: DISPLAY },
-  mSub: { fontSize: 13, color: C.muted, marginTop: 2 },
+  mSub: { fontSize: 14, color: C.muted, marginTop: 2 },
   mCloseBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
 
   mBody: { paddingHorizontal: 20, paddingTop: 16 },
@@ -781,13 +821,13 @@ const styles = StyleSheet.create({
     backgroundColor: C.g50, borderRadius: 16, padding: 18,
     borderWidth: 1, borderColor: C.g50, alignItems: 'center', marginBottom: 20,
   },
-  mAmountLabel: { fontSize: 11, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  mAmountLabel: { fontSize: 12, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 },
   mAmountVal: { fontSize: 32, fontWeight: '900', color: C.g600, marginVertical: 4, fontFamily: DISPLAY },
   mAmountRow: { flexDirection: 'row', gap: 16 },
-  mAmountSub: { fontSize: 11, color: C.muted, fontWeight: '600' },
+  mAmountSub: { fontSize: 12, color: C.muted, fontWeight: '600' },
 
   // Labels
-  mLabel: { fontSize: 12, fontWeight: '700', color: C.sub, marginBottom: 8, marginTop: 4 },
+  mLabel: { fontSize: 13, fontWeight: '700', color: C.sub, marginBottom: 8, marginTop: 4 },
 
   // Method Grid
   methodGrid: { flexDirection: 'row', gap: 8, marginBottom: 16 },
@@ -796,13 +836,13 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: C.border, backgroundColor: C.bg, gap: 4,
   },
   methodBtnActive: { borderColor: C.g600, backgroundColor: C.g50 },
-  methodBtnText: { fontSize: 10, fontWeight: '600', color: C.muted },
+  methodBtnText: { fontSize: 11, fontWeight: '600', color: C.muted },
   methodBtnTextActive: { color: C.g600, fontWeight: '700' },
 
   // Input
   mInput: {
     backgroundColor: C.bg, borderRadius: 12, borderWidth: 1, borderColor: C.border,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 13, color: C.text,
+    paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.text,
     marginBottom: 14,
   },
 

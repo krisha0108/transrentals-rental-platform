@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: 14,
   },
   heroTitle: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 4 },
+  heroSub: { fontSize: 14, color: 'rgba(255,255,255,0.65)', marginTop: 4 },
 
   statsStrip: {
     flexDirection: 'row',
@@ -338,11 +338,11 @@ const styles = StyleSheet.create({
   statItem: { flex: 1, alignItems: 'center' },
   statDivider: { borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.15)' },
   statValue: { fontSize: 22, fontWeight: '800' },
-  statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '600', marginTop: 2 },
+  statLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600', marginTop: 2 },
 
   scroll: { padding: 16 },
   sectionLabel: {
-    fontSize: 13, fontWeight: '700', color: C.sub,
+    fontSize: 14, fontWeight: '700', color: C.sub,
     textTransform: 'uppercase', letterSpacing: 0.5,
     marginBottom: 10, marginTop: 8, marginLeft: 2,
   },
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   menuTitle: { fontSize: 15, fontWeight: '700', color: C.text },
-  menuSub: { fontSize: 12, color: C.sub, marginTop: 1 },
+  menuSub: { fontSize: 13, color: C.sub, marginTop: 1 },
   menuArrow: {
     width: 28, height: 28, borderRadius: 8,
     backgroundColor: '#F8FAFC',
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.red, borderRadius: 12,
     paddingHorizontal: 8, paddingVertical: 3, minWidth: 24, alignItems: 'center',
   },
-  badgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  badgeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
 
   alertBanner: {
     flexDirection: 'row', alignItems: 'center',
@@ -387,5 +387,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF3C7',
     alignItems: 'center', justifyContent: 'center',
   },
-  alertText: { flex: 1, fontSize: 13, color: C.text, lineHeight: 19 },
+  alertText: { flex: 1, fontSize: 14, color: C.text, lineHeight: 19 },
 });

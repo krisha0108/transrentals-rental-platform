@@ -23,7 +23,11 @@ import { getVendorQuotes, getBaseURL, getSessionToken, getQuoteRequestById, with
 import { showError, showSuccess, showInfo, showConfirm } from '../../../../services/alertService';
 import { SC as T, G, rs, shade, cardShadow } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const { width: W } = Dimensions.get('window');
 const SLIDER_WIDTH = W - 32;
@@ -205,8 +209,7 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
       <View style={s.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={s.hero}>
-          <AnimatedOrb style={s.deco1} />
-          <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']}>
             <View style={s.topBar}>
               <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -218,12 +221,97 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
               </View>
               <View style={{ width: 36 }} />
             </View>
+
+            {/* Identity block skeleton */}
+            <View style={s.identityBlock}>
+              <Bone w={rs(48)} h={rs(48)} r={rs(14)} style={{ backgroundColor: 'rgba(255,255,255,0.16)' }} />
+              <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12), gap: 6 }}>
+                <Bone w={70} h={9} r={3} style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+                <Bone w={130} h={16} r={4} style={{ backgroundColor: 'rgba(255,255,255,0.26)' }} />
+                <Bone w={100} h={11} r={4} style={{ backgroundColor: 'rgba(255,255,255,0.18)' }} />
+              </View>
+            </View>
           </SafeAreaView>
         </LinearGradient>
-        <View style={s.centered}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={s.centeredTxt}>Loading quote details…</Text>
-        </View>
+
+        <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Ticket summary skeleton */}
+          <View style={s.ticketWrap}>
+            <View style={[s.ticketRail, { backgroundColor: '#DDE4EE' }]} />
+            <View style={s.ticketUpperStub}>
+              <Bone w={rs(44)} h={rs(44)} r={rs(12)} />
+              <View style={{ flex: 1, gap: 5 }}>
+                <Bone w={60} h={9} r={3} />
+                <Bone w={100} h={16} r={4} />
+              </View>
+              <Bone w={70} h={22} r={20} />
+            </View>
+            <View style={s.perforationRow}>
+              <View style={s.dashLine} />
+            </View>
+            <View style={s.ticketLowerStub}>
+              <Bone w={rs(30)} h={rs(30)} r={rs(9)} />
+              <View style={{ flex: 1, gap: 5 }}>
+                <Bone w={90} h={9} r={3} />
+                <Bone w={120} h={16} r={4} />
+              </View>
+            </View>
+          </View>
+
+          {/* Customer Information card skeleton */}
+          <View style={s.card}>
+            <View style={s.cardHead}>
+              <Bone w={34} h={34} r={10} />
+              <Bone w={150} h={13} r={4} />
+            </View>
+            {[0,1].map(i => (
+              <View key={i} style={s.infoRow}>
+                <Bone w={32} h={32} r={8} />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Bone w={50} h={9} r={3} />
+                  <Bone w={120} h={13} r={4} />
+                </View>
+              </View>
+            ))}
+            <Bone w="100%" h={44} r={rs(12)} style={{ marginTop: 2 }} />
+          </View>
+
+          {/* Booking Details card skeleton */}
+          <View style={s.card}>
+            <View style={s.cardHead}>
+              <Bone w={34} h={34} r={10} />
+              <Bone w={130} h={13} r={4} />
+            </View>
+            <View style={s.routeCard}>
+              <View style={s.routeRail}>
+                <Bone w={10} h={10} r={5} />
+                <View style={s.routeLine} />
+                <Bone w={10} h={10} r={5} />
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Bone w={50} h={9} r={3} />
+                <Bone w={100} h={14} r={4} style={{ marginBottom: rs(12) }} />
+                <Bone w={40} h={9} r={3} />
+                <Bone w={90} h={14} r={4} />
+              </View>
+            </View>
+          </View>
+
+          {/* Pricing Breakdown card skeleton */}
+          <View style={s.card}>
+            <View style={s.cardHead}>
+              <Bone w={34} h={34} r={10} />
+              <Bone w={140} h={13} r={4} />
+            </View>
+            {[0,1,2].map(i => (
+              <View key={i} style={s.payRow}>
+                <Bone w={70} h={11} r={4} />
+                <Bone w={60} h={11} r={4} />
+              </View>
+            ))}
+            <Bone w="100%" h={48} r={12} style={{ marginTop: 8 }} />
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -234,8 +322,7 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
       <View style={s.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={s.hero}>
-          <AnimatedOrb style={s.deco1} />
-          <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']}>
             <View style={s.topBar}>
               <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -337,8 +424,7 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.hero}
       >
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -850,16 +936,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden',
     borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
   },
-  deco1: {
-    position: 'absolute', width: W * 0.55, height: W * 0.55,
-    borderRadius: W * 0.275, backgroundColor: 'rgba(52,211,153,0.06)',
-    top: -W * 0.18, right: -W * 0.1,
-  },
-  deco2: {
-    position: 'absolute', width: W * 0.32, height: W * 0.32,
-    borderRadius: W * 0.16, backgroundColor: 'rgba(16,185,129,0.05)',
-    bottom: 0, left: W * 0.38,
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   topBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 16 },
   backBtn:   { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -871,9 +948,9 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
   },
-  identityLabel: { fontSize: 9.5, color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: 1.4, marginBottom: 3 },
+  identityLabel: { fontSize: 10.5, color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: 1.4, marginBottom: 3 },
   identityName:  { fontFamily: DISPLAY, fontSize: 19, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
-  identitySub:   { fontSize: 12.5, color: 'rgba(255,255,255,0.65)', fontWeight: '600', marginTop: 3 },
+  identitySub:   { fontSize: 13.5, color: 'rgba(255,255,255,0.65)', fontWeight: '600', marginTop: 3 },
 
   // ── Ticket summary card — quote #, status, total; overlaps hero bottom ──
   ticketWrap: {
@@ -887,11 +964,11 @@ const s = StyleSheet.create({
     width: rs(44), height: rs(44), borderRadius: rs(12),
     backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
   },
-  ticketLabel: { fontSize: 9.5, color: C.muted, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
+  ticketLabel: { fontSize: 10.5, color: C.muted, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
   ticketNumber: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '900', color: C.text, letterSpacing: -0.3 },
 
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
-  statusPillTxt: { fontSize: 11, fontWeight: '700' },
+  statusPillTxt: { fontSize: 12, fontWeight: '700' },
 
   perforationRow: { height: 2, justifyContent: 'center' },
   dashLine: { marginHorizontal: 20, borderTopWidth: 1, borderColor: C.border, borderStyle: 'dashed' },
@@ -909,7 +986,7 @@ const s = StyleSheet.create({
     width: rs(30), height: rs(30), borderRadius: rs(9),
     backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
   },
-  ticketAmountLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
+  ticketAmountLabel: { fontSize: 11, color: C.muted, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
   ticketAmountVal: { fontFamily: DISPLAY, fontSize: 24, fontWeight: '900', color: C.g700, letterSpacing: -0.4 },
 
   // ── Card ──────────────────────────────────────────────────────────────────
@@ -926,7 +1003,7 @@ const s = StyleSheet.create({
   infoRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10 },
   infoIconWrap: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginTop: 1 },
   infoContent:  { flex: 1 },
-  infoLabel:    { fontSize: 11, color: C.muted, marginBottom: 2 },
+  infoLabel:    { fontSize: 12, color: C.muted, marginBottom: 2 },
   infoValue:    { fontSize: 14, color: C.text, fontWeight: '600' },
 
   callRow: {
@@ -956,13 +1033,13 @@ const s = StyleSheet.create({
   },
   vehicleHeroText: { flex: 1 },
   vehicleHeroName:  { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.text },
-  vehicleHeroBrand: { fontSize: 13, color: C.sub, marginTop: 3 },
+  vehicleHeroBrand: { fontSize: 14, color: C.sub, marginTop: 3 },
 
   /* Features */
   featuresWrap: { paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border },
-  featuresTitle: { fontSize: 11, fontWeight: '800', color: C.sub, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.4 },
+  featuresTitle: { fontSize: 12, fontWeight: '800', color: C.sub, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.4 },
   featureItem:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  featureText:  { fontSize: 13, color: C.sub, flex: 1 },
+  featureText:  { fontSize: 14, color: C.sub, flex: 1 },
 
   /* Route / booking details */
   routeCard: {
@@ -972,7 +1049,7 @@ const s = StyleSheet.create({
   routeRail: { alignItems: 'center', paddingTop: 3 },
   routeDot: { width: 10, height: 10, borderRadius: 5 },
   routeLine: { width: 2, flex: 1, minHeight: rs(28), backgroundColor: C.border, marginVertical: 4 },
-  routeLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 0.6 },
+  routeLabel: { fontSize: 11, color: C.muted, fontWeight: '700', letterSpacing: 0.6 },
   routeValue: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '700', color: C.text, marginTop: 2 },
 
   dateGrid: { flexDirection: 'row', gap: 10, marginTop: 12 },
@@ -980,13 +1057,13 @@ const s = StyleSheet.create({
     flex: 1, alignItems: 'flex-start', gap: 4,
     backgroundColor: C.g50, borderRadius: rs(12), padding: 12,
   },
-  dateCellLabel: { fontSize: 9.5, color: C.g700, fontWeight: '700', letterSpacing: 0.8, marginTop: 2 },
+  dateCellLabel: { fontSize: 10.5, color: C.g700, fontWeight: '700', letterSpacing: 0.8, marginTop: 2 },
   dateCellValue: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: '800', color: C.text },
 
   /* Pricing */
   payRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
-  payLabel:{ fontSize: 13, color: C.sub },
-  payVal:  { fontSize: 13, fontWeight: '600', color: C.text },
+  payLabel:{ fontSize: 14, color: C.sub },
+  payVal:  { fontSize: 14, fontWeight: '600', color: C.text },
   totalRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: C.g50, borderRadius: rs(12), padding: 14,
@@ -999,17 +1076,17 @@ const s = StyleSheet.create({
   pillWrap:  { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   pill:      { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingRight: 12, paddingLeft: 7, borderRadius: 20 },
   pillPip:   { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  pillTxt:   { fontSize: 12, fontWeight: '600' },
+  pillTxt:   { fontSize: 13, fontWeight: '600' },
 
   /* Terms */
   termsCard: { backgroundColor: C.bg, borderRadius: rs(12), padding: 12 },
   termLine:  { flexDirection: 'row', gap: 8, marginBottom: 8 },
-  termNum:   { fontSize: 12, fontWeight: '800', color: C.text },
-  termTxt:   { flex: 1, fontSize: 12.5, color: C.sub, lineHeight: 18 },
+  termNum:   { fontSize: 13, fontWeight: '800', color: C.text },
+  termTxt:   { flex: 1, fontSize: 13.5, color: C.sub, lineHeight: 18 },
 
   /* Notes */
   notesInner: { borderLeftWidth: 3, borderLeftColor: C.amber, paddingLeft: 12 },
-  notesTxt: { fontSize: 13, color: C.text, lineHeight: 20 },
+  notesTxt: { fontSize: 14, color: C.text, lineHeight: 20 },
 
   /* Timeline */
   timelineItem: { flexDirection: 'row', gap: 12 },
@@ -1018,7 +1095,7 @@ const s = StyleSheet.create({
   timelineLine: { width: 2, flex: 1, minHeight: rs(20), backgroundColor: C.border, marginTop: 4 },
   timelineBody: { flex: 1, paddingTop: 0 },
   timelineEvent: { fontSize: 14, fontWeight: '600', color: C.text },
-  timelineDate:  { fontSize: 12, color: C.muted, marginTop: 2 },
+  timelineDate:  { fontSize: 13, color: C.muted, marginTop: 2 },
 
   /* Image Slider */
   sliderWrap: { borderRadius: rs(12), overflow: 'hidden', position: 'relative' },
@@ -1036,7 +1113,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
   },
-  imageCounterText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  imageCounterText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 
   /* Bottom Bar */
   bottomBar: {
@@ -1079,5 +1156,5 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   emptyTitle:    { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text },
-  emptySubtitle: { fontSize: 13, color: C.muted, textAlign: 'center' },
+  emptySubtitle: { fontSize: 14, color: C.muted, textAlign: 'center' },
 });

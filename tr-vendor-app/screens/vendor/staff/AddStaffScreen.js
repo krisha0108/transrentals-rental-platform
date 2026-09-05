@@ -28,7 +28,7 @@ import { addStaff, updateStaff } from '../../api/client';
 import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already used — only the values now come from
 // the shared "Elevate" theme instead of hardcoded hex, mirroring the mapping
@@ -98,12 +98,22 @@ function Section({ icon, iconLib = 'feather', color, bg, title, subtitle, childr
   );
 }
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 export default function AddStaffScreen({ route, navigation }) {
   const { staffId, staff: existingStaff } = route.params || {};
   const isEditing = !!staffId;
 
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setInitializing(false), 400);
+    return () => clearTimeout(t);
+  }, []);
 
   // Modal states
   const [showStateModal, setShowStateModal] = useState(false);
@@ -321,14 +331,83 @@ export default function AddStaffScreen({ route, navigation }) {
 
   const isDriver = form.role === 'DRIVER';
 
+  if (initializing) {
+    return (
+      <View style={styles.safe}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+        <LinearGradient colors={G.hero} style={styles.hero}>
+          <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+          <SafeAreaView edges={['top']} style={styles.heroSafe}>
+            <View style={styles.topRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+                <Icon name="arrow-left" size={20} color="#fff" />
+              </TouchableOpacity>
+              <View style={{ width: 40 }} />
+            </View>
+
+            <View style={styles.heroBadge}>
+              <MaterialCommunityIcons
+                name={isEditing ? 'account-edit' : 'account-plus'}
+                size={12} color={C.g400}
+              />
+              <Text style={styles.heroBadgeTxt}>{isEditing ? 'EDIT PROFILE' : 'NEW TEAM MEMBER'}</Text>
+            </View>
+            <Text style={styles.heroTitle}>{isEditing ? 'Edit Staff' : 'Add Staff'}</Text>
+            <Text style={styles.heroSub}>
+              {isEditing ? 'Update this team member’s details' : 'Add a new member to your team'}
+            </Text>
+
+            <View style={{ height: rs(20) }} />
+          </SafeAreaView>
+        </LinearGradient>
+
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.card}>
+            <View style={styles.cardHead}>
+              <View style={[styles.cardIcon, { backgroundColor: C.g50 }]} />
+              <View style={{ flex: 1 }}>
+                <Bone w={150} h={14} />
+              </View>
+            </View>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <View key={i} style={[styles.inputGroup, i === 4 && { marginBottom: 0 }]}>
+                <Bone w={100} h={11} style={{ marginBottom: 8 }} />
+                <Bone w="100%" h={46} r={10} />
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.cardHead}>
+              <View style={[styles.cardIcon, { backgroundColor: C.indigoL }]} />
+              <View style={{ flex: 1 }}>
+                <Bone w={130} h={14} />
+              </View>
+            </View>
+            {[0, 1].map((i) => (
+              <View key={i} style={[styles.inputGroup, i === 1 && { marginBottom: 0 }]}>
+                <Bone w={80} h={11} style={{ marginBottom: 8 }} />
+                <Bone w="100%" h={46} r={10} />
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* ── HERO HEADER ── */}
       <LinearGradient colors={G.hero} style={styles.hero}>
-        <AnimatedOrb style={styles.orbA} />
-        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={styles.heroSafe}>
           <View style={styles.topRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
@@ -896,14 +975,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
   },
   heroSafe: {},
-  orbA: {
-    position: 'absolute', top: -46, right: -30, width: 150, height: 150,
-    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -40, left: -34, width: 120, height: 120,
-    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   topRow: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between', paddingTop: rs(4), marginBottom: rs(14),
@@ -919,9 +991,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 8,
   },
-  heroBadgeTxt: { fontSize: 10.5, fontWeight: '700', color: C.g400, fontFamily: DISPLAY, textTransform: 'uppercase', letterSpacing: 0.5 },
+  heroBadgeTxt: { fontSize: 11.5, fontWeight: '700', color: C.g400, fontFamily: DISPLAY, textTransform: 'uppercase', letterSpacing: 0.5 },
   heroTitle: { fontFamily: DISPLAY, fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 3, letterSpacing: -0.4 },
-  heroSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', fontFamily: DISPLAY },
+  heroSub: { fontSize: 13.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', fontFamily: DISPLAY },
 
   scrollView: {
     flex: 1,
@@ -939,13 +1011,13 @@ const styles = StyleSheet.create({
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
   cardIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '800', color: C.text },
-  cardSubtitle: { fontSize: 11.5, color: C.muted, marginTop: 1 },
+  cardSubtitle: { fontSize: 12.5, color: C.muted, marginTop: 1 },
 
   inputGroup: {
     marginBottom: 16,
   },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: C.text,
     marginBottom: 8,
@@ -987,7 +1059,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   hint: {
-    fontSize: 11,
+    fontSize: 12,
     color: C.muted,
     marginTop: 4,
   },

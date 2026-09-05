@@ -10,7 +10,7 @@ import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getB2BOpenBookings } from '../../api/client';
 import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -44,6 +44,10 @@ const SERVICE_ICON = {
 
 const fmt = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '--';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const PAGE_SIZE = 15;
 
@@ -240,8 +244,7 @@ export default function B2BOpenBookingsScreen({ navigation }) {
     <>
       {/* Header gradient */}
       <LinearGradient colors={G.hero} style={s.headerGrad}>
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.headerBtn}>
@@ -298,6 +301,40 @@ export default function B2BOpenBookingsScreen({ navigation }) {
 
     </>
   );
+
+  if (loading) {
+    return (
+      <View style={s.root}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g950} />
+        <ScrollView contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}>
+          {ListHeader}
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={s.card}>
+              <View style={s.cardTopRow}>
+                <Bone w={38} h={38} r={10} />
+                <View style={s.cardTopMid}>
+                  <Bone w={70} h={11} style={{ marginBottom: 4 }} />
+                  <Bone w={130} h={14} />
+                </View>
+                <Bone w={80} h={18} r={8} />
+              </View>
+              <View style={{ marginHorizontal: 14, marginBottom: 10 }}>
+                <Bone w="100%" h={36} r={10} />
+              </View>
+              <View style={s.chipsRow}>
+                <Bone w={70} h={22} r={8} />
+                <Bone w={80} h={22} r={8} />
+              </View>
+              <View style={s.cardFooter}>
+                <Bone h={36} r={10} style={{ flex: 1 }} />
+                <Bone w={36} h={36} r={10} />
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={s.root}>
@@ -384,15 +421,11 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
 
   /* Header */
-  headerGrad: { paddingBottom: 16 },
-  deco1: {
-    position: 'absolute', width: 160, height: 160, borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.04)', top: -30, right: -30,
+  headerGrad: {
+    paddingBottom: 16, overflow: 'hidden',
+    borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22),
   },
-  deco2: {
-    position: 'absolute', width: 100, height: 100, borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.03)', bottom: 8, left: -20,
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 8, paddingTop: 12, paddingBottom: 4,
@@ -404,7 +437,7 @@ const s = StyleSheet.create({
   },
   headerCenter: { flex: 1, alignItems: 'center' },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700', fontFamily: DISPLAY },
-  headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 2 },
+  headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 2 },
 
   /* Filter tabs */
   tabsBarWrap: {
@@ -421,14 +454,14 @@ const s = StyleSheet.create({
     borderRadius: 20, gap: 6, backgroundColor: C.bg,
   },
   tabActive: { borderBottomWidth: 0, backgroundColor: C.g50 },
-  tabText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  tabText: { fontSize: 14, fontWeight: '600', color: C.sub },
   tabTextActive: { color: C.g700, fontWeight: '700' },
   tabPill: {
     minWidth: 20, height: 18, borderRadius: 9,
     backgroundColor: C.border, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 5,
   },
   tabPillActive: { backgroundColor: C.g100 },
-  tabPillText: { fontSize: 10, fontWeight: '700', color: C.sub },
+  tabPillText: { fontSize: 11, fontWeight: '700', color: C.sub },
   tabPillTextActive: { color: C.g700 },
 
   /* Active filter pill in header */
@@ -439,7 +472,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 5,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
   },
-  activeFilterText: { fontSize: 12, fontWeight: '700' },
+  activeFilterText: { fontSize: 13, fontWeight: '700' },
 
   /* Filter badge dot */
   filterBadge: {
@@ -479,7 +512,7 @@ const s = StyleSheet.create({
     width: 38, height: 38, borderRadius: 10,
     justifyContent: 'center', alignItems: 'center',
   },
-  sheetOptionText: { flex: 1, fontSize: 13, fontWeight: '600', color: C.sub },
+  sheetOptionText: { flex: 1, fontSize: 14, fontWeight: '600', color: C.sub },
   sheetOptionDot: { width: 8, height: 8, borderRadius: 4 },
 
   /* List */
@@ -503,17 +536,17 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   cardTopMid: { flex: 1 },
-  bookingNum: { fontSize: 11, fontWeight: '700', color: C.muted, fontVariant: ['tabular-nums'] },
+  bookingNum: { fontSize: 12, fontWeight: '700', color: C.muted, fontVariant: ['tabular-nums'] },
   companyName: { fontSize: 14, fontWeight: '700', color: C.text, marginTop: 1, fontFamily: DISPLAY },
-  vehicleCategoryText: { fontSize: 12, color: C.sub, marginTop: 2 },
+  vehicleCategoryText: { fontSize: 13, color: C.sub, marginTop: 2 },
   cardTopRight: { alignItems: 'flex-end', gap: 4 },
   statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  statusPillText: { fontSize: 10, fontWeight: '700' },
+  statusPillText: { fontSize: 11, fontWeight: '700' },
   quotedChip: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     backgroundColor: C.g50, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8,
   },
-  quotedChipText: { fontSize: 10, fontWeight: '700', color: C.g600 },
+  quotedChipText: { fontSize: 11, fontWeight: '700', color: C.g600 },
 
   /* Route row */
   routeRow: {
@@ -528,7 +561,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20,
     top: 20,
   },
-  routeCity: { fontSize: 10, color: C.sub, fontWeight: '500', maxWidth: '45%' },
+  routeCity: { fontSize: 11, color: C.sub, fontWeight: '500', maxWidth: '45%' },
 
   /* Chips */
   chipsRow: {
@@ -540,7 +573,7 @@ const s = StyleSheet.create({
     backgroundColor: C.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4,
     borderWidth: 1, borderColor: C.border,
   },
-  chipText: { fontSize: 11, color: C.sub, fontWeight: '500' },
+  chipText: { fontSize: 12, color: C.sub, fontWeight: '500' },
 
   /* Footer */
   cardFooter: {
@@ -558,18 +591,18 @@ const s = StyleSheet.create({
     backgroundColor: C.g50, borderRadius: 10, paddingVertical: 9,
     borderWidth: 1, borderColor: C.g100,
   },
-  btnGreenText: { fontSize: 13, fontWeight: '700', color: C.g700 },
+  btnGreenText: { fontSize: 14, fontWeight: '700', color: C.g700 },
   btnBlue: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     backgroundColor: C.blueBg, borderRadius: 10, paddingVertical: 9,
     borderWidth: 1, borderColor: '#BFDBFE',
   },
-  btnBlueText: { fontSize: 13, fontWeight: '700', color: C.blue },
+  btnBlueText: { fontSize: 14, fontWeight: '700', color: C.blue },
 
   /* Empty */
   emptyBox: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 },
   emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginTop: 14, fontFamily: DISPLAY },
-  emptySub: { fontSize: 13, color: C.sub, marginTop: 6, textAlign: 'center', lineHeight: 19 },
+  emptySub: { fontSize: 14, color: C.sub, marginTop: 6, textAlign: 'center', lineHeight: 19 },
 
   /* Load more */
   loadMore: { paddingVertical: 24 },

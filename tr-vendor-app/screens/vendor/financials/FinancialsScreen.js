@@ -11,7 +11,7 @@ import { getVendorFinancials } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
 import { SC as T, G, rs, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -78,6 +78,11 @@ function getLast6Months() {
   }
   return months;
 }
+
+/* ─── Skeleton placeholder shape ─────────────────────────── */
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 /* ─── Circular ring progress ─────────────────────────────── */
 function RingProgress({ pct = 0, size = 64, stroke = 7, color = C.g500, bg = C.g100, children }) {
@@ -160,17 +165,20 @@ export default function FinancialsScreen({ navigation }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* Static header — stays fixed while content below scrolls */}
-      <SafeAreaView edges={['top']} style={s.staticHeader}>
-        <View style={s.heroNav}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-            <Icon name="arrow-left" size={22} color="#fff" />
-          </TouchableOpacity>
-          <Text style={s.heroNavTitle}>Financials</Text>
-          <TouchableOpacity onPress={onRefresh} style={s.refreshBtn}>
-            <Icon name="refresh-cw" size={17} color="rgba(255,255,255,0.75)" />
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <LinearGradient colors={G.hero} style={s.staticHeader}>
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+        <SafeAreaView edges={['top']}>
+          <View style={s.heroNav}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <Text style={s.heroNavTitle}>Financials</Text>
+            <TouchableOpacity onPress={onRefresh} style={s.refreshBtn}>
+              <Icon name="refresh-cw" size={17} color="rgba(255,255,255,0.75)" />
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -178,70 +186,69 @@ export default function FinancialsScreen({ navigation }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
       >
         {/* ══════════════════════════════════════════
-            HERO HEADER — gradient with big net number
+            NET EARNINGS CARD — light card, matches the rest of the page
         ══════════════════════════════════════════ */}
-        <LinearGradient colors={G.hero} style={s.hero}>
-          <AnimatedOrb style={s.deco1} />
-          <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
-          <View style={{ paddingTop: 12 }}>
-            {/* Month label */}
-            <Text style={s.heroPeriod}>{selectedLabel}</Text>
+        <View style={s.hero}>
+          {/* Month label */}
+          <View style={s.heroPeriodBadge}>
+            <Icon name="calendar" size={11} color={C.g700} />
+            <Text style={s.heroPeriodTxt}>{selectedLabel}</Text>
+          </View>
 
-            {/* BIG net earnings number */}
-            <View style={s.heroNetRow}>
-              <View>
-                <Text style={s.heroNetLabel}>Net Earnings</Text>
-                {loading && !refreshing ? (
-                  <ActivityIndicator color="rgba(255,255,255,0.5)" style={{ marginTop: 8 }} />
-                ) : (
-                  <Text style={[
-                    s.heroNetValue,
-                    summary && summary.netEarnings < 0 && { color: '#FCA5A5' },
-                  ]}>
-                    {summary
-                      ? `${summary.netEarnings >= 0 ? '+' : ''}₹${fmt(summary.netEarnings)}`
-                      : '₹—'}
-                  </Text>
-                )}
-                <Text style={s.heroNetFormula}>Collected − Expenses</Text>
-              </View>
-              {summary && (
-                <View style={s.heroHealthWrap}>
-                  <RingProgress
-                    pct={healthPct}
-                    size={72}
-                    stroke={7}
-                    color={healthPct >= 50 ? C.g400 : '#FCA5A5'}
-                    bg="rgba(255,255,255,0.12)"
-                  >
-                    <Text style={s.heroHealthPct}>{healthPct}%</Text>
-                  </RingProgress>
-                  <Text style={s.heroHealthLbl}>Margin</Text>
-                </View>
+          {/* BIG net earnings number */}
+          <View style={s.heroNetRow}>
+            <View>
+              <Text style={s.heroNetLabel}>Net Earnings</Text>
+              {loading && !refreshing ? (
+                <ActivityIndicator color={C.g500} style={{ marginTop: 8 }} />
+              ) : (
+                <Text style={[
+                  s.heroNetValue,
+                  summary && summary.netEarnings < 0 && { color: C.red },
+                ]}>
+                  {summary
+                    ? `${summary.netEarnings >= 0 ? '+' : ''}₹${fmt(summary.netEarnings)}`
+                    : '₹—'}
+                </Text>
               )}
+              <Text style={s.heroNetFormula}>Collected − Expenses</Text>
             </View>
-
-            {/* 3-metric strip */}
             {summary && (
-              <View style={s.heroMetrics}>
-                <View style={s.heroMetric}>
-                  <Text style={s.heroMetricVal}>₹{fmt(summary.totalRevenue)}</Text>
-                  <Text style={s.heroMetricLbl}>Revenue</Text>
-                </View>
-                <View style={s.heroMetricDiv} />
-                <View style={s.heroMetric}>
-                  <Text style={s.heroMetricVal}>₹{fmt(summary.totalCollected)}</Text>
-                  <Text style={s.heroMetricLbl}>Collected</Text>
-                </View>
-                <View style={s.heroMetricDiv} />
-                <View style={s.heroMetric}>
-                  <Text style={[s.heroMetricVal, { color: '#FCA5A5' }]}>₹{fmt(summary.totalExpenses)}</Text>
-                  <Text style={s.heroMetricLbl}>Expenses</Text>
-                </View>
+              <View style={s.heroHealthWrap}>
+                <RingProgress
+                  pct={healthPct}
+                  size={56}
+                  stroke={6}
+                  color={healthPct >= 50 ? C.g500 : C.red}
+                  bg={C.g50}
+                >
+                  <Text style={s.heroHealthPct}>{healthPct}%</Text>
+                </RingProgress>
+                <Text style={s.heroHealthLbl}>Margin</Text>
               </View>
             )}
           </View>
-        </LinearGradient>
+
+          {/* 3-metric strip */}
+          {summary && (
+            <View style={s.heroMetrics}>
+              <View style={s.heroMetric}>
+                <Text style={s.heroMetricVal}>₹{fmt(summary.totalRevenue)}</Text>
+                <Text style={s.heroMetricLbl}>Revenue</Text>
+              </View>
+              <View style={s.heroMetricDiv} />
+              <View style={s.heroMetric}>
+                <Text style={[s.heroMetricVal, { color: C.g700 }]}>₹{fmt(summary.totalCollected)}</Text>
+                <Text style={s.heroMetricLbl}>Collected</Text>
+              </View>
+              <View style={s.heroMetricDiv} />
+              <View style={s.heroMetric}>
+                <Text style={[s.heroMetricVal, { color: C.red }]}>₹{fmt(summary.totalExpenses)}</Text>
+                <Text style={s.heroMetricLbl}>Expenses</Text>
+              </View>
+            </View>
+          )}
+        </View>
 
         {/* ══════════════════════════
             MONTH SELECTOR TABS — sticky just below the static header
@@ -275,10 +282,68 @@ export default function FinancialsScreen({ navigation }) {
 
         <View style={s.body}>
           {loading && !refreshing ? (
-            <View style={s.loadingWrap}>
-              <ActivityIndicator size="large" color={C.g600} />
-              <Text style={s.loadingTxt}>Loading financials…</Text>
-            </View>
+            <>
+              {/* Collection Status skeleton */}
+              <View style={s.card}>
+                <View style={s.cardTitleRow}>
+                  <View style={[s.cardTitleIcon, { backgroundColor: C.g50 }]} />
+                  <Bone w={130} h={13} r={4} />
+                </View>
+                <View style={s.segBarWrap}>
+                  <Bone w="100%" h={10} r={8} style={{ marginBottom: 8 }} />
+                  <View style={{ flexDirection: 'row', gap: 16 }}>
+                    <Bone w={90} h={11} r={4} />
+                    <Bone w={90} h={11} r={4} />
+                  </View>
+                </View>
+                <View style={s.metricTiles}>
+                  {[0,1,2,3].map(i => (
+                    <View key={i} style={[s.metricTile, { borderColor: C.border, alignItems: 'center', gap: 6 }]}>
+                      <Bone w={60} h={16} r={4} />
+                      <Bone w={50} h={9} r={3} />
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              {/* Expense Breakdown skeleton */}
+              <View style={s.card}>
+                <View style={s.cardTitleRow}>
+                  <View style={[s.cardTitleIcon, { backgroundColor: '#FEE2E2' }]} />
+                  <Bone w={150} h={13} r={4} />
+                </View>
+                {[0,1,2].map(i => (
+                  <View key={i} style={{ flexDirection: 'row', gap: 12, marginBottom: i < 2 ? 16 : 0 }}>
+                    <Bone w={32} h={32} r={10} />
+                    <View style={{ flex: 1, gap: 6 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Bone w={90} h={11} r={4} />
+                        <Bone w={50} h={11} r={4} />
+                      </View>
+                      <Bone w="100%" h={8} r={4} />
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              {/* Pending Payments skeleton */}
+              <View style={s.card}>
+                <View style={s.cardTitleRow}>
+                  <View style={[s.cardTitleIcon, { backgroundColor: C.amberBg }]} />
+                  <Bone w={150} h={13} r={4} />
+                </View>
+                {[0,1].map(i => (
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: i === 0 ? 10 : 0 }}>
+                    <Bone w={38} h={38} r={12} />
+                    <View style={{ flex: 1, gap: 6 }}>
+                      <Bone w={120} h={12} r={4} />
+                      <Bone w={90} h={9} r={3} />
+                    </View>
+                    <Bone w={60} h={20} r={6} />
+                  </View>
+                ))}
+              </View>
+            </>
           ) : summary ? (
             <>
               {/* ══════════════════════════════════════
@@ -556,31 +621,50 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
 
   /* ── Static header (stays fixed above the scroll) ── */
-  staticHeader: { backgroundColor: C.g900 },
+  staticHeader: {
+    overflow: 'hidden',
+    borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22),
+  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
 
-  /* ── Hero header ── */
-  hero: { paddingBottom: 24, overflow: 'hidden' },
-  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)' },
-  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)' },
-  heroNav: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
+  /* ── Net Earnings card (light card — matches every other card on this
+     page, so it never visually merges with the dark fixed nav above it) ── */
+  hero: {
+    backgroundColor: C.surface,
+    marginHorizontal: 14, marginTop: 6,
+    borderRadius: rs(18), padding: 14,
+    borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
+  },
+  heroNav: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16 },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
   heroNavTitle: { flex: 1, fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: 'rgba(255,255,255,0.9)' },
   refreshBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
-  heroPeriod: { fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: '600', paddingHorizontal: 16, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
+  heroPeriodBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
+    backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
+    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999,
+    marginBottom: 10,
+  },
+  heroPeriodTxt: { fontSize: 11.5, color: C.g700, fontWeight: '700', letterSpacing: 0.3 },
 
-  heroNetRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 20 },
-  heroNetLabel: { fontSize: 13, color: 'rgba(255,255,255,0.55)', fontWeight: '600', marginBottom: 4 },
-  heroNetValue: { fontFamily: DISPLAY, fontSize: 40, fontWeight: '900', color: C.g400, letterSpacing: -1 },
-  heroNetFormula: { fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 },
-  heroHealthWrap: { alignItems: 'center', gap: 6 },
-  heroHealthPct: { fontSize: 13, fontWeight: '800', color: '#fff' },
-  heroHealthLbl: { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
+  heroNetRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  heroNetLabel: { fontSize: 13, color: C.muted, fontWeight: '600', marginBottom: 2 },
+  heroNetValue: { fontFamily: DISPLAY, fontSize: 28, fontWeight: '900', color: C.g600, letterSpacing: -0.5 },
+  heroNetFormula: { fontSize: 11.5, color: C.muted, marginTop: 2 },
+  heroHealthWrap: { alignItems: 'center', gap: 4 },
+  heroHealthPct: { fontSize: 13, fontWeight: '800', color: C.text },
+  heroHealthLbl: { fontSize: 10, color: C.muted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
 
-  heroMetrics: { flexDirection: 'row', marginHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 16, paddingVertical: 4 },
-  heroMetric: { flex: 1, alignItems: 'center', paddingVertical: 10 },
-  heroMetricVal: { fontSize: 14, fontWeight: '800', color: '#fff' },
-  heroMetricLbl: { fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: '600', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.4 },
-  heroMetricDiv: { width: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 8 },
+  heroMetrics: {
+    flexDirection: 'row', backgroundColor: C.bg,
+    borderRadius: 12, paddingVertical: 2,
+    borderWidth: 1, borderColor: C.border,
+  },
+  heroMetric: { flex: 1, alignItems: 'center', paddingVertical: 8 },
+  heroMetricVal: { fontSize: 14, fontWeight: '800', color: C.text },
+  heroMetricLbl: { fontSize: 8.5, color: C.muted, fontWeight: '600', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3 },
+  heroMetricDiv: { width: 1, backgroundColor: C.border, marginVertical: 6 },
 
   /* ── Body ── */
   body: { paddingHorizontal: 14, paddingBottom: 14, gap: 14 },
@@ -591,12 +675,10 @@ const s = StyleSheet.create({
   monthScroll: { paddingHorizontal: 10, paddingVertical: 10, gap: 6 },
   monthTab: { alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, backgroundColor: C.bg },
   monthTabActive: { backgroundColor: C.g700 },
-  monthTabTxt: { fontSize: 13, fontWeight: '700', color: C.subtext },
+  monthTabTxt: { fontSize: 14, fontWeight: '700', color: C.subtext },
   monthTabTxtActive: { color: '#fff' },
-  monthTabYear: { fontSize: 10, color: C.muted, marginTop: 1 },
+  monthTabYear: { fontSize: 11, color: C.muted, marginTop: 1 },
 
-  loadingWrap: { paddingVertical: 60, alignItems: 'center', gap: 12 },
-  loadingTxt: { fontSize: 13, color: C.muted },
 
   /* ── Cards ── */
   card: {
@@ -607,7 +689,7 @@ const s = StyleSheet.create({
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 18 },
   cardTitleIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   cardTitle: { flex: 1, fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
-  cardBadge: { fontSize: 11, fontWeight: '700', color: C.muted, backgroundColor: C.bg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1, borderColor: C.border },
+  cardBadge: { fontSize: 12, fontWeight: '700', color: C.muted, backgroundColor: C.bg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1, borderColor: C.border },
 
   /* ── Collection status ── */
   segBarWrap: { marginBottom: 16 },
@@ -616,27 +698,27 @@ const s = StyleSheet.create({
   segLegend: { flexDirection: 'row', gap: 16 },
   segLegendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   segDot: { width: 8, height: 8, borderRadius: 4 },
-  segLegendTxt: { fontSize: 11, color: C.subtext, fontWeight: '600' },
+  segLegendTxt: { fontSize: 12, color: C.subtext, fontWeight: '600' },
 
   metricTiles: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   metricTile: { width: '47.5%', borderRadius: 14, padding: 12, borderWidth: 1, alignItems: 'center' },
   metricTileVal: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: C.text },
-  metricTileLbl: { fontSize: 10, color: C.muted, fontWeight: '600', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.4 },
+  metricTileLbl: { fontSize: 11, color: C.muted, fontWeight: '600', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.4 },
 
   /* ── Expense breakdown ── */
   expRow: {},
   expLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   expIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
-  expName: { fontSize: 13, fontWeight: '600', color: C.text },
-  expAmt: { fontSize: 13, fontWeight: '700' },
+  expName: { fontSize: 14, fontWeight: '600', color: C.text },
+  expAmt: { fontSize: 14, fontWeight: '700' },
   expBarTrack: { flexDirection: 'row', alignItems: 'center' },
   expBarFillWrap: { flex: 1, height: 9, backgroundColor: C.bg, borderRadius: 6, overflow: 'hidden' },
   expBarFill: { height: 9, borderRadius: 6, minWidth: 12 },
-  expPctLabel: { fontSize: 10, fontWeight: '700', marginLeft: 6, width: 30, textAlign: 'right' },
+  expPctLabel: { fontSize: 11, fontWeight: '700', marginLeft: 6, width: 30, textAlign: 'right' },
 
   /* ── Pending cards ── */
   urgentBadge: { backgroundColor: C.amberBg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1, borderColor: '#FDE68A' },
-  urgentBadgeTxt: { fontSize: 11, fontWeight: '700', color: C.amber },
+  urgentBadgeTxt: { fontSize: 12, fontWeight: '700', color: C.amber },
 
   pendingCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -647,10 +729,10 @@ const s = StyleSheet.create({
   pendingAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, borderTopLeftRadius: 14, borderBottomLeftRadius: 14 },
   pendingSvcWrap: { width: 38, height: 38, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   pendingName: { fontSize: 14, fontWeight: '700', color: C.text },
-  pendingMeta: { fontSize: 11, color: C.muted, marginTop: 2 },
+  pendingMeta: { fontSize: 12, color: C.muted, marginTop: 2 },
   pendingAmtBox: { alignItems: 'flex-end' },
   pendingAmtVal: { fontSize: 15, fontWeight: '800', color: C.amber },
-  pendingAmtLbl: { fontSize: 9, color: C.muted, marginTop: 1, textTransform: 'uppercase', letterSpacing: 0.3 },
+  pendingAmtLbl: { fontSize: 10, color: C.muted, marginTop: 1, textTransform: 'uppercase', letterSpacing: 0.3 },
 
   /* ── P&L cards ── */
   plCard: {
@@ -660,9 +742,9 @@ const s = StyleSheet.create({
   plTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   plSvcWrap: { width: 36, height: 36, borderRadius: 11, justifyContent: 'center', alignItems: 'center' },
   plName: { fontSize: 14, fontWeight: '700', color: C.text },
-  plMeta: { fontSize: 11, color: C.muted, marginTop: 2 },
+  plMeta: { fontSize: 12, color: C.muted, marginTop: 2 },
   plNetPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  plNetTxt: { fontSize: 12, fontWeight: '800' },
+  plNetTxt: { fontSize: 13, fontWeight: '800' },
 
   plBarWrap: {},
   plBarTrack: { height: 8, borderRadius: 4, flexDirection: 'row', overflow: 'hidden', backgroundColor: C.border, marginBottom: 8 },
@@ -670,17 +752,17 @@ const s = StyleSheet.create({
   plBarLegend: { flexDirection: 'row', gap: 14 },
   plBarLegendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   plBarDot: { width: 7, height: 7, borderRadius: 3.5 },
-  plBarLegendTxt: { fontSize: 11, color: C.subtext, fontWeight: '600' },
+  plBarLegendTxt: { fontSize: 12, color: C.subtext, fontWeight: '600' },
 
   /* ── All paid ── */
   allPaidBanner: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 18, padding: 18 },
   allPaidIconWrap: { width: 46, height: 46, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
   allPaidTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: '#fff' },
-  allPaidSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  allPaidSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
 
   /* ── Empty ── */
   emptyWrap: { alignItems: 'center', paddingVertical: 50, gap: 10 },
   emptyIconWrap: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.subtext },
-  emptyMeta: { fontSize: 13, color: C.muted },
+  emptyMeta: { fontSize: 14, color: C.muted },
 });

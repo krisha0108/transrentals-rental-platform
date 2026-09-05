@@ -7,7 +7,6 @@ import {
   StyleSheet,
   TextInput,
   RefreshControl,
-  ActivityIndicator,
   Image,
   StatusBar,
   Platform,
@@ -20,7 +19,7 @@ import { getConversations } from '../../api/socialApi';
 import { getFullImageURL } from '../../api/client';
 import { SC as T, G, rs, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already used everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex,
@@ -60,6 +59,10 @@ const parseLastMessage = (lastMessage) => {
   return content;
 };
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 function AvatarCircle({ name, logo, size = 44 }) {
   const [imgErr, setImgErr] = useState(false);
   const letter = name?.charAt(0)?.toUpperCase() || '?';
@@ -96,6 +99,7 @@ export default function SocialMessagesScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const pollRef = useRef(null);
 
   const fetchConversations = useCallback(async (silent = false) => {
@@ -188,8 +192,7 @@ export default function SocialMessagesScreen({ navigation }) {
 
       {/* ── HERO HEADER ── */}
       <LinearGradient colors={G.hero} style={styles.hero}>
-        <AnimatedOrb style={styles.orbA} />
-        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <View style={[styles.heroSafe, { paddingTop: insets.top + rs(10) }]}>
           <View style={styles.headerRow}>
             <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
@@ -208,9 +211,16 @@ export default function SocialMessagesScreen({ navigation }) {
                 <Text style={styles.totalUnreadText}>{totalUnread > 99 ? '99+' : totalUnread}</Text>
               </View>
             )}
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={() => { setSearchOpen(v => !v); if (searchOpen) setSearch(''); }}
+            >
+              <Icon name={searchOpen ? 'x' : 'search'} size={20} color="#fff" />
+            </TouchableOpacity>
           </View>
 
           {/* Search */}
+          {searchOpen && (
           <View style={styles.searchBar}>
             <Icon name="search" size={16} color={C.muted} />
             <TextInput
@@ -219,6 +229,7 @@ export default function SocialMessagesScreen({ navigation }) {
               placeholderTextColor={C.muted}
               value={search}
               onChangeText={setSearch}
+              autoFocus
             />
             {search.length > 0 && (
               <TouchableOpacity onPress={() => setSearch('')}>
@@ -226,13 +237,27 @@ export default function SocialMessagesScreen({ navigation }) {
               </TouchableOpacity>
             )}
           </View>
+          )}
         </View>
       </LinearGradient>
 
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={C.violet} size="large" />
-          <Text style={styles.loadingText}>Loading conversations...</Text>
+        <View style={styles.listContent}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <View key={i} style={styles.convItem}>
+              <View style={styles.avatarWrap}>
+                <Bone w={50} h={50} r={25} />
+              </View>
+              <View style={styles.convContent}>
+                <View style={styles.convRow}>
+                  <Bone w={120} h={13} />
+                  <Bone w={40} h={10} />
+                </View>
+                <Bone w={90} h={11} style={{ marginTop: 6 }} />
+                <Bone w={160} h={11} style={{ marginTop: 6 }} />
+              </View>
+            </View>
+          ))}
         </View>
       ) : filtered.length === 0 ? (
         <View style={styles.center}>
@@ -265,18 +290,10 @@ export default function SocialMessagesScreen({ navigation }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: rs(32) },
-  loadingText: { fontFamily: DISPLAY, color: C.muted, fontSize: rs(14), marginTop: rs(10), fontWeight: '600' },
 
   // Hero header
   hero: { borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24), overflow: 'hidden' },
-  orbA: {
-    position: 'absolute', top: -rs(48), right: -rs(32), width: rs(170), height: rs(170), borderRadius: rs(85),
-    backgroundColor: 'rgba(228,192,102,0.10)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(44), left: -rs(38), width: rs(140), height: rs(140), borderRadius: rs(70),
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   heroSafe: { paddingHorizontal: rs(16), paddingBottom: rs(16) },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: rs(10) },
   backBtn: {

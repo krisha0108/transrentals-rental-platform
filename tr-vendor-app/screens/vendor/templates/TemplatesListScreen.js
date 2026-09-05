@@ -13,7 +13,10 @@ import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getTemplates, deleteTemplate, toggleTemplateActive, setTemplateDefault } from '../../api/client';
 import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
-import { ListSkeleton } from '../../../components/SkeletonLoader';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#E2E8F0' }, style]} />
+);
 
 const C = {
   bg: '#F7FAFC',
@@ -362,7 +365,28 @@ export default function TemplatesListScreen({ route, navigation }) {
           <Text style={styles.headerTitle}>{config.name} Templates</Text>
           <View style={{ width: 36 }} />
         </View>
-        <ListSkeleton count={4} />
+        <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+          {[0,1,2,3].map(i => (
+            <View key={i} style={{ backgroundColor: C.surface, borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: C.border }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <Bone w={140} h={14} r={4} />
+                <Bone w={60} h={18} r={10} />
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+                <Bone w={80} h={20} r={10} />
+              </View>
+              <Bone w="100%" h={11} r={4} style={{ marginBottom: 6 }} />
+              <Bone w="70%" h={11} r={4} style={{ marginBottom: 12 }} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Bone w={90} h={11} r={4} />
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Bone w={28} h={28} r={8} />
+                  <Bone w={28} h={28} r={8} />
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
       </SafeAreaView>
     );
   }
@@ -511,7 +535,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterText: {
-    fontSize: 13,
+    fontSize: 14,
     color: C.muted,
     fontWeight: '500',
   },
@@ -559,7 +583,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   defaultText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
     color: '#D97706',
   },
@@ -577,7 +601,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
   templateBody: {
@@ -592,12 +616,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   categoryText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
     color: C.text,
   },
   description: {
-    fontSize: 13,
+    fontSize: 14,
     color: C.muted,
     lineHeight: 18,
   },
@@ -608,7 +632,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   inclusionsText: {
-    fontSize: 12,
+    fontSize: 13,
     color: C.muted,
     flex: 1,
   },
@@ -627,12 +651,12 @@ const styles = StyleSheet.create({
     borderColor: '#BBF7D0',
   },
   rateLabel: {
-    fontSize: 10,
+    fontSize: 11,
     color: C.muted,
     marginBottom: 2,
   },
   rateValue: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: '#166534',
   },
@@ -650,7 +674,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   usageText: {
-    fontSize: 12,
+    fontSize: 13,
     color: C.muted,
   },
   actionsRow: {

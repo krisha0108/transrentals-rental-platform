@@ -26,7 +26,11 @@ import { getVendorFleet, addVehicle, updateVehicle } from '../../api/client';
 import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -378,16 +382,65 @@ export default function AddVehicleScreen({ route, navigation }) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={G.hero} style={styles.heroLoading}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={22} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.loadTitle}>{isEditing ? 'Edit Vehicle' : 'Add Vehicle'}</Text>
+        <LinearGradient colors={G.hero} style={styles.hero}>
+          <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+          <View style={styles.heroRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <View style={styles.heroBadge}>
+                <MaterialCommunityIcons name="car" size={12} color={C.g400} />
+                <Text style={styles.heroBadgeText}>Fleet Management</Text>
+              </View>
+              <Text style={styles.heroTitle}>{isEditing ? 'Edit Vehicle' : 'Add Vehicle'}</Text>
+            </View>
+          </View>
         </LinearGradient>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
+
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Step 1 skeleton */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.stepBadge}>
+                <Text style={styles.stepNumber}>1</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>Select Service</Text>
+                <Text style={styles.sectionSubtitle}>Your approved service type</Text>
+              </View>
+              <View style={styles.sectionIcon}>
+                <Ionicons name="grid-outline" size={16} color={C.g600} />
+              </View>
+            </View>
+            <View style={styles.selectBox}>
+              <View style={styles.placeholderRow}>
+                <Bone w={44} h={44} r={12} />
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Bone w="70%" h={13} r={4} />
+                  <Bone w="45%" h={10} r={4} />
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Upcoming step placeholder */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.stepBadge}>
+                <Text style={styles.stepNumber}>2</Text>
+              </View>
+              <View style={{ flex: 1, gap: 6 }}>
+                <Bone w={150} h={13} r={4} />
+                <Bone w={110} h={10} r={4} />
+              </View>
+              <View style={styles.sectionIcon}>
+                <Ionicons name="car-outline" size={16} color={C.g600} />
+              </View>
+            </View>
+            <Bone w="100%" h={64} r={rs(14)} />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -398,8 +451,7 @@ export default function AddVehicleScreen({ route, navigation }) {
 
       {/* Hero Header */}
       <LinearGradient colors={G.hero} style={styles.hero}>
-        <AnimatedOrb style={styles.deco1} />
-        <AnimatedOrb style={styles.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <View style={styles.heroRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Icon name="arrow-left" size={22} color="#fff" />
@@ -1014,25 +1066,14 @@ export default function AddVehicleScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 15, color: C.muted },
 
   // Hero
-  hero: { paddingBottom: rs(18), overflow: 'hidden' },
-  heroLoading: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  loadTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff' },
-  deco1: {
-    position: 'absolute', width: 160, height: 160, borderRadius: 80,
-    backgroundColor: 'rgba(52,211,153,0.08)', top: -50, right: -30,
-  },
-  deco2: {
-    position: 'absolute', width: 100, height: 100, borderRadius: 50,
-    backgroundColor: 'rgba(52,211,153,0.06)', bottom: -10, right: 70,
-  },
+  hero: { paddingBottom: rs(18), overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   heroRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 14 },
   backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
   heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
-  heroBadgeText: { fontSize: 10, fontWeight: '700', color: C.g400, letterSpacing: 0.5 },
+  heroBadgeText: { fontSize: 11, fontWeight: '700', color: C.g400, letterSpacing: 0.5 },
   heroTitle: { fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: '#fff' },
 
   scrollView: { flex: 1 },
@@ -1047,9 +1088,9 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 10, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
   stepBadge: { width: 30, height: 30, borderRadius: 15, backgroundColor: C.card, borderWidth: 2, borderColor: C.g400, alignItems: 'center', justifyContent: 'center' },
   stepBadgeComplete: { backgroundColor: C.g700, borderColor: C.g700 },
-  stepNumber: { fontSize: 13, fontWeight: '800', color: C.g600 },
+  stepNumber: { fontSize: 14, fontWeight: '800', color: C.g600 },
   sectionTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
-  sectionSubtitle: { fontSize: 11, color: C.muted, marginTop: 1 },
+  sectionSubtitle: { fontSize: 12, color: C.muted, marginTop: 1 },
   sectionIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.g100 },
 
   // Select Box
@@ -1059,19 +1100,19 @@ const styles = StyleSheet.create({
   placeholderText: { fontSize: 14, color: C.muted },
   placeholderIconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.g100 },
   placeholderTitle: { fontSize: 14, fontWeight: '700', color: C.text },
-  placeholderHint: { fontSize: 12, color: C.muted, marginTop: 2 },
+  placeholderHint: { fontSize: 13, color: C.muted, marginTop: 2 },
   selectedItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   selectedIconGrad: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   selectedInfo: { flex: 1 },
   selectedName: { fontSize: 15, fontWeight: '700', color: C.text },
-  selectedSub: { fontSize: 12, color: C.muted, marginTop: 2 },
+  selectedSub: { fontSize: 13, color: C.muted, marginTop: 2 },
   modelImage: { width: 60, height: 40, borderRadius: 6, resizeMode: 'contain' },
   brandLogo: { width: 44, height: 44, borderRadius: 10, resizeMode: 'contain' },
 
   // Input
   inputGroup: { marginBottom: 14 },
-  label: { fontSize: 12, fontWeight: '700', color: C.sub, marginBottom: 8, letterSpacing: 0.3 },
-  labelSub: { fontSize: 12, fontWeight: '400', color: C.muted, marginBottom: 12, marginTop: -4 },
+  label: { fontSize: 13, fontWeight: '700', color: C.sub, marginBottom: 8, letterSpacing: 0.3 },
+  labelSub: { fontSize: 13, fontWeight: '400', color: C.muted, marginBottom: 12, marginTop: -4 },
   input: { backgroundColor: '#F8FAFC', borderWidth: 1.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, color: C.text },
   rowInputs: { flexDirection: 'row' },
 
@@ -1079,30 +1120,30 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border },
   chipActive: { backgroundColor: C.g50, borderColor: C.g500 },
-  chipText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  chipText: { fontSize: 14, fontWeight: '600', color: C.sub },
   chipTextActive: { color: C.g700, fontWeight: '800' },
 
   // Images
   imageTypeContainer: { marginBottom: 14, borderWidth: 1, borderColor: C.border, borderRadius: rs(14), padding: 12, backgroundColor: C.bg },
   imageTypeHeader: { marginBottom: 10 },
   imageTypeLabel: { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 2 },
-  imageTypeDescription: { fontSize: 12, color: C.muted },
+  imageTypeDescription: { fontSize: 13, color: C.muted },
   imagePreviewContainer: { position: 'relative', width: '100%', height: 150, borderRadius: 10, overflow: 'hidden' },
   imagePreviewLarge: { width: '100%', height: '100%', borderRadius: 10 },
   removeImageBtnLarge: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', elevation: 5 },
   imageUploadBtn: { width: '100%', height: 120, borderRadius: 10, borderWidth: 2, borderColor: C.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: C.card },
-  imageUploadText: { fontSize: 13, color: C.muted, marginTop: 6, fontWeight: '600' },
-  imageUploadSubtext: { fontSize: 11, color: C.muted, marginTop: 2 },
+  imageUploadText: { fontSize: 14, color: C.muted, marginTop: 6, fontWeight: '600' },
+  imageUploadSubtext: { fontSize: 12, color: C.muted, marginTop: 2 },
 
   // Pricing Cards
   pricingGrid: { flexDirection: 'row', gap: 10 },
   pricingCard: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: rs(14), padding: 12, borderWidth: 1.5, borderColor: C.border },
-  pricingLabel: { fontSize: 11, fontWeight: '700', color: C.sub, marginBottom: 8, letterSpacing: 0.3 },
+  pricingLabel: { fontSize: 12, fontWeight: '700', color: C.sub, marginBottom: 8, letterSpacing: 0.3 },
   pricingInputRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: C.border, backgroundColor: C.card },
   currencyBox: { backgroundColor: C.g50, paddingHorizontal: 10, paddingVertical: 12, borderRightWidth: 1, borderRightColor: C.g100 },
   currencySymbol: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.g700 },
   unitBox: { backgroundColor: '#EFF6FF', paddingHorizontal: 8, paddingVertical: 12, borderRightWidth: 1, borderRightColor: '#DBEAFE' },
-  unitSymbol: { fontSize: 12, fontWeight: '800', color: '#2563EB' },
+  unitSymbol: { fontSize: 13, fontWeight: '800', color: '#2563EB' },
   pricingInput: { flex: 1, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15, color: C.text, fontWeight: '700' },
 
   // Submit
@@ -1132,12 +1173,12 @@ const styles = StyleSheet.create({
   modalItemInfo: { flex: 1 },
   modalItemName: { fontSize: 15, fontWeight: '700', color: C.text },
   modalItemNameSelected: { color: C.g700 },
-  modalItemSub: { fontSize: 12, color: C.muted, marginTop: 2 },
+  modalItemSub: { fontSize: 13, color: C.muted, marginTop: 2 },
 
   // Location modal
   bulkActionsRow: { flexDirection: 'row', justifyContent: 'space-around', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.border, gap: 12 },
   bulkActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: C.card, borderRadius: 10, borderWidth: 1, borderColor: C.border, gap: 6 },
-  bulkActionText: { fontSize: 13, fontWeight: '700' },
+  bulkActionText: { fontSize: 14, fontWeight: '700' },
   selectedCountBar: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.g50, borderBottomWidth: 1, borderBottomColor: C.g100 },
   selectedCountText: { fontSize: 14, fontWeight: '700', color: C.g700 },
   locationItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, marginBottom: 8, backgroundColor: C.bg, gap: 12 },

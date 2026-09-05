@@ -1,12 +1,12 @@
 // screens/vendor/profile/AboutUsScreen.js
 // REDESIGNED — "Elevate" visual language, matching this app's own
-// BusinessProfileScreen.js / BankDetailsScreen.js (hero + AnimatedOrb +
+// BusinessProfileScreen.js / BankDetailsScreen.js (hero + corner grid +
 // rounded bottom corners, shared theme tokens, section-card language).
 //
 // UI ONLY. This is a static informational screen — no data fetching, no
 // state. All behaviour is preserved exactly: same back navigation, same
 // Linking.openURL(c.url) calls with the same URLs, same content.
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Linking, StatusBar,
@@ -17,7 +17,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already used everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -73,7 +73,86 @@ const CONTACTS = [
   { icon: 'globe',        color: C.purple, bg: C.purpleL, label: 'www.transrentals.in', url: 'https://transrentals.in' },
 ];
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 export default function AboutUsScreen({ navigation }) {
+  const [initializing, setInitializing] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setInitializing(false), 350);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (initializing) {
+    return (
+      <View style={styles.root}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+          <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+          <SafeAreaView edges={['top']} style={{ paddingHorizontal: rs(16) }}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="arrow-back" size={rs(20)} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.heroBody}>
+              <View style={styles.heroIconWrap}>
+                <MaterialCommunityIcons name="truck-fast" size={rs(26)} color={C.g400} />
+              </View>
+              <Text style={styles.heroTitle}>TransRentals</Text>
+              <Text style={styles.heroSub}>Your Trusted Rental Partner</Text>
+            </View>
+
+            <View style={styles.statsStrip}>
+              {STATS.map((s, i) => (
+                <View key={i} style={[styles.statItem, i < STATS.length - 1 && styles.statDivider]}>
+                  <Text style={styles.statValue}>{s.value}</Text>
+                  <Text style={styles.statLabel}>{s.label}</Text>
+                </View>
+              ))}
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
+        <View style={styles.scroll}>
+          <View style={[styles.section, cardShadow]}>
+            <View style={styles.sectionHead}>
+              <View style={[styles.sectionIconBox, { backgroundColor: C.g50 }]}>
+                <MaterialCommunityIcons name="information-outline" size={rs(18)} color={C.g700} />
+              </View>
+              <Bone w={110} h={15} />
+            </View>
+            <Bone w="100%" h={11} style={{ marginTop: 12 }} />
+            <Bone w="90%" h={11} style={{ marginTop: 8 }} />
+            <Bone w="60%" h={11} style={{ marginTop: 8 }} />
+          </View>
+
+          <View style={[styles.section, cardShadow]}>
+            <View style={styles.sectionHead}>
+              <View style={[styles.sectionIconBox, { backgroundColor: C.purpleL }]}>
+                <MaterialCommunityIcons name="star-outline" size={rs(18)} color={C.purple} />
+              </View>
+              <Bone w={120} h={15} />
+            </View>
+            {[0, 1].map((i) => (
+              <View key={i} style={[styles.featureRow, i < 1 && styles.featureBorder]}>
+                <Bone w={rs(46)} h={rs(46)} r={rs(14)} />
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Bone w={130} h={13} />
+                  <Bone w="80%" h={11} />
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
@@ -81,8 +160,7 @@ export default function AboutUsScreen({ navigation }) {
       {/* ── HERO — static sibling so it can never be clipped by the
           ScrollView's own viewport ── */}
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
-        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: rs(16) }}>
           <View style={styles.headerRow}>
@@ -94,7 +172,7 @@ export default function AboutUsScreen({ navigation }) {
           {/* Hero body */}
           <View style={styles.heroBody}>
             <View style={styles.heroIconWrap}>
-              <MaterialCommunityIcons name="truck-fast" size={rs(32)} color={C.g400} />
+              <MaterialCommunityIcons name="truck-fast" size={rs(26)} color={C.g400} />
             </View>
             <Text style={styles.heroTitle}>TransRentals</Text>
             <Text style={styles.heroSub}>Your Trusted Rental Partner</Text>
@@ -109,8 +187,6 @@ export default function AboutUsScreen({ navigation }) {
               </View>
             ))}
           </View>
-
-          <View style={{ height: rs(8) }} />
         </SafeAreaView>
       </LinearGradient>
 
@@ -162,7 +238,7 @@ export default function AboutUsScreen({ navigation }) {
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={[styles.missionCard, cardShadow]}
         >
-          <AnimatedOrb style={styles.missionOrb} delay={300} dx={10} dy={8} />
+          <CornerGrid style={styles.missionDots} corner="top-right" lineColor="rgba(255,255,255,0.3)" cellSize={14} />
           <View style={styles.missionIconWrap}>
             <MaterialCommunityIcons name="rocket-launch-outline" size={rs(30)} color={C.g400} />
           </View>
@@ -213,24 +289,15 @@ const styles = StyleSheet.create({
 
   /* ── Hero ── */
   hero: {
-    paddingBottom: rs(20),
+    paddingBottom: rs(12),
     borderBottomLeftRadius: rs(26),
     borderBottomRightRadius: rs(26),
     overflow: 'hidden',
   },
-  orbA: {
-    position: 'absolute', top: -rs(60), right: -rs(40),
-    width: rs(180), height: rs(180), borderRadius: rs(90),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(60), left: -rs(40),
-    width: rs(150), height: rs(150), borderRadius: rs(75),
-    backgroundColor: 'rgba(46,158,120,0.16)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow: {
     flexDirection: 'row', alignItems: 'center',
-    paddingTop: rs(8), marginBottom: rs(20),
+    paddingTop: 0, marginBottom: rs(4),
   },
   backBtn: {
     width: rs(40), height: rs(40), borderRadius: rs(20),
@@ -239,14 +306,14 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   heroBody: {
-    alignItems: 'center', marginBottom: rs(24),
+    alignItems: 'center', marginBottom: rs(14),
   },
   heroIconWrap: {
-    width: rs(72), height: rs(72), borderRadius: rs(36),
+    width: rs(60), height: rs(60), borderRadius: rs(30),
     backgroundColor: 'rgba(52,211,153,0.15)',
     borderWidth: 1.5, borderColor: 'rgba(52,211,153,0.3)',
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: rs(14),
+    marginBottom: rs(10),
   },
   heroTitle: {
     fontFamily: DISPLAY, fontSize: rs(26), fontWeight: '800', color: '#fff',
@@ -276,7 +343,7 @@ const styles = StyleSheet.create({
     fontWeight: '600', marginTop: rs(2),
   },
 
-  scroll: { padding: rs(16), paddingTop: rs(18) },
+  scroll: { padding: rs(16), paddingTop: rs(10) },
 
   /* ── Section cards ── */
   section: {
@@ -324,11 +391,7 @@ const styles = StyleSheet.create({
     borderRadius: rs(20), padding: rs(24), marginBottom: rs(16),
     alignItems: 'center', overflow: 'hidden',
   },
-  missionOrb: {
-    position: 'absolute', top: -rs(40), right: -rs(30),
-    width: rs(140), height: rs(140), borderRadius: rs(70),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
+  missionDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   missionIconWrap: {
     width: rs(60), height: rs(60), borderRadius: rs(30),
     backgroundColor: 'rgba(52,211,153,0.15)',

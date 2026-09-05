@@ -13,7 +13,7 @@ import { apiGet, deleteVehicle, debugAuthState, getBaseURL } from '../../api/cli
 import { showConfirm, showError } from '../../../services/alertService';
 import { SC as T, G, rs, cardShadow, shade } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -163,8 +163,7 @@ export default function VehicleDetailScreen({ route, navigation }) {
     <SafeAreaView style={s.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
       <LinearGradient colors={G.hero} style={s.heroSimple}>
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={18} color="#fff" />
@@ -185,8 +184,7 @@ export default function VehicleDetailScreen({ route, navigation }) {
     <SafeAreaView style={s.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
       <LinearGradient colors={G.hero} style={s.heroSimple}>
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={18} color="#fff" />
@@ -260,8 +258,7 @@ export default function VehicleDetailScreen({ route, navigation }) {
 
       {/* ══ Hero Header ══════════════════════════════════════════════════════ */}
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -558,17 +555,8 @@ const s = StyleSheet.create({
 
   /* Hero */
   hero:       { paddingHorizontal: 16, paddingBottom: 22, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
-  heroSimple: { paddingHorizontal: 16, paddingBottom: 18, overflow: 'hidden' },
-  deco1: {
-    position: 'absolute', width: width * 0.55, height: width * 0.55,
-    borderRadius: width * 0.275, backgroundColor: 'rgba(52,211,153,0.06)',
-    top: -width * 0.18, right: -width * 0.1,
-  },
-  deco2: {
-    position: 'absolute', width: width * 0.32, height: width * 0.32,
-    borderRadius: width * 0.16, backgroundColor: 'rgba(16,185,129,0.05)',
-    bottom: 0, left: width * 0.38,
-  },
+  heroSimple: { paddingHorizontal: 16, paddingBottom: 12, overflow: 'hidden' },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   topBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 16 },
   backBtn:   { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },

@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: BRAND.text,
     marginBottom: 8,
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
   },
   helperError: {
     color: BRAND.error,
-    fontSize: 12.5,
+    fontSize: 13.5,
     marginTop: 6,
   },
 
@@ -701,7 +701,7 @@ const styles = StyleSheet.create({
   },
   separatorText: {
     color: BRAND.subText,
-    fontSize: 12.5,
+    fontSize: 13.5,
   },
 
   centerRow: {
@@ -750,6 +750,6 @@ const styles = StyleSheet.create({
   },
   footerText: {
     color: BRAND.subText,
-    fontSize: 12.5,
+    fontSize: 13.5,
   },
 });

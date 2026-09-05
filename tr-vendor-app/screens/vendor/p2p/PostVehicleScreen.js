@@ -13,7 +13,7 @@ import { createP2PVehicle, updateP2PVehicle, getVendorFleet, getStaffDrivers } f
 import CustomAlert from '../../../components/CustomAlert';
 import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -34,6 +34,10 @@ const C = {
 const BODY_TYPES = ['Open', 'Closed', 'Container', 'Flatbed', 'Tanker'];
 const CAR_CATEGORIES = ['Sedan', 'SUV', 'MUV', 'Hatchback', 'Luxury', 'Tempo Traveller'];
 const GOODS_OPTIONS = ['General', 'Food', 'Chemicals', 'Electronics', 'Furniture', 'Construction'];
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 function fmtDate(d) { return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
 function fmtTime(d) { return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }); }
@@ -75,6 +79,7 @@ export default function PostVehicleScreen({ navigation, route }) {
   const editData = route?.params?.editData || null;
   const isEditing = !!editData;
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [alert, setAlert] = useState({ visible: false, type: 'info', title: '', message: '', actions: [] });
   const showAlert = (type, title, message) => setAlert({ visible: true, type, title, message, actions: [{ label: 'OK', variant: 'primary', onPress: () => hideAlert() }] });
   const hideAlert = () => setAlert(a => ({ ...a, visible: false }));
@@ -177,6 +182,11 @@ export default function PostVehicleScreen({ navigation, route }) {
     setLabourCount(editData.labourCount ? String(editData.labourCount) : '');
     setGoodsAccepted(Array.isArray(editData.goodsAccepted) ? editData.goodsAccepted : []);
     setNotes(editData.notes || '');
+  }, [editData]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setInitializing(false), 350);
+    return () => clearTimeout(t);
   }, []);
 
   const onDateChange = (event, selectedDate) => {
@@ -261,6 +271,61 @@ export default function PostVehicleScreen({ navigation, route }) {
     } finally { setLoading(false); }
   };
 
+  if (initializing) {
+    return (
+      <View style={s.root}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g950} />
+
+        <LinearGradient colors={G.hero} style={s.headerGradient}>
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+          <SafeAreaView edges={['top']}>
+            <View style={s.headerInner}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+                <Icon name="arrow-left" size={20} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.headerCenter}>
+                <View style={s.headerIconCircle}>
+                  <MCI name="truck-fast" size={24} color={C.g400} />
+                </View>
+                <Text style={s.headerTitle}>{isEditing ? 'Edit Vehicle' : 'Post Vehicle'}</Text>
+                <Text style={s.headerSub}>{isEditing ? 'Update your vehicle posting' : 'Share your idle vehicle on P2P'}</Text>
+              </View>
+              <View style={{ width: 44 }} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
+        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+          <View style={s.sectionCard}>
+            <View style={s.serviceTypeRow}>
+              {[0, 1].map(i => (
+                <View key={i} style={s.serviceCard}>
+                  <Bone w={32} h={32} r={10} style={{ marginBottom: 10 }} />
+                  <Bone w={60} h={13} style={{ marginBottom: 6 }} />
+                  <Bone w={90} h={10} />
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={s.sectionCard}>
+            <View style={s.sourceToggleWrap}>
+              <Bone w="48%" h={36} r={10} />
+              <Bone w="48%" h={36} r={10} />
+            </View>
+            <View style={[s.dropdownTrigger, { marginTop: 16 }]}>
+              <Bone w={36} h={36} r={10} />
+              <View style={{ flex: 1 }}>
+                <Bone w={140} h={13} style={{ marginBottom: 6 }} />
+                <Bone w={80} h={10} />
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g950} />
@@ -268,8 +333,7 @@ export default function PostVehicleScreen({ navigation, route }) {
       {/* ── HEADER ── */}
       <LinearGradient colors={G.hero} style={s.headerGradient}>
         {/* Decorative orbs */}
-        <AnimatedOrb style={s.decCircle1} />
-        <AnimatedOrb style={s.decCircle2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerInner}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -351,7 +415,13 @@ export default function PostVehicleScreen({ navigation, route }) {
             {vehicleSource === 'fleet' ? (
               <View style={{ marginTop: 16 }}>
                 {fleetLoading ? (
-                  <ActivityIndicator size="small" color={C.g500} style={{ marginVertical: 16 }} />
+                  <View style={s.dropdownTrigger}>
+                    <Bone w={36} h={36} r={10} />
+                    <View style={{ flex: 1 }}>
+                      <Bone w={140} h={13} style={{ marginBottom: 6 }} />
+                      <Bone w={80} h={10} />
+                    </View>
+                  </View>
                 ) : fleetVehicles.length === 0 ? (
                   <View style={s.emptyFleetBox}>
                     <MCI name="car-off" size={28} color={C.muted} />
@@ -1074,14 +1144,7 @@ const s = StyleSheet.create({
 
   /* Header */
   headerGradient: { paddingBottom: 20, position: 'relative', overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
-  decCircle1: {
-    position: 'absolute', width: 200, height: 200, borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -50,
-  },
-  decCircle2: {
-    position: 'absolute', width: 140, height: 140, borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.045)', bottom: -40, left: -30,
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerInner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4,
@@ -1099,7 +1162,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   headerTitle: { fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.3 },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.2 },
+  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.2 },
 
   /* Scroll */
   scroll: { padding: 16, gap: 16 },
@@ -1129,7 +1192,7 @@ const s = StyleSheet.create({
   },
   stepNumber: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
   sectionTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
-  sectionSubtitle: { fontSize: 11, color: C.muted, marginTop: 1 },
+  sectionSubtitle: { fontSize: 12, color: C.muted, marginTop: 1 },
   sectionContent: { padding: 16 },
 
   /* Service Type */
@@ -1148,7 +1211,7 @@ const s = StyleSheet.create({
     backgroundColor: C.g500,
   },
   serviceCardLabel: { fontSize: 15, fontWeight: '700', color: C.muted },
-  serviceCardSub: { fontSize: 11, color: C.muted },
+  serviceCardSub: { fontSize: 12, color: C.muted },
 
   /* Source toggle */
   sourceToggleWrap: {
@@ -1159,13 +1222,13 @@ const s = StyleSheet.create({
     flex: 1, paddingVertical: 11, borderRadius: 12, alignItems: 'center',
   },
   sourceTabActive: { backgroundColor: C.g700 },
-  sourceTabText: { fontSize: 13, fontWeight: '700', color: C.muted },
+  sourceTabText: { fontSize: 14, fontWeight: '700', color: C.muted },
   sourceTabTextActive: { color: '#fff' },
 
   /* Empty fleet */
   emptyFleetBox: { alignItems: 'center', paddingVertical: 24, gap: 6 },
-  emptyFleetText: { fontSize: 13, color: C.muted },
-  emptyFleetLink: { fontSize: 13, color: C.g500, fontWeight: '700', marginTop: 4 },
+  emptyFleetText: { fontSize: 14, color: C.muted },
+  emptyFleetLink: { fontSize: 14, color: C.g500, fontWeight: '700', marginTop: 4 },
 
   /* Dropdown trigger */
   dropdownTrigger: {
@@ -1180,7 +1243,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   dropdownVal: { fontSize: 14, fontWeight: '700', color: C.text },
-  dropdownValSub: { fontSize: 12, color: C.muted, marginTop: 1 },
+  dropdownValSub: { fontSize: 13, color: C.muted, marginTop: 1 },
   dropdownPlaceholder: { fontSize: 14, color: C.muted },
 
   /* Selected badge */
@@ -1194,7 +1257,7 @@ const s = StyleSheet.create({
     backgroundColor: C.g100, justifyContent: 'center', alignItems: 'center',
   },
   selectedBadgeName: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
-  selectedBadgeNum: { fontSize: 12, color: C.blue, fontFamily: 'monospace', marginTop: 2 },
+  selectedBadgeNum: { fontSize: 13, color: C.blue, fontFamily: 'monospace', marginTop: 2 },
   selectedBadgeClear: {
     width: 28, height: 28, borderRadius: 14,
     backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center',
@@ -1203,7 +1266,7 @@ const s = StyleSheet.create({
 
   /* Sub label */
   subLabel: {
-    fontSize: 11, fontWeight: '700', color: C.muted,
+    fontSize: 12, fontWeight: '700', color: C.muted,
     textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10,
   },
 
@@ -1214,7 +1277,7 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface,
   },
   chipPillActive: { borderColor: C.g600, backgroundColor: C.g50 },
-  chipPillText: { fontSize: 12, fontWeight: '600', color: C.muted },
+  chipPillText: { fontSize: 13, fontWeight: '600', color: C.muted },
   chipPillTextActive: { color: C.g700 },
 
   /* Route card */
@@ -1226,7 +1289,7 @@ const s = StyleSheet.create({
   routeDotRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   routeDot: { width: 8, height: 8, borderRadius: 4 },
   routeHalfLabel: {
-    fontSize: 10, fontWeight: '700', color: C.muted,
+    fontSize: 11, fontWeight: '700', color: C.muted,
     textTransform: 'uppercase', letterSpacing: 1,
   },
   routeInput: {
@@ -1253,11 +1316,11 @@ const s = StyleSheet.create({
   },
   dateTileActive: { borderColor: C.g400, backgroundColor: C.g50 },
   dateTileLabel: {
-    fontSize: 9, fontWeight: '700', color: C.muted,
+    fontSize: 10, fontWeight: '700', color: C.muted,
     textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8,
   },
   dateTileRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dateTileValue: { fontSize: 13, fontWeight: '700', color: C.text, flex: 1 },
+  dateTileValue: { fontSize: 14, fontWeight: '700', color: C.text, flex: 1 },
   dateTilePlaceholder: { color: C.muted, fontWeight: '400' },
 
   /* Price display card */
@@ -1266,7 +1329,7 @@ const s = StyleSheet.create({
     alignItems: 'flex-start',
   },
   priceDisplayLabel: {
-    fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.7)',
+    fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.7)',
     textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4,
   },
   priceDisplayRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, width: '100%' },
@@ -1275,7 +1338,7 @@ const s = StyleSheet.create({
     fontFamily: DISPLAY, flex: 1, fontSize: 36, fontWeight: '900', color: '#fff',
     padding: 0, textAlign: 'right',
   },
-  priceDisplaySub: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
+  priceDisplaySub: { fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
 
   /* Part load price mini card */
   partLoadPriceCard: {
@@ -1283,7 +1346,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#FDE68A',
   },
   partLoadPriceLabel: {
-    fontSize: 10, fontWeight: '700', color: '#92400E',
+    fontSize: 11, fontWeight: '700', color: '#92400E',
     textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8,
   },
   partLoadPriceRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -1304,7 +1367,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   fieldCardLabel: {
-    fontSize: 10, fontWeight: '700', color: C.muted,
+    fontSize: 11, fontWeight: '700', color: C.muted,
     textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4,
   },
   fieldCardInput: {
@@ -1330,8 +1393,8 @@ const s = StyleSheet.create({
     paddingVertical: 9, paddingHorizontal: 12,
     backgroundColor: C.surface,
   },
-  bodyTypeChipText: { fontSize: 12, fontWeight: '600', color: C.muted },
-  bodyTypeChipTextActive: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  bodyTypeChipText: { fontSize: 13, fontWeight: '600', color: C.muted },
+  bodyTypeChipTextActive: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
   /* Toggle card */
   toggleCard: {
@@ -1344,7 +1407,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   toggleCardLabel: { fontSize: 14, fontWeight: '700', color: C.text },
-  toggleCardSub: { fontSize: 11, color: C.muted, marginTop: 1 },
+  toggleCardSub: { fontSize: 12, color: C.muted, marginTop: 1 },
 
   /* Goods chips */
   goodsChip: {
@@ -1354,7 +1417,7 @@ const s = StyleSheet.create({
     backgroundColor: C.surface,
   },
   goodsChipActive: { borderColor: C.g600, backgroundColor: C.g700 },
-  goodsChipText: { fontSize: 12, fontWeight: '600', color: C.muted },
+  goodsChipText: { fontSize: 13, fontWeight: '600', color: C.muted },
   goodsChipTextActive: { color: '#fff' },
 
   /* Notes */
@@ -1404,7 +1467,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center', alignItems: 'center',
   },
-  modalSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 6 },
+  modalSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 6 },
 
   modalListItem: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -1421,7 +1484,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   modalListName: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text },
-  modalListReg: { fontSize: 12, color: C.blue, fontFamily: 'monospace', marginTop: 2 },
-  modalListCat: { fontSize: 11, color: C.muted, marginTop: 1 },
+  modalListReg: { fontSize: 13, color: C.blue, fontFamily: 'monospace', marginTop: 2 },
+  modalListCat: { fontSize: 12, color: C.muted, marginTop: 1 },
   modalEmpty: { textAlign: 'center', color: C.muted, padding: 24, fontSize: 14 },
 });

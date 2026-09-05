@@ -11,7 +11,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { apiGet, getVendorEarningsDebug, getVendorFinancials } from '../../api/client';
 import { SC as T, G, rs, rf, shade, cardShadow, rowShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 const { width: W } = Dimensions.get('window');
 
@@ -127,6 +127,10 @@ export default function EarningsScreen({ navigation, route }) {
   useEffect(() => {
     if (loading) fetchEarnings(false);
     else         fetchEarnings(true);
+    // Only re-run when the service filter changes — `loading` is read as a
+    // one-time snapshot to pick the loader style, not a re-trigger, and
+    // `fetchEarnings` already changes identity in lockstep with `selectedService`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedService]);
 
   const onRefresh = () => { setRefreshing(true); fetchEarnings(false); };
@@ -213,28 +217,71 @@ export default function EarningsScreen({ navigation, route }) {
       <View style={{ flex: 1, backgroundColor: C.bg }}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={s.hero}>
-          <AnimatedOrb style={s.deco1} />
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView>
             <View style={s.headerRow}>
               <View style={s.backCircleSk} />
               <Bone w={120} h={16} r={6} style={{ marginLeft: 12 }} />
             </View>
-            <View style={{ marginTop: 16, gap: 8 }}>
-              <Bone w={90} h={10} r={4} />
-              <Bone w={180} h={36} r={8} />
-              <Bone w={100} h={10} r={4} />
+          </SafeAreaView>
+        </LinearGradient>
+        <View style={{ paddingHorizontal: 16, paddingTop: 16, gap: 10 }}>
+          {/* This-month revenue card skeleton — matches the real gradient card */}
+          <LinearGradient colors={G.hero} style={s.earningsCard}>
+            <View style={{ gap: 8, marginBottom: 12 }}>
+              <Bone w={90} h={10} r={4} style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+              <Bone w={180} h={36} r={8} style={{ backgroundColor: 'rgba(255,255,255,0.25)' }} />
             </View>
             <View style={s.heroStatsRow}>
               {[0,1,2,3].map(i => (
                 <View key={i} style={s.heroStatSk}>
-                  <Bone w={50} h={14} r={5} style={{ marginBottom: 5 }} />
-                  <Bone w={36} h={10} r={4} />
+                  <Bone w={50} h={14} r={5} style={{ marginBottom: 5, backgroundColor: 'rgba(255,255,255,0.2)' }} />
+                  <Bone w={36} h={10} r={4} style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
                 </View>
               ))}
             </View>
-          </SafeAreaView>
-        </LinearGradient>
-        <View style={{ paddingHorizontal: 16, paddingTop: 16, gap: 10 }}>
+          </LinearGradient>
+          {/* Collection progress skeleton */}
+          <View style={{ backgroundColor: C.card, borderRadius: rs(18), padding: rs(16), borderWidth: 1, borderColor: C.border }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Bone w={30} h={30} r={10} />
+                <Bone w={120} h={12} r={4} />
+              </View>
+              <Bone w={44} h={22} r={12} />
+            </View>
+            <Bone w="100%" h={8} r={4} style={{ marginBottom: 14 }} />
+            <View style={{ flexDirection: 'row', gap: 24 }}>
+              <Bone w={90} h={11} r={4} />
+              <Bone w={90} h={11} r={4} />
+            </View>
+          </View>
+
+          {/* This month vs last month skeleton */}
+          <View style={{ backgroundColor: C.card, borderRadius: rs(18), padding: rs(16), borderWidth: 1, borderColor: C.border }}>
+            <Bone w={160} h={12} r={4} style={{ marginBottom: 14 }} />
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              {[0,1].map(i => (
+                <View key={i} style={{ flex: 1, alignItems: 'center' }}>
+                  <Bone w={40} h={11} r={4} style={{ marginBottom: 6 }} />
+                  <Bone w="60%" h={60} r={8} />
+                  <Bone w={60} h={9} r={4} style={{ marginTop: 6 }} />
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Bookings / Avg. booking summary skeleton */}
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {[0,1].map(i => (
+              <View key={i} style={{ flex: 1, backgroundColor: C.card, borderRadius: rs(14), padding: 12, borderWidth: 1, borderColor: C.border, gap: 8 }}>
+                <Bone w={28} h={28} r={9} />
+                <Bone w={50} h={16} r={4} />
+                <Bone w={60} h={9} r={4} />
+              </View>
+            ))}
+          </View>
+
           {/* Filter chips skeleton */}
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {[80,70,90,70].map((w, i) => <Bone key={i} w={w} h={34} r={17} />)}
@@ -260,9 +307,50 @@ export default function EarningsScreen({ navigation, route }) {
     );
   }
 
-  // ── List header component ─────────────────────────────────────
-  const ListHeader = () => (
+  // ── List header component (everything above the sticky filters) ───
+  const ListHeaderTop = () => (
     <>
+      {/* This month revenue — moved out of the header into the body */}
+      <View style={s.earningsCardWrap}>
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.earningsCard}>
+          <View style={s.earningsTop}>
+            <View>
+              <Text style={s.heroLbl}>THIS MONTH</Text>
+              <Text style={s.heroAmt}>₹{fmt(earnings.thisMonth)}</Text>
+            </View>
+            {earnings.growth !== 0 && (
+              <View style={s.growthRow}>
+                <Ionicons
+                  name={positive ? 'trending-up-outline' : 'trending-down-outline'}
+                  size={14} color={positive ? C.g400 : '#FCA5A5'}
+                />
+                <Text style={[s.growthTxt, { color: positive ? C.g400 : '#FCA5A5' }]}>
+                  {positive ? '+' : ''}{earnings.growth?.toFixed(1)}% vs last month
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Hero stat strip */}
+          <View style={s.heroStats}>
+            {[
+              { label: 'Today',    value: fmtShort(earnings.today)         },
+              { label: 'Pending',  value: fmtShort(earnings.pendingPayout) },
+              { label: 'Trips',    value: `${bookingsData.completed}`      },
+              { label: 'Active',   value: `${bookingsData.active}`         },
+            ].map((st, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <View style={s.heroStatDiv} />}
+                <View style={s.heroStat}>
+                  <Text style={s.heroStatVal}>{st.value}</Text>
+                  <Text style={s.heroStatLbl}>{st.label}</Text>
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+        </LinearGradient>
+      </View>
+
       {/* Collection progress — real collected/pending/total split
           (getVendorFinancials) */}
       {totalRevenue > 0 && (
@@ -337,45 +425,48 @@ export default function EarningsScreen({ navigation, route }) {
           <Text style={s.summaryLbl}>Avg. booking</Text>
         </View>
       </View>
-
-      {/* Filter chips */}
-      {(serviceBreakdown.length > 0 || (serviceType && SERVICE_CONFIG[serviceType])) && (
-        <View style={s.filtersWrap}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtersScroll}>
-            <FilterChip service="all" label="All" isAll count={bookingsData.total} />
-            {serviceBreakdown.map(item => {
-              const cfg = getServiceConfig(item.service);
-              return (
-                <FilterChip key={item.service}
-                  service={item.service} label={cfg.label}
-                  icon={cfg.icon} color={cfg.color} count={item.bookings} />
-              );
-            })}
-            {/* Show chip for the navigated-from service even if it has no earnings data */}
-            {serviceType && SERVICE_CONFIG[serviceType] && !serviceBreakdown.find(s => s.service === serviceType) && (
-              (() => {
-                const cfg = getServiceConfig(serviceType);
-                return (
-                  <FilterChip key={serviceType}
-                    service={serviceType} label={cfg.label}
-                    icon={cfg.icon} color={cfg.color} count={0} />
-                );
-              })()
-            )}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* Section label */}
-      <View style={s.sectionRow}>
-        <Text style={s.sectionTitle}>
-          {selectedService === 'all' ? 'All Bookings' : `${getServiceConfig(selectedService).label} Bookings`}
-        </Text>
-        <View style={s.countBadge}>
-          <Text style={s.countBadgeTxt}>{bookingsList.length}</Text>
-        </View>
-      </View>
     </>
+  );
+
+  // ── Filter chips — becomes sticky once it scrolls up to the header ──
+  const showFilters = serviceBreakdown.length > 0 || (serviceType && SERVICE_CONFIG[serviceType]);
+  const FiltersBar = () => (
+    <View style={s.filtersWrap}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtersScroll}>
+        <FilterChip service="all" label="All" isAll count={bookingsData.total} />
+        {serviceBreakdown.map(item => {
+          const cfg = getServiceConfig(item.service);
+          return (
+            <FilterChip key={item.service}
+              service={item.service} label={cfg.label}
+              icon={cfg.icon} color={cfg.color} count={item.bookings} />
+          );
+        })}
+        {/* Show chip for the navigated-from service even if it has no earnings data */}
+        {serviceType && SERVICE_CONFIG[serviceType] && !serviceBreakdown.find(sb => sb.service === serviceType) && (
+          (() => {
+            const cfg = getServiceConfig(serviceType);
+            return (
+              <FilterChip key={serviceType}
+                service={serviceType} label={cfg.label}
+                icon={cfg.icon} color={cfg.color} count={0} />
+            );
+          })()
+        )}
+      </ScrollView>
+    </View>
+  );
+
+  // ── Section label ────────────────────────────────────────────────
+  const SectionRow = () => (
+    <View style={s.sectionRow}>
+      <Text style={s.sectionTitle}>
+        {selectedService === 'all' ? 'All Bookings' : `${getServiceConfig(selectedService).label} Bookings`}
+      </Text>
+      <View style={s.countBadge}>
+        <Text style={s.countBadgeTxt}>{bookingsList.length}</Text>
+      </View>
+    </View>
   );
 
   // ── Empty state ───────────────────────────────────────────────
@@ -393,6 +484,26 @@ export default function EarningsScreen({ navigation, route }) {
     </View>
   );
 
+  // ── Combined list data — filters (index 0 of data, sticky) + section
+  // label + booking rows (or the empty state), so the filter chips can
+  // pin below the header once scrolled up to it. ──────────────────
+  const listData = [];
+  if (showFilters) listData.push({ __kind: 'filters' });
+  listData.push({ __kind: 'sectionRow' });
+  if (bookingsList.length === 0) listData.push({ __kind: 'empty' });
+  else bookingsList.forEach((b, i) => listData.push({ ...b, __kind: 'booking', __idx: i }));
+
+  const stickyIndices = showFilters ? [1] : []; // index 0 = ListHeaderComponent
+
+  const renderRow = ({ item }) => {
+    if (item.__kind === 'filters')    return <FiltersBar />;
+    if (item.__kind === 'sectionRow') return <SectionRow />;
+    if (item.__kind === 'empty')      return <EmptyState />;
+    return renderBookingCard({ item, index: item.__idx });
+  };
+
+  const rowKeyExtractor = (item) => (item.__kind === 'booking' ? item.id : item.__kind);
+
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
@@ -403,8 +514,7 @@ export default function EarningsScreen({ navigation, route }) {
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.hero}
       >
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView>
           {/* Top bar */}
           <View style={s.headerRow}>
@@ -413,48 +523,15 @@ export default function EarningsScreen({ navigation, route }) {
             </TouchableOpacity>
             <Text style={s.headerTitle}>My Earnings</Text>
           </View>
-
-          {/* Big earnings amount */}
-          <View style={s.heroBody}>
-            <Text style={s.heroLbl}>THIS MONTH</Text>
-            <Text style={s.heroAmt}>₹{fmt(earnings.thisMonth)}</Text>
-            {earnings.growth !== 0 && (
-              <View style={s.growthRow}>
-                <Ionicons
-                  name={positive ? 'trending-up-outline' : 'trending-down-outline'}
-                  size={14} color={positive ? C.g400 : '#FCA5A5'}
-                />
-                <Text style={[s.growthTxt, { color: positive ? C.g400 : '#FCA5A5' }]}>
-                  {positive ? '+' : ''}{earnings.growth?.toFixed(1)}% vs last month
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* Hero stat strip */}
-          <View style={s.heroStats}>
-            {[
-              { label: 'Today',    value: fmtShort(earnings.today)         },
-              { label: 'Pending',  value: fmtShort(earnings.pendingPayout) },
-              { label: 'Trips',    value: `${bookingsData.completed}`      },
-              { label: 'Active',   value: `${bookingsData.active}`         },
-            ].map((st, i) => (
-              <React.Fragment key={i}>
-                {i > 0 && <View style={s.heroStatDiv} />}
-                <View style={s.heroStat}>
-                  <Text style={s.heroStatVal}>{st.value}</Text>
-                  <Text style={s.heroStatLbl}>{st.label}</Text>
-                </View>
-              </React.Fragment>
-            ))}
-          </View>
         </SafeAreaView>
       </LinearGradient>
 
       {/* ── Bookings list ────────────────────────────────────── */}
       {filterLoading ? (
         <View style={{ paddingHorizontal: 16, paddingTop: 16, gap: 10 }}>
-          <ListHeader />
+          <ListHeaderTop />
+          {showFilters && <FiltersBar />}
+          <SectionRow />
           <View>
             {[0,1,2,3].map(i => (
               <View key={i} style={[s.flatRow, i === 0 && s.flatRowFirst, i === 3 && s.flatRowLast, i !== 3 && s.flatRowDivider]}>
@@ -473,17 +550,17 @@ export default function EarningsScreen({ navigation, route }) {
         </View>
       ) : (
         <FlatList
-          data={bookingsList}
-          renderItem={renderBookingCard}
-          keyExtractor={item => item.id}
+          data={listData}
+          renderItem={renderRow}
+          keyExtractor={rowKeyExtractor}
           contentContainerStyle={s.listContent}
           showsVerticalScrollIndicator={false}
+          stickyHeaderIndices={stickyIndices}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh}
               colors={[C.g500]} tintColor={C.g400} progressBackgroundColor="#fff" />
           }
-          ListHeaderComponent={<ListHeader />}
-          ListEmptyComponent={<EmptyState />}
+          ListHeaderComponent={<ListHeaderTop />}
         />
       )}
     </View>
@@ -494,15 +571,8 @@ export default function EarningsScreen({ navigation, route }) {
 const s = StyleSheet.create({
 
   // ── Hero ──────────────────────────────────────────────────────
-  hero: { paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden' },
-  deco1: {
-    position: 'absolute', width: 200, height: 200, borderRadius: 100,
-    backgroundColor: 'rgba(52,211,153,0.07)', top: -60, right: -40,
-  },
-  deco2: {
-    position: 'absolute', width: 120, height: 120, borderRadius: 60,
-    backgroundColor: 'rgba(16,185,129,0.05)', bottom: -20, left: W * 0.4,
-  },
+  hero: { paddingHorizontal: 16, paddingBottom: 12, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow:    { flexDirection: 'row', alignItems: 'center', paddingTop: 8 },
   backBtn: {
     width: 36, height: 36, borderRadius: 18,
@@ -517,11 +587,15 @@ const s = StyleSheet.create({
   },
   headerTitle: { fontFamily: DISPLAY, fontSize: 19, fontWeight: '800', color: '#fff', letterSpacing: -0.3, marginLeft: 12 },
 
-  heroBody: { marginTop: 18, marginBottom: 16 },
-  heroLbl:  { fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 6 },
-  heroAmt:  { fontFamily: DISPLAY, fontSize: 38, fontWeight: '800', color: '#fff', letterSpacing: -1.5, marginBottom: 6 },
+  heroLbl:  { fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 6 },
+  heroAmt:  { fontFamily: DISPLAY, fontSize: 34, fontWeight: '800', color: '#fff', letterSpacing: -1.2, marginBottom: 6 },
   growthRow:{ flexDirection: 'row', alignItems: 'center', gap: 5 },
-  growthTxt:{ fontSize: 12, fontWeight: '700' },
+  growthTxt:{ fontSize: 13, fontWeight: '700' },
+
+  /* This-month revenue card — moved out of the header into the body */
+  earningsCardWrap: { marginHorizontal: 16, marginTop: 16, borderRadius: rs(18), ...cardShadow },
+  earningsCard: { borderRadius: rs(18), padding: 16, overflow: 'hidden' },
+  earningsTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 },
 
   heroStats: {
     flexDirection: 'row', alignItems: 'center',
@@ -531,7 +605,7 @@ const s = StyleSheet.create({
   heroStatDiv: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 6 },
   heroStat:    { flex: 1, alignItems: 'center' },
   heroStatVal: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  heroStatLbl: { fontSize: 9,  fontWeight: '600', color: 'rgba(255,255,255,0.4)' },
+  heroStatLbl: { fontSize: 10,  fontWeight: '600', color: 'rgba(255,255,255,0.4)' },
   heroStatsRow:{ flexDirection: 'row', marginTop: 16, gap: 8 },
   heroStatSk:  { flex: 1, alignItems: 'center' },
 
@@ -545,7 +619,7 @@ const s = StyleSheet.create({
   collTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   collTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   collIconBox: { width: 30, height: 30, borderRadius: 10, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center' },
-  collTitle: { fontSize: 13, fontWeight: '800', color: C.text },
+  collTitle: { fontSize: 14, fontWeight: '800', color: C.text },
   collPctPill: { backgroundColor: C.g50, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   collPctTxt: { fontFamily: DISPLAY, fontSize: rf(13), fontWeight: '800', color: C.g700 },
   collBarBg: { height: 8, backgroundColor: C.g50, borderRadius: 4, overflow: 'hidden', marginBottom: 14 },
@@ -553,8 +627,8 @@ const s = StyleSheet.create({
   collStatsRow: { flexDirection: 'row', gap: 24 },
   collStatItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   collDot: { width: 7, height: 7, borderRadius: 3.5 },
-  collStatLbl: { fontSize: 11, color: C.muted, fontWeight: '600' },
-  collStatVal: { fontSize: 11, color: C.text, fontWeight: '800' },
+  collStatLbl: { fontSize: 12, color: C.muted, fontWeight: '600' },
+  collStatVal: { fontSize: 12, color: C.text, fontWeight: '800' },
 
   // ── Trend card (this month vs last month) ───────────────────
   trendCard: {
@@ -563,13 +637,13 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: C.border,
     ...cardShadow,
   },
-  trendTitle: { fontSize: 13, fontWeight: '800', color: C.text, marginBottom: 14 },
+  trendTitle: { fontSize: 14, fontWeight: '800', color: C.text, marginBottom: 14 },
   trendBars: { flexDirection: 'row', gap: 24, height: 100, alignItems: 'flex-end' },
   trendBarCol: { flex: 1, alignItems: 'center' },
-  trendBarVal: { fontSize: 11, fontWeight: '800', color: C.text, marginBottom: 6 },
+  trendBarVal: { fontSize: 12, fontWeight: '800', color: C.text, marginBottom: 6 },
   trendBarTrack: { width: '60%', height: 60, justifyContent: 'flex-end' },
   trendBarFill: { width: '100%', borderRadius: 8, minHeight: 4 },
-  trendBarLbl: { fontSize: 10, color: C.muted, fontWeight: '600', marginTop: 6 },
+  trendBarLbl: { fontSize: 11, color: C.muted, fontWeight: '600', marginTop: 6 },
 
   // ── Summary row ──────────────────────────────────────────────
   summaryRow: { flexDirection: 'row', gap: 10, marginHorizontal: 16, marginTop: 12, marginBottom: 4 },
@@ -580,25 +654,25 @@ const s = StyleSheet.create({
   },
   summaryIconBox: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   summaryVal: { fontFamily: DISPLAY, fontSize: rf(16), fontWeight: '800', color: C.text },
-  summaryLbl: { fontSize: 10, color: C.muted, fontWeight: '600', marginTop: 2 },
+  summaryLbl: { fontSize: 11, color: C.muted, fontWeight: '600', marginTop: 2 },
 
   // ── Filter chips ─────────────────────────────────────────────
-  filtersWrap:  { paddingVertical: 14 },
+  filtersWrap:  { backgroundColor: C.bg, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border },
   filtersScroll:{ gap: 8, paddingHorizontal: 16 },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: C.card, paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 20, borderWidth: 1.5, borderColor: C.border,
   },
-  chipTxt:      { fontSize: 12, fontWeight: '700', color: C.sub },
+  chipTxt:      { fontSize: 13, fontWeight: '700', color: C.sub },
   chipCount:    { backgroundColor: C.border, paddingHorizontal: 7, paddingVertical: 1, borderRadius: 10, minWidth: 22, alignItems: 'center' },
-  chipCountTxt: { fontSize: 10, fontWeight: '800', color: C.sub },
+  chipCountTxt: { fontSize: 11, fontWeight: '800', color: C.sub },
 
   // ── Section row ───────────────────────────────────────────────
   sectionRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 },
   sectionTitle: { fontSize: 14, fontWeight: '800', color: C.text, letterSpacing: -0.2 },
   countBadge:   { backgroundColor: C.g50, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: C.g100 },
-  countBadgeTxt:{ fontSize: 11, fontWeight: '800', color: C.g700 },
+  countBadgeTxt:{ fontSize: 12, fontWeight: '800', color: C.g700 },
 
   // ── List ─────────────────────────────────────────────────────
   listContent: { paddingBottom: 100 },
@@ -619,11 +693,11 @@ const s = StyleSheet.create({
   },
   flatRowDivider: { borderBottomWidth: 1, borderBottomColor: C.border },
   flatRowIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  flatRowNum:  { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text },
-  flatRowMeta: { fontSize: 10.5, color: C.muted, fontWeight: '500', marginTop: 2 },
+  flatRowNum:  { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text },
+  flatRowMeta: { fontSize: 11.5, color: C.muted, fontWeight: '500', marginTop: 2 },
   flatRowAmt:  { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: '800', color: C.text },
   flatRowPill: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, marginTop: 4 },
-  flatRowPillTxt: { fontSize: 9, fontWeight: '700' },
+  flatRowPillTxt: { fontSize: 10, fontWeight: '700' },
 
   // ── Empty ─────────────────────────────────────────────────────
   emptyWrap:  { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },

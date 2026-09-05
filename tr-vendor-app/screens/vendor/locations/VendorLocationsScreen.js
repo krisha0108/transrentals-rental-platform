@@ -20,7 +20,7 @@ import { showError, showSuccess } from '../../../services/alertService';
 import { getVendorLocations, requestLocation, apiDelete } from '../../api/client';
 import { SC as T, G, rs, rf, GUT, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this file already used everywhere below — only the values
 // now come from the shared "Elevate" theme instead of hardcoded hex. Follows
@@ -43,6 +43,10 @@ const C = {
 const HERO_TAIL = rs(24);
 const STATS_OVERLAP = rs(20);
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 export default function VendorLocationsScreen({ navigation }) {
   const [requests, setRequests] = useState([]);
   const [approvedLocations, setApprovedLocations] = useState([]);
@@ -59,6 +63,7 @@ export default function VendorLocationsScreen({ navigation }) {
 
   // Approved — search, state filter, bulk select
   const [locSearch, setLocSearch] = useState('');
+  const [locSearchOpen, setLocSearchOpen] = useState(false);
   const [locStateFilter, setLocStateFilter] = useState('');
   const [selectedLocIds, setSelectedLocIds] = useState(new Set());
   const [deletingId, setDeletingId] = useState(null);
@@ -66,6 +71,7 @@ export default function VendorLocationsScreen({ navigation }) {
 
   // Pending — search, bulk select
   const [pendingSearch, setPendingSearch] = useState('');
+  const [pendingSearchOpen, setPendingSearchOpen] = useState(false);
   const [selectedPendingIds, setSelectedPendingIds] = useState(new Set());
   const [withdrawingId, setWithdrawingId] = useState(null);
   const [bulkWithdrawing, setBulkWithdrawing] = useState(false);
@@ -247,16 +253,53 @@ export default function VendorLocationsScreen({ navigation }) {
     return (
       <View style={s.root}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroLoading}>
-          <AnimatedOrb style={s.orbA} delay={0} dx={14} dy={12} />
-          <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
-            <Text style={s.heroLoadingTitle}>My Locations</Text>
+            <View style={s.heroTop}>
+              <View style={{ flex: 1 }}>
+                <View style={s.heroBadge}>
+                  <Ionicons name="location" size={rs(11)} color={C.g400} />
+                  <Text style={s.heroBadgeTxt}>Operational Locations</Text>
+                </View>
+                <Text style={s.heroTitle}>My Locations</Text>
+                <Text style={s.heroSub}>Cities where you receive bookings</Text>
+              </View>
+            </View>
+            <View style={{ height: HERO_TAIL }} />
           </SafeAreaView>
         </LinearGradient>
-        <View style={s.loaderWrap}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={s.loaderTxt}>Loading locations...</Text>
+
+        <View style={s.statsWrap}>
+          <View style={[s.statsCard, cardShadow]}>
+            {[0, 1, 2, 3].map(i => (
+              <React.Fragment key={i}>
+                {i > 0 && <View style={s.statDivider} />}
+                <View style={s.statCell}>
+                  <Bone w={20} h={13} style={{ marginBottom: 4 }} />
+                  <Bone w={45} h={9} />
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+        </View>
+
+        <View style={s.scrollContent}>
+          <View style={s.section}>
+            <View style={s.sectionHead}>
+              <Bone w={30} h={30} r={10} />
+              <Bone w={140} h={13} />
+            </View>
+            {[0, 1, 2, 3].map((i, idx, arr) => (
+              <View key={i} style={[s.locRow, idx === arr.length - 1 && s.locRowLast]}>
+                <Bone w={rs(32)} h={rs(32)} r={rs(10)} />
+                <View style={s.locInfo}>
+                  <Bone w={110} h={13} style={{ marginBottom: 6 }} />
+                  <Bone w={70} h={10} />
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
       </View>
     );
@@ -269,8 +312,7 @@ export default function VendorLocationsScreen({ navigation }) {
       {/* ── HERO — static sibling so it can never be clipped by the
           ScrollView's own viewport ── */}
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
-        <AnimatedOrb style={s.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
           <View style={s.heroTop}>
@@ -329,6 +371,14 @@ export default function VendorLocationsScreen({ navigation }) {
             <View style={[s.countBadge, { backgroundColor: C.g100 }]}>
               <Text style={[s.countBadgeText, { color: C.g700 }]}>{approvedLocations.length}</Text>
             </View>
+            {approvedLocations.length > 0 && (
+              <TouchableOpacity
+                onPress={() => { setLocSearchOpen(v => !v); if (locSearchOpen) setLocSearch(''); }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name={locSearchOpen ? 'close' : 'search-outline'} size={rs(18)} color={C.muted} />
+              </TouchableOpacity>
+            )}
           </View>
 
           {approvedLocations.length === 0 ? (
@@ -346,6 +396,7 @@ export default function VendorLocationsScreen({ navigation }) {
           ) : (
             <>
               {/* Search */}
+              {locSearchOpen && (
               <View style={s.searchBar}>
                 <Ionicons name="search-outline" size={rs(16)} color={C.muted} />
                 <TextInput
@@ -354,6 +405,7 @@ export default function VendorLocationsScreen({ navigation }) {
                   placeholderTextColor={C.muted}
                   value={locSearch}
                   onChangeText={(t) => { setLocSearch(t); setSelectedLocIds(new Set()); }}
+                  autoFocus
                 />
                 {locSearch.length > 0 && (
                   <TouchableOpacity onPress={() => setLocSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -361,6 +413,7 @@ export default function VendorLocationsScreen({ navigation }) {
                   </TouchableOpacity>
                 )}
               </View>
+              )}
 
               {/* State chips */}
               {uniqueStates.length > 1 && (
@@ -450,9 +503,17 @@ export default function VendorLocationsScreen({ navigation }) {
               <View style={[s.countBadge, { backgroundColor: C.amberL }]}>
                 <Text style={[s.countBadgeText, { color: C.amber }]}>{pendingRequests.length}</Text>
               </View>
+              {pendingRequests.length > 1 && (
+                <TouchableOpacity
+                  onPress={() => { setPendingSearchOpen(v => !v); if (pendingSearchOpen) setPendingSearch(''); }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name={pendingSearchOpen ? 'close' : 'search-outline'} size={rs(18)} color={C.muted} />
+                </TouchableOpacity>
+              )}
             </View>
 
-            {pendingRequests.length > 1 && (
+            {pendingRequests.length > 1 && pendingSearchOpen && (
               <View style={s.searchBar}>
                 <Ionicons name="search-outline" size={rs(16)} color={C.muted} />
                 <TextInput
@@ -461,6 +522,7 @@ export default function VendorLocationsScreen({ navigation }) {
                   placeholderTextColor={C.muted}
                   value={pendingSearch}
                   onChangeText={(t) => { setPendingSearch(t); setSelectedPendingIds(new Set()); }}
+                  autoFocus
                 />
                 {pendingSearch.length > 0 && (
                   <TouchableOpacity onPress={() => setPendingSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -833,8 +895,6 @@ export default function VendorLocationsScreen({ navigation }) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   scrollContent: { paddingHorizontal: GUT, paddingBottom: rs(120) },
-  loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: rs(10) },
-  loaderTxt: { fontSize: rf(14), color: C.muted },
 
   /* ── Hero ── */
   hero: {
@@ -843,23 +903,7 @@ const s = StyleSheet.create({
     borderBottomRightRadius: rs(26),
     overflow: 'hidden',
   },
-  heroLoading: {
-    paddingBottom: rs(20),
-    borderBottomLeftRadius: rs(26),
-    borderBottomRightRadius: rs(26),
-    overflow: 'hidden',
-  },
-  heroLoadingTitle: { fontFamily: DISPLAY, fontSize: rf(20), fontWeight: '800', color: '#fff', paddingTop: rs(10) },
-  orbA: {
-    position: 'absolute', top: -rs(60), right: -rs(40),
-    width: rs(180), height: rs(180), borderRadius: rs(90),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(60), left: -rs(40),
-    width: rs(150), height: rs(150), borderRadius: rs(75),
-    backgroundColor: 'rgba(46,158,120,0.16)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingTop: rs(8), gap: rs(10) },
   heroBadge: { flexDirection: 'row', alignItems: 'center', gap: rs(5), backgroundColor: 'rgba(255,255,255,0.1)', alignSelf: 'flex-start', paddingHorizontal: rs(10), paddingVertical: rs(4), borderRadius: 20, marginBottom: rs(7) },
   heroBadgeTxt: { fontFamily: DISPLAY, fontSize: rf(11), fontWeight: '600', color: C.g400 },

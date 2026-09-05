@@ -16,7 +16,7 @@ import {
 import CustomAlert from '../../../components/CustomAlert';
 import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -66,6 +66,10 @@ const PAY_STATUS = {
   PARTIAL: { label: 'Partial', bg: '#FFF7ED', text: '#C2410C' },
   COMPLETED: { label: 'Paid', bg: '#D1FAE5', text: '#065F46' },
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'; }
 function fmtPrice(n) { return '\u20B9' + Number(n || 0).toLocaleString('en-IN'); }
@@ -149,7 +153,7 @@ export default function MyPostingsScreen({ navigation, route }) {
   useFocusEffect(useCallback(() => {
     if (route?.params?.initialTab) setTab(route.params.initialTab);
     fetchData();
-  }, [fetchData]));
+  }, [fetchData, route?.params?.initialTab]));
   const onRefresh = () => { setRefreshing(true); fetchData(); };
 
   const handleDelete = async (id, type) => {
@@ -392,8 +396,7 @@ export default function MyPostingsScreen({ navigation, route }) {
         {/* Card Header — colored gradient band */}
         <LinearGradient colors={headGrad} style={s.cardGradHeader}>
           {/* Decorative circles */}
-          <AnimatedOrb style={s.headerCircle1} />
-          <AnimatedOrb style={s.headerCircle2} delay={1200} dx={-10} dy={8} />
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           {/* Icon circle */}
           <View style={s.headerIconCircle}>
             <MCI name={isTruck ? 'truck' : 'car-side'} size={22} color="#fff" />
@@ -622,8 +625,7 @@ export default function MyPostingsScreen({ navigation, route }) {
       <View style={s.card}>
         {/* Card Header — purple gradient */}
         <LinearGradient colors={['#7C2D12', '#C2410C']} style={s.cardGradHeader}>
-          <AnimatedOrb style={s.headerCircle1} />
-          <AnimatedOrb style={s.headerCircle2} delay={1200} dx={-10} dy={8} />
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <View style={[s.headerIconCircle, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
             <MCI name="package-variant" size={22} color="#fff" />
           </View>
@@ -1026,7 +1028,7 @@ export default function MyPostingsScreen({ navigation, route }) {
   const canAdd = tab !== 'requests';
   const activeTab = TABS.find(t => t.key === tab);
 
-  const ListHeader = () => (
+  const Filters = () => (
     <>
       {/* Tab Bar */}
       <View style={s.tabBar}>
@@ -1075,7 +1077,11 @@ export default function MyPostingsScreen({ navigation, route }) {
           );
         })}
       </ScrollView>
+    </>
+  );
 
+  const ListHeader = () => (
+    <>
       {/* Results count */}
       <View style={s.resultsRow}>
         <Text style={s.resultsText}>
@@ -1089,12 +1095,11 @@ export default function MyPostingsScreen({ navigation, route }) {
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g950} />
-      <SafeAreaView edges={['top']} style={{ backgroundColor: C.g950 }}>
+      <SafeAreaView edges={['top']} style={{ backgroundColor: C.g950, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) }}>
         {/* Gradient Header */}
         <LinearGradient colors={G.hero} style={s.header}>
           {/* Decorative circles */}
-          <AnimatedOrb style={s.hCircle1} />
-          <AnimatedOrb style={s.hCircle2} delay={1200} dx={-10} dy={8} />
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
             <Icon name="arrow-left" size={20} color="#fff" />
           </TouchableOpacity>
@@ -1110,8 +1115,48 @@ export default function MyPostingsScreen({ navigation, route }) {
         </LinearGradient>
       </SafeAreaView>
 
+      {/* ─────────── FIXED FILTERS — always visible, don't scroll away ─────────── */}
+      <Filters />
+
       {loading ? (
-        <View style={s.center}><ActivityIndicator size="large" color={C.g600} /></View>
+        <ScrollView contentContainerStyle={s.list} showsVerticalScrollIndicator={false}>
+          {[0, 1, 2].map(i => (
+            <View key={i} style={s.card}>
+              <View style={[s.cardGradHeader, { backgroundColor: C.g100 }]}>
+                <Bone w={40} h={40} r={20} style={{ backgroundColor: 'rgba(255,255,255,0.6)' }} />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Bone w={130} h={13} style={{ backgroundColor: 'rgba(255,255,255,0.6)', marginBottom: 6 }} />
+                  <Bone w={80} h={10} style={{ backgroundColor: 'rgba(255,255,255,0.5)' }} />
+                </View>
+                <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                  <Bone w={60} h={16} r={8} style={{ backgroundColor: 'rgba(255,255,255,0.5)' }} />
+                  <Bone w={70} h={9} style={{ backgroundColor: 'rgba(255,255,255,0.4)' }} />
+                </View>
+              </View>
+
+              <View style={s.routeRow}>
+                <View style={s.routeDotGreen} />
+                <Bone w={60} h={11} />
+                <View style={s.routeLine} />
+                <MCI name="truck" size={13} color={C.border} />
+                <View style={s.routeLine} />
+                <Bone w={60} h={11} />
+                <View style={s.routeDotRed} />
+              </View>
+
+              <View style={s.cardBody}>
+                <View style={s.infoRow}>
+                  <Bone w={90} h={22} r={8} />
+                  <Bone w={80} h={22} r={8} />
+                </View>
+                <View style={s.badgeRow}>
+                  <Bone w={60} h={18} r={8} />
+                  <Bone w={70} h={18} r={8} />
+                </View>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       ) : (
         <FlatList
           data={filteredData}
@@ -1291,21 +1336,13 @@ export default function MyPostingsScreen({ navigation, route }) {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   /* Header */
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 16, gap: 12,
     overflow: 'hidden',
-  },
-  hCircle1: {
-    position: 'absolute', width: 120, height: 120, borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.06)', top: -40, right: 60,
-  },
-  hCircle2: {
-    position: 'absolute', width: 80, height: 80, borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.045)', top: -10, right: 20,
+    borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 12,
@@ -1313,7 +1350,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)',
   },
   headerTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  headerSub: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 1 },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 1 },
   addHeaderBtn: {
     width: 38, height: 38, borderRadius: 12,
     justifyContent: 'center', alignItems: 'center',
@@ -1334,14 +1371,14 @@ const s = StyleSheet.create({
   tabItemActive: {
     borderBottomColor: C.g600,
   },
-  tabItemText: { fontSize: 12, fontWeight: '600', color: C.muted },
+  tabItemText: { fontSize: 13, fontWeight: '600', color: C.muted },
   tabItemTextActive: { color: C.g700, fontWeight: '700' },
   tabBadge: {
     minWidth: 18, height: 18, borderRadius: 9,
     backgroundColor: C.border, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4,
   },
   tabBadgeActive: { backgroundColor: C.g100 },
-  tabBadgeText: { fontSize: 9, fontWeight: '800', color: C.muted },
+  tabBadgeText: { fontSize: 10, fontWeight: '800', color: C.muted },
   tabBadgeTextActive: { color: C.g700 },
 
   /* Filter Chips */
@@ -1352,16 +1389,16 @@ const s = StyleSheet.create({
     backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border,
   },
   filterDot: { width: 7, height: 7, borderRadius: 4 },
-  filterText: { fontSize: 11, color: C.muted, fontWeight: '600' },
+  filterText: { fontSize: 12, color: C.muted, fontWeight: '600' },
   filterCount: {
     minWidth: 17, height: 17, borderRadius: 9,
     backgroundColor: C.g100, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4,
   },
-  filterCountText: { fontSize: 9, fontWeight: '800', color: C.g700 },
+  filterCountText: { fontSize: 10, fontWeight: '800', color: C.g700 },
 
   /* Results row */
   resultsRow: { paddingHorizontal: 16, paddingBottom: 8, paddingTop: 2 },
-  resultsText: { fontSize: 11, color: C.muted, fontWeight: '600' },
+  resultsText: { fontSize: 12, color: C.muted, fontWeight: '600' },
 
   /* List */
   list: { paddingHorizontal: 12, paddingBottom: 110 },
@@ -1380,27 +1417,20 @@ const s = StyleSheet.create({
     paddingVertical: 14, paddingHorizontal: 14,
     overflow: 'hidden',
   },
-  headerCircle1: {
-    position: 'absolute', width: 100, height: 100, borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.06)', top: -30, right: 40,
-  },
-  headerCircle2: {
-    position: 'absolute', width: 60, height: 60, borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.045)', top: -5, right: 10,
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerIconCircle: {
     width: 44, height: 44, borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center', alignItems: 'center',
   },
   headerVehName: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
-  headerVehPlate: { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  headerVehPlate: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   headerStatusChip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
   },
-  headerStatusText: { fontSize: 10, fontWeight: '700' },
-  headerPostingNum: { fontSize: 9, color: 'rgba(255,255,255,0.55)', fontWeight: '600', letterSpacing: 0.3 },
+  headerStatusText: { fontSize: 11, fontWeight: '700' },
+  headerPostingNum: { fontSize: 10, color: 'rgba(255,255,255,0.55)', fontWeight: '600', letterSpacing: 0.3 },
 
   /* Route Row */
   routeRow: {
@@ -1413,7 +1443,7 @@ const s = StyleSheet.create({
   routeDotGreen: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.g500 },
   routeDotRed: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.red },
   routeLine: { flex: 1, height: 1, backgroundColor: '#CBD5E1' },
-  routeCity: { fontSize: 12, fontWeight: '600', color: C.text, maxWidth: 90 },
+  routeCity: { fontSize: 13, fontWeight: '600', color: C.text, maxWidth: 90 },
 
   /* Card Body */
   cardBody: { padding: 14, paddingTop: 12 },
@@ -1425,7 +1455,7 @@ const s = StyleSheet.create({
     backgroundColor: C.g50, paddingHorizontal: 8, paddingVertical: 5,
     borderRadius: 8, borderWidth: 1, borderColor: C.g100,
   },
-  infoChipText: { fontSize: 11, color: C.g700, fontWeight: '600' },
+  infoChipText: { fontSize: 12, color: C.g700, fontWeight: '600' },
 
   /* Feature badges */
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
@@ -1434,7 +1464,7 @@ const s = StyleSheet.create({
     backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 4,
     borderRadius: 7, borderWidth: 1, borderColor: C.border,
   },
-  featureBadgeText: { fontSize: 10, color: C.sub, fontWeight: '600' },
+  featureBadgeText: { fontSize: 11, color: C.sub, fontWeight: '600' },
 
   /* Reason row */
   reasonRow: {
@@ -1442,7 +1472,7 @@ const s = StyleSheet.create({
     backgroundColor: '#FAFAFA', borderRadius: 8, padding: 8,
     marginTop: 8, borderWidth: 1, borderColor: C.border,
   },
-  reasonText: { fontSize: 11, color: C.sub, flex: 1, lineHeight: 16 },
+  reasonText: { fontSize: 12, color: C.sub, flex: 1, lineHeight: 16 },
 
   /* Commission grid */
   commGrid: { flexDirection: 'row', gap: 6, marginTop: 12 },
@@ -1450,8 +1480,8 @@ const s = StyleSheet.create({
     flex: 1, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 6,
     alignItems: 'center', gap: 2, borderWidth: 1, borderColor: C.border,
   },
-  commLbl: { fontSize: 9, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.3 },
-  commAmount: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text },
+  commLbl: { fontSize: 10, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.3 },
+  commAmount: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text },
 
   /* Pending bar */
   pendingBar: {
@@ -1461,7 +1491,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#FDE68A',
   },
   pendingPulse: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.amber },
-  pendingText: { fontSize: 12, color: '#92400E', fontWeight: '600' },
+  pendingText: { fontSize: 13, color: '#92400E', fontWeight: '600' },
 
   /* Inline request card */
   inlineReqCard: {
@@ -1473,23 +1503,23 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   reqAvatarText: { fontSize: 14, fontWeight: '800', color: '#fff' },
-  reqFrom: { fontSize: 13, fontWeight: '700', color: C.text },
-  reqCity: { fontSize: 10, color: C.muted },
-  reqTime: { fontSize: 10, color: C.muted },
+  reqFrom: { fontSize: 14, fontWeight: '700', color: C.text },
+  reqCity: { fontSize: 11, color: C.muted },
+  reqTime: { fontSize: 11, color: C.muted },
   reqInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-  reqInfoText: { fontSize: 11, color: C.sub, flex: 1 },
+  reqInfoText: { fontSize: 12, color: C.sub, flex: 1 },
   reqBtnRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
   reqAcceptBtnGrad: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 5, paddingVertical: 11, borderRadius: 12,
   },
-  reqAcceptBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  reqAcceptBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   reqRejectBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 5, backgroundColor: C.redBg, paddingVertical: 11, borderRadius: 12,
     borderWidth: 1, borderColor: '#FECACA',
   },
-  reqRejectBtnText: { fontSize: 13, fontWeight: '700', color: C.red },
+  reqRejectBtnText: { fontSize: 14, fontWeight: '700', color: C.red },
 
   /* Accepted request bar */
   acceptedReqBar: {
@@ -1498,13 +1528,13 @@ const s = StyleSheet.create({
     paddingVertical: 10, paddingHorizontal: 12,
     borderWidth: 1, borderColor: C.g300,
   },
-  acceptedReqText: { fontSize: 12, fontWeight: '600', color: '#065F46', flex: 1 },
+  acceptedReqText: { fontSize: 13, fontWeight: '600', color: '#065F46', flex: 1 },
   viewActivityBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
     backgroundColor: C.g100,
   },
-  viewActivityText: { fontSize: 11, fontWeight: '700', color: C.g700 },
+  viewActivityText: { fontSize: 12, fontWeight: '700', color: C.g700 },
 
   /* Transactions */
   txToggle: {
@@ -1513,18 +1543,18 @@ const s = StyleSheet.create({
     borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12,
     borderWidth: 1, borderColor: C.border,
   },
-  txToggleText: { fontSize: 12, color: C.g700, fontWeight: '700' },
+  txToggleText: { fontSize: 13, color: C.g700, fontWeight: '700' },
   txSection: { marginTop: 6 },
   txItem: {
     backgroundColor: C.g50, borderRadius: 12, padding: 10, marginBottom: 6,
     borderWidth: 1, borderColor: C.border,
   },
-  txNumber: { fontSize: 12, fontWeight: '700', color: C.text, fontFamily: 'monospace' },
+  txNumber: { fontSize: 13, fontWeight: '700', color: C.text, fontFamily: 'monospace' },
   txBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  txBadgeText: { fontSize: 9, fontWeight: '700' },
-  txVendor: { fontSize: 11, fontWeight: '600', color: C.sub },
-  txAmount: { fontSize: 13, fontWeight: '800', color: C.g700 },
-  txTime: { fontSize: 10, color: C.muted, marginTop: 4 },
+  txBadgeText: { fontSize: 10, fontWeight: '700' },
+  txVendor: { fontSize: 12, fontWeight: '600', color: C.sub },
+  txAmount: { fontSize: 14, fontWeight: '800', color: C.g700 },
+  txTime: { fontSize: 11, color: C.muted, marginTop: 4 },
 
   /* Social Bar */
   socialBar: {
@@ -1536,7 +1566,7 @@ const s = StyleSheet.create({
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, paddingVertical: 6,
   },
-  socialText: { fontSize: 12, color: C.sub, fontWeight: '600' },
+  socialText: { fontSize: 13, color: C.sub, fontWeight: '600' },
 
   /* Share menu */
   shareMenu: {
@@ -1547,7 +1577,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8,
   },
-  shareOptionText: { fontSize: 13, color: C.text, fontWeight: '600' },
+  shareOptionText: { fontSize: 14, color: C.text, fontWeight: '600' },
 
   /* Card Footer */
   cardFooter: {
@@ -1559,19 +1589,19 @@ const s = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
     backgroundColor: C.blueBg, borderWidth: 1, borderColor: '#BFDBFE',
   },
-  footerEditText: { fontSize: 12, fontWeight: '700', color: C.blue },
+  footerEditText: { fontSize: 13, fontWeight: '700', color: C.blue },
   footerDeleteBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
     backgroundColor: C.redBg, borderWidth: 1, borderColor: '#FECACA',
   },
-  footerDeleteText: { fontSize: 12, fontWeight: '700', color: C.red },
+  footerDeleteText: { fontSize: 13, fontWeight: '700', color: C.red },
   footerAmberBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
     paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10,
     backgroundColor: C.amberBg, borderWidth: 1, borderColor: '#FDE68A',
   },
-  footerAmberText: { fontSize: 12, fontWeight: '700', color: '#92400E' },
+  footerAmberText: { fontSize: 13, fontWeight: '700', color: '#92400E' },
 
   /* Request Card */
   reqCardTop: {
@@ -1584,8 +1614,8 @@ const s = StyleSheet.create({
   },
   reqAvatarLargeText: { fontSize: 18, fontWeight: '900', color: '#fff' },
   reqCardName: { fontSize: 15, fontWeight: '700', color: C.text },
-  reqCardCity: { fontSize: 11, color: C.muted, marginTop: 2 },
-  reqCardTime: { fontSize: 10, color: C.muted, fontWeight: '500' },
+  reqCardCity: { fontSize: 12, color: C.muted, marginTop: 2 },
+  reqCardTime: { fontSize: 11, color: C.muted, fontWeight: '500' },
 
   reqPostingRow: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -1595,9 +1625,9 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
   },
-  reqTypeBadgeText: { fontSize: 10, fontWeight: '700' },
-  reqPostingNum: { fontSize: 11, color: C.sub, fontWeight: '600', fontFamily: 'monospace' },
-  reqPostingOwner: { fontSize: 11, color: C.muted },
+  reqTypeBadgeText: { fontSize: 11, fontWeight: '700' },
+  reqPostingNum: { fontSize: 12, color: C.sub, fontWeight: '600', fontFamily: 'monospace' },
+  reqPostingOwner: { fontSize: 12, color: C.muted },
 
   /* Expand toggle */
   expandToggle: {
@@ -1606,7 +1636,7 @@ const s = StyleSheet.create({
     backgroundColor: C.g50, borderRadius: 8, alignSelf: 'flex-start',
     borderWidth: 1, borderColor: C.g100,
   },
-  expandToggleText: { fontSize: 11, fontWeight: '700', color: C.g700 },
+  expandToggleText: { fontSize: 12, fontWeight: '700', color: C.g700 },
 
   /* Request details expanded */
   reqDetailsExpanded: {
@@ -1620,8 +1650,8 @@ const s = StyleSheet.create({
     marginTop: 10, backgroundColor: C.g50, borderRadius: 12,
     padding: 10, borderLeftWidth: 3, borderWidth: 1, borderColor: C.border,
   },
-  postingInfoTitle: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '700', color: C.text },
-  postingInfoRoute: { fontSize: 11, color: C.sub },
+  postingInfoTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '700', color: C.text },
+  postingInfoRoute: { fontSize: 12, color: C.sub },
 
   /* Status banners */
   statusBanner: {
@@ -1630,8 +1660,8 @@ const s = StyleSheet.create({
     paddingVertical: 10, paddingHorizontal: 12, marginTop: 10,
     borderWidth: 1, borderColor: '#FDE68A',
   },
-  statusBannerText: { fontSize: 13, fontWeight: '700', color: '#92400E' },
-  statusBannerSub: { fontSize: 11, fontWeight: '600', marginTop: 1 },
+  statusBannerText: { fontSize: 14, fontWeight: '700', color: '#92400E' },
+  statusBannerSub: { fontSize: 12, fontWeight: '600', marginTop: 1 },
 
   /* Contact row */
   contactRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
@@ -1640,27 +1670,27 @@ const s = StyleSheet.create({
     gap: 6, backgroundColor: C.blueBg, paddingVertical: 10, borderRadius: 12,
     borderWidth: 1, borderColor: '#BFDBFE',
   },
-  callBtnText: { fontSize: 12, fontWeight: '700', color: C.blue },
+  callBtnText: { fontSize: 13, fontWeight: '700', color: C.blue },
   waBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, backgroundColor: '#F0FDF4', paddingVertical: 10, borderRadius: 12,
     borderWidth: 1, borderColor: '#BBF7D0',
   },
-  waBtnText: { fontSize: 12, fontWeight: '700', color: '#16A34A' },
+  waBtnText: { fontSize: 13, fontWeight: '700', color: '#16A34A' },
 
   /* Timestamp */
   timestampRow: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: C.border,
   },
-  timestampText: { fontSize: 10, color: C.muted },
+  timestampText: { fontSize: 11, color: C.muted },
 
   /* Comments */
   commentsSection: {
     marginTop: 8, backgroundColor: C.g50, borderRadius: rs(14),
     padding: 10, borderWidth: 1, borderColor: C.border,
   },
-  noComments: { fontSize: 12, color: C.muted, textAlign: 'center', paddingVertical: 12, fontStyle: 'italic' },
+  noComments: { fontSize: 13, color: C.muted, textAlign: 'center', paddingVertical: 12, fontStyle: 'italic' },
   commentItem: {
     flexDirection: 'row', gap: 8, paddingVertical: 8,
     borderBottomWidth: 1, borderBottomColor: C.border,
@@ -1669,18 +1699,18 @@ const s = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14,
     justifyContent: 'center', alignItems: 'center',
   },
-  commentInitial: { fontSize: 12, fontWeight: '800', color: '#fff' },
+  commentInitial: { fontSize: 13, fontWeight: '800', color: '#fff' },
   commentHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  commentName: { fontSize: 12, fontWeight: '700', color: C.text },
-  commentTime: { fontSize: 9, color: C.muted },
-  commentMsg: { fontSize: 12, color: C.sub, marginTop: 2, lineHeight: 17 },
+  commentName: { fontSize: 13, fontWeight: '700', color: C.text },
+  commentTime: { fontSize: 10, color: C.muted },
+  commentMsg: { fontSize: 13, color: C.sub, marginTop: 2, lineHeight: 17 },
   commentInputRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8,
     paddingTop: 8, borderTopWidth: 1, borderTopColor: C.border,
   },
   commentInput: {
     flex: 1, backgroundColor: '#fff', borderWidth: 1.5, borderColor: C.border,
-    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, fontSize: 12, color: C.text,
+    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, fontSize: 13, color: C.text,
   },
   commentSendBtn: {
     width: 34, height: 34, borderRadius: 17,
@@ -1691,7 +1721,7 @@ const s = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 24, gap: 10 },
   emptyIconWrap: { width: 80, height: 80, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '700', color: C.text },
-  emptyMsg: { fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 20 },
+  emptyMsg: { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 20 },
   emptyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 20, paddingVertical: 13, borderRadius: rs(14), marginTop: 4,
@@ -1700,7 +1730,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 16, paddingVertical: 12, borderRadius: rs(14),
   },
-  emptyBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  emptyBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
   /* FAB */
   fabWrapper: { position: 'absolute', bottom: 24, right: 20 },
@@ -1727,7 +1757,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
   modalTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '700', color: '#fff' },
-  modalTitleSub: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 1 },
+  modalTitleSub: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 1 },
   modalCloseBtn: {
     width: 34, height: 34, borderRadius: 17,
     backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center',
@@ -1745,11 +1775,11 @@ const s = StyleSheet.create({
   },
   modalSummaryInitial: { fontSize: 15, fontWeight: '800', color: '#fff' },
   modalSummaryName: { fontSize: 14, fontWeight: '700', color: C.text },
-  modalSummaryCity: { fontSize: 11, color: C.muted, marginTop: 1 },
+  modalSummaryCity: { fontSize: 12, color: C.muted, marginTop: 1 },
   modalSummaryRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
-  modalSummaryText: { fontSize: 12, color: C.sub, fontWeight: '500', flex: 1 },
+  modalSummaryText: { fontSize: 13, color: C.sub, fontWeight: '500', flex: 1 },
 
-  formLabel: { fontSize: 10, fontWeight: '700', color: C.muted, letterSpacing: 0.8, marginBottom: 8, marginTop: 4 },
+  formLabel: { fontSize: 11, fontWeight: '700', color: C.muted, letterSpacing: 0.8, marginBottom: 8, marginTop: 4 },
 
   /* Amount field card */
   amountFieldCard: {

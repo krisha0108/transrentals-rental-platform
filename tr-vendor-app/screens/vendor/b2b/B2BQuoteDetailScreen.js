@@ -12,6 +12,7 @@ import { getB2BMyQuotes, withdrawB2BQuote } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
 import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -50,6 +51,10 @@ const fmt = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '--';
 
 const fmtPrice = (n) => (n || 0).toLocaleString('en-IN');
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 function parseNotes(notes) {
   if (!notes) return null;
@@ -126,6 +131,7 @@ export default function B2BQuoteDetailScreen({ navigation, route }) {
 
   const Header = () => (
     <LinearGradient colors={G.hero} style={s.header}>
+      <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
       <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
         <Icon name="arrow-left" size={22} color="#fff" />
       </TouchableOpacity>
@@ -140,9 +146,50 @@ export default function B2BQuoteDetailScreen({ navigation, route }) {
     return (
       <SafeAreaView style={s.safe} edges={['top']}>
         <Header />
-        <View style={s.loadingWrap}>
-          <ActivityIndicator size="large" color={C.g600} />
-        </View>
+        <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
+          {/* Status Banner skeleton */}
+          <View style={[s.statusBanner, { borderColor: C.border }]}>
+            <View style={s.statusBannerLeft}>
+              <Bone w={90} h={17} />
+              <Bone w={100} h={22} r={20} />
+            </View>
+            <Bone w={80} h={24} />
+          </View>
+
+          {/* Booking Reference skeleton */}
+          <View style={s.card}>
+            <Bone w={130} h={12} style={{ marginBottom: 12 }} />
+            <Bone w={160} h={18} style={{ marginBottom: 10 }} />
+            <View style={s.bookingMeta}>
+              <Bone w={70} h={13} />
+              <Bone w={90} h={22} r={20} />
+            </View>
+            <View style={s.routeRow}>
+              <Bone w={8} h={8} r={4} />
+              <View style={{ flex: 1 }} />
+              <Bone w={8} h={8} r={4} />
+            </View>
+            <View style={s.chipRow}>
+              <Bone w={90} h={22} r={20} />
+              <Bone w={80} h={22} r={20} />
+            </View>
+          </View>
+
+          {/* Pricing Summary skeleton */}
+          <View style={s.card}>
+            <Bone w={130} h={12} style={{ marginBottom: 12 }} />
+            <View style={s.pricingHero}>
+              <Bone w={110} h={12} style={{ marginBottom: 6 }} />
+              <Bone w={140} h={26} />
+            </View>
+            {[0, 1, 2].map((i) => (
+              <View key={i} style={s.pricingRow}>
+                <Bone w={90} h={12} />
+                <Bone w={70} h={13} />
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -584,8 +631,10 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 14,
+    paddingHorizontal: 16, paddingVertical: 14, overflow: 'hidden',
+    borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22),
   },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   backBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.12)',
@@ -614,7 +663,7 @@ const s = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1,
   },
-  statusChipText: { fontSize: 12, fontWeight: '700' },
+  statusChipText: { fontSize: 13, fontWeight: '700' },
   statusPrice: { fontSize: 24, fontWeight: '900', color: C.g700, fontFamily: DISPLAY },
 
   // Cards
@@ -629,12 +678,12 @@ const s = StyleSheet.create({
   // Booking ref
   companyName: { fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 6 },
   bookingMeta: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  bookingNum: { fontSize: 13, fontWeight: '600', color: C.sub },
+  bookingNum: { fontSize: 14, fontWeight: '600', color: C.sub },
   serviceBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1,
   },
-  serviceBadgeText: { fontSize: 12, fontWeight: '600', color: C.g700 },
+  serviceBadgeText: { fontSize: 13, fontWeight: '600', color: C.g700 },
 
   routeRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -643,9 +692,9 @@ const s = StyleSheet.create({
   },
   routeDot: { width: 8, height: 8, borderRadius: 4 },
   routeLine: { flex: 1, height: 1, backgroundColor: C.border },
-  routeFrom: { fontSize: 12, color: C.sub, flex: 2, textAlign: 'left' },
-  routeArrow: { fontSize: 12, color: C.muted },
-  routeTo: { fontSize: 12, color: C.sub, flex: 2, textAlign: 'right' },
+  routeFrom: { fontSize: 13, color: C.sub, flex: 2, textAlign: 'left' },
+  routeArrow: { fontSize: 13, color: C.muted },
+  routeTo: { fontSize: 13, color: C.sub, flex: 2, textAlign: 'right' },
 
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   metaChip: {
@@ -653,7 +702,7 @@ const s = StyleSheet.create({
     backgroundColor: C.bg, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4,
     borderWidth: 1, borderColor: C.border,
   },
-  metaChipText: { fontSize: 11, color: C.sub, fontWeight: '500' },
+  metaChipText: { fontSize: 12, color: C.sub, fontWeight: '500' },
 
   // Vehicles
   vehicleItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
@@ -664,9 +713,9 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   vehicleName: { fontSize: 14, fontWeight: '700', color: C.text },
-  vehiclePlate: { fontSize: 12, color: C.sub, marginTop: 2 },
+  vehiclePlate: { fontSize: 13, color: C.sub, marginTop: 2 },
   driverRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
-  driverText: { fontSize: 12, color: C.muted },
+  driverText: { fontSize: 13, color: C.muted },
   vehiclePrice: { fontSize: 15, fontWeight: '700', color: C.g700 },
 
   // Pricing
@@ -674,14 +723,14 @@ const s = StyleSheet.create({
     backgroundColor: C.g50, borderRadius: 12, padding: 14,
     alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: C.g100,
   },
-  pricingHeroLabel: { fontSize: 12, color: C.g700, fontWeight: '600', marginBottom: 4 },
+  pricingHeroLabel: { fontSize: 13, color: C.g700, fontWeight: '600', marginBottom: 4 },
   pricingHeroValue: { fontSize: 28, fontWeight: '900', color: C.g700, fontFamily: DISPLAY },
   pricingRows: { gap: 0 },
   pricingRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  pricingRowLabel: { fontSize: 13, color: C.sub },
+  pricingRowLabel: { fontSize: 14, color: C.sub },
   pricingRowValue: { fontSize: 14, fontWeight: '600', color: C.text },
 
   // Notes
@@ -693,7 +742,7 @@ const s = StyleSheet.create({
     width: '50%', paddingVertical: 10, paddingRight: 8,
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  sdLabel: { fontSize: 11, color: C.muted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 3 },
+  sdLabel: { fontSize: 12, color: C.muted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 3 },
   sdVal: { fontSize: 14, fontWeight: '700', color: C.text },
 
   // Tags (inclusions/exclusions)
@@ -703,13 +752,13 @@ const s = StyleSheet.create({
     backgroundColor: C.g50, borderRadius: 20, borderWidth: 1, borderColor: C.g300,
     paddingHorizontal: 10, paddingVertical: 5,
   },
-  tagGreenText: { fontSize: 12, color: C.g700, fontWeight: '500' },
+  tagGreenText: { fontSize: 13, color: C.g700, fontWeight: '500' },
   tagRed: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: C.redBg, borderRadius: 20, borderWidth: 1, borderColor: C.red + '40',
     paddingHorizontal: 10, paddingVertical: 5,
   },
-  tagRedText: { fontSize: 12, color: C.redDark, fontWeight: '500' },
+  tagRedText: { fontSize: 13, color: C.redDark, fontWeight: '500' },
 
   // Terms
   termRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 },
@@ -718,8 +767,8 @@ const s = StyleSheet.create({
     backgroundColor: C.bg, borderWidth: 1, borderColor: C.border,
     justifyContent: 'center', alignItems: 'center', marginTop: 1,
   },
-  termNumText: { fontSize: 11, fontWeight: '700', color: C.sub },
-  termText: { flex: 1, fontSize: 13, color: C.sub, lineHeight: 20 },
+  termNumText: { fontSize: 12, fontWeight: '700', color: C.sub },
+  termText: { flex: 1, fontSize: 14, color: C.sub, lineHeight: 20 },
 
   // Actions
   actions: { paddingHorizontal: 16, paddingTop: 20, gap: 10 },

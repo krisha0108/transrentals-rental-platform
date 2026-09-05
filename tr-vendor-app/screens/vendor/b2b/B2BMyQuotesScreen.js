@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, ActivityIndicator, StatusBar, ScrollView,
+  RefreshControl, StatusBar, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -11,6 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getB2BMyQuotes } from '../../api/client';
 import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -57,6 +58,10 @@ const fmt = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '--';
 
 const fmtPrice = (n) => (n || 0).toLocaleString('en-IN');
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 function parseNotes(notes) {
   if (!notes) return null;
@@ -225,6 +230,7 @@ export default function B2BMyQuotesScreen({ navigation }) {
     <SafeAreaView style={s.safe} edges={['top']}>
       {/* Gradient Header */}
       <LinearGradient colors={G.hero} style={s.header}>
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Icon name="arrow-left" size={22} color="#fff" />
         </TouchableOpacity>
@@ -259,8 +265,35 @@ export default function B2BMyQuotesScreen({ navigation }) {
       </View>
 
       {loading && !refreshing ? (
-        <View style={s.loadingWrap}>
-          <ActivityIndicator size="large" color={C.g600} />
+        <View style={s.list}>
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={s.card}>
+              <View style={s.accentBar} />
+              <View style={s.cardInner}>
+                <View style={s.cardHeaderRow}>
+                  <Bone w={70} h={13} />
+                  <Bone w={90} h={20} r={20} />
+                </View>
+                <Bone w={140} h={11} style={{ marginTop: 8 }} />
+                <Bone w={110} h={20} r={20} style={{ marginTop: 8 }} />
+                <View style={[s.routeRowSkeleton, { marginTop: 10 }]}>
+                  <Bone w={70} h={12} />
+                  <View style={{ flex: 1 }} />
+                  <Bone w={70} h={12} />
+                </View>
+                <View style={s.pricingRow}>
+                  <View>
+                    <Bone w={70} h={10} style={{ marginBottom: 4 }} />
+                    <Bone w={90} h={20} />
+                  </View>
+                </View>
+                <View style={s.infoRow}>
+                  <Bone w={80} h={22} r={8} />
+                  <Bone w={90} h={22} r={8} />
+                </View>
+              </View>
+            </View>
+          ))}
         </View>
       ) : (
         <FlatList
@@ -294,15 +327,17 @@ const s = StyleSheet.create({
   // Header
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 14,
+    paddingHorizontal: 16, paddingVertical: 14, overflow: 'hidden',
+    borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22),
   },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   backBtn: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center',
   },
   headerCenter: { flex: 1, alignItems: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff', fontFamily: DISPLAY },
-  headerSub: { fontSize: 12, color: C.g300, marginTop: 2 },
+  headerSub: { fontSize: 13, color: C.g300, marginTop: 2 },
 
   // Filter Tabs
   tabsWrap: { backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border },
@@ -313,19 +348,18 @@ const s = StyleSheet.create({
     borderBottomWidth: 2, borderBottomColor: 'transparent',
   },
   tabActive: { borderBottomColor: C.g700, backgroundColor: C.g50 },
-  tabText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  tabText: { fontSize: 14, fontWeight: '600', color: C.sub },
   tabTextActive: { color: C.g700 },
   tabBadge: {
     minWidth: 20, height: 20, borderRadius: 10, backgroundColor: C.border,
     justifyContent: 'center', alignItems: 'center', paddingHorizontal: 5,
   },
   tabBadgeActive: { backgroundColor: C.g100 },
-  tabBadgeText: { fontSize: 10, fontWeight: '700', color: C.sub },
+  tabBadgeText: { fontSize: 11, fontWeight: '700', color: C.sub },
   tabBadgeTextActive: { color: C.g800 },
 
   // List
   list: { padding: 16, paddingBottom: 48 },
-  loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   // Card
   card: {
@@ -346,12 +380,12 @@ const s = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusChipText: { fontSize: 11, fontWeight: '700' },
+  statusChipText: { fontSize: 12, fontWeight: '700' },
 
   // Company
   companyRow: { marginTop: 8 },
   companyName: { fontSize: 15, fontWeight: '700', color: C.text },
-  bookingNumSmall: { fontSize: 11, color: C.muted, marginTop: 2 },
+  bookingNumSmall: { fontSize: 12, color: C.muted, marginTop: 2 },
 
   // Service Badge
   serviceRow: { marginTop: 8 },
@@ -360,7 +394,7 @@ const s = StyleSheet.create({
     backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
   },
-  serviceBadgeText: { fontSize: 11, fontWeight: '600', color: C.g700 },
+  serviceBadgeText: { fontSize: 12, fontWeight: '600', color: C.g700 },
 
   // Route Row
   routeRow: {
@@ -368,21 +402,21 @@ const s = StyleSheet.create({
     backgroundColor: '#F8FAFC', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
     marginTop: 10,
   },
-  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, marginBottom: 2 },
+  routeRowSkeleton: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, marginBottom: 2 },
   routeDotGreen: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.g500, flexShrink: 0 },
   routeDotRed: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.red, flexShrink: 0 },
   routeDash: { flex: 1, height: 1, backgroundColor: C.border },
-  routeCityText: { fontSize: 12, fontWeight: '600', color: C.text, flexShrink: 1, maxWidth: '35%' },
+  routeCityText: { fontSize: 13, fontWeight: '600', color: C.text, flexShrink: 1, maxWidth: '35%' },
 
   // Pricing
   pricingRow: {
     flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
     marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border,
   },
-  pricingLabel: { fontSize: 11, color: C.muted, marginBottom: 2 },
+  pricingLabel: { fontSize: 12, color: C.muted, marginBottom: 2 },
   pricingTotal: { fontSize: 20, fontWeight: '800', color: C.g700, fontFamily: DISPLAY },
   pricingRight: { alignItems: 'flex-end' },
-  pricingPerVeh: { fontSize: 13, fontWeight: '600', color: C.sub },
+  pricingPerVeh: { fontSize: 14, fontWeight: '600', color: C.sub },
 
   // Info Row
   infoRow: { flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' },
@@ -391,31 +425,31 @@ const s = StyleSheet.create({
     backgroundColor: C.bg, borderWidth: 1, borderColor: C.border,
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
   },
-  infoChipText: { fontSize: 11, color: C.sub, fontWeight: '500' },
+  infoChipText: { fontSize: 12, color: C.sub, fontWeight: '500' },
 
   // View Details
   viewDetailsRow: {
     flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10,
     paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border,
   },
-  viewDetailsText: { fontSize: 12, fontWeight: '600', color: C.g700, flex: 1 },
+  viewDetailsText: { fontSize: 13, fontWeight: '600', color: C.g700, flex: 1 },
 
   // Expanded Section
   expandedSection: { marginTop: 10 },
   expandDivider: { height: 1, backgroundColor: C.border, marginBottom: 10 },
   expandRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 4 },
-  expandLabel: { fontSize: 12, color: C.muted, width: 120 },
-  expandVal: { fontSize: 13, color: C.text, fontWeight: '500' },
+  expandLabel: { fontSize: 13, color: C.muted, width: 120 },
+  expandVal: { fontSize: 14, color: C.text, fontWeight: '500' },
   pillSection: { marginTop: 8 },
-  pillSectionLabel: { fontSize: 11, fontWeight: '600', color: C.muted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  pillSectionLabel: { fontSize: 12, fontWeight: '600', color: C.muted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   greenPill: { backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  greenPillText: { fontSize: 11, color: C.g700, fontWeight: '600' },
+  greenPillText: { fontSize: 12, color: C.g700, fontWeight: '600' },
   redPill: { backgroundColor: C.redBg, borderWidth: 1, borderColor: '#FECACA', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  redPillText: { fontSize: 11, color: C.red, fontWeight: '600' },
+  redPillText: { fontSize: 12, color: C.red, fontWeight: '600' },
 
   // Empty
   empty: { alignItems: 'center', paddingTop: 80 },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text, marginTop: 16, fontFamily: DISPLAY },
-  emptySub: { fontSize: 13, color: C.sub, marginTop: 6, textAlign: 'center', paddingHorizontal: 40 },
+  emptySub: { fontSize: 14, color: C.sub, marginTop: 6, textAlign: 'center', paddingHorizontal: 40 },
 });
