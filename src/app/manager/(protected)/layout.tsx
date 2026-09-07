@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail, UserCog, Bell, MapPinPlus, Layers, MapPinOff, Search, Route, Package, ArrowRightCircle, Ruler, Car, ChevronDown, FileSignature } from 'lucide-react';
+import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail, UserCog, Bell, MapPinPlus, Layers, MapPinOff, Search, Route, Package, ArrowRightCircle, Ruler, Car, ChevronDown, FileSignature, PhoneCall } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { ToastProvider } from '@/components/ui/toast';
@@ -13,6 +13,7 @@ import { ManagerPageHeaderProvider, useManagerPageHeaderContext } from '@/hooks/
 const SIDEBAR_LINKS = [
   { href: '/manager/dashboard', label: 'Dashboard', icon: Home },
   { href: '/manager/notifications', label: 'Notifications', icon: Bell },
+  { href: '/manager/call-reports', label: 'Call Reports', icon: PhoneCall },
   { href: '/manager/vendor-performance', label: 'Performance', icon: TrendingUp },
   { href: '/manager/inquiries', label: 'My Inquiries', icon: FileText },
   { href: '/manager/bookings', label: 'My Bookings', icon: Briefcase },

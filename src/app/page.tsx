@@ -1638,7 +1638,7 @@ function MiniCityInput({
 
   return (
     <div
-      className="relative min-w-[120px] sm:min-w-[182px] flex-1 cursor-text rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]"
+      className="relative min-w-[120px] sm:min-w-[182px] flex-1 cursor-text rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]"
       ref={boxRef}
       onClick={() => inputRef.current?.focus()}
     >
@@ -1651,7 +1651,7 @@ function MiniCityInput({
         onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
-        className={`w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0 ${variant === 'compact' ? 'placeholder:font-normal placeholder:text-slate-600' : 'placeholder:font-medium placeholder:text-slate-400'}`}
+        className={`w-full min-w-0 border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 focus:outline-none focus:ring-0 ${variant === 'compact' ? 'placeholder:font-normal placeholder:text-slate-600' : 'placeholder:font-medium placeholder:text-slate-400'}`}
       />
       {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && matches.length > 0 && (
@@ -1730,7 +1730,7 @@ function MiniAirportInput({
 
   return (
     <div
-      className="relative min-w-[117px] sm:min-w-[180px] flex-1 cursor-text rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]"
+      className="relative min-w-[117px] sm:min-w-[180px] flex-1 cursor-text rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]"
       ref={boxRef}
       onClick={() => inputRef.current?.focus()}
     >
@@ -1743,7 +1743,7 @@ function MiniAirportInput({
         onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         placeholder={loading ? 'Loading airports…' : placeholder}
-        className={`w-full min-w-0 border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0 ${variant === 'compact' ? 'placeholder:font-normal placeholder:text-slate-600' : 'placeholder:font-medium placeholder:text-slate-400'}`}
+        className={`w-full min-w-0 border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 focus:outline-none focus:ring-0 ${variant === 'compact' ? 'placeholder:font-normal placeholder:text-slate-600' : 'placeholder:font-medium placeholder:text-slate-400'}`}
       />
       {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && matches.length > 0 && (
@@ -1795,7 +1795,7 @@ function MiniSelectInput({
 
   return (
     <div
-      className={`relative ${boxClassName} cursor-pointer rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
+      className={`relative ${boxClassName} cursor-pointer rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)] sm:px-4 sm:py-3.5`}
       ref={boxRef}
       onClick={() => setOpen(true)}
     >
@@ -1804,7 +1804,7 @@ function MiniSelectInput({
       </label>
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-2 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+        className="flex w-full items-center justify-between gap-2 border-none bg-transparent p-0 text-left text-[14px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
         <span className={`truncate ${value ? '' : variant === 'compact' ? 'font-normal text-slate-600' : 'font-medium text-slate-400'}`}>{value || placeholder}</span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -1892,7 +1892,7 @@ function MiniDateInput({
 
   return (
     <div
-      className={`relative ${boxClassName} cursor-pointer rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
+      className={`relative ${boxClassName} cursor-pointer rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)] sm:px-4 sm:py-3.5`}
       ref={boxRef}
       onClick={() => setOpen(true)}
     >
@@ -1901,7 +1901,7 @@ function MiniDateInput({
       </label>
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+        className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[14px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
         <span className={`truncate ${value ? '' : variant === 'compact' ? 'font-normal text-slate-600' : 'font-medium text-slate-400'}`}>{displayText}</span>
       </button>
@@ -2017,7 +2017,7 @@ function MiniTimeInput({
 
   return (
     <div
-      className={`relative ${boxClassName} cursor-pointer rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 shadow-[0_2px_6px_rgba(17,24,39,0.04)] sm:px-5 sm:py-5`}
+      className={`relative ${boxClassName} cursor-pointer rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)] sm:px-4 sm:py-3.5`}
       ref={boxRef}
       onClick={() => setOpen(true)}
     >
@@ -2027,7 +2027,7 @@ function MiniTimeInput({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+        className="flex w-full items-center justify-between gap-1 border-none bg-transparent p-0 text-left text-[14px] font-bold text-slate-900 focus:outline-none focus:ring-0"
       >
         <span className={`truncate ${value ? '' : variant === 'compact' ? 'font-normal text-slate-600' : 'font-medium text-slate-400'}`}>{value ? formatTimeSlot(value) : '--:-- --'}</span>
       </button>
@@ -2731,30 +2731,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
 
   return (
     <HeroVariantContext.Provider value={variant}>
-    <section className={variant === 'compact' ? 'relative bg-slate-50 pb-8 pt-14 sm:pb-10 sm:pt-16' : 'relative bg-[#0b1420] pb-14 pt-16 text-white sm:pt-20'}>
-      {variant === 'compact' && (
-        // Decorative hanging matki — purely visual. Fixed (not absolute) so
-        // it stays pinned to the viewport corner across the whole page while
-        // scrolling, sitting right at the very top edge (above the header,
-        // touching the green promo strip) rather than scrolling away with
-        // this section. Chroma-keyed to a real alpha-channel animated WebP
-        // (source render only ever shipped with a baked-in off-white
-        // backing) — see scratch_remove_bg.py for the one-off conversion
-        // script.
-        // Hidden below lg — at phone AND tablet widths (including 768px)
-        // the header's right-side nav ("For Travel Agents" etc.) sits right
-        // where this pins, and it visually crowds/covers those links since
-        // it's fixed (out of layout flow, so the header never reserves
-        // space for it). Only shown from lg (1024px) up, where the header
-        // has enough room that the two don't collide.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src="/images/decor/hanging-matki.webp"
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none fixed top-0 right-0 z-[60] hidden lg:block lg:w-52"
-        />
-      )}
+    <section className={variant === 'compact' ? 'relative bg-slate-200/70 pb-8 pt-14 sm:pb-10 sm:pt-16' : 'relative bg-[#0b1420] pb-14 pt-16 text-white sm:pt-20'}>
       {variant === 'hero' && (
         <div className="absolute inset-0 overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -2816,7 +2793,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
         {/* Search panel */}
         <div className="flex flex-col items-stretch">
           {variant === 'compact' ? (
-            <div className="rounded-2xl bg-white px-2 shadow-[0_2px_10px_rgba(15,23,42,0.06)] sm:px-6">
+            <div className="rounded-2xl bg-white px-2 shadow-[0_10px_30px_rgba(15,23,42,0.14)] sm:px-6">
               <div className="flex items-end gap-10 overflow-x-auto overflow-y-visible px-8 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {TRANSPORT_TABS.map((tab) => {
                   const active = activeTab.key === tab.key;
@@ -2881,7 +2858,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
             </div>
           )}
 
-          <div className={variant === 'compact' ? 'mt-4 rounded-2xl bg-white shadow-[0_2px_10px_rgba(15,23,42,0.06)] sm:mt-5' : 'rounded-2xl bg-white shadow-[0_16px_34px_rgba(0,0,0,0.28)]'}>
+          <div className={variant === 'compact' ? 'mt-4 rounded-2xl bg-white shadow-[0_10px_30px_rgba(15,23,42,0.14)] sm:mt-5' : 'rounded-2xl bg-white shadow-[0_16px_34px_rgba(0,0,0,0.28)]'}>
             {activeTab.key === 'car' && (
               <div className="flex flex-wrap gap-2 px-3.5 pt-3.5 sm:px-5 sm:pt-5">
                 {(['local', 'outstation', 'airport'] as const).map((mode) => (
@@ -2934,8 +2911,8 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                         value={fromCity?.name ?? ''}
                         onSelect={setFromCity}
                       />
-                      <div className="min-w-[170px] sm:min-w-[260px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
-                        <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Select Package</label>
+                      <div className="min-w-[170px] sm:min-w-[260px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
+                        <label className={`mb-1.5 block text-[11.5px] sm:text-[13px] font-bold ${variant === 'compact' ? 'text-slate-900' : 'text-slate-500'}`}>Select Package</label>
                         <div className="grid grid-cols-3 gap-1.5">
                           {(['4', '8', '12'] as const).map((p) => (
                             <button
@@ -3148,7 +3125,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                         onSelect={setToCity}
                       />
                     </div>
-                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                       </label>
@@ -3157,11 +3134,11 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                         value={pickupAddress}
                         onChange={(e) => setPickupAddress(e.target.value)}
                         placeholder="Landmark or address (optional)"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
-                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Drop Address
                       </label>
@@ -3170,7 +3147,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                         value={dropAddress}
                         onChange={(e) => setDropAddress(e.target.value)}
                         placeholder="Landmark or address (optional)"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
@@ -3211,7 +3188,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                       caption="Pickup time"
                       boxClassName="min-w-[120px] sm:min-w-[182px] flex-1"
                     />
-                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Users className="h-3 w-3 text-primary-700" /> Passengers
                       </label>
@@ -3235,7 +3212,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                           }}
                           onBlur={() => setBusPassengers((p) => Math.min(60, Math.max(10, p || 10)))}
                           aria-label="Number of passengers"
-                          className="w-12 shrink-0 border-none bg-transparent p-0 text-center text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          className="w-12 shrink-0 border-none bg-transparent p-0 text-center text-[14px] font-bold text-slate-900 focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                         />
                         <button
                           type="button"
@@ -3370,7 +3347,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                             className={`rounded-lg border-2 px-1.5 py-2 text-center text-[11px] font-bold transition-all ${
                               packersHomeSize === opt.v
                                 ? 'border-primary bg-primary-50 text-primary-700 shadow-[0_4px_14px_rgba(9,179,104,0.16)]'
-                                : 'border-slate-100 bg-[#fbfbfc] text-slate-600 hover:border-slate-200 hover:bg-white'
+                                : 'border-slate-100 bg-[#f0f1f3] text-slate-600 hover:border-slate-200 hover:bg-white'
                             }`}
                           >
                             {opt.label}
@@ -3408,7 +3385,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                       value={fromCity?.name ?? ''}
                       onSelect={setFromCity}
                     />
-                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                       </label>
@@ -3417,11 +3394,11 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                         value={pickupAddress}
                         onChange={(e) => setPickupAddress(e.target.value)}
                         placeholder="Full pickup address"
-                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
-                    <div className="min-w-[90px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[90px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Pincode</label>
                       <input
                         type="tel"
@@ -3429,11 +3406,11 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                         value={pickupPincode}
                         onChange={(e) => setPickupPincode(e.target.value.replace(/\D/g, ''))}
                         placeholder="6-digit"
-                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[105px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[105px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Floor No.</label>
                       <input
                         type="number"
@@ -3441,11 +3418,11 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                         value={pickupFloor}
                         onChange={(e) => setPickupFloor(e.target.value)}
                         placeholder="0 = ground"
-                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Lift at Pickup?</label>
                       <YesNoPill value={pickupLift} onChange={setPickupLift} />
                     </div>
@@ -3479,7 +3456,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                       value={toCity?.name ?? ''}
                       onSelect={setToCity}
                     />
-                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Drop Address
                       </label>
@@ -3488,11 +3465,11 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                         value={dropAddress}
                         onChange={(e) => setDropAddress(e.target.value)}
                         placeholder="Full drop address"
-                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                     </div>
-                    <div className="min-w-[90px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[90px] sm:min-w-[100px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Pincode</label>
                       <input
                         type="tel"
@@ -3500,11 +3477,11 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                         value={dropPincode}
                         onChange={(e) => setDropPincode(e.target.value.replace(/\D/g, ''))}
                         placeholder="6-digit"
-                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[105px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[105px] sm:min-w-[90px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Floor No.</label>
                       <input
                         type="number"
@@ -3512,11 +3489,11 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                         value={dropFloor}
                         onChange={(e) => setDropFloor(e.target.value)}
                         placeholder="0 = ground"
-                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                     </div>
-                    <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Lift at Drop?</label>
                       <YesNoPill value={dropLift} onChange={setDropLift} />
                     </div>
@@ -3587,7 +3564,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                   </>
                 ) : packersStep === 6 ? (
                   <div className="flex w-full flex-col gap-3">
-                    <div className="w-full rounded-[10px] border border-slate-200 bg-[#fbfbfc] p-3.5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="w-full rounded-[10px] border border-slate-300 bg-[#eceef2] p-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-2 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">What are you moving?</label>
                       <div className="flex flex-wrap gap-2">
                         {INVENTORY_ITEMS.map((item) => {
@@ -3624,18 +3601,18 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                     </div>
 
                     <div className="flex flex-wrap items-stretch gap-3">
-                      <div className="min-w-[130px] sm:min-w-[200px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[130px] sm:min-w-[200px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Other Items</label>
                         <input
                           type="text"
                           value={inventoryExtra}
                           onChange={(e) => setInventoryExtra(e.target.value)}
                           placeholder="e.g. 3 ACs, treadmill, piano…"
-                          className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                          className="w-full border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                         />
                         <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                       </div>
-                      <div className="min-w-[143px] sm:min-w-[220px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[143px] sm:min-w-[220px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Estimated Weight</label>
                         <div className="grid grid-cols-2 gap-1.5">
                           {ESTIMATED_WEIGHT_OPTIONS.map((opt) => (
@@ -3652,7 +3629,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                           ))}
                         </div>
                       </div>
-                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Heavy Items?</label>
                         <YesNoPill value={hasHeavyItems} onChange={setHasHeavyItems} />
                         {hasHeavyItems && (
@@ -3665,7 +3642,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                           />
                         )}
                       </div>
-                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Fragile Items?</label>
                         <YesNoPill value={hasFragileItems} onChange={setHasFragileItems} />
                         {hasFragileItems && (
@@ -3702,19 +3679,19 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                 ) : (
                   <div className="flex w-full flex-col gap-3">
                     <div className="flex flex-wrap items-stretch gap-3">
-                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Packing Help?</label>
                         <YesNoPill value={needPacking} onChange={setNeedPacking} />
                       </div>
-                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Loading Help?</label>
                         <YesNoPill value={needLoading} onChange={setNeedLoading} />
                       </div>
-                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[125px] sm:min-w-[190px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Unloading Help?</label>
                         <YesNoPill value={needUnloading} onChange={setNeedUnloading} />
                       </div>
-                      <div className="min-w-[100px] sm:min-w-[155px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[100px] sm:min-w-[155px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Labour Workers</label>
                         <input
                           type="number"
@@ -3722,14 +3699,14 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                           value={labourCount}
                           onChange={(e) => setLabourCount(e.target.value)}
                           placeholder="e.g. 2"
-                          className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                          className="w-full border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                         />
                         <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">Optional</span>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-stretch gap-3">
-                      <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Truck Type</label>
                         <div className="flex gap-1.5">
                           {([
@@ -3752,11 +3729,11 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                           })}
                         </div>
                       </div>
-                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Part Load OK?</label>
                         <YesNoPill value={partLoad} onChange={setPartLoad} />
                       </div>
-                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Transit Insurance?</label>
                         <YesNoPill value={needInsurance} onChange={setNeedInsurance} />
                         {needInsurance && (
@@ -3769,11 +3746,11 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                           />
                         )}
                       </div>
-                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[120px] sm:min-w-[182px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Proof of Delivery?</label>
                         <YesNoPill value={requiresPod} onChange={setRequiresPod} />
                       </div>
-                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Multiple Stops?</label>
                         <YesNoPill value={multipleStops} onChange={setMultipleStops} />
                         {multipleStops && (
@@ -3815,14 +3792,14 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
               ) : activeTab.key === 'equipment' ? (
                 equipmentStep === 1 ? (
                   <>
-                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="w-full sm:w-auto sm:min-w-[235px] sm:flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Wrench className="h-3 w-3 text-primary-700" /> Equipment Type
                       </label>
                       <select
                         value={equipmentType}
                         onChange={(e) => setEquipmentType(e.target.value)}
-                        className="w-full truncate border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0"
+                        className="w-full truncate border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 focus:outline-none focus:ring-0"
                       >
                         <option value="">Select equipment</option>
                         {QUICK_EQUIPMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -3837,7 +3814,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                       value={fromCity?.name ?? ''}
                       onSelect={setFromCity}
                     />
-                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[153px] sm:min-w-[235px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                       </label>
@@ -3846,7 +3823,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                         value={pickupAddress}
                         onChange={(e) => setPickupAddress(e.target.value)}
                         placeholder="Enter pickup address or landmark"
-                        className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                        className="w-full border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                       />
                       <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Delivery address</span>
                     </div>
@@ -3863,7 +3840,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                   </>
                 ) : (
                   <>
-                    <div className="min-w-[143px] sm:min-w-[220px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[143px] sm:min-w-[220px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">Rental Duration</label>
                       <div className="grid grid-cols-2 gap-1.5">
                         {([
@@ -3893,7 +3870,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                       caption="Rental start"
                       boxClassName="min-w-[127px] sm:min-w-[195px] flex-1"
                     />
-                    <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[140px] sm:min-w-[215px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                         <Wrench className="h-3 w-3 text-primary-700" /> Number of Equipment
                       </label>
@@ -3917,7 +3894,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                           }}
                           onBlur={() => setEquipmentQty((q) => Math.min(20, Math.max(1, q || 1)))}
                           aria-label="Number of equipment units"
-                          className="w-16 shrink-0 border-none bg-transparent p-0 text-center text-[16px] font-bold text-slate-900 focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          className="w-16 shrink-0 border-none bg-transparent p-0 text-center text-[14px] font-bold text-slate-900 focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                         />
                         <span className="text-[13px] font-semibold text-slate-500">{equipmentQty === 1 ? 'Unit' : 'Units'}</span>
                         <button
@@ -3929,7 +3906,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                         </button>
                       </div>
                     </div>
-                    <div className="min-w-[170px] sm:min-w-[260px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                    <div className="min-w-[170px] sm:min-w-[260px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                       <label className="mb-1.5 block text-[11.5px] sm:text-[13px] font-bold text-slate-500">What do you need?</label>
                       <div className="flex flex-wrap gap-1.5">
                         {([
@@ -4029,7 +4006,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                         placeholder="Select truck type"
                         caption="Vehicle type"
                       />
-                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                           <MapPin className="h-3 w-3 text-primary-700" /> Pickup Address
                         </label>
@@ -4038,11 +4015,11 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                           value={pickupAddress}
                           onChange={(e) => setPickupAddress(e.target.value)}
                           placeholder="Landmark or address (optional)"
-                          className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                          className="w-full border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                         />
                         <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                       </div>
-                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-200 bg-[#fbfbfc] px-3.5 py-3 sm:px-5 sm:py-5 shadow-[0_2px_6px_rgba(17,24,39,0.04)]">
+                      <div className="min-w-[127px] sm:min-w-[195px] flex-1 rounded-[10px] border border-slate-300 bg-[#eceef2] px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                         <label className="mb-1 flex items-center gap-1.5 text-[11.5px] sm:text-[13px] font-bold text-slate-500">
                           <MapPin className="h-3 w-3 text-primary-700" /> Drop Address
                         </label>
@@ -4051,7 +4028,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                           value={dropAddress}
                           onChange={(e) => setDropAddress(e.target.value)}
                           placeholder="Landmark or address (optional)"
-                          className="w-full border-none bg-transparent p-0 text-[16px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                          className="w-full border-none bg-transparent p-0 text-[14px] font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:ring-0"
                         />
                         <span className="mt-0.5 block truncate text-[12.5px] text-slate-400">Optional</span>
                       </div>
@@ -4141,7 +4118,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
             <div
               className={
                 variant === 'compact'
-                  ? 'mx-3 mb-3 mt-4 grid grid-cols-2 items-center gap-x-4 gap-y-3 rounded-xl border border-primary-100 bg-gradient-to-r from-primary-50 via-white to-primary-50 px-5 py-3.5 text-xs text-slate-600 sm:mx-5 sm:mb-5 sm:flex sm:flex-wrap sm:gap-x-0 sm:text-sm'
+                  ? 'mx-3 mb-3 mt-2 grid grid-cols-2 items-center gap-x-4 gap-y-3 rounded-xl border border-primary-100 bg-gradient-to-r from-primary-50 via-white to-primary-50 px-5 py-3.5 text-xs text-slate-600 sm:mx-5 sm:mb-5 sm:flex sm:flex-wrap sm:gap-x-0 sm:text-sm'
                   : 'mt-3 grid grid-cols-2 items-center gap-x-4 gap-y-3 rounded-b-2xl border-t border-slate-100 bg-[#f7f8fa] px-5 py-3 text-xs text-slate-600 sm:mt-0 sm:flex sm:flex-wrap sm:gap-x-0 sm:text-sm'
               }
             >

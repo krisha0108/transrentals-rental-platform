@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Building2, User, Mail, Phone, Lock, MapPin, Loader2,
-  CheckCircle, ArrowLeft, Eye, EyeOff, ArrowRight,
+  CheckCircle, ArrowLeft, Eye, EyeOff, ArrowRight, PhoneCall,
 } from 'lucide-react';
 
 const businessTypes = [
@@ -27,22 +27,25 @@ const states = [
   'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Chandigarh',
 ];
 
-export default function ManagerCreateVendorPage() {
+function ManagerCreateVendorPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callReportId = searchParams.get('callReportId') || '';
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState<{ businessName: string; vid: string | null } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
-    businessName: '',
+    businessName: searchParams.get('businessName') || '',
     businessType: '',
-    ownerName: '',
-    email: '',
-    phone: '',
+    ownerName: searchParams.get('ownerName') || '',
+    email: searchParams.get('email') || '',
+    phone: searchParams.get('phone') || '',
     password: '',
-    address: '',
-    city: '',
+    address: searchParams.get('address') || '',
+    city: searchParams.get('city') || '',
     state: '',
     pincode: '',
   });
@@ -105,6 +108,13 @@ export default function ManagerCreateVendorPage() {
       });
       const data = await res.json();
       if (res.ok) {
+        if (callReportId) {
+          fetch(`/api/manager/call-reports/${callReportId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vendorId: data.vendor.id, status: 'VENDOR_CREATED' }),
+          }).catch(() => {});
+        }
         setSuccess({ businessName: data.vendor.businessName, vid: data.vendor.vid });
       } else {
         setError(data.error || 'Failed to create vendor');
@@ -128,22 +138,35 @@ export default function ManagerCreateVendorPage() {
             <span className="font-medium">{success.businessName}</span> has been added
             {success.vid && <> as <span className="font-mono font-semibold text-green-700">{success.vid.toUpperCase()}</span></>}.
           </p>
-          <p className="text-sm text-gray-500 mb-6">
+          <p className="text-sm text-gray-500 mb-1">
             Share the login email/password with the vendor so they can log in and upload documents.
           </p>
-          <div className="flex items-center justify-center gap-3">
+          {callReportId && (
+            <p className="text-xs text-emerald-600 font-medium mb-5">Linked back to the call report — its status is now "Vendor Created".</p>
+          )}
+          {!callReportId && <div className="mb-6" />}
+          <div className="flex items-center justify-center gap-3 flex-wrap">
             <button
               onClick={() => { setSuccess(null); setFormData({ businessName: '', businessType: '', ownerName: '', email: '', phone: '', password: '', address: '', city: '', state: '', pincode: '' }); }}
               className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50"
             >
               Create Another
             </button>
-            <button
-              onClick={() => router.push('/manager/vendors')}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700"
-            >
-              Back to Vendors
-            </button>
+            {callReportId ? (
+              <button
+                onClick={() => router.push('/manager/call-reports')}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700"
+              >
+                Back to Call Reports
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push('/manager/vendors')}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700"
+              >
+                Back to Vendors
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -153,7 +176,7 @@ export default function ManagerCreateVendorPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       <div className="flex items-center gap-3">
-        <Link href="/manager/vendors" className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50">
+        <Link href={callReportId ? '/manager/call-reports' : '/manager/vendors'} className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50">
           <ArrowLeft className="w-4 h-4 text-gray-600" />
         </Link>
         <div>
@@ -161,6 +184,12 @@ export default function ManagerCreateVendorPage() {
           <p className="text-sm text-gray-500">Onboard a vendor on their behalf. This will be tracked against your account.</p>
         </div>
       </div>
+
+      {callReportId && (
+        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2.5 rounded-xl text-sm font-medium">
+          <PhoneCall className="w-4 h-4 flex-shrink-0" /> Prefilled from a call report. Add the vendor's email and set a password to finish onboarding.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
         {error && (
@@ -272,7 +301,7 @@ export default function ManagerCreateVendorPage() {
         </div>
 
         <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-          <Link href="/manager/vendors" className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">
+          <Link href={callReportId ? '/manager/call-reports' : '/manager/vendors'} className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">
             Cancel
           </Link>
           <button type="submit" disabled={loading}
@@ -282,5 +311,17 @@ export default function ManagerCreateVendorPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function ManagerCreateVendorPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+      </div>
+    }>
+      <ManagerCreateVendorPageInner />
+    </Suspense>
   );
 }

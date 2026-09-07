@@ -23,7 +23,10 @@ export async function GET(request: NextRequest) {
       where: { vendorId: auth.vendorId, agreementVersion: AGREEMENT_VERSION },
       orderBy: { acceptedAt: 'desc' },
     }),
-    prisma.vendors.findUnique({ where: { id: auth.vendorId }, select: { businessName: true, vid: true } }),
+    prisma.vendors.findUnique({
+      where: { id: auth.vendorId },
+      select: { businessName: true, vid: true, address: true, city: true, state: true, pincode: true },
+    }),
   ]);
 
   const buffer = buildAgreementPdf(signature, vendor);

@@ -856,6 +856,10 @@ export default function ManagerDashboard() {
             <Plus className="w-8 h-8 text-teal-500 mx-auto mb-2" />
             <span className="text-sm font-medium">Create Vendor</span>
           </Link>
+          <Link href="/manager/call-reports" className="p-4 border rounded-lg hover:bg-gray-50 transition text-center">
+            <PhoneCall className="w-8 h-8 text-orange-500 mx-auto mb-2" />
+            <span className="text-sm font-medium">Call Reports</span>
+          </Link>
           <Link href="/manager/chats" className="p-4 border rounded-lg hover:bg-gray-50 transition text-center">
             <MessageSquare className="w-8 h-8 text-green-500 mx-auto mb-2" />
             <span className="text-sm font-medium">View Chats</span>
