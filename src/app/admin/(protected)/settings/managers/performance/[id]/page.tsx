@@ -239,6 +239,11 @@ const TAB_META = {
     active: 'border-rose-600 text-rose-700 bg-rose-50/50',
     badgeActive: 'bg-rose-100 text-rose-700',
   },
+  callReports: {
+    label: 'Call Reports', icon: PhoneCall,
+    active: 'border-teal-600 text-teal-700 bg-teal-50/50',
+    badgeActive: 'bg-teal-100 text-teal-700',
+  },
 } as const;
 
 // Per-tab styling + optional admin-detail-page link builder — feeds the
@@ -249,6 +254,7 @@ const ACTIONED_TAB_STYLE: Record<string, { chip: string; empty: any; emptyText: 
   vendors: { chip: 'text-indigo-700 bg-indigo-50 ring-1 ring-indigo-200', empty: Store, emptyText: 'No vendor actions logged in this period.', href: (item) => `/admin/vendors/${item.id}` },
   travelAgents: { chip: 'text-violet-700 bg-violet-50 ring-1 ring-violet-200', empty: Plane, emptyText: 'No travel agent actions logged in this period.', href: (item) => `/admin/travel-agents/${item.id}` },
   helpdesk: { chip: 'text-rose-700 bg-rose-50 ring-1 ring-rose-200', empty: LifeBuoy, emptyText: 'No helpdesk ticket actions logged in this period.' },
+  callReports: { chip: 'text-teal-700 bg-teal-50 ring-1 ring-teal-200', empty: PhoneCall, emptyText: 'No call reports logged in this period.' },
 };
 
 export default function ManagerPerformanceDetailPage() {
@@ -266,7 +272,7 @@ export default function ManagerPerformanceDetailPage() {
   const [data, setData] = useState<ManagerDetail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [inquiryTab, setInquiryTab] = useState<'actioned' | 'untouched' | 'contact' | 'drivers' | 'vendors' | 'travelAgents' | 'helpdesk'>('actioned');
+  const [inquiryTab, setInquiryTab] = useState<'actioned' | 'untouched' | 'contact' | 'drivers' | 'vendors' | 'travelAgents' | 'helpdesk' | 'callReports'>('actioned');
   const [actioned, setActioned] = useState<ActionedItem[]>([]);
   const [untouched, setUntouched] = useState<UntouchedItem[]>([]);
   const [contactInquiries, setContactInquiries] = useState<ActionedItem[]>([]);
@@ -274,6 +280,7 @@ export default function ManagerPerformanceDetailPage() {
   const [vendorActions, setVendorActions] = useState<ActionedItem[]>([]);
   const [travelAgentActions, setTravelAgentActions] = useState<ActionedItem[]>([]);
   const [helpdeskActions, setHelpdeskActions] = useState<ActionedItem[]>([]);
+  const [callReportActions, setCallReportActions] = useState<ActionedItem[]>([]);
   const [vendorsCreatedList, setVendorsCreatedList] = useState<VendorItem[]>([]);
   const [vendorsApprovedList, setVendorsApprovedList] = useState<VendorItem[]>([]);
   const [vendorModal, setVendorModal] = useState<'created' | 'approved' | null>(null);
@@ -315,6 +322,7 @@ export default function ManagerPerformanceDetailPage() {
         setVendorActions(actionedJson.vendorActions || []);
         setTravelAgentActions(actionedJson.travelAgentActions || []);
         setHelpdeskActions(actionedJson.helpdeskActions || []);
+        setCallReportActions(actionedJson.callReportActions || []);
       }
       if (!untouchedJson.error) setUntouched(untouchedJson.untouched || []);
       if (!vendorsJson.error) {
@@ -400,9 +408,13 @@ export default function ManagerPerformanceDetailPage() {
     () => (q ? helpdeskActions.filter((i) => i.customerName.toLowerCase().includes(q) || i.customerPhone.includes(q)) : helpdeskActions),
     [helpdeskActions, q]
   );
+  const filteredCallReports = useMemo(
+    () => (q ? callReportActions.filter((i) => i.customerName.toLowerCase().includes(q) || i.customerPhone.includes(q)) : callReportActions),
+    [callReportActions, q]
+  );
   const TAB_ITEMS: Record<string, ActionedItem[]> = {
     contact: filteredContact, drivers: filteredDrivers, vendors: filteredVendors,
-    travelAgents: filteredTravelAgents, helpdesk: filteredHelpdesk,
+    travelAgents: filteredTravelAgents, helpdesk: filteredHelpdesk, callReports: filteredCallReports,
   };
 
   const sortedActionBreakdown = useMemo(

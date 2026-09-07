@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
@@ -196,6 +197,10 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // The public /api/services list (site nav, category tiles) caches for
+    // an hour — bust it now so a newly added service shows up immediately.
+    revalidateTag('services');
 
     return NextResponse.json(service, { status: 201 });
   } catch (error) {

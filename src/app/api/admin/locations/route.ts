@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
@@ -207,6 +208,11 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // The public /api/locations endpoint (used by every city autocomplete
+    // on the site) caches its result for an hour — bust it now so a newly
+    // added city shows up immediately instead of after the cache expires.
+    revalidateTag('locations');
 
     return NextResponse.json(location, { status: 201 });
   } catch (error: any) {

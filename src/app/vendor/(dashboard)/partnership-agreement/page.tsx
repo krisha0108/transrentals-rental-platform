@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import {
   FileText, CheckCircle, Loader2, IndianRupee, FileCheck2, AlertTriangle, Scale,
   PenLine, Download, Info, CalendarClock, MessageSquare, Clock, XCircle, Award,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -12,6 +13,7 @@ import {
   AGREEMENT_SECTIONS, AGREEMENT_VERSION, AGREEMENT_TITLE, AGREEMENT_SUBTITLE,
   AGREEMENT_DISCLAIMER, AGREEMENT_PARTIES, COVERAGE_HIGHLIGHTS,
   TERM_OPTIONS_MONTHS, DEFAULT_TERM_MONTHS, termDescription,
+  vendorPartyLine, type VendorPartyInfo,
 } from '@/lib/content/partnership-agreement';
 
 const KEY_TERM_ICONS = [FileCheck2, IndianRupee, AlertTriangle, Scale];
@@ -43,6 +45,7 @@ export default function VendorPartnershipAgreementPage() {
   const [loading, setLoading] = useState(true);
   const [signed, setSigned] = useState(false);
   const [agreement, setAgreement] = useState<SignedAgreement | null>(null);
+  const [vendorInfo, setVendorInfo] = useState<VendorPartyInfo | null>(null);
   // A manager can send a signature back; the vendor then signs again, so the
   // rejected record is kept around just to show them why.
   const [rejected, setRejected] = useState<SignedAgreement | null>(null);
@@ -56,6 +59,19 @@ export default function VendorPartnershipAgreementPage() {
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
+  const downloadMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!downloadMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(e.target as Node)) {
+        setDownloadMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [downloadMenuOpen]);
 
   const fetchStatus = async () => {
     try {
@@ -64,6 +80,7 @@ export default function VendorPartnershipAgreementPage() {
       setSigned(!!data.signed);
       setAgreement(data.agreement || null);
       setRejected(data.agreement?.reviewStatus === 'REJECTED' ? data.agreement : null);
+      setVendorInfo(data.vendor || null);
     } catch {
       setError('Failed to load agreement status');
     } finally {
@@ -130,8 +147,10 @@ export default function VendorPartnershipAgreementPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 rounded-2xl p-6 sm:p-7 text-white shadow-lg shadow-emerald-200/50">
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full" />
+      <div className="relative bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 rounded-2xl p-6 sm:p-7 text-white shadow-lg shadow-emerald-200/50">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full" />
+        </div>
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/20 flex-shrink-0">
@@ -142,17 +161,38 @@ export default function VendorPartnershipAgreementPage() {
               <p className="text-sm text-white/80">{AGREEMENT_SUBTITLE}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 px-3 py-1.5 text-xs font-semibold">
-              Agreement {AGREEMENT_VERSION}
-            </span>
-            <a
-              href="/api/vendor/partnership-agreement/pdf"
-              className="print:hidden inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 px-3 py-1.5 text-xs font-semibold hover:bg-white/25 transition-colors"
+          <div className="relative print:hidden" ref={downloadMenuRef}>
+            <button
+              type="button"
+              onClick={() => setDownloadMenuOpen((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 px-3 py-1.5 text-xs font-semibold hover:bg-white/25 transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
-              Download PDF
-            </a>
+              Download
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+            {downloadMenuOpen && (
+              <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-xl border border-gray-100 bg-white py-1.5 text-gray-700 shadow-lg shadow-black/10">
+                <a
+                  href="/api/vendor/partnership-agreement/pdf"
+                  onClick={() => setDownloadMenuOpen(false)}
+                  className="flex items-center gap-2.5 px-3.5 py-2 text-sm hover:bg-gray-50"
+                >
+                  <FileText className="w-4 h-4 text-gray-400" />
+                  Download as PDF
+                </a>
+                {agreement?.reviewStatus === 'ACCEPTED' && (
+                  <a
+                    href="/api/vendor/partnership-agreement/certificate"
+                    onClick={() => setDownloadMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3.5 py-2 text-sm hover:bg-gray-50"
+                  >
+                    <Award className="w-4 h-4 text-gray-400" />
+                    Download as Certificate
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -204,18 +244,12 @@ export default function VendorPartnershipAgreementPage() {
             </p>
           </div>
           {agreement.reviewStatus === 'ACCEPTED' && agreement.reviewedAt && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="mt-3">
               <p className="text-sm text-emerald-700">
                 Accepted on {new Date(agreement.reviewedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
                 {agreement.reviewNote ? ` — ${agreement.reviewNote}` : ''}
+                {' · '}Get your certificate from the Download menu above.
               </p>
-              <a
-                href="/api/vendor/partnership-agreement/certificate"
-                className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-emerald-200 hover:bg-emerald-700 transition-colors"
-              >
-                <Award className="w-3.5 h-3.5" />
-                Download Certificate
-              </a>
             </div>
           )}
           {agreement.reviewStatus !== 'ACCEPTED' && (
@@ -287,7 +321,7 @@ export default function VendorPartnershipAgreementPage() {
               <p className="text-[14.5px] leading-[1.7] text-gray-600">{AGREEMENT_PARTIES.intro}</p>
               <ol className="mt-2.5 list-decimal space-y-2 pl-5 text-[14.5px] leading-[1.7] text-gray-600">
                 <li>{AGREEMENT_PARTIES.transrentals}</li>
-                <li>{AGREEMENT_PARTIES.vendor}</li>
+                <li>{vendorPartyLine(vendorInfo)}</li>
               </ol>
               <p className="mt-2.5 text-[14.5px] leading-[1.7] text-gray-600">{AGREEMENT_PARTIES.closing}</p>
             </div>

@@ -47,6 +47,7 @@ import {
   Activity,
   Globe,
   Smartphone,
+  TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -1219,6 +1220,12 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
 
         {/* Quick Actions */}
         <div className="flex items-center gap-2">
+          <Link href={`/manager/vendor-performance/${vendor.id}`}>
+            <Button variant="outline">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Performance
+            </Button>
+          </Link>
           {vendor.phone && (
             <a
               href={`https://wa.me/91${vendor.phone.replace(/\D/g, '').replace(/^91/, '')}?text=${encodeURIComponent(`Hi ${vendor.ownerName},\n\nCongratulations! 🎉 Your vendor profile on *TransRentals* has been approved.\n\nYou can now start receiving bookings for the services and locations you registered with us.\n\n👉 Login & manage your business here:\nhttps://transrentals.in/vendor/dashboard\n\nWelcome to the TransRentals family! Feel free to reach out if you need any help getting started.\n\n— Team TransRentals`)}`}

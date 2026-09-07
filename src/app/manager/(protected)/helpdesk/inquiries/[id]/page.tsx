@@ -227,17 +227,29 @@ export default function ManagerInquiryDetailPage() {
 
               {!['RESOLVED', 'CLOSED'].includes(inquiry.status) && (
                 <>
-                  <div className="max-w-xs">
+                  <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Update Status</label>
-                    <select
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value as StatusValue)}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    >
-                      {STATUS_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
+                    <div className="flex flex-wrap gap-2">
+                      {STATUS_OPTIONS.map((opt) => {
+                        const Icon = opt.icon;
+                        const isSelected = status === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setStatus(opt.value)}
+                            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border text-sm font-medium transition ${
+                              isSelected
+                                ? opt.pill + ' ring-2 ring-offset-1 ring-orange-500'
+                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                            }`}
+                          >
+                            <Icon className="w-4 h-4" />
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div>

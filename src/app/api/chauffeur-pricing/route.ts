@@ -422,6 +422,96 @@ export async function GET(request: NextRequest) {
 
     if (routePackage) {
       const isReverse = routePackage.fromLocationId === toLocationId;
+      const routeLocations = {
+        fromLocation: isReverse ? routePackage.locations_chauffeur_route_packages_toLocationIdTolocations : routePackage.locations_chauffeur_route_packages_fromLocationIdTolocations,
+        toLocation: isReverse ? routePackage.locations_chauffeur_route_packages_fromLocationIdTolocations : routePackage.locations_chauffeur_route_packages_toLocationIdTolocations,
+      };
+
+      // STEP 2a: The route package already carries a known distance
+      // (estimatedKm) — if the origin city also has a per-km rate configured
+      // (City Pricing), price this by distance instead of the package's flat
+      // basePrice, same as the full distance-matrix flow above. Admins who
+      // want a genuinely fixed fare regardless of per-km rates should set
+      // forcePackagePricing on the package (handled in STEP 0).
+      const cityPricingForPackage = routePackage.estimatedKm
+        ? await prisma.chauffeur_city_pricing.findFirst({
+            where: { vehicleCategoryId, locationId: fromLocationId, isActive: true },
+          })
+        : null;
+
+      if (cityPricingForPackage) {
+        const oneWayKm = routePackage.estimatedKm;
+        const totalKm = tripType === 'round_trip' ? oneWayKm * 2 : oneWayKm;
+
+        let days = 1;
+        if (startDate && endDate) {
+          const timeStr = pickupTime || '10:00';
+          const [h, m] = timeStr.split(':').map(Number);
+          const start = new Date(startDate);
+          start.setHours(h, m, 0, 0);
+          const end = new Date(endDate);
+          end.setHours(h, m, 0, 0);
+          const totalHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+          days = Math.max(1, Math.ceil(totalHours / 24));
+        } else if (tripType === 'round_trip') {
+          days = Math.max(1, Math.ceil(totalKm / cityPricingForPackage.minKmPerDay));
+        }
+
+        const minTotalKm = days * cityPricingForPackage.minKmPerDay;
+        const chargeableKm = Math.max(totalKm, minTotalKm);
+        const baseKmCharge = Math.round(chargeableKm * cityPricingForPackage.baseKmRate);
+        const driverAllowance = Math.round(days * cityPricingForPackage.driverDayAllowance);
+
+        let nightCharge = 0;
+        if (pickupTime && cityPricingForPackage.nightSurcharge) {
+          const hour = parseInt(pickupTime.split(':')[0]);
+          if (hour >= 22 || hour < 6) nightCharge = cityPricingForPackage.nightSurcharge * days;
+        }
+
+        const tollEstimate = !cityPricingForPackage.tollsIncluded && routePackage.tollsEstimate
+          ? (tripType === 'round_trip' ? routePackage.tollsEstimate * 2 : routePackage.tollsEstimate)
+          : 0;
+
+        const statePermitCharge = !cityPricingForPackage.statePermitIncluded && routePackage.statePermitCharge
+          ? routePackage.statePermitCharge
+          : 0;
+
+        const totalBeforeGst = baseKmCharge + driverAllowance + nightCharge + tollEstimate + statePermitCharge;
+
+        return NextResponse.json({
+          success: true,
+          tripType,
+          pricingMethod: 'route_package_distance',
+          routePackage: { ...routePackage, ...routeLocations },
+          calculation: {
+            days,
+            actualKm: totalKm,
+            minKmPerDay: cityPricingForPackage.minKmPerDay,
+            chargeableKm,
+            perKmRate: cityPricingForPackage.baseKmRate,
+          },
+          pricing: {
+            baseKmCharge,
+            totalKm: chargeableKm,
+            perKmRate: cityPricingForPackage.baseKmRate,
+            driverAllowance,
+            nightCharge,
+            tollEstimate,
+            statePermitCharge,
+            gst: 0,
+            totalBeforeGst,
+            grandTotal: totalBeforeGst,
+          },
+          notes: [
+            `Minimum ${cityPricingForPackage.minKmPerDay} km/day applicable`,
+            tripType === 'round_trip' ? 'Round trip calculation includes return journey' : 'One-way fare only',
+            !cityPricingForPackage.tollsIncluded ? 'Toll charges as per actuals' : 'Tolls included',
+          ],
+        });
+      }
+
+      // STEP 2b: No per-km rate configured for the origin city — fall back
+      // to the route package's flat fare.
       const basePrice = routePackage.basePrice;
       const roundTripPrice = tripType === 'round_trip'
         ? Math.round(basePrice * routePackage.returnMultiplier)
@@ -431,11 +521,7 @@ export async function GET(request: NextRequest) {
         success: true,
         tripType,
         pricingMethod: 'route_package',
-        routePackage: {
-          ...routePackage,
-          fromLocation: isReverse ? routePackage.locations_chauffeur_route_packages_toLocationIdTolocations : routePackage.locations_chauffeur_route_packages_fromLocationIdTolocations,
-          toLocation: isReverse ? routePackage.locations_chauffeur_route_packages_fromLocationIdTolocations : routePackage.locations_chauffeur_route_packages_toLocationIdTolocations,
-        },
+        routePackage: { ...routePackage, ...routeLocations },
         pricing: {
           estimatedKm: routePackage.estimatedKm,
           basePrice: routePackage.basePrice,
