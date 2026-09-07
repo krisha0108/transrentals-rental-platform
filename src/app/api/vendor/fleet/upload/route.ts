@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     const vendorId = auth.vendorId;
 
     // Block rejected/suspended/blocked vendors from write operations
-    const guard = await vendorStatusGuard(vendorId);
+    const guard = await vendorStatusGuard(vendorId, { allowSuspended: true });
     if (guard.blocked) return guard.response;
 
     // SECURITY: Check vendor status before allowing uploads

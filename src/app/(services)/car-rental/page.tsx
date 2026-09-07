@@ -5,8 +5,7 @@ import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHe
 import { CarRentalPopularCitiesGrid } from '@/components/car-rental/CarRentalPopularCitiesGrid';
 import { HowToSchema, FAQSchema, BreadcrumbSchema, ItemListSchema } from '@/components/seo/schemas';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
-import { FAQSection } from '@/components/services/FAQSection';
-import { ArrowRight, MapPin, Key, Navigation, Plane } from 'lucide-react';
+import { ArrowRight, MapPin, Key, Navigation, Plane, MessageCircleQuestion, Plus } from 'lucide-react';
 
 const CAR_RENTAL_FAQS = [
   {
@@ -60,14 +59,14 @@ const TOP_CITIES = [
 
 export const metadata: Metadata = {
   title: 'Car Rental India | Self Drive & Chauffeur-Driven | Starting ₹999/Day | TransRentals',
-  description: 'Rent cars across India at the best prices. Self-drive cars, chauffeur-driven sedans, SUVs, and hatchbacks available in 250+ cities. Verified vendors, instant booking.',
+  description: 'Car rental across India at the best prices. Self-drive cars, chauffeur-driven sedans, SUVs, and hatchbacks available in 250+ cities. Verified vendors, instant booking.',
   keywords: ['car rental', 'car on rent', 'self drive car', 'car hire India', 'rent a car', 'car booking', 'car rental near me', 'outstation cab', 'chauffeur driven car'],
   alternates: {
     canonical: 'https://transrentals.in/car-rental',
   },
   openGraph: {
     title: 'Car Rental India | Self Drive & Chauffeur-Driven | Starting ₹999/Day | TransRentals',
-    description: 'Book self-drive cars and cars with drivers across 250+ Indian cities. Verified vendors, best prices, instant booking.',
+    description: 'Car rental with self-drive or driver across 250+ Indian cities. Verified vendors, best prices, instant booking.',
     type: 'website',
     url: 'https://transrentals.in/car-rental',
     images: [{ url: 'https://transrentals.in/images/og/car-rental.jpg', width: 1200, height: 630, alt: 'Car Rental India - TransRentals' }],
@@ -77,7 +76,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Car Rental India | Starting ₹999/Day | TransRentals',
-    description: 'Book self-drive cars and cars with drivers across 250+ Indian cities. Verified vendors, best prices.',
+    description: 'Car rental with self-drive or driver across 250+ Indian cities. Verified vendors, best prices.',
     images: ['https://transrentals.in/images/og/car-rental.jpg'],
   },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
@@ -153,7 +152,7 @@ export default function CarRentalPage() {
         citySlug=""
         serviceSlug="car-rental"
         serviceTitle="Car Rental"
-        headingLine1="Drive Your Way,"
+        headingLine1="Car Rental"
         headingLine2="Across India"
         subheading="Rent cars with driver or self-drive across 250+ cities. Roundtrip, one-way, airport transfers."
         heroVariant="aurora"
@@ -180,11 +179,63 @@ export default function CarRentalPage() {
       {/* Specialized Car Services */}
       <CarSubServicesGrid />
 
-      {/* FAQ Section */}
-      <FAQSection
-        service="car-rental"
-        customFaqs={CAR_RENTAL_FAQS.map((f) => ({ question: f.q, answer: f.a }))}
-      />
+      {/* FAQs */}
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+          }}
+        />
+
+        <div className="container mx-auto px-4 relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] text-primary-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              GOOD TO KNOW
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+            </span>
+            <h2 className="mt-4 text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Frequently Asked <span className="text-primary">Questions</span>
+            </h2>
+            <p className="mt-3 text-base text-gray-600">
+              Everything people usually ask before booking a car rental.
+            </p>
+          </div>
+
+          <div className="max-w-5xl mx-auto space-y-3">
+            {CAR_RENTAL_FAQS.map((faq, idx) => (
+              /* <details> — bina kisi client JS ke khulta-band hota hai */
+              <details
+                key={idx}
+                open={idx === 0}
+                className="group rounded-2xl bg-white border border-gray-100 shadow-sm open:border-primary-200 open:shadow-md transition-all"
+              >
+                <summary className="flex items-center gap-4 px-4 sm:px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span className="shrink-0 w-9 h-9 rounded-full bg-primary-50 grid place-items-center">
+                    <MessageCircleQuestion className="w-[18px] h-[18px] text-primary" />
+                  </span>
+                  <h3 className="flex-1 font-bold text-[15px] leading-snug text-gray-900">
+                    {faq.q}
+                  </h3>
+                  <span className="shrink-0 w-8 h-8 rounded-lg bg-gray-50 text-gray-500 grid place-items-center transition-all duration-200 group-open:rotate-45 group-open:bg-primary group-open:text-white">
+                    <Plus className="w-4 h-4" />
+                  </span>
+                </summary>
+                <p className="px-4 sm:px-5 pb-5 sm:pl-[4.25rem] text-[14px] leading-relaxed text-gray-500">
+                  {faq.a}
+                </p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Internal City Links */}
       <section className="relative py-16 bg-white border-t border-gray-100 overflow-hidden">

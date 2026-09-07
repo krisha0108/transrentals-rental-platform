@@ -74,6 +74,7 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             role: user.role,
             userType: 'admin',
+            canManageCarRentalContent: user.canManageCarRentalContent,
           };
         } catch (error: any) {
           console.error('[Admin Auth] Error:', error.message);
@@ -182,11 +183,13 @@ export const authOptions: NextAuthOptions = {
             throw new Error('Invalid credentials');
           }
 
+          // Suspended vendors are let through — they can still view their
+          // dashboard read-only (VendorLayout shows the suspension notice),
+          // and every write route is independently blocked by
+          // vendorStatusGuard regardless. See vendor-auth-options.ts, which
+          // has the same duplicated provider — keep both in sync.
           if (vendor.status === 'BLOCKED') {
-            throw new Error('Your account has been blocked. Please contact support.');
-          }
-          if (vendor.status === 'SUSPENDED') {
-            throw new Error('Your account is suspended. Please contact support.');
+            throw new Error('Your account is blocked. Please contact our support team for any query.');
           }
           if (vendor.status === 'REJECTED') {
             throw new Error('Your application was rejected. Please contact support.');
@@ -233,6 +236,7 @@ export const authOptions: NextAuthOptions = {
         token.status = (user as any).status;
         token.phone = (user as any).phone;
         token.ownerName = (user as any).ownerName;
+        token.canManageCarRentalContent = (user as any).canManageCarRentalContent;
       }
       return token;
     },
@@ -244,6 +248,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).status = token.status;
         (session.user as any).phone = token.phone;
         (session.user as any).ownerName = token.ownerName;
+        (session.user as any).canManageCarRentalContent = token.canManageCarRentalContent;
       }
       return session;
     },

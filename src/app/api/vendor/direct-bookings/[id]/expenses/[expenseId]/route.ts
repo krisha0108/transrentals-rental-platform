@@ -17,8 +17,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Block rejected/suspended/blocked vendors from write operations
-    const _guard = await vendorStatusGuard(auth.vendorId!);
+    // Block rejected/blocked vendors — suspended vendors can still manage
+    // their own direct bookings (offline/personal, not platform-routed).
+    const _guard = await vendorStatusGuard(auth.vendorId!, { allowSuspended: true });
     if (_guard.blocked) return _guard.response;
 
     // Verify expense belongs to this vendor + booking (raw — table may not be in client)

@@ -87,6 +87,11 @@ export function PaymentConfirmation({
     paymentMethod: 'BANK_TRANSFER',
   });
 
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [proofFileName, setProofFileName] = useState<string | null>(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchBankDetails();
   }, [serviceSlug]);
@@ -113,10 +118,63 @@ export function PaymentConfirmation({
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setUploadError(null);
+    setProofFileName(file.name);
+    setProofPreview(URL.createObjectURL(file));
+    setUploadingProof(true);
+
+    try {
+      const fd = new FormData();
+      fd.append('bookingId', bookingId);
+      fd.append('file', file);
+      const res = await fetch('/api/bookings/payment-proof-upload', {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setFormData((prev) => ({ ...prev, paymentProof: data.url }));
+      } else {
+        setUploadError(data.error || 'Failed to upload screenshot');
+        setProofPreview(null);
+        setProofFileName(null);
+      }
+    } catch (err) {
+      console.error('Screenshot upload error:', err);
+      setUploadError('Failed to upload screenshot. Please try again.');
+      setProofPreview(null);
+      setProofFileName(null);
+    } finally {
+      setUploadingProof(false);
+    }
+  };
+
+  const removeProof = () => {
+    setFormData((prev) => ({ ...prev, paymentProof: '' }));
+    setProofPreview(null);
+    setProofFileName(null);
+    setUploadError(null);
+  };
+
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
+
+    if (!formData.paymentProof.trim()) {
+      setError('Please upload a payment screenshot before confirming.');
+      return;
+    }
+    if (uploadingProof) {
+      setError('Please wait for the screenshot to finish uploading.');
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
       const res = await fetch('/api/bookings/confirm-payment', {
@@ -342,18 +400,70 @@ export function PaymentConfirmation({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Payment Screenshot URL (Optional)
+                Payment Screenshot *
               </label>
-              <input
-                type="text"
-                value={formData.paymentProof}
-                onChange={(e) => setFormData({ ...formData, paymentProof: e.target.value })}
-                placeholder="Paste screenshot URL (from Google Drive, Imgur, etc.)"
-                className="w-full border rounded-lg px-3 py-2"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Upload your screenshot to a cloud service and paste the link here
-              </p>
+
+              {proofPreview ? (
+                <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+                  <img
+                    src={proofPreview}
+                    alt="Payment screenshot preview"
+                    className="h-14 w-14 flex-shrink-0 rounded-md border border-gray-200 object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-gray-700">{proofFileName}</p>
+                    {uploadingProof ? (
+                      <p className="flex items-center gap-1.5 text-xs text-gray-400">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
+                      </p>
+                    ) : formData.paymentProof ? (
+                      <p className="flex items-center gap-1 text-xs text-emerald-600">
+                        <CheckCircle className="w-3 h-3" /> Uploaded
+                      </p>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeProof}
+                    className="flex-shrink-0 text-xs font-medium text-gray-400 hover:text-red-600"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-gray-300 px-4 py-5 text-center transition hover:border-emerald-400 hover:bg-emerald-50/50">
+                  <Upload className="w-5 h-5 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-600">Upload payment screenshot</span>
+                  <span className="text-xs text-gray-400">JPG, PNG, WEBP or GIF, up to 5 MB</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                </label>
+              )}
+
+              {uploadError && (
+                <p className="mt-1.5 text-xs text-red-600">{uploadError}</p>
+              )}
+
+              <details className="mt-2">
+                <summary className="cursor-pointer text-xs font-medium text-gray-500 hover:text-gray-700">
+                  Or paste a screenshot URL instead
+                </summary>
+                <input
+                  type="text"
+                  value={formData.paymentProof}
+                  onChange={(e) => {
+                    setFormData({ ...formData, paymentProof: e.target.value });
+                    setProofPreview(null);
+                    setProofFileName(null);
+                  }}
+                  placeholder="Paste screenshot URL (from Google Drive, Imgur, etc.)"
+                  className="mt-1.5 w-full border rounded-lg px-3 py-2 text-sm"
+                />
+              </details>
             </div>
 
             {error && (
@@ -376,7 +486,7 @@ export function PaymentConfirmation({
               <Button
                 type="submit"
                 className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                disabled={submitting}
+                disabled={submitting || uploadingProof}
               >
                 {submitting ? (
                   <>
@@ -462,7 +572,7 @@ function UpiPaymentSection({
         <QrCode className="w-[18px] h-[18px] text-[#056B3E]" />
         Pay via UPI
       </h3>
-      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+      <div className="flex flex-col items-center gap-4">
         <div className="flex-shrink-0 rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm">
           {/* Using img tag instead of next/image for external QR API */}
           <img
@@ -473,8 +583,8 @@ function UpiPaymentSection({
             className="rounded"
           />
         </div>
-        <div className="min-w-0 flex-1 self-stretch">
-          <p className="mb-2 text-[13px] text-gray-500">Scan the QR or use this UPI ID</p>
+        <div className="min-w-0 w-full">
+          <p className="mb-2 text-center text-[13px] text-gray-500">Scan the QR or use this UPI ID</p>
           {/* break-all, not truncate — a UPI ID the customer cannot read in
               full is worse than one that wraps onto two lines. */}
           <div className="flex items-start gap-2 rounded-lg border border-gray-100 bg-white px-3 py-2.5">
@@ -490,7 +600,7 @@ function UpiPaymentSection({
               )}
             </button>
           </div>
-          <p className="mt-2 text-[12.5px] leading-relaxed text-gray-500">
+          <p className="mt-2 text-center text-[12.5px] leading-relaxed text-gray-500">
             ₹{amount.toLocaleString()} to {accountHolderName}
           </p>
         </div>

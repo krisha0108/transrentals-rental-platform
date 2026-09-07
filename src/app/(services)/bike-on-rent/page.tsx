@@ -4,7 +4,7 @@ import { DynamicServicePage } from '@/components/services/DynamicServicePage';
 import { BikeTypesCards } from '@/components/services/BikeTypesCards';
 import { BikeFleetShowcase } from '@/components/services/BikeFleetShowcase';
 import { BikeServiceSchema, HowToSchema, ItemListSchema, BreadcrumbSchema } from '@/components/seo/schemas';
-import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
+import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { formatPriceHighlight } from '@/lib/utils';
@@ -155,19 +155,9 @@ export default function BikeRentalPage() {
       />
 
       {/* Hero Section */}
-      <SimpleServiceHero
-        badge="Bike Rental Services"
-        title="Rent Bikes"
-        titleHighlight="Starting @₹399/Day"
-        description="Choose from Royal Enfield, KTM, Honda, Yamaha & more across 150+ cities. Book now!"
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Verified Vendors', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Quick Booking', color: 'text-green-600' },
-        ]}
-        gradientFrom="blue-50"
-        gradientTo="green-50"
-      />
+      {/* Same hero the city pages use — background image plus the search card.
+          With no citySlug the pick-up field turns into a city chooser. */}
+      <BikeSearchHero />
 
       {/* Fleet Display from Database */}
       <ServiceFleetDisplay

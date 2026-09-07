@@ -40,12 +40,18 @@ export async function GET(request: NextRequest) {
               avatar: true,
             },
           },
+          travel_agents: {
+            select: { id: true, agencyName: true, ownerName: true, email: true, phone: true },
+          },
         },
       });
 
       if (!ticket) {
         return NextResponse.json({ success: false, error: 'Ticket not found' }, { status: 404 });
       }
+
+      const isTA = ticket.submitterType === 'travel_agent';
+      const ta = ticket.travel_agents;
 
       return NextResponse.json({
         success: true,
@@ -56,6 +62,7 @@ export async function GET(request: NextRequest) {
           problem: ticket.problem,
           status: ticket.status.toLowerCase(),
           priority: ticket.priority.toLowerCase(),
+          submitter_type: ticket.submitterType || 'customer',
           booking_id: ticket.bookingId,
           booking_type: ticket.bookingType,
           images: ticket.images,
@@ -63,7 +70,17 @@ export async function GET(request: NextRequest) {
           resolved_at: ticket.resolvedAt?.toISOString() || null,
           created_at: ticket.createdAt.toISOString(),
           updated_at: ticket.updatedAt.toISOString(),
-          customer: ticket.customers
+          customer: isTA
+            ? ta
+              ? {
+                  id: ta.id,
+                  name: ta.agencyName || ta.ownerName || 'Travel Agent',
+                  email: ta.email,
+                  phone: ta.phone,
+                  image: null,
+                }
+              : null
+            : ticket.customers
             ? {
                 id: ticket.customers.id,
                 name: ticket.customers.name,
@@ -95,6 +112,9 @@ export async function GET(request: NextRequest) {
           phone: inquiry.phone,
           subject: inquiry.subject,
           message: inquiry.message,
+          status: inquiry.status,
+          resolution: inquiry.resolution,
+          resolved_at: inquiry.resolvedAt?.toISOString() || null,
           created_at: inquiry.createdAt.toISOString(),
         },
       });
@@ -103,7 +123,10 @@ export async function GET(request: NextRequest) {
     // Unified listing with stats, filters, pagination
     const status = searchParams.get('status') || '';
     const typeFilter = searchParams.get('type') || '';
+    const submitterFilter = searchParams.get('submitter') || '';
     const search = searchParams.get('search') || '';
+    const dateFrom = searchParams.get('dateFrom') || '';
+    const dateTo = searchParams.get('dateTo') || '';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
@@ -112,7 +135,12 @@ export async function GET(request: NextRequest) {
     todayStart.setHours(0, 0, 0, 0);
 
     const shouldFetchTickets = !typeFilter || typeFilter === 'ticket';
-    const shouldFetchInquiries = !typeFilter || typeFilter === 'inquiry';
+    // inquiries have no submitterType — hide when filtering by submitter
+    const shouldFetchInquiries = (!typeFilter || typeFilter === 'inquiry') && !submitterFilter;
+
+    const createdAtRange: any = {};
+    if (dateFrom) createdAtRange.gte = new Date(`${dateFrom}T00:00:00`);
+    if (dateTo) createdAtRange.lte = new Date(`${dateTo}T23:59:59.999`);
 
     // Build ticket where clause
     const ticketWhere: any = {};
@@ -123,10 +151,20 @@ export async function GET(request: NextRequest) {
         { problem: { contains: search } },
         { customers: { name: { contains: search } } },
         { customers: { email: { contains: search } } },
+        { travel_agents: { agencyName: { contains: search } } },
+        { travel_agents: { email: { contains: search } } },
       ];
     }
     if (status && status !== 'all') {
       ticketWhere.status = status.toUpperCase();
+    }
+    if (submitterFilter === 'travel_agent') {
+      ticketWhere.submitterType = 'travel_agent';
+    } else if (submitterFilter === 'customer') {
+      ticketWhere.submitterType = { not: 'travel_agent' };
+    }
+    if (dateFrom || dateTo) {
+      ticketWhere.createdAt = createdAtRange;
     }
 
     // Build inquiry where clause
@@ -138,6 +176,12 @@ export async function GET(request: NextRequest) {
         { email: { contains: search } },
         { message: { contains: search } },
       ];
+    }
+    if (status && status !== 'all') {
+      inquiryWhere.status = status.toUpperCase();
+    }
+    if (dateFrom || dateTo) {
+      inquiryWhere.createdAt = createdAtRange;
     }
 
     const [
@@ -156,6 +200,9 @@ export async function GET(request: NextRequest) {
             include: {
               customers: {
                 select: { id: true, name: true, email: true, phone: true },
+              },
+              travel_agents: {
+                select: { id: true, agencyName: true, ownerName: true, email: true, phone: true },
               },
             },
             orderBy: { createdAt: 'desc' },
@@ -180,20 +227,25 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Transform tickets
-    const unifiedTickets = tickets.map((ticket: any) => ({
-      id: ticket.id,
-      type: 'ticket',
-      reference: ticket.ticketNo,
-      heading: ticket.heading,
-      description: ticket.problem,
-      status: ticket.status,
-      priority: ticket.priority,
-      customerName: ticket.customers?.name || 'Unknown',
-      customerEmail: ticket.customers?.email || '',
-      customerPhone: ticket.customers?.phone || '',
-      createdAt: ticket.createdAt.toISOString(),
-      bookingType: ticket.bookingType,
-    }));
+    const unifiedTickets = tickets.map((ticket: any) => {
+      const isTA = ticket.submitterType === 'travel_agent';
+      const ta = ticket.travel_agents;
+      return {
+        id: ticket.id,
+        type: 'ticket',
+        reference: ticket.ticketNo,
+        heading: ticket.heading,
+        description: ticket.problem,
+        status: ticket.status,
+        priority: ticket.priority,
+        submitterType: ticket.submitterType || 'customer',
+        customerName: isTA ? (ta?.agencyName || ta?.ownerName || 'Travel Agent') : (ticket.customers?.name || 'Unknown'),
+        customerEmail: isTA ? (ta?.email || '') : (ticket.customers?.email || ''),
+        customerPhone: isTA ? (ta?.phone || '') : (ticket.customers?.phone || ''),
+        createdAt: ticket.createdAt.toISOString(),
+        bookingType: ticket.bookingType,
+      };
+    });
 
     // Transform inquiries
     const unifiedInquiries = inquiries.map((inquiry: any) => ({
@@ -202,7 +254,7 @@ export async function GET(request: NextRequest) {
       reference: `INQ-${inquiry.id.slice(-6).toUpperCase()}`,
       heading: inquiry.subject || 'Contact Inquiry',
       description: inquiry.message,
-      status: 'NEW',
+      status: inquiry.status,
       priority: 'NORMAL',
       customerName: inquiry.name,
       customerEmail: inquiry.email,

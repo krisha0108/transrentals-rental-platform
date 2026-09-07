@@ -202,7 +202,7 @@ export function CarRentalPopularCitiesGrid({
 
         {/* Toggle Link */}
         {locations.length > 12 && (
-          <div className="text-center mt-8">
+          <div className="text-center mt-10 md:mt-12">
             <button
               onClick={() => setShowAll(!showAll)}
               className="inline-flex items-center gap-2 px-6 py-3 text-emerald-700 font-semibold hover:bg-emerald-50 rounded-xl transition-colors"
@@ -223,7 +223,7 @@ export function CarRentalPopularCitiesGrid({
         )}
 
         {/* Stats */}
-        <div className="max-w-4xl mx-auto mt-10 bg-white border border-gray-100 shadow-lg shadow-gray-100/80 rounded-2xl overflow-hidden">
+        <div className="max-w-4xl mx-auto mt-14 md:mt-20 bg-white border border-gray-100 shadow-lg shadow-gray-100/80 rounded-2xl overflow-hidden">
           <div className="grid grid-cols-2 md:grid-cols-4">
             {[
               { icon: MapPin, value: `${locations.length}`, label: 'Cities' },

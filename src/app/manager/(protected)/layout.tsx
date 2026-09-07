@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail, UserCog, Bell, MapPinPlus, Layers, MapPinOff, Search } from 'lucide-react';
+import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail, UserCog, Bell, MapPinPlus, Layers, MapPinOff, Search, Route, Package, ArrowRightCircle, Ruler, Car, ChevronDown, FileSignature } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { ToastProvider } from '@/components/ui/toast';
@@ -19,6 +19,7 @@ const SIDEBAR_LINKS = [
   { href: '/manager/vendors', label: 'Vendors', icon: Store },
   { href: '/manager/vendors/by-location', label: 'Location Coverage', icon: MapPin },
   { href: '/manager/vendors/coverage-gaps', label: 'Coverage Gaps', icon: MapPinOff },
+  { href: '/manager/vendor-agreements', label: 'Vendor Agreements', icon: FileSignature },
   { href: '/manager/drivers', label: 'Drivers', icon: Users },
   { href: '/manager/travel-agents', label: 'Travel Agents', icon: Plane },
   { href: '/manager/b2b', label: 'B2B Bookings', icon: Briefcase },
@@ -27,13 +28,29 @@ const SIDEBAR_LINKS = [
   { href: '/manager/contact-requests', label: 'Contact Requests', icon: UserCog },
   { href: '/manager/chats', label: 'Chats', icon: MessageSquare },
   { href: '/manager/locations', label: 'My Locations', icon: MapPin },
-  { href: '/manager/city-pricing', label: 'City Pricing', icon: IndianRupee },
   { href: '/manager/helpdesk', label: 'Helpdesk', icon: Headphones },
+];
+
+// Shown only to managers the admin has explicitly granted
+// canManageCarRentalContent (src/app/admin/(protected)/settings/managers/page.tsx)
+// — appended conditionally in ManagerSidebar rather than kept in the static
+// list above, since every other link there is visible to all managers.
+const CAR_RENTAL_CONTENT_LINKS = [
+  { href: '/manager/car-rental/routes', label: 'Route Packages', icon: Route },
+  { href: '/manager/car-rental/packages', label: 'Local Packages', icon: Package },
+  { href: '/manager/car-rental/city-pricing', label: 'City Pricing', icon: IndianRupee },
+  { href: '/manager/car-rental/oneway', label: 'One-Way Routes', icon: ArrowRightCircle },
+  { href: '/manager/car-rental/distances', label: 'Distance Matrix', icon: Ruler },
 ];
 
 interface ManagerNotification {
   id: string;
-  type: 'NEW_LOCATION_REQUEST' | 'NEW_SERVICE_REQUEST' | 'NEW_CONTACT_INQUIRY' | 'NEW_TRAVEL_AGENT_REGISTRATION';
+  type:
+    | 'NEW_LOCATION_REQUEST'
+    | 'NEW_SERVICE_REQUEST'
+    | 'NEW_CONTACT_INQUIRY'
+    | 'NEW_TRAVEL_AGENT_REGISTRATION'
+    | 'NEW_VENDOR_AGREEMENT_SIGNED';
   title: string;
   body: string;
   link: string | null;
@@ -57,29 +74,57 @@ function ManagerSidebar({
   onClose,
   vendorBadgeCount,
   notificationsBadgeCount,
+  agreementBadgeCount,
 }: {
   isOpen: boolean;
   onClose: () => void;
   vendorBadgeCount: number;
   notificationsBadgeCount: number;
+  agreementBadgeCount: number;
 }) {
   const { data: session } = useSession();
   const pathname = usePathname();
   const [navSearch, setNavSearch] = useState('');
+  // Starts open if the manager lands directly on a car-rental content page
+  // (e.g. a bookmark or refresh); after that, only the toggle button and
+  // search below control it — it must not re-force-open just because the
+  // manager is still on one of those pages, or the toggle can never close it.
+  const [carRentalOpen, setCarRentalOpen] = useState(
+    () => CAR_RENTAL_CONTENT_LINKS.some((l) => pathname === l.href || pathname?.startsWith(`${l.href}/`))
+  );
   const badgeCountByHref: Record<string, number> = {
     '/manager/vendors': vendorBadgeCount,
     '/manager/notifications': notificationsBadgeCount,
+    '/manager/vendor-agreements': agreementBadgeCount,
   };
+  const canManageCarRentalContent = !!(session?.user as any)?.canManageCarRentalContent;
+  const sidebarLinks = canManageCarRentalContent
+    ? [...SIDEBAR_LINKS, ...CAR_RENTAL_CONTENT_LINKS]
+    : SIDEBAR_LINKS;
   // Longest-prefix match so a nested route (e.g. /manager/vendors/by-location)
   // highlights its own link instead of also lighting up the shorter parent link.
-  const activeHref = SIDEBAR_LINKS
+  const activeHref = sidebarLinks
     .map((l) => l.href)
     .filter((href) => pathname === href || pathname?.startsWith(`${href}/`))
     .sort((a, b) => b.length - a.length)[0];
 
-  const visibleLinks = navSearch.trim()
-    ? SIDEBAR_LINKS.filter((l) => l.label.toLowerCase().includes(navSearch.trim().toLowerCase()))
+  const query = navSearch.trim().toLowerCase();
+  const visibleLinks = query
+    ? SIDEBAR_LINKS.filter((l) => l.label.toLowerCase().includes(query))
     : SIDEBAR_LINKS;
+
+  // The 5 car-rental content links collapse into a single "Car Rental
+  // Content" group instead of 5 flat sidebar entries. A live search still
+  // force-expands it so matching links stay visible while typing — that's
+  // temporary and goes away once the search is cleared.
+  const visibleCarRentalLinks = query
+    ? CAR_RENTAL_CONTENT_LINKS.filter((l) => l.label.toLowerCase().includes(query))
+    : CAR_RENTAL_CONTENT_LINKS;
+  const isOnCarRentalPage = CAR_RENTAL_CONTENT_LINKS.some(
+    (l) => pathname === l.href || pathname?.startsWith(`${l.href}/`)
+  );
+  const showCarRentalGroup = canManageCarRentalContent && visibleCarRentalLinks.length > 0;
+  const carRentalExpanded = carRentalOpen || (!!query && visibleCarRentalLinks.length > 0);
 
   return (
     <>
@@ -141,34 +186,75 @@ function ManagerSidebar({
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {visibleLinks.length === 0 ? (
+            {visibleLinks.length === 0 && !showCarRentalGroup ? (
               <p className="px-4 py-6 text-center text-sm text-white/50">No menu items match "{navSearch}"</p>
             ) : (
-              visibleLinks.map((link) => {
-                const Icon = link.icon;
-                const badgeCount = badgeCountByHref[link.href] || 0;
-                const isActive = link.href === activeHref;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={onClose}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                      isActive
-                        ? 'bg-white/20 font-semibold shadow-sm'
-                        : 'hover:bg-white/10'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="flex-1">{link.label}</span>
-                    {badgeCount > 0 && (
-                      <span className="min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center rounded-full bg-orange-400 text-teal-900 text-[11px] font-bold">
-                        {badgeCount > 99 ? '99+' : badgeCount}
-                      </span>
+              <>
+                {visibleLinks.map((link) => {
+                  const Icon = link.icon;
+                  const badgeCount = badgeCountByHref[link.href] || 0;
+                  const isActive = link.href === activeHref;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={onClose}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+                        isActive
+                          ? 'bg-white/20 font-semibold shadow-sm'
+                          : 'hover:bg-white/10'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="flex-1">{link.label}</span>
+                      {badgeCount > 0 && (
+                        <span className="min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center rounded-full bg-orange-400 text-teal-900 text-[11px] font-bold">
+                          {badgeCount > 99 ? '99+' : badgeCount}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+
+                {showCarRentalGroup && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setCarRentalOpen((o) => !o)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+                        isOnCarRentalPage ? 'bg-white/20 font-semibold shadow-sm' : 'hover:bg-white/10'
+                      }`}
+                    >
+                      <Car className="w-5 h-5" />
+                      <span className="flex-1 text-left">Car Rental Content</span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${carRentalExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+                    {carRentalExpanded && (
+                      <div className="mt-1 ml-4 pl-3 border-l border-white/20 space-y-1">
+                        {visibleCarRentalLinks.map((link) => {
+                          const Icon = link.icon;
+                          const isActive = link.href === activeHref;
+                          return (
+                            <Link
+                              key={link.href}
+                              href={link.href}
+                              onClick={onClose}
+                              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${
+                                isActive
+                                  ? 'bg-white/20 font-semibold shadow-sm'
+                                  : 'hover:bg-white/10'
+                              }`}
+                            >
+                              <Icon className="w-4 h-4" />
+                              <span className="flex-1">{link.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
                     )}
-                  </Link>
-                );
-              })
+                  </div>
+                )}
+              </>
             )}
           </nav>
 
@@ -197,6 +283,7 @@ const NOTIFICATION_ICON: Record<string, any> = {
   NEW_SERVICE_REQUEST: Layers,
   NEW_CONTACT_INQUIRY: Mail,
   NEW_TRAVEL_AGENT_REGISTRATION: Plane,
+  NEW_VENDOR_AGREEMENT_SIGNED: FileSignature,
 };
 
 function ManagerNotificationBell({
@@ -294,6 +381,7 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<ManagerNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [vendorUnreadCount, setVendorUnreadCount] = useState(0);
+  const [agreementUnreadCount, setAgreementUnreadCount] = useState(0);
 
   useManagerActivityHeartbeat(status === 'authenticated' && session?.user?.role === 'MANAGER');
 
@@ -306,6 +394,7 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
       setUnreadCount(data.unreadCount || 0);
       const byType = data.unreadByType || {};
       setVendorUnreadCount((byType.NEW_LOCATION_REQUEST || 0) + (byType.NEW_SERVICE_REQUEST || 0));
+      setAgreementUnreadCount(byType.NEW_VENDOR_AGREEMENT_SIGNED || 0);
     } catch {
       // silent — notifications are non-critical, don't disrupt the page
     }
@@ -403,6 +492,7 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         vendorBadgeCount={vendorUnreadCount}
+        agreementBadgeCount={agreementUnreadCount}
         notificationsBadgeCount={unreadCount}
       />
 

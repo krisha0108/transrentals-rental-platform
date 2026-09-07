@@ -63,7 +63,7 @@ export async function POST(
     const vendorId = auth.vendorId!;
 
     // Block rejected/suspended/blocked vendors from write operations
-    const guard = await vendorStatusGuard(vendorId);
+    const guard = await vendorStatusGuard(vendorId, { allowSuspended: true });
     if (guard.blocked) return guard.response;
 
     // Verify vendor owns this fleet vehicle
@@ -123,7 +123,7 @@ export async function DELETE(
     const vendorId = auth.vendorId!;
 
     // Block rejected/suspended/blocked vendors from write operations
-    const guard = await vendorStatusGuard(vendorId);
+    const guard = await vendorStatusGuard(vendorId, { allowSuspended: true });
     if (guard.blocked) return guard.response;
 
     const { searchParams } = new URL(request.url);

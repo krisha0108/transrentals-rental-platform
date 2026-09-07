@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   Quote,
   Plus,
-  HelpCircle,
+  MessageCircleQuestion,
   Heart,
   Building2,
   Truck,
@@ -688,33 +688,58 @@ export default function BusRentalPage() {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="py-16 md:py-20 bg-gray-50">
-        <div className="container-custom">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-100 px-4 py-2 rounded-full mb-4">
-              <HelpCircle className="w-4 h-4" />
-              FAQs
+      {/* FAQs */}
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+          }}
+        />
+
+        <div className="container mx-auto px-4 relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] text-primary-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              GOOD TO KNOW
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
             </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
-              Bus Rental FAQs
+            <h2 className="mt-4 text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Bus Rental <span className="text-primary">FAQs</span>
             </h2>
-            <p className="text-gray-500">Everything you need to know before booking a bus or tempo traveller</p>
+            <p className="mt-3 text-base text-gray-600">
+              Everything you need to know before booking a bus or tempo traveller
+            </p>
           </div>
 
-          <div className="max-w-3xl mx-auto space-y-3">
+          <div className="max-w-5xl mx-auto space-y-3">
             {FAQS.map((faq, idx) => (
+              /* <details> — bina kisi client JS ke khulta-band hota hai */
               <details
                 key={idx}
-                className="group bg-white rounded-2xl border border-gray-100 shadow-sm open:shadow-md open:border-emerald-200 transition-shadow"
+                open={idx === 0}
+                className="group rounded-2xl bg-white border border-gray-100 shadow-sm open:border-primary-200 open:shadow-md transition-all"
               >
-                <summary className="flex items-center justify-between gap-4 p-5 cursor-pointer list-none">
-                  <h3 className="text-base font-semibold text-gray-900">{faq.q}</h3>
-                  <span className="shrink-0 w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center group-open:bg-emerald-600 transition-colors">
-                    <Plus className="w-4 h-4 text-emerald-600 group-open:text-white group-open:rotate-45 transition-transform" />
+                <summary className="flex items-center gap-4 px-4 sm:px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span className="shrink-0 w-9 h-9 rounded-full bg-primary-50 grid place-items-center">
+                    <MessageCircleQuestion className="w-[18px] h-[18px] text-primary" />
+                  </span>
+                  <h3 className="flex-1 font-bold text-[15px] leading-snug text-gray-900">
+                    {faq.q}
+                  </h3>
+                  <span className="shrink-0 w-8 h-8 rounded-lg bg-gray-50 text-gray-500 grid place-items-center transition-all duration-200 group-open:rotate-45 group-open:bg-primary group-open:text-white">
+                    <Plus className="w-4 h-4" />
                   </span>
                 </summary>
-                <p className="text-gray-600 text-sm leading-relaxed px-5 pb-5 -mt-1">{faq.a}</p>
+                <p className="px-4 sm:px-5 pb-5 sm:pl-[4.25rem] text-[14px] leading-relaxed text-gray-500">
+                  {faq.a}
+                </p>
               </details>
             ))}
           </div>

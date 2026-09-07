@@ -252,6 +252,10 @@ interface CarRentalBookingHeroProps {
   // Optional overrides for specialty services (wedding, sports, vintage, etc.)
   headingLine1?: string;
   headingLine2?: string;
+  // Full H1 text override (e.g. a CMS-managed, keyword-optimized heading) —
+  // wins over headingLine1/headingLine2 entirely instead of merging with the
+  // two-line layout, since CMS copy is one flowing sentence, not two parts.
+  h1Text?: string;
   subheading?: string;
   gradientOverride?: string;
   accentOverride?: string;
@@ -759,6 +763,7 @@ export function CarRentalBookingHero({
   onBookingDetailsReady,
   headingLine1,
   headingLine2,
+  h1Text,
   subheading,
   gradientOverride,
   accentOverride,
@@ -1571,20 +1576,26 @@ export function CarRentalBookingHero({
               transition={{ delay: 0.1 }}
               className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 mb-3 leading-tight"
             >
-              {headingLine1 ?? 'Book Outstation, Local &'}
-              <br />
-              <span className="relative inline-block text-green-600 pb-2">
-                {headingLine2 ?? 'Airport Cabs'}
-                <svg
-                  className="absolute left-0 -bottom-0.5 w-full"
-                  height="10"
-                  viewBox="0 0 200 10"
-                  preserveAspectRatio="none"
-                  fill="none"
-                >
-                  <path d="M2 7C40 2 160 2 198 7" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-              </span>
+              {h1Text ? (
+                h1Text
+              ) : (
+                <>
+                  {headingLine1 ?? 'Book Outstation, Local &'}
+                  <br />
+                  <span className="relative inline-block text-green-600 pb-2">
+                    {headingLine2 ?? 'Airport Cabs'}
+                    <svg
+                      className="absolute left-0 -bottom-0.5 w-full"
+                      height="10"
+                      viewBox="0 0 200 10"
+                      preserveAspectRatio="none"
+                      fill="none"
+                    >
+                      <path d="M2 7C40 2 160 2 198 7" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                </>
+              )}
             </motion.h1>
 
             <motion.p
@@ -1671,8 +1682,14 @@ export function CarRentalBookingHero({
               transition={{ delay: 0.1 }}
               className={`font-bold ${compact ? 'text-2xl md:text-3xl lg:text-4xl mb-2' : 'text-3xl md:text-4xl lg:text-5xl mb-4'}`}
             >
-              {headingLine1 ?? 'Book Outstation, Local &'}{' '}
-              <span className={`text-${themeColors.accent}`}>{headingLine2 ?? 'Airport Cabs'}</span>
+              {h1Text ? (
+                h1Text
+              ) : (
+                <>
+                  {headingLine1 ?? 'Book Outstation, Local &'}{' '}
+                  <span className={`text-${themeColors.accent}`}>{headingLine2 ?? 'Airport Cabs'}</span>
+                </>
+              )}
             </motion.h1>
 
             <motion.p

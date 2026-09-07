@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
+import { authorizeCarRentalContentAccess } from '@/lib/auth/car-rental-content-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,14 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    // No [slug] segment on this route — gated as car-rental content since
+    // that's the only current consumer (src/app/api/admin/distances/route.ts
+    // has the same rationale).
+    const access = await authorizeCarRentalContentAccess('car-rental');
+    if (!access.ok) {
+      return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+    }
+
     const { searchParams } = new URL(request.url);
     const fromLocationId = searchParams.get('from');
     const toLocationId = searchParams.get('to');

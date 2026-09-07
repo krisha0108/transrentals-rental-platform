@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import crypto from 'crypto';
+import { authorizeCarRentalContentAccess } from '@/lib/auth/car-rental-content-access';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -11,9 +12,21 @@ function generateId(): string {
   return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
 }
 
+// This route has no [slug] segment — the city_distance_matrix table isn't
+// service-scoped. Its only current consumer is the car-rental Distance
+// Matrix admin/manager page, so it's gated as car-rental content.
+async function authorize() {
+  return authorizeCarRentalContentAccess('car-rental');
+}
+
 // GET - List all distances or get specific distance
 export async function GET(request: NextRequest) {
   try {
+    const access = await authorize();
+    if (!access.ok) {
+      return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+    }
+
     const { searchParams } = new URL(request.url);
     const fromLocationId = searchParams.get('from');
     const toLocationId = searchParams.get('to');
@@ -185,6 +198,11 @@ export async function GET(request: NextRequest) {
 // POST - Create or update distance (upsert)
 export async function POST(request: NextRequest) {
   try {
+    const access = await authorize();
+    if (!access.ok) {
+      return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+    }
+
     const body = await request.json();
     const {
       fromLocationId,
@@ -285,6 +303,11 @@ export async function POST(request: NextRequest) {
 // DELETE - Delete distance
 export async function DELETE(request: NextRequest) {
   try {
+    const access = await authorize();
+    if (!access.ok) {
+      return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const deleteBoth = searchParams.get('both') === 'true';

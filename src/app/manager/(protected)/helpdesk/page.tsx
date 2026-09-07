@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 const ITEMS_PER_PAGE = 20;
@@ -76,6 +77,31 @@ interface Pagination {
   totalPages: number;
 }
 
+const toDateInputValue = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const DATE_RANGE_PRESETS: Record<string, () => { from: string; to: string }> = {
+  today: () => {
+    const today = toDateInputValue(new Date());
+    return { from: today, to: today };
+  },
+  week: () => {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    return { from: toDateInputValue(start), to: toDateInputValue(now) };
+  },
+  month: () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { from: toDateInputValue(start), to: toDateInputValue(now) };
+  },
+};
+
 const buildPaginationRange = (current: number, total: number, window = 5) => {
   const half = Math.floor(window / 2);
   let start = Math.max(1, current - half);
@@ -90,8 +116,10 @@ const buildPaginationRange = (current: number, total: number, window = 5) => {
   return pages;
 };
 
-export default function ManagerHelpdeskPage() {
+function ManagerHelpdeskPageInner() {
   useManagerPageHeader('Helpdesk', 'Manage support tickets and contact inquiries in one place.');
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [items, setItems] = useState<UnifiedItem[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalItems: 0,
@@ -108,10 +136,31 @@ export default function ManagerHelpdeskPage() {
     totalPages: 1,
   });
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  // Filters initialize from the URL (once, on mount) so that navigating to a
+  // detail page and back — which remounts this page fresh, since Next's
+  // router cache doesn't retain dynamic routes by default — restores the
+  // filters instead of resetting them. See the effect below that keeps the
+  // URL in sync as filters change.
+  const [search, setSearch] = useState(() => searchParams?.get('search') || '');
+  const [typeFilter, setTypeFilter] = useState(() => searchParams?.get('type') || '');
+  const [statusFilter, setStatusFilter] = useState(() => searchParams?.get('status') || '');
+  const [submitterFilter, setSubmitterFilter] = useState(() => searchParams?.get('submitter') || '');
+  const [dateRangePreset, setDateRangePreset] = useState(() => searchParams?.get('dateRangePreset') || '');
+  const [dateFrom, setDateFrom] = useState(() => searchParams?.get('dateFrom') || '');
+  const [dateTo, setDateTo] = useState(() => searchParams?.get('dateTo') || '');
+  const [currentPage, setCurrentPage] = useState(() => Number(searchParams?.get('page')) || 1);
+
+  const handleDateRangePresetChange = (value: string) => {
+    setDateRangePreset(value);
+    if (value === 'custom' || value === '') {
+      setDateFrom('');
+      setDateTo('');
+    } else {
+      const preset = DATE_RANGE_PRESETS[value]?.();
+      setDateFrom(preset?.from || '');
+      setDateTo(preset?.to || '');
+    }
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -120,6 +169,9 @@ export default function ManagerHelpdeskPage() {
       if (search) params.set('search', search);
       if (typeFilter) params.set('type', typeFilter);
       if (statusFilter) params.set('status', statusFilter);
+      if (submitterFilter) params.set('submitter', submitterFilter);
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo) params.set('dateTo', dateTo);
       if (currentPage > 1) params.set('page', currentPage.toString());
       params.set('limit', ITEMS_PER_PAGE.toString());
 
@@ -137,16 +189,46 @@ export default function ManagerHelpdeskPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, typeFilter, statusFilter, currentPage]);
+  }, [search, typeFilter, statusFilter, submitterFilter, dateFrom, dateTo, currentPage]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  // Mirror filters into the URL (replace, not push, so filter changes don't
+  // pile up browser-history entries) — this is what lets "back" from a
+  // detail page land on a URL that still encodes the filters.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (typeFilter) params.set('type', typeFilter);
+    if (statusFilter) params.set('status', statusFilter);
+    if (submitterFilter) params.set('submitter', submitterFilter);
+    if (dateRangePreset) params.set('dateRangePreset', dateRangePreset);
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    const qs = params.toString();
+    router.replace(`/manager/helpdesk${qs ? `?${qs}` : ''}`, { scroll: false });
+  }, [search, typeFilter, statusFilter, submitterFilter, dateRangePreset, dateFrom, dateTo, currentPage, router]);
+
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
     setCurrentPage(1);
     fetchData();
+  };
+
+  const hasActiveFilters = !!(search || typeFilter || statusFilter || submitterFilter || dateRangePreset);
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setTypeFilter('');
+    setStatusFilter('');
+    setSubmitterFilter('');
+    setDateRangePreset('');
+    setDateFrom('');
+    setDateTo('');
+    setCurrentPage(1);
   };
 
   const paginationPages = buildPaginationRange(pagination.page, pagination.totalPages);
@@ -226,18 +308,80 @@ export default function ManagerHelpdeskPage() {
                   className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
                 >
                   <option value="">All Status</option>
+                  <option value="NEW">New</option>
                   <option value="OPEN">Open</option>
                   <option value="IN_PROGRESS">In Progress</option>
                   <option value="RESOLVED">Resolved</option>
                   <option value="CLOSED">Cancelled</option>
                 </select>
               </label>
-              <button
-                type="submit"
-                className="rounded-lg bg-indigo-600 px-5 py-2 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-indigo-700 hover:shadow-md mt-5"
-              >
-                Filter
-              </button>
+              <label className="flex flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Submitter
+                <select
+                  value={submitterFilter}
+                  onChange={(e) => setSubmitterFilter(e.target.value)}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
+                >
+                  <option value="">All Submitters</option>
+                  <option value="customer">Customers</option>
+                  <option value="travel_agent">Travel Agents</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Date Range
+                <select
+                  value={dateRangePreset}
+                  onChange={(e) => handleDateRangePresetChange(e.target.value)}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
+                >
+                  <option value="">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </label>
+              {dateRangePreset === 'custom' && (
+                <>
+                  <label className="flex flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    From
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      max={dateTo || undefined}
+                      className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    To
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      min={dateFrom || undefined}
+                      className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
+                    />
+                  </label>
+                </>
+              )}
+              <div className="flex items-center gap-2 mt-5">
+                <button
+                  type="submit"
+                  className="rounded-lg bg-indigo-600 px-5 py-2 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-indigo-700 hover:shadow-md"
+                >
+                  Filter
+                </button>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={handleClearFilters}
+                    className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500 transition hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </form>
           </div>
 
@@ -394,5 +538,17 @@ export default function ManagerHelpdeskPage() {
           )}
       </section>
     </div>
+  );
+}
+
+export default function ManagerHelpdeskPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+      </div>
+    }>
+      <ManagerHelpdeskPageInner />
+    </Suspense>
   );
 }

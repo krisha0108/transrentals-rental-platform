@@ -40,6 +40,7 @@ export async function GET(
         email: true,
         phone: true,
         isActive: true,
+        canManageCarRentalContent: true,
         createdAt: true,
         manager_locations: {
           include: {
@@ -112,7 +113,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Manager not found' }, { status: 404 });
     }
 
-    const { name, email, phone, password, isActive, locationIds, serviceIds } = body;
+    const { name, email, phone, password, isActive, canManageCarRentalContent, locationIds, serviceIds } = body;
 
     // Check if email is taken by another user
     if (email && email !== existing.email) {
@@ -133,6 +134,7 @@ export async function PUT(
     if (email !== undefined) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone || null;
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (canManageCarRentalContent !== undefined) updateData.canManageCarRentalContent = canManageCarRentalContent;
     if (password) {
       updateData.password = await bcrypt.hash(password, 10);
     }
@@ -190,6 +192,7 @@ export async function PUT(
           email: true,
           phone: true,
           isActive: true,
+          canManageCarRentalContent: true,
           createdAt: true,
           manager_locations: {
             include: {

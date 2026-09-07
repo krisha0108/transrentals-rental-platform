@@ -29,6 +29,7 @@ import {
   Inbox,
   BellRing,
   ChevronDown,
+  FileSignature,
 } from 'lucide-react';
 
 interface Notification {
@@ -60,6 +61,9 @@ const NOTIF_CONFIG: Record<string, { icon: any; gradient: string; iconColor: str
   payment: { icon: CreditCard, gradient: 'from-green-500 to-emerald-600', iconColor: 'text-white', label: 'Payment' },
   payout: { icon: CreditCard, gradient: 'from-purple-500 to-violet-600', iconColor: 'text-white', label: 'Payout' },
   system: { icon: Settings, gradient: 'from-slate-500 to-gray-600', iconColor: 'text-white', label: 'System' },
+  // Partnership agreement review outcome
+  agreement_approved: { icon: FileSignature, gradient: 'from-emerald-500 to-green-600', iconColor: 'text-white', label: 'Agreement' },
+  agreement_rejected: { icon: FileSignature, gradient: 'from-red-500 to-rose-600', iconColor: 'text-white', label: 'Agreement' },
   // P2P types
   p2p_vehicle_requested: { icon: Truck, gradient: 'from-orange-500 to-amber-600', iconColor: 'text-white', label: 'P2P Request' },
   p2p_booking_accepted: { icon: Handshake, gradient: 'from-emerald-500 to-green-600', iconColor: 'text-white', label: 'P2P Accepted' },
@@ -114,6 +118,9 @@ const NOTIF_REDIRECT: Record<string, string> = {
   review: '/vendor/reviews',
   payment: '/vendor/earnings',
   payout: '/vendor/earnings',
+  // Partnership agreement review outcome
+  agreement_approved: '/vendor/partnership-agreement',
+  agreement_rejected: '/vendor/partnership-agreement',
 };
 
 // Map serviceType to vendor dashboard route prefix
