@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Modal, Switch, StatusBar,
@@ -12,7 +12,7 @@ import { createTemplate } from '../../../api/client';
 import { showError, showSuccess } from '../../../../services/alertService';
 import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
 
 const C = {
   g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
@@ -21,6 +21,10 @@ const C = {
   text: T.ink, sub: T.text, muted: T.subText,
   red: T.red, redL: T.redLight,
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const EQUIPMENT_CATEGORIES = [
   { label: 'Construction Equipment', value: 'construction' },
@@ -75,6 +79,12 @@ export default function EquipmentCreateTemplateScreen({ navigation }) {
   const [editType, setEditType] = useState(null);
   const [editList, setEditList] = useState([]);
   const [newItemText, setNewItemText] = useState('');
+  const [initializing, setInitializing] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setInitializing(false), 350);
+    return () => clearTimeout(t);
+  }, []);
 
   const toggleEquipmentType = (type) => {
     if (selectedEquipmentTypes.includes(type)) {
@@ -138,6 +148,45 @@ export default function EquipmentCreateTemplateScreen({ navigation }) {
     }
   };
 
+  if (initializing) {
+    return (
+      <SafeAreaView style={s.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+          <View style={s.topBar}>
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.headerTextWrap}>
+              <Text style={s.heroTitle}>Create Template</Text>
+              <Text style={s.heroSub}>Equipment Rental</Text>
+            </View>
+          </View>
+        </LinearGradient>
+
+        <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
+          <View style={s.card}>
+            <Bone w={150} h={15} style={{ marginBottom: 14 }} />
+            <Bone w={100} h={11} style={{ marginBottom: 6 }} />
+            <Bone w="100%" h={44} r={10} style={{ marginBottom: 10 }} />
+            <Bone w={130} h={11} style={{ marginBottom: 6 }} />
+            <Bone w="100%" h={44} r={10} style={{ marginBottom: 10 }} />
+            <Bone w={80} h={11} style={{ marginBottom: 6 }} />
+            <Bone w="100%" h={80} r={10} />
+          </View>
+          <View style={s.card}>
+            <Bone w={150} h={15} style={{ marginBottom: 14 }} />
+            <Bone w={100} h={11} style={{ marginBottom: 6 }} />
+            <Bone w="100%" h={44} r={10} style={{ marginBottom: 10 }} />
+            <Bone w={130} h={11} style={{ marginBottom: 6 }} />
+            <Bone w="100%" h={44} r={10} />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
@@ -147,8 +196,7 @@ export default function EquipmentCreateTemplateScreen({ navigation }) {
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.hero}
       >
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={18} color="#fff" />
@@ -318,13 +366,12 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden',
     borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20),
   },
-  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)' },
-  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)' },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 12 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
   headerTextWrap: { flex: 1 },
   heroTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff' },
-  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 3 },
+  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 3 },
 
   scroll: { flex: 1 },
   content: { padding: 16, paddingBottom: 20 },
@@ -332,9 +379,9 @@ const s = StyleSheet.create({
   card: { backgroundColor: C.card, borderRadius: rs(16), padding: 16, marginBottom: 16, borderWidth: 1, borderColor: C.border, ...cardShadow },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   cardTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.text, marginBottom: 4 },
-  cardSubtitle: { fontSize: 12, color: C.muted, marginBottom: 12 },
+  cardSubtitle: { fontSize: 13, color: C.muted, marginBottom: 12 },
 
-  inputLabel: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 6, marginTop: 10 },
+  inputLabel: { fontSize: 14, fontWeight: '600', color: C.text, marginBottom: 6, marginTop: 10 },
   input: { backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12, fontSize: 14, color: C.text },
   textArea: { height: 80 },
 
@@ -346,11 +393,11 @@ const s = StyleSheet.create({
 
   chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
-  chipText: { fontSize: 11, fontWeight: '600' },
+  chipText: { fontSize: 12, fontWeight: '600' },
 
   termRow: { flexDirection: 'row', marginBottom: 8 },
-  termNum: { fontSize: 13, fontWeight: '700', color: C.g600, marginRight: 6, width: 18 },
-  termText: { flex: 1, fontSize: 13, color: C.sub, lineHeight: 18 },
+  termNum: { fontSize: 14, fontWeight: '700', color: C.g600, marginRight: 6, width: 18 },
+  termText: { flex: 1, fontSize: 14, color: C.sub, lineHeight: 18 },
 
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 

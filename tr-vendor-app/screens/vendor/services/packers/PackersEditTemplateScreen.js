@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Modal, Switch, StatusBar,
@@ -13,7 +13,7 @@ import { getTemplateById, updateTemplate } from '../../../api/client';
 import { showError, showSuccess } from '../../../../services/alertService';
 import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
 
 const C = {
   g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
@@ -23,6 +23,10 @@ const C = {
   blue: T.blue, blueL: T.blueLight,
   red: T.red, redL: T.redLight,
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const SHIFTING_CATEGORIES = [
   { label: 'Local Shifting', value: 'local_shifting' },
@@ -71,12 +75,7 @@ export default function PackersEditTemplateScreen({ navigation, route }) {
   const [editList, setEditList] = useState([]);
   const [newItemText, setNewItemText] = useState('');
 
-  useEffect(() => {
-    if (!templateId) { showError('Template ID not found'); navigation.goBack(); return; }
-    fetchTemplate();
-  }, [templateId]);
-
-  const fetchTemplate = async () => {
+  const fetchTemplate = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getTemplateById('packers', templateId);
@@ -95,7 +94,12 @@ export default function PackersEditTemplateScreen({ navigation, route }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [templateId]);
+
+  useEffect(() => {
+    if (!templateId) { showError('Template ID not found'); navigation.goBack(); return; }
+    fetchTemplate();
+  }, [templateId, navigation, fetchTemplate]);
 
   const toggleShiftingType = (type) => {
     setSelectedShiftingTypes(prev =>
@@ -172,10 +176,29 @@ export default function PackersEditTemplateScreen({ navigation, route }) {
             </View>
           </SafeAreaView>
         </LinearGradient>
-        <View style={s.centered}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={s.centeredTxt}>Loading template...</Text>
-        </View>
+        <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={s.card}>
+            <View style={s.cardTitleRow}>
+              <View style={[s.cardIcon, { backgroundColor: C.g50 }]} />
+              <Bone w={130} h={14} />
+            </View>
+            <Bone w={90} h={11} style={{ marginBottom: 8 }} />
+            <Bone w="100%" h={44} r={10} style={{ marginBottom: 14 }} />
+            <Bone w={110} h={11} style={{ marginBottom: 8 }} />
+            <Bone w="100%" h={44} r={10} style={{ marginBottom: 14 }} />
+            <Bone w={80} h={11} style={{ marginBottom: 8 }} />
+            <Bone w="100%" h={70} r={10} />
+          </View>
+
+          <View style={s.card}>
+            <View style={s.cardTitleRow}>
+              <View style={[s.cardIcon, { backgroundColor: C.g50 }]} />
+              <Bone w={140} h={14} />
+            </View>
+            <Bone w={100} h={11} style={{ marginBottom: 8 }} />
+            <Bone w="100%" h={44} r={10} />
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -185,8 +208,7 @@ export default function PackersEditTemplateScreen({ navigation, route }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroMin}>
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={18} color="#fff" />
@@ -388,17 +410,14 @@ export default function PackersEditTemplateScreen({ navigation, route }) {
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  centeredTxt: { fontSize: 14, color: C.muted },
 
   heroMin: { paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden', borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20) },
-  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)' },
-  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)' },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   heroTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff' },
-  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
+  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
 
   scroll: { flex: 1 },
   scrollContent: { padding: 16 },
@@ -413,8 +432,8 @@ const s = StyleSheet.create({
   cardIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
 
-  hint: { fontSize: 13, color: C.muted, marginBottom: 12 },
-  inputLabel: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 8, marginTop: 12 },
+  hint: { fontSize: 14, color: C.muted, marginBottom: 12 },
+  inputLabel: { fontSize: 14, fontWeight: '600', color: C.text, marginBottom: 8, marginTop: 12 },
   input: { backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12, fontSize: 14, color: C.text },
   textArea: { height: 80 },
 
@@ -426,11 +445,11 @@ const s = StyleSheet.create({
 
   chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  chipTxt: { fontSize: 12, fontWeight: '600' },
+  chipTxt: { fontSize: 13, fontWeight: '600' },
 
   termRow: { flexDirection: 'row', marginBottom: 8 },
-  termNum: { fontSize: 13, fontWeight: '700', color: C.g600, marginRight: 8, width: 18 },
-  termTxt: { flex: 1, fontSize: 13, color: C.sub, lineHeight: 20 },
+  termNum: { fontSize: 14, fontWeight: '700', color: C.g600, marginRight: 8, width: 18 },
+  termTxt: { flex: 1, fontSize: 14, color: C.sub, lineHeight: 20 },
 
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 

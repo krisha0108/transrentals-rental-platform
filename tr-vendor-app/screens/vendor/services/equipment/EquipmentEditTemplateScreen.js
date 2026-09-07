@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Modal, Switch, StatusBar,
@@ -12,7 +12,7 @@ import { getTemplateById, updateTemplate } from '../../../api/client';
 import { showError, showSuccess } from '../../../../services/alertService';
 import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
 
 const C = {
   g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
@@ -21,6 +21,10 @@ const C = {
   text: T.ink, sub: T.text, muted: T.subText,
   red: T.red, redL: T.redLight,
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const EQUIPMENT_CATEGORIES = [
   { label: 'Construction Equipment', value: 'construction' },
@@ -78,12 +82,7 @@ export default function EquipmentEditTemplateScreen({ navigation, route }) {
   const [editList, setEditList] = useState([]);
   const [newItemText, setNewItemText] = useState('');
 
-  useEffect(() => {
-    if (!templateId) { showError('Template ID not found'); navigation.goBack(); return; }
-    fetchTemplate();
-  }, [templateId]);
-
-  const fetchTemplate = async () => {
+  const fetchTemplate = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getTemplateById('equipment', templateId);
@@ -104,7 +103,12 @@ export default function EquipmentEditTemplateScreen({ navigation, route }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [templateId]);
+
+  useEffect(() => {
+    if (!templateId) { showError('Template ID not found'); navigation.goBack(); return; }
+    fetchTemplate();
+  }, [templateId, navigation, fetchTemplate]);
 
   const toggleEquipmentType = (type) => {
     if (selectedEquipmentTypes.includes(type)) {
@@ -183,10 +187,24 @@ export default function EquipmentEditTemplateScreen({ navigation, route }) {
             </View>
           </SafeAreaView>
         </LinearGradient>
-        <View style={s.centered}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={s.loadingText}>Loading template...</Text>
-        </View>
+        <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
+          <View style={s.card}>
+            <Bone w={150} h={15} style={{ marginBottom: 14 }} />
+            <Bone w={100} h={11} style={{ marginBottom: 6 }} />
+            <Bone w="100%" h={44} r={10} style={{ marginBottom: 10 }} />
+            <Bone w={130} h={11} style={{ marginBottom: 6 }} />
+            <Bone w="100%" h={44} r={10} style={{ marginBottom: 10 }} />
+            <Bone w={80} h={11} style={{ marginBottom: 6 }} />
+            <Bone w="100%" h={80} r={10} />
+          </View>
+          <View style={s.card}>
+            <Bone w={150} h={15} style={{ marginBottom: 14 }} />
+            <Bone w={100} h={11} style={{ marginBottom: 6 }} />
+            <Bone w="100%" h={44} r={10} style={{ marginBottom: 10 }} />
+            <Bone w={130} h={11} style={{ marginBottom: 6 }} />
+            <Bone w="100%" h={44} r={10} />
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -200,8 +218,7 @@ export default function EquipmentEditTemplateScreen({ navigation, route }) {
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.hero}
       >
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={18} color="#fff" />
@@ -365,17 +382,14 @@ export default function EquipmentEditTemplateScreen({ navigation, route }) {
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 14, color: C.muted },
 
   hero: { paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden', borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20) },
-  heroMin: { paddingHorizontal: 16, paddingBottom: 16 },
-  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)' },
-  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)' },
+  heroMin: { paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden', borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
   heroTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff' },
-  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
+  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
 
   scroll: { flex: 1 },
   content: { padding: 16, paddingBottom: 20 },
@@ -383,9 +397,9 @@ const s = StyleSheet.create({
   card: { backgroundColor: C.card, borderRadius: rs(16), padding: 16, marginBottom: 16, borderWidth: 1, borderColor: C.border, ...cardShadow },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   cardTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.text, marginBottom: 4 },
-  cardSubtitle: { fontSize: 12, color: C.muted, marginBottom: 12 },
+  cardSubtitle: { fontSize: 13, color: C.muted, marginBottom: 12 },
 
-  inputLabel: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 6, marginTop: 10 },
+  inputLabel: { fontSize: 14, fontWeight: '600', color: C.text, marginBottom: 6, marginTop: 10 },
   input: { backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12, fontSize: 14, color: C.text },
   textArea: { height: 80 },
 
@@ -397,11 +411,11 @@ const s = StyleSheet.create({
 
   chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
-  chipText: { fontSize: 11, fontWeight: '600' },
+  chipText: { fontSize: 12, fontWeight: '600' },
 
   termRow: { flexDirection: 'row', marginBottom: 8 },
-  termNum: { fontSize: 13, fontWeight: '700', color: C.g600, marginRight: 6, width: 18 },
-  termText: { flex: 1, fontSize: 13, color: C.sub, lineHeight: 18 },
+  termNum: { fontSize: 14, fontWeight: '700', color: C.g600, marginRight: 6, width: 18 },
+  termText: { flex: 1, fontSize: 14, color: C.sub, lineHeight: 18 },
 
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 

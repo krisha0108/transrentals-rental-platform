@@ -18,7 +18,7 @@ import {
 import CustomAlert from '../../../components/CustomAlert';
 import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -63,6 +63,10 @@ const STATUS_FILTERS = [
   { key: 'COMPLETED',   label: 'Completed' },
   { key: 'CANCELLED',   label: 'Cancelled' },
 ];
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 function fmtDate(d) {
   return d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -434,26 +438,42 @@ export default function P2PActivityScreen({ navigation }) {
   // ─── List Header ───
   const ListHeader = () => (
     <>
-      {/* Stats strip */}
-      {stats && (
-        <View style={s.statsCard}>
+      {/* Total Earnings + stats — one merged card */}
+      <View style={s.earningsCard}>
+        <View style={s.earningsTop}>
+          <View style={s.earningsIconCircle}>
+            <MCI name="cash-multiple" size={24} color={C.g700} />
+          </View>
+          <View style={{ flex: 1, marginLeft: 14 }}>
+            <Text style={s.earningsAmt}>{stats ? fmtPrice(stats.totalEarnings) : '—'}</Text>
+            <Text style={s.earningsLabel}>Total Earnings</Text>
+          </View>
+        </View>
+
+        <View style={s.earningsDivider} />
+
+        <View style={s.statsRow}>
           <View style={s.statItem}>
-            <Text style={s.statVal}>{stats.totalTransactions || 0}</Text>
+            <Text style={s.statVal}>{stats?.totalTransactions || 0}</Text>
             <Text style={s.statLabel}>TOTAL DEALS</Text>
           </View>
           <View style={s.statDivider} />
           <View style={s.statItem}>
-            <Text style={s.statVal}>{stats.completedTransactions || 0}</Text>
+            <Text style={s.statVal}>{stats?.completedTransactions || 0}</Text>
             <Text style={s.statLabel}>COMPLETED</Text>
           </View>
           <View style={s.statDivider} />
           <View style={s.statItem}>
-            <Text style={s.statVal}>{stats.averageRating ? Number(stats.averageRating).toFixed(1) : 'N/A'}</Text>
+            <Text style={s.statVal}>{stats?.averageRating ? Number(stats.averageRating).toFixed(1) : 'N/A'}</Text>
             <Text style={s.statLabel}>AVG RATING</Text>
           </View>
         </View>
-      )}
+      </View>
+    </>
+  );
 
+  const Filters = () => (
+    <>
       {/* Main tab bar */}
       <View style={s.tabBarWrap}>
         <View style={s.tabBar}>
@@ -501,11 +521,10 @@ export default function P2PActivityScreen({ navigation }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g950} />
 
       {/* ─────────── FIXED HEADER ─────────── */}
-      <SafeAreaView edges={['top']} style={{ backgroundColor: C.g950 }}>
+      <SafeAreaView edges={['top']} style={{ backgroundColor: C.g950, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) }}>
         <LinearGradient colors={G.hero} style={s.headerGrad}>
           {/* Decorative circles */}
-          <AnimatedOrb style={s.decCircle1} />
-          <AnimatedOrb style={s.decCircle2} delay={1200} dx={-10} dy={8} />
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
           {/* Nav row */}
           <View style={s.headerRow}>
@@ -518,42 +537,64 @@ export default function P2PActivityScreen({ navigation }) {
             </View>
             <View style={{ width: 40 }} />
           </View>
-
-          {/* Earnings hero card inside gradient */}
-          <View style={s.earningsCard}>
-            {/* Icon circle */}
-            <View style={s.earningsIconCircle}>
-              <MCI name="cash-multiple" size={24} color={C.g400} />
-            </View>
-            {/* Center: amount */}
-            <View style={{ flex: 1, marginLeft: 14 }}>
-              <Text style={s.earningsAmt}>{stats ? fmtPrice(stats.totalEarnings) : '—'}</Text>
-              <Text style={s.earningsLabel}>Total Earnings</Text>
-            </View>
-            {/* Right: deal + rating pills */}
-            <View style={s.earningsPills}>
-              <View style={s.earningsPillGreen}>
-                <MCI name="handshake" size={9} color={C.g400} />
-                <Text style={s.earningsPillGreenText}>
-                  Deals: {stats?.totalTransactions ?? '—'}
-                </Text>
-              </View>
-              <View style={s.earningsPillAmber}>
-                <MCI name="star" size={9} color={C.amber} />
-                <Text style={s.earningsPillAmberText}>
-                  {stats?.averageRating ? Number(stats.averageRating).toFixed(1) : 'N/A'} ★
-                </Text>
-              </View>
-            </View>
-          </View>
         </LinearGradient>
       </SafeAreaView>
 
+      {/* ─────────── FIXED FILTERS — always visible, don't scroll away ─────────── */}
+      <Filters />
+
       {/* ─────────── CONTENT ─────────── */}
       {loading ? (
-        <View style={s.center}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={s.loadingText}>Loading activity...</Text>
+        <View style={s.listContent}>
+          {[0, 1, 2].map(i => (
+            <View key={i} style={s.card}>
+              <View style={s.cardTop}>
+                <Bone w={70} h={16} r={8} />
+                <Bone w={80} h={11} style={{ marginLeft: 8 }} />
+                <View style={{ flex: 1 }} />
+                <Bone w={60} h={16} r={8} />
+              </View>
+
+              <View style={s.routeRow}>
+                <View style={s.routeDotGreen} />
+                <Bone w={60} h={11} />
+                <View style={s.routeLine} />
+                <View style={s.routeIconWrap}>
+                  <MCI name="truck" size={12} color={C.border} />
+                </View>
+                <View style={s.routeLine} />
+                <Bone w={60} h={11} />
+                <View style={s.routeDotRed} />
+              </View>
+
+              <View style={s.cardBody}>
+                <View style={s.partnerRow}>
+                  <Bone w={36} h={36} r={18} />
+                  <View style={{ flex: 1 }}>
+                    <Bone w={120} h={13} style={{ marginBottom: 6 }} />
+                    <Bone w={70} h={10} />
+                  </View>
+                  <Bone w={60} h={16} r={8} />
+                </View>
+
+                <View style={s.infoRow}>
+                  <Bone w={90} h={20} r={8} />
+                  <Bone w={100} h={20} r={8} />
+                </View>
+
+                <View style={s.amountFooter}>
+                  <View>
+                    <Bone w={70} h={9} style={{ marginBottom: 6 }} />
+                    <Bone w={90} h={17} />
+                  </View>
+                  <View style={s.earningBox}>
+                    <Bone w={80} h={9} style={{ marginBottom: 6 }} />
+                    <Bone w={70} h={17} />
+                  </View>
+                </View>
+              </View>
+            </View>
+          ))}
         </View>
       ) : (
         <FlatList
@@ -715,24 +756,17 @@ export default function P2PActivityScreen({ navigation }) {
 
 const s = StyleSheet.create({
   root:   { flex: 1, backgroundColor: C.bg },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  loadingText: { fontSize: 13, color: C.muted, fontWeight: '500' },
 
   // ─── Header gradient ───
   headerGrad: {
     paddingHorizontal: 16,
     paddingTop: 14,
-    paddingBottom: 20,
+    paddingBottom: 10,
     overflow: 'hidden',
+    borderBottomLeftRadius: rs(24),
+    borderBottomRightRadius: rs(24),
   },
-  decCircle1: {
-    position: 'absolute', width: 180, height: 180, borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40,
-  },
-  decCircle2: {
-    position: 'absolute', width: 120, height: 120, borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.045)', bottom: -30, left: -20,
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   backBtn: {
     width: 40, height: 40, borderRadius: 20,
@@ -742,49 +776,32 @@ const s = StyleSheet.create({
   },
   headerCenter: { flex: 1, marginLeft: 12 },
   headerTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
-  headerSub:   { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  headerSub:   { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
 
   // ─── Earnings hero card ───
   earningsCard: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: rs(20), padding: 16,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-  },
-  earningsIconCircle: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: 'rgba(52,211,153,0.2)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  earningsAmt:   { fontFamily: DISPLAY, fontSize: 28, fontWeight: '800', color: C.g300, letterSpacing: -1 },
-  earningsLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
-  earningsPills: { gap: 6, alignItems: 'flex-end' },
-  earningsPillGreen: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(52,211,153,0.15)', borderRadius: 10,
-    paddingHorizontal: 8, paddingVertical: 4,
-    borderWidth: 1, borderColor: 'rgba(52,211,153,0.25)',
-  },
-  earningsPillGreenText: { fontSize: 10, fontWeight: '700', color: C.g300 },
-  earningsPillAmber: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(245,158,11,0.15)', borderRadius: 10,
-    paddingHorizontal: 8, paddingVertical: 4,
-    borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
-  },
-  earningsPillAmberText: { fontSize: 10, fontWeight: '700', color: C.amber },
-
-  // ─── Stats card ───
-  statsCard: {
-    flexDirection: 'row', backgroundColor: C.surface,
-    borderRadius: rs(16), marginHorizontal: 16, marginTop: 14, marginBottom: 4,
+    backgroundColor: C.surface,
+    borderRadius: rs(16),
+    marginTop: 14, marginBottom: 4,
     borderWidth: 1, borderColor: C.border,
     ...cardShadow,
   },
+  earningsTop: { flexDirection: 'row', alignItems: 'center', padding: 16 },
+  earningsIconCircle: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: C.g50,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  earningsAmt:   { fontFamily: DISPLAY, fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -1 },
+  earningsLabel: { fontSize: 13, color: C.muted, marginTop: 2 },
+  earningsDivider: { height: 1, backgroundColor: C.border, marginHorizontal: 16 },
+
+  // ─── Stats row (inside the merged earnings card) ───
+  statsRow: { flexDirection: 'row' },
   statItem:    { flex: 1, alignItems: 'center', paddingVertical: 14 },
   statDivider: { width: 1, height: 36, backgroundColor: C.border, alignSelf: 'center' },
   statVal:     { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
-  statLabel:   { fontSize: 9, fontWeight: '700', color: C.muted, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.6 },
+  statLabel:   { fontSize: 10, fontWeight: '700', color: C.muted, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.6 },
 
   // ─── Tab bar ───
   tabBarWrap: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4 },
@@ -800,8 +817,8 @@ const s = StyleSheet.create({
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 7, paddingVertical: 10, borderRadius: 10,
   },
-  tabTextActive:   { fontSize: 13, fontWeight: '700', color: '#fff' },
-  tabTextInactive: { fontSize: 13, fontWeight: '600', color: C.g700 },
+  tabTextActive:   { fontSize: 14, fontWeight: '700', color: '#fff' },
+  tabTextInactive: { fontSize: 14, fontWeight: '600', color: C.g700 },
 
   // ─── Filter chips ───
   filterRow: {
@@ -815,8 +832,8 @@ const s = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
     backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border,
   },
-  filterTextActive:   { fontSize: 12, fontWeight: '700', color: '#fff' },
-  filterTextInactive: { fontSize: 12, fontWeight: '600', color: C.sub },
+  filterTextActive:   { fontSize: 13, fontWeight: '700', color: '#fff' },
+  filterTextInactive: { fontSize: 13, fontWeight: '600', color: C.sub },
 
   // ─── List ───
   listContent: { paddingHorizontal: 16, paddingBottom: 110 },
@@ -839,14 +856,14 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
   },
-  catBadgeText:  { fontSize: 10, fontWeight: '700' },
-  txNum:         { fontSize: 11, fontWeight: '500', color: C.muted, fontVariant: ['tabular-nums'] },
+  catBadgeText:  { fontSize: 11, fontWeight: '700' },
+  txNum:         { fontSize: 12, fontWeight: '500', color: C.muted, fontVariant: ['tabular-nums'] },
   statusPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
   },
-  statusPillText: { fontSize: 10, fontWeight: '700' },
-  headTime:       { fontSize: 10, color: C.muted },
+  statusPillText: { fontSize: 11, fontWeight: '700' },
+  headTime:       { fontSize: 11, color: C.muted },
 
   // Route row
   routeRow: {
@@ -864,11 +881,11 @@ const s = StyleSheet.create({
     width: 22, height: 22, borderRadius: 11, backgroundColor: '#F1F5F9',
     justifyContent: 'center', alignItems: 'center',
   },
-  routeCity: { fontSize: 12, fontWeight: '600', color: C.text, maxWidth: 90 },
+  routeCity: { fontSize: 13, fontWeight: '600', color: C.text, maxWidth: 90 },
 
   // Card body
   cardBody: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12 },
-  roleText: { fontSize: 11, color: C.g600, fontStyle: 'italic', marginBottom: 8 },
+  roleText: { fontSize: 12, color: C.g600, fontStyle: 'italic', marginBottom: 8 },
 
   // Partner row
   partnerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
@@ -876,16 +893,16 @@ const s = StyleSheet.create({
     width: 34, height: 34, borderRadius: 17,
     justifyContent: 'center', alignItems: 'center',
   },
-  partnerInitial: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  partnerName:    { fontSize: 13, fontWeight: '700', color: C.text },
-  partnerCity:    { fontSize: 11, color: C.muted, marginTop: 1 },
+  partnerInitial: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  partnerName:    { fontSize: 14, fontWeight: '700', color: C.text },
+  partnerCity:    { fontSize: 12, color: C.muted, marginTop: 1 },
 
   // Payment pill
   payPill: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1,
   },
-  payText: { fontSize: 9, fontWeight: '700' },
+  payText: { fontSize: 10, fontWeight: '700' },
 
   // Info chips
   infoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
@@ -893,14 +910,14 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1,
   },
-  infoChipText: { fontSize: 11, fontWeight: '600' },
+  infoChipText: { fontSize: 12, fontWeight: '600' },
 
   // Amount footer
   amountFooter: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
     paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border,
   },
-  amtLabel:   { fontSize: 9, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 2 },
+  amtLabel:   { fontSize: 10, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 2 },
   amtMain:    { fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
   earningBox: { alignItems: 'flex-end' },
   amtEarning: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: C.g600, letterSpacing: -0.5 },
@@ -919,8 +936,8 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, paddingVertical: 10, borderRadius: 12, borderWidth: 1,
   },
-  actionBtnTextWhite:   { fontSize: 12, fontWeight: '700', color: '#fff' },
-  actionBtnTextColored: { fontSize: 12, fontWeight: '700' },
+  actionBtnTextWhite:   { fontSize: 13, fontWeight: '700', color: '#fff' },
+  actionBtnTextColored: { fontSize: 13, fontWeight: '700' },
 
   // ─── Pagination ───
   pagination: {
@@ -929,7 +946,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: C.border,
     ...cardShadow,
   },
-  pageShowText: { fontSize: 12, color: C.sub, textAlign: 'center', marginBottom: 12 },
+  pageShowText: { fontSize: 13, color: C.sub, textAlign: 'center', marginBottom: 12 },
   pageBold:     { fontWeight: '700', color: C.text },
   pageButtons:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   pageBtn: {
@@ -938,12 +955,12 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface,
   },
   pageBtnDisabled: { opacity: 0.4 },
-  pageBtnText:     { fontSize: 13, fontWeight: '600', color: C.g700 },
+  pageBtnText:     { fontSize: 14, fontWeight: '600', color: C.g700 },
   pageIndicator: {
     paddingHorizontal: 16, paddingVertical: 9, borderRadius: 12,
     backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
   },
-  pageIndicatorText: { fontSize: 13, fontWeight: '700', color: C.g700 },
+  pageIndicatorText: { fontSize: 14, fontWeight: '700', color: C.g700 },
 
   // ─── Empty state ───
   emptyWrap: {
@@ -954,7 +971,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', marginBottom: 6,
   },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '700', color: C.text, textAlign: 'center' },
-  emptyMsg:   { fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 20 },
+  emptyMsg:   { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 20 },
   emptyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     marginTop: 8, paddingHorizontal: 28, paddingVertical: 14, borderRadius: rs(14),
@@ -984,7 +1001,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
   modalTitle:    { fontFamily: DISPLAY, fontSize: 18, fontWeight: '700', color: '#fff' },
-  modalTitleSub: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
+  modalTitleSub: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
   modalCloseBtn: {
     width: 34, height: 34, borderRadius: 17,
     backgroundColor: 'rgba(255,255,255,0.1)',
@@ -993,7 +1010,7 @@ const s = StyleSheet.create({
   modalBody: { paddingHorizontal: 22, paddingVertical: 20 },
 
   formLabel: {
-    fontSize: 10, fontWeight: '700', color: C.muted,
+    fontSize: 11, fontWeight: '700', color: C.muted,
     letterSpacing: 0.9, textTransform: 'uppercase', marginBottom: 8,
   },
   starsRow: {

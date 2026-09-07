@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, ActivityIndicator, StatusBar,
@@ -13,7 +13,7 @@ import { getTemplates, deleteTemplate, updateTemplate } from '../../../api/clien
 import { showConfirm, showError, showSuccess } from '../../../../services/alertService';
 import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
 
 const C = {
   g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
@@ -23,6 +23,10 @@ const C = {
   blue: T.blue, blueL: T.blueLight,
   red: T.red, redL: T.redLight,
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 export default function PackersTemplatesScreen({ navigation }) {
   const [templates, setTemplates] = useState([]);
@@ -41,8 +45,6 @@ export default function PackersTemplatesScreen({ navigation }) {
       setRefreshing(false);
     }
   }, []);
-
-  useEffect(() => { fetchTemplates(); }, [fetchTemplates]);
 
   useFocusEffect(
     useCallback(() => { fetchTemplates(); }, [fetchTemplates])
@@ -181,8 +183,27 @@ export default function PackersTemplatesScreen({ navigation }) {
             </View>
           </SafeAreaView>
         </LinearGradient>
-        <View style={s.centered}>
-          <ActivityIndicator size="large" color={C.g600} />
+        <View style={s.list}>
+          {[0, 1, 2].map(i => (
+            <View key={i} style={s.card}>
+              <View style={[s.cardHeader, { backgroundColor: '#DDE4EE' }]}>
+                <View style={s.cardHeaderLeft}>
+                  <Bone w={100} h={12} style={{ backgroundColor: 'rgba(255,255,255,0.5)' }} />
+                </View>
+                <Bone w={50} h={16} r={999} style={{ backgroundColor: 'rgba(255,255,255,0.5)' }} />
+              </View>
+              <View style={s.cardBody}>
+                <Bone w={150} h={15} style={{ marginBottom: 8 }} />
+                <Bone w="90%" h={11} style={{ marginBottom: 4 }} />
+                <Bone w="60%" h={11} style={{ marginBottom: 12 }} />
+                <View style={s.actions}>
+                  <Bone w="100%" h={36} r={10} style={{ flex: 1 }} />
+                  <Bone w="100%" h={36} r={10} style={{ flex: 1 }} />
+                  <Bone w={44} h={36} r={10} />
+                </View>
+              </View>
+            </View>
+          ))}
         </View>
       </View>
     );
@@ -197,8 +218,7 @@ export default function PackersTemplatesScreen({ navigation }) {
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.heroMin}
       >
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={18} color="#fff" />
@@ -244,19 +264,17 @@ export default function PackersTemplatesScreen({ navigation }) {
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   heroMin: {
     paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden',
     borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20),
   },
-  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)' },
-  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)' },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   heroTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff' },
-  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
+  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
 
   list: { padding: 16, paddingBottom: 90 },
 
@@ -267,29 +285,29 @@ const s = StyleSheet.create({
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10 },
   cardHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cardHeaderText: { fontSize: 12, fontWeight: '600', color: '#fff', opacity: 0.9 },
+  cardHeaderText: { fontSize: 13, fontWeight: '600', color: '#fff', opacity: 0.9 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)' },
-  statusBadgeTxt: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  statusBadgeTxt: { fontSize: 11, fontWeight: '700', color: '#fff' },
 
   cardBody: { padding: 16 },
   templateName: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text, marginBottom: 6 },
-  description: { fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 18 },
+  description: { fontSize: 14, color: C.muted, marginBottom: 12, lineHeight: 18 },
 
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  priceLabel: { fontSize: 13, color: C.muted },
+  priceLabel: { fontSize: 14, color: C.muted },
   priceValue: { fontSize: 16, fontWeight: '700', color: C.text },
 
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
   tag: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: C.g50, borderRadius: 12 },
-  tagTxt: { fontSize: 11, fontWeight: '600', color: C.g700 },
+  tagTxt: { fontSize: 12, fontWeight: '600', color: C.g700 },
 
   inclusionsPreview: { marginBottom: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border },
-  inclusionsLabel: { fontSize: 11, color: C.muted, marginBottom: 4 },
-  inclusionsText: { fontSize: 12, color: C.text, lineHeight: 18 },
+  inclusionsLabel: { fontSize: 12, color: C.muted, marginBottom: 4 },
+  inclusionsText: { fontSize: 13, color: C.text, lineHeight: 18 },
 
   actions: { flexDirection: 'row', gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border },
   actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 10 },
-  actionBtnTxt: { fontSize: 12, fontWeight: '700' },
+  actionBtnTxt: { fontSize: 13, fontWeight: '700' },
 
   empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 32 },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: C.text, marginTop: 16 },

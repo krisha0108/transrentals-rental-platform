@@ -626,13 +626,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: C.muted,
     marginTop: -8,
     marginBottom: 12,
   },
   addDefaultText: {
-    fontSize: 13,
+    fontSize: 14,
     color: C.blue,
     fontWeight: '600',
   },
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: C.text,
     marginBottom: 8,
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
     borderColor: C.pink,
   },
   chipText: {
-    fontSize: 13,
+    fontSize: 14,
     color: C.text,
     fontWeight: '500',
   },
@@ -737,7 +737,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   itemText: {
-    fontSize: 13,
+    fontSize: 14,
     color: C.text,
   },
   toggleRow: {
@@ -754,7 +754,7 @@ const styles = StyleSheet.create({
     color: C.text,
   },
   toggleDesc: {
-    fontSize: 12,
+    fontSize: 13,
     color: C.muted,
     marginTop: 2,
   },

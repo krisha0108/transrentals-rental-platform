@@ -11,11 +11,14 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorFleet, deleteVehicle, getBaseURL } from '../../api/client';
 import { showConfirm, showError, showSuccess } from '../../../services/alertService';
-import { ListSkeleton } from '../../../components/SkeletonLoader';
 import { useVerificationGate, VerificationBanner } from '../../../components/VerificationGate';
-import { SC as T, G, rs, shade, cardShadow, rowShadow } from '../_shared/theme';
+import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 // Same key names this screen already used — only the values now come from
 // the shared "Elevate" theme instead of hardcoded hex. Matches the mapping
@@ -339,19 +342,61 @@ export default function FleetListScreen({ navigation }) {
       <View style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={styles.headerLoading}>
-          <AnimatedOrb style={styles.orbA} />
-          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+          <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']} style={styles.headerSafe}>
-            <View style={styles.headerTopRow}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
-                <Icon name="arrow-left" size={20} color="#fff" />
-              </TouchableOpacity>
-              <Text style={styles.loadTitle}>My Fleet</Text>
-              <View style={{ width: 40 }} />
+            <View style={styles.topBar}>
+              <Bone w={40} h={40} r={20} />
+              <View style={styles.titleWrap}>
+                <Bone w={90} h={11} r={4} style={{ marginBottom: 6 }} />
+                <Bone w={90} h={17} r={5} />
+              </View>
+              <Bone w={40} h={40} r={20} />
             </View>
           </SafeAreaView>
         </LinearGradient>
-        <ListSkeleton count={4} />
+        <View style={[styles.overviewCard, { marginHorizontal: 16, marginTop: rs(14) }]}>
+          <View style={styles.statsRow}>
+            {[0,1,2,3].map(i => (
+              <React.Fragment key={i}>
+                {i > 0 && <View style={styles.statDiv} />}
+                <View style={styles.statBox}>
+                  <Bone w={26} h={17} r={4} style={{ marginBottom: 6 }} />
+                  <Bone w={44} h={9} r={3} />
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+          <View style={styles.overviewDivider} />
+          <View style={styles.toolsInnerRow}>
+            {[0,1,2,3].map(i => (
+              <React.Fragment key={i}>
+                {i > 0 && <View style={styles.statDiv} />}
+                <View style={styles.toolCol}>
+                  <Bone w={34} h={34} r={10} />
+                  <Bone w={40} h={9} r={3} />
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+        </View>
+        <View style={{ paddingHorizontal: 16, paddingTop: 12, gap: 10 }}>
+          {[0,1,2,3].map(i => (
+            <View key={i} style={{ flexDirection: 'row', backgroundColor: C.card, borderRadius: rs(14), borderWidth: 1, borderColor: C.border, overflow: 'hidden' }}>
+              <View style={{ width: 3, backgroundColor: '#DDE4EE' }} />
+              <View style={{ flex: 1, padding: 11, gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Bone w={42} h={42} r={11} />
+                  <Bone w={130} h={13} r={4} />
+                  <Bone w={60} h={18} r={9} style={{ marginLeft: 'auto' }} />
+                </View>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Bone w={70} h={16} r={7} />
+                  <Bone w={50} h={16} r={7} />
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
@@ -368,14 +413,19 @@ export default function FleetListScreen({ navigation }) {
 
       {/* ── HERO HEADER ── */}
       <LinearGradient colors={G.hero} style={styles.header}>
-        <AnimatedOrb style={styles.orbA} />
-        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={styles.headerSafe}>
-          <View style={styles.headerTopRow}>
+          <View style={styles.topBar}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
               <Icon name="arrow-left" size={20} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }} />
+            <View style={styles.titleWrap}>
+              <View style={styles.heroBadge}>
+                <MaterialCommunityIcons name="car-multiple" size={11} color={C.g400} />
+                <Text style={styles.heroBadgeTxt}>Fleet Manager</Text>
+              </View>
+              <Text style={styles.headerTitle}>My Fleet</Text>
+            </View>
             <TouchableOpacity
               style={styles.addCircle}
               onPress={gate(() => navigation.navigate('AddVehicleScreen'), 'add vehicles')}
@@ -384,59 +434,10 @@ export default function FleetListScreen({ navigation }) {
               <Icon name={addIcon} size={20} color="#fff" />
             </TouchableOpacity>
           </View>
-
-          <View style={styles.heroBadge}>
-            <MaterialCommunityIcons name="car-multiple" size={12} color={C.g400} />
-            <Text style={styles.heroBadgeTxt}>Fleet Manager</Text>
-          </View>
-          <Text style={styles.bigTitle}>My Fleet</Text>
-          <Text style={styles.bigSub}>{vehicles.length} vehicles · {availableServices.length} services</Text>
-
-          <View style={{ height: rs(30) }} />
         </SafeAreaView>
       </LinearGradient>
 
-      {/* Floating stats card — tucks into the hero's bottom curve, mirroring
-          the compact template's floating-search-card motif. */}
-      <View style={styles.statsWrap}>
-        <View style={styles.statsCard}>
-          {[
-            { label: 'Total',    value: vehicles.length,            color: C.text  },
-            { label: 'Active',   value: activeCount,                color: C.g700  },
-            { label: 'Booked',   value: bookedCount,                color: C.blue  },
-            { label: 'Services', value: availableServices.length,   color: C.amber },
-          ].map((s, i) => (
-            <React.Fragment key={s.label}>
-              {i > 0 && <View style={styles.statDiv} />}
-              <View style={styles.statBox}>
-                <Text style={[styles.statVal, { color: s.color }]}>{s.value}</Text>
-                <Text style={styles.statLabel}>{s.label}</Text>
-              </View>
-            </React.Fragment>
-          ))}
-        </View>
-      </View>
-
-      {/* Pending-vendor verification banner */}
-      <VerificationBanner status={vendorStatus} navigation={navigation} />
-
-      {/* ── FLEET TOOLS — fixed quick-access row ── */}
-      <View style={styles.toolsRow}>
-        {FLEET_TOOLS.map((tool, idx) => {
-          const gc = idx===0?['#1D4ED8','#60A5FA']:idx===1?['#B45309','#FBBF24']:idx===2?['#B91C1C','#F87171']:[C.g800,C.g500];
-          return (
-            <TouchableOpacity key={tool.label} style={styles.toolItem} onPress={() => navigation.navigate(tool.screen)} activeOpacity={0.8}>
-              <LinearGradient colors={gc} style={styles.toolItemIcon}>
-                <MaterialCommunityIcons name={tool.icon} size={19} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.toolItemLabel} numberOfLines={1}>{tool.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Fixed filters — kept OUTSIDE the FlatList so switching tabs/chips
-          doesn't reset scroll position. */}
+      {/* Filters — fixed, always visible above the scrolling list */}
       <View style={styles.filtersFixed}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.svcScroll}>
           {[{ slug:'all', icon:'car-multiple', color: C.g700, shortLabel:'All', count: vehicles.length }, ...availableServices].map(svc => {
@@ -487,8 +488,10 @@ export default function FleetListScreen({ navigation }) {
         )}
       </View>
 
-      {/* ── VEHICLE LIST ── */}
+      {/* ── VEHICLE LIST — stats/banner/tools scroll away with the list;
+          filters above stay fixed so the active filter is always visible. ── */}
       <FlatList
+        style={{ flex: 1 }}
         data={filteredVehicles}
         renderItem={renderVehicle}
         keyExtractor={(item) => item.id?.toString()}
@@ -496,12 +499,56 @@ export default function FleetListScreen({ navigation }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          !isFilteredEmpty ? (
-            <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>MY VEHICLES</Text>
-              <Text style={styles.sectionCount}>{filteredVehicles.length} of {vehicles.length}</Text>
+          <View style={{ paddingTop: rs(14), gap: 14 }}>
+            {/* Fleet overview — one panel: stats on top, quick tools below */}
+            <View style={styles.overviewCard}>
+              <View style={styles.statsRow}>
+                {[
+                  { label: 'Total',    value: vehicles.length,            color: C.text  },
+                  { label: 'Active',   value: activeCount,                color: C.g700  },
+                  { label: 'Booked',   value: bookedCount,                color: C.blue  },
+                  { label: 'Services', value: availableServices.length,   color: C.amber },
+                ].map((s, i) => (
+                  <React.Fragment key={s.label}>
+                    {i > 0 && <View style={styles.statDiv} />}
+                    <View style={styles.statBox}>
+                      <Text style={[styles.statVal, { color: s.color }]}>{s.value}</Text>
+                      <Text style={styles.statLabel}>{s.label}</Text>
+                    </View>
+                  </React.Fragment>
+                ))}
+              </View>
+
+              <View style={styles.overviewDivider} />
+
+              <View style={styles.toolsInnerRow}>
+                {FLEET_TOOLS.map((tool, idx) => {
+                  const gc = idx===0?['#1D4ED8','#60A5FA']:idx===1?['#B45309','#FBBF24']:idx===2?['#B91C1C','#F87171']:[C.g800,C.g500];
+                  return (
+                    <React.Fragment key={tool.label}>
+                      {idx > 0 && <View style={styles.statDiv} />}
+                      <TouchableOpacity style={styles.toolCol} onPress={() => navigation.navigate(tool.screen)} activeOpacity={0.7}>
+                        <LinearGradient colors={gc} style={styles.toolColIcon}>
+                          <MaterialCommunityIcons name={tool.icon} size={17} color="#fff" />
+                        </LinearGradient>
+                        <Text style={styles.toolColLabel} numberOfLines={1}>{tool.label}</Text>
+                      </TouchableOpacity>
+                    </React.Fragment>
+                  );
+                })}
+              </View>
             </View>
-          ) : null
+
+            {/* Pending-vendor verification banner */}
+            <VerificationBanner status={vendorStatus} navigation={navigation} />
+
+            {!isFilteredEmpty && (
+              <View style={[styles.sectionHead, { paddingBottom: 0 }]}>
+                <Text style={styles.sectionTitle}>MY VEHICLES</Text>
+                <Text style={styles.sectionCount}>{filteredVehicles.length} of {vehicles.length}</Text>
+              </View>
+            )}
+          </View>
         }
         ListEmptyComponent={
           <FleetEmptyState
@@ -528,23 +575,17 @@ const styles = StyleSheet.create({
   headerLoading: {
     overflow: 'hidden',
     borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
+    paddingBottom: rs(8),
   },
   headerSafe: { paddingHorizontal: 16 },
-  orbA: {
-    position: 'absolute', top: -46, right: -30, width: 150, height: 150,
-    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -40, left: -34, width: 120, height: 120,
-    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
-  },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(14) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: rs(16) },
+  titleWrap: { alignItems: 'center', justifyContent: 'center', minHeight: 34 },
   backCircle: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center', alignItems: 'center',
   },
-  loadTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff', flex: 1, textAlign: 'center' },
   addCircle: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -552,54 +593,51 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
   },
 
-  heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 8 },
-  heroBadgeTxt: { fontSize: 11, fontWeight: '600', color: C.g400, fontFamily: DISPLAY },
-  bigTitle: { fontSize: 26, fontWeight: '700', color: '#fff', fontFamily: DISPLAY, marginBottom: 3 },
-  bigSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', fontFamily: DISPLAY },
+  heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 4 },
+  heroBadgeTxt: { fontSize: 12, fontWeight: '600', color: C.g400, fontFamily: DISPLAY },
+  headerTitle: { fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.2, fontFamily: DISPLAY },
 
-  /* Floating stats card */
-  statsWrap: { marginHorizontal: 16, marginTop: -rs(24) },
-  statsCard: {
-    flexDirection: 'row',
+  /* Fleet overview panel — stats on top, quick tools below, one card */
+  overviewCard: {
     backgroundColor: C.card, borderRadius: rs(16),
-    paddingVertical: 13,
-    borderWidth: 1, borderColor: C.glassBorder,
+    borderWidth: 1, borderColor: C.border,
     ...cardShadow,
   },
+  statsRow: { flexDirection: 'row', paddingVertical: 13 },
+  overviewDivider: { height: 1, backgroundColor: C.border, marginHorizontal: 14 },
   statDiv:  { width: 1, backgroundColor: C.border, marginVertical: 4 },
   statBox:  { flex: 1, alignItems: 'center' },
   statVal:  { fontSize: 17, fontWeight: '800', fontFamily: DISPLAY, marginBottom: 2 },
-  statLabel:{ fontSize: 9.5, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.4 },
+  statLabel:{ fontSize: 10.5, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.4 },
 
-  /* Fleet tools — fixed single row */
-  toolsRow: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: rs(14), paddingBottom: 6, gap: 8 },
-  toolItem: { flex: 1, alignItems: 'center', backgroundColor: C.card, borderRadius: rs(14), paddingVertical: 12, borderWidth: 1, borderColor: C.border, ...rowShadow },
-  toolItemIcon: { width: 38, height: 38, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
-  toolItemLabel: { fontSize: 10.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
+  toolsInnerRow: { flexDirection: 'row', paddingVertical: 12 },
+  toolCol: { flex: 1, alignItems: 'center', gap: 6 },
+  toolColIcon: { width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  toolColLabel: { fontSize: 10.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
 
   /* Fixed filters */
   filtersFixed: { paddingTop: 8 },
   svcScroll: { gap: 8, paddingHorizontal: 16, paddingBottom: 10 },
   svcChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 20, backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border },
-  svcChipTxt: { fontSize: 12, fontWeight: '700', color: C.muted, fontFamily: DISPLAY },
-  svcChipCnt: { fontSize: 11, fontWeight: '800', color: C.muted },
+  svcChipTxt: { fontSize: 13, fontWeight: '700', color: C.muted, fontFamily: DISPLAY },
+  svcChipCnt: { fontSize: 12, fontWeight: '800', color: C.muted },
 
   statusRow: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 8, backgroundColor: C.card, borderRadius: 12, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
   statusTab: { flex: 1, alignItems: 'center', paddingVertical: 9, gap: 3, borderBottomWidth: 2.5, borderBottomColor: 'transparent' },
-  statusTabTxt: { fontSize: 11, fontWeight: '700', color: C.muted, fontFamily: DISPLAY },
+  statusTabTxt: { fontSize: 12, fontWeight: '700', color: C.muted, fontFamily: DISPLAY },
   statusTabCnt: { minWidth: 20, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6, backgroundColor: C.bg, alignItems: 'center' },
-  statusTabCntTxt: { fontSize: 10, fontWeight: '800', color: C.muted },
+  statusTabCntTxt: { fontSize: 11, fontWeight: '800', color: C.muted },
 
   activeFilterRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 8 },
-  activeFilterTxt: { fontSize: 12, color: C.sub, fontWeight: '600' },
-  clearFilterTxt: { fontSize: 12, color: C.red, fontWeight: '700' },
+  activeFilterTxt: { fontSize: 13, color: C.sub, fontWeight: '600' },
+  clearFilterTxt: { fontSize: 13, color: C.red, fontWeight: '700' },
 
   /* List */
   listContent: { paddingHorizontal: 16, paddingBottom: 120, gap: 10, paddingTop: 4 },
 
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10 },
-  sectionTitle: { fontSize: 11, fontWeight: '800', color: C.muted, letterSpacing: 1.2, textTransform: 'uppercase', fontFamily: DISPLAY },
-  sectionCount: { fontSize: 12, fontWeight: '600', color: C.sub },
+  sectionTitle: { fontSize: 12, fontWeight: '800', color: C.muted, letterSpacing: 1.2, textTransform: 'uppercase', fontFamily: DISPLAY },
+  sectionCount: { fontSize: 13, fontWeight: '600', color: C.sub },
 
   /* Vehicle card */
   card: {
@@ -607,7 +645,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.card,
     borderRadius: rs(14),
     borderWidth: 1,
-    borderColor: C.glassBorder,
+    borderColor: C.border,
     overflow: 'hidden',
     ...cardShadow,
   },
@@ -619,22 +657,22 @@ const styles = StyleSheet.create({
   vehicleImg: { width: 42, height: 42, borderRadius: rs(11) },
   cardName: { fontSize: 14.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY, flex: 1 },
   statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
-  statusText: { fontSize: 9.5, fontWeight: '700', textTransform: 'capitalize' },
+  statusText: { fontSize: 10.5, fontWeight: '700', textTransform: 'capitalize' },
   vDel: { width: 28, height: 28, borderRadius: 9, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
 
   cardBody: { marginLeft: 50 },
-  regText: { fontSize: 11.5, color: C.blue, fontWeight: '700', letterSpacing: 0.3, marginBottom: 6 },
+  regText: { fontSize: 12.5, color: C.blue, fontWeight: '700', letterSpacing: 0.3, marginBottom: 6 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontSize: 10.5, color: C.sub, fontWeight: '600' },
+  metaText: { fontSize: 11.5, color: C.sub, fontWeight: '600' },
   svcTag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7 },
-  svcTagTxt: { fontSize: 10, fontWeight: '700', fontFamily: DISPLAY },
+  svcTagTxt: { fontSize: 11, fontWeight: '700', fontFamily: DISPLAY },
 
   /* Illustrated empty state */
   emptyCardWrap: {
     alignItems: 'center',
     backgroundColor: C.card, borderRadius: rs(24),
-    borderWidth: 1, borderColor: C.glassBorder,
+    borderWidth: 1, borderColor: C.border,
     paddingHorizontal: 20, paddingVertical: rs(30),
     marginTop: rs(6),
   },
@@ -667,7 +705,7 @@ const styles = StyleSheet.create({
   emptyArtTagTxt: { fontSize: 8.5, fontWeight: '700', color: C.g700, letterSpacing: 0.6, fontFamily: DISPLAY },
   emptyTitle:    { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 6, fontFamily: DISPLAY, textAlign: 'center' },
   emptyBody: {
-    fontSize: 13, color: C.muted, textAlign: 'center',
+    fontSize: 14, color: C.muted, textAlign: 'center',
     lineHeight: 19, maxWidth: rs(260),
   },
   emptyCtaWrap: { marginTop: rs(16) },

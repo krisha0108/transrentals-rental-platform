@@ -1842,6 +1842,35 @@ export function ChatBookingHero({
     }, 800);
   };
 
+  // Bus quote requests collect a "special requirements" multi-select
+  // (AC/Decoration/Music/etc., matching the manual bus quote form) before
+  // the free-text notes step. Selections toggle via repeated single-select
+  // taps — this bot has no separate multi-select UI primitive, so re-prompt
+  // with an updated option list (checkmarks) until the user hits Done.
+  // `selected` is accepted as a param (not read from bookingData) because
+  // setBookingData is async — passing the fresh array avoids a stale read.
+  const askForBusRequirements = (selected: string[] = bookingData.busRequirements || []) => {
+    setIsTyping(true);
+    setTimeout(() => {
+      const allOptions = ['AC', 'Non AC', 'Decoration', 'Music System', 'Extra Luggage', 'Pushback Seats', 'Wheelchair', 'Other'];
+      addShiviMessage(
+        selected.length
+          ? `Selected: ${selected.join(', ')}\n\nTap to add/remove more, or hit Done when ready. 🚌`
+          : 'Any special requirements for your bus? 🚌\n(Tap all that apply, then hit Done)',
+        [
+          ...allOptions.map(opt => ({
+            label: selected.includes(opt) ? `✅ ${opt}` : opt,
+            action: 'toggle-bus-requirement',
+            value: opt,
+          })),
+          { label: '➡️ Done', action: 'finish-bus-requirements', value: '' },
+        ],
+        0
+      );
+      setCurrentStep('bus-requirements');
+    }, 800);
+  };
+
   const askForBookingPurpose = () => {
     setIsTyping(true);
     setTimeout(() => {
@@ -1986,6 +2015,9 @@ export function ChatBookingHero({
       }
       if (bookingData.passengers) {
         summary += `👥 Passengers: ${bookingData.passengers}\n`;
+      }
+      if (bookingData.busRequirements?.length) {
+        summary += `✅ Requirements: ${bookingData.busRequirements.join(', ')}\n`;
       }
     }
 
@@ -2396,6 +2428,95 @@ export function ChatBookingHero({
       );
       // Fallback to normal flow
       setTimeout(() => showSummary(), 1500);
+    }
+  };
+
+  // Personal (non-B2B) bus requests go through the same quote-broadcast
+  // flow as the manual bus form (`/api/bus-quote-requests`) instead of the
+  // unified direct-booking `/api/bookings` endpoint every other chat
+  // service uses — vendors send quotes rather than a single booking being
+  // created immediately.
+  const handleBusQuoteRequestSubmit = async () => {
+    addUserMessage('Confirm & Get Best Quotes');
+    addShiviMessage(
+      '🚌 Submitting your request to our verified bus operators...',
+      undefined,
+      500
+    );
+
+    try {
+      const pickupDt = bookingData.pickupDateTime ? new Date(bookingData.pickupDateTime) : null;
+      const pickupDate = pickupDt ? pickupDt.toISOString().split('T')[0] : '';
+      const pickupTime = pickupDt
+        ? pickupDt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
+        : '06:00';
+      const returnDt = bookingData.returnDateTime ? new Date(bookingData.returnDateTime) : null;
+      const returnDate = returnDt ? returnDt.toISOString().split('T')[0] : undefined;
+      const returnTime = returnDt
+        ? returnDt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
+        : undefined;
+
+      const busRequirements: string[] = bookingData.busRequirements || [];
+      const requirementsList = [
+        ...busRequirements,
+        ...(bookingData.additionalDetails?.trim() ? [bookingData.additionalDetails.trim()] : []),
+      ];
+
+      const response = await fetch('/api/bus-quote-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: bookingData.name || '',
+          customerEmail: bookingData.email || '',
+          customerPhone: (bookingData.phone || '').replace(/\D/g, ''),
+          customerId: loggedInCustomer?.id,
+          pickupCity: bookingData.pickupLocation || '',
+          pickupAddress: bookingData.pickupFullAddress || undefined,
+          dropCity: bookingData.destination || undefined,
+          dropAddress: bookingData.destinationFullAddress || undefined,
+          pickupDate,
+          pickupTime,
+          returnDate,
+          returnTime,
+          passengers: parseInt(bookingData.passengers) || 10,
+          tripType: bookingData.busTripType === 'local' ? 'local' : 'outstation',
+          vehicleCategoryName: bookingData.subService || undefined,
+          requirements: requirementsList.length ? requirementsList.join(', ') : undefined,
+          needAC: busRequirements.includes('AC'),
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to submit quote request');
+      }
+
+      const firstName = bookingData.name?.split(' ')[0] || 'there';
+      const requestNumber = result.quoteRequest?.requestNumber || 'N/A';
+      setBookingData((prev: any) => ({ ...prev, lastBookingId: requestNumber }));
+
+      addShiviMessage(
+        `🎉 Quote Request Submitted, ${firstName}!\n\n` +
+        `📋 Request ID: ${requestNumber}\n` +
+        `🚌 ${bookingData.pickupLocation}${bookingData.destination && bookingData.destination !== bookingData.pickupLocation ? ' → ' + bookingData.destination : ''}\n` +
+        `👥 Passengers: ${bookingData.passengers}\n\n` +
+        `Our verified bus operators will send you quotes within 24-48 hours. You'll be notified as soon as quotes arrive!`,
+        [
+          { label: '📊 Track My Request', action: 'dashboard', value: '/customer/dashboard' },
+          { label: '🔄 New Booking', action: 'restart', value: '' },
+        ],
+        1000
+      );
+      setCurrentStep('completed');
+    } catch (error: any) {
+      console.error('Bus Quote Request Submit Error:', error);
+      addShiviMessage(
+        `❌ ${error.message || 'Something went wrong while submitting your request.'}\n\nPlease try again or contact support.`,
+        [
+          { label: '🔄 Try Again', action: 'submit', value: '' },
+        ],
+        800
+      );
     }
   };
 
@@ -2985,6 +3106,16 @@ export function ChatBookingHero({
       addUserMessage(busTripTypeLabels[value || 'outstation']);
       setBookingData((prev: any) => ({ ...prev, busTripType: value }));
       askForLocation();
+    } else if (action === 'toggle-bus-requirement') {
+      const current: string[] = bookingData.busRequirements || [];
+      const isRemoving = current.includes(value || '');
+      const next = isRemoving ? current.filter((v: string) => v !== value) : [...current, value || ''];
+      addUserMessage((isRemoving ? '❌ ' : '✅ ') + value);
+      setBookingData((prev: any) => ({ ...prev, busRequirements: next }));
+      askForBusRequirements(next);
+    } else if (action === 'finish-bus-requirements') {
+      addUserMessage('Done ✅');
+      askForAdditionalDetails();
     } else if (action === 'select-truck-mode') {
       const truckModeLabels: Record<string, string> = {
         '1': 'Personal Use',
@@ -3677,13 +3808,15 @@ export function ChatBookingHero({
     } else if (action === 'skip-additional-details') {
       addUserMessage('Skip');
       setBookingData((prev: any) => ({ ...prev, additionalDetails: '' }));
-      // For bus + bike (B2B-fleet services available to everyone) AND
-      // ALWAYS for travel agents (any service), ask Personal/Company so
-      // corporate trips route into the b2b_bookings manager queue.
+      // For bus + bike, only ask Personal/Company when the customer already
+      // has an approved B2B account (non-B2B customers never see this) —
+      // ALWAYS ask travel agents (any service) so corporate trips route
+      // into the b2b_bookings manager queue on their agency's behalf.
       const isBusForPurposeSkip = serviceType.includes('bus') || serviceType.includes('tempo');
       const isBikeForPurposeSkip = serviceType.includes('bike') || serviceType.includes('activa') || serviceType.includes('royal-enfield');
       const isAgentForPurpose = !!loggedInCustomer?.linkedTravelAgentId;
-      if (isBusForPurposeSkip || isBikeForPurposeSkip || isAgentForPurpose) {
+      const isApprovedB2BForPurposeSkip = !!(loggedInCustomer?.isB2B && loggedInCustomer?.b2bStatus === 'APPROVED');
+      if (((isBusForPurposeSkip || isBikeForPurposeSkip) && isApprovedB2BForPurposeSkip) || isAgentForPurpose) {
         askForBookingPurpose();
       } else {
         setIsTyping(true);
@@ -3722,7 +3855,12 @@ export function ChatBookingHero({
         setTimeout(() => showSummary(), 800);
       }
     } else if (action === 'submit') {
-      handleSubmit();
+      const isBusServiceForSubmit = serviceType.includes('bus') || serviceType.includes('tempo');
+      if (isBusServiceForSubmit) {
+        handleBusQuoteRequestSubmit();
+      } else {
+        handleSubmit();
+      }
     } else if (action === 'restart') {
       window.location.reload();
     } else if (action === 'dashboard') {
@@ -4340,18 +4478,26 @@ export function ChatBookingHero({
       }
       setBookingData((prev: any) => ({ ...prev, email: inputValue }));
       setInputValue('');
-      // Ask for additional details after email
-      askForAdditionalDetails();
+      // Bus asks its special-requirements chips before the free-text notes;
+      // every other service goes straight to additional details as before.
+      const isBusForRequirements = serviceType.includes('bus') || serviceType.includes('tempo');
+      if (isBusForRequirements) {
+        askForBusRequirements();
+      } else {
+        askForAdditionalDetails();
+      }
     } else if (currentStep === 'additional-details') {
       // Save additional details
       setBookingData((prev: any) => ({ ...prev, additionalDetails: inputValue }));
       setInputValue('');
-      // For bus + bike (B2B-fleet services available to everyone) AND
-      // ALWAYS for travel agents (any service), ask Personal/Company.
+      // For bus + bike, only ask Personal/Company when the customer already
+      // has an approved B2B account (non-B2B customers never see this) —
+      // ALWAYS ask travel agents (any service).
       const isBusForPurpose = serviceType.includes('bus') || serviceType.includes('tempo');
       const isBikeForPurpose = serviceType.includes('bike') || serviceType.includes('activa') || serviceType.includes('royal-enfield');
       const isAgentForPurpose = !!loggedInCustomer?.linkedTravelAgentId;
-      if (isBusForPurpose || isBikeForPurpose || isAgentForPurpose) {
+      const isApprovedB2BForPurpose = !!(loggedInCustomer?.isB2B && loggedInCustomer?.b2bStatus === 'APPROVED');
+      if (((isBusForPurpose || isBikeForPurpose) && isApprovedB2BForPurpose) || isAgentForPurpose) {
         askForBookingPurpose();
       } else {
         setIsTyping(true);

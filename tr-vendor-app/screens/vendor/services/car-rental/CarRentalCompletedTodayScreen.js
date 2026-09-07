@@ -16,7 +16,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import { getBookings } from '../../../api/client';
 import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
 
 // Same key names this screen already used — only the values now come from
 // the shared "Elevate" theme instead of hardcoded hex.
@@ -40,7 +40,7 @@ function SkeletonCard() {
         Animated.timing(anim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
       ])
     ).start();
-  }, []);
+  }, [anim]);
   return (
     <Animated.View style={[styles.skCard, { opacity: anim }]}>
       <View style={styles.skRow}>
@@ -236,23 +236,17 @@ export default function CarRentalCompletedTodayScreen({ navigation }) {
 
       {/* Hero header */}
       <LinearGradient colors={G.hero} style={styles.header}>
-        <AnimatedOrb style={styles.orbA} />
-        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={styles.headerSafe}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
               <Icon name="arrow-left" size={20} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }} />
+            <View style={{ flex: 1, marginLeft: rs(10) }}>
+              <Text style={styles.headerEyebrow}>CAR RENTALS</Text>
+              <Text style={styles.headerTitle}>Completed Today</Text>
+            </View>
           </View>
-
-          <Text style={styles.headerEyebrow}>CAR RENTALS</Text>
-          <Text style={styles.bigTitle}>Completed Today</Text>
-          <Text style={styles.bigSub}>
-            {bookings.length} trip{bookings.length !== 1 ? 's' : ''} completed
-          </Text>
-
-          <View style={{ height: rs(28) }} />
         </SafeAreaView>
       </LinearGradient>
 
@@ -309,26 +303,18 @@ const styles = StyleSheet.create({
     paddingBottom: rs(8),
   },
   headerSafe: { paddingHorizontal: 16 },
-  orbA: {
-    position: 'absolute', top: -46, right: -30, width: 150, height: 150,
-    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -40, left: -34, width: 120, height: 120,
-    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
-  },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(10) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(10) },
   backCircle: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center', alignItems: 'center',
   },
-  headerEyebrow: { fontSize: 10, color: 'rgba(255,255,255,0.65)', fontWeight: '700', letterSpacing: 1.2, fontFamily: DISPLAY, marginBottom: 2 },
-  bigTitle: { fontSize: 28, fontWeight: '700', color: '#fff', fontFamily: DISPLAY },
-  bigSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', marginTop: 4, fontFamily: DISPLAY },
+  headerEyebrow: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '700', letterSpacing: 1.2, fontFamily: DISPLAY, marginBottom: 2 },
+  headerTitle: { fontSize: 19, fontWeight: '800', color: '#fff', fontFamily: DISPLAY, letterSpacing: -0.2 },
 
   /* Floating date card */
-  dateBarWrap: { marginHorizontal: 16, marginTop: -rs(24), marginBottom: rs(14) },
+  dateBarWrap: { marginHorizontal: 16, marginTop: rs(14), marginBottom: rs(14) },
   dateCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: C.card, borderRadius: rs(15),
@@ -341,7 +327,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.g50,
     justifyContent: 'center', alignItems: 'center',
   },
-  dateCardText: { fontSize: 13, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
+  dateCardText: { fontSize: 14, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
 
   listContent: { paddingHorizontal: 16, paddingBottom: 40, gap: 12 },
 
@@ -364,19 +350,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   cardTopLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  bookingNum: { fontSize: 12.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
+  bookingNum: { fontSize: 13.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
   completedChip: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     backgroundColor: C.g50, paddingHorizontal: 7, paddingVertical: 2,
     borderRadius: 7, borderWidth: 1, borderColor: C.g100,
   },
-  completedChipText: { fontSize: 10, color: C.g700, fontWeight: '600' },
+  completedChipText: { fontSize: 11, color: C.g700, fontWeight: '600' },
   timeBox: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: C.g50, paddingHorizontal: 8, paddingVertical: 4,
     borderRadius: 999, borderWidth: 1, borderColor: C.g100,
   },
-  timeBoxText: { fontSize: 10.5, fontWeight: '700', color: C.g700 },
+  timeBoxText: { fontSize: 11.5, fontWeight: '700', color: C.g700 },
 
   cardName: { fontSize: 14.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY, marginBottom: 6 },
 
@@ -388,18 +374,18 @@ const styles = StyleSheet.create({
   },
   locationBox: { flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 },
   locationDot: { width: 7, height: 7, borderRadius: 3.5 },
-  locationText: { fontSize: 11.5, fontWeight: '500', color: C.text, flex: 1 },
+  locationText: { fontSize: 12.5, fontWeight: '500', color: C.text, flex: 1 },
 
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 7 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  metaText: { fontSize: 10.5, color: C.sub, fontWeight: '600' },
+  metaText: { fontSize: 11.5, color: C.sub, fontWeight: '600' },
 
   cardFooter: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: 9,
     borderTopWidth: 1, borderTopColor: C.border,
   },
-  amtLabel: { fontSize: 10, color: C.muted, marginBottom: 1 },
+  amtLabel: { fontSize: 11, color: C.muted, marginBottom: 1 },
   amtValue: { fontSize: 15, fontWeight: '800', color: C.g700, fontFamily: DISPLAY },
   arrowCircle: {
     width: 26, height: 26, borderRadius: 13,
@@ -444,7 +430,7 @@ const styles = StyleSheet.create({
   emptyArtTagTxt: { fontSize: 8.5, fontWeight: '700', color: C.g700, letterSpacing: 0.6, fontFamily: DISPLAY },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 6, fontFamily: DISPLAY, textAlign: 'center' },
   emptyBody: {
-    fontSize: 13, color: C.muted, textAlign: 'center',
+    fontSize: 14, color: C.muted, textAlign: 'center',
     lineHeight: 19, maxWidth: rs(260),
   },
 });

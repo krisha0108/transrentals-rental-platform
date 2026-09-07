@@ -13,6 +13,7 @@ import { getB2BTripDetail, b2bDriverAction, b2bVerifyOtp } from '../../api/clien
 import CustomAlert from '../../../components/CustomAlert';
 import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -53,6 +54,10 @@ const STATUS_CONFIG = {
     icon: 'x-circle', heroIcon: 'close-circle-outline',
   },
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '--';
@@ -155,6 +160,7 @@ export default function B2BTripDetailScreen({ navigation, route }) {
 
   const Header = ({ tripCode: tc }) => (
     <LinearGradient colors={G.hero} style={s.header}>
+      <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
       <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
         <Icon name="arrow-left" size={22} color="#fff" />
       </TouchableOpacity>
@@ -170,9 +176,60 @@ export default function B2BTripDetailScreen({ navigation, route }) {
     return (
       <SafeAreaView style={s.safe} edges={['top']}>
         <Header tripCode={tripCode} />
-        <View style={s.loadingWrap}>
-          <ActivityIndicator size="large" color={C.g600} />
-        </View>
+        <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
+          {/* Hero banner skeleton */}
+          <View style={[s.heroBanner, { borderColor: C.border }]}>
+            <Bone w={56} h={56} r={28} />
+            <View style={{ flex: 1 }}>
+              <Bone w={110} h={17} style={{ marginBottom: 6 }} />
+              <Bone w={90} h={13} />
+            </View>
+          </View>
+
+          {/* Trip Information skeleton */}
+          <View style={s.card}>
+            <Bone w={140} h={12} style={{ marginBottom: 14 }} />
+            {[0, 1, 2].map((i) => (
+              <View key={i} style={s.infoRow}>
+                <Bone w={36} h={36} r={10} />
+                <View style={{ flex: 1 }}>
+                  <Bone w={60} h={10} style={{ marginBottom: 5 }} />
+                  <Bone w={130} h={14} />
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {/* Route skeleton */}
+          <View style={s.card}>
+            <Bone w={70} h={12} style={{ marginBottom: 14 }} />
+            {[0, 1].map((i) => (
+              <View key={i} style={s.routeBlock}>
+                <Bone w={12} h={12} r={6} />
+                <View style={s.routeTextWrap}>
+                  <Bone w={50} h={10} style={{ marginBottom: 5 }} />
+                  <Bone w={160} h={14} />
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {/* Trip Progress skeleton */}
+          <View style={s.card}>
+            <Bone w={110} h={12} style={{ marginBottom: 14 }} />
+            {[0, 1, 2, 3].map((i) => (
+              <View key={i} style={s.timelineItem}>
+                <View style={s.timelineLeft}>
+                  <Bone w={30} h={30} r={15} />
+                  {i < 3 && <View style={[s.timelineLine, { backgroundColor: C.border }]} />}
+                </View>
+                <View style={s.timelineContent}>
+                  <Bone w={110} h={13} />
+                </View>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -554,8 +611,10 @@ const s = StyleSheet.create({
   // Header
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 14,
+    paddingHorizontal: 16, paddingVertical: 14, overflow: 'hidden',
+    borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22),
   },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   backBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.12)',
@@ -563,12 +622,12 @@ const s = StyleSheet.create({
   },
   headerCenter: { flex: 1, alignItems: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff', fontFamily: DISPLAY },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2, fontFamily: 'monospace' },
+  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 2, fontFamily: 'monospace' },
 
   // Loading / Empty
   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
-  emptySub: { fontSize: 13, color: C.muted, textAlign: 'center' },
+  emptySub: { fontSize: 14, color: C.muted, textAlign: 'center' },
 
   scroll: { flex: 1 },
 
@@ -583,9 +642,9 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   heroStatus: { fontSize: 18, fontWeight: '800', fontFamily: DISPLAY },
-  heroTripCode: { fontSize: 13, color: C.sub, fontFamily: 'monospace', marginTop: 2 },
+  heroTripCode: { fontSize: 14, color: C.sub, fontFamily: 'monospace', marginTop: 2 },
   otpHeroBox: { alignItems: 'center' },
-  otpHeroLabel: { fontSize: 10, color: C.muted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  otpHeroLabel: { fontSize: 11, color: C.muted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   otpHeroValue: { fontSize: 28, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 4, marginTop: 2 },
 
   // Cards
@@ -595,7 +654,7 @@ const s = StyleSheet.create({
     ...cardShadow,
   },
   cardTitle: {
-    fontSize: 13, fontWeight: '700', color: C.muted,
+    fontSize: 14, fontWeight: '700', color: C.muted,
     textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 14,
   },
 
@@ -605,19 +664,19 @@ const s = StyleSheet.create({
     paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.border,
   },
   infoIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  infoLabel: { fontSize: 11, color: C.muted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
+  infoLabel: { fontSize: 12, color: C.muted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
   infoValue: { fontSize: 14, fontWeight: '600', color: C.text, marginTop: 1 },
-  infoSub: { fontSize: 12, color: C.sub, marginTop: 1 },
+  infoSub: { fontSize: 13, color: C.sub, marginTop: 1 },
   serviceChip: {
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1,
   },
-  serviceChipText: { fontSize: 11, fontWeight: '700' },
+  serviceChipText: { fontSize: 12, fontWeight: '700' },
   callBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: C.g50, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
     borderWidth: 1, borderColor: C.g100,
   },
-  callBtnText: { fontSize: 12, fontWeight: '700', color: C.g700 },
+  callBtnText: { fontSize: 13, fontWeight: '700', color: C.g700 },
 
   // Route (card 2)
   routeBlock: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 4 },
@@ -625,7 +684,7 @@ const s = StyleSheet.create({
   routePinDot: { width: 12, height: 12, borderRadius: 6 },
   routeConnector: { width: 2, flex: 1, backgroundColor: C.border, marginTop: 4, minHeight: 24 },
   routeTextWrap: { flex: 1, paddingBottom: 12 },
-  routeTypeLabel: { fontSize: 11, color: C.muted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
+  routeTypeLabel: { fontSize: 12, color: C.muted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
   routeAddress: { fontSize: 14, fontWeight: '600', color: C.text, lineHeight: 20 },
   tripTypeBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6,
@@ -633,7 +692,7 @@ const s = StyleSheet.create({
     backgroundColor: C.bg, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4,
     borderWidth: 1, borderColor: C.border,
   },
-  tripTypeBadgeText: { fontSize: 12, color: C.sub, fontWeight: '500' },
+  tripTypeBadgeText: { fontSize: 13, color: C.sub, fontWeight: '500' },
 
   // Timeline (card 3)
   timelineItem: { flexDirection: 'row', minHeight: 52 },
@@ -645,14 +704,14 @@ const s = StyleSheet.create({
   timelineContent: { flex: 1, paddingLeft: 12, paddingBottom: 16, justifyContent: 'center' },
   timelineLabel: { fontSize: 14, fontWeight: '600', color: C.text },
   timelineLabelMuted: { color: C.muted },
-  timelineTime: { fontSize: 11, color: C.muted, marginTop: 3 },
+  timelineTime: { fontSize: 12, color: C.muted, marginTop: 3 },
 
   // Action sections
   infoBanner: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
     borderRadius: 12, padding: 12, borderWidth: 1, marginBottom: 16,
   },
-  infoBannerText: { fontSize: 13, lineHeight: 18, flex: 1, fontWeight: '500' },
+  infoBannerText: { fontSize: 14, lineHeight: 18, flex: 1, fontWeight: '500' },
 
   bigActionBtn: { borderRadius: 14, overflow: 'hidden' },
   bigActionBtnGrad: {
@@ -677,7 +736,7 @@ const s = StyleSheet.create({
     borderRadius: 12, paddingVertical: 13, paddingHorizontal: 14,
     borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface,
   },
-  resendBtnText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  resendBtnText: { fontSize: 14, fontWeight: '600', color: C.sub },
   verifyBtn: { flex: 1, borderRadius: 12, overflow: 'hidden' },
   verifyBtnGrad: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -694,5 +753,5 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   completedTitle: { fontSize: 20, fontWeight: '800', color: C.g700, fontFamily: DISPLAY },
-  completedTime: { fontSize: 13, color: C.g600, marginTop: 4 },
+  completedTime: { fontSize: 14, color: C.g600, marginTop: 4 },
 });

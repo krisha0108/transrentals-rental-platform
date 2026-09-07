@@ -10,11 +10,14 @@ import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getDirectBookings } from '../../api/client';
 import DateFilterModal from '../../../components/DateFilterModal';
-import { ListSkeleton } from '../../../components/SkeletonLoader';
 import { useVerificationGate, VerificationBanner } from '../../../components/VerificationGate';
 import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -129,8 +132,7 @@ export default function DirectBookingsScreen({ navigation }) {
 
   const FixedHero = () => (
     <LinearGradient colors={G.hero} style={s.grad}>
-      <AnimatedOrb style={s.deco1} />
-      <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+      <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
       <SafeAreaView edges={['top']}>
         <View style={s.gradTop}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -151,33 +153,34 @@ export default function DirectBookingsScreen({ navigation }) {
             <Icon name={vendorStatus === 'APPROVED' ? 'plus' : 'lock'} size={22} color="#fff" />
           </TouchableOpacity>
         </View>
-
-        {/* Stats strip */}
-        <View style={s.statsStrip}>
-          <View style={s.statItem}>
-            <Text style={s.statNum}>{total}</Text>
-            <Text style={s.statLbl}>Total</Text>
-          </View>
-          <View style={s.statDiv} />
-          <View style={s.statItem}>
-            <Text style={[s.statNum, { color: C.g400 }]}>{activeCount}</Text>
-            <Text style={s.statLbl}>Active</Text>
-          </View>
-          <View style={s.statDiv} />
-          <View style={s.statItem}>
-            <Text style={[s.statNum, { color: '#93C5FD' }]}>{confirmedCount}</Text>
-            <Text style={s.statLbl}>Confirmed</Text>
-          </View>
-          <View style={s.statDiv} />
-          <View style={s.statItem}>
-            <Text style={[s.statNum, { color: '#86EFAC' }]}>
-              ₹{totalRevenue > 9999 ? `${(totalRevenue / 1000).toFixed(1)}K` : totalRevenue.toLocaleString('en-IN')}
-            </Text>
-            <Text style={s.statLbl}>Collected</Text>
-          </View>
-        </View>
       </SafeAreaView>
     </LinearGradient>
+  );
+
+  const StatsStrip = () => (
+    <View style={s.statsStrip}>
+      <View style={s.statItem}>
+        <Text style={s.statNum}>{total}</Text>
+        <Text style={s.statLbl}>Total</Text>
+      </View>
+      <View style={s.statDiv} />
+      <View style={s.statItem}>
+        <Text style={[s.statNum, { color: C.g700 }]}>{activeCount}</Text>
+        <Text style={s.statLbl}>Active</Text>
+      </View>
+      <View style={s.statDiv} />
+      <View style={s.statItem}>
+        <Text style={[s.statNum, { color: C.blue }]}>{confirmedCount}</Text>
+        <Text style={s.statLbl}>Confirmed</Text>
+      </View>
+      <View style={s.statDiv} />
+      <View style={s.statItem}>
+        <Text style={[s.statNum, { color: C.g600 }]}>
+          ₹{totalRevenue > 9999 ? `${(totalRevenue / 1000).toFixed(1)}K` : totalRevenue.toLocaleString('en-IN')}
+        </Text>
+        <Text style={s.statLbl}>Collected</Text>
+      </View>
+    </View>
   );
 
   const ListHeader = () => (
@@ -357,6 +360,7 @@ export default function DirectBookingsScreen({ navigation }) {
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
       <FixedHero />
+      <StatsStrip />
       <ListHeader />
       <FlatList
         data={bookings}
@@ -374,8 +378,25 @@ export default function DirectBookingsScreen({ navigation }) {
         }
         ListEmptyComponent={
           loading ? (
-            <View style={{ paddingTop: 8 }}>
-              <ListSkeleton count={4} />
+            <View style={{ paddingTop: 8, gap: 10 }}>
+              {[0,1,2,3].map(i => (
+                <View key={i} style={{ marginHorizontal: 14, backgroundColor: C.surface, borderRadius: rs(14), flexDirection: 'row', overflow: 'hidden', borderWidth: 1, borderColor: C.border }}>
+                  <View style={{ width: 3, backgroundColor: '#DDE4EE' }} />
+                  <View style={{ flex: 1, padding: 10, gap: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+                      <Bone w={32} h={32} r={10} />
+                      <Bone w={90} h={12} r={4} />
+                      <Bone w={60} h={18} r={10} style={{ marginLeft: 'auto' }} />
+                    </View>
+                    <Bone w={130} h={12} r={4} />
+                    <Bone w={100} h={10} r={4} />
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                      <Bone w={70} h={14} r={4} />
+                      <Bone w={50} h={16} r={8} />
+                    </View>
+                  </View>
+                </View>
+              ))}
             </View>
           ) : (
             <View style={s.emptyWrap}>
@@ -416,29 +437,28 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
 
   /* ── Gradient header ── */
-  grad: { paddingBottom: rs(18), overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
-  deco1: {
-    position: 'absolute', width: 190, height: 190, borderRadius: 95,
-    backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40,
-  },
-  deco2: {
-    position: 'absolute', width: 120, height: 120, borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.045)', bottom: -10, left: 40,
-  },
+  grad: { paddingBottom: rs(10), overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   gradTop: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14, gap: 8 },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
   gradTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  gradSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  gradSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
   hBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center', position: 'relative' },
   filterDot: { position: 'absolute', top: 8, right: 8, width: 7, height: 7, borderRadius: 3.5, backgroundColor: C.g400, borderWidth: 1.5, borderColor: C.g900 },
   addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
 
   /* Stats strip */
-  statsStrip: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
+  statsStrip: {
+    flexDirection: 'row', backgroundColor: C.surface,
+    marginHorizontal: 14, marginTop: 14, marginBottom: 4,
+    borderRadius: rs(14), overflow: 'hidden',
+    borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
+  },
   statItem: { flex: 1, paddingVertical: 13, alignItems: 'center' },
-  statNum: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff' },
-  statLbl: { fontSize: 9, color: 'rgba(255,255,255,0.55)', fontWeight: '700', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
-  statDiv: { width: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 10 },
+  statNum: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: C.text },
+  statLbl: { fontSize: 10, color: C.muted, fontWeight: '700', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
+  statDiv: { width: 1, backgroundColor: C.border, marginVertical: 10 },
 
   /* Search */
   searchBar: {
@@ -456,12 +476,12 @@ const s = StyleSheet.create({
   tabsContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border, ...cardShadow },
   tabActive: { backgroundColor: C.g700, borderColor: C.g700 },
-  tabText: { fontSize: 13, fontWeight: '700', color: C.subtext },
+  tabText: { fontSize: 14, fontWeight: '700', color: C.subtext },
   tabTextActive: { color: '#fff' },
 
   /* Date filter bar */
   dateBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: C.g50, borderBottomWidth: 1, borderBottomColor: C.g100 },
-  dateBarText: { flex: 1, fontSize: 12, color: C.g700, fontWeight: '700' },
+  dateBarText: { flex: 1, fontSize: 13, color: C.g700, fontWeight: '700' },
 
   /* List */
   list: { paddingTop: 12, paddingBottom: 30, gap: 12 },
@@ -477,34 +497,34 @@ const s = StyleSheet.create({
 
   cardTopStripe: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 6 },
   svcIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  svcLabel: { fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5 },
-  bookingNum: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text, marginTop: 1 },
+  svcLabel: { fontSize: 10.5, fontWeight: '800', letterSpacing: 0.5 },
+  bookingNum: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text, marginTop: 1 },
   statusPill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20 },
-  statusPillText: { fontSize: 10, fontWeight: '700' },
+  statusPillText: { fontSize: 11, fontWeight: '700' },
 
   cardName: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '700', color: C.text },
-  cardPhone: { fontSize: 11.5, color: C.muted, marginTop: 1, fontWeight: '600' },
+  cardPhone: { fontSize: 12.5, color: C.muted, marginTop: 1, fontWeight: '600' },
 
   cardMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 7, alignItems: 'center' },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
-  metaText: { fontSize: 11, color: C.subtext, fontWeight: '600' },
+  metaText: { fontSize: 12, color: C.subtext, fontWeight: '600' },
 
   moneyBlock: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: C.border },
   amtVal: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.g700, letterSpacing: -0.3 },
   footerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   paidChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: C.g100 },
   payChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  chipTxt: { fontSize: 9.5, fontWeight: '700' },
+  chipTxt: { fontSize: 10.5, fontWeight: '700' },
   expandBtn: { padding: 4 },
 
   /* Expanded */
   expanded: {},
   expandDivider: { height: 1, backgroundColor: C.border, marginTop: 4, marginBottom: 10 },
   eRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
-  eLabel: { fontSize: 12, color: C.muted, width: 66 },
-  eVal: { fontSize: 13, color: C.text, fontWeight: '700', flex: 1 },
+  eLabel: { fontSize: 13, color: C.muted, width: 66 },
+  eVal: { fontSize: 14, color: C.text, fontWeight: '700', flex: 1 },
   viewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10, paddingVertical: 10, borderRadius: rs(10), backgroundColor: C.g50, borderWidth: 1.5, borderColor: C.g100 },
-  viewBtnTxt: { fontSize: 13, fontWeight: '700', color: C.g700 },
+  viewBtnTxt: { fontSize: 14, fontWeight: '700', color: C.g700 },
 
   /* Empty */
   emptyWrap: { alignItems: 'center', paddingVertical: 64, paddingHorizontal: 32, gap: 8 },
@@ -513,7 +533,7 @@ const s = StyleSheet.create({
     backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
   },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text },
-  emptySub: { fontSize: 13, color: C.muted, textAlign: 'center' },
+  emptySub: { fontSize: 14, color: C.muted, textAlign: 'center' },
   emptyBtn: { marginTop: 16, borderRadius: rs(14), overflow: 'hidden' },
   emptyBtnGrad: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 14 },
   emptyBtnTxt: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },

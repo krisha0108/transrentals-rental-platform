@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,7 @@ import { getTemplates, deleteTemplate, updateTemplate } from '../../../api/clien
 import { showConfirm, showError, showSuccess } from '../../../../services/alertService';
 import { SC as T, G, rs, shade, cardShadow, SHEET_RADIUS } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
 import SheetHandle from '../../_shared/SheetHandle';
 
 const C = {
@@ -55,6 +55,10 @@ const CATEGORY_MAP = {
   convertible: 'Convertible',
 };
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 export default function LuxuryTemplatesScreen({ navigation }) {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,15 +66,7 @@ export default function LuxuryTemplatesScreen({ navigation }) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [previewTemplate, setPreviewTemplate] = useState(null);
 
-  useEffect(() => {
-    fetchTemplates();
-  }, [selectedCategory]);
-
-  useFocusEffect(
-    useCallback(() => { fetchTemplates(); }, [selectedCategory])
-  );
-
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     try {
       setLoading(true);
       const params = selectedCategory !== 'all' ? { category: selectedCategory } : {};
@@ -84,7 +80,11 @@ export default function LuxuryTemplatesScreen({ navigation }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory]);
+
+  useFocusEffect(
+    useCallback(() => { fetchTemplates(); }, [fetchTemplates])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -254,8 +254,7 @@ export default function LuxuryTemplatesScreen({ navigation }) {
           <View style={s.sheet}>
             <SheetHandle />
             <LinearGradient colors={G.hero} style={s.sheetHeader}>
-            <AnimatedOrb style={s.sheetDeco} />
-            <AnimatedOrb style={s.sheetDeco2} delay={1200} dx={-8} dy={6} />
+            <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
             <View style={s.sheetHeaderRow}>
               <View style={s.sheetIconRing}>
                 <LinearGradient colors={[C.g800, C.g600]} style={s.sheetIconGrad}>
@@ -389,8 +388,7 @@ export default function LuxuryTemplatesScreen({ navigation }) {
 
       {/* ─── GRADIENT HEADER ─── */}
       <LinearGradient colors={G.hero} style={s.header}>
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
             <Icon name="arrow-left" size={22} color="#fff" />
@@ -436,9 +434,32 @@ export default function LuxuryTemplatesScreen({ navigation }) {
 
       {/* ─── LIST / EMPTY / LOADING ─── */}
       {loading ? (
-        <View style={s.centerWrap}>
-          <MaterialCommunityIcons name="car-sports" size={56} color={C.g500} style={{ opacity: 0.35 }} />
-          <Text style={s.centerText}>Loading templates...</Text>
+        <View style={s.listContent}>
+          {[0, 1, 2].map(i => (
+            <View key={i} style={s.card}>
+              <View style={[s.cardAccentBar, { backgroundColor: '#DDE4EE' }]} />
+              <View style={s.cardMain}>
+                <Bone w={44} h={44} r={12} />
+                <View style={s.cardInfo}>
+                  <Bone w={130} h={14} style={{ marginBottom: 8 }} />
+                  <View style={s.cardMetaRow}>
+                    <Bone w={80} h={18} r={9} />
+                    <Bone w={60} h={12} style={{ marginLeft: 8 }} />
+                  </View>
+                </View>
+                <Bone w={54} h={20} r={10} />
+              </View>
+              <View style={s.statsBar}>
+                <Bone w={90} h={20} r={10} />
+                <Bone w={100} h={20} r={10} style={{ marginLeft: 8 }} />
+              </View>
+              <View style={s.cardActions}>
+                <Bone w="100%" h={34} r={9} style={{ flex: 1 }} />
+                <Bone w="100%" h={34} r={9} style={{ flex: 1, marginLeft: 8 }} />
+                <Bone w="100%" h={34} r={9} style={{ flex: 1, marginLeft: 8 }} />
+              </View>
+            </View>
+          ))}
         </View>
       ) : templates.length === 0 ? (
         <View style={s.centerWrap}>
@@ -482,14 +503,13 @@ export default function LuxuryTemplatesScreen({ navigation }) {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
 
-  header: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20, overflow: 'hidden' },
-  deco1: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)', top: -70, right: -50 },
-  deco2: { position: 'absolute', width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.04)', top: 10, right: 90 },
+  header: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   headerTextWrap: { flex: 1 },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
   headerTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 3 },
+  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 3 },
   backBtn: {
     width: 40, height: 40, borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -509,7 +529,7 @@ const s = StyleSheet.create({
     backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border,
   },
   filterChipOn: { backgroundColor: C.g700, borderColor: C.g700 },
-  filterChipText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  filterChipText: { fontSize: 14, fontWeight: '600', color: C.sub },
   filterChipTextOn: { color: '#fff' },
 
   listContent: { padding: 16, paddingBottom: 32 },
@@ -543,8 +563,8 @@ const s = StyleSheet.create({
     backgroundColor: C.g50, paddingHorizontal: 8, paddingVertical: 3,
     borderRadius: 8, borderWidth: 1, borderColor: C.g100,
   },
-  catTagText: { fontSize: 11, fontWeight: '700', color: C.g700 },
-  cardRate: { fontSize: 12, color: C.sub, fontWeight: '600' },
+  catTagText: { fontSize: 12, fontWeight: '700', color: C.g700 },
+  cardRate: { fontSize: 13, color: C.sub, fontWeight: '600' },
   activePill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10,
@@ -552,7 +572,7 @@ const s = StyleSheet.create({
   activePillOn: { backgroundColor: C.g50 },
   activePillOff: { backgroundColor: C.bg },
   activeDot: { width: 6, height: 6, borderRadius: 3 },
-  activePillText: { fontSize: 11, fontWeight: '700' },
+  activePillText: { fontSize: 12, fontWeight: '700' },
 
   statsBar: {
     flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 14,
@@ -564,14 +584,14 @@ const s = StyleSheet.create({
     backgroundColor: C.card, paddingHorizontal: 8, paddingVertical: 4, borderRadius: rs(10),
     borderWidth: 1, borderColor: C.border,
   },
-  statText: { fontSize: 11, color: C.muted, fontWeight: '600' },
+  statText: { fontSize: 12, color: C.muted, fontWeight: '600' },
 
   inclusionsPreview: {
     paddingHorizontal: 14, paddingVertical: 10,
     borderTopWidth: 1, borderTopColor: C.border,
   },
-  inclusionsLabel: { fontSize: 11, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 },
-  inclusionsText: { fontSize: 12, color: C.sub, lineHeight: 18 },
+  inclusionsLabel: { fontSize: 12, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 },
+  inclusionsText: { fontSize: 13, color: C.sub, lineHeight: 18 },
 
   cardActions: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: C.border },
   actionBtn: {
@@ -582,7 +602,7 @@ const s = StyleSheet.create({
   actionDeactivate: { backgroundColor: '#FFF7ED' },
   actionActivate: { backgroundColor: C.g50 },
   actionDelete: { backgroundColor: C.redL },
-  actionBtnText: { fontSize: 12, fontWeight: '700' },
+  actionBtnText: { fontSize: 13, fontWeight: '700' },
 
   centerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyBox: {
@@ -591,8 +611,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', marginBottom: 16,
   },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 8 },
-  emptyText: { fontSize: 13, color: C.muted, textAlign: 'center', marginBottom: 24, lineHeight: 19 },
-  centerText: { fontSize: 14, color: C.muted, marginTop: 12 },
+  emptyText: { fontSize: 14, color: C.muted, textAlign: 'center', marginBottom: 24, lineHeight: 19 },
   emptyCreateBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: C.g700, paddingHorizontal: 24, paddingVertical: 13, borderRadius: 14,
@@ -606,8 +625,6 @@ const s = StyleSheet.create({
     borderTopLeftRadius: SHEET_RADIUS, borderTopRightRadius: SHEET_RADIUS,
   },
   sheetHeader: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 18, overflow: 'hidden' },
-  sheetDeco: { position: 'absolute', width: 130, height: 130, borderRadius: 65, top: -40, right: -20, backgroundColor: 'rgba(255,255,255,0.06)' },
-  sheetDeco2: { position: 'absolute', width: 60, height: 60, borderRadius: 30, top: 10, right: 100, backgroundColor: 'rgba(255,255,255,0.04)' },
   sheetHeaderRow: { flexDirection: 'row', alignItems: 'flex-start' },
   sheetIconRing: {
     width: 52, height: 52, borderRadius: 14, overflow: 'hidden',
@@ -624,18 +641,18 @@ const s = StyleSheet.create({
   sheetCatTag: {
     backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
   },
-  sheetCatText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
+  sheetCatText: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
   sheetStarTag: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: C.amber + '30', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
   },
-  sheetStarText: { fontSize: 12, fontWeight: '600', color: C.amber },
+  sheetStarText: { fontSize: 13, fontWeight: '600', color: C.amber },
   sheetStatusTag: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
   },
-  sheetStatusText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.85)' },
-  sheetDesc: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 12, lineHeight: 19 },
+  sheetStatusText: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.85)' },
+  sheetDesc: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 12, lineHeight: 19 },
 
   sheetScroll: { flexGrow: 0, backgroundColor: C.bg },
   sheetScrollContent: { padding: 16 },
@@ -653,16 +670,16 @@ const s = StyleSheet.create({
     borderRadius: 10, padding: 12, borderWidth: 1, borderColor: C.g100,
   },
   rateBoxLabel: {
-    fontSize: 10, fontWeight: '700', color: C.muted,
+    fontSize: 11, fontWeight: '700', color: C.muted,
     textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4,
   },
   rateBoxVal: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.g700 },
   mListRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 7 },
   mListDot: { width: 7, height: 7, borderRadius: 4, marginTop: 6 },
-  mListText: { flex: 1, fontSize: 13, color: C.text, lineHeight: 19 },
+  mListText: { flex: 1, fontSize: 14, color: C.text, lineHeight: 19 },
   mTermNum: {
     width: 22, height: 22, borderRadius: 6, backgroundColor: C.indigo,
     justifyContent: 'center', alignItems: 'center', marginTop: 1,
   },
-  mTermNumText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  mTermNumText: { fontSize: 12, fontWeight: '700', color: '#fff' },
 });

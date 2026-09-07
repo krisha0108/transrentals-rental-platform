@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Image, StatusBar,
+  Image, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -11,7 +11,11 @@ import { apiGet, deleteStaff, debugAuthState } from '../../api/client';
 import { showConfirm, showError } from '../../../services/alertService';
 import { SC as T, G, rs, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 // Same key names this screen already used — only the values now come from
 // the shared "Elevate" theme instead of hardcoded hex, mirroring the mapping
@@ -144,19 +148,75 @@ export default function StaffDetailScreen({ route, navigation }) {
       <View style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={styles.heroLoading}>
-          <AnimatedOrb style={styles.orbA} />
-          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+          <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']} style={styles.heroSafe}>
             <View style={styles.topRow}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
                 <Icon name="arrow-left" size={20} color="#fff" />
               </TouchableOpacity>
-              <Text style={styles.loadTitle}>Staff Profile</Text>
-              <View style={{ width: 40 }} />
+              <View style={{ width: 32 }} />
             </View>
+
+            <View style={styles.heroBadge}>
+              <MaterialCommunityIcons name="account" size={12} color={C.g400} />
+              <Text style={styles.heroBadgeTxt}>Staff Profile</Text>
+            </View>
+
+            <Bone w={72} h={72} r={36} style={{ alignSelf: 'center', backgroundColor: 'rgba(255,255,255,0.18)', marginBottom: 10 }} />
+            <Bone w={140} h={18} r={5} style={{ alignSelf: 'center', backgroundColor: 'rgba(255,255,255,0.24)', marginBottom: 8 }} />
+            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
+              <Bone w={80} h={22} r={11} style={{ backgroundColor: 'rgba(255,255,255,0.18)' }} />
+              <Bone w={70} h={22} r={11} style={{ backgroundColor: 'rgba(255,255,255,0.18)' }} />
+            </View>
+
+            <View style={{ height: rs(30) }} />
           </SafeAreaView>
         </LinearGradient>
-        <View style={styles.center}><ActivityIndicator size="large" color={C.g600} /></View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {/* Summary card skeleton */}
+          <View style={styles.summaryWrap}>
+            <View style={styles.summaryCard}>
+              <View style={styles.actionsRow}>
+                <Bone h={44} r={rs(12)} style={{ flex: 1 }} />
+                <Bone h={44} r={rs(12)} style={{ flex: 1 }} />
+              </View>
+              <View style={styles.stripDivider} />
+              <View style={styles.strip}>
+                {[0,1,2].map(i => (
+                  <React.Fragment key={i}>
+                    {i > 0 && <View style={styles.stripSep} />}
+                    <View style={styles.stripItem}>
+                      <Bone w={50} h={13} r={4} style={{ marginBottom: 4 }} />
+                      <Bone w={40} h={9} r={3} />
+                    </View>
+                  </React.Fragment>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          {/* Info card skeletons */}
+          <View style={styles.cardsWrap}>
+            {[1,2].map(i => (
+              <View key={i} style={styles.card}>
+                <View style={styles.cardHead}>
+                  <Bone w={30} h={30} r={10} />
+                  <Bone w={140} h={13} r={4} />
+                </View>
+                {[0,1,2].map(j => (
+                  <View key={j} style={styles.iRow}>
+                    <Bone w={30} h={30} r={8} />
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <Bone w={60} h={9} r={3} />
+                      <Bone w={140} h={13} r={4} />
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -166,8 +226,7 @@ export default function StaffDetailScreen({ route, navigation }) {
       <View style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={styles.heroLoading}>
-          <AnimatedOrb style={styles.orbA} />
-          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+          <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']} style={styles.heroSafe}>
             <View style={styles.topRow}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
@@ -198,8 +257,7 @@ export default function StaffDetailScreen({ route, navigation }) {
 
       {/* ── Fixed identity hero ── */}
       <LinearGradient colors={G.hero} style={styles.hero}>
-        <AnimatedOrb style={styles.orbA} />
-        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={styles.heroSafe}>
           <View style={styles.topRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
@@ -274,7 +332,7 @@ export default function StaffDetailScreen({ route, navigation }) {
                 <Text style={styles.stripVal}>{fmt(staff.joiningDate)}</Text>
                 <Text style={styles.stripLbl}>Joined</Text>
               </View>
-              {staff.salary && (
+              {staff.salary > 0 && (
                 <>
                   <View style={styles.stripSep} />
                   <View style={styles.stripItem}>
@@ -321,7 +379,7 @@ export default function StaffDetailScreen({ route, navigation }) {
           <Section icon="briefcase" color={C.purple} bg={C.purpleL} title="Employment">
             {staff.employeeId && <KVRow label="Employee ID" value={staff.employeeId} />}
             <KVRow label="Joining Date" value={fmt(staff.joiningDate)} />
-            {staff.salary && (
+            {staff.salary > 0 && (
               <KVRow label="Monthly Salary" value={`₹${parseInt(staff.salary).toLocaleString()}`} green />
             )}
             <KVRow label="Status" value={staff.status?.replace(/_/g, ' ')} last />
@@ -452,18 +510,11 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
   },
   heroSafe: {},
-  orbA: {
-    position: 'absolute', top: -46, right: -30, width: 150, height: 150,
-    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -40, left: -34, width: 120, height: 120,
-    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
 
   topRow: {
     flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', paddingTop: rs(4), marginBottom: rs(14),
+    justifyContent: 'space-between', paddingTop: 0, marginBottom: rs(8),
   },
   backCircle: {
     width: 40, height: 40, borderRadius: 20,
@@ -482,22 +533,22 @@ const styles = StyleSheet.create({
   heroBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'center',
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 12,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 8,
   },
-  heroBadgeTxt: { fontSize: 10.5, fontWeight: '700', color: C.g400, fontFamily: DISPLAY, textTransform: 'uppercase', letterSpacing: 0.5 },
+  heroBadgeTxt: { fontSize: 11.5, fontWeight: '700', color: C.g400, fontFamily: DISPLAY, textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  avatarWrap: { position: 'relative', alignSelf: 'center', marginBottom: 14 },
+  avatarWrap: { position: 'relative', alignSelf: 'center', marginBottom: 10 },
   avatarImg: {
-    width: 84, height: 84, borderRadius: 42,
+    width: 72, height: 72, borderRadius: 36,
     borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)',
   },
   avatarCircle: {
-    width: 84, height: 84, borderRadius: 42,
+    width: 72, height: 72, borderRadius: 36,
     backgroundColor: 'rgba(52,211,153,0.18)',
     borderWidth: 2.5, borderColor: 'rgba(52,211,153,0.4)',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarLetter: { fontSize: 32, fontWeight: '900', color: '#34D399', fontFamily: DISPLAY },
+  avatarLetter: { fontSize: 28, fontWeight: '900', color: '#34D399', fontFamily: DISPLAY },
   onlineDot: {
     position: 'absolute', bottom: 3, right: 3,
     width: 18, height: 18, borderRadius: 9,
@@ -505,12 +556,12 @@ const styles = StyleSheet.create({
   },
 
   name: {
-    fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: '#fff',
-    textAlign: 'center', letterSpacing: -0.4, marginBottom: 10,
+    fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: '#fff',
+    textAlign: 'center', letterSpacing: -0.4, marginBottom: 8,
   },
   badges: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
   rolePill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-  rolePillTxt: { fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
+  rolePillTxt: { fontSize: 13, fontWeight: '700', textTransform: 'capitalize' },
   statusPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
@@ -518,7 +569,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusPillTxt: { fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
+  statusPillTxt: { fontSize: 13, fontWeight: '700', textTransform: 'capitalize' },
 
   /* Empty state */
   emptyIconWrap: {
@@ -554,9 +605,9 @@ const styles = StyleSheet.create({
 
   strip: { flexDirection: 'row' },
   stripItem: { flex: 1, alignItems: 'center' },
-  stripVal: { fontSize: 13, fontWeight: '800', color: C.text, fontFamily: DISPLAY },
+  stripVal: { fontSize: 14, fontWeight: '800', color: C.text, fontFamily: DISPLAY },
   stripLbl: {
-    fontSize: 9, color: C.muted,
+    fontSize: 10, color: C.muted,
     marginTop: 2, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4,
   },
   stripSep: { width: 1, backgroundColor: C.border, marginVertical: 3 },
@@ -578,7 +629,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
   iIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  iLbl: { fontSize: 10, color: C.muted, marginBottom: 2, fontWeight: '500' },
+  iLbl: { fontSize: 11, color: C.muted, marginBottom: 2, fontWeight: '500' },
   iVal: { fontSize: 14, color: C.text, fontWeight: '600', lineHeight: 20 },
 
   kv: {
@@ -586,19 +637,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  kvLbl: { fontSize: 13, color: C.sub, fontWeight: '500' },
-  kvVal: { fontSize: 13, color: C.text, fontWeight: '700' },
+  kvLbl: { fontSize: 14, color: C.sub, fontWeight: '500' },
+  kvVal: { fontSize: 14, color: C.text, fontWeight: '700' },
 
   warning: {
     flexDirection: 'row', alignItems: 'center', gap: 7,
     backgroundColor: C.amberL, marginTop: 10, padding: 10, borderRadius: rs(10),
   },
-  warningTxt: { fontSize: 12, color: C.amber, fontWeight: '600', flex: 1 },
+  warningTxt: { fontSize: 13, color: C.amber, fontWeight: '600', flex: 1 },
 
   perf: { flexDirection: 'row', paddingVertical: 4 },
   perfItem: { flex: 1, alignItems: 'center', paddingVertical: 8 },
   perfVal: { fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: C.text },
-  perfLbl: { fontSize: 10, color: C.muted, marginTop: 3, fontWeight: '600' },
+  perfLbl: { fontSize: 11, color: C.muted, marginTop: 3, fontWeight: '600' },
 
   docRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -606,6 +657,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
   docIcon: { width: 30, height: 30, borderRadius: 8, backgroundColor: C.blueL, alignItems: 'center', justifyContent: 'center' },
-  docName: { fontSize: 13, fontWeight: '600', color: C.text },
-  docDate: { fontSize: 11, color: C.muted, marginTop: 2 },
+  docName: { fontSize: 14, fontWeight: '600', color: C.text },
+  docDate: { fontSize: 12, color: C.muted, marginTop: 2 },
 });

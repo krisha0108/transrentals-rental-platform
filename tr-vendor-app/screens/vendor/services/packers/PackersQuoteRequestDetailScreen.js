@@ -12,7 +12,11 @@ import { getQuoteRequestById } from '../../../api/client';
 import { showError, showInfo } from '../../../../services/alertService';
 import { SC as T, G, rs, cardShadow, shade } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 // How far the ticket summary card rides up over the hero's rounded bottom
 // edge — same technique/constant role as BikeQuoteDetailScreen's ticket.
@@ -115,7 +119,7 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
       <View style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={styles.headerGrad}>
-          <AnimatedOrb style={styles.deco1} />
+          <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']}>
             <View style={styles.topBar}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -127,14 +131,62 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
               </View>
               <View style={{ width: 36 }} />
             </View>
+
+            {/* Identity block skeleton */}
+            <View style={styles.identityBlock}>
+              <Bone w={36} h={36} r={12} style={{ backgroundColor: 'rgba(255,255,255,0.18)' }} />
+              <View style={{ flex: 1, marginLeft: 12, gap: 6 }}>
+                <Bone w={130} h={9} r={3} style={{ backgroundColor: 'rgba(255,255,255,0.22)' }} />
+                <Bone w={150} h={16} r={4} style={{ backgroundColor: 'rgba(255,255,255,0.3)' }} />
+              </View>
+            </View>
           </SafeAreaView>
         </LinearGradient>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-          {[1, 2, 3].map(i => (
-            <View key={i} style={[styles.card, { marginBottom: 12 }]}>
-              <View style={{ width: '40%', height: 14, backgroundColor: '#E2E8F0', borderRadius: 7, marginBottom: 12 }} />
-              <View style={{ width: '80%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, marginBottom: 8 }} />
-              <View style={{ width: '60%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6 }} />
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
+          {/* Ticket summary skeleton */}
+          <View style={styles.ticketWrap}>
+            <View style={[styles.ticketRail, { backgroundColor: '#DDE4EE' }]} />
+            <View style={styles.ticketUpperStub}>
+              <Bone w={rs(44)} h={rs(44)} r={rs(12)} />
+              <View style={{ flex: 1, gap: 5 }}>
+                <Bone w={70} h={9} r={3} />
+                <Bone w={100} h={16} r={4} />
+              </View>
+              <Bone w={70} h={22} r={20} />
+            </View>
+            <View style={styles.perforationRow}>
+              <View style={styles.dashLine} />
+            </View>
+            <View style={styles.ticketLowerStub}>
+              <Bone w={rs(30)} h={rs(30)} r={rs(9)} />
+              <View style={{ flex: 1, gap: 5 }}>
+                <Bone w={50} h={9} r={3} />
+                <Bone w={160} h={13} r={4} />
+              </View>
+            </View>
+          </View>
+
+          {/* Contact row skeleton */}
+          <View style={styles.contactRow}>
+            <Bone h={44} r={rs(14)} style={{ flex: 1 }} />
+            <Bone h={44} r={rs(14)} style={{ flex: 1 }} />
+          </View>
+
+          {/* Section card skeletons */}
+          {[1, 2].map(i => (
+            <View key={i} style={styles.card}>
+              <View style={styles.cardHead}>
+                <Bone w={34} h={34} r={10} />
+                <Bone w={130} h={13} r={4} />
+              </View>
+              <View style={styles.factGrid}>
+                {[0,1].map(j => (
+                  <View key={j} style={styles.factCell}>
+                    <Bone w={50} h={8} r={3} style={{ marginBottom: 6 }} />
+                    <Bone w={70} h={13} r={4} />
+                  </View>
+                ))}
+              </View>
             </View>
           ))}
         </ScrollView>
@@ -148,7 +200,7 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
       <View style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={styles.headerGrad}>
-          <AnimatedOrb style={styles.deco1} />
+          <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']}>
             <View style={styles.topBar}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -194,8 +246,7 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
 
       {/* ══ Hero ══════════════════════════════════════════════════════════ */}
       <LinearGradient colors={G.hero} style={styles.headerGrad}>
-        <AnimatedOrb style={styles.deco1} />
-        <AnimatedOrb style={styles.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']}>
           <View style={styles.topBar}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -208,7 +259,10 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
             <View style={{ width: 36 }} />
           </View>
 
-          {/* Identity block — who this request is from */}
+          {/* Identity block — who this request is from. The "Send Quote"
+              action is NOT duplicated here — it already lives in the sticky
+              bottom bar below; only the "Quoted" state (info, not an action)
+              gets a small inline badge so the header stays a single row. */}
           <View style={styles.identityBlock}>
             <View style={styles.identityIcon}>
               <Text style={styles.identityIconTxt}>{customerName.charAt(0).toUpperCase()}</Text>
@@ -223,24 +277,13 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
                 </View>
               ) : null}
             </View>
+            {request.hasQuoted && (
+              <View style={styles.quotedPill}>
+                <Ionicons name="checkmark-circle" size={12} color="#fff" />
+                <Text style={styles.quotedPillText}>Quoted</Text>
+              </View>
+            )}
           </View>
-
-          {/* Quick action — mirrors old heroStatusRow's conditional action */}
-          {(request.hasQuoted || canSendQuote) && (
-            <View style={styles.heroActionRow}>
-              {request.hasQuoted ? (
-                <View style={styles.quotedPill}>
-                  <Ionicons name="checkmark-circle" size={13} color="#fff" />
-                  <Text style={styles.quotedPillText}>Quoted</Text>
-                </View>
-              ) : (
-                <TouchableOpacity style={styles.sendQuickBtn} onPress={handleSendQuote} activeOpacity={0.85}>
-                  <Ionicons name="paper-plane" size={13} color="#fff" />
-                  <Text style={styles.sendQuickBtnText}>Send Quote</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
         </SafeAreaView>
       </LinearGradient>
 
@@ -447,38 +490,30 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
 
   // ── Hero ──────────────────────────────────────────────────────────────
-  headerGrad: { paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
-  deco1: { position: 'absolute', width: 190, height: 190, borderRadius: 95, backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40 },
-  deco2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)', bottom: -10, left: 40 },
+  headerGrad: { paddingHorizontal: 16, paddingBottom: 14, overflow: 'hidden', borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
 
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 16 },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, marginBottom: 10 },
+  backBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  heroTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
+  heroTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
   // Identity block (customer avatar + name + email)
   identityBlock: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 2 },
-  identityIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  identityIconTxt: { fontFamily: DISPLAY, fontSize: 19, fontWeight: '800', color: '#fff' },
-  identityLabel: { fontSize: 9.5, color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: 1.2, marginBottom: 3 },
-  identityName: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff' },
-  identityPhoneRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
-  identityPhoneTxt: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
+  identityIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  identityIconTxt: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: '#fff' },
+  identityLabel: { fontSize: 8.5, color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
+  identityName: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
+  identityPhoneRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  identityPhoneTxt: { fontSize: 11.5, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
 
-  // Hero quick action
-  heroActionRow: { flexDirection: 'row', paddingTop: 14 },
+  // Inline "Quoted" badge — sits at the end of the identity row
   quotedPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 12, paddingVertical: 7,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 10, paddingVertical: 6,
     borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
   },
   quotedPillText: { fontSize: 12.5, fontWeight: '700', color: '#fff' },
-  sendQuickBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.18)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)',
-  },
-  sendQuickBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
   scrollContent: { paddingHorizontal: 16, paddingTop: TICKET_OVERLAP, paddingBottom: 100 },
 
@@ -494,11 +529,11 @@ const styles = StyleSheet.create({
     width: rs(44), height: rs(44), borderRadius: rs(12),
     backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center',
   },
-  ticketLabel: { fontSize: 9.5, color: C.muted, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
+  ticketLabel: { fontSize: 10.5, color: C.muted, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
   ticketNumber: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '900', color: C.text, letterSpacing: -0.3 },
 
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
-  statusPillTxt: { fontSize: 11, fontWeight: '700' },
+  statusPillTxt: { fontSize: 12, fontWeight: '700' },
 
   perforationRow: { height: 2, justifyContent: 'center' },
   dashLine: { marginHorizontal: 20, borderTopWidth: 1, borderColor: C.border, borderStyle: 'dashed' },
@@ -507,7 +542,7 @@ const styles = StyleSheet.create({
 
   ticketLowerStub: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, paddingTop: 14 },
   ticketRouteIconWrap: { width: rs(30), height: rs(30), borderRadius: rs(9), backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center' },
-  ticketRouteLabel: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
+  ticketRouteLabel: { fontSize: 11, color: C.muted, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
   ticketRouteValue: { fontFamily: DISPLAY, fontSize: 14.5, fontWeight: '800', color: C.g700 },
 
   // Quick contact row
@@ -518,7 +553,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: C.border,
     ...cardShadow,
   },
-  contactBtnTxt: { fontSize: 13, fontWeight: '800', color: C.g600 },
+  contactBtnTxt: { fontSize: 14, fontWeight: '800', color: C.g600 },
 
   // Quoted banner
   quotedBanner: {
@@ -527,8 +562,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: C.g100, marginBottom: 12,
   },
   quotedBannerIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.g100, justifyContent: 'center', alignItems: 'center' },
-  quotedBannerTitle: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.g700 },
-  quotedBannerAmt: { fontSize: 12, color: C.g600, marginTop: 2 },
+  quotedBannerTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.g700 },
+  quotedBannerAmt: { fontSize: 13, color: C.g600, marginTop: 2 },
 
   // ── Section card ──────────────────────────────────────────────────────
   card: {
@@ -553,22 +588,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginTop: 6,
     borderWidth: 1, borderColor: '#FDE68A',
   },
-  catPillText: { fontSize: 11, fontWeight: '600', color: C.amber },
+  catPillText: { fontSize: 12, fontWeight: '600', color: C.amber },
 
   // Route line (from → to) inside Move Details
   routeWrap: { flexDirection: 'row', paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: C.border, marginBottom: 12 },
   routeGutter: { width: 20, alignItems: 'center', marginRight: 10 },
   routeDot: { width: 9, height: 9, borderRadius: 4.5 },
   routeLine: { width: 1.5, flex: 1, minHeight: 24, backgroundColor: C.border, marginVertical: 3 },
-  routeLabel: { fontSize: 10, fontWeight: '700', color: C.muted, letterSpacing: 0.5 },
+  routeLabel: { fontSize: 11, fontWeight: '700', color: C.muted, letterSpacing: 0.5 },
   routeValue: { fontSize: 14, fontWeight: '700', color: C.text, marginTop: 2 },
 
   // Fact grid (moving date/time)
   factGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   factCell: { flexGrow: 1, minWidth: '30%', backgroundColor: C.g50, borderRadius: rs(12), padding: 10 },
-  factLabel: { fontSize: 9, fontWeight: '700', color: C.g700, letterSpacing: 0.5, marginBottom: 4 },
-  factValue: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text },
-  factSub: { fontSize: 11, color: C.sub, marginTop: 1 },
+  factLabel: { fontSize: 10, fontWeight: '700', color: C.g700, letterSpacing: 0.5, marginBottom: 4 },
+  factValue: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text },
+  factSub: { fontSize: 12, color: C.sub, marginTop: 1 },
 
   // Notes
   notesText: { fontSize: 14, color: C.sub, lineHeight: 22 },
@@ -578,7 +613,7 @@ const styles = StyleSheet.create({
   tlGutter: { width: 18, alignItems: 'center' },
   tlDot: { width: 8, height: 8, borderRadius: 4, marginTop: 3 },
   tlLine: { width: 1.5, flex: 1, minHeight: 16, backgroundColor: C.border, marginVertical: 2 },
-  timelineText: { fontSize: 13, color: C.sub, marginLeft: 6, paddingBottom: 10 },
+  timelineText: { fontSize: 14, color: C.sub, marginLeft: 6, paddingBottom: 10 },
 
   // ── Bottom bar ────────────────────────────────────────────────────────
   bottomBar: {
@@ -599,10 +634,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: C.g100,
   },
   quotedSentText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.g700 },
-  quotedSentAmt: { fontSize: 12, color: C.g600, marginTop: 1 },
+  quotedSentAmt: { fontSize: 13, color: C.g600, marginTop: 1 },
 
   // Empty / Loading
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text, marginTop: 14 },
-  emptySubtitle: { fontSize: 13, color: C.muted, marginTop: 6, textAlign: 'center', paddingHorizontal: 32 },
+  emptySubtitle: { fontSize: 14, color: C.muted, marginTop: 6, textAlign: 'center', paddingHorizontal: 32 },
 });

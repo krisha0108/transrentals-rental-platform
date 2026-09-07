@@ -2,10 +2,10 @@
  * LuxuryEditTemplateScreen.js - Edit existing luxury car service quote template
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, StatusBar, ActivityIndicator, Dimensions,
+  TextInput, StatusBar, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -15,7 +15,7 @@ import { getTemplateById, updateTemplate } from '../../../api/client';
 import { showError, showSuccess } from '../../../../services/alertService';
 import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
 
 const { width: W } = Dimensions.get('window');
 
@@ -40,6 +40,10 @@ const LUXURY_CATEGORIES = [
   { id: 'convertible',  name: 'Convertible',   icon: 'car-convertible' },
 ];
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 export default function LuxuryEditTemplateScreen({ navigation, route }) {
   const { templateId } = route.params;
   const [loading, setLoading] = useState(true);
@@ -60,9 +64,7 @@ export default function LuxuryEditTemplateScreen({ navigation, route }) {
   const [newExclusion, setNewExclusion] = useState('');
   const [newTerm, setNewTerm] = useState('');
 
-  useEffect(() => { loadTemplate(); }, []);
-
-  const loadTemplate = async () => {
+  const loadTemplate = useCallback(async () => {
     try {
       const t = await getTemplateById('luxury', templateId);
       setTemplateName(t.name);
@@ -83,7 +85,9 @@ export default function LuxuryEditTemplateScreen({ navigation, route }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [templateId, navigation]);
+
+  useEffect(() => { loadTemplate(); }, [loadTemplate]);
 
   const addItem = (val, list, setList, setVal) => {
     const v = val.trim();
@@ -142,12 +146,38 @@ export default function LuxuryEditTemplateScreen({ navigation, route }) {
             </View>
           </View>
         </LinearGradient>
-        <View style={s.loadingWrap}>
-          <View style={s.loadingCard}>
-            <ActivityIndicator size="large" color={C.g600} />
-            <Text style={s.loadingText}>Loading template...</Text>
+
+        <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={s.section}>
+            <View style={s.sectionHead}>
+              <View style={[s.sectionIconBox, { backgroundColor: C.indigoL }]} />
+              <Bone w={130} h={14} />
+            </View>
+            <Bone w={90} h={11} style={{ marginBottom: 8 }} />
+            <Bone w="100%" h={44} r={10} style={{ marginBottom: 14 }} />
+            <Bone w={70} h={11} style={{ marginBottom: 8 }} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+              {[0, 1, 2, 3].map(i => <Bone key={i} w={90} h={30} r={16} />)}
+            </View>
+            <Bone w={100} h={11} style={{ marginBottom: 8 }} />
+            <Bone w="100%" h={70} r={10} />
           </View>
-        </View>
+
+          <View style={s.section}>
+            <View style={s.sectionHead}>
+              <View style={[s.sectionIconBox, { backgroundColor: C.amberL }]} />
+              <Bone w={90} h={14} />
+            </View>
+            <View style={s.rateGrid}>
+              {[0, 1, 2, 3].map(i => (
+                <View key={i} style={s.rateField}>
+                  <Bone w={80} h={11} style={{ marginBottom: 8 }} />
+                  <Bone w="100%" h={44} r={10} />
+                </View>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -157,8 +187,7 @@ export default function LuxuryEditTemplateScreen({ navigation, route }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       <LinearGradient colors={G.hero} style={s.hero}>
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <View style={s.heroRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
             <Icon name="arrow-left" size={22} color="#fff" />
@@ -337,40 +366,30 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20, overflow: 'hidden',
     borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20),
   },
-  deco1: {
-    position: 'absolute', width: 160, height: 160, borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.07)', top: -50, right: -30,
-  },
-  deco2: {
-    position: 'absolute', width: 70, height: 70, borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.05)', top: 15, right: 80,
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   editBadgeRow: { marginBottom: 3 },
   editBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, alignSelf: 'flex-start' },
-  editBadgeText: { fontSize: 10, fontWeight: '700', color: C.g400 },
+  editBadgeText: { fontSize: 11, fontWeight: '700', color: C.g400 },
   heroTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff' },
-  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
   heroBadge: { width: 42, height: 42, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.g400 + '50' },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  loadingCard: { backgroundColor: C.card, borderRadius: rs(20), padding: 32, alignItems: 'center', gap: 14, borderWidth: 1, borderColor: C.border, ...cardShadow },
-  loadingText: { fontSize: 14, color: C.muted, fontWeight: '500' },
   scroll: { flex: 1 },
   scrollContent: { padding: 16 },
   section: { backgroundColor: C.card, borderRadius: rs(16), padding: 16, marginBottom: 12, borderWidth: 1, borderColor: C.border, ...cardShadow },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
   sectionIconBox: { width: 32, height: 32, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
   sectionTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '700', color: C.text },
-  sectionNote: { fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 17 },
-  label: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 7 },
+  sectionNote: { fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 17 },
+  label: { fontSize: 14, fontWeight: '600', color: C.text, marginBottom: 7 },
   optional: { fontWeight: '400', color: C.muted },
   input: { borderWidth: 1.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: C.text, backgroundColor: C.bg, marginBottom: 12 },
   textArea: { height: 80, textAlignVertical: 'top' },
   catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   catChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border },
   catChipActive: { backgroundColor: C.g700, borderColor: C.g700 },
-  catChipText: { fontSize: 12, fontWeight: '600', color: C.sub },
+  catChipText: { fontSize: 13, fontWeight: '600', color: C.sub },
   catChipTextActive: { color: '#fff' },
   rateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 0 },
   rateField: { width: '50%', paddingRight: 8 },
@@ -379,16 +398,16 @@ const s = StyleSheet.create({
   addBtn: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   listItem: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 10, marginBottom: 7, borderWidth: 1 },
   listDot: { width: 20, height: 20, borderRadius: 10, backgroundColor: C.g600, justifyContent: 'center', alignItems: 'center' },
-  listItemText: { flex: 1, fontSize: 13, color: C.text, lineHeight: 18 },
+  listItemText: { flex: 1, fontSize: 14, color: C.text, lineHeight: 18 },
   removeBtn: { padding: 4 },
   termNumBox: { width: 22, height: 22, borderRadius: 6, backgroundColor: C.indigo, justifyContent: 'center', alignItems: 'center' },
-  termNumText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  emptyHint: { fontSize: 12, color: C.muted, textAlign: 'center', paddingVertical: 8 },
+  termNumText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  emptyHint: { fontSize: 13, color: C.muted, textAlign: 'center', paddingVertical: 8 },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg },
   checkboxOn: { backgroundColor: C.g700, borderColor: C.g700 },
   checkLabel: { fontSize: 14, fontWeight: '600', color: C.text, marginBottom: 2 },
-  checkSub: { fontSize: 12, color: C.muted },
+  checkSub: { fontSize: 13, color: C.muted },
   footer: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border, gap: 12 },
   cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
   cancelBtnText: { fontSize: 15, fontWeight: '600', color: C.sub },

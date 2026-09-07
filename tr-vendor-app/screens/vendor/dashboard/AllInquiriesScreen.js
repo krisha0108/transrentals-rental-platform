@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, RefreshControl, ActivityIndicator, Animated, Easing,
+  StatusBar, RefreshControl, Animated, Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -11,9 +11,13 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { getVendorProfile, apiPatch } from '../../api/client';
 import { fetchInquiries } from '../../api/inquiriesApi';
 import { showConfirm, showSuccess, showError } from '../../../services/alertService';
-import { SC as T, G, rs, rf, cardShadow, rowShadow } from '../_shared/theme';
+import { SC as T, G, rs, cardShadow, rowShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -238,8 +242,7 @@ export default function AllInquiriesScreen({ navigation }) {
       {/* ── Header ── */}
       <LinearGradient colors={G.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerRow}>
             <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
@@ -251,22 +254,8 @@ export default function AllInquiriesScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Real stat row — New / Quoted / Urgent (same numbers as the
-              toggle counts + urgent flag already carried by each item) */}
-          <View style={s.statRow}>
-            {[
-              { label: 'New', value: newCount },
-              { label: 'Quoted', value: quotedCount },
-              { label: 'Urgent', value: urgentCount },
-            ].map((st, i) => (
-              <View key={i} style={s.statCard}>
-                <Text style={s.statVal}>{st.value}</Text>
-                <Text style={s.statLbl}>{st.label}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* New / Quoted toggle */}
+          {/* New / Quoted toggle — counts live in the pills, urgent shows as
+              a small dot on "New" so nothing from the old stat row is lost. */}
           <View style={s.toggle}>
             {[
               { key: 'new',    label: 'New',    count: newCount },
@@ -281,6 +270,11 @@ export default function AllInquiriesScreen({ navigation }) {
                   <View style={[s.togglePill, active && s.togglePillActive]}>
                     <Text style={[s.togglePillTxt, active && s.togglePillTxtActive]}>{t.count}</Text>
                   </View>
+                  {t.key === 'new' && urgentCount > 0 && (
+                    <View style={s.urgentDot}>
+                      <Text style={s.urgentDotTxt}>{urgentCount}</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })}
@@ -316,9 +310,24 @@ export default function AllInquiriesScreen({ navigation }) {
 
       {/* ── List ── */}
       {loading ? (
-        <View style={s.empty}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={[s.emptySub, { marginTop: 12 }]}>Loading inquiries…</Text>
+        <View style={s.body}>
+          {[0,1,2,3,4].map(i => (
+            <View key={i} style={s.card}>
+              <View style={s.cardTop}>
+                <Bone w={32} h={32} r={11} />
+                <View style={{ flex: 1, marginLeft: 10, gap: 5 }}>
+                  <Bone w={120} h={12} r={4} />
+                  <Bone w={150} h={10} r={4} />
+                </View>
+                <Bone w={40} h={10} r={4} />
+              </View>
+              <View style={s.cardBottom}>
+                <Bone w={70} h={20} r={10} />
+                <View style={{ flex: 1 }} />
+                <Bone w={90} h={26} r={13} />
+              </View>
+            </View>
+          ))}
         </View>
       ) : (
         <ScrollView
@@ -411,37 +420,32 @@ export default function AllInquiriesScreen({ navigation }) {
 
 const s = StyleSheet.create({
   // Header
-  hero:        { paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
-  deco1: { position: 'absolute', width: 190, height: 190, borderRadius: 95, backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40 },
-  deco2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)', bottom: -10, left: 40 },
-  headerRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 8, marginBottom: 16 },
-  backBtn:     { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontFamily: DISPLAY, fontSize: 21, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  headerSub:   { fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: '600', marginTop: 2 },
-
-  // Real stat row (New / Quoted / Urgent)
-  statRow:  { flexDirection: 'row', gap: 8, marginBottom: 14 },
-  statCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: rs(14), paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
-  statVal:  { fontFamily: DISPLAY, fontSize: rf(17), fontWeight: '800', color: '#fff' },
-  statLbl:  { fontSize: 9.5, fontWeight: '600', color: 'rgba(255,255,255,0.55)', marginTop: 2 },
+  hero:        { paddingHorizontal: 16, paddingBottom: 14, overflow: 'hidden', borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
+  headerRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 8, marginBottom: 12 },
+  backBtn:     { width: 36, height: 36, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
+  headerSub:   { fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: '600', marginTop: 1 },
 
   // Toggle
   toggle:          { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: 12, padding: 4, gap: 4 },
   toggleBtn:       { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 9 },
   toggleBtnActive: { backgroundColor: C.g700 },
-  toggleTxt:       { fontSize: 13, fontWeight: '800', color: 'rgba(255,255,255,0.7)' },
+  toggleTxt:       { fontSize: 14, fontWeight: '800', color: 'rgba(255,255,255,0.7)' },
   toggleTxtActive: { color: '#fff' },
   togglePill:      { minWidth: 20, paddingHorizontal: 6, height: 18, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
   togglePillActive:{ backgroundColor: 'rgba(255,255,255,0.22)' },
-  togglePillTxt:   { fontSize: 10, fontWeight: '800', color: '#fff' },
+  togglePillTxt:   { fontSize: 11, fontWeight: '800', color: '#fff' },
   togglePillTxtActive: { color: '#fff' },
+  urgentDot:       { minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 8, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
+  urgentDotTxt:    { fontSize: 10, fontWeight: '800', color: '#fff' },
 
   // Chips
   chipsWrap: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
   chipsRow:  { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   chip:      { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
   chipActive:{ backgroundColor: C.g700, borderColor: C.g700 },
-  chipTxt:   { fontSize: 12, fontWeight: '700', color: C.sub },
+  chipTxt:   { fontSize: 13, fontWeight: '700', color: C.sub },
   chipTxtActive: { color: '#fff' },
 
   // List
@@ -454,28 +458,28 @@ const s = StyleSheet.create({
   },
   cardTop:      { flexDirection: 'row', alignItems: 'center' },
   cardMetaRow:  { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  cardTitle:    { fontSize: 11.5, color: C.sub, fontWeight: '600', flexShrink: 1 },
-  ago:       { fontSize: 10, color: C.muted, fontWeight: '600' },
+  cardTitle:    { fontSize: 12.5, color: C.sub, fontWeight: '600', flexShrink: 1 },
+  ago:       { fontSize: 11, color: C.muted, fontWeight: '600' },
   urgent:    { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: C.redL, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10 },
-  urgentTxt: { fontSize: 9, fontWeight: '800', color: C.red },
+  urgentTxt: { fontSize: 10, fontWeight: '800', color: C.red },
 
   cardBottom: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, paddingTop: 11, borderTopWidth: 1, borderTopColor: C.border },
   avatar:      { width: 32, height: 32, borderRadius: 11, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
-  avatarTxt:   { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.g700 },
-  customerTxt: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text },
+  avatarTxt:   { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.g700 },
+  customerTxt: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text },
 
   btn:    { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.g600, paddingHorizontal: 14, paddingVertical: 8, borderRadius: rs(10) },
-  btnTxt: { fontSize: 12, fontWeight: '800', color: '#fff' },
+  btnTxt: { fontSize: 13, fontWeight: '800', color: '#fff' },
 
   statusChip:    { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
-  statusChipTxt: { fontSize: 10.5, fontWeight: '800' },
+  statusChipTxt: { fontSize: 11.5, fontWeight: '800' },
   amtChip:       { backgroundColor: C.g50, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 7 },
-  amtChipTxt:    { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: '800', color: C.g700 },
+  amtChipTxt:    { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: '800', color: C.g700 },
 
   // Empty / loading
   empty:      { alignItems: 'center', paddingTop: 60, gap: 6 },
   halo:       { width: rs(90), height: rs(90), borderRadius: rs(45), backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   haloRing:   { width: rs(64), height: rs(64), borderRadius: rs(32), backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.text },
-  emptySub:   { fontSize: 12, color: C.muted, textAlign: 'center' },
+  emptySub:   { fontSize: 13, color: C.muted, textAlign: 'center' },
 });

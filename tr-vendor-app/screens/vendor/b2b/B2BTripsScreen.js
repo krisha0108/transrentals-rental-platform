@@ -11,6 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getB2BTrips } from '../../api/client';
 import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -75,6 +76,10 @@ const SERVICE_FILTERS = [
   { key: 'luxury',      label: 'Luxury' },
   { key: 'bike',        label: 'Bike' },
 ];
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 function normalizeServiceType(st) {
   const s = (st || '').toLowerCase().replace(/[\s_]/g, '-');
@@ -245,10 +250,11 @@ export default function B2BTripsScreen({ navigation, route }) {
     );
   };
 
-  return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+  const HeaderBlock = (
+    <>
       {/* Gradient Header */}
       <LinearGradient colors={G.hero} style={s.header}>
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <View style={s.headerTop}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
             <Icon name="arrow-left" size={22} color="#fff" />
@@ -259,25 +265,25 @@ export default function B2BTripsScreen({ navigation, route }) {
           </View>
           <View style={{ width: 40 }} />
         </View>
-
-        {/* Stats strip */}
-        <View style={s.statsStrip}>
-          <View style={s.statItem}>
-            <Text style={s.statValue}>{stats.active}</Text>
-            <Text style={s.statLabel}>Active</Text>
-          </View>
-          <View style={s.statDivider} />
-          <View style={s.statItem}>
-            <Text style={s.statValue}>{stats.pending}</Text>
-            <Text style={s.statLabel}>Pending</Text>
-          </View>
-          <View style={s.statDivider} />
-          <View style={s.statItem}>
-            <Text style={s.statValue}>{stats.completed}</Text>
-            <Text style={s.statLabel}>Completed</Text>
-          </View>
-        </View>
       </LinearGradient>
+
+      {/* Stats strip — moved out of the header into the body */}
+      <View style={s.statsStrip}>
+        <View style={s.statItem}>
+          <Text style={s.statValue}>{loading ? '—' : stats.active}</Text>
+          <Text style={s.statLabel}>Active</Text>
+        </View>
+        <View style={s.statDivider} />
+        <View style={s.statItem}>
+          <Text style={s.statValue}>{loading ? '—' : stats.pending}</Text>
+          <Text style={s.statLabel}>Pending</Text>
+        </View>
+        <View style={s.statDivider} />
+        <View style={s.statItem}>
+          <Text style={s.statValue}>{loading ? '—' : stats.completed}</Text>
+          <Text style={s.statLabel}>Completed</Text>
+        </View>
+      </View>
 
       {/* Status filter tabs */}
       <View style={s.tabs}>
@@ -313,6 +319,46 @@ export default function B2BTripsScreen({ navigation, route }) {
           ))}
         </ScrollView>
       </View>
+    </>
+  );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={s.safe} edges={['top']}>
+        {HeaderBlock}
+        <ScrollView contentContainerStyle={s.list} showsVerticalScrollIndicator={false}>
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={s.card}>
+              <View style={s.cardAccent} />
+              <View style={s.cardContent}>
+                <View style={s.cardTop}>
+                  <Bone w={90} h={15} />
+                  <Bone w={80} h={20} r={20} />
+                </View>
+                <Bone w={120} h={12} style={{ marginBottom: 10 }} />
+                <View style={s.infoRow}>
+                  <Bone w={15} h={15} r={4} />
+                  <Bone w={150} h={13} />
+                </View>
+                <View style={[s.routeRow, { marginTop: 2 }]}>
+                  <Bone w={8} h={8} r={4} />
+                  <View style={{ flex: 1 }} />
+                  <Bone w={8} h={8} r={4} />
+                </View>
+                <View style={s.bookingRow}>
+                  <Bone w={140} h={12} />
+                </View>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={s.safe} edges={['top']}>
+      {HeaderBlock}
 
       <FlatList
         data={filteredTrips}
@@ -352,7 +398,11 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
 
   // Header
-  header: { paddingBottom: 0 },
+  header: {
+    paddingBottom: 8, overflow: 'hidden',
+    borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22),
+  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerTop: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10,
@@ -364,19 +414,21 @@ const s = StyleSheet.create({
   },
   headerCenter: { flex: 1, alignItems: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff', fontFamily: DISPLAY },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
+  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
 
   // Stats strip
   statsStrip: {
     flexDirection: 'row',
-    marginHorizontal: 16, marginBottom: 14,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    marginHorizontal: 16, marginTop: 14, marginBottom: 4,
+    backgroundColor: C.surface,
     borderRadius: rs(14), paddingVertical: 12,
+    borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
   },
   statItem: { flex: 1, alignItems: 'center', gap: 2 },
-  statValue: { fontSize: 20, fontWeight: '800', color: '#fff', fontFamily: DISPLAY },
-  statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '500' },
-  statDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginVertical: 4 },
+  statValue: { fontSize: 20, fontWeight: '800', color: C.text, fontFamily: DISPLAY },
+  statLabel: { fontSize: 12, color: C.muted, fontWeight: '500' },
+  statDivider: { width: 1, backgroundColor: C.border, marginVertical: 4 },
 
   // Status filter tabs
   tabs: {
@@ -385,7 +437,7 @@ const s = StyleSheet.create({
   },
   tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: C.bg },
   tabActive: { backgroundColor: C.g700 },
-  tabText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  tabText: { fontSize: 14, fontWeight: '600', color: C.sub },
   tabTextActive: { color: '#fff' },
 
   // Service type filter
@@ -398,7 +450,7 @@ const s = StyleSheet.create({
     backgroundColor: C.bg, borderWidth: 1, borderColor: C.border,
   },
   serviceTabActive: { backgroundColor: C.blue + '15', borderColor: C.blue },
-  serviceTabText: { fontSize: 11, fontWeight: '600', color: C.sub },
+  serviceTabText: { fontSize: 12, fontWeight: '600', color: C.sub },
   serviceTabTextActive: { color: C.blue },
 
   // List
@@ -416,17 +468,17 @@ const s = StyleSheet.create({
 
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 },
   tripCode: { fontSize: 15, fontWeight: '800', color: C.text, fontFamily: DISPLAY },
-  tripDate: { fontSize: 12, color: C.muted, marginBottom: 10 },
+  tripDate: { fontSize: 13, color: C.muted, marginBottom: 10 },
 
   statusChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
   },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusChipText: { fontSize: 11, fontWeight: '700' },
+  statusChipText: { fontSize: 12, fontWeight: '700' },
 
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  infoText: { fontSize: 13, color: C.sub, flex: 1 },
+  infoText: { fontSize: 14, color: C.sub, flex: 1 },
 
   routeRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -435,24 +487,24 @@ const s = StyleSheet.create({
   },
   routeDot: { width: 8, height: 8, borderRadius: 4 },
   routeLine: { flex: 1, height: 1, backgroundColor: C.border },
-  routeText: { fontSize: 12, color: C.sub, flex: 3, marginLeft: 6 },
+  routeText: { fontSize: 13, color: C.sub, flex: 3, marginLeft: 6 },
 
   bookingRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingTop: 8, borderTopWidth: 1, borderTopColor: C.border, marginTop: 4,
   },
   bookingInfo: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
-  bookingText: { fontSize: 12, color: C.muted, flex: 1 },
+  bookingText: { fontSize: 13, color: C.muted, flex: 1 },
 
   actionBtn: {
     marginTop: 10, borderRadius: 10,
     paddingVertical: 8, paddingHorizontal: 14,
     alignSelf: 'flex-start',
   },
-  actionBtnText: { fontSize: 13, fontWeight: '700' },
+  actionBtnText: { fontSize: 14, fontWeight: '700' },
 
   // Empty
   empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
   emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
-  emptySub: { fontSize: 13, color: C.sub, textAlign: 'center', paddingHorizontal: 32 },
+  emptySub: { fontSize: 14, color: C.sub, textAlign: 'center', paddingHorizontal: 32 },
 });

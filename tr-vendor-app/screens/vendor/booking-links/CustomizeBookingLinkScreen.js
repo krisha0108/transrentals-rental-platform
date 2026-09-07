@@ -3,7 +3,7 @@
 // AddEditCaptureLinkScreen structure: gradient header with inline Save pill,
 // intro card, section labels, field cards, a live preview of the public
 // booking form, and a sticky bottom Save bar.
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, StatusBar,
@@ -16,7 +16,7 @@ import { updateBookingLink } from '../../api/client';
 import { showError, showSuccess } from '../../../services/alertService';
 import { SC as T, G, rs, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 const C = {
   g900: T.forestDark, g700: T.emeraldDeep, g600: T.emerald600,
@@ -24,6 +24,10 @@ const C = {
   bg: T.bg, card: T.card, border: T.border,
   text: T.ink, muted: T.subText, blue: T.blue,
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 export default function CustomizeBookingLinkScreen({ navigation, route }) {
   const { link } = route.params || {};
@@ -33,6 +37,12 @@ export default function CustomizeBookingLinkScreen({ navigation, route }) {
     welcomeMsg: link?.welcomeMsg || '',
   });
   const [saving, setSaving] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setInitializing(false), 350);
+    return () => clearTimeout(t);
+  }, []);
 
   const update = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -50,14 +60,57 @@ export default function CustomizeBookingLinkScreen({ navigation, route }) {
     }
   };
 
+  if (initializing) {
+    return (
+      <View style={{ flex: 1, backgroundColor: C.bg }}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.headerGrad}>
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+          <SafeAreaView edges={['top']} style={{ paddingHorizontal: 12, paddingBottom: 26 }}>
+            <View style={s.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={s.iconBtn}>
+                <Ionicons name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+              <View style={{ flex: 1 }}>
+                <Text style={s.headerTitle}>Customize Form</Text>
+                <Text style={s.headerSub} numberOfLines={1}>{link?.serviceLabel || 'Booking Link'}</Text>
+              </View>
+              <View style={[s.headerSaveBtn, { opacity: 0.5 }]}>
+                <Text style={s.headerSaveText}>Save</Text>
+              </View>
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
+        <View style={s.scroll}>
+          <View style={s.card}>
+            <View style={s.field}>
+              <Bone w={90} h={12} style={{ marginBottom: 8 }} />
+              <Bone w="100%" h={46} r={10} />
+            </View>
+            <View style={s.field}>
+              <Bone w={130} h={12} style={{ marginBottom: 8 }} />
+              <Bone w="100%" h={90} r={10} />
+            </View>
+          </View>
+
+          <View style={s.card}>
+            <Bone w={160} h={10} style={{ marginBottom: 8 }} />
+            <Bone w="100%" h={100} r={12} />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* ===== Gradient header ===== */}
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.headerGrad}>
-        <AnimatedOrb style={s.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: 12, paddingBottom: 26 }}>
           <View style={s.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.iconBtn}>
@@ -194,20 +247,13 @@ function Field({ label, children }) {
 const s = StyleSheet.create({
   // Header
   headerGrad: { borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20), overflow: 'hidden', position: 'relative' },
-  orbA: {
-    position: 'absolute', top: -44, right: -28, width: 150, height: 150,
-    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -36, left: -32, width: 128, height: 128,
-    borderRadius: 64, backgroundColor: 'rgba(255,255,255,0.045)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 12 },
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 11.5, color: 'rgba(255,255,255,0.75)', fontWeight: '700', marginTop: 2 },
+  headerSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.75)', fontWeight: '700', marginTop: 2 },
   headerSaveBtn: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, minWidth: 60, alignItems: 'center' },
-  headerSaveText: { fontFamily: DISPLAY, color: C.g700, fontWeight: '800', fontSize: 13 },
+  headerSaveText: { fontFamily: DISPLAY, color: C.g700, fontWeight: '800', fontSize: 14 },
 
   scroll: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14 },
 
@@ -219,21 +265,21 @@ const s = StyleSheet.create({
     marginBottom: 14,
   },
   introIconWrap: { width: 36, height: 36, borderRadius: 12, backgroundColor: C.g600, alignItems: 'center', justifyContent: 'center' },
-  introTitle: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.g700, marginBottom: 3 },
-  introBody: { fontSize: 12, color: C.text, lineHeight: 17, fontWeight: '500' },
+  introTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.g700, marginBottom: 3 },
+  introBody: { fontSize: 13, color: C.text, lineHeight: 17, fontWeight: '500' },
 
   // Section label
   sectionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, marginBottom: 8 },
   sectionLabelIcon: { width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  sectionLabelText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
+  sectionLabelText: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
 
   // Card
   card: { backgroundColor: C.card, borderRadius: rs(14), padding: 14, borderWidth: 1, borderColor: C.border, marginBottom: 14 },
 
   // Field
   field: { marginBottom: 12 },
-  fieldLabel: { fontFamily: DISPLAY, fontSize: 12, fontWeight: '800', color: C.text, marginBottom: 6 },
-  helper: { fontSize: 11, color: C.muted, marginTop: 4, fontWeight: '600' },
+  fieldLabel: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text, marginBottom: 6 },
+  helper: { fontSize: 12, color: C.muted, marginTop: 4, fontWeight: '600' },
   input: {
     backgroundColor: C.g50, borderWidth: 1.5, borderColor: C.g100, borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: C.text, minHeight: 46,
@@ -241,18 +287,18 @@ const s = StyleSheet.create({
   inputMultiline: { minHeight: 90, paddingTop: 10 },
 
   // Live preview
-  previewLabel: { fontFamily: DISPLAY, fontSize: 10, color: C.muted, fontWeight: '800', letterSpacing: 0.6, marginBottom: 8 },
+  previewLabel: { fontFamily: DISPLAY, fontSize: 11, color: C.muted, fontWeight: '800', letterSpacing: 0.6, marginBottom: 8 },
   previewBox: {
     padding: 14, borderRadius: rs(12),
     backgroundColor: '#fff', borderWidth: 1, borderColor: C.border,
     ...cardShadow,
   },
   previewTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text, marginBottom: 5 },
-  previewDesc: { fontSize: 12, color: C.muted, lineHeight: 17, marginBottom: 10 },
+  previewDesc: { fontSize: 13, color: C.muted, lineHeight: 17, marginBottom: 10 },
   previewFields: { gap: 6 },
   previewField: { height: 32, backgroundColor: C.bg, borderRadius: 6, borderWidth: 1, borderColor: C.border },
   previewCta: { marginTop: 6, backgroundColor: C.g600, paddingVertical: 9, borderRadius: 8, alignItems: 'center' },
-  previewCtaText: { fontFamily: DISPLAY, color: '#fff', fontSize: 12, fontWeight: '800' },
+  previewCtaText: { fontFamily: DISPLAY, color: '#fff', fontSize: 13, fontWeight: '800' },
 
   // Bottom save bar
   bottomBar: {

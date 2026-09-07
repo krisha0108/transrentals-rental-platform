@@ -21,7 +21,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { getChatMessages, sendChatMessage } from '../../api/client';
 import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 // KeyboardAvoidingView comes from react-native-keyboard-controller, NOT from
 // react-native. RN's Android implementation reads the keyboard frame from the
 // JS `Keyboard` events and compares it against its own measured frame, which
@@ -86,6 +86,10 @@ const SERVICE_SHORT = {
   bus: 'Bus', truck: 'Truck', luxury: 'Luxury',
   chauffeur: 'Car', packers: 'Packers', equipment: 'Equip.',
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 export default function ChatScreen({ route, navigation }) {
   const {
@@ -408,8 +412,7 @@ export default function ChatScreen({ route, navigation }) {
       end={{ x: 1, y: 1 }}
       style={[st.header, { paddingTop: insets.top + 10 }]}
     >
-      <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
-      <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
+      <CornerGrid style={st.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
       <View style={st.headerRow}>
         {/* Back */}
@@ -453,9 +456,23 @@ export default function ChatScreen({ route, navigation }) {
       <View style={st.root}>
         <Header />
         {renderBookingSwitcher()}
-        <View style={st.loaderWrap}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={st.loaderTxt}>Loading messages...</Text>
+        <View style={st.chatBg}>
+          <View style={st.msgList}>
+            {[
+              { isVendor: false, w: 150 },
+              { isVendor: true,  w: 110 },
+              { isVendor: false, w: 190 },
+              { isVendor: false, w: 90 },
+              { isVendor: true,  w: 160 },
+              { isVendor: true,  w: 130 },
+            ].map((b, i) => (
+              <View key={i} style={[st.msgRow, b.isVendor ? st.msgRowRight : st.msgRowLeft]}>
+                {!b.isVendor && <Bone w={30} h={30} r={15} />}
+                <Bone w={b.w} h={38} r={18} />
+                {b.isVendor && <Bone w={30} h={30} r={15} />}
+              </View>
+            ))}
+          </View>
         </View>
       </View>
     );
@@ -549,16 +566,7 @@ const st = StyleSheet.create({
     overflow: 'hidden',
     paddingBottom: 14,
   },
-  orbA: {
-    position: 'absolute', top: -rs(50), right: -rs(30),
-    width: rs(160), height: rs(160), borderRadius: rs(80),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(48), left: -rs(36),
-    width: rs(130), height: rs(130), borderRadius: rs(65),
-    backgroundColor: 'rgba(46,158,120,0.16)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -599,10 +607,10 @@ const st = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.16)',
   },
   svcChipTxt: {
-    fontSize: 10, fontWeight: '700', color: '#fff',
+    fontSize: 11, fontWeight: '700', color: '#fff',
   },
   headerBkNum: {
-    fontSize: 11, color: 'rgba(255,255,255,0.68)', fontWeight: '600', flexShrink: 1,
+    fontSize: 12, color: 'rgba(255,255,255,0.68)', fontWeight: '600', flexShrink: 1,
   },
   headerAction: {
     width: 36, height: 36, borderRadius: 18,
@@ -639,9 +647,9 @@ const st = StyleSheet.create({
     borderColor: C.g500,
     ...cardShadow,
   },
-  switcherTabType: { fontFamily: DISPLAY, fontSize: 11, fontWeight: '700', color: C.muted },
+  switcherTabType: { fontFamily: DISPLAY, fontSize: 12, fontWeight: '700', color: C.muted },
   switcherTabTypeActive: { color: C.g700 },
-  switcherTabNum: { fontSize: 10, color: C.muted, marginTop: 1 },
+  switcherTabNum: { fontSize: 11, color: C.muted, marginTop: 1 },
   switcherTabNumActive: { color: C.g600, fontWeight: '600' },
 
   // >3: dropdown trigger button
@@ -664,10 +672,10 @@ const st = StyleSheet.create({
     alignItems: 'center',
   },
   dropdownBtnMid: { flex: 1, minWidth: 0 },
-  dropdownBtnLabel: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '700', color: C.g800 },
-  dropdownBtnNum: { fontSize: 11, color: C.g600, marginTop: 1 },
+  dropdownBtnLabel: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '700', color: C.g800 },
+  dropdownBtnNum: { fontSize: 12, color: C.g600, marginTop: 1 },
   dropdownBtnRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  dropdownBtnCount: { fontSize: 11, color: C.muted, fontWeight: '600' },
+  dropdownBtnCount: { fontSize: 12, color: C.muted, fontWeight: '600' },
 
   // Bottom sheet
   bsOverlay: {
@@ -703,7 +711,7 @@ const st = StyleSheet.create({
   },
   bsTitleTextWrap: { flex: 1, minWidth: 0 },
   bsTitle: { fontSize: 17, fontWeight: '800', color: C.text, fontFamily: DISPLAY },
-  bsSub: { fontSize: 12, color: C.muted, marginTop: 2 },
+  bsSub: { fontSize: 13, color: C.muted, marginTop: 2 },
   bsClose: {
     width: 34, height: 34, borderRadius: 17,
     backgroundColor: C.bg,
@@ -725,22 +733,14 @@ const st = StyleSheet.create({
   },
   bsItemInfo: { flex: 1, minWidth: 0 },
   bsItemType: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '700', color: C.text },
-  bsItemNum: { fontSize: 12, color: C.muted, marginTop: 2 },
+  bsItemNum: { fontSize: 13, color: C.muted, marginTop: 2 },
   bsUnreadBadge: {
     minWidth: 20, height: 20, borderRadius: 10,
     backgroundColor: C.red,
     justifyContent: 'center', alignItems: 'center',
     paddingHorizontal: 5,
   },
-  bsUnreadTxt: { fontSize: 10, fontWeight: '800', color: '#fff' },
-
-  /* ── Loader ── */
-  loaderWrap: {
-    flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12,
-  },
-  loaderTxt: {
-    fontSize: 14, color: C.muted,
-  },
+  bsUnreadTxt: { fontSize: 11, fontWeight: '800', color: '#fff' },
 
   /* ── Chat background ── */
   chatBg: {
@@ -770,7 +770,7 @@ const st = StyleSheet.create({
     ...cardShadow,
   },
   datePillTxt: {
-    fontSize: 11, fontWeight: '700', color: C.sub,
+    fontSize: 12, fontWeight: '700', color: C.sub,
   },
 
   /* ── Message row ── */
@@ -796,7 +796,7 @@ const st = StyleSheet.create({
     flexShrink: 0,
   },
   msgAvatarTxt: {
-    fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: '#fff',
+    fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff',
   },
 
   /* ── Bubbles ── */
@@ -838,10 +838,10 @@ const st = StyleSheet.create({
     marginTop: 3,
   },
   timeTxtVendor: {
-    fontSize: 9, color: 'rgba(255,255,255,0.75)', fontWeight: '600',
+    fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: '600',
   },
   timeTxtCustomer: {
-    fontSize: 9, color: C.muted, fontWeight: '600',
+    fontSize: 10, color: C.muted, fontWeight: '600',
   },
 
   /* ── Empty state ── */
@@ -862,7 +862,7 @@ const st = StyleSheet.create({
     fontSize: 16, fontWeight: '700', color: C.text, fontFamily: DISPLAY,
   },
   emptySub: {
-    fontSize: 13, color: C.muted,
+    fontSize: 14, color: C.muted,
   },
 
   /* ── Input area ── */

@@ -1083,7 +1083,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   progressLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: BRAND.subText,
     fontWeight: '600',
   },
@@ -1143,7 +1143,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   sectionSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: BRAND.subText,
   },
 
@@ -1156,7 +1156,7 @@ const styles = StyleSheet.create({
 
   inputGroup: { marginBottom: 16 },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
     color: BRAND.text,
     marginBottom: 8,
@@ -1211,8 +1211,8 @@ const styles = StyleSheet.create({
     borderColor: "#FBD5D5",
     backgroundColor: "#FFF8F8",
   },
-  helperError: { color: BRAND.error, fontSize: 12.5, marginTop: 6 },
-  helperText: { color: BRAND.subText, fontSize: 12, marginTop: 4 },
+  helperError: { color: BRAND.error, fontSize: 13.5, marginTop: 6 },
+  helperText: { color: BRAND.subText, fontSize: 13, marginTop: 4 },
 
   buttonRow: {
     flexDirection: 'row',
@@ -1270,7 +1270,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   separator: { flex: 1, height: 1, backgroundColor: BRAND.border },
-  separatorText: { color: BRAND.subText, fontSize: 12.5 },
+  separatorText: { color: BRAND.subText, fontSize: 13.5 },
 
   centerRow: {
     alignItems: "center",
@@ -1319,7 +1319,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   benefitLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: BRAND.subText,
     textAlign: 'center',
     fontWeight: '600',

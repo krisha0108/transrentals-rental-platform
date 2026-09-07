@@ -15,7 +15,11 @@ import { showError, showSuccess } from '../../../../services/alertService';
 import AppEvents, { EVT_QUOTE_SENT } from '../../../../utils/AppEvents';
 import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const C = {
   g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600,
@@ -274,7 +278,34 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
             </View>
           </SafeAreaView>
         </LinearGradient>
-        <View style={s.centered}><ActivityIndicator size="large" color={C.g600} /></View>
+        <ScrollView style={s.scroll} contentContainerStyle={{ flexGrow: 1 }}>
+          {/* Request Summary skeleton */}
+          <View style={[s.card, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+            <Bone w={140} h={14} r={4} style={{ marginBottom: 12 }} />
+            {[0,1,2,3].map(i => (
+              <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Bone w={70} h={11} r={4} />
+                <Bone w={100} h={11} r={4} />
+              </View>
+            ))}
+          </View>
+
+          {/* Template card skeleton */}
+          <View style={s.card}>
+            <View style={s.cardHeader}>
+              <Bone w={120} h={13} r={4} />
+              <Bone w={16} h={16} r={4} />
+            </View>
+            <Bone w="100%" h={44} r={10} />
+          </View>
+
+          {/* Equipment details card skeleton */}
+          <View style={s.card}>
+            <Bone w={140} h={13} r={4} style={{ marginBottom: 12 }} />
+            <Bone w="100%" h={44} r={10} style={{ marginBottom: 12 }} />
+            <Bone w="100%" h={44} r={10} />
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -291,8 +322,7 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.hero}
       >
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <View style={s.topBar}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={18} color="#fff" />
@@ -630,27 +660,25 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
 function SummaryRow({ label, value }) {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-      <Text style={{ fontSize: 13, color: C.sub }}>{label}</Text>
-      <Text style={{ fontSize: 13, fontWeight: '600', color: C.text }}>{value}</Text>
+      <Text style={{ fontSize: 14, color: C.sub }}>{label}</Text>
+      <Text style={{ fontSize: 14, fontWeight: '600', color: C.text }}>{value}</Text>
     </View>
   );
 }
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   hero: {
     paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden',
     borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20),
   },
-  heroMin: { paddingHorizontal: 16, paddingBottom: 16 },
-  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)' },
-  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)' },
+  heroMin: { paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden', borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
   heroTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff' },
-  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
+  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
 
   scroll: { flex: 1 },
   content: { padding: 16, paddingBottom: 20 },
@@ -660,9 +688,9 @@ const s = StyleSheet.create({
   cardTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.text, marginBottom: 12 },
 
   templateApplied: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, padding: 10, backgroundColor: C.g50, borderRadius: 8 },
-  templateAppliedTxt: { fontSize: 12, color: C.g700, fontWeight: '600', flex: 1 },
+  templateAppliedTxt: { fontSize: 13, color: C.g700, fontWeight: '600', flex: 1 },
 
-  inputLabel: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 6, marginTop: 10 },
+  inputLabel: { fontSize: 14, fontWeight: '600', color: C.text, marginBottom: 6, marginTop: 10 },
   input: { backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12, fontSize: 14, color: C.text },
   textArea: { height: 80 },
 
@@ -673,11 +701,11 @@ const s = StyleSheet.create({
 
   chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
-  chipText: { fontSize: 11, fontWeight: '600' },
+  chipText: { fontSize: 12, fontWeight: '600' },
 
   termRow: { flexDirection: 'row', marginBottom: 8 },
-  termNum: { fontSize: 13, fontWeight: '700', color: C.g600, marginRight: 6, width: 18 },
-  termText: { flex: 1, fontSize: 13, color: C.sub, lineHeight: 18 },
+  termNum: { fontSize: 14, fontWeight: '700', color: C.g600, marginRight: 6, width: 18 },
+  termText: { flex: 1, fontSize: 14, color: C.sub, lineHeight: 18 },
 
   footer: { padding: 16, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border, ...cardShadow },
   submitBtn: { backgroundColor: C.g600, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: rs(12) },
@@ -698,7 +726,7 @@ const s = StyleSheet.create({
   modeToggleRow: { flexDirection: 'row', borderRadius: 10, borderWidth: 1, borderColor: C.border, overflow: 'hidden', marginBottom: 10 },
   modeToggleBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: C.card },
   modeToggleBtnActive: { backgroundColor: C.g600 },
-  modeToggleBtnText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  modeToggleBtnText: { fontSize: 14, fontWeight: '600', color: C.sub },
   modeToggleBtnTextActive: { color: '#fff' },
   datePicker: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13, backgroundColor: C.card, marginBottom: 12 },
   datePickerText: { flex: 1, fontSize: 14, color: C.text },

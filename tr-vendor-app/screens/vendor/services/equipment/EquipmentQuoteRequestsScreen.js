@@ -13,7 +13,11 @@ import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
 import DateFilterModal from '../../../../components/DateFilterModal';
 import { SC as T, G, TONES, rs, rf, GUT, cardShadow, shade } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 // Same key names this screen already used — only the values now come from
 // the shared "Elevate" theme instead of hardcoded hex. Spread T first so the
@@ -52,7 +56,7 @@ export default function EquipmentQuoteRequestsScreen({ navigation }) {
     loadMore, refresh, initialLoad, applyDateFilter, dateFilter,
   } = useInfiniteScroll(getQuoteRequests, { service: 'equipment' });
 
-  useEffect(() => { initialLoad(); }, []);
+  useEffect(() => { initialLoad(); }, [initialLoad]);
 
   const requests = useMemo(() => {
     return allRequests.filter(req => {
@@ -247,15 +251,32 @@ export default function EquipmentQuoteRequestsScreen({ navigation }) {
   const renderSkeleton = () => (
     <View style={{ padding: rs(16) }}>
       {[1, 2, 3].map(i => (
-        <View key={i} style={[styles.card, { marginBottom: rs(12), flexDirection: 'column' }]}>
-          <View style={{ padding: rs(14) }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-              <View style={{ width: 120, height: 16, backgroundColor: '#E2E8F0', borderRadius: 8 }} />
-              <View style={{ width: 70, height: 22, backgroundColor: '#E2E8F0', borderRadius: 10 }} />
+        <View key={i} style={styles.card}>
+          <View style={[styles.cardRail, { backgroundColor: '#DDE4EE' }]} />
+          <View style={styles.cardInner}>
+            <View style={styles.cardTopStripe}>
+              <Bone w={rs(26)} h={rs(26)} r={rs(8)} />
+              <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                <Bone w={90} h={9} r={3} />
+                <Bone w={70} h={12} r={4} />
+              </View>
+              <Bone w={70} h={20} r={999} />
             </View>
-            <View style={{ width: '70%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, marginBottom: 8 }} />
-            <View style={{ width: '90%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, marginBottom: 8 }} />
-            <View style={{ width: '55%', height: 12, backgroundColor: '#E2E8F0', borderRadius: 6 }} />
+            <Bone w={130} h={13} r={4} style={{ marginBottom: 8 }} />
+            <Bone w="80%" h={10} r={3} style={{ marginBottom: 6 }} />
+            <Bone w="55%" h={10} r={3} style={{ marginBottom: 8 }} />
+            <View style={[styles.vehicleBox, { backgroundColor: '#EEF2F1' }]}>
+              <Bone w={rs(15)} h={rs(15)} r={4} />
+              <View style={{ flex: 1, gap: 4 }}>
+                <Bone w={100} h={11} r={4} />
+                <Bone w={70} h={9} r={3} />
+              </View>
+            </View>
+            <View style={styles.cardFooter}>
+              <Bone w={80} h={10} r={3} />
+              <Bone w={50} h={20} r={rs(7)} />
+            </View>
+            <Bone w="100%" h={rs(30)} r={rs(9)} style={{ marginTop: rs(8) }} />
           </View>
         </View>
       ))}
@@ -268,14 +289,16 @@ export default function EquipmentQuoteRequestsScreen({ navigation }) {
 
       {/* ── Hero header ── */}
       <LinearGradient colors={G.hero} style={styles.headerGrad}>
-        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Icon name="arrow-left" size={rs(20)} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }} />
+            <View style={styles.titleWrap}>
+              <Text style={styles.headerEyebrow}>REQUEST INBOX</Text>
+              <Text style={styles.headerTitle}>Quote Requests</Text>
+            </View>
             <TouchableOpacity
               onPress={() => setShowDateFilter(true)}
               style={[styles.filterCircle, dateFilter.start && styles.filterCircleActive]}
@@ -285,17 +308,10 @@ export default function EquipmentQuoteRequestsScreen({ navigation }) {
               {dateFilter.start ? <View style={styles.filterDot} /> : null}
             </TouchableOpacity>
           </View>
-
-          <Text style={styles.headerEyebrow}>REQUEST INBOX</Text>
-          <Text style={styles.bigTitle}>Quote Requests</Text>
-          <Text style={styles.bigSub}>Equipment rental enquiries waiting for your response.</Text>
-
-          {/* spacer so the floating summary card can tuck into the curve */}
-          <View style={{ height: rs(28) }} />
         </SafeAreaView>
       </LinearGradient>
 
-      {/* Floating summary — tucks into the hero's bottom curve */}
+      {/* Summary — Total/Pending/Quoted counts, in the body now */}
       <View style={styles.summaryWrap}>
         <View style={[styles.summaryCard, cardShadow]}>
           <View style={styles.summaryItem}>
@@ -361,7 +377,7 @@ export default function EquipmentQuoteRequestsScreen({ navigation }) {
       </View>
 
       {/* List */}
-      {loading && allRequests.length === 0 ? renderSkeleton() : (
+      {(loading || refreshing) && allRequests.length === 0 ? renderSkeleton() : (
         <FlatList
           data={filteredRequests}
           keyExtractor={(item) => (item.id || item._id)?.toString() || Math.random().toString()}
@@ -399,20 +415,13 @@ const styles = StyleSheet.create({
 
   // ── Hero header ──
   headerGrad: {
+    paddingBottom: rs(8),
     overflow: 'hidden',
     borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
   },
-  orbA: {
-    position: 'absolute', top: -rs(50), right: -rs(30),
-    width: rs(170), height: rs(170), borderRadius: rs(85),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(60), left: -rs(40),
-    width: rs(150), height: rs(150), borderRadius: rs(75),
-    backgroundColor: 'rgba(46,158,120,0.16)',
-  },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(10) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: rs(10) },
+  titleWrap: { alignItems: 'center', justifyContent: 'center', minHeight: rs(40) },
   backCircle: {
     width: rs(40), height: rs(40), borderRadius: rs(20),
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -432,11 +441,10 @@ const styles = StyleSheet.create({
     fontSize: rf(10), color: 'rgba(255,255,255,0.65)', fontWeight: '700',
     letterSpacing: 1.2, fontFamily: DISPLAY, marginBottom: rs(2),
   },
-  bigTitle: { fontFamily: DISPLAY, fontSize: rf(26), color: '#fff', letterSpacing: 0.2, fontWeight: '700' },
-  bigSub: { fontFamily: DISPLAY, fontSize: rf(12), color: 'rgba(255,255,255,0.72)', fontWeight: '600', marginTop: rs(4) },
+  headerTitle: { fontFamily: DISPLAY, fontSize: rf(17), fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
-  // Floating summary card — tucks into the hero's bottom curve.
-  summaryWrap: { marginHorizontal: GUT, marginTop: -rs(24) },
+  // Summary card — lives in the body now, below the compact header.
+  summaryWrap: { marginHorizontal: GUT, marginTop: rs(14) },
   summaryCard: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: C.card, borderRadius: rs(18),

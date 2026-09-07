@@ -15,7 +15,7 @@ import { getFleetDocuments, uploadFleetDocument, extractDocumentData, getBaseURL
 import CustomAlert from '../../../components/CustomAlert';
 import { SC as T, G, TONES, rs, rf, GUT, cardShadow, shade, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -48,6 +48,10 @@ const STATUS_CFG = {
 };
 
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'; }
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 export default function FleetDocumentsScreen({ navigation }) {
   const [vehicles, setVehicles] = useState([]);
@@ -248,16 +252,70 @@ export default function FleetDocumentsScreen({ navigation }) {
     : vehicles;
 
   if (loading) return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-      <LinearGradient colors={G.hero} style={s.heroLoading}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backCircle}>
-          <Icon name="arrow-left" size={rs(22)} color="#fff" />
-        </TouchableOpacity>
-        <Text style={s.loadTitle}>Vehicle Documents</Text>
+
+      <LinearGradient colors={G.hero} style={s.headerGrad}>
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+        <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
+          <View style={s.headerTopRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backCircle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Icon name="arrow-left" size={rs(20)} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1, marginLeft: rs(10) }}>
+              <View style={s.heroBadge}>
+                <MaterialCommunityIcons name="file-document-multiple" size={rs(11)} color={C.g400} />
+                <Text style={s.heroBadgeText}>FLEET MANAGEMENT</Text>
+              </View>
+              <Text style={s.headerTitle}>Vehicle Documents</Text>
+            </View>
+          </View>
+        </SafeAreaView>
       </LinearGradient>
-      <View style={s.centered}><ActivityIndicator size="large" color={C.g600} /></View>
-    </SafeAreaView>
+
+      <View style={s.summaryWrap}>
+        <View style={[s.summaryCard, cardShadow]}>
+          <View style={s.summaryRow}>
+            {[0, 1, 2, 3].map((i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <View style={s.summaryDivider} />}
+                <View style={s.summaryItem}>
+                  <Bone w={22} h={22} r={11} style={{ marginBottom: 6 }} />
+                  <Bone w={26} h={9} />
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      <View style={s.scroll}>
+        {[0, 1, 2].map((i) => (
+          <View key={i} style={[s.card, cardShadow]}>
+            <View style={[s.cardRail, { backgroundColor: '#DDE4EE' }]} />
+            <View style={s.cardInner}>
+              <View style={s.vehicleHeader}>
+                <Bone w={rs(42)} h={rs(42)} r={rs(12)} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Bone w={130} h={14} style={{ marginBottom: 6 }} />
+                  <Bone w={90} h={10} />
+                </View>
+                <Bone w={44} h={34} r={10} />
+              </View>
+              <View style={s.docsGrid}>
+                {[0, 1, 2, 3].map((j) => (
+                  <View key={j} style={s.docItem}>
+                    <Bone w={rs(38)} h={rs(38)} r={rs(11)} style={{ marginBottom: 6 }} />
+                    <Bone w={60} h={10} style={{ marginBottom: 6 }} />
+                    <Bone w={50} h={16} r={8} />
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
   );
 
   const extractedItems = getExtractedDisplayItems();
@@ -268,14 +326,19 @@ export default function FleetDocumentsScreen({ navigation }) {
 
       {/* ── Hero header ── */}
       <LinearGradient colors={G.hero} style={s.headerGrad}>
-        <AnimatedOrb style={s.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
           <View style={s.headerTopRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backCircle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Icon name="arrow-left" size={rs(20)} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }} />
+            <View style={{ flex: 1, marginLeft: rs(10) }}>
+              <View style={s.heroBadge}>
+                <MaterialCommunityIcons name="file-document-multiple" size={rs(11)} color={C.g400} />
+                <Text style={s.heroBadgeText}>FLEET MANAGEMENT</Text>
+              </View>
+              <Text style={s.headerTitle}>Vehicle Documents</Text>
+            </View>
             <TouchableOpacity onPress={toggleSearch} style={[s.iconCircle, showSearch && s.iconCircleActive]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Icon name="search" size={rs(17)} color={showSearch ? C.g400 : '#fff'} />
             </TouchableOpacity>
@@ -283,22 +346,11 @@ export default function FleetDocumentsScreen({ navigation }) {
               <Icon name="refresh-cw" size={rs(17)} color="#fff" />
             </TouchableOpacity>
           </View>
-
-          <View style={s.heroBadge}>
-            <MaterialCommunityIcons name="file-document-multiple" size={rs(12)} color={C.g400} />
-            <Text style={s.heroBadgeText}>FLEET MANAGEMENT</Text>
-          </View>
-          <Text style={s.bigTitle}>Vehicle Documents</Text>
-          <Text style={s.bigSub}>Insurance · Fitness · Permit · RC</Text>
-
-          {/* spacer so the floating summary card can tuck into the curve */}
-          <View style={{ height: rs(28) }} />
         </SafeAreaView>
       </LinearGradient>
 
-      {/* Floating control panel — tucks into the hero's bottom curve.
-          Stats + search live inside ONE card as two stacked rows, not two
-          separate floating strips, so the panel reads as a single unit. */}
+      {/* Control panel — stats + search live inside ONE card as two
+          stacked rows, in the body now below the compact header. */}
       <View style={s.summaryWrap}>
         <View style={[s.summaryCard, cardShadow]}>
           <View style={s.summaryRow}>
@@ -629,27 +681,12 @@ export default function FleetDocumentsScreen({ navigation }) {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
   root: { flex: 1, backgroundColor: C.bg },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-
-  // Loading hero
-  heroLoading: { paddingHorizontal: GUT, paddingTop: rs(14), paddingBottom: rs(14), flexDirection: 'row', alignItems: 'center', gap: rs(12) },
-  loadTitle: { fontFamily: DISPLAY, fontSize: rf(18), fontWeight: '800', color: '#fff' },
 
   // ── Hero header ──
-  headerGrad: { overflow: 'hidden', borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26) },
-  orbA: {
-    position: 'absolute', top: -rs(50), right: -rs(30),
-    width: rs(170), height: rs(170), borderRadius: rs(85),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(60), left: -rs(40),
-    width: rs(150), height: rs(150), borderRadius: rs(75),
-    backgroundColor: 'rgba(46,158,120,0.16)',
-  },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(10) },
+  headerGrad: { paddingBottom: rs(8), overflow: 'hidden', borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(10) },
   backCircle: {
     width: rs(40), height: rs(40), borderRadius: rs(20),
     backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center',
@@ -661,11 +698,10 @@ const s = StyleSheet.create({
   iconCircleActive: { backgroundColor: 'rgba(52,211,153,0.18)' },
   heroBadge: { flexDirection: 'row', alignItems: 'center', gap: rs(6), marginBottom: rs(4) },
   heroBadgeText: { fontFamily: DISPLAY, fontSize: rf(10), fontWeight: '700', color: C.g400, letterSpacing: 1 },
-  bigTitle: { fontFamily: DISPLAY, fontSize: rf(26), color: '#fff', letterSpacing: 0.2, fontWeight: '700' },
-  bigSub: { fontFamily: DISPLAY, fontSize: rf(12.5), color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginTop: rs(4) },
+  headerTitle: { fontFamily: DISPLAY, fontSize: rf(19), color: '#fff', letterSpacing: -0.2, fontWeight: '800' },
 
   // Floating control panel — stats row + folding search row, one card
-  summaryWrap: { marginHorizontal: GUT, marginTop: -rs(24) },
+  summaryWrap: { marginHorizontal: GUT, marginTop: rs(14) },
   summaryCard: {
     backgroundColor: C.card, borderRadius: rs(18),
     borderWidth: 1, borderColor: T.glassBorder,

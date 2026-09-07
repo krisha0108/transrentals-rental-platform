@@ -12,7 +12,7 @@ import { getP2PVehicles, requestP2PVehicle, getP2PComments, addP2PComment } from
 import CustomAlert from '../../../components/CustomAlert';
 import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -27,6 +27,10 @@ const C = {
   red: T.red,
   purple: T.purple, purpleBg: T.tintPlum,
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 function fmtDate(d) {
   return d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -52,6 +56,7 @@ export default function BrowseVehiclesScreen({ navigation }) {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [serviceFilter, setServiceFilter] = useState('all');
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');
@@ -428,8 +433,7 @@ export default function BrowseVehiclesScreen({ navigation }) {
       {/* ── Gradient Header ── */}
       <LinearGradient colors={G.hero} style={s.header}>
         {/* Decorative circles */}
-        <AnimatedOrb style={s.decCircle1} />
-        <AnimatedOrb style={s.decCircle2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerInner}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -439,6 +443,12 @@ export default function BrowseVehiclesScreen({ navigation }) {
               <Text style={s.headerTitle}>Available Vehicles</Text>
               <Text style={s.headerSub}>Find empty vehicles from other vendors</Text>
             </View>
+            <TouchableOpacity
+              onPress={() => { setSearchOpen(v => !v); if (searchOpen) { setSearch(''); doSearch(); } }}
+              style={[s.backBtn, { marginRight: 8 }]}
+            >
+              <Icon name={searchOpen ? 'x' : 'search'} size={20} color="#fff" />
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('PostVehicleScreen')} style={s.addBtnWrap}>
               <LinearGradient colors={[C.g600, C.g500]} style={s.addBtnGrad}>
                 <Icon name="plus" size={20} color="#fff" />
@@ -449,6 +459,7 @@ export default function BrowseVehiclesScreen({ navigation }) {
       </LinearGradient>
 
       {/* ── Search Bar ── */}
+      {searchOpen && (
       <View style={s.searchSection}>
         <View style={s.searchBox}>
           <Icon name="search" size={16} color={C.g600} />
@@ -460,6 +471,7 @@ export default function BrowseVehiclesScreen({ navigation }) {
             placeholderTextColor={C.muted}
             onSubmitEditing={doSearch}
             returnKeyType="search"
+            autoFocus
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => { setSearch(''); doSearch(); }}>
@@ -470,6 +482,7 @@ export default function BrowseVehiclesScreen({ navigation }) {
           )}
         </View>
       </View>
+      )}
 
       {/* ── Filter Pills ── */}
       <ScrollView
@@ -563,8 +576,7 @@ export default function BrowseVehiclesScreen({ navigation }) {
       <View style={{ flex: 1, backgroundColor: C.bg }}>
         <StatusBar barStyle="light-content" backgroundColor={C.g950} />
         <LinearGradient colors={G.hero} style={s.header}>
-          <AnimatedOrb style={s.decCircle1} />
-          <AnimatedOrb style={s.decCircle2} delay={1200} dx={-10} dy={8} />
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']}>
             <View style={s.headerInner}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -578,13 +590,57 @@ export default function BrowseVehiclesScreen({ navigation }) {
             </View>
           </SafeAreaView>
         </LinearGradient>
-        <View style={s.center}>
-          <View style={s.loadingIconWrap}>
-            <ActivityIndicator size="large" color={C.g600} />
-          </View>
-          <Text style={s.loadingText}>Loading vehicles...</Text>
-          <Text style={s.loadingSubText}>Please wait a moment</Text>
-        </View>
+        <ScrollView contentContainerStyle={{ paddingBottom: 30, paddingTop: 14, gap: 14 }} showsVerticalScrollIndicator={false}>
+          {[0, 1, 2].map(i => (
+            <View key={i} style={s.card}>
+              <View style={[s.cardHeaderBand, { backgroundColor: C.g100 }]}>
+                <View style={s.cardHeaderInner}>
+                  <Bone w={48} h={48} r={24} style={{ backgroundColor: 'rgba(255,255,255,0.5)' }} />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Bone w={140} h={14} style={{ backgroundColor: 'rgba(255,255,255,0.5)', marginBottom: 6 }} />
+                    <Bone w={80} h={10} style={{ backgroundColor: 'rgba(255,255,255,0.4)' }} />
+                  </View>
+                  <Bone w={50} h={16} r={6} style={{ backgroundColor: 'rgba(255,255,255,0.4)' }} />
+                </View>
+              </View>
+
+              <View style={s.cardRouteRow}>
+                <View style={s.rFromDot} />
+                <Bone w={70} h={11} />
+                <View style={s.rLine} />
+                <Bone w={16} h={16} r={8} />
+                <View style={s.rLine} />
+                <Bone w={70} h={11} />
+                <View style={s.rToDot} />
+              </View>
+
+              <View style={s.cardBody}>
+                <View style={s.vendorRow}>
+                  <Bone w={38} h={38} r={19} />
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <Bone w={120} h={13} style={{ marginBottom: 6 }} />
+                    <Bone w={90} h={10} />
+                  </View>
+                </View>
+
+                <View style={s.priceDateRow}>
+                  <View style={{ flex: 1 }}>
+                    <Bone w={80} h={18} style={{ marginBottom: 6 }} />
+                    <Bone w={60} h={10} />
+                  </View>
+                  <View style={s.dateChipStack}>
+                    <Bone w={90} h={20} r={8} />
+                  </View>
+                </View>
+
+                <View style={s.actionsRow}>
+                  <Bone w="100%" h={40} r={10} style={{ flex: 1 }} />
+                  <Bone w={40} h={40} r={10} />
+                </View>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       </View>
     );
   }
@@ -838,29 +894,10 @@ export default function BrowseVehiclesScreen({ navigation }) {
 }
 
 const s = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 40 },
-
-  // Loading
-  loadingIconWrap: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
-  },
-  loadingText: { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 4 },
-  loadingSubText: { fontSize: 13, color: C.muted },
 
   // ── Header ──
-  header: { paddingBottom: 18, overflow: 'hidden', position: 'relative' },
-  decCircle1: {
-    position: 'absolute', width: 180, height: 180, borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    top: -60, right: -40,
-  },
-  decCircle2: {
-    position: 'absolute', width: 120, height: 120, borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.045)',
-    top: 20, right: 60,
-  },
+  header: { paddingBottom: 18, overflow: 'hidden', position: 'relative', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerInner: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingTop: 14, gap: 10,
@@ -872,7 +909,7 @@ const s = StyleSheet.create({
   },
   headerCenter: { flex: 1 },
   headerTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
-  headerSub: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
   addBtnWrap: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden' },
   addBtnGrad: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
@@ -907,8 +944,8 @@ const s = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
   },
-  filterTextActive: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  filterTextInactive: { fontSize: 12, fontWeight: '600', color: C.muted },
+  filterTextActive: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  filterTextInactive: { fontSize: 13, fontWeight: '600', color: C.muted },
 
   // ── City Row ──
   cityRow: {
@@ -922,7 +959,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 10,
     ...cardShadow,
   },
-  cityInput: { flex: 1, fontSize: 13, color: C.text, paddingVertical: 9 },
+  cityInput: { flex: 1, fontSize: 14, color: C.text, paddingVertical: 9 },
   cityArrow: {
     width: 32, height: 32, borderRadius: 16,
     backgroundColor: C.g600,
@@ -935,7 +972,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 6,
   },
   resultDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.g600 },
-  resultCount: { fontSize: 12, color: C.sub, fontWeight: '500' },
+  resultCount: { fontSize: 13, color: C.sub, fontWeight: '500' },
 
   // ── Vehicle Card ──
   card: {
@@ -957,13 +994,13 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   cardVehName: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.2 },
-  cardPlateText: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2, letterSpacing: 0.5 },
+  cardPlateText: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2, letterSpacing: 0.5 },
   cardSvcBadge: {
     paddingHorizontal: 10, paddingVertical: 5,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  cardSvcBadgeText: { fontSize: 10, fontWeight: '700', color: '#fff', letterSpacing: 0.5 },
+  cardSvcBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 0.5 },
 
   // Route Row
   cardRouteRow: {
@@ -975,7 +1012,7 @@ const s = StyleSheet.create({
   rFromDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.g500 },
   rToDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.red },
   rLine: { flex: 1, height: 1, backgroundColor: C.borderMed },
-  rCity: { fontSize: 12, fontWeight: '600', color: C.text },
+  rCity: { fontSize: 13, fontWeight: '600', color: C.text },
 
   // Card Body
   cardBody: { padding: 14, paddingTop: 13 },
@@ -991,12 +1028,12 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   vendorInitial: { fontSize: 15, fontWeight: '800', color: '#fff' },
-  vendorName: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 2 },
+  vendorName: { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 2 },
   vendorMeta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  vendorCity: { fontSize: 11, color: C.muted },
+  vendorCity: { fontSize: 12, color: C.muted },
   ratingWrap: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  ratingText: { fontSize: 11, fontWeight: '700', color: C.amber },
-  ratingCount: { fontSize: 10, color: C.muted },
+  ratingText: { fontSize: 12, fontWeight: '700', color: C.amber },
+  ratingCount: { fontSize: 11, color: C.muted },
 
   // Price + Date
   priceDateRow: {
@@ -1004,8 +1041,8 @@ const s = StyleSheet.create({
     marginBottom: 12,
   },
   priceVal: { fontFamily: DISPLAY, fontSize: 28, fontWeight: '900', color: C.g700, letterSpacing: -0.8 },
-  priceLabel: { fontSize: 11, color: C.muted, fontWeight: '500', marginTop: 1 },
-  partPrice: { fontSize: 12, color: C.sub, marginTop: 3 },
+  priceLabel: { fontSize: 12, color: C.muted, fontWeight: '500', marginTop: 1 },
+  partPrice: { fontSize: 13, color: C.sub, marginTop: 3 },
   dateChipStack: { gap: 6, alignItems: 'flex-end' },
   infoChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -1013,7 +1050,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 9, paddingVertical: 5,
     borderWidth: 1, borderColor: C.g100,
   },
-  infoText: { fontSize: 11, color: C.g700, fontWeight: '600' },
+  infoText: { fontSize: 12, color: C.g700, fontWeight: '600' },
 
   // Badges
   badgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 13 },
@@ -1022,20 +1059,20 @@ const s = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8,
   },
-  badgeText: { fontSize: 11, color: C.sub, fontWeight: '500' },
+  badgeText: { fontSize: 12, color: C.sub, fontWeight: '500' },
   badgeGreen: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: C.g50,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8,
     borderWidth: 1, borderColor: C.g100,
   },
-  badgeGreenText: { fontSize: 11, color: C.g700, fontWeight: '600' },
+  badgeGreenText: { fontSize: 12, color: C.g700, fontWeight: '600' },
   badgePurple: {
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8,
     backgroundColor: C.purpleBg,
     borderWidth: 1, borderColor: '#DDD6FE',
   },
-  badgePurpleText: { fontSize: 11, color: C.purple, fontWeight: '600' },
+  badgePurpleText: { fontSize: 12, color: C.purple, fontWeight: '600' },
 
   // Actions
   actionsRow: { flexDirection: 'row', gap: 8, marginBottom: 5 },
@@ -1044,7 +1081,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center', gap: 8, paddingVertical: 13,
   },
-  reqBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  reqBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   iconBtn: {
     width: 44, height: 44, borderRadius: 12,
     backgroundColor: C.g50,
@@ -1064,7 +1101,7 @@ const s = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: C.border,
   },
   socialBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 },
-  socialText: { fontSize: 12, color: C.sub, fontWeight: '500' },
+  socialText: { fontSize: 13, color: C.sub, fontWeight: '500' },
 
   // Share Menu
   shareMenu: {
@@ -1084,28 +1121,28 @@ const s = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     justifyContent: 'center', alignItems: 'center',
   },
-  shareOptionText: { fontSize: 13, color: C.text, fontWeight: '500' },
+  shareOptionText: { fontSize: 14, color: C.text, fontWeight: '500' },
 
   // Comments
   commentsSection: { marginTop: 8 },
   commentsDivider: { height: 1, backgroundColor: C.border, marginBottom: 10 },
-  noComments: { fontSize: 12, color: C.muted, textAlign: 'center', paddingVertical: 14 },
+  noComments: { fontSize: 13, color: C.muted, textAlign: 'center', paddingVertical: 14 },
   commentItem: { flexDirection: 'row', gap: 9, marginBottom: 11 },
   commentAvatar: {
     width: 30, height: 30, borderRadius: 15,
     justifyContent: 'center', alignItems: 'center',
   },
-  commentInitial: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  commentInitial: { fontSize: 11, fontWeight: '700', color: '#fff' },
   commentHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  commentName: { fontSize: 12, fontWeight: '600', color: C.text },
-  commentTime: { fontSize: 10, color: C.muted },
-  commentMsg: { fontSize: 12, color: C.sub, marginTop: 3, lineHeight: 17 },
+  commentName: { fontSize: 13, fontWeight: '600', color: C.text },
+  commentTime: { fontSize: 11, color: C.muted },
+  commentMsg: { fontSize: 13, color: C.sub, marginTop: 3, lineHeight: 17 },
   commentInputRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
   commentInput: {
     flex: 1,
     backgroundColor: C.g50, borderWidth: 1, borderColor: C.border,
     borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9,
-    fontSize: 13, color: C.text,
+    fontSize: 14, color: C.text,
   },
   commentSendBtn: {
     width: 40, height: 40, borderRadius: 10,
@@ -1127,9 +1164,9 @@ const s = StyleSheet.create({
     ...cardShadow,
   },
   pageBtnDisabled: { opacity: 0.4 },
-  pageBtnText: { fontSize: 13, fontWeight: '600', color: C.g700 },
+  pageBtnText: { fontSize: 14, fontWeight: '600', color: C.g700 },
   pageInfoPill: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 12 },
-  pageInfo: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  pageInfo: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
   // Empty State
   empty: {
@@ -1142,7 +1179,7 @@ const s = StyleSheet.create({
     ...cardShadow,
   },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '700', color: C.text },
-  emptyMsg: { fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 20 },
+  emptyMsg: { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 20 },
   emptyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 28, paddingVertical: 14,
@@ -1190,7 +1227,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   modalSummaryTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '700', color: C.text },
-  modalSummaryRoute: { fontSize: 12, color: C.sub, marginTop: 2 },
+  modalSummaryRoute: { fontSize: 13, color: C.sub, marginTop: 2 },
 
   // Modal Info Grid
   modalInfoGrid: {
@@ -1203,12 +1240,12 @@ const s = StyleSheet.create({
     alignItems: 'center', gap: 4,
     borderWidth: 1, borderColor: C.g100,
   },
-  modalInfoLabel: { fontSize: 10, color: C.muted, fontWeight: '500' },
+  modalInfoLabel: { fontSize: 11, color: C.muted, fontWeight: '500' },
   modalInfoVal: { fontSize: 14, fontWeight: '700', color: C.text },
 
   // Form
   fLabel: {
-    fontSize: 10, fontWeight: '700', color: C.muted,
+    fontSize: 11, fontWeight: '700', color: C.muted,
     letterSpacing: 0.8, marginBottom: 7, marginTop: 16,
   },
   inputWrap: {
@@ -1230,7 +1267,7 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderColor: C.border,
   },
   toggleBtnActive: { backgroundColor: C.g50, borderColor: C.g600 },
-  toggleText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  toggleText: { fontSize: 14, fontWeight: '600', color: C.sub },
   toggleTextActive: { color: C.g700, fontWeight: '700' },
 
   submitBtnWrap: { borderRadius: rs(14), overflow: 'hidden', marginTop: 20 },

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, RefreshControl, ActivityIndicator, TextInput,
+  StatusBar, RefreshControl, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -12,7 +12,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getBookings, getVendorProfile } from '../../api/client';
 import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -63,6 +63,10 @@ const STATUS_META = {
   ADVANCE_PAID:     { label: 'Advance Paid', color: C.amber },
   CANCELLED:        { label: 'Cancelled',    color: C.red },
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const isCompleted = (s) => s === 'COMPLETED';
 const isActive    = (s) => s !== 'COMPLETED' && s !== 'CANCELLED';
@@ -118,6 +122,7 @@ export default function BookingsListScreen({ navigation, route }) {
   const [selectedSvc, setSelectedSvc] = useState('all');
   const [status, setStatus]           = useState(route?.params?.initialStatus === 'completed' ? 'completed' : 'active');
   const [query, setQuery]             = useState('');
+  const [searchOpen, setSearchOpen]   = useState(false);
 
   const approvedServices = useMemo(
     () => (approvedIds || []).map(id => SERVICES[SVC_ID_TO_KEY[id]]).filter(Boolean),
@@ -129,7 +134,14 @@ export default function BookingsListScreen({ navigation, route }) {
     const results = await Promise.allSettled(
       svcs.map(async (svc) => {
         const res = await getBookings(svc.apiService, { limit: 100 });
-        return (res?.bookings || []).map(b => normalize(svc, b));
+        // Some services (e.g. luxury) merge open/quoted quote-requests into
+        // this same list alongside real bookings — their `id` points at a
+        // quote request, not a booking, so BookingDetail 404s on tap. Keep
+        // only genuine bookings here (services that never set `type` are
+        // unaffected since `b.type` is simply undefined for them).
+        return (res?.bookings || [])
+          .filter(b => !b.type || b.type === 'booking')
+          .map(b => normalize(svc, b));
       })
     );
     const merged = [];
@@ -188,8 +200,7 @@ export default function BookingsListScreen({ navigation, route }) {
 
       {/* ── Green hero header ── */}
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.hero}>
-        <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={st.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: 16 }}>
           <View style={st.heroTop}>
             <View style={{ flex: 1 }}>
@@ -198,16 +209,21 @@ export default function BookingsListScreen({ navigation, route }) {
                 {loading ? 'Loading…' : `${bookings.length} bookings · ${count} service${count !== 1 ? 's' : ''}`}
               </Text>
             </View>
+            <TouchableOpacity style={[st.refreshBtn, { marginRight: 8 }]}
+              onPress={() => { setSearchOpen(v => !v); if (searchOpen) setQuery(''); }} activeOpacity={0.75}>
+              <Icon name={searchOpen ? 'x' : 'search'} size={17} color="rgba(255,255,255,0.85)" />
+            </TouchableOpacity>
             <TouchableOpacity style={st.refreshBtn} onPress={onRefresh} activeOpacity={0.75}>
               <Icon name="refresh-cw" size={17} color="rgba(255,255,255,0.85)" />
             </TouchableOpacity>
           </View>
           {/* spacer so the floating search card can tuck into the curve */}
-          <View style={{ height: rs(26) }} />
+          <View style={{ height: searchOpen ? rs(26) : rs(8) }} />
         </SafeAreaView>
       </LinearGradient>
 
       {/* Floating search — tucks into the hero's bottom curve */}
+      {searchOpen && (
       <View style={st.searchWrap}>
         <View style={st.searchCard}>
           <Icon name="search" size={15} color={C.muted} style={{ marginRight: 8 }} />
@@ -217,6 +233,7 @@ export default function BookingsListScreen({ navigation, route }) {
             placeholderTextColor={C.muted}
             value={query} onChangeText={setQuery}
             returnKeyType="search" autoCorrect={false}
+            autoFocus
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -225,6 +242,7 @@ export default function BookingsListScreen({ navigation, route }) {
           )}
         </View>
       </View>
+      )}
 
       {/* Fixed filters — kept OUTSIDE the scrollable list so switching tabs
           doesn't reset scroll position. */}
@@ -288,9 +306,33 @@ export default function BookingsListScreen({ navigation, route }) {
 
       {/* ── List ── */}
       {loading ? (
-        <View style={st.empty}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={[st.emptySub, { marginTop: 12 }]}>Loading bookings…</Text>
+        <View style={st.body}>
+          {[0, 1, 2].map(i => (
+            <View key={i} style={[st.card, st.cardShadow]}>
+              <View style={[st.cardRail, { backgroundColor: '#DDE4EE' }]} />
+              <View style={st.cardInner}>
+                <View style={st.cardTopStripe}>
+                  <Bone w={34} h={34} r={11} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Bone w={70} h={9} style={{ marginBottom: 5 }} />
+                    <Bone w={90} h={12} />
+                  </View>
+                  <Bone w={70} h={20} r={20} />
+                </View>
+                <View style={st.customerRow}>
+                  <Bone w={28} h={28} r={10} />
+                  <Bone w={120} h={14} />
+                </View>
+                <View style={st.cardMetaRow}>
+                  <Bone w={70} h={11} />
+                  <Bone w={100} h={11} />
+                </View>
+                <View style={st.moneyBlock}>
+                  <Bone w={90} h={16} />
+                </View>
+              </View>
+            </View>
+          ))}
         </View>
       ) : count === 0 ? (
         <EmptyState
@@ -384,19 +426,10 @@ const st = StyleSheet.create({
     borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
     overflow: 'hidden',
   },
-  orbA: {
-    position: 'absolute', top: -rs(50), right: -rs(30),
-    width: rs(170), height: rs(170), borderRadius: rs(85),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(60), left: -rs(40),
-    width: rs(150), height: rs(150), borderRadius: rs(75),
-    backgroundColor: 'rgba(46,158,120,0.16)',
-  },
-  heroTop:   { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
+  heroTop:   { flexDirection: 'row', alignItems: 'center', paddingTop: rs(10) },
   heroTitle: { fontFamily: DISPLAY, fontSize: 24, color: '#fff', letterSpacing: -0.2 },
-  heroSub:   { fontSize: 12, color: 'rgba(255,255,255,0.62)', fontWeight: '600', marginTop: 2 },
+  heroSub:   { fontSize: 13, color: 'rgba(255,255,255,0.62)', fontWeight: '600', marginTop: 2 },
   refreshBtn:{ width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', justifyContent: 'center', alignItems: 'center' },
 
   // Floating search card — tucks into the hero's bottom curve.
@@ -416,7 +449,7 @@ const st = StyleSheet.create({
   tabsWrap: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 14, gap: 8 },
   tab:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, borderRadius: rs(12), backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
   tabOn:    { backgroundColor: C.g50, borderColor: C.g500 },
-  tabTxt:   { fontSize: 13, fontWeight: '700', color: C.muted },
+  tabTxt:   { fontSize: 14, fontWeight: '700', color: C.muted },
   tabTxtOn: { color: C.text },
 
   // 3+ service cards (filter)
@@ -425,18 +458,18 @@ const st = StyleSheet.create({
   svcCard:   { width: 96, padding: 11, borderRadius: rs(14), backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'flex-start', ...cardShadow },
   svcCardOn: { backgroundColor: C.g600, borderColor: C.g600 },
   svcCardIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  svcCardName: { fontFamily: DISPLAY, fontSize: 12, fontWeight: '800', color: C.text },
-  svcCardCnt:  { fontSize: 10, fontWeight: '600', color: C.muted, marginTop: 2 },
+  svcCardName: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text },
+  svcCardCnt:  { fontSize: 11, fontWeight: '600', color: C.muted, marginTop: 2 },
 
   // Active / Completed
   statusWrap:    { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 14 },
   statusBtn:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 10, borderRadius: rs(12), backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
   statusBtnOn:   { backgroundColor: C.g900, borderColor: C.g900 },
-  statusTxt:     { fontSize: 13, fontWeight: '800', color: C.sub },
+  statusTxt:     { fontSize: 14, fontWeight: '800', color: C.sub },
   statusTxtOn:   { color: '#fff' },
   statusPill:    { minWidth: 20, paddingHorizontal: 6, height: 18, borderRadius: 9, backgroundColor: C.border, alignItems: 'center', justifyContent: 'center' },
   statusPillOn:  { backgroundColor: 'rgba(255,255,255,0.22)' },
-  statusPillTxt: { fontSize: 10, fontWeight: '800', color: C.sub },
+  statusPillTxt: { fontSize: 11, fontWeight: '800', color: C.sub },
   statusPillTxtOn: { color: '#fff' },
 
   body: { paddingHorizontal: 16, paddingTop: 4, gap: 12 },
@@ -454,19 +487,19 @@ const st = StyleSheet.create({
 
   cardTopStripe: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   typeIconBox: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  typeLabel: { fontSize: 9.5, fontWeight: '800', letterSpacing: 0.6 },
-  bookingNumber: { fontFamily: DISPLAY, fontSize: 11.5, color: C.sub, fontWeight: '700', marginTop: 1 },
+  typeLabel: { fontSize: 10.5, fontWeight: '800', letterSpacing: 0.6 },
+  bookingNumber: { fontFamily: DISPLAY, fontSize: 12.5, color: C.sub, fontWeight: '700', marginTop: 1 },
   statusPillCard: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20 },
-  statusPillCardTxt: { fontSize: 9.5, fontWeight: '800' },
+  statusPillCardTxt: { fontSize: 10.5, fontWeight: '800' },
 
   customerRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   avatar:      { width: 28, height: 28, borderRadius: 10, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
-  avatarTxt:   { fontSize: 12, fontWeight: '800', color: C.g700 },
+  avatarTxt:   { fontSize: 13, fontWeight: '800', color: C.g700 },
   cardName:    { fontFamily: DISPLAY, fontSize: 16, color: C.text, flex: 1 },
 
   cardMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8, alignItems: 'center' },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
-  metaText: { fontSize: 11, color: C.sub, fontWeight: '600' },
+  metaText: { fontSize: 12, color: C.sub, fontWeight: '600' },
 
   moneyBlock: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border },
   moneyTotal: { fontFamily: DISPLAY, fontSize: 18, color: C.g700 },
@@ -501,5 +534,5 @@ const st = StyleSheet.create({
   },
   emptyArtTagTxt: { fontSize: 8.5, fontWeight: '800', color: C.g700, letterSpacing: 0.6 },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 16, color: C.text, textTransform: 'capitalize', textAlign: 'center' },
-  emptySub:   { fontSize: 12, color: C.muted, textAlign: 'center', marginTop: 4 },
+  emptySub:   { fontSize: 13, color: C.muted, textAlign: 'center', marginTop: 4 },
 });

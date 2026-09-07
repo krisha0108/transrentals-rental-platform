@@ -12,11 +12,14 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { getBookingLinks, updateBookingLink } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
-import { ListSkeleton } from '../../../components/SkeletonLoader';
 import { useVerificationGate, VerificationBanner } from '../../../components/VerificationGate';
 import { SC as T, G, rs, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -110,17 +113,51 @@ export default function BookingLinksScreen({ navigation }) {
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
       <LinearGradient colors={G.hero} style={s.grad}>
-        <AnimatedOrb style={s.deco1} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']}>
           <View style={s.gradTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
               <Icon name="arrow-left" size={22} color="#fff" />
             </TouchableOpacity>
-            <Text style={s.gradTitle}>Booking Links</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.gradTitle}>Booking Links</Text>
+              <Bone w={160} h={11} r={4} style={{ marginTop: 6 }} />
+            </View>
           </View>
         </SafeAreaView>
       </LinearGradient>
-      <ListSkeleton count={3} />
+      <View style={s.statsStrip}>
+        {[0,1,2].map(i => (
+          <React.Fragment key={i}>
+            {i > 0 && <View style={s.statDiv} />}
+            <View style={s.statItem}>
+              <Bone w={30} h={20} r={4} style={{ marginBottom: 4 }} />
+              <Bone w={40} h={9} r={3} />
+            </View>
+          </React.Fragment>
+        ))}
+      </View>
+      <View style={{ padding: 14, gap: 12 }}>
+        {[0,1,2].map(i => (
+          <View key={i} style={{ backgroundColor: C.surface, borderRadius: rs(18), flexDirection: 'row', overflow: 'hidden', borderWidth: 1, borderColor: C.border }}>
+            <View style={{ width: 4, backgroundColor: '#DDE4EE' }} />
+            <View style={{ flex: 1, padding: 14, gap: 10 }}>
+              <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
+                <Bone w={50} h={50} r={16} />
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Bone w={120} h={13} r={4} />
+                  <Bone w={80} h={16} r={12} />
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Bone w={70} h={28} r={10} />
+                <Bone w={90} h={28} r={10} />
+                <Bone w={80} h={28} r={10} />
+              </View>
+            </View>
+          </View>
+        ))}
+      </View>
     </View>
   );
 
@@ -130,8 +167,7 @@ export default function BookingLinksScreen({ navigation }) {
 
       {/* Gradient Header */}
       <LinearGradient colors={G.hero} style={s.grad}>
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']}>
           <View style={s.gradTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -145,29 +181,29 @@ export default function BookingLinksScreen({ navigation }) {
               <Icon name="refresh-cw" size={18} color="rgba(255,255,255,0.8)" />
             </TouchableOpacity>
           </View>
-
-          {/* Stats strip */}
-          <View style={s.statsStrip}>
-            <View style={s.statItem}>
-              <Icon name="zap" size={14} color={C.g400} style={{ marginBottom: 4 }} />
-              <Text style={[s.statNum, { color: C.g400 }]}>{activeCount}</Text>
-              <Text style={s.statLbl}>Active</Text>
-            </View>
-            <View style={s.statDiv} />
-            <View style={s.statItem}>
-              <Icon name="eye" size={14} color="#93C5FD" style={{ marginBottom: 4 }} />
-              <Text style={[s.statNum, { color: '#93C5FD' }]}>{totalViews}</Text>
-              <Text style={s.statLbl}>Views</Text>
-            </View>
-            <View style={s.statDiv} />
-            <View style={s.statItem}>
-              <Icon name="book-open" size={14} color="#C4B5FD" style={{ marginBottom: 4 }} />
-              <Text style={[s.statNum, { color: '#C4B5FD' }]}>{totalBookings}</Text>
-              <Text style={s.statLbl}>Bookings</Text>
-            </View>
-          </View>
         </SafeAreaView>
       </LinearGradient>
+
+      {/* Stats strip — moved out of the header into the body */}
+      <View style={s.statsStrip}>
+        <View style={s.statItem}>
+          <Icon name="zap" size={14} color={C.g700} style={{ marginBottom: 4 }} />
+          <Text style={[s.statNum, { color: C.g700 }]}>{activeCount}</Text>
+          <Text style={s.statLbl}>Active</Text>
+        </View>
+        <View style={s.statDiv} />
+        <View style={s.statItem}>
+          <Icon name="eye" size={14} color={C.blue} style={{ marginBottom: 4 }} />
+          <Text style={[s.statNum, { color: C.blue }]}>{totalViews}</Text>
+          <Text style={s.statLbl}>Views</Text>
+        </View>
+        <View style={s.statDiv} />
+        <View style={s.statItem}>
+          <Icon name="book-open" size={14} color={C.purple} style={{ marginBottom: 4 }} />
+          <Text style={[s.statNum, { color: C.purple }]}>{totalBookings}</Text>
+          <Text style={s.statLbl}>Bookings</Text>
+        </View>
+      </View>
 
       <VerificationBanner status={vendorStatus} navigation={navigation} />
 
@@ -313,26 +349,25 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
 
   /* Gradient header */
-  grad: { paddingBottom: rs(18), overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
-  deco1: {
-    position: 'absolute', width: 190, height: 190, borderRadius: 95,
-    backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40,
-  },
-  deco2: {
-    position: 'absolute', width: 120, height: 120, borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.045)', bottom: -10, left: 40,
-  },
+  grad: { paddingBottom: rs(10), overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   gradTop: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14, gap: 8 },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
   gradTitle: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  gradSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  gradSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
   refreshBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
 
-  statsStrip: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
+  statsStrip: {
+    flexDirection: 'row', backgroundColor: C.surface,
+    marginHorizontal: 14, marginTop: 14, marginBottom: 4,
+    borderRadius: rs(14), overflow: 'hidden',
+    borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
+  },
   statItem: { flex: 1, paddingVertical: 13, alignItems: 'center' },
-  statNum: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: '#fff' },
-  statLbl: { fontSize: 9, color: 'rgba(255,255,255,0.55)', fontWeight: '700', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
-  statDiv: { width: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 10 },
+  statNum: { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: C.text },
+  statLbl: { fontSize: 10, color: C.muted, fontWeight: '700', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
+  statDiv: { width: 1, backgroundColor: C.border, marginVertical: 10 },
 
   /* Scroll */
   scroll: { padding: 14, paddingTop: 14, gap: 12, paddingBottom: 30 },
@@ -352,21 +387,21 @@ const s = StyleSheet.create({
   svcName: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text },
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusTxt: { fontSize: 11, fontWeight: '700' },
-  urlText: { fontSize: 11, fontFamily: 'monospace', marginBottom: 2 },
-  formTitle: { fontSize: 11, color: C.muted, fontStyle: 'italic', marginBottom: 4 },
+  statusTxt: { fontSize: 12, fontWeight: '700' },
+  urlText: { fontSize: 12, fontFamily: 'monospace', marginBottom: 2 },
+  formTitle: { fontSize: 12, color: C.muted, fontStyle: 'italic', marginBottom: 4 },
 
   inlineStats: { flexDirection: 'row', gap: 14, marginTop: 6 },
   inlineStat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  inlineStatVal: { fontSize: 12, fontWeight: '700', color: C.subtext },
-  inlineStatLbl: { fontSize: 11, color: C.muted },
+  inlineStatVal: { fontSize: 13, fontWeight: '700', color: C.subtext },
+  inlineStatLbl: { fontSize: 12, color: C.muted },
 
   toggleBtn: { padding: 2, marginTop: 2 },
 
   /* Chips */
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border + '80' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 8, borderRadius: 10, backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border },
-  chipTxt: { fontSize: 11, fontWeight: '700', color: C.subtext },
+  chipTxt: { fontSize: 12, fontWeight: '700', color: C.subtext },
 
   /* Empty */
   emptyWrap: { alignItems: 'center', paddingVertical: 64, paddingHorizontal: 32, gap: 10 },
@@ -375,5 +410,5 @@ const s = StyleSheet.create({
     backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
   },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text },
-  emptySub: { fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 20 },
+  emptySub: { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 20 },
 });

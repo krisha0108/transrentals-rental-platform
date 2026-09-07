@@ -20,7 +20,7 @@ import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
 import DateFilterModal from '../../../../components/DateFilterModal';
 import { SC as T, G, rs, shade, cardShadow } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
 
 // Same key names this screen already used — only the values now come from
 // the shared "Elevate" theme instead of hardcoded hex.
@@ -86,6 +86,10 @@ const formatDate = (dateStr) => {
   });
 };
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 const formatCurrency = (amount) => {
   if (!amount) return '₹0';
   return new Intl.NumberFormat('en-IN', {
@@ -109,7 +113,7 @@ export default function PackersMyQuotesScreen({ navigation }) {
     filterKey: 'status',
   });
 
-  useEffect(() => { initialLoad(); }, [activeTab]);
+  useEffect(() => { initialLoad(); }, [activeTab, initialLoad]);
 
   const handleWithdraw = (quote) => {
     Alert.alert(
@@ -313,8 +317,7 @@ export default function PackersMyQuotesScreen({ navigation }) {
 
       {/* Hero header */}
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
-        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: rs(16) }}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity
@@ -324,7 +327,10 @@ export default function PackersMyQuotesScreen({ navigation }) {
             >
               <Ionicons name="arrow-back" size={rs(20)} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }} />
+            <View style={styles.titleWrap}>
+              <Text style={styles.headerEyebrow}>SUBMITTED QUOTES</Text>
+              <Text style={styles.headerTitle}>My Quotes</Text>
+            </View>
             <TouchableOpacity
               onPress={() => setShowDateFilter(true)}
               style={styles.filterBtn}
@@ -334,12 +340,6 @@ export default function PackersMyQuotesScreen({ navigation }) {
               {!!dateFilter.start && <View style={styles.filterDot} />}
             </TouchableOpacity>
           </View>
-
-          <Text style={styles.headerEyebrow}>SUBMITTED QUOTES</Text>
-          <Text style={styles.bigTitle}>My Quotes</Text>
-          <Text style={styles.bigSub}>Every quote you've sent for packers & movers, in one place.</Text>
-
-          <View style={{ height: rs(26) }} />
         </SafeAreaView>
       </LinearGradient>
 
@@ -367,9 +367,39 @@ export default function PackersMyQuotesScreen({ navigation }) {
       </View>
 
       {/* List */}
-      {loading && quotes.length === 0 ? (
-        <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color={C.g600} />
+      {(loading || refreshing) && quotes.length === 0 ? (
+        <View style={styles.listContent}>
+          {[0, 1, 2].map(i => (
+            <View key={i} style={styles.card}>
+              <View style={[styles.ticketTopStrip, { backgroundColor: '#DDE4EE' }]} />
+              <View style={styles.ticketUpper}>
+                <View style={styles.cardTopRow}>
+                  <Bone w={rs(26)} h={rs(26)} r={rs(8)} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Bone w={100} h={13} />
+                  </View>
+                  <Bone w={70} h={18} r={999} />
+                </View>
+                <Bone w={130} h={14} style={{ marginTop: 8, marginBottom: 8 }} />
+                <View style={styles.routeRow}>
+                  <Bone w={70} h={11} />
+                  <Bone w={16} h={11} style={{ marginHorizontal: rs(4) }} />
+                  <Bone w={70} h={11} />
+                </View>
+              </View>
+              <View style={styles.perforationRow}>
+                <View style={styles.notchLeft} />
+                <View style={styles.dashLine} />
+                <View style={styles.notchRight} />
+              </View>
+              <View style={styles.ticketLower}>
+                <View style={styles.moneyTopRow}>
+                  <View style={styles.moneyIcoWrap} />
+                  <Bone w={90} h={16} style={{ marginLeft: 6 }} />
+                </View>
+              </View>
+            </View>
+          ))}
         </View>
       ) : (
         <FlatList
@@ -414,17 +444,9 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: rs(24),
     borderBottomRightRadius: rs(24),
   },
-  orbA: {
-    position: 'absolute', top: -rs(46), right: -rs(30),
-    width: rs(150), height: rs(150), borderRadius: rs(75),
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(40), left: -rs(34),
-    width: rs(120), height: rs(120), borderRadius: rs(60),
-    backgroundColor: 'rgba(255,255,255,0.045)',
-  },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(10) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: rs(10) },
+  titleWrap: { alignItems: 'center', justifyContent: 'center', minHeight: rs(40) },
   backBtn: {
     width: rs(40), height: rs(40), borderRadius: rs(20),
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -443,14 +465,13 @@ const styles = StyleSheet.create({
   },
   headerEyebrow: {
     fontFamily: DISPLAY,
-    fontSize: 10, color: 'rgba(255,255,255,0.65)', fontWeight: '700',
+    fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '700',
     letterSpacing: 1.2, marginBottom: 2,
   },
-  bigTitle: { fontFamily: DISPLAY, fontSize: 26, color: '#fff', letterSpacing: 0.2 },
-  bigSub: { fontFamily: DISPLAY, fontSize: 12.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', marginTop: rs(4) },
+  headerTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
   /* Floating tab pills */
-  tabFloatWrap: { marginHorizontal: rs(16), marginTop: -rs(16) },
+  tabFloatWrap: { marginHorizontal: rs(16), marginTop: rs(14) },
   tabCard: {
     backgroundColor: C.card, borderRadius: rs(16),
     borderWidth: 1, borderColor: C.glassBorder,
@@ -464,10 +485,9 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg, borderWidth: 1, borderColor: C.border,
   },
   tabPillActive: { backgroundColor: C.g700, borderColor: C.g700 },
-  tabLabel: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: '600', color: C.sub, flexShrink: 0 },
+  tabLabel: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: '600', color: C.sub, flexShrink: 0 },
   tabLabelActive: { color: '#fff' },
 
-  loaderWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContent: { padding: rs(16), paddingTop: rs(16), paddingBottom: rs(40) },
 
   /* Card — ticket / boarding-pass silhouette */
@@ -507,25 +527,25 @@ const styles = StyleSheet.create({
     width: rs(26), height: rs(26), borderRadius: rs(8),
     alignItems: 'center', justifyContent: 'center',
   },
-  quoteNumber: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: '700', color: C.text },
-  refText: { fontFamily: DISPLAY, fontSize: 10, color: C.muted, marginTop: 1 },
+  quoteNumber: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: '700', color: C.text },
+  refText: { fontFamily: DISPLAY, fontSize: 11, color: C.muted, marginTop: 1 },
   statusBadge: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: rs(7), paddingVertical: rs(2.5),
     borderRadius: rs(8), gap: rs(3),
   },
-  statusText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: '700' },
+  statusText: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: '700' },
 
   cardName: { fontFamily: DISPLAY, fontSize: 14.5, color: C.text, letterSpacing: 0.1, marginBottom: rs(4) },
 
   routeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: rs(6) },
   routePin: { flexDirection: 'row', alignItems: 'center', gap: rs(4), flex: 1 },
   pinDot: { width: rs(6), height: rs(6), borderRadius: rs(3) },
-  routeCity: { fontFamily: DISPLAY, fontSize: 11.5, color: C.sub, flex: 1 },
+  routeCity: { fontFamily: DISPLAY, fontSize: 12.5, color: C.sub, flex: 1 },
 
   cardMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(10), marginBottom: rs(7) },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: rs(3) },
-  metaText: { fontFamily: DISPLAY, fontSize: 10.5, color: C.sub, fontWeight: '600' },
+  metaText: { fontFamily: DISPLAY, fontSize: 11.5, color: C.sub, fontWeight: '600' },
 
   /* Money row */
   moneyTopRow: { flexDirection: 'row', alignItems: 'center', gap: rs(7) },
@@ -539,7 +559,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: rs(7), paddingVertical: rs(2.5), borderRadius: rs(8),
     backgroundColor: C.amberL, marginLeft: 'auto',
   },
-  validPillText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: '700', color: C.amber },
+  validPillText: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: '700', color: C.amber },
 
   /* Card action buttons */
   cardActions: {
@@ -562,7 +582,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FECACA',
   },
-  withdrawBtnText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: '600', color: C.red },
+  withdrawBtnText: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: '600', color: C.red },
   freshQuoteBtn: {
     flex: 1,
     flexDirection: 'row',
@@ -575,7 +595,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.g100,
   },
-  freshQuoteBtnText: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: '600', color: C.g700 },
+  freshQuoteBtnText: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: '600', color: C.g700 },
 
   /* Empty state */
   emptyState: { alignItems: 'center', paddingVertical: rs(50), paddingHorizontal: rs(24) },
@@ -607,5 +627,5 @@ const styles = StyleSheet.create({
   },
   emptyArtTagTxt: { fontFamily: DISPLAY, fontSize: 8.5, fontWeight: '700', color: C.g700, letterSpacing: 0.6 },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 6 },
-  emptySubtitle: { fontFamily: DISPLAY, fontSize: 13, color: C.muted, textAlign: 'center' },
+  emptySubtitle: { fontFamily: DISPLAY, fontSize: 14, color: C.muted, textAlign: 'center' },
 });

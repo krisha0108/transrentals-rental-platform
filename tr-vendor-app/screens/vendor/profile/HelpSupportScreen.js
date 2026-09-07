@@ -1,7 +1,7 @@
 // screens/vendor/profile/HelpSupportScreen.js
 // REDESIGNED — "Elevate" visual language, structurally matching
-// screens/travel-agent/support/HelpAssistantScreen.js's gradient hero (with
-// AnimatedOrb ambient motion) and this app's own VendorDocumentsScreen.js /
+// screens/travel-agent/support/HelpAssistantScreen.js's gradient hero and
+// this app's own VendorDocumentsScreen.js /
 // BankDetailsScreen.js card + modal conventions.
 //
 // UI ONLY. All behaviour is preserved exactly: same GET (/public/contact-settings)
@@ -20,7 +20,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { apiGet } from '../../api/client';
 import { SC as T, G, rs, rf, GUT, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already used everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -107,6 +107,10 @@ const DEFAULT_CONTACT = {
 // from whatever format the admin saved in the DB.
 const toDigits = (s) => String(s || '').replace(/\D/g, '').replace(/^91/, '');
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 export default function HelpSupportScreen({ navigation }) {
   const [expandedFaq, setExpandedFaq] = useState(null);
   const [contact, setContact] = useState(DEFAULT_CONTACT);
@@ -117,6 +121,12 @@ export default function HelpSupportScreen({ navigation }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [initializing, setInitializing] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setInitializing(false), 350);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -164,6 +174,66 @@ export default function HelpSupportScreen({ navigation }) {
     }
   };
 
+  if (initializing) {
+    return (
+      <View style={styles.root}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+          <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+          <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="arrow-back" size={rs(20)} color="#fff" />
+              </TouchableOpacity>
+              <View style={{ flex: 1 }} />
+            </View>
+
+            <View style={styles.heroBody}>
+              <View style={styles.heroIconWrap}>
+                <MaterialCommunityIcons name="headset" size={rs(24)} color={C.g400} />
+              </View>
+              <Text style={styles.heroTitle}>Help & Support</Text>
+              <Text style={styles.heroSub}>We're here to help you 24/7</Text>
+            </View>
+
+            <View style={styles.hoursStrip}>
+              <Ionicons name="time-outline" size={rs(14)} color={C.g400} />
+              <Text style={styles.hoursText}>Mon–Sun · Round the Clock · 24/7 Support</Text>
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
+        <View style={styles.scroll}>
+          <Text style={styles.sectionLabel}>Get in Touch</Text>
+          <View style={[styles.card, cardShadow]}>
+            {[0, 1, 2].map((i) => (
+              <View key={i} style={[styles.contactRow, i < 2 && styles.contactBorder]}>
+                <Bone w={rs(46)} h={rs(46)} r={rs(13)} />
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Bone w={100} h={13} />
+                  <Bone w={140} h={11} />
+                </View>
+              </View>
+            ))}
+          </View>
+
+          <Text style={styles.sectionLabel}>Frequently Asked Questions</Text>
+          <View style={[styles.card, cardShadow]}>
+            {[0, 1, 2].map((i) => (
+              <View key={i} style={[styles.faqRow, i < 2 && styles.faqBorder]}>
+                <View style={styles.faqTop}>
+                  <Bone w={rs(32)} h={rs(32)} r={rs(10)} />
+                  <Bone w="70%" h={13} />
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
@@ -171,8 +241,7 @@ export default function HelpSupportScreen({ navigation }) {
       {/* ── HERO — static sibling so it can never be clipped by the
           ScrollView's own viewport ── */}
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
-        <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
           <View style={styles.headerRow}>
@@ -184,7 +253,7 @@ export default function HelpSupportScreen({ navigation }) {
 
           <View style={styles.heroBody}>
             <View style={styles.heroIconWrap}>
-              <MaterialCommunityIcons name="headset" size={rs(30)} color={C.g400} />
+              <MaterialCommunityIcons name="headset" size={rs(24)} color={C.g400} />
             </View>
             <Text style={styles.heroTitle}>Help & Support</Text>
             <Text style={styles.heroSub}>We're here to help you 24/7</Text>
@@ -418,26 +487,17 @@ const styles = StyleSheet.create({
   /* ── Hero ── */
   hero: {
     paddingHorizontal: 0,
-    paddingBottom: rs(20),
+    paddingBottom: rs(12),
     borderBottomLeftRadius: rs(26),
     borderBottomRightRadius: rs(26),
     overflow: 'hidden',
   },
-  orbA: {
-    position: 'absolute', top: -rs(50), right: -rs(30),
-    width: rs(160), height: rs(160), borderRadius: rs(80),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(40), left: -rs(30),
-    width: rs(130), height: rs(130), borderRadius: rs(65),
-    backgroundColor: 'rgba(46,158,120,0.16)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: rs(8),
-    marginBottom: rs(18),
+    paddingTop: 0,
+    marginBottom: rs(4),
   },
   backBtn: {
     width: rs(38), height: rs(38), borderRadius: rs(19),
@@ -447,14 +507,14 @@ const styles = StyleSheet.create({
   },
   heroBody: {
     alignItems: 'center',
-    marginBottom: rs(18),
+    marginBottom: rs(14),
   },
   heroIconWrap: {
-    width: rs(66), height: rs(66), borderRadius: rs(33),
+    width: rs(56), height: rs(56), borderRadius: rs(28),
     backgroundColor: 'rgba(52,211,153,0.15)',
     borderWidth: 1.5, borderColor: 'rgba(52,211,153,0.3)',
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: rs(14),
+    marginBottom: rs(10),
   },
   heroTitle: {
     fontFamily: DISPLAY, fontSize: rf(21), fontWeight: '800', color: '#fff',
