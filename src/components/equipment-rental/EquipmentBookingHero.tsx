@@ -24,6 +24,13 @@ interface EquipmentBookingHeroProps {
   pageHeading?: string;
   pageDescription?: string;
   heroImage?: string;
+  /** Form ka pickup city. Na dene par `city` hi use hota hai — hub page
+   *  jaisi jagah par khaali bhej kar visitor ko khud chunne dete hain. */
+  cityName?: string;
+  /** Jab is hero ke upar page par kuch na ho. Site ka header fixed hai
+   *  aur <main> ki padding uski poori height se kam hai, isliye tab
+   *  clearance hero ko khud rakhni padti hai. */
+  topClearance?: boolean;
 }
 
 const HERO_FEATURES = [
@@ -53,6 +60,8 @@ export function EquipmentBookingHero({
   pageHeading,
   pageDescription,
   heroImage = '/images/sections/equipment-rental-hero-bg.png',
+  cityName,
+  topClearance = false,
 }: EquipmentBookingHeroProps) {
   const [showChat, setShowChat] = useState(false);
 
@@ -74,7 +83,9 @@ export function EquipmentBookingHero({
         )}
       </div>
 
-      <div className="relative container-custom py-6 lg:py-8">
+      <div className={`relative container-custom ${
+        topClearance ? 'pt-20 md:pt-24 lg:pt-24 pb-6 lg:pb-8' : 'py-6 lg:py-8'
+      }`}>
         <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 lg:gap-20 items-start">
           {/* LEFT — Marketing content */}
           <div className="lg:pr-4">
@@ -185,7 +196,7 @@ export function EquipmentBookingHero({
               [&::-webkit-scrollbar-thumb]:rounded-full">
               {showChat
                 ? <DynamicChatBookingHero hideHeader serviceType="equipment-rental" />
-                : <EquipmentBookingWidget cityName={city} serviceType="equipment-rental" />}
+                : <EquipmentBookingWidget cityName={cityName ?? city} serviceType="equipment-rental" />}
             </div>
 
             {/* Footer */}

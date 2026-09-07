@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Image from 'next/image';
 import { CarSearchHero } from '@/components/car';
 import { CarRentalPopularCitiesGrid } from '@/components/car-rental/CarRentalPopularCitiesGrid';
-import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
+import { BusRentalFleetDisplay } from '@/components/bus-rental/BusRentalFleetDisplay';
 import { HowToSchema } from '@/components/seo/schemas';
 import {
   ShieldCheck, CalendarClock, Wallet, Map, Car, Smartphone, Wrench, Headphones,
@@ -109,12 +109,19 @@ export default function SelfDriveCarRentalPage() {
       />
 
       {/* Fleet Display from Database */}
-      <ServiceFleetDisplay
+      {/* Wahi fleet section jo bus-rental par hai — skyline banner, category
+          tabs aur spec chips ke saath. Component props se chalta hai. */}
+      <BusRentalFleetDisplay
         serviceSlug="self-drive-car-rentals"
         title="Self Drive Cars Available"
         showCategories={true}
         limit={12}
         priceUnit="/day"
+        icon="car"
+        eyebrow="Explore & Drive"
+        subtitle="Hatchbacks, sedans and SUVs — pick the car that fits your trip and drive it yourself"
+        viewAllLabel="View All Cars"
+        bannerImage={null}
       />
 
       {/* Locations from Database — same cities grid the car-rental and

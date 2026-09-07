@@ -19,6 +19,13 @@ import {
   Heart,
   Building2,
   Truck,
+  Landmark,
+  GraduationCap,
+  Map,
+  Plane,
+  Caravan,
+  BusFront,
+  Check,
 } from 'lucide-react';
 import Link from 'next/link';
 import { BusRentalHubHero } from '@/components/bus-rental/BusRentalHubHero';
@@ -76,8 +83,7 @@ const VEHICLE_TYPES = [
     price: 'Starting ₹18/km',
     features: ['AC', 'Push-back Seats', 'Music System'],
     bestFor: 'Family Tours, Small Groups',
-    icon: '🚐',
-    gradient: 'from-purple-500 to-blue-500',
+    icon: Caravan,
   },
   {
     name: 'Tempo Traveller 17-Seater',
@@ -85,8 +91,7 @@ const VEHICLE_TYPES = [
     price: 'Starting ₹20/km',
     features: ['AC', 'Push-back Seats', 'Luggage Boot'],
     bestFor: 'Corporate Outings, Pilgrimages',
-    icon: '🚐',
-    gradient: 'from-blue-500 to-cyan-500',
+    icon: Caravan,
   },
   {
     name: 'Mini Bus 20–25 Seater',
@@ -94,8 +99,7 @@ const VEHICLE_TYPES = [
     price: 'Starting ₹22/km',
     features: ['AC/Non-AC', 'Reclining Seats', 'Music System'],
     bestFor: 'Corporate Events, School Trips',
-    icon: '🚌',
-    gradient: 'from-teal-500 to-emerald-500',
+    icon: Bus,
     popular: true,
   },
   {
@@ -104,8 +108,7 @@ const VEHICLE_TYPES = [
     price: 'Starting ₹25/km',
     features: ['AC/Non-AC', 'Overhead Luggage', 'PA System'],
     bestFor: 'Large Groups, Wedding Baraat',
-    icon: '🚌',
-    gradient: 'from-emerald-600 to-green-600',
+    icon: Bus,
   },
   {
     name: 'Large Bus 45–50 Seater',
@@ -113,8 +116,7 @@ const VEHICLE_TYPES = [
     price: 'Starting ₹28/km',
     features: ['AC', 'Sleeper Option', 'Entertainment System'],
     bestFor: 'Pilgrimages, Tour Groups',
-    icon: '🚌',
-    gradient: 'from-amber-600 to-orange-600',
+    icon: Bus,
   },
   {
     name: 'Volvo / Luxury Coach',
@@ -122,19 +124,144 @@ const VEHICLE_TYPES = [
     price: 'Starting ₹40/km',
     features: ['AC', 'Reclining Seats', 'Wi-Fi, USB Charging'],
     bestFor: 'Premium Corporate, Long-Distance',
-    icon: '🚍',
-    gradient: 'from-indigo-600 to-purple-600',
+    icon: BusFront,
   },
 ];
 
+/* "Bus Rental Rates" ki animation. Baaki do sections se alag —
+   Why Book: upar se rise + sheen, Every Occasion: baayin se slide + rail,
+   yahan: neeche se scale-in aur upar ka bar beech se failta hai. */
+const RATES_CSS = `
+.brr-card {
+  opacity: 0;
+  animation: brr-in .6s cubic-bezier(.22,1,.36,1) forwards;
+  transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease;
+}
+@keyframes brr-in {
+  from { opacity: 0; transform: translateY(26px) scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+.brr-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 22px 46px -18px rgba(16,185,129,.45);
+}
+
+/* upar ka accent bar — beech se dono taraf failta hai */
+.brr-bar {
+  position: absolute;
+  top: 0; left: 50%;
+  height: 3px;
+  width: 0;
+  background: linear-gradient(90deg, #10b981, #14b8a6);
+  transform: translateX(-50%);
+  transition: width .45s cubic-bezier(.22,1,.36,1);
+  pointer-events: none;
+}
+.brr-card:hover .brr-bar { width: 100%; }
+
+.brr-icon { transition: transform .4s cubic-bezier(.34,1.56,.64,1); }
+.brr-card:hover .brr-icon { transform: scale(1.08); }
+
+.brr-price { transition: transform .3s cubic-bezier(.34,1.56,.64,1); transform-origin: left center; }
+.brr-card:hover .brr-price { transform: scale(1.06); }
+
+/* "Popular" badge — card ki emerald ring se milta hua gradient pill,
+   halki chamak aur dheemi glow ki dhadkan. */
+.brr-badge {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #10b981, #0d9488);
+  box-shadow: 0 4px 14px -4px rgba(16,185,129,.7);
+  animation: brr-badge-glow 2.6s ease-in-out infinite;
+}
+.brr-badge::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.5) 50%, transparent 60%);
+  transform: translateX(-120%);
+  animation: brr-badge-shine 3.2s ease-in-out infinite;
+}
+@keyframes brr-badge-glow {
+  0%, 100% { box-shadow: 0 4px 14px -4px rgba(16,185,129,.55); }
+  50%      { box-shadow: 0 6px 20px -4px rgba(16,185,129,.95); }
+}
+@keyframes brr-badge-shine {
+  0%, 62% { transform: translateX(-120%); }
+  92%, 100% { transform: translateX(120%); }
+}
+.brr-badge-star { transition: transform .4s cubic-bezier(.34,1.56,.64,1); }
+.brr-card:hover .brr-badge-star { transform: rotate(72deg) scale(1.12); }
+
+@media (prefers-reduced-motion: reduce) {
+  .brr-card { opacity: 1; animation: none; }
+  .brr-badge { animation: none; box-shadow: 0 4px 14px -4px rgba(16,185,129,.6); }
+  .brr-badge::after { display: none; }
+  .brr-badge-star, .brr-card:hover .brr-badge-star { transition: none; transform: none; }
+  .brr-card:hover { transform: none; }
+  .brr-bar { display: none; }
+  .brr-icon, .brr-price,
+  .brr-card:hover .brr-icon, .brr-card:hover .brr-price { transition: none; transform: none; }
+}
+`;
+
 const TRIP_TYPES = [
-  { name: 'Pilgrimage Tours', icon: '🛕', desc: 'Char Dham, Vaishno Devi, Tirupati, Shirdi', gradient: 'from-amber-500 to-yellow-500' },
-  { name: 'Wedding Transport', icon: '💒', desc: 'Baraat Bus, Guest Shuttles, Decorated Buses', gradient: 'from-pink-500 to-rose-500' },
-  { name: 'Corporate Events', icon: '🏢', desc: 'Team Outings, Off-Sites, Conferences', gradient: 'from-slate-600 to-gray-700' },
-  { name: 'Schools & Colleges', icon: '🎓', desc: 'Picnics, Educational Tours, Sports Meets', gradient: 'from-blue-500 to-indigo-500' },
-  { name: 'Tour Packages', icon: '🗺️', desc: 'Multi-City Circuits, Sightseeing Tours', gradient: 'from-emerald-500 to-teal-500' },
-  { name: 'Airport Shuttle', icon: '✈️', desc: 'Group Airport Transfers, Bulk Hotel Pickups', gradient: 'from-cyan-500 to-sky-500' },
+  { name: 'Pilgrimage Tours', icon: Landmark, desc: 'Char Dham, Vaishno Devi, Tirupati, Shirdi' },
+  { name: 'Wedding Transport', icon: Heart, desc: 'Baraat Bus, Guest Shuttles, Decorated Buses' },
+  { name: 'Corporate Events', icon: Building2, desc: 'Team Outings, Off-Sites, Conferences' },
+  { name: 'Schools & Colleges', icon: GraduationCap, desc: 'Picnics, Educational Tours, Sports Meets' },
+  { name: 'Tour Packages', icon: Map, desc: 'Multi-City Circuits, Sightseeing Tours' },
+  { name: 'Airport Shuttle', icon: Plane, desc: 'Group Airport Transfers, Bulk Hotel Pickups' },
 ];
+
+/* "Every Occasion" ki animation. Upar wale Why Book section se alag —
+   wahan upar se rise-in aur sheen hai, yahan baayin se slide-in, rail aur
+   arrow. */
+const TRIP_TYPES_CSS = `
+.wbo-tile {
+  opacity: 0;
+  animation: wbo-slide .55s cubic-bezier(.22,1,.36,1) forwards;
+  transition: transform .3s cubic-bezier(.22,1,.36,1), background-color .3s ease,
+              border-color .3s ease, box-shadow .3s ease;
+}
+@keyframes wbo-slide {
+  from { opacity: 0; transform: translateX(-18px); }
+  to   { opacity: 1; transform: none; }
+}
+.wbo-tile:hover {
+  transform: translateX(4px);
+  background-color: #fff;
+  border-color: rgb(167 243 208);
+  box-shadow: 0 14px 32px -14px rgba(16,185,129,.35);
+}
+
+/* baayin ka rail */
+.wbo-rail {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, #10b981, #14b8a6);
+  transform: scaleY(.35);
+  transform-origin: center;
+  transition: transform .4s cubic-bezier(.22,1,.36,1), width .3s ease;
+}
+.wbo-tile:hover .wbo-rail { transform: scaleY(1); width: 5px; }
+
+.wbo-icon { transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+.wbo-tile:hover .wbo-icon { transform: scale(1.07) rotate(-4deg); }
+
+/* arrow chhupa rehta hai, hover par sarak kar aata hai */
+.wbo-arrow { opacity: 0; transform: translateX(-6px); transition: opacity .3s ease, transform .3s ease; }
+.wbo-tile:hover .wbo-arrow { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wbo-tile { opacity: 1; animation: none; }
+  .wbo-tile:hover { transform: none; }
+  .wbo-rail, .wbo-tile:hover .wbo-rail { transition: none; transform: scaleY(1); width: 3px; }
+  .wbo-icon, .wbo-tile:hover .wbo-icon { transition: none; transform: none; }
+  .wbo-arrow { opacity: 1; transform: none; transition: none; }
+}
+`;
 
 const HOW_IT_WORKS = [
   {
@@ -189,6 +316,45 @@ const WHY_CHOOSE_US = [
     gradient: 'from-purple-500 to-violet-500',
   },
 ];
+
+/* "Why Book Bus Rental" section ki animation. Page server component hai,
+   isliye framer-motion ke bajaye keyframes. Har selector `.wbr` se scoped. */
+const WHY_CHOOSE_CSS = `
+.wbr-card {
+  opacity: 0;
+  animation: wbr-rise .6s cubic-bezier(.22,1,.36,1) forwards;
+  transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .3s ease;
+}
+@keyframes wbr-rise {
+  from { opacity: 0; transform: translateY(22px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+.wbr-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px -12px rgba(16,185,129,.28);
+  border-color: rgb(167 243 208);
+}
+.wbr-ring { transition: transform .7s cubic-bezier(.22,1,.36,1); transform: rotate(18deg); }
+.wbr-card:hover .wbr-ring { transform: rotate(198deg); }
+
+/* chamak — hover par baayin se daayin */
+.wbr-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(16,185,129,.10) 50%, transparent 65%);
+  transform: translateX(-100%);
+  transition: transform .8s ease;
+  pointer-events: none;
+}
+.wbr-card:hover .wbr-sheen { transform: translateX(100%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .wbr-card { opacity: 1; animation: none; }
+  .wbr-card:hover { transform: none; }
+  .wbr-ring, .wbr-card:hover .wbr-ring { transition: none; transform: rotate(18deg); }
+  .wbr-sheen { display: none; }
+}
+`;
 
 const STATS = [
   { value: '5,000+', label: 'Trips Completed' },
@@ -389,14 +555,26 @@ export default function BusRentalPage() {
       />
 
       {/* Vehicle Type & Pricing Guide */}
-      <section className="py-16 md:py-20 bg-gray-50">
-        <div className="container-custom">
-          <div className="text-center max-w-2xl mx-auto mb-12">
+      <section className="brr relative overflow-hidden py-16 md:py-24 bg-gradient-to-b from-gray-50 via-white to-gray-50">
+        <style dangerouslySetInnerHTML={{ __html: RATES_CSS }} />
+
+        {/* Beech me halka green glow — baaki sections ke pattern se alag */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(620px 380px at 50% 0%, rgba(16,185,129,.10), transparent 70%)',
+          }}
+        />
+
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
               <Sparkles className="w-4 h-4" />
               Pricing Guide
             </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
+            <h2 className="text-3xl md:text-[2.75rem] leading-[1.1] font-black tracking-tight text-gray-900 mb-3">
               Bus Rental Rates — Which Vehicle to Choose?
             </h2>
             <p className="text-gray-500">
@@ -404,143 +582,95 @@ export default function BusRentalPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {VEHICLE_TYPES.map((vehicle) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
+            {VEHICLE_TYPES.map((vehicle, idx) => (
               <div
                 key={vehicle.name}
-                className="group relative rounded-2xl p-6 overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                className={`brr-card group relative flex flex-col rounded-2xl bg-white overflow-hidden ${
+                  vehicle.popular
+                    ? 'ring-2 ring-emerald-500 shadow-lg shadow-emerald-100'
+                    : 'border border-gray-100 shadow-sm'
+                }`}
+                style={{ animationDelay: `${idx * 90}ms` }}
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${vehicle.gradient} opacity-[0.08] group-hover:opacity-[0.14] transition-opacity`} />
+                {/* upar ka accent bar — hover par beech se failta hai */}
+                <span aria-hidden className="brr-bar" />
 
-                {vehicle.popular && (
-                  <div className="absolute top-5 right-5 flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold rounded-full">
-                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                    Popular
+                <div className="p-6 pb-4">
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <span className="brr-icon w-12 h-12 rounded-2xl bg-emerald-50 ring-1 ring-emerald-100 grid place-items-center shrink-0">
+                      <vehicle.icon className="w-6 h-6 text-emerald-600" strokeWidth={1.9} />
+                    </span>
+                    {vehicle.popular && (
+                      <span className="brr-badge shrink-0 inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-3 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-white">
+                        <span className="brr-badge-star grid place-items-center w-[18px] h-[18px] rounded-full bg-white/25">
+                          <Star className="w-2.5 h-2.5 fill-white text-white" />
+                        </span>
+                        Popular
+                      </span>
+                    )}
                   </div>
-                )}
 
-                <div className="relative">
-                  <div className={`w-14 h-14 bg-gradient-to-br ${vehicle.gradient} rounded-xl flex items-center justify-center text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform`}>
-                    {vehicle.icon}
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">{vehicle.name}</h3>
-                  <div className="flex items-center gap-1 text-sm text-gray-500 mb-3">
+                  <h3 className="text-[17px] font-bold text-gray-900 leading-snug">{vehicle.name}</h3>
+                  <div className="mt-1 flex items-center gap-1.5 text-[13px] text-gray-500">
                     <Users className="w-3.5 h-3.5" />
                     <span>{vehicle.capacity}</span>
                   </div>
 
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {vehicle.features.map((f) => (
-                      <span key={f} className="text-xs bg-gray-50 text-gray-600 px-2.5 py-1 rounded-full border border-gray-100">
-                        {f}
-                      </span>
-                    ))}
-                  </div>
+                  <p className="brr-price mt-4 text-[21px] font-black tracking-tight text-emerald-700 tabular-nums">
+                    {vehicle.price}
+                  </p>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                    <span className="text-[12.5px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full">{vehicle.price}</span>
-                    <span className="text-xs text-gray-400 text-right">
-                      <span className="font-semibold text-gray-500">Best for:</span> {vehicle.bestFor}
-                    </span>
-                  </div>
+                  <ul className="mt-4 space-y-2">
+                    {vehicle.features.map((f) => (
+                      <li key={f} className="flex items-center gap-2 text-[13px] text-gray-600">
+                        <span className="shrink-0 w-4 h-4 rounded-full bg-emerald-50 grid place-items-center">
+                          <Check className="w-2.5 h-2.5 text-emerald-600" strokeWidth={3.5} />
+                        </span>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="mt-auto px-6 py-3.5 bg-gray-50/80 border-t border-gray-100 transition-colors group-hover:bg-emerald-50/60">
+                  <p className="text-[12px] leading-snug text-gray-500">
+                    <span className="font-bold text-gray-700">Best for:</span> {vehicle.bestFor}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
 
-          <p className="text-center text-sm text-gray-500 mt-8">
+          <p className="text-center text-sm text-gray-500 mt-10 max-w-3xl mx-auto">
             * Rates vary by city, season, and operator. Actual quotes may differ. Includes driver — excludes fuel, toll, and driver allowance on outstation trips.
           </p>
         </div>
       </section>
 
-      {/* Locations from Database */}
-      <BusRentalPopularCitiesGrid
-        serviceSlug="bus-rental"
-        title="Bus Rental in Popular Cities"
-      />
-
-      {/* Popular Routes */}
-      <section className="py-16 md:py-20 bg-gray-50">
-        <div className="container-custom">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
-              <MapPin className="w-4 h-4" />
-              Popular Routes
-            </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
-              Most Popular Bus Rental Routes
-            </h2>
-            <p className="text-gray-500">Top intercity group travel routes booked on TransRentals</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {POPULAR_ROUTES.map((route) => {
-              const gradient = ROUTE_TYPE_STYLES[route.tripType] || 'from-emerald-500 to-teal-500';
-              const hex = ROUTE_TYPE_HEX[route.tripType] || '#10b981';
-              return (
-                <div
-                  key={`${route.from}-${route.to}`}
-                  className="group relative rounded-xl p-4 overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
-                >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-[0.07] group-hover:opacity-[0.13] transition-opacity`} />
-
-                  <div className="relative">
-                    <span className={`inline-block text-[10px] font-bold text-white bg-gradient-to-r ${gradient} px-2.5 py-0.5 rounded-full mb-3 shadow-sm`}>
-                      {route.tripType}
-                    </span>
-
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-extrabold text-gray-900 truncate">{route.from}</span>
-                      <span className="text-sm font-extrabold text-gray-900 truncate text-right">{route.to}</span>
-                    </div>
-
-                    {/* Travel route illustration */}
-                    <div className="relative h-8 mb-3">
-                      <svg viewBox="0 0 280 32" preserveAspectRatio="none" className="absolute inset-0 w-full h-full" fill="none">
-                        <path
-                          d="M8 25 Q 80 4, 140 16 T 272 9"
-                          stroke={hex}
-                          strokeOpacity="0.45"
-                          strokeWidth="2"
-                          strokeDasharray="1 7"
-                          strokeLinecap="round"
-                        />
-                        <circle cx="8" cy="25" r="3.5" fill={hex} />
-                        <circle cx="272" cy="9" r="3.5" fill={hex} />
-                      </svg>
-                      <span className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center shadow-md ring-4 ring-white group-hover:scale-110 transition-transform`}>
-                        <Bus className="w-3.5 h-3.5 text-white" />
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <span className="text-xs font-semibold text-gray-500">{route.distance}</span>
-                      <Link
-                        href={`/bus-rental/${route.from.toLowerCase()}`}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-gray-400 group-hover:text-emerald-600 group-hover:gap-1.5 transition-all"
-                      >
-                        View Route
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* Trip Types */}
-      <section className="py-16 md:py-20 bg-white">
-        <div className="container-custom">
-          <div className="text-center max-w-2xl mx-auto mb-12">
+      <section className="wbo relative overflow-hidden py-16 md:py-24 bg-white">
+        <style dangerouslySetInnerHTML={{ __html: TRIP_TYPES_CSS }} />
+
+        {/* Halki tirchhi lakeerein — Why Book ke dotted pattern se alag */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.6]"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(135deg, #ecfdf5 0px, #ecfdf5 1px, transparent 1px, transparent 14px)',
+            WebkitMaskImage: 'radial-gradient(ellipse 70% 70% at 50% 40%, #000 20%, transparent 80%)',
+            maskImage: 'radial-gradient(ellipse 70% 70% at 50% 40%, #000 20%, transparent 80%)',
+          }}
+        />
+
+        <div className="container-custom relative">
+          <div className="max-w-2xl mb-12 md:mb-14">
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
               <Calendar className="w-4 h-4" />
               Every Occasion
             </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
+            <h2 className="text-3xl md:text-[2.75rem] leading-[1.1] font-black tracking-tight text-gray-900 mb-3">
               Bus Rental for Every Occasion
             </h2>
             <p className="text-gray-500">
@@ -548,22 +678,26 @@ export default function BusRentalPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {TRIP_TYPES.map((type) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {TRIP_TYPES.map((type, idx) => (
               <div
                 key={type.name}
-                className="group relative rounded-2xl p-4 overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 text-center"
+                className="wbo-tile group relative flex items-center gap-4 rounded-xl bg-gray-50/70 border border-gray-100 pl-5 pr-4 py-4 overflow-hidden"
+                style={{ animationDelay: `${idx * 90}ms` }}
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${type.gradient} opacity-[0.07] group-hover:opacity-[0.13] transition-opacity`} />
-                <div className="relative flex flex-col items-center">
-                  <div className={`w-12 h-12 bg-gradient-to-br ${type.gradient} rounded-xl flex items-center justify-center text-2xl mb-3 shadow-sm group-hover:scale-110 transition-transform`}>
-                    {type.icon}
-                  </div>
-                  <h3 className="font-bold text-gray-900 mb-1 text-sm leading-tight">
-                    {type.name}
-                  </h3>
-                  <p className="text-xs text-gray-500 leading-snug">{type.desc}</p>
+                {/* baayin ka accent rail — hover par chaudi ho jaati hai */}
+                <span aria-hidden className="wbo-rail" />
+
+                <span className="wbo-icon relative shrink-0 w-11 h-11 rounded-xl bg-white border border-gray-100 shadow-sm grid place-items-center">
+                  <type.icon className="w-[22px] h-[22px] text-emerald-600" strokeWidth={1.9} />
+                </span>
+
+                <div className="relative min-w-0 flex-1">
+                  <h3 className="font-bold text-[15px] leading-snug text-gray-900">{type.name}</h3>
+                  <p className="mt-0.5 text-[12.5px] leading-snug text-gray-500">{type.desc}</p>
                 </div>
+
+                <ArrowRight className="wbo-arrow relative shrink-0 w-4 h-4 text-emerald-600" />
               </div>
             ))}
           </div>
@@ -615,31 +749,54 @@ export default function BusRentalPage() {
       </section>
 
       {/* Why Choose Us */}
-      <section className="py-16 md:py-20 bg-gray-50">
-        <div className="container-custom">
-          <div className="text-center max-w-2xl mx-auto mb-12">
+      <section className="wbr relative overflow-hidden py-16 md:py-24 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        {/* Scoped styles — page server component hai, isliye animation CSS se */}
+        <style dangerouslySetInnerHTML={{ __html: WHY_CHOOSE_CSS }} />
+
+        {/* Halka dotted pattern kono me */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
               <ShieldCheck className="w-4 h-4" />
               Why TransRentals
             </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
-              Why Book Bus Rental with TransRentals?
+            <h2 className="text-3xl md:text-[2.75rem] leading-[1.1] font-black tracking-tight text-gray-900">
+              Why Book Bus Rental with <span className="text-emerald-600">TransRentals?</span>
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {WHY_CHOOSE_US.map((item) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 max-w-6xl mx-auto">
+            {WHY_CHOOSE_US.map((item, idx) => (
               <div
                 key={item.title}
-                className="group relative rounded-2xl p-6 overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 text-center"
+                className="wbr-card group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-7 text-center overflow-hidden"
+                style={{ animationDelay: `${idx * 110}ms` }}
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-[0.07] group-hover:opacity-[0.13] transition-opacity`} />
+                {/* hover par baayin se daayin bahti halki chamak */}
+                <span aria-hidden className="wbr-sheen" />
+
                 <div className="relative">
-                  <div className={`w-14 h-14 bg-gradient-to-br ${item.gradient} rounded-xl flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform`}>
-                    <item.icon className="w-7 h-7 text-white" />
+                  <div className="relative w-16 h-16 mx-auto mb-4">
+                    <span className="wbr-ring absolute inset-0 rounded-full border-2 border-dashed border-emerald-200" />
+                    <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                      <item.icon className="w-6 h-6 text-emerald-600 transition-colors duration-300 group-hover:text-white" />
+                    </span>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-500">{item.description}</p>
+                  <h3 className="text-[17px] font-bold text-gray-900 mb-2 leading-snug">{item.title}</h3>
+                  <p className="text-[13.5px] leading-relaxed text-gray-500">{item.description}</p>
                 </div>
               </div>
             ))}
