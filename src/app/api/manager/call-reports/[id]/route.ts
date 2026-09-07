@@ -110,7 +110,7 @@ export async function PATCH(
     const existing = await prisma.manager_call_reports.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: 'Call report not found' }, { status: 404 });
 
-    const body = await request.json();
+    const body: any = await request.json();
     const bodyKeys = Object.keys(body || {});
     // Quick status changes (the pill dropdown on the shared call sheet) are
     // open to every manager, matching the sheet's "shared spreadsheet" model —
@@ -141,7 +141,7 @@ export async function PATCH(
     // Replacing the whole location/service set is simpler and safer here
     // than diffing add/remove — a call report only ever has a handful of rows.
     const locationIds: string[] | undefined = Array.isArray(body?.locationIds)
-      ? [...new Set(body.locationIds.filter(Boolean))]
+      ? [...new Set<string>(body.locationIds.filter(Boolean))]
       : undefined;
     if (locationIds && locationIds.length) {
       const found = await prisma.locations.count({ where: { id: { in: locationIds } } });
@@ -151,7 +151,7 @@ export async function PATCH(
     }
 
     const serviceIds: string[] | undefined = Array.isArray(body?.serviceIds)
-      ? [...new Set(body.serviceIds.filter(Boolean))]
+      ? [...new Set<string>(body.serviceIds.filter(Boolean))]
       : undefined;
     if (serviceIds && serviceIds.length) {
       const found = await prisma.services.count({ where: { id: { in: serviceIds } } });

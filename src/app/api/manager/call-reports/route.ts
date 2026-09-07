@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body: any = await request.json();
     const vendorName = (body?.vendorName || '').trim();
     const companyName = (body?.companyName || '').trim() || null;
     const companyDetails = (body?.companyDetails || '').trim() || null;
@@ -190,8 +190,8 @@ export async function POST(request: NextRequest) {
     const contactType = body?.contactType === 'TRAVEL_AGENT' ? 'TRAVEL_AGENT' : 'VENDOR';
     const notes = (body?.notes || '').trim() || null;
     const vendorId = (body?.vendorId || '').trim() || null;
-    const serviceIds: string[] = Array.isArray(body?.serviceIds) ? [...new Set(body.serviceIds.filter(Boolean))] : [];
-    const locationIds: string[] = Array.isArray(body?.locationIds) ? [...new Set(body.locationIds.filter(Boolean))] : [];
+    const serviceIds: string[] = Array.isArray(body?.serviceIds) ? [...new Set<string>(body.serviceIds.filter(Boolean))] : [];
+    const locationIds: string[] = Array.isArray(body?.locationIds) ? [...new Set<string>(body.locationIds.filter(Boolean))] : [];
     const status = STATUS_VALUES.includes(body?.status) ? body.status : 'FOLLOW_UP';
     const callDate = body?.callDate ? new Date(body.callDate) : new Date();
     const nextFollowUpDate = body?.nextFollowUpDate ? new Date(body.nextFollowUpDate) : null;
