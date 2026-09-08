@@ -66,6 +66,8 @@ import {
   Sparkles,
   Mail,
   MapPinOff,
+  Share2,
+  Radar,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
@@ -497,6 +499,7 @@ const websiteItems: NavItem[] = [
 const settingsItems: NavItem[] = [
   { name: 'Bank Details', href: '/admin/settings/bank-details', icon: CreditCard },
   { name: 'Payment & Fees', href: '/admin/settings/fees', icon: CircleDollarSign },
+  { name: 'Social Media', href: '/admin/social', icon: Share2 },
   {
     name: 'Managers',
     href: '/admin/settings/managers',
@@ -728,6 +731,19 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               >
                 <LayoutDashboard className="w-5 h-5" />
                 <span className="font-medium">Dashboard</span>
+              </Link>
+              <Link
+                href="/admin/operations"
+                onClick={onClose}
+                className={cn(
+                  'mt-1 flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                  pathname === '/admin/operations'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                )}
+              >
+                <Radar className="w-5 h-5" />
+                <span className="font-medium">Operations Tracker</span>
               </Link>
             </div>
 

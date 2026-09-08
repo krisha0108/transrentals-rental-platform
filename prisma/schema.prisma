@@ -72,6 +72,7 @@ model admin_users {
   chauffeur_local_packages_updated chauffeur_local_packages[] @relation("chauffeur_local_packages_updatedBy")
   chauffeur_route_packages_created chauffeur_route_packages[] @relation("chauffeur_route_packages_createdBy")
   chauffeur_route_packages_updated chauffeur_route_packages[] @relation("chauffeur_route_packages_updatedBy")
+  social_media_accounts            social_media_accounts[]
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -7475,6 +7476,35 @@ enum manager_action_type {
   COLD_LEAD
 }
 
+// System Health event log — a run-history record for background jobs
+// (cron routes) and notification-send attempts, so the admin Operations
+// Tracker can show real cron/notification failure data instead of it
+// disappearing into console-only logs. Deliberately generic (category +
+// sourceName) rather than one table per job, since new jobs/senders will
+// keep getting added.
+model system_event_logs {
+  id         String               @id @default(cuid())
+  category   system_event_category
+  sourceName String               @db.VarChar(100)
+  status     system_event_status
+  message    String?              @db.Text
+  durationMs Int?
+  createdAt  DateTime             @default(now())
+
+  @@index([category, sourceName, createdAt])
+  @@index([status, createdAt])
+}
+
+enum system_event_category {
+  CRON
+  NOTIFICATION
+}
+
+enum system_event_status {
+  SUCCESS
+  FAILURE
+}
+
 // Manager notification inbox — alerts a manager when a vendor within their
 // assigned location/service scope submits a new location or service request
 // (covers both an existing vendor expanding and a brand-new vendor's first
@@ -7547,4 +7577,87 @@ model service_city_content {
   @@index([citySlug])
   @@index([status])
   @@index([autoUpdate])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Social media performance tracking — admin-connected Facebook Pages / linked
+// Instagram Business accounts, synced via the Meta Graph API so the admin
+// dashboard can show what's being posted and how it's performing without
+// anyone having to check Meta Business Suite separately.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum social_media_platform {
+  FACEBOOK
+  INSTAGRAM
+}
+
+model social_media_accounts {
+  id                  String                @id @default(cuid())
+  platform            social_media_platform
+  pageId              String // Facebook Page id (Instagram accounts are always accessed via their linked Page)
+  pageName            String
+  igBusinessAccountId String? // set only when platform is INSTAGRAM
+  igUsername          String?
+  profilePictureUrl   String?               @db.Text
+  accessToken         String                @db.Text // long-lived Page access token
+  tokenExpiresAt      DateTime?
+  followerCount       Int?
+  isActive            Boolean               @default(true)
+  lastSyncedAt        DateTime?
+  lastSyncError       String?               @db.Text
+  connectedById       String
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  admin_users         admin_users                @relation(fields: [connectedById], references: [id])
+  posts               social_media_posts[]
+  daily_stats         social_media_daily_stats[]
+
+  @@unique([platform, pageId])
+  @@index([connectedById])
+}
+
+model social_media_posts {
+  id           String                @id @default(cuid())
+  accountId    String
+  platform     social_media_platform
+  externalId   String // Facebook post id / Instagram media id
+  mediaType    String? // IMAGE, VIDEO, CAROUSEL_ALBUM, STATUS, LINK...
+  caption      String?               @db.Text
+  permalink    String?               @db.Text
+  mediaUrl     String?               @db.Text
+  thumbnailUrl String?               @db.Text
+  publishedAt  DateTime
+  likeCount    Int                   @default(0)
+  commentCount Int                   @default(0)
+  shareCount   Int                   @default(0)
+  savedCount   Int?
+  impressions  Int?
+  reach        Int?
+  engagement   Int?
+  lastSyncedAt DateTime              @default(now())
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  account social_media_accounts @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, externalId])
+  @@index([accountId, publishedAt])
+}
+
+// One row per connected account per day — powers follower-growth /
+// reach-over-time charts without re-deriving history from post-level data.
+model social_media_daily_stats {
+  id            String   @id @default(cuid())
+  accountId     String
+  date          DateTime @db.Date
+  followerCount Int?
+  impressions   Int?
+  reach         Int?
+  profileViews  Int?
+  createdAt     DateTime @default(now())
+
+  account social_media_accounts @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, date])
 }

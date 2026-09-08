@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import { shouldAutoDrop, NON_DROPPABLE_STATUSES, getDropReasonForCustomer, getDropReasonForDB } from '@/lib/utils/booking-date-guard';
+import { logSystemEvent } from '@/lib/system-health/log-event';
 import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
@@ -21,6 +22,7 @@ export const dynamic = 'force-dynamic';
  *   0 * * * * curl -s -H "x-cron-secret: YOUR_SECRET" https://your-domain.com/api/cron/auto-drop-bookings
  */
 export async function POST(request: NextRequest) {
+  const startedAt = Date.now();
   try {
     // Verify cron secret
     const cronSecret = request.headers.get('x-cron-secret');
@@ -605,6 +607,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`[AutoDrop] Completed. Total dropped: ${results.totalDropped}`, results.services);
 
+    await logSystemEvent({
+      category: 'CRON',
+      sourceName: 'auto-drop-bookings',
+      status: results.errors.length > 0 ? 'FAILURE' : 'SUCCESS',
+      message: results.errors.length > 0
+        ? `${results.totalDropped} dropped; ${results.errors.length} service error(s): ${results.errors.map((e: any) => `${e.service}: ${e.error}`).join('; ')}`
+        : `${results.totalDropped} booking(s) dropped`,
+      durationMs: Date.now() - startedAt,
+    });
+
     return NextResponse.json({
       success: true,
       message: `Auto-drop completed. ${results.totalDropped} bookings dropped.`,
@@ -612,6 +624,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[AutoDrop] Fatal error:', error);
+    await logSystemEvent({
+      category: 'CRON',
+      sourceName: 'auto-drop-bookings',
+      status: 'FAILURE',
+      message: error?.message || 'Unknown error',
+      durationMs: Date.now() - startedAt,
+    });
     return NextResponse.json(
       { error: 'Auto-drop failed', details: error?.message },
       { status: 500 }

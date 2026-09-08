@@ -18,6 +18,12 @@ What you can do:
 - Get revenue statistics from completed bookings
 - Check fleet and vehicle counts
 - View travel agent information
+- Track manager performance/accountability (inquiry & booking coverage %, vendors onboarded)
+- Find untouched inquiries/bookings nobody has actioned yet
+- Find vendors stuck in review needing follow-up
+- Find coverage gaps (demand with no vendor) and idle vendor coverage (vendors with no demand)
+- Find failed payment attempts (which service, how many, trend)
+- Check system health: cron job run status and push notification delivery success/failure over the last 7 days
 
 Guidelines:
 - Always call the relevant tool to fetch live data before answering any question about numbers or records.
