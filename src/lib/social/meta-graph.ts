@@ -46,6 +46,7 @@ export function getOAuthRedirectUri() {
 const OAUTH_SCOPES = [
   'pages_show_list',
   'pages_read_engagement',
+  'pages_read_user_content', // comments.summary() on a post needs this specifically — pages_read_engagement alone 400s
   'read_insights',
   'instagram_basic',
   'instagram_manage_insights',
@@ -111,6 +112,26 @@ export interface FacebookPageSummary {
   instagram_business_account?: { id: string };
 }
 
+// "Facebook Login for Business" (the asset-picker consent flow — pick
+// specific Pages/IG accounts rather than a blanket grant) issues a *limited*
+// user token scoped to just those assets. /me/accounts, which lists every
+// Page the classic Page-roles system says the user administers, reliably
+// comes back empty for these tokens even when the picker's own review step
+// showed the right Page — Meta's own docs point at inspecting the token's
+// granular_scopes instead. This debugs the token with an app access token
+// (app_id|app_secret, distinct from the user's token) and pulls the
+// pages_show_list scope's target_ids: the Page ids actually granted.
+async function getGrantedPageIds(userAccessToken: string): Promise<string[]> {
+  const data = await graphGet<{ data?: { granular_scopes?: { scope: string; target_ids?: string[] }[] } }>('/debug_token', {
+    input_token: userAccessToken,
+    access_token: `${getMetaAppId()}|${getMetaAppSecret()}`,
+  }).catch(() => ({ data: undefined }));
+
+  const scopes = data.data?.granular_scopes || [];
+  const pagesScope = scopes.find((s) => s.scope === 'pages_show_list' || s.scope === 'pages_read_engagement');
+  return pagesScope?.target_ids || [];
+}
+
 // Every Page the connected user manages/admins, each with its own
 // (already long-lived, given a long-lived user token) Page access token,
 // plus the linked Instagram Business account id if one exists.
@@ -119,7 +140,22 @@ export async function listManagedPages(userAccessToken: string): Promise<Faceboo
     fields: 'id,name,access_token,picture,instagram_business_account',
     access_token: userAccessToken,
   });
-  return data.data || [];
+  if (data.data?.length) return data.data;
+
+  // /me/accounts came back empty — fall back to the granular-scopes Page
+  // ids and fetch each one directly (still using the user token; Meta
+  // mints a Page access token in the response as long as that token has
+  // the right permission on that specific Page).
+  const pageIds = await getGrantedPageIds(userAccessToken);
+  const pages = await Promise.all(
+    pageIds.map((id) =>
+      graphGet<FacebookPageSummary>(`/${id}`, {
+        fields: 'id,name,access_token,picture,instagram_business_account',
+        access_token: userAccessToken,
+      }).catch(() => null)
+    )
+  );
+  return pages.filter((p): p is FacebookPageSummary => p !== null);
 }
 
 export async function getInstagramAccountInfo(igBusinessAccountId: string, pageAccessToken: string) {
@@ -148,13 +184,35 @@ export interface FacebookPost {
   shares?: { count?: number };
 }
 
+// likes.summary()/comments.summary() on a Page's own posts intermittently
+// 400 with error code 10 ("requires pages_read_engagement... or Page Public
+// Content Access") even when the token genuinely carries
+// pages_read_engagement / pages_read_user_content — a known, currently
+// unresolved Meta platform issue (reported on their community forums), not
+// something a permission grant on our end can fix. `shares` has no such
+// restriction. Rather than let one flaky edge fail the whole sync, fall
+// back to the fields that work — likes/comments read back as 0 until Meta's
+// side is sorted out, instead of blocking every post from syncing at all.
+const POST_FIELDS_FULL = 'id,message,created_time,permalink_url,full_picture,likes.summary(true),comments.summary(true),shares';
+const POST_FIELDS_SAFE = 'id,message,created_time,permalink_url,full_picture,shares';
+
 export async function listFacebookPagePosts(pageId: string, pageAccessToken: string, limit = 25): Promise<FacebookPost[]> {
-  const data = await graphGet<{ data: FacebookPost[] }>(`/${pageId}/posts`, {
-    fields: 'id,message,created_time,permalink_url,full_picture,likes.summary(true),comments.summary(true),shares',
-    limit: String(limit),
-    access_token: pageAccessToken,
-  });
-  return data.data || [];
+  try {
+    const data = await graphGet<{ data: FacebookPost[] }>(`/${pageId}/posts`, {
+      fields: POST_FIELDS_FULL,
+      limit: String(limit),
+      access_token: pageAccessToken,
+    });
+    return data.data || [];
+  } catch (err) {
+    if (!(err instanceof GraphApiError) || err.body?.error?.code !== 10) throw err;
+    const data = await graphGet<{ data: FacebookPost[] }>(`/${pageId}/posts`, {
+      fields: POST_FIELDS_SAFE,
+      limit: String(limit),
+      access_token: pageAccessToken,
+    });
+    return data.data || [];
+  }
 }
 
 // post_impressions/post_engaged_users aren't available for every post type,

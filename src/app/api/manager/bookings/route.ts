@@ -6,6 +6,11 @@ import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
 
+// See the identical constant in ../inquiries/route.ts — same unbounded-fetch
+// risk (each of the 9 booking tables below is fetched in full, then sorted/
+// paginated in JS), same fix.
+const MAX_ROWS_PER_TABLE = 3000;
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -119,6 +124,7 @@ export async function GET(request: NextRequest) {
               vendors_bike_bookings_acceptedVendorIdTovendors: { select: { businessName: true, vid: true } },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
 
@@ -131,6 +137,7 @@ export async function GET(request: NextRequest) {
               vendors: { select: { businessName: true, vid: true } },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
 
@@ -146,6 +153,7 @@ export async function GET(request: NextRequest) {
               vendors_car_bookings_acceptedVendorIdTovendors: { select: { businessName: true, vid: true } },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
 
@@ -159,6 +167,7 @@ export async function GET(request: NextRequest) {
               vendors_chauffeur_bookings_acceptedVendorIdTovendors: { select: { businessName: true, vid: true } },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
 
@@ -171,6 +180,7 @@ export async function GET(request: NextRequest) {
               vendors: { select: { businessName: true, vid: true } },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
 
@@ -184,6 +194,7 @@ export async function GET(request: NextRequest) {
               vendors_luxury_bookings_acceptedVendorIdTovendors: { select: { businessName: true, vid: true } },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
 
@@ -203,6 +214,7 @@ export async function GET(request: NextRequest) {
               },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
 
@@ -227,6 +239,7 @@ export async function GET(request: NextRequest) {
               },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
 
@@ -249,6 +262,7 @@ export async function GET(request: NextRequest) {
               },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
     ]);
