@@ -1,10 +1,10 @@
 'use client';
 
-// Vendor-acquisition call sheet — a shared log for outbound calls managers
-// make to prospective vendors while out in the field. Every manager sees the
-// full sheet and can add their own rows; only the row's own manager (or an
-// admin) can edit/delete it. Adding/editing a row happens on its own full
-// page (see ./new and ./[id]/edit) rather than in a modal here.
+// Vendor-acquisition call sheet — a log for outbound calls managers make to
+// prospective vendors while out in the field. Each manager only sees their
+// own rows, and only they (or an admin, elsewhere) can edit/delete a row.
+// Adding/editing a row happens on its own full page (see ./new and
+// ./[id]/edit) rather than in a modal here.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -81,7 +81,6 @@ export default function ManagerCallReportsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [status, setStatus] = useState('all');
-  const [mineOnly, setMineOnly] = useState(false);
   const [query, setQuery] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -134,8 +133,8 @@ export default function ManagerCallReportsPage() {
     setError(null);
     try {
       const params = new URLSearchParams();
+      params.set('mine', 'true');
       if (status !== 'all') params.set('status', status);
-      if (mineOnly) params.set('mine', 'true');
       if (query.trim()) params.set('q', query.trim());
       if (from) params.set('from', from);
       if (to) params.set('to', to);
@@ -156,7 +155,7 @@ export default function ManagerCallReportsPage() {
     } finally {
       if (myReq === reqRef.current) setLoading(false);
     }
-  }, [status, mineOnly, query, from, to, cityFilter, serviceFilter, locationFilter]);
+  }, [status, query, from, to, cityFilter, serviceFilter, locationFilter]);
 
   useEffect(() => { setLoading(true); load(); }, [load]);
 
@@ -339,11 +338,6 @@ export default function ManagerCallReportsPage() {
             dense
           />
         </div>
-
-        <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600 cursor-pointer select-none">
-          <input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-          My reports only
-        </label>
 
         <div className="relative flex-1 min-w-[200px]">
           <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />

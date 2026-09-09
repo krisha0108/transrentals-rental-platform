@@ -473,37 +473,6 @@ export default async function BikeLocationPage({ params }: PageProps) {
         ]}
       />
 
-      {/* Browse by Brand */}
-      <section className="py-12 bg-white border-t border-gray-100">
-        <div className="container-custom max-w-5xl">
-          <h2 className="text-lg font-bold text-gray-900 mb-5">
-            Browse Bikes by Brand in <span className="text-emerald-600">{locationName}</span>
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[
-              { slug: 'royal-enfield', label: 'Royal Enfield', from: '₹649/day' },
-              { slug: 'honda', label: 'Honda', from: '₹299/day' },
-              { slug: 'ktm', label: 'KTM', from: '₹899/day' },
-              { slug: 'yamaha', label: 'Yamaha', from: '₹349/day' },
-              { slug: 'bajaj', label: 'Bajaj', from: '₹449/day' },
-              { slug: 'tvs', label: 'TVS', from: '₹349/day' },
-            ].map((brand) => (
-              <a
-                key={brand.slug}
-                href={`/bike-on-rent/${params.location}/${brand.slug}`}
-                className="group flex flex-col items-center text-center px-3 py-4 bg-gray-50 border border-gray-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50 transition-all"
-              >
-                <span className="w-10 h-10 rounded-full bg-white border border-gray-200 group-hover:border-emerald-200 group-hover:bg-emerald-600 flex items-center justify-center font-black text-sm text-gray-500 group-hover:text-white transition-colors mb-2">
-                  {brand.label.charAt(0)}
-                </span>
-                <span className="font-bold text-sm text-gray-800 group-hover:text-emerald-700 transition-colors">{brand.label}</span>
-                <span className="text-xs text-gray-400 mt-0.5">From {brand.from}</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
-
       </div>
     </>
   );

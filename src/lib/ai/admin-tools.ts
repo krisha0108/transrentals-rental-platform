@@ -1,4 +1,12 @@
 import { prisma } from '@/lib/db/prisma';
+import { computeManagerStats } from '@/lib/manager-performance';
+import {
+  getDateRange, getUntouchedInquiries, getUntouchedBookings,
+  getVendorsNeedingAction, getCoverageGaps, getIdleVendorCoverage,
+  getPaymentFailures, getSystemHealth,
+} from '@/lib/admin-operations';
+
+const OPS_PERIOD_ENUM = ['today', 'yesterday', 'thisWeek', 'thisMonth', 'lastMonth', 'all'] as const;
 
 // Tool definitions in OpenAI / DeepSeek function-calling format
 export const ADMIN_TOOLS = [
@@ -239,6 +247,120 @@ export const ADMIN_TOOLS = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'get_manager_performance',
+      description:
+        "Manager performance / accountability: inquiries and bookings each manager has actioned vs the total in their assigned locations+services (coverage %), plus vendors they've created/approved. Use for questions like 'which manager is underperforming', 'how is <name> doing this week', 'manager coverage today'. Omit managerName to get ALL managers, sorted worst-inquiry-coverage first.",
+      parameters: {
+        type: 'object',
+        properties: {
+          managerName: { type: 'string', description: 'Filter to one manager by name or email (partial match)' },
+          period: { type: 'string', enum: [...OPS_PERIOD_ENUM], description: 'Date range (default today)' },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'get_untouched_inquiries',
+      description:
+        "Admin-wide count (and a sample) of customer inquiries — across every service and city, logged by anyone — that NO manager has taken any action on yet. Use for 'how many inquiries are untouched', 'leads nobody has called'.",
+      parameters: {
+        type: 'object',
+        properties: {
+          period: { type: 'string', enum: [...OPS_PERIOD_ENUM], description: 'Date range (default today)' },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'get_untouched_bookings',
+      description: 'Same as get_untouched_inquiries but for bookings — admin-wide bookings nobody has actioned yet.',
+      parameters: {
+        type: 'object',
+        properties: {
+          period: { type: 'string', enum: [...OPS_PERIOD_ENUM], description: 'Date range (default today)' },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'get_vendors_needing_action',
+      description:
+        "Vendors stuck in PENDING/DOCUMENTS_PENDING/UNDER_REVIEW status with nobody acting on them for several days — onboarding leads going cold. Use for 'which vendors need follow-up', 'vendors stuck in review'.",
+      parameters: {
+        type: 'object',
+        properties: {
+          staleDays: { type: 'number', description: 'Minimum days stuck with no action (default 3)' },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'get_coverage_gaps',
+      description:
+        "Demand without supply: locations/services where customer inquiries came in but there was NO vendor available to serve them — lost business. Grouped by location + service, with counts. Use for 'where are we losing business', 'which cities have no vendor coverage'.",
+      parameters: {
+        type: 'object',
+        properties: {
+          period: { type: 'string', enum: [...OPS_PERIOD_ENUM], description: 'Date range (default thisWeek)' },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'get_idle_vendor_coverage',
+      description:
+        "Supply without demand: locations/services with active, approved vendors but ZERO customer inquiries in the period — vendor capacity sitting unused. The opposite of get_coverage_gaps. Use for 'which vendors are getting no leads', 'idle coverage'.",
+      parameters: {
+        type: 'object',
+        properties: {
+          period: { type: 'string', enum: [...OPS_PERIOD_ENUM], description: 'Date range (default thisMonth)' },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'get_payment_failures',
+      description:
+        "Bookings where the payment attempt genuinely FAILED at the gateway (Razorpay), across all 8 service types (bike, bus, car, chauffeur, equipment, luxury, packers, truck). Use for 'how many payments failed', 'which service has the most payment failures', 'failed transactions'.",
+      parameters: {
+        type: 'object',
+        properties: {
+          period: { type: 'string', enum: [...OPS_PERIOD_ENUM], description: 'Date range (default today)' },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'get_system_health',
+      description:
+        "Operational health of background cron jobs (auto-drop-bookings, seo-content-refresh, expire-web-stories) and push-notification delivery (customer + travel agent FCM) over the last 7 days — last run status, failure counts, success rate. Use for 'is the auto-drop cron working', 'are push notifications failing', 'system health'.",
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
 ];
 
 type ToolInput = Record<string, any>;
@@ -259,6 +381,14 @@ export async function executeTool(name: string, input: ToolInput): Promise<strin
       case 'get_page_analytics':         return JSON.stringify(await getPageAnalytics(input));
       case 'get_analytics_summary':      return JSON.stringify(await getAnalyticsSummary(input));
       case 'get_travel_agent_info':      return JSON.stringify(await getTravelAgentInfo(input));
+      case 'get_manager_performance':    return JSON.stringify(await getManagerPerformanceTool(input));
+      case 'get_untouched_inquiries':    return JSON.stringify(await getUntouchedInquiriesTool(input));
+      case 'get_untouched_bookings':     return JSON.stringify(await getUntouchedBookingsTool(input));
+      case 'get_vendors_needing_action': return JSON.stringify(await getVendorsNeedingActionTool(input));
+      case 'get_coverage_gaps':          return JSON.stringify(await getCoverageGapsTool(input));
+      case 'get_idle_vendor_coverage':   return JSON.stringify(await getIdleVendorCoverageTool(input));
+      case 'get_payment_failures':       return JSON.stringify(await getPaymentFailuresTool(input));
+      case 'get_system_health':          return JSON.stringify(await getSystemHealthTool());
       default:                           return JSON.stringify({ error: `Unknown tool: ${name}` });
     }
   } catch (err: any) {
@@ -527,7 +657,7 @@ async function getInquiryInfo({ period, startDate, endDate, service = 'all', lim
   // Recent inquiries — use car/self-drive as main source (most detailed schema)
   const recent = await prisma.self_drive_quote_requests.findMany({
     where: dateFilter,
-    select: { id: true, customerName: true, pickupCity: true, status: true, createdAt: true },
+    select: { id: true, customerName: true, locationName: true, status: true, createdAt: true },
     orderBy: { createdAt: 'desc' },
     take: limit,
   }).catch(() => []);
@@ -575,7 +705,7 @@ async function getFleetStats() {
     prisma.fleet_categories.count().catch(() => 0),
     prisma.locations.findMany({
       where: { isActive: true },
-      select: { name: true, state: true },
+      select: { name: true, type: true },
       orderBy: { name: 'asc' },
       take: 10,
     }),
@@ -827,4 +957,97 @@ async function getAnalyticsSummary({ startDate, endDate, days }: ToolInput) {
     latestDay: latest ? { date: latest.date, pageViews: latest.totalPageViews, uniqueVisitors: latest.uniqueVisitors } : null,
     topPages,
   };
+}
+
+// ── Operations Tracker tools — thin wrappers around the same
+// src/lib/admin-operations.ts and src/lib/manager-performance.ts functions
+// that power the /admin/operations dashboard, so the assistant's numbers
+// always match what's on that page. ──
+
+function opsDateFilterObj(period?: string) {
+  const range = getDateRange(period || 'today');
+  return Object.keys(range).length > 0 ? { createdAt: range } : {};
+}
+
+async function getManagerPerformanceTool({ managerName, period = 'today' }: ToolInput) {
+  const where: any = { role: 'MANAGER' };
+  if (managerName) {
+    where.OR = [{ name: { contains: managerName } }, { email: { contains: managerName } }];
+  }
+
+  const managers = await prisma.admin_users.findMany({
+    where,
+    include: {
+      manager_locations: { include: { locations: true } },
+      manager_services: { include: { services: true } },
+    },
+  });
+  if (managers.length === 0) {
+    return { error: managerName ? `No manager found matching "${managerName}"` : 'No managers found' };
+  }
+
+  const dateFilterObj = opsDateFilterObj(period);
+  const results = await Promise.all(managers.map(async (m) => {
+    const stats = await computeManagerStats(m, dateFilterObj);
+    return { id: m.id, name: m.name, email: m.email, ...stats };
+  }));
+  results.sort((a, b) => (a.inquiries.coveragePct ?? 101) - (b.inquiries.coveragePct ?? 101));
+
+  return { period, managers: results };
+}
+
+async function getUntouchedInquiriesTool({ period = 'today' }: ToolInput) {
+  const result = await getUntouchedInquiries(opsDateFilterObj(period), { limit: 10 });
+  return {
+    period,
+    totalInquiries: result.total,
+    actioned: result.actioned,
+    untouchedCount: result.untouchedTotal,
+    sampleUntouched: result.items,
+  };
+}
+
+async function getUntouchedBookingsTool({ period = 'today' }: ToolInput) {
+  const result = await getUntouchedBookings(opsDateFilterObj(period), { limit: 10 });
+  return {
+    period,
+    totalBookings: result.total,
+    actioned: result.actioned,
+    untouchedCount: result.untouchedTotal,
+    sampleUntouched: result.items,
+  };
+}
+
+async function getVendorsNeedingActionTool({ staleDays = 3 }: ToolInput) {
+  const result = await getVendorsNeedingAction(staleDays, { limit: 15 });
+  return { staleDays, total: result.total, vendors: result.items };
+}
+
+async function getCoverageGapsTool({ period = 'thisWeek' }: ToolInput) {
+  const result = await getCoverageGaps(opsDateFilterObj(period), { limit: 15 });
+  return { period, totalGapEvents: result.total, locationsAffected: result.groupsTotal, groups: result.items };
+}
+
+async function getIdleVendorCoverageTool({ period = 'thisMonth' }: ToolInput) {
+  const result = await getIdleVendorCoverage(opsDateFilterObj(period), { limit: 15 });
+  // byLocation (summed per location) is the more useful signal — the raw
+  // per-service rows are almost always tied at the same small count, which
+  // reads as noise rather than "which location most needs demand".
+  return { period, total: result.total, topLocations: result.byLocation, idle: result.items };
+}
+
+async function getPaymentFailuresTool({ period = 'today' }: ToolInput) {
+  const result = await getPaymentFailures(opsDateFilterObj(period), { limit: 15 });
+  const byService = new Map<string, number>();
+  for (const item of result.items) byService.set(item.serviceName, (byService.get(item.serviceName) || 0) + 1);
+  return {
+    period,
+    total: result.total,
+    byService: [...byService.entries()].map(([serviceName, count]) => ({ serviceName, count })).sort((a, b) => b.count - a.count),
+    failures: result.items,
+  };
+}
+
+async function getSystemHealthTool() {
+  return getSystemHealth();
 }
