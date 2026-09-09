@@ -149,7 +149,7 @@ export function Footer() {
     { name: 'Interactive Guide', href: '/guide/vendor' },
     { name: 'Stories', href: '/stories' },
     { name: 'Reflections', href: '/blog' },
-    ...(!isCustomerLoggedIn ? [{ name: 'Customer Login', href: `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/customer/login`, external: true }] : []),
+    ...(!isCustomerLoggedIn ? [{ name: 'Customer Login', href: '/customer/login' }] : []),
   ];
 
   const policies = [
@@ -399,12 +399,12 @@ export function Footer() {
               © {currentYear} TransRentals. All rights reserved.
             </p>
             <div className="flex items-center gap-4">
-              <a
-                href={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/vendor/login` || '#'}
+              <Link
+                href="/vendor/login"
                 className="text-primary hover:text-blue-400 transition-colors font-medium"
               >
                 Vendor Login
-              </a>
+              </Link>
               <span>|</span>
               <Link
                 href="/driver/login"

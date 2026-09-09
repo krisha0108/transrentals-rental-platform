@@ -15,18 +15,19 @@ import {
   listManagedPages,
   getInstagramAccountInfo,
   getFacebookPageFollowerCount,
+  getAppBaseUrl,
 } from '@/lib/social/meta-graph';
 
 export const dynamic = 'force-dynamic';
 
-function redirectWithStatus(request: NextRequest, status: string) {
-  return NextResponse.redirect(new URL(`/admin/social?status=${status}`, request.url));
+function redirectWithStatus(status: string) {
+  return NextResponse.redirect(new URL(`/admin/social?status=${status}`, getAppBaseUrl()));
 }
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
-    return NextResponse.redirect(new URL('/admin/login', request.url));
+    return NextResponse.redirect(new URL('/admin/login', getAppBaseUrl()));
   }
   const admin = await prisma.admin_users.findUnique({ where: { id: session.user.id } });
   if (!admin || !['SUPER_ADMIN', 'ADMIN'].includes(admin.role)) {
@@ -37,14 +38,14 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
   if (error) {
     logger.error('Facebook OAuth denied/errored', { error, description: searchParams.get('error_description') });
-    return redirectWithStatus(request, 'denied');
+    return redirectWithStatus('denied');
   }
 
   const code = searchParams.get('code');
   const state = searchParams.get('state');
   const expectedState = request.cookies.get('fb_oauth_state')?.value;
   if (!code || !state || !expectedState || state !== expectedState) {
-    return redirectWithStatus(request, 'invalid_state');
+    return redirectWithStatus('invalid_state');
   }
 
   try {
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
     const pages = await listManagedPages(longLived.access_token);
 
     if (pages.length === 0) {
-      return redirectWithStatus(request, 'no_pages');
+      return redirectWithStatus('no_pages');
     }
 
     for (const page of pages) {
@@ -92,11 +93,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const response = redirectWithStatus(request, 'connected');
+    const response = redirectWithStatus('connected');
     response.cookies.delete('fb_oauth_state');
     return response;
   } catch (err: any) {
     logger.error('Facebook OAuth callback failed', err);
-    return redirectWithStatus(request, 'failed');
+    return redirectWithStatus('failed');
   }
 }

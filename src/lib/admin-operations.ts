@@ -213,15 +213,18 @@ export interface IdleLocationSummary {
   services: { serviceName: string; vendorCount: number }[];
 }
 
-export async function getIdleVendorCoverage(dateFilterObj: DateFilterObj, page: PageParams = {}) {
-  const [approvedLinks, inquiries] = await Promise.all([
-    prisma.vendor_approved_locations.findMany({
-      where: { isActive: true, vendors: { status: 'APPROVED' } },
-      select: { vendorId: true, locationId: true, locations: { select: { name: true } } },
-    }),
-    getAllInquiries(dateFilterObj),
-  ]);
-  if (approvedLinks.length === 0) return { ...paginate([] as { locationName: string; serviceName: string; vendorCount: number }[], page.page, page.limit), byLocation: [] as IdleLocationSummary[] };
+interface VendorCoverageEntry { locationName: string; serviceName: string; serviceSlug: string; vendorCount: number }
+
+// Shared by getIdleVendorCoverage (supply side) and getDemandCoverage (demand
+// side) — every (location, service) combo with at least one active approved
+// vendor, and how many vendors cover it.
+async function getVendorCoverageCounts(): Promise<Map<string, VendorCoverageEntry>> {
+  const approvedLinks = await prisma.vendor_approved_locations.findMany({
+    where: { isActive: true, vendors: { status: 'APPROVED' } },
+    select: { vendorId: true, locationId: true, locations: { select: { name: true } } },
+  });
+  const coverageCount = new Map<string, VendorCoverageEntry>();
+  if (approvedLinks.length === 0) return coverageCount;
 
   const vendorIds = [...new Set(approvedLinks.map((l) => l.vendorId))];
   const serviceLinks = await prisma.vendor_approved_services.findMany({
@@ -235,6 +238,24 @@ export async function getIdleVendorCoverage(dateFilterObj: DateFilterObj, page: 
     servicesByVendor.get(link.vendorId)!.push({ slug: link.services.slug, name: link.services.name });
   }
 
+  for (const link of approvedLinks) {
+    const locationName = link.locations?.name;
+    if (!locationName) continue;
+    for (const service of servicesByVendor.get(link.vendorId) || []) {
+      const key = `${locationName}::${service.slug}`;
+      if (!coverageCount.has(key)) coverageCount.set(key, { locationName, serviceName: service.name, serviceSlug: service.slug, vendorCount: 0 });
+      coverageCount.get(key)!.vendorCount += 1;
+    }
+  }
+  return coverageCount;
+}
+
+export async function getIdleVendorCoverage(dateFilterObj: DateFilterObj, page: PageParams = {}) {
+  const [coverageCount, inquiries] = await Promise.all([
+    getVendorCoverageCounts(),
+    getAllInquiries(dateFilterObj),
+  ]);
+
   // Inquiry count per (locationName, serviceSlug) — the only key inquiry
   // tables can consistently be matched on given the string-city fields.
   const inquiryCounts = new Map<string, number>();
@@ -243,20 +264,9 @@ export async function getIdleVendorCoverage(dateFilterObj: DateFilterObj, page: 
     inquiryCounts.set(key, (inquiryCounts.get(key) || 0) + 1);
   }
 
-  const coverageCount = new Map<string, { locationName: string; serviceName: string; vendorCount: number }>();
-  for (const link of approvedLinks) {
-    const locationName = link.locations?.name;
-    if (!locationName) continue;
-    for (const service of servicesByVendor.get(link.vendorId) || []) {
-      const key = `${locationName}::${service.slug}`;
-      if (!coverageCount.has(key)) coverageCount.set(key, { locationName, serviceName: service.name, vendorCount: 0 });
-      coverageCount.get(key)!.vendorCount += 1;
-    }
-  }
-
   let idle: { locationName: string; serviceName: string; vendorCount: number }[] = [];
   for (const [key, entry] of coverageCount.entries()) {
-    if (!inquiryCounts.has(key) || inquiryCounts.get(key) === 0) idle.push(entry);
+    if (!inquiryCounts.has(key) || inquiryCounts.get(key) === 0) idle.push({ locationName: entry.locationName, serviceName: entry.serviceName, vendorCount: entry.vendorCount });
   }
   idle.sort((a, b) => b.vendorCount - a.vendorCount);
 
@@ -281,6 +291,56 @@ export async function getIdleVendorCoverage(dateFilterObj: DateFilterObj, page: 
   const byLocation = [...byLocationMap.values()].sort((a, b) => b.total - a.total).slice(0, 8);
 
   return { ...paginate(idle, page.page, page.limit), byLocation };
+}
+
+// ── Demand coverage (the flip side of idle vendor coverage) — every
+// (location, service) combo that actually got inquiries in the period, with
+// how many approved vendors were there to serve it. Unlike the
+// vendor_coverage_gaps log (which only fires for the true zero-vendor case
+// at inquiry time), this is computed live so it supports an arbitrary
+// "vendorCount <= N" threshold — e.g. "show me demand sitting on fewer than
+// 5 vendors", not just the binary zero case. ──
+
+export interface DemandCoverageItem {
+  locationName: string;
+  serviceName: string;
+  serviceSlug: string;
+  inquiryCount: number;
+  vendorCount: number;
+}
+
+export async function getDemandCoverage(dateFilterObj: DateFilterObj, page: PageParams & { maxVendors?: number } = {}) {
+  const [coverageCount, inquiries] = await Promise.all([
+    getVendorCoverageCounts(),
+    getAllInquiries(dateFilterObj),
+  ]);
+
+  const byKey = new Map<string, DemandCoverageItem>();
+  for (const item of inquiries) {
+    const key = `${item.locationName}::${item.serviceSlug}`;
+    if (!byKey.has(key)) {
+      const coverage = coverageCount.get(key);
+      byKey.set(key, {
+        locationName: item.locationName,
+        serviceName: coverage?.serviceName || item.serviceName,
+        serviceSlug: item.serviceSlug,
+        inquiryCount: 0,
+        vendorCount: coverage?.vendorCount ?? 0,
+      });
+    }
+    byKey.get(key)!.inquiryCount += 1;
+  }
+
+  let results = [...byKey.values()];
+  if (page.maxVendors !== undefined) results = results.filter((r) => r.vendorCount <= page.maxVendors!);
+
+  // Worst first: least covered demand, then highest volume within that.
+  results.sort((a, b) => a.vendorCount - b.vendorCount || b.inquiryCount - a.inquiryCount);
+
+  const q = page.search?.trim().toLowerCase();
+  if (q) results = results.filter((r) => r.locationName.toLowerCase().includes(q) || r.serviceName.toLowerCase().includes(q));
+
+  return paginate(results, page.page, page.limit);
 }
 
 // ── Payment failures (System Health) — bookings stuck at paymentStatus

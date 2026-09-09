@@ -7,14 +7,14 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import crypto from 'crypto';
-import { buildFacebookOAuthUrl, isMetaAppConfigured } from '@/lib/social/meta-graph';
+import { buildFacebookOAuthUrl, isMetaAppConfigured, getAppBaseUrl } from '@/lib/social/meta-graph';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
-    return NextResponse.redirect(new URL('/admin/login', request.url));
+    return NextResponse.redirect(new URL('/admin/login', getAppBaseUrl()));
   }
   const admin = await prisma.admin_users.findUnique({ where: { id: session.user.id } });
   if (!admin || !['SUPER_ADMIN', 'ADMIN'].includes(admin.role)) {
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (!isMetaAppConfigured()) {
-    return NextResponse.redirect(new URL('/admin/social?error=not_configured', request.url));
+    return NextResponse.redirect(new URL('/admin/social?error=not_configured', getAppBaseUrl()));
   }
 
   // Random state, stored in a short-lived cookie so the callback can confirm

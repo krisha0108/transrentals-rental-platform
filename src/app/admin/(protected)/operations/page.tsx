@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   Activity, AlertTriangle, Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, Inbox,
   Loader2, MapPin, Phone, RefreshCw, Store, TrendingDown, Users,
-  Search, PackageX, Radar, UserX, PhoneCall, StickyNote, X, CreditCard, XCircle,
+  Search, PackageX, Radar, UserX, PhoneCall, StickyNote, X, CreditCard,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LabelList,
@@ -112,35 +112,20 @@ interface PaymentFailureItem {
   amount: number; paymentMethod: string | null; createdAt: string;
 }
 
-interface CronJobHealth {
-  sourceName: string;
-  lastStatus: 'SUCCESS' | 'FAILURE' | null;
-  lastRunAt: string | null;
-  lastMessage: string | null;
-  lastDurationMs: number | null;
-  runsLast7d: number;
-  failuresLast7d: number;
-}
-
-interface NotificationHealth { sourceName: string; successLast7d: number; failureLast7d: number }
-
-const CRON_JOB_LABEL: Record<string, string> = {
-  'auto-drop-bookings': 'Auto-drop stale bookings',
-  'seo-content-refresh': 'SEO content refresh',
-  'expire-web-stories': 'Expire web stories',
-};
-
-const NOTIFICATION_SOURCE_LABEL: Record<string, string> = {
-  'fcm-customer-push': 'Customer push notifications',
-  'fcm-travel-agent-push': 'Travel agent push notifications',
-};
-
 interface VendorNeedingAction {
   id: string; businessName: string; ownerName: string; phone: string; email: string;
   city: string | null; status: string; daysSinceUpdate: number;
 }
 
 interface CoverageGapGroup { locationName: string; serviceType: string; count: number; latest: string; requestNumbers: string[] }
+interface DemandCoverageItem { locationName: string; serviceName: string; serviceSlug: string; inquiryCount: number; vendorCount: number }
+type VendorThreshold = 'zero' | 5 | 10 | 20;
+const VENDOR_THRESHOLD_OPTIONS: { key: VendorThreshold; label: string }[] = [
+  { key: 'zero', label: 'Exact gaps (0 vendors)' },
+  { key: 5, label: '≤ 5 vendors' },
+  { key: 10, label: '≤ 10 vendors' },
+  { key: 20, label: '≤ 20 vendors' },
+];
 interface IdleVendorRow { locationName: string; serviceName: string; vendorCount: number }
 interface IdleLocationSummary { locationName: string; total: number; serviceCount: number; services: { serviceName: string; vendorCount: number }[] }
 interface ManagerRow {
@@ -192,6 +177,9 @@ export default function AdminOperationsTrackerPage() {
 
   const [gaps, setGaps] = useState<Paginated<CoverageGapGroup> & { total: number } | null>(null);
   const [gapsPage, setGapsPage] = useState(1);
+  const [vendorThreshold, setVendorThreshold] = useState<VendorThreshold>('zero');
+  const [demandCoverage, setDemandCoverage] = useState<Paginated<DemandCoverageItem> | null>(null);
+  const [demandCoveragePage, setDemandCoveragePage] = useState(1);
 
   const [idle, setIdle] = useState<Paginated<IdleVendorRow> & { byLocation: IdleLocationSummary[] } | null>(null);
   const [idlePage, setIdlePage] = useState(1);
@@ -201,8 +189,6 @@ export default function AdminOperationsTrackerPage() {
 
   const [paymentFailures, setPaymentFailures] = useState<Paginated<PaymentFailureItem> | null>(null);
   const [paymentFailuresPage, setPaymentFailuresPage] = useState(1);
-  const [cronJobs, setCronJobs] = useState<CronJobHealth[]>([]);
-  const [notificationHealth, setNotificationHealth] = useState<NotificationHealth[]>([]);
 
   // Debounce the search box so typing doesn't fire a request per keystroke.
   useEffect(() => {
@@ -215,8 +201,13 @@ export default function AdminOperationsTrackerPage() {
   // out-of-range page against the new result set.
   useEffect(() => {
     setInquiriesPage(1); setBookingsPage(1); setVendorsPage(1);
-    setGapsPage(1); setIdlePage(1); setManagersPage(1); setPaymentFailuresPage(1);
+    setGapsPage(1); setIdlePage(1); setManagersPage(1); setPaymentFailuresPage(1); setDemandCoveragePage(1);
   }, [filter, debouncedSearch]);
+
+  // Switching the vendor-count threshold only needs to reset its own page —
+  // the tab-data effect below re-fetches because vendorThreshold is in its
+  // dependency array.
+  useEffect(() => { setDemandCoveragePage(1); }, [vendorThreshold]);
 
   const loadSummary = useCallback(async (preset: DatePreset) => {
     try {
@@ -235,7 +226,8 @@ export default function AdminOperationsTrackerPage() {
   // admin-wide inquiry scan that "Untouched Inquiries" needs, and vice versa.
   const loadTabData = useCallback(async (
     activeTab: TabKey, preset: DatePreset, q: string,
-    page: { inquiries: number; bookings: number; vendors: number; gaps: number; idle: number; managers: number; paymentFailures: number },
+    page: { inquiries: number; bookings: number; vendors: number; gaps: number; idle: number; managers: number; paymentFailures: number; demandCoverage: number },
+    vendorThresholdParam: VendorThreshold,
   ) => {
     setTabLoading(true);
     setError(null);
@@ -279,10 +271,17 @@ export default function AdminOperationsTrackerPage() {
         setVendors(data);
       } else if (activeTab === 'gaps') {
         const gapsFilter = preset === 'today' || preset === 'yesterday' ? 'thisWeek' : preset;
-        const res = await fetch(`/api/admin/operations/coverage-gaps?filter=${gapsFilter}&page=${page.gaps}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
-        const data = await res.json();
-        if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load coverage gaps');
-        setGaps(data);
+        if (vendorThresholdParam === 'zero') {
+          const res = await fetch(`/api/admin/operations/coverage-gaps?filter=${gapsFilter}&page=${page.gaps}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+          const data = await res.json();
+          if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load coverage gaps');
+          setGaps(data);
+        } else {
+          const res = await fetch(`/api/admin/operations/demand-coverage?filter=${gapsFilter}&maxVendors=${vendorThresholdParam}&page=${page.demandCoverage}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+          const data = await res.json();
+          if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load demand coverage');
+          setDemandCoverage(data);
+        }
       } else if (activeTab === 'idle') {
         const idleFilter = preset === 'today' || preset === 'yesterday' || preset === 'thisWeek' ? 'thisMonth' : preset;
         const res = await fetch(`/api/admin/operations/idle-vendors?filter=${idleFilter}&page=${page.idle}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
@@ -295,17 +294,14 @@ export default function AdminOperationsTrackerPage() {
         if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load manager performance');
         setManagers(data.managers || []);
       } else if (activeTab === 'systemHealth') {
-        const [healthRes, paymentsRes] = await Promise.all([
-          fetch('/api/admin/operations/system-health'),
-          fetch(`/api/admin/operations/payment-failures?filter=${preset}&page=${page.paymentFailures}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`),
-        ]);
-        const healthData = await healthRes.json();
-        const paymentsData = await paymentsRes.json();
-        if (!healthRes.ok || healthData.error) throw new Error(healthData?.error || 'Failed to load system health');
-        if (!paymentsRes.ok || paymentsData.error) throw new Error(paymentsData?.error || 'Failed to load payment failures');
-        setCronJobs(healthData.cronJobs || []);
-        setNotificationHealth(healthData.notifications || []);
-        setPaymentFailures(paymentsData);
+        // Cron/notification health sections are hidden for now (see
+        // src/app/api/admin/operations/system-health/route.ts — still built
+        // and logging, just nothing in the UI until those jobs are actually
+        // scheduled and producing real runs to show).
+        const res = await fetch(`/api/admin/operations/payment-failures?filter=${preset}&page=${page.paymentFailures}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load payment failures');
+        setPaymentFailures(data);
       }
     } catch (e: any) {
       setError(e?.message || 'Failed to load data');
@@ -321,16 +317,16 @@ export default function AdminOperationsTrackerPage() {
 
   useEffect(() => {
     loadTabData(tab, filter, debouncedSearch, {
-      inquiries: inquiriesPage, bookings: bookingsPage, vendors: vendorsPage, gaps: gapsPage, idle: idlePage, managers: managersPage, paymentFailures: paymentFailuresPage,
-    });
+      inquiries: inquiriesPage, bookings: bookingsPage, vendors: vendorsPage, gaps: gapsPage, idle: idlePage, managers: managersPage, paymentFailures: paymentFailuresPage, demandCoverage: demandCoveragePage,
+    }, vendorThreshold);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, filter, debouncedSearch, inquiriesPage, bookingsPage, vendorsPage, gapsPage, idlePage, paymentFailuresPage, loadTabData]);
+  }, [tab, filter, debouncedSearch, inquiriesPage, bookingsPage, vendorsPage, gapsPage, idlePage, paymentFailuresPage, demandCoveragePage, vendorThreshold, loadTabData]);
 
   const handleRefresh = () => {
     loadSummary(filter);
     loadTabData(tab, filter, debouncedSearch, {
-      inquiries: inquiriesPage, bookings: bookingsPage, vendors: vendorsPage, gaps: gapsPage, idle: idlePage, managers: managersPage, paymentFailures: paymentFailuresPage,
-    });
+      inquiries: inquiriesPage, bookings: bookingsPage, vendors: vendorsPage, gaps: gapsPage, idle: idlePage, managers: managersPage, paymentFailures: paymentFailuresPage, demandCoverage: demandCoveragePage,
+    }, vendorThreshold);
   };
 
   // Inline "Called"/"Note" actions log the action but don't refetch the whole
@@ -413,6 +409,12 @@ export default function AdminOperationsTrackerPage() {
     name: `${g.locationName} · ${g.serviceType}`,
     count: g.count,
   })), [gaps]);
+
+  const demandCoverageChartData = useMemo(() => (demandCoverage?.items || []).slice(0, 8).map((d) => ({
+    name: `${d.locationName} · ${d.serviceName}`,
+    count: d.inquiryCount,
+    vendorCount: d.vendorCount,
+  })), [demandCoverage]);
 
   // Rolled up per location (not per location+service row) — the row-level
   // list is almost always dominated by ties (a location's services tend to
@@ -851,45 +853,110 @@ export default function AdminOperationsTrackerPage() {
 
             {/* Coverage Gaps */}
             {tab === 'gaps' && (
-              !gaps || gaps.items.length === 0 ? (
-                <EmptyState icon={CheckCircle2} text="No coverage gaps in this period — every inquiry had an eligible vendor." good />
-              ) : (
-                <>
-                  {gaps.page === 1 && (
-                    <div className="p-5 border-b border-slate-100">
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">Top Locations by Gap Count</p>
-                      <div style={{ height: Math.max(160, gapsChartData.length * 34) }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={gapsChartData} layout="vertical" margin={{ top: 4, right: 36, left: 8, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLOR.grid} horizontal={false} />
-                            <XAxis type="number" stroke={CHART_COLOR.axis} fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} domain={[0, (max: number) => Math.max(max + 1, 1)]} />
-                            <YAxis type="category" dataKey="name" stroke={CHART_COLOR.axis} fontSize={11} tickLine={false} axisLine={false} width={160} />
-                            <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: 10, fontSize: 12 }} labelStyle={{ color: '#e2e8f0', fontWeight: 600, marginBottom: 4 }} />
-                            <Bar dataKey="count" name="No-vendor inquiries" fill={CHART_COLOR.critical} radius={[0, 6, 6, 0]} maxBarSize={20}>
-                              <LabelList dataKey="count" position="right" fill={CHART_COLOR.axis} fontSize={12} fontWeight={600} />
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  )}
-                  <div className="divide-y divide-slate-50">
-                    {gaps.items.map((g, i) => (
-                      <div key={i} className="p-4 flex items-center justify-between gap-3 hover:bg-slate-50/60 transition-colors">
-                        <div>
-                          <p className="font-semibold text-slate-900 text-sm flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-rose-500" /> {g.locationName}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{g.serviceType} · {g.requestNumbers.join(', ')}{g.count > g.requestNumbers.length ? '…' : ''}</p>
+              <>
+                <div className="p-4 border-b border-slate-100 flex items-center gap-1 flex-wrap">
+                  <span className="text-xs font-semibold text-slate-400 mr-1">Vendor threshold:</span>
+                  {VENDOR_THRESHOLD_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setVendorThreshold(opt.key)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                        vendorThreshold === opt.key ? 'bg-rose-600 text-white' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                {vendorThreshold === 'zero' ? (
+                  !gaps || gaps.items.length === 0 ? (
+                    <EmptyState icon={CheckCircle2} text="No coverage gaps in this period — every inquiry had an eligible vendor." good />
+                  ) : (
+                    <>
+                      {gaps.page === 1 && (
+                        <div className="p-5 border-b border-slate-100">
+                          <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">Top Locations by Gap Count</p>
+                          <div style={{ height: Math.max(160, gapsChartData.length * 34) }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={gapsChartData} layout="vertical" margin={{ top: 4, right: 36, left: 8, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLOR.grid} horizontal={false} />
+                                <XAxis type="number" stroke={CHART_COLOR.axis} fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} domain={[0, (max: number) => Math.max(max + 1, 1)]} />
+                                <YAxis type="category" dataKey="name" stroke={CHART_COLOR.axis} fontSize={11} tickLine={false} axisLine={false} width={160} />
+                                <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: 10, fontSize: 12 }} labelStyle={{ color: '#e2e8f0', fontWeight: 600, marginBottom: 4 }} />
+                                <Bar dataKey="count" name="No-vendor inquiries" fill={CHART_COLOR.critical} radius={[0, 6, 6, 0]} maxBarSize={20}>
+                                  <LabelList dataKey="count" position="right" fill={CHART_COLOR.axis} fontSize={12} fontWeight={600} />
+                                </Bar>
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-lg font-bold text-rose-600">{g.count}</p>
-                          <p className="text-[11px] text-slate-400">no vendor · last {formatDateTime(g.latest)}</p>
-                        </div>
+                      )}
+                      <div className="divide-y divide-slate-50">
+                        {gaps.items.map((g, i) => (
+                          <div key={i} className="p-4 flex items-center justify-between gap-3 hover:bg-slate-50/60 transition-colors">
+                            <div>
+                              <p className="font-semibold text-slate-900 text-sm flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-rose-500" /> {g.locationName}</p>
+                              <p className="text-xs text-slate-500 mt-0.5">{g.serviceType} · {g.requestNumbers.join(', ')}{g.count > g.requestNumbers.length ? '…' : ''}</p>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-lg font-bold text-rose-600">{g.count}</p>
+                              <p className="text-[11px] text-slate-400">no vendor · last {formatDateTime(g.latest)}</p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  <PaginationBar page={gaps.page} totalPages={gaps.totalPages} total={gaps.total} onChange={setGapsPage} />
-                </>
-              )
+                      <PaginationBar page={gaps.page} totalPages={gaps.totalPages} total={gaps.total} onChange={setGapsPage} />
+                    </>
+                  )
+                ) : (
+                  !demandCoverage || demandCoverage.items.length === 0 ? (
+                    <EmptyState icon={CheckCircle2} text={`No demand sitting on ${vendorThreshold} or fewer vendors in this period.`} good />
+                  ) : (
+                    <>
+                      {demandCoverage.page === 1 && (
+                        <div className="p-5 border-b border-slate-100">
+                          <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">Top Underserved Locations (≤ {vendorThreshold} vendors)</p>
+                          <div style={{ height: Math.max(160, demandCoverageChartData.length * 34) }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={demandCoverageChartData} layout="vertical" margin={{ top: 4, right: 36, left: 8, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLOR.grid} horizontal={false} />
+                                <XAxis type="number" stroke={CHART_COLOR.axis} fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} domain={[0, (max: number) => Math.max(max + 1, 1)]} />
+                                <YAxis type="category" dataKey="name" stroke={CHART_COLOR.axis} fontSize={11} tickLine={false} axisLine={false} width={160} />
+                                <RechartsTooltip
+                                  cursor={{ fill: '#f8fafc' }}
+                                  contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: 10, fontSize: 12 }}
+                                  labelStyle={{ color: '#e2e8f0', fontWeight: 600, marginBottom: 4 }}
+                                  formatter={(value: any, _name: any, props: any) => [`${value} inquiries · ${props.payload.vendorCount} vendor${props.payload.vendorCount === 1 ? '' : 's'}`, undefined]}
+                                />
+                                <Bar dataKey="count" name="Inquiries" fill={CHART_COLOR.critical} radius={[0, 6, 6, 0]} maxBarSize={20}>
+                                  <LabelList dataKey="count" position="right" fill={CHART_COLOR.axis} fontSize={12} fontWeight={600} />
+                                </Bar>
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      )}
+                      <div className="divide-y divide-slate-50">
+                        {demandCoverage.items.map((d, i) => (
+                          <div key={i} className="p-4 flex items-center justify-between gap-3 hover:bg-slate-50/60 transition-colors">
+                            <div>
+                              <p className="font-semibold text-slate-900 text-sm flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-rose-500" /> {d.locationName}</p>
+                              <p className="text-xs text-slate-500 mt-0.5">{d.serviceName} · {d.inquiryCount} inquir{d.inquiryCount === 1 ? 'y' : 'ies'} this period</p>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <span className={`flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${d.vendorCount === 0 ? 'text-rose-700 bg-rose-50' : 'text-amber-700 bg-amber-50'}`}>
+                                <Store className="w-3 h-3" /> {d.vendorCount} vendor{d.vendorCount === 1 ? '' : 's'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <PaginationBar page={demandCoverage.page} totalPages={demandCoverage.totalPages} total={demandCoverage.total} onChange={setDemandCoveragePage} />
+                    </>
+                  )
+                )}
+              </>
             )}
 
             {/* Idle Vendors */}
@@ -943,58 +1010,6 @@ export default function AdminOperationsTrackerPage() {
             {/* System Health */}
             {tab === 'systemHealth' && (
               <div className="divide-y divide-slate-50">
-                <div className="p-5 space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Cron Jobs (last 7 days)</p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {cronJobs.map((job) => (
-                      <div key={job.sourceName} className="rounded-xl border border-slate-100 p-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="font-semibold text-slate-900 text-sm">{CRON_JOB_LABEL[job.sourceName] || job.sourceName}</p>
-                          {job.lastStatus === 'SUCCESS' && (
-                            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full flex-shrink-0"><CheckCircle2 className="w-3 h-3" /> OK</span>
-                          )}
-                          {job.lastStatus === 'FAILURE' && (
-                            <span className="flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full flex-shrink-0"><XCircle className="w-3 h-3" /> Failing</span>
-                          )}
-                          {job.lastStatus === null && (
-                            <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full flex-shrink-0">Never run</span>
-                          )}
-                        </div>
-                        {job.lastRunAt ? (
-                          <>
-                            <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1"><Clock className="w-3 h-3" /> Last run {formatDateTime(job.lastRunAt)}{job.lastDurationMs != null ? ` · ${(job.lastDurationMs / 1000).toFixed(1)}s` : ''}</p>
-                            {job.lastMessage && <p className="text-xs text-slate-400 mt-1 line-clamp-2">{job.lastMessage}</p>}
-                            <p className="text-[11px] text-slate-400 mt-2">{job.runsLast7d} run{job.runsLast7d === 1 ? '' : 's'}, {job.failuresLast7d} failure{job.failuresLast7d === 1 ? '' : 's'} in 7d</p>
-                          </>
-                        ) : (
-                          <p className="text-xs text-slate-400 mt-1.5">No recorded runs in the last 7 days — check the job is actually scheduled.</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-5 space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Notification Delivery (last 7 days)</p>
-                  {notificationHealth.length === 0 ? (
-                    <p className="text-xs text-slate-400">No push notifications sent in the last 7 days.</p>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {notificationHealth.map((n) => {
-                        const totalSends = n.successLast7d + n.failureLast7d;
-                        const failurePct = totalSends > 0 ? Math.round((n.failureLast7d / totalSends) * 100) : 0;
-                        return (
-                          <div key={n.sourceName} className="rounded-xl border border-slate-100 p-4">
-                            <p className="font-semibold text-slate-900 text-sm">{NOTIFICATION_SOURCE_LABEL[n.sourceName] || n.sourceName}</p>
-                            <p className="text-2xl font-bold text-slate-900 mt-1.5">{n.successLast7d} <span className="text-sm text-slate-400 font-medium">/ {totalSends}</span></p>
-                            <p className={`text-xs font-medium mt-1 ${failurePct > 10 ? 'text-rose-600' : 'text-slate-500'}`}>{n.failureLast7d} failed ({failurePct}%)</p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
                 <div>
                   {!paymentFailures || paymentFailures.items.length === 0 ? (
                     <EmptyState icon={CheckCircle2} text="No failed payments in this period." good />

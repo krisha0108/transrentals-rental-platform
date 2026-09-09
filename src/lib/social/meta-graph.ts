@@ -23,9 +23,21 @@ export function isMetaAppConfigured() {
   return !!(getMetaAppId() && getMetaAppSecret());
 }
 
-export function getOAuthRedirectUri() {
+// The canonical app origin — deliberately NOT derived from the incoming
+// request. This dev server binds to 0.0.0.0 (accessible as both
+// localhost:3000 and 0.0.0.0:3000), but the NextAuth session cookie is only
+// valid for whichever host the admin actually logged in on. Building
+// redirects from request.url would bounce the browser back to whatever host
+// it happened to hit the API on — if that's the "wrong" one for the cookie,
+// the next request looks logged out. Always redirecting through this fixed
+// base keeps the whole OAuth round-trip on one consistent origin.
+export function getAppBaseUrl() {
   const base = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
-  return `${base.replace(/\/$/, '')}/api/admin/social/facebook/callback`;
+  return base.replace(/\/$/, '');
+}
+
+export function getOAuthRedirectUri() {
+  return `${getAppBaseUrl()}/api/admin/social/facebook/callback`;
 }
 
 // The permissions we ask for. `pages_show_list`/`pages_read_engagement` cover
