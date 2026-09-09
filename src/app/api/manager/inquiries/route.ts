@@ -6,6 +6,17 @@ import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
 
+// Each of the 7 quote-request tables below is fetched in full (no DB-level
+// LIMIT/OFFSET — pagination happens by slicing the combined, sorted array in
+// JS, since the "page" here spans all of a manager's assigned services
+// together). Without a cap, a manager assigned to high-volume
+// locations/services pulls every matching row on every request regardless
+// of which page was asked for — fine against a small local dataset, but
+// unbounded against production's real, accumulated volume (this is exactly
+// what caused live 500s: a very deep page number implied tens of thousands
+// of rows were being fetched and sorted in memory per request).
+const MAX_ROWS_PER_TABLE = 3000;
+
 // Quote request statuses (inquiry stage)
 const INQUIRY_STATUSES = [
   'PENDING',
@@ -109,6 +120,7 @@ export async function GET(request: NextRequest) {
               _count: { select: { bike_quotes_bike_quotes_requestIdTobike_quote_requests: true } },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
 
@@ -121,6 +133,7 @@ export async function GET(request: NextRequest) {
               _count: { select: { bus_quotes_bus_quotes_requestIdTobus_quote_requests: true } },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
 
@@ -134,6 +147,7 @@ export async function GET(request: NextRequest) {
               _count: { select: { self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: true } },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
 
@@ -146,6 +160,7 @@ export async function GET(request: NextRequest) {
               _count: { select: { equipment_quotes: true } },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
 
@@ -158,6 +173,7 @@ export async function GET(request: NextRequest) {
               _count: { select: { luxury_quotes: true } },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
 
@@ -170,6 +186,7 @@ export async function GET(request: NextRequest) {
               _count: { select: { packers_quotes: true } },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
 
@@ -182,6 +199,7 @@ export async function GET(request: NextRequest) {
               _count: { select: { truck_quotes: true } },
             },
             orderBy: { createdAt: 'desc' },
+            take: MAX_ROWS_PER_TABLE,
           }).catch(() => [])
         : Promise.resolve([]),
     ]);

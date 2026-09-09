@@ -97,6 +97,43 @@ async function syncInstagramAccount(account: { id: string; igBusinessAccountId: 
   return synced;
 }
 
+// A @db.Date column stores/compares as a UTC-midnight DATETIME under the
+// hood — building this from *local* Y/M/D with `new Date(y, m, d)` (local
+// midnight, not UTC midnight) shifts the stored calendar day backward by a
+// server's positive UTC offset (e.g. IST). Date.UTC keeps the same local
+// Y/M/D label while producing the UTC-midnight instant MySQL expects (same
+// fix as /api/manager/heartbeat's startOfDay()).
+function startOfDay(d: Date) {
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+}
+
+// upsert() isn't atomic against a genuinely concurrent second sync for the
+// same account+day (e.g. a double-clicked "Sync Now", or React StrictMode's
+// dev-mode double-invoke) — both can see "no row yet" and both attempt
+// create, so the loser hits the unique constraint. Retrying the *whole*
+// upsert (not just falling back to a plain update) is what makes this safe:
+// by the retry, the winner's row exists, so this attempt's own SELECT finds
+// it and takes the update branch instead of create — a bare fallback
+// update() on a where-composite-key like this one throws P2025 as often as
+// it succeeds, since the same field's local-vs-UTC-midnight arithmetic that
+// caused the race can shift which literal DATE value it computed by a day
+// versus the row that actually landed.
+async function upsertDailyStatsWithRetry(accountId: string, date: Date, followerCount: number | null, attempt = 0): Promise<void> {
+  try {
+    await prisma.social_media_daily_stats.upsert({
+      where: { accountId_date: { accountId, date } },
+      create: { accountId, date, followerCount },
+      update: { followerCount },
+    });
+  } catch (err: any) {
+    if (err?.code === 'P2002' && attempt < 3) {
+      await upsertDailyStatsWithRetry(accountId, date, followerCount, attempt + 1);
+      return;
+    }
+    throw err;
+  }
+}
+
 // One connected Page can yield BOTH a Facebook post feed and (if it has a
 // linked Instagram Business account) an Instagram media feed — both get
 // synced together since they share the same stored Page access token.
@@ -104,8 +141,7 @@ export async function syncAccount(accountId: string): Promise<SyncResult> {
   const account = await prisma.social_media_accounts.findUnique({ where: { id: accountId } });
   if (!account) throw new Error('Account not found');
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = startOfDay(new Date());
 
   try {
     let postsSynced = 0;
@@ -135,11 +171,7 @@ export async function syncAccount(accountId: string): Promise<SyncResult> {
       data: { followerCount, lastSyncedAt: new Date(), lastSyncError: null },
     });
 
-    await prisma.social_media_daily_stats.upsert({
-      where: { accountId_date: { accountId: account.id, date: today } },
-      create: { accountId: account.id, date: today, followerCount },
-      update: { followerCount },
-    });
+    await upsertDailyStatsWithRetry(account.id, today, followerCount);
 
     return { accountId: account.id, pageName: account.pageName, postsSynced };
   } catch (err: any) {
