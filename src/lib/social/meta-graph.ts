@@ -43,10 +43,18 @@ export function getOAuthRedirectUri() {
 // The permissions we ask for. `pages_show_list`/`pages_read_engagement` cover
 // Facebook Page posts + insights; the `instagram_*` ones only resolve to real
 // data when the Page has a linked Instagram Business/Creator account.
+//
+// `pages_read_user_content` (would additionally cover comments.summary())
+// is deliberately NOT requested here — Meta's OAuth dialog rejects it for
+// this app outright ("Invalid Scopes: pages_read_user_content"), which
+// blocks the entire connect flow for every user, not just comments. The
+// listFacebookPagePosts() fallback below already degrades comments/likes
+// gracefully without it (POST_FIELDS_SAFE), so there's no functional loss —
+// only re-add this if the app is later granted that permission properly
+// through Meta App Review.
 const OAUTH_SCOPES = [
   'pages_show_list',
   'pages_read_engagement',
-  'pages_read_user_content', // comments.summary() on a post needs this specifically — pages_read_engagement alone 400s
   'read_insights',
   'instagram_basic',
   'instagram_manage_insights',
