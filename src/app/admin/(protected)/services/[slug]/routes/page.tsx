@@ -21,6 +21,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 
 interface VehicleCategory {
   id: string;
@@ -582,44 +583,28 @@ export default function ServiceRoutesPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       From City *
                     </label>
-                    <select
+                    <SearchableSelect
+                      options={locations.map((l) => ({ id: l.id, label: l.name }))}
                       value={formData.fromLocationId}
-                      onChange={(e) =>
-                        setFormData({ ...formData, fromLocationId: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Select Origin</option>
-                      {locations.map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(id) => setFormData({ ...formData, fromLocationId: id })}
+                      placeholder="Select Origin"
+                      emptyMessage="No cities found"
+                    />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       To City *
                     </label>
-                    <select
-                      value={formData.toLocationId}
-                      onChange={(e) =>
-                        setFormData({ ...formData, toLocationId: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Select Destination</option>
-                      {locations
+                    <SearchableSelect
+                      options={locations
                         .filter((l) => l.id !== formData.fromLocationId)
-                        .map((l) => (
-                          <option key={l.id} value={l.id}>
-                            {l.name}
-                          </option>
-                        ))}
-                    </select>
+                        .map((l) => ({ id: l.id, label: l.name }))}
+                      value={formData.toLocationId}
+                      onChange={(id) => setFormData({ ...formData, toLocationId: id })}
+                      placeholder="Select Destination"
+                      emptyMessage="No cities found"
+                    />
                   </div>
                 </div>
 

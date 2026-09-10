@@ -16,7 +16,7 @@ import fs from 'fs';
 import path from 'path';
 import {
   AGREEMENT_TITLE, AGREEMENT_SUBTITLE, AGREEMENT_VERSION,
-  AGREEMENT_PARTIES, AGREEMENT_SECTIONS, termDescription,
+  AGREEMENT_PARTIES, AGREEMENT_SECTIONS, termDescription, vendorPartyLine,
 } from '@/lib/content/partnership-agreement';
 
 const LOGO_PATH = path.join(process.cwd(), 'public', 'assets', 'logo-trans.png');
@@ -33,7 +33,7 @@ const RULE_SOFT = [225, 225, 225];
 
 export function buildAgreementPdf(
   signature: any | null,
-  vendor: { businessName?: string | null; vid?: string | null } | null,
+  vendor: { businessName?: string | null; vid?: string | null; address?: string | null; city?: string | null; state?: string | null; pincode?: string | null } | null,
 ): Buffer {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -203,7 +203,7 @@ export function buildAgreementPdf(
   /* ═══ Agreement body — serif, like a printed contract ═══ */
   paragraph(AGREEMENT_PARTIES.intro, { gapAfter: 2.5 });
   paragraph(`1.  ${AGREEMENT_PARTIES.transrentals}`, { indent: 6, gapAfter: 2 });
-  paragraph(`2.  ${AGREEMENT_PARTIES.vendor}`, { indent: 6, gapAfter: 2 });
+  paragraph(`2.  ${vendorPartyLine(vendor)}`, { indent: 6, gapAfter: 2 });
   paragraph(AGREEMENT_PARTIES.closing, { gapAfter: 5 });
 
   AGREEMENT_SECTIONS.forEach((section, i) => {

@@ -573,6 +573,44 @@ const nextConfig = {
         destination: '/stories',
         permanent: true,
       },
+
+      // ============================================
+      // CITY SLUG ALIASES — common alternate names people link/search with
+      // that aren't the canonical slug in indian-cities.ts (only present
+      // there as a `keywords[]` entry, which powers search but not routing).
+      // ============================================
+      {
+        source: '/gurugram',
+        destination: '/gurgaon',
+        permanent: true,
+      },
+      {
+        source: '/vizag',
+        destination: '/visakhapatnam',
+        permanent: true,
+      },
+      {
+        source: '/cochin',
+        destination: '/kochi',
+        permanent: true,
+      },
+      {
+        source: '/trivandrum',
+        destination: '/thiruvananthapuram',
+        permanent: true,
+      },
+
+      // ============================================
+      // MALFORMED BLOG SLUGS — old WordPress links missing the hyphen after
+      // "blog" (e.g. /blog/bloghow-to-plan-destination-wedding). No matching
+      // post exists under the corrected slug either (content genuinely
+      // gone), so send these to the blog index rather than leaving a 404.
+      // ============================================
+      {
+        source: '/blog/blog:slug',
+        destination: '/blog',
+        permanent: true,
+      },
     ];
   },
   async headers() {
@@ -600,6 +638,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com https://cdn.tailwindcss.com",
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: blob: https: http:",
+              "media-src 'self' data: blob:",
               "connect-src 'self' https://cdn.ampproject.org https://ipapi.co https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://region1.google-analytics.com https://region1.analytics.google.com https://stats.g.doubleclick.net https://*.doubleclick.net https://api.razorpay.com https://*.razorpay.com https://accounts.google.com https://www.gstatic.com https://*.googleapis.com https://*.firebaseio.com wss: ws:",
               "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://accounts.google.com",
               "frame-ancestors 'self'",

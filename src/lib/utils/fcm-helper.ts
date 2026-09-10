@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
+import { logSystemEvent } from '@/lib/system-health/log-event';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -119,6 +120,7 @@ export async function sendFCMNotification(params: SendNotificationParams): Promi
     // Send the notification
     const response = await admin.messaging().send(message);
     logger.info(`FCM notification sent successfully: ${response}`);
+    await logSystemEvent({ category: 'NOTIFICATION', sourceName: 'fcm-customer-push', status: 'SUCCESS' });
     return true;
   } catch (error: any) {
     // Handle specific FCM errors
@@ -132,6 +134,7 @@ export async function sendFCMNotification(params: SendNotificationParams): Promi
       });
     } else {
       logger.error('Failed to send FCM notification', error);
+      await logSystemEvent({ category: 'NOTIFICATION', sourceName: 'fcm-customer-push', status: 'FAILURE', message: error?.message || error?.code || 'Unknown error' });
     }
     return false;
   }
@@ -319,9 +322,17 @@ export async function sendTravelAgentPush(
       await pruneTravelAgentTokens(travelAgentId, invalid);
     }
 
-    return response.successCount > 0;
+    const delivered = response.successCount > 0;
+    await logSystemEvent({
+      category: 'NOTIFICATION',
+      sourceName: 'fcm-travel-agent-push',
+      status: delivered ? 'SUCCESS' : 'FAILURE',
+      message: delivered ? undefined : `0/${tokens.length} devices delivered`,
+    });
+    return delivered;
   } catch (error: any) {
     logger.error('Failed to send travel agent FCM push', error);
+    await logSystemEvent({ category: 'NOTIFICATION', sourceName: 'fcm-travel-agent-push', status: 'FAILURE', message: error?.message || 'Unknown error' });
     return false;
   }
 }

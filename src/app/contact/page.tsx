@@ -4,6 +4,8 @@ import { ContactForm } from '@/components/contact/ContactForm';
 import {
   CONTACT_ADDRESS,
   CONTACT_ADDRESS_LINK,
+  CONTACT_PHONE,
+  CONTACT_PHONE_LINK,
   WHATSAPP_LINK,
 } from '@/lib/contact';
 import { Phone, Mail, MapPin, MessageCircle, Clock, Zap, ShieldCheck, Globe2, HelpCircle, ArrowRight } from 'lucide-react';
@@ -23,6 +25,13 @@ export const metadata: Metadata = {
 };
 
 const contactMethods = [
+  {
+    icon: Phone,
+    title: 'Phone',
+    value: CONTACT_PHONE,
+    link: CONTACT_PHONE_LINK,
+    description: 'Call us anytime',
+  },
   {
     icon: Mail,
     title: 'Email',

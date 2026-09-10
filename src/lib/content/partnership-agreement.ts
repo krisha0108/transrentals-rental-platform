@@ -63,14 +63,45 @@ export const COVERAGE_HIGHLIGHTS = [
   },
 ];
 
+// TransRentals' registered corporate entity, per its Certificate of
+// Incorporation / RoC Ahmedabad record. Update here if the entity is ever
+// re-registered or its registered address changes.
+export const TRANSRENTALS_COMPANY = {
+  legalName: 'Seben Transportation Solutions Private Limited',
+  cin: 'U60232GJ2015PTC084322',
+  registeredAddress:
+    'B-41, Hardarshan Society, Near Parshwanath Township, Krushnanagar, Naroda, Ahmedabad – 382346, Gujarat, India',
+};
+
 export const AGREEMENT_PARTIES = {
   intro: 'This Vendor Partnership, Service & Settlement Agreement (the "Agreement") is made on [Effective Date] between:',
   transrentals:
-    'TransRentals: [Legal Entity Name], having its registered office at [Registered Address], CIN [CIN Number], hereinafter referred to as "TransRentals" or the "Company"; and',
+    `TransRentals: ${TRANSRENTALS_COMPANY.legalName}, having its registered office at ${TRANSRENTALS_COMPANY.registeredAddress}, CIN ${TRANSRENTALS_COMPANY.cin}, hereinafter referred to as "TransRentals" or the "Company"; and`,
+  // Placeholder fallback for contexts with no signed-in vendor (the public
+  // draft page, or a not-yet-fetched dashboard load) — use vendorPartyLine()
+  // wherever the vendor's actual details are available.
   vendor:
     'Vendor: [Vendor Legal/Business Name], having its business address at [Vendor Address], hereinafter referred to as the "Vendor".',
   closing: 'TransRentals and the Vendor are individually a "Party" and together the "Parties".',
 };
+
+export interface VendorPartyInfo {
+  businessName?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+}
+
+// Fills in the Vendor clause with the signed-in vendor's actual business
+// details, falling back to the bracketed placeholder when they aren't
+// available (e.g. the public draft page, or before the dashboard finishes
+// loading the vendor's profile).
+export function vendorPartyLine(vendor?: VendorPartyInfo | null): string {
+  if (!vendor?.businessName) return AGREEMENT_PARTIES.vendor;
+  const address = [vendor.address, vendor.city, vendor.state, vendor.pincode].filter(Boolean).join(', ');
+  return `Vendor: ${vendor.businessName}${address ? `, having its business address at ${address}` : ''}, hereinafter referred to as the "Vendor".`;
+}
 
 export const AGREEMENT_SECTIONS: { title: string; paras: string[] }[] = [
   {

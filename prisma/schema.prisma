@@ -33,44 +33,46 @@ model active_sessions {
 }
 
 model admin_users {
-  id                              String                     @id
-  email                           String                     @unique
-  password                        String
-  name                            String
-  role                            admin_users_role           @default(ADMIN)
-  isActive                        Boolean                    @default(true)
-  createdAt                       DateTime                   @default(now())
-  updatedAt                       DateTime                   @updatedAt
-  createdById                     String?
-  phone                           String?
-  canManageCarRentalContent       Boolean                    @default(false)
-  admin_users                     admin_users?               @relation("admin_usersToadmin_users", fields: [createdById], references: [id])
-  other_admin_users               admin_users[]              @relation("admin_usersToadmin_users")
-  b2b_invoices                    b2b_invoices[]
-  b2b_super_quotes                b2b_super_quotes[]
-  blog_posts                      blog_posts[]
-  manager_locations               manager_locations[]
-  manager_services                manager_services[]
-  pages                           pages[]
-  vendor_documents_uploaded       vendor_documents[]         @relation("vendor_documents_uploadedBy")
-  vendor_documents                vendor_documents[]         @relation("vendor_documents_verifiedBy")
-  vendor_location_requests        vendor_location_requests[]
-  vendor_payout_batches           vendor_payout_batches[]
-  vendor_service_requests         vendor_service_requests[]
-  vendors                         vendors[]                  @relation("vendors_approvedBy")
-  vendors_created                 vendors[]                  @relation("vendors_createdBy")
-  travel_agents                   travel_agents[]
-  travel_agent_documents_uploaded travel_agent_documents[]   @relation("travel_agent_documents_uploadedBy")
-  travel_agent_documents          travel_agent_documents[]   @relation("travel_agent_documents_verifiedBy")
-  vendor_tag_assignments          vendor_tag_assignments[]
-  driver_tag_assignments          driver_tag_assignments[]
-  manager_action_logs             manager_action_logs[]
-  inquiry_tag_assignments         inquiry_tag_assignments[]
-  manager_notifications           manager_notifications[]
+  id                               String                     @id
+  email                            String                     @unique
+  password                         String
+  name                             String
+  role                             admin_users_role           @default(ADMIN)
+  isActive                         Boolean                    @default(true)
+  createdAt                        DateTime                   @default(now())
+  updatedAt                        DateTime                   @updatedAt
+  createdById                      String?
+  phone                            String?
+  canManageCarRentalContent        Boolean                    @default(false)
+  admin_users                      admin_users?               @relation("admin_usersToadmin_users", fields: [createdById], references: [id])
+  other_admin_users                admin_users[]              @relation("admin_usersToadmin_users")
+  b2b_invoices                     b2b_invoices[]
+  b2b_super_quotes                 b2b_super_quotes[]
+  blog_posts                       blog_posts[]
+  manager_locations                manager_locations[]
+  manager_services                 manager_services[]
+  pages                            pages[]
+  vendor_documents_uploaded        vendor_documents[]         @relation("vendor_documents_uploadedBy")
+  vendor_documents                 vendor_documents[]         @relation("vendor_documents_verifiedBy")
+  vendor_location_requests         vendor_location_requests[]
+  vendor_payout_batches            vendor_payout_batches[]
+  vendor_service_requests          vendor_service_requests[]
+  vendors                          vendors[]                  @relation("vendors_approvedBy")
+  vendors_created                  vendors[]                  @relation("vendors_createdBy")
+  travel_agents                    travel_agents[]
+  travel_agent_documents_uploaded  travel_agent_documents[]   @relation("travel_agent_documents_uploadedBy")
+  travel_agent_documents           travel_agent_documents[]   @relation("travel_agent_documents_verifiedBy")
+  vendor_tag_assignments           vendor_tag_assignments[]
+  driver_tag_assignments           driver_tag_assignments[]
+  manager_action_logs              manager_action_logs[]
+  inquiry_tag_assignments          inquiry_tag_assignments[]
+  manager_notifications            manager_notifications[]
+  manager_call_reports             manager_call_reports[]
   chauffeur_local_packages_created chauffeur_local_packages[] @relation("chauffeur_local_packages_createdBy")
   chauffeur_local_packages_updated chauffeur_local_packages[] @relation("chauffeur_local_packages_updatedBy")
   chauffeur_route_packages_created chauffeur_route_packages[] @relation("chauffeur_route_packages_createdBy")
   chauffeur_route_packages_updated chauffeur_route_packages[] @relation("chauffeur_route_packages_updatedBy")
+  social_media_accounts            social_media_accounts[]
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -1859,23 +1861,23 @@ model local_packages {
 }
 
 model locations {
-  id                                                                          String                      @id
+  id                                                                          String                          @id
   name                                                                        String
-  slug                                                                        String                      @unique
+  slug                                                                        String                          @unique
   type                                                                        locations_type
   parentId                                                                    String?
   code                                                                        String?
   image                                                                       String?
-  description                                                                 String?                     @db.Text
+  description                                                                 String?                         @db.Text
   latitude                                                                    Float?
   longitude                                                                   Float?
-  timezone                                                                    String?                     @default("Asia/Kolkata")
-  isActive                                                                    Boolean                     @default(true)
-  displayOrder                                                                Int                         @default(0)
+  timezone                                                                    String?                         @default("Asia/Kolkata")
+  isActive                                                                    Boolean                         @default(true)
+  displayOrder                                                                Int                             @default(0)
   metaTitle                                                                   String?
-  metaDescription                                                             String?                     @db.Text
-  createdAt                                                                   DateTime                    @default(now())
-  updatedAt                                                                   DateTime                    @updatedAt
+  metaDescription                                                             String?                         @db.Text
+  createdAt                                                                   DateTime                        @default(now())
+  updatedAt                                                                   DateTime                        @updatedAt
   bike_bookings                                                               bike_bookings[]
   bike_quote_requests                                                         bike_quote_requests[]
   bus_quote_requests                                                          bus_quote_requests[]
@@ -1883,21 +1885,22 @@ model locations {
   chauffeur_bookings                                                          chauffeur_bookings[]
   chauffeur_city_pricing                                                      chauffeur_city_pricing[]
   chauffeur_local_packages                                                    chauffeur_local_packages[]
-  chauffeur_route_packages_chauffeur_route_packages_fromLocationIdTolocations chauffeur_route_packages[]  @relation("chauffeur_route_packages_fromLocationIdTolocations")
-  chauffeur_route_packages_chauffeur_route_packages_toLocationIdTolocations   chauffeur_route_packages[]  @relation("chauffeur_route_packages_toLocationIdTolocations")
-  city_distance_matrix_city_distance_matrix_fromLocationIdTolocations         city_distance_matrix[]      @relation("city_distance_matrix_fromLocationIdTolocations")
-  city_distance_matrix_city_distance_matrix_toLocationIdTolocations           city_distance_matrix[]      @relation("city_distance_matrix_toLocationIdTolocations")
+  chauffeur_route_packages_chauffeur_route_packages_fromLocationIdTolocations chauffeur_route_packages[]      @relation("chauffeur_route_packages_fromLocationIdTolocations")
+  chauffeur_route_packages_chauffeur_route_packages_toLocationIdTolocations   chauffeur_route_packages[]      @relation("chauffeur_route_packages_toLocationIdTolocations")
+  city_distance_matrix_city_distance_matrix_fromLocationIdTolocations         city_distance_matrix[]          @relation("city_distance_matrix_fromLocationIdTolocations")
+  city_distance_matrix_city_distance_matrix_toLocationIdTolocations           city_distance_matrix[]          @relation("city_distance_matrix_toLocationIdTolocations")
   equipment_quote_requests                                                    equipment_quote_requests[]
   fleet_pricing                                                               fleet_pricing[]
-  locations                                                                   locations?                  @relation("locationsTolocations", fields: [parentId], references: [id], onDelete: Cascade)
-  other_locations                                                             locations[]                 @relation("locationsTolocations")
+  locations                                                                   locations?                      @relation("locationsTolocations", fields: [parentId], references: [id], onDelete: Cascade)
+  other_locations                                                             locations[]                     @relation("locationsTolocations")
   luxury_bookings                                                             luxury_bookings[]
   luxury_quote_requests                                                       luxury_quote_requests[]
   luxury_vendor_rates                                                         luxury_vendor_rates[]
   manager_locations                                                           manager_locations[]
+  manager_call_report_locations                                               manager_call_report_locations[]
   packers_quote_requests                                                      packers_quote_requests[]
-  route_pricing_route_pricing_fromLocationIdTolocations                       route_pricing[]             @relation("route_pricing_fromLocationIdTolocations")
-  route_pricing_route_pricing_toLocationIdTolocations                         route_pricing[]             @relation("route_pricing_toLocationIdTolocations")
+  route_pricing_route_pricing_fromLocationIdTolocations                       route_pricing[]                 @relation("route_pricing_fromLocationIdTolocations")
+  route_pricing_route_pricing_toLocationIdTolocations                         route_pricing[]                 @relation("route_pricing_toLocationIdTolocations")
   self_drive_quote_requests                                                   self_drive_quote_requests[]
   service_locations                                                           service_locations[]
   truck_quote_requests                                                        truck_quote_requests[]
@@ -1906,7 +1909,7 @@ model locations {
   vendor_fleet_locations                                                      vendor_fleet_locations[]
   vendor_location_requests                                                    vendor_location_requests[]
   wander_listings                                                             wander_listings[]
-  wander_experiences                                                          wander_experiences[]        @relation("WanderExperienceLocation")
+  wander_experiences                                                          wander_experiences[]            @relation("WanderExperienceLocation")
 
   @@index([isActive])
   @@index([parentId])
@@ -2978,6 +2981,7 @@ model services {
   chauffeur_vehicle_categories                         chauffeur_vehicle_categories[]
   local_packages                                       local_packages[]
   manager_services                                     manager_services[]
+  manager_call_report_services                         manager_call_report_services[]
   route_pricing                                        route_pricing[]
   service_locations                                    service_locations[]
   service_trip_types                                   service_trip_types[]
@@ -3980,6 +3984,7 @@ model vendors {
   vendor_bank_accounts   vendor_bank_accounts[]
   vendor_call_logs       vendor_call_logs[]
   vendor_tag_assignments vendor_tag_assignments[]
+  manager_call_reports   manager_call_reports[]
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
   @@index([createdById], map: "vendors_createdById_fkey")
@@ -6590,6 +6595,7 @@ model travel_agents {
   conv_agent2                     vendor_conversations[]            @relation("conv_agent2")
   vendor_messages_sent            vendor_messages[]                 @relation("msg_agent_sender")
   helpdesk_tickets                helpdesk_tickets[]
+  manager_call_reports            manager_call_reports[]
 
   @@index([approvedById], map: "travel_agents_approvedById_fkey")
   @@index([email])
@@ -7324,6 +7330,96 @@ enum vendor_agreement_review_status {
   REJECTED
 }
 
+// Outbound vendor-acquisition call sheet: a manager calling prospective
+// vendors from the field logs each call here (vendor name/phone, the call's
+// outcome, and — once the vendor actually signs up — the linked vendor
+// record) so the team has one shared report of calling activity instead of
+// an external spreadsheet. Distinct from vendor_call_logs (click-to-call
+// telemetry on existing bookings) and manager_action_logs (per-inquiry
+// accountability trail).
+model manager_call_reports {
+  id                            String                          @id @default(cuid())
+  managerId                     String
+  vendorId                      String?
+  travelAgentId                 String?
+  vendorName                    String
+  companyName                   String?
+  companyDetails                String?                         @db.Text
+  phone                         String?
+  email                         String?
+  address                       String?
+  city                          String?
+  contactType                   call_report_contact_type       @default(VENDOR)
+  status                        call_report_status              @default(FOLLOW_UP)
+  nextFollowUpDate              DateTime?
+  nextFollowUpTime              String?
+  nextAction                    String?
+  notes                         String?                         @db.Text
+  callDate                      DateTime                        @default(now())
+  createdAt                     DateTime                        @default(now())
+  updatedAt                     DateTime                        @updatedAt
+  admin_users                   admin_users                     @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  vendors                       vendors?                        @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  travel_agents                 travel_agents?                  @relation(fields: [travelAgentId], references: [id], onDelete: SetNull)
+  manager_call_report_locations manager_call_report_locations[]
+  manager_call_report_services  manager_call_report_services[]
+
+  @@index([managerId, callDate])
+  @@index([vendorId])
+  @@index([travelAgentId])
+  @@index([status])
+}
+
+// A call report can cover several locations at once (a manager selecting
+// "all locations" for a multi-city vendor, for example), so the coverage
+// lives in its own join table rather than a single locationId column.
+model manager_call_report_locations {
+  id           String   @id @default(cuid())
+  callReportId String
+  locationId   String
+  createdAt    DateTime @default(now())
+
+  manager_call_reports manager_call_reports @relation(fields: [callReportId], references: [id], onDelete: Cascade)
+  locations            locations            @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([callReportId, locationId])
+  @@index([locationId])
+  @@index([callReportId])
+}
+
+// A call report can cover several services at once (a vendor lead that's
+// relevant to both Car Rental and Bike Rental, for example).
+model manager_call_report_services {
+  id           String   @id @default(cuid())
+  callReportId String
+  serviceId    String
+  createdAt    DateTime @default(now())
+
+  manager_call_reports manager_call_reports @relation(fields: [callReportId], references: [id], onDelete: Cascade)
+  services             services             @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([callReportId, serviceId])
+  @@index([serviceId])
+  @@index([callReportId])
+}
+
+enum call_report_status {
+  VENDOR_CREATED
+  TRAVEL_AGENT_CREATED
+  INTERESTED
+  FOLLOW_UP
+  NOT_INTERESTED
+  NO_ANSWER
+  CALLBACK_LATER
+  WRONG_NUMBER
+  CONVERTED
+}
+
+enum call_report_contact_type {
+  VENDOR
+  TRAVEL_AGENT
+}
+
 model manager_action_logs {
   id             String              @id @default(cuid())
   recordType     String // 'INQUIRY' | 'BOOKING'
@@ -7378,6 +7474,35 @@ enum manager_action_type {
   NO_RESPONSE
   HOT_LEAD
   COLD_LEAD
+}
+
+// System Health event log — a run-history record for background jobs
+// (cron routes) and notification-send attempts, so the admin Operations
+// Tracker can show real cron/notification failure data instead of it
+// disappearing into console-only logs. Deliberately generic (category +
+// sourceName) rather than one table per job, since new jobs/senders will
+// keep getting added.
+model system_event_logs {
+  id         String               @id @default(cuid())
+  category   system_event_category
+  sourceName String               @db.VarChar(100)
+  status     system_event_status
+  message    String?              @db.Text
+  durationMs Int?
+  createdAt  DateTime             @default(now())
+
+  @@index([category, sourceName, createdAt])
+  @@index([status, createdAt])
+}
+
+enum system_event_category {
+  CRON
+  NOTIFICATION
+}
+
+enum system_event_status {
+  SUCCESS
+  FAILURE
 }
 
 // Manager notification inbox — alerts a manager when a vendor within their
@@ -7452,4 +7577,87 @@ model service_city_content {
   @@index([citySlug])
   @@index([status])
   @@index([autoUpdate])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Social media performance tracking — admin-connected Facebook Pages / linked
+// Instagram Business accounts, synced via the Meta Graph API so the admin
+// dashboard can show what's being posted and how it's performing without
+// anyone having to check Meta Business Suite separately.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum social_media_platform {
+  FACEBOOK
+  INSTAGRAM
+}
+
+model social_media_accounts {
+  id                  String                @id @default(cuid())
+  platform            social_media_platform
+  pageId              String // Facebook Page id (Instagram accounts are always accessed via their linked Page)
+  pageName            String
+  igBusinessAccountId String? // set only when platform is INSTAGRAM
+  igUsername          String?
+  profilePictureUrl   String?               @db.Text
+  accessToken         String                @db.Text // long-lived Page access token
+  tokenExpiresAt      DateTime?
+  followerCount       Int?
+  isActive            Boolean               @default(true)
+  lastSyncedAt        DateTime?
+  lastSyncError       String?               @db.Text
+  connectedById       String
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  admin_users         admin_users                @relation(fields: [connectedById], references: [id])
+  posts               social_media_posts[]
+  daily_stats         social_media_daily_stats[]
+
+  @@unique([platform, pageId])
+  @@index([connectedById])
+}
+
+model social_media_posts {
+  id           String                @id @default(cuid())
+  accountId    String
+  platform     social_media_platform
+  externalId   String // Facebook post id / Instagram media id
+  mediaType    String? // IMAGE, VIDEO, CAROUSEL_ALBUM, STATUS, LINK...
+  caption      String?               @db.Text
+  permalink    String?               @db.Text
+  mediaUrl     String?               @db.Text
+  thumbnailUrl String?               @db.Text
+  publishedAt  DateTime
+  likeCount    Int                   @default(0)
+  commentCount Int                   @default(0)
+  shareCount   Int                   @default(0)
+  savedCount   Int?
+  impressions  Int?
+  reach        Int?
+  engagement   Int?
+  lastSyncedAt DateTime              @default(now())
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  account social_media_accounts @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, externalId])
+  @@index([accountId, publishedAt])
+}
+
+// One row per connected account per day — powers follower-growth /
+// reach-over-time charts without re-deriving history from post-level data.
+model social_media_daily_stats {
+  id            String   @id @default(cuid())
+  accountId     String
+  date          DateTime @db.Date
+  followerCount Int?
+  impressions   Int?
+  reach         Int?
+  profileViews  Int?
+  createdAt     DateTime @default(now())
+
+  account social_media_accounts @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, date])
 }

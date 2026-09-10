@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
@@ -159,6 +160,8 @@ export async function PUT(
       },
     });
 
+    revalidateTag('services');
+
     return NextResponse.json(service);
   } catch (error) {
     logger.error('Service update error', error);
@@ -204,6 +207,8 @@ export async function DELETE(
     }
 
     await prisma.services.delete({ where: { id: service.id } });
+
+    revalidateTag('services');
 
     return NextResponse.json({ success: true });
   } catch (error) {

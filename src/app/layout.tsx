@@ -75,17 +75,17 @@ const BASE_METADATA: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_IN',
-    url: process.env.NEXT_PUBLIC_APP_URL,
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://transrentals.in',
     title: 'TransRentals - India\'s Largest Vehicle Rental Marketplace',
     description:
       'Rent bikes, cars, buses, trucks & equipment across 150+ cities in India. Best prices guaranteed.',
     siteName: 'TransRentals',
     images: [
       {
-        url: '/api/og',
+        url: '/images/og/homepage.jpg',
         width: 1200,
         height: 630,
-        alt: 'TransRentals - Vehicle Rental Marketplace',
+        alt: 'TransRentals - Rent Any Vehicle, Anywhere in India',
       },
     ],
   },
@@ -94,7 +94,7 @@ const BASE_METADATA: Metadata = {
     title: 'TransRentals - India\'s Largest Vehicle Rental Marketplace',
     description:
       'Rent bikes, cars, buses, trucks & equipment across 150+ cities in India.',
-    images: ['/api/og'],
+    images: ['/images/og/homepage.jpg'],
     creator: '@transrentals',
   },
   robots: {

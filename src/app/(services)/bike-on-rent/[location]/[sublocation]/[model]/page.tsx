@@ -716,7 +716,10 @@ export default function BikeModelPage({ params }: PageProps) {
         </section>
       )}
 
-      {/* Other makes in same city */}
+      {/* Other makes in same city — links to a real model page (the make's
+          first model in this sublocation), since there's no standalone
+          make-overview page at the 2-segment [location]/[make] URL depth
+          (that depth is reserved for neighborhood sub-location pages). */}
       <section className="py-10 bg-white border-t border-gray-100">
         <div className="container-custom max-w-4xl">
           <h2 className="text-base font-bold text-gray-800 mb-4">Other Bike Brands on Rent in {cityName}</h2>
@@ -724,11 +727,15 @@ export default function BikeModelPage({ params }: PageProps) {
             <Link href={`/bike-on-rent/${params.location.toLowerCase()}`} className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors">
               ← All Bikes in {cityName}
             </Link>
-            {otherMakes.map((makeSlug) => (
-              <Link key={makeSlug} href={`/bike-on-rent/${params.location.toLowerCase()}/${makeSlug}`} className="inline-flex items-center px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-blue-500 hover:text-blue-700 transition-colors">
-                {BIKE_MAKES[makeSlug].name} Bikes
-              </Link>
-            ))}
+            {otherMakes.map((makeSlug) => {
+              const firstModelSlug = Object.keys(BIKE_MAKES[makeSlug].models)[0];
+              if (!firstModelSlug) return null;
+              return (
+                <Link key={makeSlug} href={`/bike-on-rent/${params.location.toLowerCase()}/${makeSlug}/${firstModelSlug}`} className="inline-flex items-center px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-blue-500 hover:text-blue-700 transition-colors">
+                  {BIKE_MAKES[makeSlug].name} Bikes
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

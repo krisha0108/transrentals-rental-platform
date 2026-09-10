@@ -19,10 +19,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const latest = await (prisma as any).vendor_partnership_agreements.findFirst({
-    where: { vendorId: auth.vendorId },
-    orderBy: { acceptedAt: 'desc' },
-  });
+  const [latest, vendor] = await Promise.all([
+    (prisma as any).vendor_partnership_agreements.findFirst({
+      where: { vendorId: auth.vendorId },
+      orderBy: { acceptedAt: 'desc' },
+    }),
+    prisma.vendors.findUnique({
+      where: { id: auth.vendorId },
+      select: { businessName: true, address: true, city: true, state: true, pincode: true },
+    }),
+  ]);
 
   return NextResponse.json({
     currentVersion: CURRENT_VERSION,
@@ -36,6 +42,9 @@ export async function GET(request: NextRequest) {
     reviewStatus: latest?.reviewStatus || null,
     reviewedAt: latest?.reviewedAt || null,
     reviewNote: latest?.reviewNote || null,
+    // Vendor's own business details, used to fill in the Vendor clause of
+    // the agreement text on-screen (see vendorPartyLine in the content module).
+    vendor,
   });
 }
 

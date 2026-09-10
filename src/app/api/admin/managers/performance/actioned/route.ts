@@ -175,10 +175,35 @@ export async function GET(request: NextRequest) {
     const dateFilter = getDateRange(filter, customFrom, customTo);
     const dateFilterObj = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
 
-    const logs = await prisma.manager_action_logs.findMany({
-      where: { recordType: { in: ['INQUIRY', 'CONTACT_INQUIRY', 'DRIVER', 'VENDOR', 'TRAVEL_AGENT', 'HELPDESK_TICKET'] }, managerId, ...dateFilterObj },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [logs, callReports] = await Promise.all([
+      prisma.manager_action_logs.findMany({
+        where: { recordType: { in: ['INQUIRY', 'CONTACT_INQUIRY', 'DRIVER', 'VENDOR', 'TRAVEL_AGENT', 'HELPDESK_TICKET'] }, managerId, ...dateFilterObj },
+        orderBy: { createdAt: 'desc' },
+      }),
+      // Call reports aren't logged through manager_action_logs — they're their
+      // own table — so they're fetched directly rather than joined into the
+      // byRecord grouping below.
+      prisma.manager_call_reports.findMany({
+        where: { managerId, ...dateFilterObj },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true, vendorName: true, companyName: true, phone: true, city: true,
+          contactType: true, status: true, notes: true, createdAt: true,
+        },
+      }).catch(() => []),
+    ]);
+
+    const callReportActions = callReports.map((r) => ({
+      id: r.id,
+      recordType: 'CALL_REPORT',
+      requestNumber: `CR-${r.id.slice(-6).toUpperCase()}`,
+      customerName: r.companyName || r.vendorName,
+      customerPhone: r.phone || '',
+      serviceName: r.contactType === 'TRAVEL_AGENT' ? 'Travel Agent Lead' : 'Vendor Lead',
+      locationName: r.city,
+      submittedAt: r.createdAt,
+      actions: [{ actionType: r.status, note: r.notes, createdAt: r.createdAt }],
+    }));
 
     // Group log entries by record, keep each record's own action history.
     const byRecord = new Map<string, { recordType: string; serviceType: string; actions: { actionType: string; note: string | null; createdAt: Date }[] }>();
@@ -237,7 +262,7 @@ export async function GET(request: NextRequest) {
     const travelAgentActions = byType('TRAVEL_AGENT');
     const helpdeskActions = byType('HELPDESK_TICKET');
 
-    return NextResponse.json({ actioned, contactInquiries, driverActions, vendorActions, travelAgentActions, helpdeskActions });
+    return NextResponse.json({ actioned, contactInquiries, driverActions, vendorActions, travelAgentActions, helpdeskActions, callReportActions });
   } catch (error: any) {
     logger.error('Manager actioned-inquiries fetch error', error);
     return NextResponse.json(

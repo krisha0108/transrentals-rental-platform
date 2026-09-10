@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
@@ -125,6 +126,8 @@ export async function PUT(
       },
     });
 
+    revalidateTag('locations');
+
     return NextResponse.json(location);
   } catch (error: any) {
     logger.error('Location update error', error);
@@ -170,6 +173,8 @@ export async function DELETE(
     }
 
     await prisma.locations.delete({ where: { id } });
+
+    revalidateTag('locations');
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
@@ -378,6 +379,10 @@ export async function POST(
         data: { isActive: true },
       });
     });
+
+    // Bust the public /api/locations cache (used by the homepage's per-service
+    // city autocompletes) so newly enabled/disabled cities take effect right away.
+    revalidateTag('locations');
 
     return NextResponse.json({
       success: true,

@@ -101,27 +101,53 @@ RUN apk add --no-cache openssl
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+# `adduser --system` gives nextjs no real home directory — without this, npx
+# (run as nextjs by the entrypoint, for `prisma migrate deploy`) tries to
+# write its cache under an unwritable $HOME and fails with the same class of
+# EACCES this Dockerfile just got bitten by on node_modules/.prisma/client.
+ENV HOME=/tmp
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs &&     adduser --system --uid 1001 nextjs
 
 # Copy built application
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma folder (schema + migrations) and pre-generated client (NO CLI needed at runtime)
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Copy the Prisma schema/migrations folder, plus the ENTIRE builder
+# node_modules (not just .prisma/@prisma/prisma) so `prisma migrate deploy`
+# has its whole dependency closure at runtime.
+#
+# This used to cherry-pick just node_modules/{.prisma,@prisma,prisma}, on the
+# assumption that's everything the CLI needs. It isn't: @prisma/config pulls
+# in `effect`, which itself pulls in `fast-check` — both live outside the
+# @prisma/ scope, so they silently weren't there. Verified by extracting only
+# the cherry-picked folders into a clean directory and running the CLI
+# against it: it fails on a *different* missing module every time one gets
+# added, which means there's no small, stable "just these folders" set to
+# maintain by hand. Copying all of node_modules is what the build stage
+# itself relies on (`npm run build` only works because every dependency is
+# there) — that's the one set already proven complete and self-consistent.
+# The size cost lands on the image, not on request latency.
+#
+# Every COPY here is --chown'd to the runtime user — a bare COPY leaves
+# root:root ownership from the build stage, which then fails with EACCES the
+# moment the nextjs user needs to touch/replace anything under it (this is
+# what broke node_modules/.prisma/client before).
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Copy Firebase service account for push notifications
-COPY --from=builder /app/firebase-service-account.json ./firebase-service-account.json
+COPY --from=builder --chown=nextjs:nodejs /app/firebase-service-account.json ./firebase-service-account.json
+
+# Entrypoint runs migrations before the app starts (see docker-entrypoint.sh)
+COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
 
 USER nextjs
 
 EXPOSE 3000
 
-# Start directly - Prisma client is pre-generated during build
-CMD ["node", "server.js"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

@@ -11,6 +11,7 @@ import path from 'path';
 
 const LOGO_PATH = path.join(process.cwd(), 'public', 'assets', 'logo-trans.png');
 const LOGO_ASPECT = 235 / 1180;
+const FAVICON_PATH = path.join(process.cwd(), 'public', 'assets', 'Logo-favicon.png');
 
 const GREEN_DARK = [12, 58, 41];
 const GREEN = [21, 128, 61];
@@ -54,19 +55,30 @@ export function buildAgreementCertificatePdf(
     logoData = null;
   }
 
+  let faviconData: string | null = null;
+  try {
+    faviconData = `data:image/png;base64,${fs.readFileSync(FAVICON_PATH).toString('base64')}`;
+  } catch {
+    faviconData = null;
+  }
+
   /* ═══ Decorative corners (drawn first, frame + content go on top) ═══ */
   // Top-right
   doc.setFillColor(...GREEN_DARK);
   doc.triangle(pageWidth * 0.60, 0, pageWidth, 0, pageWidth, pageHeight * 0.30, 'F');
   doc.setFillColor(...GREEN_BRIGHT);
   doc.triangle(pageWidth * 0.70, 0, pageWidth, 0, pageWidth, pageHeight * 0.19, 'F');
-  // Small white logo-mark chip inside the dark corner
+  // TransRentals favicon chip inside the dark corner
   doc.setFillColor(...WHITE);
   doc.roundedRect(pageWidth - 40, 16, 22, 22, 3, 3, 'F');
-  doc.setFillColor(...GREEN);
-  doc.triangle(pageWidth - 35, 34, pageWidth - 35, 20, pageWidth - 21, 20, 'F');
-  doc.setFillColor(...WHITE);
-  doc.triangle(pageWidth - 33, 32, pageWidth - 33, 22, pageWidth - 23, 22, 'F');
+  if (faviconData) {
+    doc.addImage(faviconData, 'PNG', pageWidth - 38, 18, 18, 18, undefined, 'FAST');
+  } else {
+    doc.setFillColor(...GREEN);
+    doc.triangle(pageWidth - 35, 34, pageWidth - 35, 20, pageWidth - 21, 20, 'F');
+    doc.setFillColor(...WHITE);
+    doc.triangle(pageWidth - 33, 32, pageWidth - 33, 22, pageWidth - 23, 22, 'F');
+  }
 
   // Bottom-left / bottom-right, feeding into the footer bar
   doc.setFillColor(...GREEN_DARK);
@@ -90,7 +102,7 @@ export function buildAgreementCertificatePdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(...WHITE);
-  const footerParts = ['www.transrentals.in', '+91 9898438967', 'support@transrentals.in', 'India'];
+  const footerParts = ['www.transrentals.in', '+91 9737965551', 'book@transrentals.in', 'India'];
   const footerGap = 8;
   doc.setFont('helvetica', 'normal');
   const widths = footerParts.map((p) => doc.getTextWidth(p));

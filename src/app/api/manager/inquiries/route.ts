@@ -1,18 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { Prisma } from '@prisma/client';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
 
-// Quote request statuses (inquiry stage)
-const INQUIRY_STATUSES = [
-  'PENDING',
-  'QUOTED',
-  'ACCEPTED',
-  'REJECTED',
+// The manager's combined inquiry feed spans 7 unrelated quote-request tables
+// with no shared parent — there's no single table Prisma can paginate for us.
+// Fetching every matching row per table and slicing the combined array in JS
+// (the old approach, capped at MAX_ROWS_PER_TABLE=3000/table) is what caused
+// the live 500s on deep pages: it does the same full scan + in-memory sort on
+// every request no matter which 10-20 rows are actually being asked for.
+//
+// This does it the other way around: a raw SQL UNION ALL across the 7 tables
+// selects only (service key, id, status, createdAt) with every filter pushed
+// into each branch's own WHERE (so each table's indexes do the filtering),
+// then ORDER BY + LIMIT/OFFSET happens once on that lightweight union to get
+// exactly this page's ids — never more than `limit` rows fetched in full.
+// Those ids are then hydrated with their real per-service fields in a second,
+// narrowly-scoped step below.
+interface ServiceDef {
+  key: string;
+  table: string;
+  serviceSlug: string;
+  serviceName: string;
+  matchSlugs: string[];
+  locationFilterCol: 'locationId' | 'pickupCity' | 'deliveryCity';
+  locationValueType: 'id' | 'name';
+  displayLocationCol: string;
+}
+
+const SERVICE_DEFS: ServiceDef[] = [
+  { key: 'bike', table: 'bike_quote_requests', serviceSlug: 'bike-rental', serviceName: 'Bike Rental', matchSlugs: ['bike-rental', 'bike', 'bike-rental-activa', 'bike-on-rent'], locationFilterCol: 'locationId', locationValueType: 'id', displayLocationCol: 'locationName' },
+  { key: 'bus', table: 'bus_quote_requests', serviceSlug: 'bus-rental', serviceName: 'Bus Rental', matchSlugs: ['bus-rental', 'bus'], locationFilterCol: 'pickupCity', locationValueType: 'name', displayLocationCol: 'pickupCity' },
+  { key: 'selfDrive', table: 'self_drive_quote_requests', serviceSlug: 'self-drive', serviceName: 'Self Drive', matchSlugs: ['self-drive-car-rentals', 'self-drive-car-rental', 'self-drive'], locationFilterCol: 'locationId', locationValueType: 'id', displayLocationCol: 'locationName' },
+  { key: 'equipment', table: 'equipment_quote_requests', serviceSlug: 'equipment-rental', serviceName: 'Equipment Rental', matchSlugs: ['equipment-rental', 'equipment'], locationFilterCol: 'deliveryCity', locationValueType: 'name', displayLocationCol: 'deliveryCity' },
+  { key: 'luxury', table: 'luxury_quote_requests', serviceSlug: 'luxury-car-rental', serviceName: 'Luxury Cars', matchSlugs: ['luxury-car-rental', 'luxury'], locationFilterCol: 'pickupCity', locationValueType: 'name', displayLocationCol: 'pickupCity' },
+  { key: 'packers', table: 'packers_quote_requests', serviceSlug: 'packers-and-movers', serviceName: 'Packers & Movers', matchSlugs: ['packers-and-movers', 'packers-movers'], locationFilterCol: 'pickupCity', locationValueType: 'name', displayLocationCol: 'pickupCity' },
+  { key: 'truck', table: 'truck_quote_requests', serviceSlug: 'truck-transport', serviceName: 'Truck Transport', matchSlugs: ['truck-transport', 'truck', 'transporter', 'truck-rental', 'truck-tempo-rental', 'mini-truck-rental', 'trailer-on-rent'], locationFilterCol: 'pickupCity', locationValueType: 'name', displayLocationCol: 'pickupCity' },
 ];
+
+const ident = (name: string) => Prisma.raw(`\`${name}\``);
+// `def.key` is always one of our own SERVICE_DEFS constants, never request
+// input — safe to inline as a raw literal. Binding it as a normal parameter
+// instead makes mysql2 come back with a Buffer instead of a string (no
+// column metadata to infer VARCHAR from), which silently breaks the
+// idsByService grouping keyed on this value below.
+const lit = (s: string) => Prisma.raw(`'${s}'`);
+
+interface UnionRow {
+  svcKey: string;
+  id: string;
+  status: string;
+  createdAt: Date;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,16 +64,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get current user and verify they are a manager
     const manager = await prisma.admin_users.findUnique({
       where: { id: session.user.id },
       include: {
-        manager_locations: {
-          include: { locations: true },
-        },
-        manager_services: {
-          include: { services: true },
-        },
+        manager_locations: { include: { locations: true } },
+        manager_services: { include: { services: true } },
       },
     });
 
@@ -38,27 +76,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 });
     }
 
-    // Get assigned location IDs and names
     const assignedLocationIds = manager.manager_locations.map((ml) => ml.locationId);
     const assignedLocationNames = manager.manager_locations.map((ml) => ml.locations.name);
     const assignedServiceSlugs = manager.manager_services.map((ms) => ms.services.slug);
 
+    const uniqueServices = SERVICE_DEFS.filter((def) =>
+      assignedServiceSlugs.some((slug) => def.matchSlugs.includes(slug))
+    ).map((def, index) => ({ id: `service-${index}`, name: def.serviceName, slug: def.serviceSlug }));
+
+    const emptyResponse = (page: number, limit: number) => ({
+      success: true,
+      inquiries: [],
+      services: uniqueServices,
+      locations: [],
+      stats: { total: 0, pending: 0, quotesReceived: 0, quoteAccepted: 0, cancelled: 0 },
+      pagination: { page, limit, total: 0, totalPages: 1 },
+    });
+
     if (assignedLocationIds.length === 0 || assignedServiceSlugs.length === 0) {
-      return NextResponse.json({
-        success: true,
-        inquiries: [],
-        services: manager.manager_services.map((ms) => ({
-          id: ms.services.id,
-          name: ms.services.name,
-          slug: ms.services.slug,
-        })),
-        locations: [],
-        stats: { total: 0, pending: 0, quoted: 0, accepted: 0, rejected: 0 },
-        pagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
-      });
+      return NextResponse.json(emptyResponse(1, 10));
     }
 
-    // Get query parameters
     const { searchParams } = new URL(request.url);
     const serviceFilter = searchParams.get('service') || 'all';
     const statusFilter = searchParams.get('status') || 'all';
@@ -66,129 +104,247 @@ export async function GET(request: NextRequest) {
     const locationFilter = searchParams.get('location') || 'all';
     const dateFilter = searchParams.get('date') || 'all';
     const actionedFilter = searchParams.get('actioned') || 'all';
-    const search = (searchParams.get('search') || '').trim().toLowerCase();
+    const search = (searchParams.get('search') || '').trim();
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const limit = Math.max(1, parseInt(searchParams.get('limit') || '10', 10));
+    const limit = Math.max(1, parseInt(searchParams.get('limit') || '20', 10));
 
-    // Helper to check if service is assigned (exact match or known aliases)
-    const isServiceAssigned = (serviceSlug: string): boolean => {
-      return assignedServiceSlugs.some(slug => slug === serviceSlug);
-    };
-
-    // Helper to check if should fetch this service based on filter
-    // Pass all possible slugs for a service; match exactly to avoid car-rental matching luxury-car-rental
-    const shouldFetchService = (...serviceSlugs: string[]): boolean => {
-      const assigned = serviceSlugs.some(s => isServiceAssigned(s));
+    // Services this manager is assigned to AND that pass the service filter —
+    // only these tables get a branch in the union at all.
+    const activeDefs = SERVICE_DEFS.filter((def) => {
+      const assigned = assignedServiceSlugs.some((slug) => def.matchSlugs.includes(slug));
       if (!assigned) return false;
-      if (serviceFilter === 'all') return true;
-      return serviceSlugs.includes(serviceFilter);
+      return serviceFilter === 'all' || def.matchSlugs.includes(serviceFilter);
+    });
+
+    if (activeDefs.length === 0) {
+      return NextResponse.json(emptyResponse(page, limit));
+    }
+
+    // Date-bucket boundaries — same logic the page used to run client-side.
+    let dateFrom: Date | null = null;
+    let dateTo: Date | null = null;
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (dateFilter === 'today') {
+        dateFrom = today;
+      } else if (dateFilter === 'yesterday') {
+        dateFrom = new Date(today);
+        dateFrom.setDate(dateFrom.getDate() - 1);
+        dateTo = today;
+      } else if (dateFilter === 'thisMonth') {
+        dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+      } else if (dateFilter === 'lastMonth') {
+        dateFrom = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        dateTo = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
+    }
+
+    // MySQL's default LIKE escape char is backslash — escape any literal
+    // backslash/%/_ in the user's search text so it can't be read as a wildcard.
+    const likeEscape = (s: string) => s.replace(/[\\%_]/g, '\\$&');
+    const searchLike = search ? `%${likeEscape(search)}%` : null;
+
+    // One SELECT per active, in-scope service — filters pushed down so each
+    // table's own indexes (location/status) do the narrowing.
+    const buildBranch = (def: ServiceDef, withFilters: boolean): Prisma.Sql | null => {
+      const locationValues = def.locationValueType === 'id' ? assignedLocationIds : assignedLocationNames;
+      if (locationValues.length === 0) return null;
+
+      const conditions: Prisma.Sql[] = [
+        Prisma.sql`${ident(def.locationFilterCol)} IN (${Prisma.join(locationValues)})`,
+      ];
+
+      if (withFilters) {
+        if (statusFilter !== 'all') conditions.push(Prisma.sql`status = ${statusFilter}`);
+        if (sourceFilter !== 'all') conditions.push(Prisma.sql`COALESCE(source, 'web') = ${sourceFilter}`);
+        if (locationFilter !== 'all') conditions.push(Prisma.sql`${ident(def.displayLocationCol)} = ${locationFilter}`);
+        if (dateFrom) conditions.push(Prisma.sql`createdAt >= ${dateFrom}`);
+        if (dateTo) conditions.push(Prisma.sql`createdAt < ${dateTo}`);
+        if (searchLike) {
+          // A search term matching this service's own name pulls in every
+          // row from this branch — same semantics as the old client-side
+          // filter treating "serviceName" as one of the searchable fields.
+          const nameMatches = def.serviceName.toLowerCase().includes(search.toLowerCase());
+          conditions.push(Prisma.sql`(
+            requestNumber LIKE ${searchLike}
+            OR customerName LIKE ${searchLike}
+            OR customerPhone LIKE ${searchLike}
+            OR customerEmail LIKE ${searchLike}
+            OR ${ident(def.displayLocationCol)} LIKE ${searchLike}
+            ${nameMatches ? Prisma.sql`OR TRUE` : Prisma.empty}
+          )`);
+        }
+      }
+
+      return Prisma.sql`
+        SELECT ${lit(def.key)} AS svcKey, id, status, createdAt
+        FROM ${ident(def.table)}
+        WHERE ${Prisma.join(conditions, ' AND ')}
+      `;
     };
 
-    // Build filters for quote_requests tables
-    const locationIdFilter = { locationId: { in: assignedLocationIds } };
-    const pickupCityFilter = { pickupCity: { in: assignedLocationNames } };
-    const locationNameFilter = { locationName: { in: assignedLocationNames } };
+    const filteredBranches = activeDefs.map((def) => buildBranch(def, true)).filter((b): b is Prisma.Sql => b !== null);
 
-    // Fetch quote requests (inquiries) from all assigned services
-    const [
-      bikeInquiries,
-      busInquiries,
-      selfDriveInquiries,
-      equipmentInquiries,
-      luxuryInquiries,
-      packersInquiries,
-      truckInquiries,
-    ] = await Promise.all([
-      // Bike Rental Quote Requests
-      shouldFetchService('bike-rental', 'bike', 'bike-rental-activa', 'bike-on-rent')
+    if (filteredBranches.length === 0) {
+      return NextResponse.json(emptyResponse(page, limit));
+    }
+
+    const unionSql = Prisma.join(filteredBranches, ' UNION ALL ');
+
+    const actionedJoin =
+      actionedFilter === 'actioned'
+        ? Prisma.sql`WHERE EXISTS (SELECT 1 FROM manager_action_logs mal WHERE mal.recordType = 'INQUIRY' AND mal.recordId = t.id)`
+        : actionedFilter === 'notActioned'
+        ? Prisma.sql`WHERE NOT EXISTS (SELECT 1 FROM manager_action_logs mal WHERE mal.recordType = 'INQUIRY' AND mal.recordId = t.id)`
+        : Prisma.empty;
+
+    const [pageRows, countRows, statsRows] = await Promise.all([
+      prisma.$queryRaw<UnionRow[]>(Prisma.sql`
+        SELECT t.* FROM (${unionSql}) t
+        ${actionedJoin}
+        ORDER BY t.createdAt DESC
+        LIMIT ${limit} OFFSET ${(page - 1) * limit}
+      `),
+      prisma.$queryRaw<{ cnt: bigint }[]>(Prisma.sql`
+        SELECT COUNT(*) AS cnt FROM (${unionSql}) t
+        ${actionedJoin}
+      `),
+      prisma.$queryRaw<{ status: string; cnt: bigint }[]>(Prisma.sql`
+        SELECT t.status AS status, COUNT(*) AS cnt FROM (${unionSql}) t
+        ${actionedJoin}
+        GROUP BY t.status
+      `),
+    ]);
+
+    const total = Number(countRows[0]?.cnt || 0);
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    const statsByStatus: Record<string, number> = {};
+    for (const row of statsRows) statsByStatus[row.status] = Number(row.cnt);
+    const stats = {
+      total,
+      pending: statsByStatus.PENDING || 0,
+      quotesReceived: statsByStatus.QUOTES_RECEIVED || 0,
+      quoteAccepted: statsByStatus.QUOTE_ACCEPTED || 0,
+      cancelled: statsByStatus.CANCELLED || 0,
+    };
+
+    // Distinct location values for the filter dropdown — scoped to the
+    // manager's assigned locations/services and the current service filter
+    // only (not status/date/etc.), so the dropdown doesn't shrink as other
+    // filters narrow the results — matches the page's prior behavior.
+    const distinctLocationBranches = activeDefs
+      .map((def) => {
+        const locationValues = def.locationValueType === 'id' ? assignedLocationIds : assignedLocationNames;
+        if (locationValues.length === 0) return null;
+        return Prisma.sql`
+          SELECT ${ident(def.displayLocationCol)} AS locName
+          FROM ${ident(def.table)}
+          WHERE ${ident(def.locationFilterCol)} IN (${Prisma.join(locationValues)})
+        `;
+      })
+      .filter((b): b is Prisma.Sql => b !== null);
+
+    const locationRows =
+      distinctLocationBranches.length > 0
+        ? await prisma.$queryRaw<{ locName: string | null }[]>(Prisma.sql`
+            SELECT DISTINCT locName FROM (${Prisma.join(distinctLocationBranches, ' UNION ALL ')}) t
+            WHERE locName IS NOT NULL
+            ORDER BY locName
+          `)
+        : [];
+    const uniqueLocations = locationRows.map((r) => r.locName).filter((v): v is string => !!v);
+
+    if (pageRows.length === 0) {
+      return NextResponse.json({
+        success: true,
+        inquiries: [],
+        services: uniqueServices,
+        locations: uniqueLocations,
+        stats,
+        pagination: { page, limit, total, totalPages },
+      });
+    }
+
+    // Hydrate only this page's ~`limit` rows with their real per-service
+    // fields — grouped by which table each id came from.
+    const idsByService: Record<string, string[]> = {};
+    for (const row of pageRows) {
+      (idsByService[row.svcKey] ||= []).push(row.id);
+    }
+
+    const [bikeRows, busRows, selfDriveRows, equipmentRows, luxuryRows, packersRows, truckRows] = await Promise.all([
+      idsByService.bike?.length
         ? prisma.bike_quote_requests.findMany({
-            where: locationIdFilter,
+            where: { id: { in: idsByService.bike } },
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
               locations: { select: { id: true, name: true } },
               _count: { select: { bike_quotes_bike_quotes_requestIdTobike_quote_requests: true } },
             },
-            orderBy: { createdAt: 'desc' },
-          }).catch(() => [])
+          })
         : Promise.resolve([]),
-
-      // Bus Rental Quote Requests
-      shouldFetchService('bus-rental', 'bus')
+      idsByService.bus?.length
         ? prisma.bus_quote_requests.findMany({
-            where: pickupCityFilter,
+            where: { id: { in: idsByService.bus } },
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
               _count: { select: { bus_quotes_bus_quotes_requestIdTobus_quote_requests: true } },
             },
-            orderBy: { createdAt: 'desc' },
-          }).catch(() => [])
+          })
         : Promise.resolve([]),
-
-      // Self Drive Quote Requests
-      shouldFetchService('self-drive-car-rentals', 'self-drive-car-rental', 'self-drive')
+      idsByService.selfDrive?.length
         ? prisma.self_drive_quote_requests.findMany({
-            where: locationIdFilter,
+            where: { id: { in: idsByService.selfDrive } },
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
               locations: { select: { id: true, name: true } },
               _count: { select: { self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: true } },
             },
-            orderBy: { createdAt: 'desc' },
-          }).catch(() => [])
+          })
         : Promise.resolve([]),
-
-      // Equipment Rental Quote Requests
-      shouldFetchService('equipment-rental', 'equipment')
+      idsByService.equipment?.length
         ? prisma.equipment_quote_requests.findMany({
-            where: { deliveryCity: { in: assignedLocationNames } },
+            where: { id: { in: idsByService.equipment } },
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
               _count: { select: { equipment_quotes: true } },
             },
-            orderBy: { createdAt: 'desc' },
-          }).catch(() => [])
+          })
         : Promise.resolve([]),
-
-      // Luxury Cars Quote Requests
-      shouldFetchService('luxury-car-rental', 'luxury')
+      idsByService.luxury?.length
         ? prisma.luxury_quote_requests.findMany({
-            where: pickupCityFilter,
+            where: { id: { in: idsByService.luxury } },
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
               _count: { select: { luxury_quotes: true } },
             },
-            orderBy: { createdAt: 'desc' },
-          }).catch(() => [])
+          })
         : Promise.resolve([]),
-
-      // Packers & Movers Quote Requests
-      shouldFetchService('packers-and-movers', 'packers-movers')
+      idsByService.packers?.length
         ? prisma.packers_quote_requests.findMany({
-            where: { pickupCity: { in: assignedLocationNames } },
+            where: { id: { in: idsByService.packers } },
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
               _count: { select: { packers_quotes: true } },
             },
-            orderBy: { createdAt: 'desc' },
-          }).catch(() => [])
+          })
         : Promise.resolve([]),
-
-      // Truck Transport Quote Requests
-      shouldFetchService('truck-transport', 'truck', 'transporter', 'truck-rental', 'truck-tempo-rental', 'mini-truck-rental', 'trailer-on-rent')
+      idsByService.truck?.length
         ? prisma.truck_quote_requests.findMany({
-            where: pickupCityFilter,
+            where: { id: { in: idsByService.truck } },
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
               _count: { select: { truck_quotes: true } },
             },
-            orderBy: { createdAt: 'desc' },
-          }).catch(() => [])
+          })
         : Promise.resolve([]),
     ]);
 
-    // Combine and format all inquiries (quote requests)
-    const allInquiries: any[] = [
-      ...bikeInquiries.map((q: any) => ({
+    const byId = new Map<string, any>();
+    for (const q of bikeRows as any[]) {
+      byId.set(q.id, {
         id: q.id,
         requestNumber: q.requestNumber,
         status: q.status,
@@ -204,8 +360,10 @@ export async function GET(request: NextRequest) {
         quotesCount: q._count?.bike_quotes_bike_quotes_requestIdTobike_quote_requests || 0,
         source: q.source || 'web',
         createdAt: q.createdAt,
-      })),
-      ...busInquiries.map((q: any) => ({
+      });
+    }
+    for (const q of busRows as any[]) {
+      byId.set(q.id, {
         id: q.id,
         requestNumber: q.requestNumber,
         status: q.status,
@@ -221,8 +379,10 @@ export async function GET(request: NextRequest) {
         quotesCount: q._count?.bus_quotes_bus_quotes_requestIdTobus_quote_requests || 0,
         source: q.source || 'web',
         createdAt: q.createdAt,
-      })),
-      ...selfDriveInquiries.map((q: any) => ({
+      });
+    }
+    for (const q of selfDriveRows as any[]) {
+      byId.set(q.id, {
         id: q.id,
         requestNumber: q.requestNumber,
         status: q.status,
@@ -238,8 +398,10 @@ export async function GET(request: NextRequest) {
         quotesCount: q._count?.self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests || 0,
         source: q.source || 'web',
         createdAt: q.createdAt,
-      })),
-      ...equipmentInquiries.map((q: any) => ({
+      });
+    }
+    for (const q of equipmentRows as any[]) {
+      byId.set(q.id, {
         id: q.id,
         requestNumber: q.requestNumber,
         status: q.status,
@@ -248,15 +410,20 @@ export async function GET(request: NextRequest) {
         customerName: q.customers?.name || q.customerName,
         customerPhone: q.customers?.phone || q.customerPhone,
         customerEmail: q.customers?.email || q.customerEmail,
-        locationName: q.locationName,
+        // equipment_quote_requests has no `locationName` column — the old
+        // code read it anyway and always got undefined, so equipment rows
+        // silently dropped out of every location-filtered view.
+        locationName: q.deliveryCity,
         pickupDate: q.startDate,
         pickupTime: null,
         dropDate: q.endDate,
         quotesCount: q._count?.equipment_quotes || 0,
         source: q.source || 'web',
         createdAt: q.createdAt,
-      })),
-      ...luxuryInquiries.map((q: any) => ({
+      });
+    }
+    for (const q of luxuryRows as any[]) {
+      byId.set(q.id, {
         id: q.id,
         requestNumber: q.requestNumber,
         status: q.status,
@@ -268,12 +435,15 @@ export async function GET(request: NextRequest) {
         locationName: q.pickupCity,
         pickupDate: q.pickupDate,
         pickupTime: q.pickupTime,
-        dropDate: q.dropDate,
+        // luxury_quote_requests has `returnDate`, not `dropDate`.
+        dropDate: q.returnDate,
         quotesCount: q._count?.luxury_quotes || 0,
         source: q.source || 'web',
         createdAt: q.createdAt,
-      })),
-      ...packersInquiries.map((q: any) => ({
+      });
+    }
+    for (const q of packersRows as any[]) {
+      byId.set(q.id, {
         id: q.id,
         requestNumber: q.requestNumber,
         status: q.status,
@@ -282,15 +452,19 @@ export async function GET(request: NextRequest) {
         customerName: q.customers?.name || q.customerName,
         customerPhone: q.customers?.phone || q.customerPhone,
         customerEmail: q.customers?.email || q.customerEmail,
-        locationName: q.locationName,
-        pickupDate: q.moveDate,
+        // packers_quote_requests has `pickupCity`, not `locationName`.
+        locationName: q.pickupCity,
+        // ...and `preferredDate`, not `moveDate`.
+        pickupDate: q.preferredDate,
         pickupTime: null,
         dropDate: null,
         quotesCount: q._count?.packers_quotes || 0,
         source: q.source || 'web',
         createdAt: q.createdAt,
-      })),
-      ...truckInquiries.map((q: any) => ({
+      });
+    }
+    for (const q of truckRows as any[]) {
+      byId.set(q.id, {
         id: q.id,
         requestNumber: q.requestNumber,
         status: q.status,
@@ -306,161 +480,54 @@ export async function GET(request: NextRequest) {
         quotesCount: q._count?.truck_quotes || 0,
         source: q.source || 'web',
         createdAt: q.createdAt,
-      })),
-    ];
+      });
+    }
 
-    // Sort by creation date (newest first)
-    allInquiries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Call/action counts scoped to just this page's ids (previously computed
+    // across the entire up-to-21000-row superset on every request).
+    const pageIds = pageRows.map((r) => r.id);
+    const [callCountRows, actionCountRows, actionLogRows] = await Promise.all([
+      prisma.vendor_call_logs.groupBy({
+        by: ['bookingId'],
+        where: { bookingId: { in: pageIds } },
+        _count: { bookingId: true },
+      }).catch(() => []),
+      prisma.manager_action_logs.groupBy({
+        by: ['recordId'],
+        where: { recordType: 'INQUIRY', recordId: { in: pageIds } },
+        _count: { recordId: true },
+      }).catch(() => []),
+      prisma.manager_action_logs.findMany({
+        where: { recordType: 'INQUIRY', recordId: { in: pageIds } },
+        select: { recordId: true, actionType: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+      }).catch(() => []),
+    ]);
 
-    // Fetch call counts for all inquiry IDs in one query
-    const allIds = allInquiries.map((i: any) => i.id);
-    const callCountRows = allIds.length > 0
-      ? await prisma.vendor_call_logs.groupBy({
-          by: ['bookingId'],
-          where: { bookingId: { in: allIds } },
-          _count: { bookingId: true },
-        }).catch(() => [])
-      : [];
     const callCountMap: Record<string, number> = {};
-    for (const row of callCountRows) {
-      callCountMap[row.bookingId] = row._count.bookingId;
-    }
-    for (const inquiry of allInquiries) {
-      inquiry.callsCount = callCountMap[inquiry.id] || 0;
-    }
-
-    // Fetch manager action counts for all inquiry IDs — powers the "Actioned" badge
-    const actionCountRows = allIds.length > 0
-      ? await prisma.manager_action_logs.groupBy({
-          by: ['recordId'],
-          where: { recordType: 'INQUIRY', recordId: { in: allIds } },
-          _count: { recordId: true },
-        }).catch(() => [])
-      : [];
+    for (const row of callCountRows) callCountMap[row.bookingId] = row._count.bookingId;
     const actionCountMap: Record<string, number> = {};
-    for (const row of actionCountRows) {
-      actionCountMap[row.recordId] = row._count.recordId;
-    }
-
-    // Most recent action per inquiry — shown instead of a plain "Actioned"
-    // badge so managers see WHAT was done, not just that something was.
-    const actionLogRows = allIds.length > 0
-      ? await prisma.manager_action_logs.findMany({
-          where: { recordType: 'INQUIRY', recordId: { in: allIds } },
-          select: { recordId: true, actionType: true, createdAt: true },
-          orderBy: { createdAt: 'desc' },
-        }).catch(() => [])
-      : [];
+    for (const row of actionCountRows) actionCountMap[row.recordId] = row._count.recordId;
     const lastActionMap: Record<string, string> = {};
     for (const row of actionLogRows) {
       if (!lastActionMap[row.recordId]) lastActionMap[row.recordId] = row.actionType;
     }
 
-    for (const inquiry of allInquiries) {
-      inquiry.actionsCount = actionCountMap[inquiry.id] || 0;
-      inquiry.lastActionType = lastActionMap[inquiry.id] || null;
-    }
-
-    // Create unique service list based on main service names
-    // Each entry has alternateSlug variants so manager assignment matching works
-    const mainServices: { slug: string; name: string; alts: string[] }[] = [
-      { slug: 'bike-rental', name: 'Bike Rental', alts: ['bike', 'bike-on-rent'] },
-      { slug: 'bus-rental', name: 'Bus Rental', alts: ['bus'] },
-      { slug: 'self-drive', name: 'Self Drive', alts: ['self-drive-car-rentals', 'self-drive-car-rental'] },
-      { slug: 'equipment-rental', name: 'Equipment Rental', alts: ['equipment'] },
-      { slug: 'luxury-car-rental', name: 'Luxury Cars', alts: ['luxury'] },
-      { slug: 'packers-and-movers', name: 'Packers & Movers', alts: ['packers-movers'] },
-      { slug: 'truck-transport', name: 'Truck Transport', alts: ['truck', 'transporter'] },
-    ];
-
-    // Only include services that manager is assigned to (exact match on slug or alts)
-    const uniqueServices = mainServices.filter(mainSvc =>
-      assignedServiceSlugs.some(assignedSlug =>
-        assignedSlug === mainSvc.slug || mainSvc.alts.includes(assignedSlug)
-      )
-    ).map((svc, index) => ({
-      id: `service-${index}`,
-      name: svc.name,
-      slug: svc.slug,
-    }));
-
-    // Unique locations for the filter dropdown — from the full assigned-scope
-    // result, not the post-filter list, so the dropdown doesn't shrink as
-    // other filters narrow the results (matches prior client-side behavior).
-    const uniqueLocations = Array.from(
-      new Set(allInquiries.map((i) => i.locationName).filter(Boolean))
-    ).sort();
-
-    // Same date-bucket logic the page used to run client-side.
-    const matchesDateFilter = (inquiry: any): boolean => {
-      if (dateFilter === 'all') return true;
-      const inquiryDate = new Date(inquiry.createdAt);
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      switch (dateFilter) {
-        case 'today':
-          return inquiryDate >= today;
-        case 'yesterday': {
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-          return inquiryDate >= yesterday && inquiryDate < today;
-        }
-        case 'thisMonth':
-          return inquiryDate >= new Date(now.getFullYear(), now.getMonth(), 1);
-        case 'lastMonth': {
-          const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-          return inquiryDate >= lastMonthStart && inquiryDate <= lastMonthEnd;
-        }
-        default:
-          return true;
-      }
-    };
-
-    let filtered = allInquiries.filter(matchesDateFilter);
-
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((i) => i.status === statusFilter);
-    }
-    if (sourceFilter !== 'all') {
-      filtered = filtered.filter((i) => (i.source || 'web') === sourceFilter);
-    }
-    if (locationFilter !== 'all') {
-      filtered = filtered.filter((i) => i.locationName === locationFilter);
-    }
-    if (actionedFilter !== 'all') {
-      filtered = filtered.filter((i) =>
-        actionedFilter === 'actioned' ? !!i.lastActionType : !i.lastActionType
-      );
-    }
-    if (search) {
-      filtered = filtered.filter(
-        (i) =>
-          i.requestNumber?.toLowerCase().includes(search) ||
-          i.customerName?.toLowerCase().includes(search) ||
-          i.customerPhone?.includes(search) ||
-          i.customerEmail?.toLowerCase().includes(search) ||
-          i.locationName?.toLowerCase().includes(search) ||
-          i.serviceName?.toLowerCase().includes(search)
-      );
-    }
-
-    const stats = {
-      total: filtered.length,
-      pending: filtered.filter((i) => i.status === 'PENDING').length,
-      quoted: filtered.filter((i) => i.status === 'QUOTED').length,
-      accepted: filtered.filter((i) => i.status === 'ACCEPTED').length,
-      rejected: filtered.filter((i) => i.status === 'REJECTED').length,
-    };
-
-    const total = filtered.length;
-    const totalPages = Math.max(1, Math.ceil(total / limit));
-    const skip = (page - 1) * limit;
-    const paginatedInquiries = filtered.slice(skip, skip + limit);
+    // Reassemble in the union's globally-sorted order (createdAt desc across
+    // all services), not per-service fetch order.
+    const inquiries = pageIds
+      .map((id) => byId.get(id))
+      .filter(Boolean)
+      .map((inquiry) => ({
+        ...inquiry,
+        callsCount: callCountMap[inquiry.id] || 0,
+        actionsCount: actionCountMap[inquiry.id] || 0,
+        lastActionType: lastActionMap[inquiry.id] || null,
+      }));
 
     return NextResponse.json({
       success: true,
-      inquiries: paginatedInquiries,
+      inquiries,
       services: uniqueServices,
       locations: uniqueLocations,
       stats,
