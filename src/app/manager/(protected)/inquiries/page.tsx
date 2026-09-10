@@ -162,6 +162,10 @@ const ACTION_BADGE_STYLES: Record<string, string> = {
   COLD_LEAD: 'bg-indigo-100 text-indigo-700',
 };
 
+// Keyed by the quote_requests tables' actual status enum values (PENDING,
+// QUOTES_RECEIVED, QUOTE_ACCEPTED, BOOKING_CONFIRMED, CANCELLED, EXPIRED) —
+// the old QUOTED/ACCEPTED/REJECTED keys here never matched a real row, so
+// every non-pending inquiry silently fell back to a "Pending" badge.
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; description: string }> = {
   PENDING: {
     bg: 'bg-yellow-50',
@@ -169,23 +173,29 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; d
     label: 'Pending',
     description: 'Waiting for vendor quotes',
   },
-  QUOTED: {
+  QUOTES_RECEIVED: {
     bg: 'bg-blue-50',
     text: 'text-blue-700',
     label: 'Quoted',
     description: 'Vendors have submitted quotes',
   },
-  ACCEPTED: {
+  QUOTE_ACCEPTED: {
     bg: 'bg-green-50',
     text: 'text-green-700',
     label: 'Accepted',
     description: 'Customer accepted a quote',
   },
-  REJECTED: {
+  BOOKING_CONFIRMED: {
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    label: 'Booking Confirmed',
+    description: 'Booking has been confirmed',
+  },
+  CANCELLED: {
     bg: 'bg-red-50',
     text: 'text-red-700',
-    label: 'Rejected',
-    description: 'Request was rejected',
+    label: 'Cancelled',
+    description: 'Request was cancelled',
   },
   EXPIRED: {
     bg: 'bg-gray-50',
@@ -229,8 +239,8 @@ export default function ManagerInquiriesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [itemsPerPage] = useState(10);
-  const [stats, setStats] = useState({ total: 0, pending: 0, quoted: 0, accepted: 0, rejected: 0 });
+  const [itemsPerPage] = useState(20);
+  const [stats, setStats] = useState({ total: 0, pending: 0, quotesReceived: 0, quoteAccepted: 0, cancelled: 0 });
 
   // Debounce the search box into `searchTerm` (which actually triggers a
   // fetch) so typing doesn't fire a request per keystroke.
@@ -260,7 +270,7 @@ export default function ManagerInquiriesPage() {
         setInquiries(data.inquiries || []);
         setServices(data.services || []);
         setLocationOptions(data.locations || []);
-        setStats(data.stats || { total: 0, pending: 0, quoted: 0, accepted: 0, rejected: 0 });
+        setStats(data.stats || { total: 0, pending: 0, quotesReceived: 0, quoteAccepted: 0, cancelled: 0 });
         setTotalPages(data.pagination?.totalPages || 1);
         setTotalCount(data.pagination?.total || 0);
       } else {
@@ -406,9 +416,9 @@ export default function ManagerInquiriesPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {[
           { key: 'PENDING', count: stats.pending, label: 'Pending', color: 'yellow' },
-          { key: 'QUOTED', count: stats.quoted, label: 'Quoted', color: 'blue' },
-          { key: 'ACCEPTED', count: stats.accepted, label: 'Accepted', color: 'green' },
-          { key: 'REJECTED', count: stats.rejected, label: 'Rejected', color: 'red' },
+          { key: 'QUOTES_RECEIVED', count: stats.quotesReceived, label: 'Quoted', color: 'blue' },
+          { key: 'QUOTE_ACCEPTED', count: stats.quoteAccepted, label: 'Accepted', color: 'green' },
+          { key: 'CANCELLED', count: stats.cancelled, label: 'Cancelled', color: 'red' },
         ].map((stat) => (
           <button
             key={stat.key}
@@ -505,9 +515,9 @@ export default function ManagerInquiriesPage() {
             >
               <option value="all">All Requests ({stats.total})</option>
               <option value="PENDING">Pending ({stats.pending})</option>
-              <option value="QUOTED">Quoted ({stats.quoted})</option>
-              <option value="ACCEPTED">Accepted ({stats.accepted})</option>
-              <option value="REJECTED">Rejected ({stats.rejected})</option>
+              <option value="QUOTES_RECEIVED">Quoted ({stats.quotesReceived})</option>
+              <option value="QUOTE_ACCEPTED">Accepted ({stats.quoteAccepted})</option>
+              <option value="CANCELLED">Cancelled ({stats.cancelled})</option>
             </select>
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
           </div>
