@@ -101,27 +101,43 @@ RUN apk add --no-cache openssl
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+# `adduser --system` gives nextjs no real home directory — without this, npx
+# (run as nextjs by the entrypoint, for `prisma migrate deploy`) tries to
+# write its cache under an unwritable $HOME and fails with the same class of
+# EACCES this Dockerfile just got bitten by on node_modules/.prisma/client.
+ENV HOME=/tmp
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs &&     adduser --system --uid 1001 nextjs
 
 # Copy built application
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma folder (schema + migrations) and pre-generated client (NO CLI needed at runtime)
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Copy Prisma folder (schema + migrations), the pre-generated client, AND the
+# CLI itself (needed at runtime now — docker-entrypoint.sh runs `prisma
+# migrate deploy` on every boot). @prisma already carries the CLI's own
+# dependencies (@prisma/engines, @prisma/config, ...), so copying
+# node_modules/prisma on top is enough; no separate engine-binary handling
+# needed. Every COPY here is --chown'd to the runtime user — a bare COPY
+# leaves root:root ownership from the build stage, which then fails with
+# EACCES the moment the nextjs user needs to touch/replace anything under it.
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 
 # Copy Firebase service account for push notifications
-COPY --from=builder /app/firebase-service-account.json ./firebase-service-account.json
+COPY --from=builder --chown=nextjs:nodejs /app/firebase-service-account.json ./firebase-service-account.json
+
+# Entrypoint runs migrations before the app starts (see docker-entrypoint.sh)
+COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
 
 USER nextjs
 
 EXPOSE 3000
 
-# Start directly - Prisma client is pre-generated during build
-CMD ["node", "server.js"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
