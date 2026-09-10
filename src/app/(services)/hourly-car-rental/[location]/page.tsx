@@ -15,6 +15,7 @@ import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { Car, Plane, Route as RouteIcon, ArrowRight } from 'lucide-react';
 
 interface PageProps { params: { location: string }; }
 
@@ -89,26 +90,33 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
       <HourlyCarBookingHero cityName={locationName} citySlug={params.location.toLowerCase()} />
 
       {/* Other options */}
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">More Options in {locationName}</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/self-drive-car-rentals/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">Daily Self-Drive</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹799/day</p>
-            </Link>
-            <Link href="/airport-transfer" className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">Airport Transfer</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹499</p>
-            </Link>
-            <Link href={`/outstation-car-rental/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">Outstation</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹12/km</p>
-            </Link>
-            <Link href="/one-way-cab" className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">One Way Cab</h3>
-              <p className="text-sm text-gray-600 mt-2">Fixed fare</p>
-            </Link>
+      <section className="relative overflow-hidden py-14 md:py-16 bg-gradient-to-b from-white via-gray-50/70 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-[1.75rem] font-black tracking-tight text-gray-900 text-center mb-10">
+            More Options in <span className="text-emerald-600">{locationName}</span>
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            {[
+              { href: `/self-drive-car-rentals/${params.location.toLowerCase()}`, icon: Car, title: 'Daily Self-Drive', desc: 'From ₹799/day' },
+              { href: '/airport-transfer', icon: Plane, title: 'Airport Transfer', desc: 'From ₹499' },
+              { href: `/outstation-car-rental/${params.location.toLowerCase()}`, icon: RouteIcon, title: 'Outstation', desc: 'From ₹12/km' },
+              { href: '/one-way-cab', icon: RouteIcon, title: 'One Way Cab', desc: 'Fixed fare' },
+            ].map((opt) => (
+              <Link
+                key={opt.title}
+                href={opt.href}
+                className="group flex flex-col items-center text-center bg-white border border-gray-100 shadow-sm rounded-2xl px-6 py-8 hover:border-emerald-300 hover:shadow-md transition-all"
+              >
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4 group-hover:bg-emerald-600 transition-colors">
+                  <opt.icon className="w-6 h-6 text-emerald-600 group-hover:text-white transition-colors" />
+                </span>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-1">{opt.title}</h3>
+                <p className="text-xs text-gray-500 flex items-center gap-1">
+                  {opt.desc}
+                  <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
+                </p>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -134,6 +142,8 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="hourly-car-rental" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

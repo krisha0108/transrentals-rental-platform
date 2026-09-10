@@ -1,9 +1,13 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { LocationsGrid } from '@/components/services/LocationsGrid';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { StaticServicePopularCitiesGrid } from '@/components/services/StaticServicePopularCitiesGrid';
+import { MiniTruckBookingHero } from '@/components/mini-truck-rental/MiniTruckBookingHero';
 import { HowToSchema, BreadcrumbSchema } from '@/components/seo/schemas';
+import {
+  MessageCircleQuestion, Plus, Package, Home, Store, ShoppingCart, Construction, UtensilsCrossed, Armchair,
+  Recycle, Wallet, Target, Zap, MapPin, ArrowRight, Truck, PackageOpen,
+} from 'lucide-react';
 
 const MINI_TRUCK_FAQS = [
   {
@@ -35,6 +39,85 @@ const MINI_TRUCK_FAQS = [
     a: 'On TransRentals, select the mini-truck-rental service, enter your city and date, and describe your shift (studio/1-room/2-room). For small apartment shifts, Tata Ace is ideal. For 2BHK+ shifts, consider a Tata 407 or larger truck. Book at least 24 hours in advance, or 3–5 days ahead for month-end or weekend shifts.',
   },
 ];
+
+const PERFECT_FOR = [
+  { icon: Package, anim: 'drive', title: 'Local Deliveries', desc: 'Last-mile & city-wide delivery' },
+  { icon: Home, anim: 'lift', title: 'Home Shifting', desc: 'Studio & 1-room household moves' },
+  { icon: Store, anim: 'pulse', title: 'Business Transport', desc: 'Inventory & stock movement' },
+  { icon: ShoppingCart, anim: 'drive', title: 'E-commerce', desc: 'Online order fulfillment' },
+  { icon: Construction, anim: 'pulse', title: 'Construction Sites', desc: 'Material transport to sites' },
+  { icon: UtensilsCrossed, anim: 'tick', title: 'Food & Catering', desc: 'Bulk food delivery' },
+  { icon: Armchair, anim: 'pulse', title: 'Furniture Moving', desc: 'Small furniture items' },
+  { icon: Recycle, anim: 'tick', title: 'Waste Disposal', desc: 'Junk & waste removal' },
+];
+
+const WHY_MINI_TRUCK = [
+  { icon: Wallet, anim: 'pulse', title: 'Cost Effective', desc: 'Lower rental and operating costs compared to large trucks' },
+  { icon: Target, anim: 'pulse', title: 'Easy Access', desc: 'Navigate narrow lanes and crowded city areas easily' },
+  { icon: Zap, anim: 'tick', title: 'Quick Loading', desc: 'Low deck height for easy loading and unloading' },
+];
+
+/* Wahi "Why Choose Us" card language jo excavator-on-rent ke Applications section me hai. */
+const APP_CSS = `
+.app-card {
+  opacity: 0;
+  animation: app-rise .6s cubic-bezier(.22,1,.36,1) forwards;
+  transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .3s ease;
+}
+@keyframes app-rise {
+  from { opacity: 0; transform: translateY(22px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+.app-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px -12px rgba(16,185,129,.28);
+  border-color: rgb(167 243 208);
+}
+.app-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(16,185,129,.10) 50%, transparent 65%);
+  transform: translateX(-100%);
+  transition: transform .8s ease;
+  pointer-events: none;
+}
+.app-card:hover .app-sheen { transform: translateX(100%); }
+@media (prefers-reduced-motion: reduce) {
+  .app-card { opacity: 1; animation: none; }
+  .app-card:hover { transform: none; }
+  .app-sheen { display: none; }
+}
+`;
+
+const ICON_HOVER_ANIM: Record<string, string> = {
+  drive: 'group-hover:translate-x-2',
+  pulse: 'group-hover:scale-125',
+  tick: 'group-hover:rotate-[360deg]',
+  lift: 'group-hover:-translate-y-2',
+};
+
+function AppCard({ item, idx }: { item: { icon: typeof Package; anim: string; title: string; desc: string }; idx: number }) {
+  return (
+    <div
+      className="app-card group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-7 text-center overflow-hidden"
+      style={{ animationDelay: `${idx * 90}ms` }}
+    >
+      <span aria-hidden className="app-sheen" />
+      <div className="relative">
+        <div className="relative w-16 h-16 mx-auto mb-4">
+          <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+          <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+            <item.icon
+              className={`w-6 h-6 text-emerald-600 transition-all duration-500 group-hover:text-white ${ICON_HOVER_ANIM[item.anim]}`}
+            />
+          </span>
+        </div>
+        <h3 className="text-[17px] font-bold text-gray-900 mb-2 leading-snug">{item.title}</h3>
+        <p className="text-[13.5px] leading-relaxed text-gray-500">{item.desc}</p>
+      </div>
+    </div>
+  );
+}
 
 const TOP_CITIES = [
   { name: 'Delhi', slug: 'delhi' },
@@ -147,112 +230,155 @@ export default function MiniTruckRentalPage() {
         ]}
       />
 
-      <ServiceHeroWithChat
-        badge="Mini Truck Rental in 250+ Cities"
-        title="Mini Truck on Rent | Tata Ace"
-        titleHighlight="Driver Included | All India"
-        description="Rent Tata Ace, Bolero Pickup and mini trucks for house shifting, shop delivery, and goods transport. Driver included. Book by the hour or full day!"
-        features={[
-          { icon: 'star', text: '4.6/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Verified Vendors', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Hourly Booking', color: 'text-green-600' },
-        ]}
-        gradientFrom="orange-50"
-        gradientTo="red-50"
-      />
+      <MiniTruckBookingHero city="India" citySlug="" />
 
       {/* Use Cases */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Perfect For</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { icon: '📦', title: 'Local Deliveries', desc: 'Last-mile & city-wide delivery' },
-              { icon: '🏠', title: 'Home Shifting', desc: 'Studio & 1-room household moves' },
-              { icon: '🏪', title: 'Business Transport', desc: 'Inventory & stock movement' },
-              { icon: '🛒', title: 'E-commerce', desc: 'Online order fulfillment' },
-              { icon: '🏗️', title: 'Construction Sites', desc: 'Material transport to sites' },
-              { icon: '🍕', title: 'Food & Catering', desc: 'Bulk food delivery' },
-              { icon: '📚', title: 'Furniture Moving', desc: 'Small furniture items' },
-              { icon: '♻️', title: 'Waste Disposal', desc: 'Junk & waste removal' },
-            ].map((use) => (
-              <div key={use.title} className="bg-gradient-to-br from-blue-50 to-white p-6 rounded-lg shadow-md hover:shadow-xl transition text-center border-2 border-blue-200">
-                <div className="text-4xl mb-3">{use.icon}</div>
-                <h3 className="font-bold mb-2">{use.title}</h3>
-                <p className="text-sm text-gray-600">{use.desc}</p>
-              </div>
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <style dangerouslySetInnerHTML={{ __html: APP_CSS }} />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <h2 className="text-3xl md:text-[2.5rem] font-black tracking-tight text-gray-900 text-center mb-12">Perfect For</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 max-w-6xl mx-auto">
+            {PERFECT_FOR.map((use, idx) => (
+              <AppCard key={use.title} item={use} idx={idx} />
             ))}
           </div>
         </div>
       </section>
 
       {/* Benefits */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Why Choose Mini Trucks?</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">💰</div>
-              <h3 className="text-xl font-bold mb-2">Cost Effective</h3>
-              <p className="text-gray-600">Lower rental and operating costs compared to large trucks</p>
-            </div>
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">🎯</div>
-              <h3 className="text-xl font-bold mb-2">Easy Access</h3>
-              <p className="text-gray-600">Navigate narrow lanes and crowded city areas easily</p>
-            </div>
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-teal-500 to-green-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">⚡</div>
-              <h3 className="text-xl font-bold mb-2">Quick Loading</h3>
-              <p className="text-gray-600">Low deck height for easy loading and unloading</p>
-            </div>
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-gray-50/70 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-3xl md:text-[2.5rem] font-black tracking-tight text-gray-900 text-center mb-12">Why Choose Mini Trucks?</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 md:gap-6 max-w-4xl mx-auto">
+            {WHY_MINI_TRUCK.map((item, idx) => (
+              <AppCard key={item.title} item={item} idx={idx} />
+            ))}
           </div>
         </div>
       </section>
 
-      <LocationsGrid service="mini-truck-rental" />
+      {/* Cities */}
+      <StaticServicePopularCitiesGrid serviceSlug="mini-truck-rental" title="Mini Truck Rental in Available Cities" />
 
       {/* FAQ Section */}
-      <section className="py-14 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Mini Truck Rental FAQs</h2>
-            <p className="text-gray-600">Common questions about Tata Ace and mini truck hire in India</p>
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] text-emerald-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              GOOD TO KNOW
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            </span>
+            <h2 className="mt-4 text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Mini Truck Rental <span className="text-emerald-600">FAQs</span>
+            </h2>
+            <p className="mt-3 text-base text-gray-600">
+              Common questions about Tata Ace and mini truck hire in India.
+            </p>
           </div>
-          <div className="max-w-3xl mx-auto space-y-4">
+          <div className="max-w-5xl mx-auto space-y-3">
             {MINI_TRUCK_FAQS.map((faq, idx) => (
-              <div key={idx} className="bg-gray-50 rounded-xl p-5">
-                <h3 className="font-semibold text-gray-900 mb-2">{faq.q}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{faq.a}</p>
-              </div>
+              <details
+                key={idx}
+                open={idx === 0}
+                className="group rounded-2xl bg-white border border-gray-100 shadow-sm open:border-emerald-200 open:shadow-md transition-all"
+              >
+                <summary className="flex items-center gap-4 px-4 sm:px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span className="shrink-0 w-9 h-9 rounded-full bg-emerald-50 grid place-items-center">
+                    <MessageCircleQuestion className="w-[18px] h-[18px] text-emerald-600" />
+                  </span>
+                  <h3 className="flex-1 font-bold text-[15px] leading-snug text-gray-900">{faq.q}</h3>
+                  <span className="shrink-0 w-8 h-8 rounded-lg bg-gray-50 text-gray-500 grid place-items-center transition-all duration-200 group-open:rotate-45 group-open:bg-emerald-600 group-open:text-white">
+                    <Plus className="w-4 h-4" />
+                  </span>
+                </summary>
+                <p className="px-4 sm:px-5 pb-5 sm:pl-[4.25rem] text-[14px] leading-relaxed text-gray-500">
+                  {faq.a}
+                </p>
+              </details>
             ))}
           </div>
         </div>
       </section>
 
       {/* Internal City Links */}
-      <section className="py-10 bg-gray-50 border-t border-gray-100">
-        <div className="container mx-auto px-4">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 text-center">Mini Truck Rental by City</h2>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+      <section className="relative py-16 bg-white border-t border-gray-100 overflow-hidden">
+        {/* Subtle grid-line pattern background */}
+        <div
+          className="absolute inset-0 opacity-70"
+          style={{
+            backgroundImage:
+              'linear-gradient(#ecfdf5 1px, transparent 1px), linear-gradient(90deg, #ecfdf5 1px, transparent 1px)',
+            backgroundSize: '34px 34px',
+            maskImage: 'radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 90%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 90%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
+              <MapPin className="w-4 h-4" />
+              Browse by City
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">Mini Truck Rental by City</h2>
+            <p className="text-gray-500">Jump straight to a city&apos;s dedicated page</p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 max-w-5xl mx-auto mb-8">
             {TOP_CITIES.map((city) => (
               <Link
                 key={city.slug}
                 href={`/mini-truck-rental/${city.slug}`}
-                className="text-center py-2.5 px-2 rounded-lg border border-gray-200 hover:border-orange-400 hover:bg-orange-50 transition text-sm font-medium text-gray-700 hover:text-orange-700"
+                className="flex items-center gap-2 bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50 rounded-xl px-3.5 py-3 text-sm font-semibold text-gray-700 hover:text-emerald-700 transition-colors"
               >
+                <span className="w-7 h-7 rounded-lg bg-white border border-gray-100 flex items-center justify-center shrink-0">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                </span>
                 {city.name}
               </Link>
             ))}
           </div>
-          <div className="mt-6 text-center">
-            <div className="flex flex-wrap justify-center gap-3 text-sm">
-              <Link href="/transporter" className="text-orange-700 hover:underline">Truck & Transport</Link>
-              <span className="text-gray-300">|</span>
-              <Link href="/packers-and-movers" className="text-orange-700 hover:underline">Packers and Movers</Link>
-              <span className="text-gray-300">|</span>
-              <Link href="/jcb-on-rent" className="text-orange-700 hover:underline">JCB on Rent</Link>
-            </div>
+
+          <div className="flex flex-wrap justify-center gap-3 max-w-5xl mx-auto">
+            {[
+              { href: '/transporter', label: 'Truck & Transport', icon: Truck },
+              { href: '/packers-and-movers', label: 'Packers and Movers', icon: PackageOpen },
+              { href: '/jcb-on-rent', label: 'JCB on Rent', icon: Construction },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="inline-flex items-center gap-2 bg-white border border-gray-100 hover:border-emerald-200 rounded-xl px-4 py-2.5 text-sm font-bold text-emerald-700 transition-colors"
+              >
+                <link.icon className="w-4 h-4 text-emerald-600" />
+                {link.label}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            ))}
           </div>
         </div>
       </section>

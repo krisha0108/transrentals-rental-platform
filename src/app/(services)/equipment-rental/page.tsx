@@ -168,7 +168,7 @@ export default function EquipmentRentalPage() {
          se chalta hai, isliye seedha reuse ho jaata hai. */}
       <BusRentalPopularCitiesGrid
         serviceSlug="equipment-rental"
-        title="Equipment Rental in Popular Cities"
+        title="Equipment Rental in Available Cities"
       />
 
       {/* FAQs */}

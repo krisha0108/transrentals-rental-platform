@@ -7,7 +7,8 @@ import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BusRentalBookingHero } from '@/components/bus-rental/BusRentalBookingHero';
+import { Building2, Target, Mountain, Check } from 'lucide-react';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
@@ -83,8 +84,7 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
     { question: 'What bus sizes are available for corporate hire?', answer: 'We offer 17, 20, 26, 32, and 49-seater buses for corporate use — AC and non-AC — based on employee count and route requirements.' },
   ];
 
-  const [seoData, busServiceId, locationId, scContent] = await Promise.all([
-    resolvePageMeta(`corporate-bus-rental:${params.location.toLowerCase()}`),
+  const [busServiceId, locationId, scContent] = await Promise.all([
     getBusRentalServiceId(),
     getLocationId(params.location),
     getServiceCityContent('corporate-bus-rental', params.location),
@@ -143,57 +143,61 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
         </div>
       </div>
 
-      <ServiceHeroWithChat
-        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
-        badge={`Corporate Bus in ${locationName}`}
-        title="Corporate Bus Rental"
-        titleHighlight="Employee Transport @₹4999/day"
-        description={`Reliable daily employee transport in ${locationName}. Fixed routes, GPS tracking, on-time service — daily, monthly, and annual corporate contracts available.`}
-        features={[
-          { icon: 'zap', text: 'GPS Tracked Routes', color: 'text-blue-600' },
-          { icon: 'shield', text: 'Professional Driver', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="blue-50"
-        gradientTo="cyan-50"
+      <BusRentalBookingHero
+        city={locationName}
+        citySlug={params.location.toLowerCase()}
+        serviceType="corporate-bus-rental"
+        badgeText={`Corporate Bus in ${locationName}`}
+        headingLine1="Corporate Bus Rental"
+        headingLine2Plain="Built for "
+        headingLine2Accent="Your Team"
+        subheading={`Reliable daily employee transport in ${locationName}. Fixed routes, GPS tracking, on-time service — daily, monthly, and annual corporate contracts available.`}
+        bookingTitle="Get a Corporate Quote"
+        bookingSubtitle="Free quote • No advance payment"
       />
 
       {/* Use Cases */}
-      <section className="py-12 bg-white">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Corporate Bus Services in {locationName}
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Corporate Bus Services in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
               {
-                icon: '🏢',
+                Icon: Building2,
                 title: 'Employee Transport',
                 desc: 'Daily pickup & drop for your staff',
                 features: ['Fixed routes', 'Multiple shifts', 'GPS tracking'],
               },
               {
-                icon: '🎯',
+                Icon: Target,
                 title: 'Corporate Events',
                 desc: 'Conferences & seminars',
                 features: ['Venue transfers', 'Multi-city events', 'Large groups'],
               },
               {
-                icon: '🌄',
+                Icon: Mountain,
                 title: 'Team Outings',
                 desc: 'Team building trips',
                 features: ['Weekend trips', 'Hill stations', 'Adventure tours'],
               },
-            ].map((service) => (
-              <div key={service.title} className="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border-2 border-blue-200">
-                <div className="text-4xl mb-3">{service.icon}</div>
-                <h3 className="text-lg font-bold mb-2">{service.title}</h3>
-                <p className="text-gray-600 mb-3">{service.desc}</p>
-                <ul className="space-y-1">
-                  {service.features.map((feature) => (
-                    <li key={feature} className="text-sm text-gray-600 flex items-center gap-2">
-                      <span className="text-primary">✓</span>
+            ].map(({ Icon, title, desc, features }) => (
+              <div key={title} className="group rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 p-6 text-center">
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[78deg] transition-transform duration-500" />
+                  <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center">
+                    <Icon className="w-6 h-6 text-emerald-600" strokeWidth={1.9} />
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1.5">{title}</h3>
+                <p className="text-sm text-gray-500 mb-4">{desc}</p>
+                <ul className="flex flex-col items-start gap-1.5 max-w-[220px] mx-auto">
+                  {features.map((feature) => (
+                    <li key={feature} className="text-[13px] text-gray-600 flex items-center gap-2">
+                      <span className="shrink-0 w-4 h-4 rounded-full bg-emerald-50 grid place-items-center">
+                        <Check className="w-2.5 h-2.5 text-emerald-600" strokeWidth={3.5} />
+                      </span>
                       {feature}
                     </li>
                   ))}
@@ -212,7 +216,7 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
         />
       )}
 
-      <WhyRentHere locationName={locationName} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location.toLowerCase()}
@@ -238,6 +242,8 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="corporate-bus-rental" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

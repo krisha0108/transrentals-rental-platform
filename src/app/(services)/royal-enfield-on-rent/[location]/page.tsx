@@ -17,6 +17,7 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { Mountain, Landmark, Compass, Clock } from 'lucide-react';
 
 interface PageProps {
   params: {
@@ -197,8 +198,46 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
         title={`Available Royal Enfield Bikes in ${locationName}`}
       />
 
-      <WhyRentHere locationName={locationName} />
+      {/* Popular Routes */}
+      <section className="relative py-16 md:py-24 bg-gradient-to-b from-gray-50 via-white to-gray-50 overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{ background: 'radial-gradient(620px 380px at 50% 0%, rgba(16,185,129,.10), transparent 70%)' }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
+            <h2 className="text-3xl md:text-[2.75rem] leading-[1.1] font-black tracking-tight text-gray-900 mb-3">
+              Popular Royal Enfield Trip Routes from <span className="text-emerald-600">{locationName}</span>
+            </h2>
+            <p className="text-gray-500">Handpicked touring circuits riders book most often</p>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {[
+              { route: 'Ladakh Circuit', icon: Mountain, description: 'Manali - Leh - Khardung La - Pangong', duration: '10-15 days' },
+              { route: 'Rajasthan Heritage', icon: Landmark, description: 'Jaipur - Jodhpur - Jaisalmer - Udaipur', duration: '7-10 days' },
+              { route: 'Spiti Valley', icon: Compass, description: 'Manali - Kaza - Key Monastery - Chandratal', duration: '8-12 days' },
+            ].map((trip) => (
+              <div key={trip.route} className="group relative flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                <div className="w-14 h-14 rounded-xl bg-emerald-50 flex items-center justify-center mx-6 mt-6">
+                  <trip.icon className="w-7 h-7 text-emerald-600" strokeWidth={1.8} />
+                </div>
+                <div className="p-6 pt-4">
+                  <h3 className="text-[18px] font-bold text-gray-900 mb-1.5">{trip.route}</h3>
+                  <p className="text-[13.5px] text-gray-500 leading-relaxed mb-4">{trip.description}</p>
+                  <div className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full">
+                    <Clock className="w-3.5 h-3.5" />
+                    {trip.duration}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location}
@@ -207,6 +246,8 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="royal-enfield-on-rent" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location}

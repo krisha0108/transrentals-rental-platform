@@ -2,7 +2,6 @@
 import type { Metadata } from 'next';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
-import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
@@ -296,6 +295,9 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
     getServiceCityContent('equipment-rental', params.location),
   ]);
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['equipment-rental'] || [];
+  const displayFAQs = cityFAQs.length > 0
+    ? cityFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))
+    : EQUIPMENT_FALLBACK_FAQS;
 
   return (
     <div className="flex flex-col">
@@ -355,6 +357,8 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
+      <FAQSection service="equipment-rental" location={locationName} customFaqs={displayFAQs} />
+
       <RelatedServices
         locationSlug={params.location.toLowerCase()}
         parentSlug="equipment-rental"
@@ -398,17 +402,11 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'FAQPage',
-            mainEntity: cityFAQs.length > 0
-              ? cityFAQs.map((faq) => ({
-                  '@type': 'Question',
-                  name: faq.q,
-                  acceptedAnswer: { '@type': 'Answer', text: faq.a },
-                }))
-              : EQUIPMENT_FALLBACK_FAQS.map((faq) => ({
-                  '@type': 'Question',
-                  name: faq.question,
-                  acceptedAnswer: { '@type': 'Answer', text: faq.answer },
-                })),
+            mainEntity: displayFAQs.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
           }),
         }}
       />

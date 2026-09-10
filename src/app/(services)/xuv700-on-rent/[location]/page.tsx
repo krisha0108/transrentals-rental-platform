@@ -1,6 +1,7 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Shield, ShieldCheck, Car, LayoutGrid, ArrowRight } from 'lucide-react';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
@@ -89,38 +90,66 @@ export default async function XUV700LocationPage({ params }: PageProps) {
         selfDrivePrice="₹2,999"
       />
 
-      <section className="bg-gradient-to-br from-red-700 to-rose-800 text-white py-12">
+      <section className="bg-white py-10 border-b border-gray-100">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">XUV700 on Rent in {locationName}</h1>
-          <div className="flex flex-wrap gap-4">
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Starting from</p>
-              <p className="text-xl font-bold">₹2,999</p>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">
+                XUV700 on Rent in <span className="text-emerald-600">{locationName}</span>
+              </h2>
+              <p className="text-gray-500 mt-1.5">Self-drive Mahindra XUV700. India&apos;s safest SUV with ADAS.</p>
             </div>
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Safety</p>
-              <p className="text-xl font-bold">5-Star GNCAP</p>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Shield className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Starting</p>
+                  <p className="text-lg font-black text-gray-900">₹2,999</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Safety</p>
+                  <p className="text-lg font-black text-gray-900">5-Star GNCAP</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">Other SUVs in {locationName}</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/scorpio-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">Scorpio</h3><p className="text-sm text-gray-600 mt-2">From ₹2,499/day</p>
-            </Link>
-            <Link href={`/fortuner-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">Fortuner</h3><p className="text-sm text-gray-600 mt-2">From ₹4,999/day</p>
-            </Link>
-            <Link href={`/creta-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">Creta</h3><p className="text-sm text-gray-600 mt-2">From ₹1,999/day</p>
-            </Link>
-            <Link href={`/self-drive-suv-rental/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">All SUVs</h3><p className="text-sm text-gray-600 mt-2">View all</p>
-            </Link>
+      <section className="relative overflow-hidden py-14 md:py-16 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-[1.75rem] font-black tracking-tight text-gray-900 text-center mb-10">
+            Other SUVs in <span className="text-emerald-600">{locationName}</span>
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            {[
+              { href: `/scorpio-on-rent/${params.location.toLowerCase()}`, icon: Car, title: 'Scorpio', desc: 'Rugged 4x4 SUV' },
+              { href: `/fortuner-on-rent/${params.location.toLowerCase()}`, icon: Car, title: 'Fortuner', desc: 'Premium luxury SUV' },
+              { href: `/creta-on-rent/${params.location.toLowerCase()}`, icon: Car, title: 'Creta', desc: 'Premium mid-size SUV' },
+              { href: `/self-drive-suv-rental/${params.location.toLowerCase()}`, icon: LayoutGrid, title: 'All SUVs', desc: 'View all options' },
+            ].map((opt) => (
+              <Link
+                key={opt.title}
+                href={opt.href}
+                className="group flex flex-col items-center text-center bg-white border border-gray-100 shadow-sm rounded-2xl px-6 py-8 hover:border-emerald-300 hover:shadow-md transition-all"
+              >
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4 group-hover:bg-emerald-600 transition-colors">
+                  <opt.icon className="w-6 h-6 text-emerald-600 group-hover:text-white transition-colors" />
+                </span>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-1">{opt.title}</h3>
+                <p className="text-xs text-gray-500 flex items-center gap-1">
+                  {opt.desc}
+                  <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
+                </p>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -133,7 +162,7 @@ export default async function XUV700LocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
+      */}
       <BikeServiceSchema
         serviceName="XUV700 on Rent"
         serviceSlug="xuv700-on-rent"
@@ -145,6 +174,8 @@ export default async function XUV700LocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="xuv700-on-rent" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

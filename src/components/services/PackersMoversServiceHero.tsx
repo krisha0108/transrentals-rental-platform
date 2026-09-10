@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import {
   Truck, Star, Shield, Package, CheckCircle2,
-  Headphones, BadgeCheck, MapPin, Calendar,
+  Headphones, BadgeCheck, MapPin, Calendar, Tag,
   Phone, User, ChevronRight, ArrowLeft,
   Loader2, Check, Clock, Lock,
   ChevronDown, Search, X,
@@ -44,7 +45,7 @@ function CityPicker({
     <div ref={ref} className="relative">
       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
       <button type="button" onClick={() => { setOpen(o => !o); setSearch(''); }}
-        className={`w-full h-[44px] pl-9 pr-8 bg-white border text-sm text-left rounded-xl transition-all ${value ? 'text-gray-800 font-medium' : 'text-gray-400'} ${open ? 'border-blue-400 ring-4 ring-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+        className={`w-full h-[44px] pl-9 pr-8 bg-white border text-sm text-left rounded-xl transition-all ${value ? 'text-gray-800 font-medium' : 'text-gray-400'} ${open ? 'border-emerald-400 ring-4 ring-emerald-50' : 'border-gray-200 hover:border-gray-300'}`}>
         {value || placeholder}
       </button>
       {value && (
@@ -61,13 +62,13 @@ function CityPicker({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input autoFocus type="text" value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search city…"
-                className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
           </div>
           <div className="max-h-48 overflow-y-auto">
             {allowCustom && search.trim() && !filtered.some(l => l.name.toLowerCase() === search.toLowerCase()) && (
               <button type="button" onClick={() => { onChange(search.trim()); setOpen(false); setSearch(''); }}
-                className="w-full text-left px-4 py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 border-b border-gray-50">
+                className="w-full text-left px-4 py-2.5 text-sm font-medium text-emerald-600 hover:bg-emerald-50 border-b border-gray-50">
                 + Add &ldquo;{search.trim()}&rdquo;
               </button>
             )}
@@ -76,7 +77,7 @@ function CityPicker({
             )}
             {filtered.map(loc => (
               <button key={loc.name} type="button" onClick={() => { onChange(loc.name); setOpen(false); setSearch(''); }}
-                className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${value === loc.name ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
+                className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${value === loc.name ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
                 {loc.name}
               </button>
             ))}
@@ -106,17 +107,17 @@ function StepBar({ step }: { step: number }) {
         <React.Fragment key={s.n}>
           <div className="flex flex-col items-center shrink-0">
             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
-              step > s.n ? 'bg-blue-600 text-white' :
-              step === s.n ? 'bg-blue-600 text-white ring-4 ring-blue-100' :
+              step > s.n ? 'bg-emerald-600 text-white' :
+              step === s.n ? 'bg-emerald-600 text-white ring-4 ring-emerald-100' :
               'bg-white border border-gray-200 text-gray-400'
             }`}>
               {step > s.n ? <Check className="w-3 h-3" /> : s.n}
             </div>
-            <span className={`text-[9px] font-semibold mt-0.5 ${step >= s.n ? 'text-blue-700' : 'text-gray-400'}`}>{s.label}</span>
+            <span className={`text-[9px] font-semibold mt-0.5 ${step >= s.n ? 'text-emerald-700' : 'text-gray-400'}`}>{s.label}</span>
           </div>
           {i < STEPS.length - 1 && (
             <div className="flex-1 h-[2px] bg-gray-200 rounded-full overflow-hidden mb-3">
-              <div className={`h-full bg-blue-600 transition-all duration-500 ${step > s.n ? 'w-full' : 'w-0'}`} />
+              <div className={`h-full bg-emerald-600 transition-all duration-500 ${step > s.n ? 'w-full' : 'w-0'}`} />
             </div>
           )}
         </React.Fragment>
@@ -133,7 +134,7 @@ function YesNo({ value, onChange }: { value: boolean | null; onChange: (v: boole
       {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map(opt => (
         <button key={String(opt.v)} type="button" onClick={() => onChange(opt.v)}
           className={`flex-1 py-2.5 text-sm font-semibold rounded-xl border transition-all flex items-center justify-center gap-1.5 ${
-            value === opt.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+            value === opt.v ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
           }`}>
           {opt.v ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
           {opt.label}
@@ -332,10 +333,10 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
     }
   };
 
-  const inputCls = 'w-full h-[44px] px-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all';
+  const inputCls = 'w-full h-[44px] px-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all';
   const lbl = 'block text-xs font-semibold text-gray-700 mb-1.5';
   const backBtn = 'flex-none w-[80px] h-11 border border-gray-200 bg-white text-gray-400 font-bold rounded-2xl flex items-center justify-center gap-1 hover:bg-gray-50 hover:text-gray-700 transition-all text-sm';
-  const nextBtn = 'flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-100 text-sm';
+  const nextBtn = 'flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-100 text-sm';
 
   /* ── SUCCESS ── */
   if (done) {
@@ -347,11 +348,11 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
         </svg>
         <h2 className="text-lg font-black text-gray-900 mb-1">Quote Request Sent!</h2>
         <p className="text-sm text-gray-500 mb-4">You will get the best quote soon from multiple vendors.</p>
-        <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-2.5 mb-4">
-          <Clock className="w-4 h-4 text-blue-600 shrink-0" />
+        <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-2.5 mb-4">
+          <Clock className="w-4 h-4 text-emerald-600 shrink-0" />
           <div className="text-left">
             <small className="block text-[11px] text-gray-400">Expected response</small>
-            <b className="text-sm text-blue-700">within 15 minutes</b>
+            <b className="text-sm text-emerald-700">within 15 minutes</b>
           </div>
         </div>
         <button onClick={() => { setDone(false); setStep(1); setFromCity(cityName || ''); setToCity(''); }}
@@ -378,10 +379,10 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
               { v: 'INTERCITY', icon: <Truck className="w-5 h-5" />,           label: 'Intercity', sub: 'Across states' },
             ] as const).map(o => (
               <button key={o.v} type="button" onClick={() => setShiftingScope(o.v)}
-                className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${shiftingScope === o.v ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
-                <span className={shiftingScope === o.v ? 'text-blue-600' : 'text-gray-400'}>{o.icon}</span>
-                <b className={`text-[11px] font-bold leading-tight ${shiftingScope === o.v ? 'text-blue-700' : 'text-gray-700'}`}>{o.label}</b>
-                <small className={`text-[9px] ${shiftingScope === o.v ? 'text-blue-500' : 'text-gray-400'}`}>{o.sub}</small>
+                className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${shiftingScope === o.v ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
+                <span className={shiftingScope === o.v ? 'text-emerald-600' : 'text-gray-400'}>{o.icon}</span>
+                <b className={`text-[11px] font-bold leading-tight ${shiftingScope === o.v ? 'text-emerald-700' : 'text-gray-700'}`}>{o.label}</b>
+                <small className={`text-[9px] ${shiftingScope === o.v ? 'text-emerald-500' : 'text-gray-400'}`}>{o.sub}</small>
               </button>
             ))}
           </div>
@@ -394,10 +395,10 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
               { v: 'Vehicle', icon: <Car className="w-5 h-5" />,       sub: 'Car / Bike' },
             ] as const).map(o => (
               <button key={o.v} type="button" onClick={() => setShiftingType(o.v)}
-                className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${shiftingType === o.v ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
-                <span className={shiftingType === o.v ? 'text-blue-600' : 'text-gray-400'}>{o.icon}</span>
-                <b className={`text-[11px] font-bold ${shiftingType === o.v ? 'text-blue-700' : 'text-gray-700'}`}>{o.v}</b>
-                <small className={`text-[9px] ${shiftingType === o.v ? 'text-blue-500' : 'text-gray-400'}`}>{o.sub}</small>
+                className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${shiftingType === o.v ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
+                <span className={shiftingType === o.v ? 'text-emerald-600' : 'text-gray-400'}>{o.icon}</span>
+                <b className={`text-[11px] font-bold ${shiftingType === o.v ? 'text-emerald-700' : 'text-gray-700'}`}>{o.v}</b>
+                <small className={`text-[9px] ${shiftingType === o.v ? 'text-emerald-500' : 'text-gray-400'}`}>{o.sub}</small>
               </button>
             ))}
           </div>
@@ -415,7 +416,7 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
                   { v: 'STUDIO', label: 'Studio' },
                 ].map(o => (
                   <button key={o.v} type="button" onClick={() => setHomeSize(o.v)}
-                    className={`py-2 text-sm font-semibold rounded-xl border transition-all ${homeSize === o.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
+                    className={`py-2 text-sm font-semibold rounded-xl border transition-all ${homeSize === o.v ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
                     {o.label}
                   </button>
                 ))}
@@ -434,7 +435,7 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
                   { v: 'MORE_THAN_100_EMPLOYEES',     label: '100+ Employees'   },
                 ].map(o => (
                   <button key={o.v} type="button" onClick={() => setOfficeSize(o.v)}
-                    className={`py-2 text-sm font-semibold rounded-xl border transition-all ${officeSize === o.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
+                    className={`py-2 text-sm font-semibold rounded-xl border transition-all ${officeSize === o.v ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
                     {o.label}
                   </button>
                 ))}
@@ -452,7 +453,7 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
                   { v: 'BOTH', label: 'Both', icon: <Truck className="w-4 h-4" /> },
                 ] as const).map(o => (
                   <button key={o.v} type="button" onClick={() => setVehicleSubType(o.v)}
-                    className={`flex items-center justify-center gap-1.5 py-2 text-sm font-semibold rounded-xl border transition-all ${vehicleSubType === o.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
+                    className={`flex items-center justify-center gap-1.5 py-2 text-sm font-semibold rounded-xl border transition-all ${vehicleSubType === o.v ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
                     {o.icon}{o.label}
                   </button>
                 ))}
@@ -480,7 +481,7 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
           <label className={lbl}>Full Pickup Address <span className="text-red-500">*</span></label>
           <textarea value={pickupAddress} onChange={e => { setPickupAddress(e.target.value); setErr(''); }} rows={2}
             placeholder="Building, street, area, landmark…"
-            className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 resize-none mb-3" />
+            className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 resize-none mb-3" />
 
           <div className="grid grid-cols-2 gap-2.5 mb-3">
             <div>
@@ -520,7 +521,7 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
           <label className={lbl}>Full Drop Address <span className="text-red-500">*</span></label>
           <textarea value={dropAddress} onChange={e => { setDropAddress(e.target.value); setErr(''); }} rows={2}
             placeholder="Building, street, area, landmark…"
-            className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 resize-none mb-3" />
+            className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 resize-none mb-3" />
 
           <div className="grid grid-cols-2 gap-2.5 mb-3">
             <div>
@@ -587,7 +588,7 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
               { v: 'ANYTIME',   label: 'Anytime'          },
             ].map(o => (
               <button key={o.v} type="button" onClick={() => setDeliveryTime(o.v)}
-                className={`py-2 text-xs font-semibold rounded-xl border transition-all ${deliveryTime === o.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
+                className={`py-2 text-xs font-semibold rounded-xl border transition-all ${deliveryTime === o.v ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
                 {o.label}
               </button>
             ))}
@@ -612,23 +613,23 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
               const count = itemCounts[item.key] || 0;
               return (
                 <div key={item.key}
-                  className={`flex items-center justify-between px-3 py-2.5 ${idx < INVENTORY_ITEMS.length - 1 ? 'border-b border-gray-100' : ''} ${count > 0 ? 'bg-blue-50' : 'bg-white'}`}>
+                  className={`flex items-center justify-between px-3 py-2.5 ${idx < INVENTORY_ITEMS.length - 1 ? 'border-b border-gray-100' : ''} ${count > 0 ? 'bg-emerald-50' : 'bg-white'}`}>
                   <span className="flex items-center gap-2 text-sm">
-                    <span className={count > 0 ? 'text-blue-600' : 'text-gray-400'}>{item.icon}</span>
-                    <span className={`font-medium ${count > 0 ? 'text-blue-700' : 'text-gray-700'}`}>{item.label}</span>
-                    {count > 0 && <span className="text-xs text-blue-500 font-semibold">× {count}</span>}
+                    <span className={count > 0 ? 'text-emerald-600' : 'text-gray-400'}>{item.icon}</span>
+                    <span className={`font-medium ${count > 0 ? 'text-emerald-700' : 'text-gray-700'}`}>{item.label}</span>
+                    {count > 0 && <span className="text-xs text-emerald-500 font-semibold">× {count}</span>}
                   </span>
                   <div className="flex items-center gap-1.5">
                     <button type="button"
                       onClick={() => setItemCounts(prev => ({ ...prev, [item.key]: Math.max(0, (prev[item.key] || 0) - 1) }))}
                       disabled={count === 0}
-                      className={`w-7 h-7 rounded-lg border flex items-center justify-center text-lg font-bold transition-all ${count > 0 ? 'border-blue-300 text-blue-600 hover:bg-blue-100' : 'border-gray-200 text-gray-300 cursor-not-allowed'}`}>
+                      className={`w-7 h-7 rounded-lg border flex items-center justify-center text-lg font-bold transition-all ${count > 0 ? 'border-emerald-300 text-emerald-600 hover:bg-emerald-100' : 'border-gray-200 text-gray-300 cursor-not-allowed'}`}>
                       −
                     </button>
-                    <span className={`w-5 text-center text-sm font-bold ${count > 0 ? 'text-blue-700' : 'text-gray-400'}`}>{count}</span>
+                    <span className={`w-5 text-center text-sm font-bold ${count > 0 ? 'text-emerald-700' : 'text-gray-400'}`}>{count}</span>
                     <button type="button"
                       onClick={() => setItemCounts(prev => ({ ...prev, [item.key]: (prev[item.key] || 0) + 1 }))}
-                      className="w-7 h-7 rounded-lg border border-blue-300 text-blue-600 hover:bg-blue-100 flex items-center justify-center text-lg font-bold transition-all">
+                      className="w-7 h-7 rounded-lg border border-emerald-300 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center text-lg font-bold transition-all">
                       +
                     </button>
                   </div>
@@ -638,7 +639,7 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
           </div>
           <textarea value={inventoryExtra} onChange={e => setInventoryExtra(e.target.value)} rows={2}
             placeholder="Any other items? (e.g. 3 ACs, treadmill, piano…)"
-            className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 resize-none mb-3" />
+            className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 resize-none mb-3" />
 
           <label className={lbl}>Estimated Weight / Volume</label>
           <div className="grid grid-cols-2 gap-1.5 mb-3">
@@ -649,7 +650,7 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
               { v: '4000', icon: <Truck className="w-3.5 h-3.5" />,    label: 'Very Heavy (> 3000 kg)' },
             ] as const).map(o => (
               <button key={o.v} type="button" onClick={() => setEstimatedWeight(o.v)}
-                className={`flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl border transition-all ${estimatedWeight === o.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
+                className={`flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl border transition-all ${estimatedWeight === o.v ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
                 {o.icon}{o.label}
               </button>
             ))}
@@ -708,7 +709,7 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
               { v: 'DEDICATED', icon: <Truck className="w-4 h-4" />,     label: 'Dedicated truck'  },
             ] as const).map(o => (
               <button key={o.v} type="button" onClick={() => setVehicleTypeReq(o.v)}
-                className={`flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl border transition-all ${vehicleTypeReq === o.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
+                className={`flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl border transition-all ${vehicleTypeReq === o.v ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
                 {o.icon}{o.label}
               </button>
             ))}
@@ -784,7 +785,7 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
           <label className={lbl}>Additional Notes <small className="text-[10px] text-gray-400 font-normal">(optional)</small></label>
           <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
             placeholder="Any special requirements…"
-            className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 resize-none mb-1" />
+            className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 resize-none mb-1" />
 
           {err && <p className="text-xs text-red-500 font-semibold mb-2">{err}</p>}
           {submitErr && <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2 mb-2">{submitErr}</p>}
@@ -792,7 +793,7 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
           <div className="flex gap-2 mt-3">
             <button type="button" onClick={() => go(6)} className={backBtn}><ArrowLeft className="w-3.5 h-3.5" /> Back</button>
             <button type="button" onClick={onSubmit} disabled={loading}
-              className="flex-1 h-11 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-60 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-blue-100 text-sm transition-all">
+              className="flex-1 h-11 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 disabled:opacity-60 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-emerald-100 text-sm transition-all">
               {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</> : 'Get Free Quotes'}
             </button>
           </div>
@@ -811,10 +812,20 @@ export function PackersMoversServiceHero({ cityName = '' }: { cityName?: string 
   const [showChat, setShowChat] = useState(false);
 
   return (
-    <section id="booking" className="relative bg-gradient-to-br from-gray-900 via-blue-950 to-cyan-900 overflow-hidden">
+    <section id="booking" className="relative bg-gray-900 overflow-hidden">
+      <div className="absolute inset-0">
+        <Image
+          src="/images/sections/packers-movers-hero-bg.png"
+          alt=""
+          fill
+          priority
+          className="object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900/65 via-emerald-950/55 to-teal-900/50" />
+      </div>
       <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
-        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-cyan-400/10 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-teal-400/10 rounded-full blur-3xl" />
         <div className="absolute inset-0 opacity-[0.04]"
           style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px)', backgroundSize: '48px 48px' }} />
       </div>
@@ -826,7 +837,7 @@ export function PackersMoversServiceHero({ cityName = '' }: { cityName?: string 
           <div className="w-full lg:flex-1 order-2 lg:order-1">
             <div className="flex flex-wrap items-center gap-2 mb-5">
               <div className="inline-flex items-center gap-2 bg-white/10 border border-white/15 text-white/90 px-3.5 py-1.5 rounded-full text-sm font-semibold backdrop-blur-sm">
-                <MapPin className="w-3.5 h-3.5 text-blue-400" />
+                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
                 {cityName ? `Packers & Movers in ${cityName}` : 'Packers & Movers'}
               </div>
               <div className="inline-flex items-center gap-1 bg-amber-400/15 border border-amber-400/25 text-amber-300 px-3 py-1.5 rounded-full text-xs font-bold">
@@ -836,7 +847,7 @@ export function PackersMoversServiceHero({ cityName = '' }: { cityName?: string 
 
             <h1 className="text-3xl md:text-4xl xl:text-5xl font-black text-white leading-[1.1] mb-4 tracking-tight">
               Professional Packers<br />
-              <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-teal-300 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-teal-300 bg-clip-text text-transparent">
                 & Movers You Can Trust
               </span>
             </h1>
@@ -853,8 +864,8 @@ export function PackersMoversServiceHero({ cityName = '' }: { cityName?: string 
                 '150+ verified operators · compare quotes instantly',
               ].map((h, i) => (
                 <li key={i} className="flex items-center gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-3 h-3 text-blue-400" />
+                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                   </span>
                   <span className="text-gray-200 text-sm">{h}</span>
                 </li>
@@ -870,11 +881,11 @@ export function PackersMoversServiceHero({ cityName = '' }: { cityName?: string 
                 <span className="text-gray-500 text-xs">1,800+ reviews</span>
               </div>
               <div className="flex items-center gap-2 bg-white/[0.07] border border-white/10 rounded-xl px-3 py-2 backdrop-blur-sm">
-                <Headphones className="w-3.5 h-3.5 text-blue-400" />
+                <Headphones className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-white text-xs font-bold">24/7 Support</span>
               </div>
               <div className="flex items-center gap-2 bg-white/[0.07] border border-white/10 rounded-xl px-3 py-2 backdrop-blur-sm">
-                <BadgeCheck className="w-3.5 h-3.5 text-cyan-400" />
+                <BadgeCheck className="w-3.5 h-3.5 text-teal-400" />
                 <span className="text-white text-xs font-bold">150+ Verified</span>
               </div>
             </div>
@@ -882,14 +893,14 @@ export function PackersMoversServiceHero({ cityName = '' }: { cityName?: string 
 
           {/* ── RIGHT: booking card ── */}
           <div className="w-full lg:w-[500px] shrink-0 order-1 lg:order-2">
-            <div className="bg-white rounded-[28px] shadow-2xl shadow-black/20 overflow-hidden flex flex-col lg:h-[640px]">
+            <div className="bg-white rounded-[28px] shadow-2xl shadow-black/20 overflow-hidden flex flex-col lg:max-h-[760px]">
 
               {/* Header */}
               <div className="flex items-center justify-between px-[18px] h-[72px] border-b border-gray-100 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="relative w-[42px] h-[42px] rounded-[13px] bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-200/60">
+                  <div className="relative w-[42px] h-[42px] rounded-[13px] bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-200/60">
                     <Truck className="w-[22px] h-[22px] text-white" />
-                    <span className="absolute bottom-[-1px] right-[-1px] w-[11px] h-[11px] rounded-full bg-blue-400 border-2 border-white" />
+                    <span className="absolute bottom-[-1px] right-[-1px] w-[11px] h-[11px] rounded-full bg-emerald-400 border-2 border-white" />
                   </div>
                   <div>
                     <p className="text-[17px] font-black text-gray-900 leading-tight">Get Free Quotes</p>
@@ -898,18 +909,18 @@ export function PackersMoversServiceHero({ cityName = '' }: { cityName?: string 
                 </div>
                 {showChat ? (
                   <button onClick={() => setShowChat(false)}
-                    className="text-[11.5px] font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-[9px] px-3 py-1.5 hover:bg-blue-100 transition-colors whitespace-nowrap">
+                    className="text-[11.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-[9px] px-3 py-1.5 hover:bg-emerald-100 transition-colors whitespace-nowrap">
                     ← Back to form
                   </button>
                 ) : (
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-full whitespace-nowrap">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full whitespace-nowrap">
                     <Shield className="w-3 h-3" /> 100% Safe
                   </div>
                 )}
               </div>
 
               {/* Body */}
-              <div className="flex-1 min-h-0 overflow-y-auto px-[18px] py-4
+              <div className="overflow-y-auto px-[18px] pt-4 pb-2
                 [&::-webkit-scrollbar]:w-1.5
                 [&::-webkit-scrollbar-track]:bg-transparent
                 [&::-webkit-scrollbar-thumb]:bg-gray-200
@@ -921,18 +932,25 @@ export function PackersMoversServiceHero({ cityName = '' }: { cityName?: string 
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between px-[18px] h-[60px] border-t border-gray-100 bg-white shrink-0">
-                <div className="flex flex-col gap-[3px]">
-                  {['Best Price Guarantee', '150+ Verified Movers', '15 Min Callback'].map(item => (
-                    <div key={item} className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-700">
-                      <Check className="w-[13px] h-[13px] text-blue-500 shrink-0" />
-                      {item}
+              <div className="px-6 pt-3 pb-4 border-t border-slate-100 bg-white shrink-0">
+                <div className="grid grid-cols-3 gap-3 mb-3">
+                  {[
+                    { icon: Tag, text: 'Best Price', sub: 'Guaranteed' },
+                    { icon: BadgeCheck, text: '150+ Verified', sub: 'Movers' },
+                    { icon: Clock, text: '15 Min', sub: 'Callback' },
+                  ].map(item => (
+                    <div key={item.text} className="flex items-center gap-2">
+                      <item.icon className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                      <div className="text-[11px] leading-tight text-slate-600">
+                        <div className="font-semibold text-slate-900">{item.text}</div>
+                        {item.sub}
+                      </div>
                     </div>
                   ))}
                 </div>
                 <button onClick={() => setShowChat(s => !s)}
-                  className="flex items-center gap-1.5 text-[13px] font-bold text-blue-700 hover:text-blue-500 transition-colors whitespace-nowrap">
-                  {showChat ? '← Back to form' : <>Book with AI <ChevronRight className="w-3.5 h-3.5" /></>}
+                  className="w-full flex items-center justify-center gap-1.5 text-[13px] font-bold text-emerald-700 hover:text-emerald-600 transition-colors whitespace-nowrap pt-1">
+                  {showChat ? '← Back to form' : <>Book with AI Assistant <ChevronRight className="w-3.5 h-3.5" /></>}
                 </button>
               </div>
             </div>

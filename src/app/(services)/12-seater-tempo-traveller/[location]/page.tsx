@@ -1,6 +1,7 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Armchair, Bus, ArrowRight } from 'lucide-react';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
@@ -111,85 +112,120 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
         ]}
         gradientFrom="orange-50"
         gradientTo="amber-50"
+        cityName={locationName}
+        serviceType="tempo-12seater"
+        backgroundImage="/images/sections/tempo-traveller-hero-bg.webp"
+        bookingVariant="tempo"
+        heroStats={[
+          { icon: 'tag', value: '₹18/km', label: 'Starting rate' },
+          { icon: 'shield', value: '500+', label: 'Verified operators' },
+          { icon: 'map', value: '150+', label: 'Cities served' },
+          { icon: 'headphones', value: '24/7', label: 'Customer support' },
+        ]}
       />
 
-      <section className="bg-gradient-to-br from-blue-700 to-indigo-800 text-white py-12">
+      <section className="bg-white py-10 border-b border-gray-100">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            12 Seater Tempo Traveller in {locationName}
-          </h1>
-          <p className="text-lg opacity-90 mb-6">
-            Comfortable group travel with professional driver. AC & Non-AC available.
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Starting from</p>
-              <p className="text-xl font-bold">₹18/km</p>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">
+                12 Seater Tempo Traveller in <span className="text-emerald-600">{locationName}</span>
+              </h2>
+              <p className="text-gray-500 mt-1.5">Comfortable group travel with professional driver. AC &amp; Non-AC available.</p>
             </div>
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Seating</p>
-              <p className="text-xl font-bold">12 Seats</p>
-            </div>
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Variants</p>
-              <p className="text-xl font-bold">4 Options</p>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Armchair className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Seating</p>
+                  <p className="text-lg font-black text-gray-900">12 Seats</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Bus className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Variants</p>
+                  <p className="text-lg font-black text-gray-900">4 Options</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-12">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            12 Seater Options in {locationName}
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            12 Seater Options in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {variants.map((variant) => (
-              <div key={variant.name} className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition">
-                <h3 className="text-lg font-bold mb-2">{variant.name}</h3>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+            {variants.map((variant, idx) => (
+              <div
+                key={variant.name}
+                className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-emerald-100 hover:-translate-y-1 transition-all duration-300 p-6"
+                style={{ animation: `tt12-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 80}ms forwards`, opacity: 0 }}
+              >
+                <span className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4 group-hover:bg-emerald-600 transition-colors">
+                  <Bus className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
+                </span>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">{variant.name}</h3>
                 <div className="mb-4">
-                  <span className="text-3xl font-bold text-blue-600">₹{variant.price}</span>
-                  <span className="text-gray-500">/km</span>
+                  <span className="text-2xl font-black text-emerald-700">₹{variant.price}</span>
+                  <span className="text-gray-500 text-sm">/km</span>
                 </div>
-                <ul className="text-sm text-gray-600 space-y-1 mb-4">
-                  <li>✓ Professional driver</li>
-                  <li>✓ Fuel included</li>
-                  <li>✓ All permits</li>
+                <ul className="space-y-1.5 mb-5">
+                  {['Professional driver', 'Fuel included', 'All permits'].map((f) => (
+                    <li key={f} className="text-sm text-gray-600 flex items-center gap-2">
+                      <span className="text-emerald-500">✓</span>{f}
+                    </li>
+                  ))}
                 </ul>
-                <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+                <button className="w-full bg-emerald-600 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-emerald-700 transition-colors">
                   Book Now
                 </button>
               </div>
             ))}
           </div>
         </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes tt12-rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) { [style*="tt12-rise"] { animation: none !important; opacity: 1 !important; } }
+        ` }} />
       </section>
 
-      <section className="py-12 bg-gray-50">
+      <section className="py-16 bg-white border-t border-gray-100">
         <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">Other Options in {locationName}</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/17-seater-tempo-traveller/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold text-lg">17 Seater</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹20/km</p>
-            </Link>
-            <Link href={`/tempo-traveller/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold text-lg">All Tempo Travellers</h3>
-              <p className="text-sm text-gray-600 mt-2">View all options</p>
-            </Link>
-            <Link href={`/bus-rental/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold text-lg">Bus Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">26+ seater</p>
-            </Link>
-            <Link href={`/wedding-bus-rental/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold text-lg">Wedding Bus</h3>
-              <p className="text-sm text-gray-600 mt-2">For weddings</p>
-            </Link>
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-8">
+            Other Options in <span className="text-emerald-600">{locationName}</span>
+          </h2>
+          <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
+            {[
+              { href: `/17-seater-tempo-traveller/${params.location.toLowerCase()}`, label: '17 Seater' },
+              { href: `/tempo-traveller/${params.location.toLowerCase()}`, label: 'All Tempo Travellers' },
+              { href: `/bus-rental/${params.location.toLowerCase()}`, label: 'Bus Rental' },
+              { href: `/wedding-bus-rental/${params.location.toLowerCase()}`, label: 'Wedding Bus' },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="inline-flex items-center gap-2 bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50 rounded-xl px-4 py-2.5 text-sm font-bold text-gray-700 hover:text-emerald-700 transition-colors"
+              >
+                <Bus className="w-4 h-4 text-emerald-600" />
+                {link.label}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
-      
+      <FAQSection service="12-seater-tempo-traveller" location={locationName} customFaqs={pageFaqs} />
+
+
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
               citySlug={params.location.toLowerCase()}
@@ -197,7 +233,7 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
+      */}
       <BikeServiceSchema
         serviceName="12 Seater Tempo Traveller"
         serviceSlug="12-seater-tempo-traveller"

@@ -18,6 +18,7 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { Fuel, Wallet, Wrench, Award, Briefcase, Package, GraduationCap } from 'lucide-react';
 
 interface PageProps {
   params: {
@@ -191,6 +192,89 @@ export default async function SplendorLocationPage({ params }: PageProps) {
           title={`Available Splendor Bikes in ${locationName}`}
         />
 
+        {/* Why Splendor */}
+        <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-[0.5]"
+            style={{
+              backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+              backgroundSize: '22px 22px',
+              WebkitMaskImage:
+                'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+              maskImage:
+                'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            }}
+          />
+          <div className="container-custom relative">
+            <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
+              <h2 className="text-3xl md:text-[2.5rem] leading-[1.1] font-black tracking-tight text-gray-900">
+                Why Rent Splendor in <span className="text-emerald-600">{locationName}?</span>
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-6 max-w-5xl mx-auto">
+              {[
+                { Icon: Fuel, title: 'Best Mileage', desc: 'Up to 75 km/litre' },
+                { Icon: Wallet, title: 'Most Affordable', desc: 'Lowest rental rates' },
+                { Icon: Wrench, title: 'Low Maintenance', desc: 'Reliable & easy to maintain' },
+                { Icon: Award, title: 'Proven Trust', desc: "India's #1 selling bike" },
+              ].map((item, idx) => (
+                <div
+                  key={item.title}
+                  className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-4 py-7 text-center overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-100"
+                  style={{ animation: `spl-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 90}ms forwards`, opacity: 0 }}
+                >
+                  <div className="relative w-14 h-14 mx-auto mb-4">
+                    <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                    <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                      <item.Icon className="w-5 h-5 text-emerald-600 transition-colors duration-500 group-hover:text-white" />
+                    </span>
+                  </div>
+                  <h3 className="text-[15px] font-bold text-gray-900 mb-1.5 leading-snug">{item.title}</h3>
+                  <p className="text-[13px] leading-relaxed text-gray-500">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes spl-rise { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: none; } }
+            @media (prefers-reduced-motion: reduce) { [style*="spl-rise"] { animation: none !important; opacity: 1 !important; } }
+          ` }} />
+        </section>
+
+        {/* Perfect For */}
+        <section className="relative overflow-hidden py-16 md:py-20 bg-white">
+          <div className="container-custom relative">
+            <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
+              <h2 className="text-3xl md:text-[2.5rem] leading-[1.1] font-black tracking-tight text-gray-900">
+                Perfect <span className="text-emerald-600">For</span>
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 md:gap-6 max-w-4xl mx-auto">
+              {[
+                { Icon: Briefcase, title: 'Office Commute', desc: 'Low fuel cost, easy parking' },
+                { Icon: Package, title: 'Delivery Work', desc: 'Reliable for delivery executives' },
+                { Icon: GraduationCap, title: 'Students', desc: 'Affordable & practical' },
+              ].map((item, idx) => (
+                <div
+                  key={item.title}
+                  className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-7 text-center overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-100"
+                  style={{ animation: `spl-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 90}ms forwards`, opacity: 0 }}
+                >
+                  <div className="relative w-16 h-16 mx-auto mb-4">
+                    <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                    <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                      <item.Icon className="w-6 h-6 text-emerald-600 transition-colors duration-500 group-hover:text-white" />
+                    </span>
+                  </div>
+                  <h3 className="text-[17px] font-bold text-gray-900 mb-2 leading-snug">{item.title}</h3>
+                  <p className="text-[13.5px] leading-relaxed text-gray-500">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <WhyRentHere locationName={locationName} />
 
 
@@ -210,6 +294,8 @@ export default async function SplendorLocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="splendor-on-rent" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location}

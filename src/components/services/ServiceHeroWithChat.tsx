@@ -181,7 +181,7 @@ function ProgressBar({ step, steps = DEFAULT_PROGRESS_STEPS, accent = 'emerald' 
   const labelActiveCls = isGreen ? 'text-green-700' : 'text-emerald-700';
   const barFillCls = isGreen ? 'bg-green-500' : 'bg-emerald-500';
   return (
-    <div className="flex items-center gap-1 mb-4">
+    <div className="flex items-center gap-1 mb-3">
       {steps.map((s, i) => (
         <React.Fragment key={s.n}>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -448,11 +448,11 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
   };
 
   /* shared styles */
-  const inputCls = "w-full h-[46px] pl-10 pr-3 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500 transition-all";
+  const inputCls = "w-full h-[42px] pl-10 pr-3 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500 transition-all";
   const iconCls  = "absolute left-3 top-1/2 -translate-y-1/2 text-green-600 pointer-events-none [&>svg]:w-4 [&>svg]:h-4";
-  const lblCls   = "block text-xs font-medium text-slate-600 mb-1.5";
-  const backBtn  = "flex-none w-[88px] h-12 border border-slate-200 bg-white text-slate-400 font-bold rounded-2xl flex items-center justify-center gap-1.5 hover:bg-slate-50 hover:text-slate-600 transition-all text-sm";
-  const nextBtn  = "flex-1 h-12 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-all text-sm";
+  const lblCls   = "block text-xs font-medium text-slate-600 mb-1";
+  const backBtn  = "flex-none w-[88px] h-11 border border-slate-200 bg-white text-slate-400 font-bold rounded-2xl flex items-center justify-center gap-1.5 hover:bg-slate-50 hover:text-slate-600 transition-all text-sm";
+  const nextBtn  = "flex-1 h-11 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-all text-sm";
 
   /* ── SUCCESS ── */
   if (step === 5) {
@@ -505,7 +505,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
 
   return (
     <div>
-      <div className="flex items-center gap-1.5 pb-4 text-xs font-medium text-slate-400 overflow-x-auto">
+      <div className="flex items-center gap-1.5 pb-2.5 text-xs font-medium text-slate-400 overflow-x-auto">
         {DEFAULT_PROGRESS_STEPS.map((s, idx) => (
           <div key={s.n} className="flex items-center gap-1.5 flex-shrink-0">
             <span className={`flex items-center gap-1.5 ${step >= s.n ? 'text-green-700' : 'text-slate-400'}`}>
@@ -529,13 +529,13 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
             initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
             transition={{ duration: 0.28 }}>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <h2 className="text-base font-bold text-slate-900">Trip Details</h2>
               <p className="text-xs text-slate-500 mt-0.5">Let&apos;s start with where you&apos;re headed.</p>
             </div>
 
             <label className={lblCls}>Trip Type</label>
-            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
               {TRIP_TYPES.map(t => (
                 <button key={t.value} type="button" onClick={() => setTripType(t.value)}
                   className={`relative flex items-center gap-2.5 p-3 rounded-2xl border text-left transition-all ${
@@ -560,13 +560,13 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
             </div>
 
             <label className={lblCls}>Pickup City</label>
-            <div className="mb-3.5">
+            <div className="mb-2.5">
               <CityPicker value={fromCity} onChange={setFromCity}
                 placeholder="Select pickup city" locations={locations} icon={<MapPin />} iconAccent="green" />
             </div>
 
             <label className={lblCls}>Pickup Address</label>
-            <div className="relative mb-3.5">
+            <div className="relative mb-2.5">
               <span className={iconCls}><Home /></span>
               <input required type="text" placeholder="Enter pickup address or landmark"
                 value={pickupAddress} onChange={e => setPickupAddress(e.target.value)}
@@ -574,7 +574,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
             </div>
 
             <label className={lblCls}>Drop City</label>
-            <div className="mb-3.5">
+            <div className="mb-2.5">
               <CityPicker value={toCity} onChange={v => { setToCity(v); if (!v) setDropAddress(''); }}
                 placeholder="Enter drop city" locations={locations} allowCustom icon={<Flag />} iconAccent="green" />
             </div>
@@ -601,13 +601,13 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
             initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
             transition={{ duration: 0.28 }}>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <h2 className="text-base font-bold text-slate-900">Journey Details</h2>
               <p className="text-xs text-slate-500 mt-0.5">When you travel &amp; how many people.</p>
             </div>
 
             {/* Date row */}
-            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
               <div>
                 <label className={lblCls}>Journey Date</label>
                 <div className="relative">
@@ -627,7 +627,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
             </div>
 
             {isTempo ? (
-              <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+              <div className="grid grid-cols-2 gap-2.5 mb-2.5">
                 <div>
                   <label className={lblCls}>Pickup Time</label>
                   <div className="relative">
@@ -648,7 +648,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
             ) : (
               <>
                 <label className={lblCls}>Pickup Time</label>
-                <div className="relative mb-3.5">
+                <div className="relative mb-2.5">
                   <span className={iconCls}><Clock /></span>
                   <input type="time" value={pickupTime}
                     onChange={e => setPickupTime(e.target.value)} className={inputCls} />
@@ -657,7 +657,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
             )}
 
             <label className={lblCls}>Passengers</label>
-            <div className="flex items-center justify-between border border-slate-200 rounded-xl p-2.5 bg-white mb-3.5">
+            <div className="flex items-center justify-between border border-slate-200 rounded-xl p-2.5 bg-white mb-2.5">
               <div className="flex items-center gap-2.5">
                 <span className="w-8 h-8 rounded-[10px] bg-green-50 flex items-center justify-center shrink-0">
                   <Users className="w-4 h-4 text-green-600" />
@@ -694,7 +694,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
             </div>
 
             {/* Vehicle recommendation */}
-            <div className="relative flex items-center gap-3 p-3 rounded-2xl bg-green-50 border border-green-200 mb-3.5">
+            <div className="relative flex items-center gap-3 p-3 rounded-2xl bg-green-50 border border-green-200 mb-2.5">
               <span className="absolute -top-2 left-3 text-[8.5px] font-black tracking-widest text-white bg-green-500 px-2 py-0.5 rounded-md">RECOMMENDED</span>
               <span className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shrink-0">
                 <Bus className="w-5 h-5 text-green-600" />
@@ -724,13 +724,13 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
             initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
             transition={{ duration: 0.28 }}>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <h2 className="text-base font-bold text-slate-900">Contact Details</h2>
               <p className="text-xs text-slate-500 mt-0.5">We&apos;ll send your quotes here.</p>
             </div>
 
             {showAutoFill ? (
-              <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 mb-3.5">
+              <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 mb-2.5">
                 <p className="text-xs text-green-600 font-semibold mb-2">Booking as</p>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-black text-sm shrink-0">
@@ -750,7 +750,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
             ) : (
               <>
                 <label className={lblCls}>Name <span className="text-red-500">*</span></label>
-                <div className="relative mb-3.5">
+                <div className="relative mb-2.5">
                   <span className={iconCls}><User /></span>
                   <input required type="text" placeholder="Your full name" value={name}
                     onChange={e => { setName(e.target.value); setErr3(''); }}
@@ -758,7 +758,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
                 </div>
 
                 <label className={lblCls}>Mobile <span className="text-red-500">*</span></label>
-                <div className="relative mb-3.5">
+                <div className="relative mb-2.5">
                   <span className={iconCls}><Phone /></span>
                   <input required type="tel" maxLength={10} placeholder="10-digit mobile number"
                     value={phone} onChange={e => { setPhone(e.target.value); setErr3(''); }}
@@ -766,7 +766,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
                 </div>
 
                 <label className={lblCls}>Email <span className="text-red-500">*</span></label>
-                <div className="relative mb-3.5">
+                <div className="relative mb-2.5">
                   <span className={iconCls}><Mail /></span>
                   <input required type="email" placeholder="you@example.com"
                     value={email} onChange={e => { setEmail(e.target.value); setErr3(''); }}
@@ -778,7 +778,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
             {isTempo && (
               <>
                 <label className={lblCls}>Booking For</label>
-                <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+                <div className="grid grid-cols-2 gap-2.5 mb-2.5">
                   {([
                     { v: 'personal', label: 'Personal', sub: 'Family / friends', Icon: User },
                     { v: 'company',  label: 'Company',  sub: 'Corporate trip',   Icon: Building2 },
@@ -803,7 +803,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
                 {bookingPurpose === 'company' && (
                   <>
                     <label className={lblCls}>Number of Vehicles <span className="text-red-500">*</span></label>
-                    <div className="relative mb-3.5">
+                    <div className="relative mb-2.5">
                       <span className={iconCls}><Bus /></span>
                       <input type="number" min={1} max={50} placeholder="How many vehicles do you need?"
                         value={vehiclesRequired}
@@ -838,7 +838,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
             {isB2BApproved && (
               <>
               <label className={`${lblCls} mt-3.5`}>Is this booking for personal use or your company/organization?</label>
-              <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+              <div className="grid grid-cols-2 gap-2.5 mb-2.5">
                 <button type="button" onClick={() => setBookingPurpose('personal')}
                   className={`relative flex items-center gap-2.5 p-3 rounded-2xl border text-left transition-all ${
                     bookingPurpose === 'personal'
@@ -876,7 +876,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
               {bookingPurpose === 'company' && (
                 <>
                   <label className={lblCls}>How many buses do you need?</label>
-                  <div className="flex items-center justify-between border border-slate-200 rounded-xl p-2.5 bg-white mb-3.5">
+                  <div className="flex items-center justify-between border border-slate-200 rounded-xl p-2.5 bg-white mb-2.5">
                     <div className="flex items-center gap-2.5">
                       <span className="w-8 h-8 rounded-[10px] bg-green-50 flex items-center justify-center shrink-0">
                         <Building2 className="w-4 h-4 text-green-600" />
@@ -924,7 +924,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
             initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
             transition={{ duration: 0.28 }}>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <h2 className="text-base font-bold text-slate-900">Review &amp; Confirm</h2>
               <p className="text-xs text-slate-500 mt-0.5">Please review before requesting quotes.</p>
             </div>
@@ -988,7 +988,7 @@ export function BusBookingWidget({ cityName, serviceType, variant = 'bus' }: { c
                 <ArrowLeft className="w-3.5 h-3.5" /> Back
               </button>
               <button type="button" onClick={onSubmit} disabled={loading}
-                className="flex-1 h-12 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-all text-sm">
+                className="flex-1 h-11 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-all text-sm">
                 {loading
                   ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</>
                   : bookingPurpose === 'company' && isB2BApproved
@@ -1761,12 +1761,12 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
   };
 
   /* shared styles — matches Bus/Equipment widgets' visual language */
-  const inputCls = "w-full h-[46px] pl-10 pr-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all";
+  const inputCls = "w-full h-[42px] pl-10 pr-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all";
   const iconCls  = "absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none [&>svg]:w-4 [&>svg]:h-4";
-  const lblCls   = "block text-xs font-semibold text-gray-800 mb-1.5";
-  const subHdCls = "text-[11px] font-black tracking-wide text-emerald-700 uppercase mb-2 mt-4 first:mt-0";
-  const backBtn  = "flex-none w-[88px] h-12 border border-gray-200 bg-white text-gray-400 font-bold rounded-2xl flex items-center justify-center gap-1.5 hover:bg-gray-50 hover:text-gray-700 transition-all text-sm";
-  const nextBtn  = "flex-1 h-12 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-100 text-sm";
+  const lblCls   = "block text-xs font-semibold text-gray-800 mb-1";
+  const subHdCls = "text-[11px] font-black tracking-wide text-emerald-700 uppercase mb-1.5 mt-3 first:mt-0";
+  const backBtn  = "flex-none w-[88px] h-11 border border-gray-200 bg-white text-gray-400 font-bold rounded-2xl flex items-center justify-center gap-1.5 hover:bg-gray-50 hover:text-gray-700 transition-all text-sm";
+  const nextBtn  = "flex-1 h-11 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-100 text-sm";
 
   /* ── SUCCESS ── */
   if (step === 5) {
@@ -1810,13 +1810,13 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
             initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
             transition={{ duration: 0.28 }}>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Truck &amp; Goods</h2>
               <p className="text-[12.5px] text-gray-400 mt-0.5">What are you moving &amp; how.</p>
             </div>
 
             <label className={lblCls}>Usage</label>
-            <div className="mb-3.5">
+            <div className="mb-2.5">
               <YesNoToggle
                 value={truckMode === '2'}
                 onChange={v => setTruckMode(v ? '2' : '1')}
@@ -1826,7 +1826,7 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
             </div>
 
             <label className={lblCls}>Truck Body Type</label>
-            <div className="relative mb-3.5">
+            <div className="relative mb-2.5">
               <span className={iconCls}><Truck /></span>
               <select value={truckBodyType} onChange={e => setTruckBodyType(e.target.value)}
                 className={`${inputCls} pr-9 appearance-none`}>
@@ -1838,7 +1838,7 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
             </div>
 
             <label className={lblCls}>Truck Type</label>
-            <div className="relative mb-3.5">
+            <div className="relative mb-2.5">
               <span className={iconCls}><Truck /></span>
               <select value={truckTypeValue} onChange={e => setTruckTypeValue(e.target.value)}
                 className={`${inputCls} pr-9 appearance-none`}>
@@ -1850,7 +1850,7 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
             </div>
 
             <label className={lblCls}>Goods Type</label>
-            <div className="relative mb-3.5">
+            <div className="relative mb-2.5">
               <span className={iconCls}><Package /></span>
               <select required value={goodsType} onChange={e => { setGoodsType(e.target.value); setErr1(''); }}
                 className={`${inputCls} pr-9 appearance-none`}>
@@ -1868,9 +1868,9 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
             <textarea placeholder="e.g., 10 boxes, 2 beds, machinery parts…"
               value={materialDetails} onChange={e => setMaterialDetails(e.target.value)}
               rows={2} maxLength={250}
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all resize-none mb-3.5" />
+              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all resize-none mb-2.5" />
 
-            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
               <div>
                 <label className={lblCls}>Approx. Weight</label>
                 <input type="text" inputMode="numeric" placeholder="e.g., 500"
@@ -1918,25 +1918,25 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
             initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
             transition={{ duration: 0.28 }}>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Pickup &amp; Drop</h2>
               <p className="text-[12.5px] text-gray-400 mt-0.5">Where the truck picks up &amp; delivers.</p>
             </div>
 
             <p className={subHdCls}>Pickup</p>
             <label className={lblCls}>Pickup City</label>
-            <div className="mb-3.5">
+            <div className="mb-2.5">
               <CityPicker value={pickupCity} onChange={setPickupCity}
                 placeholder="Select pickup city" locations={locations} icon={<MapPin />} />
             </div>
             <label className={lblCls}>Pickup Address</label>
-            <div className="relative mb-3.5">
+            <div className="relative mb-2.5">
               <span className={iconCls}><Home /></span>
               <input required type="text" placeholder="Enter pickup address or landmark"
                 value={pickupAddress} onChange={e => setPickupAddress(e.target.value)}
                 className={inputCls} />
             </div>
-            <div className="grid grid-cols-3 gap-2.5 mb-3.5">
+            <div className="grid grid-cols-3 gap-2.5 mb-2.5">
               <div className="col-span-1">
                 <label className={lblCls}>Pincode <small className="text-[10px] text-gray-400 font-normal">(optional)</small></label>
                 <input type="text" inputMode="numeric" maxLength={6} placeholder="e.g., 110001"
@@ -1957,12 +1957,12 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
 
             <p className={subHdCls}>Drop</p>
             <label className={lblCls}>Drop City</label>
-            <div className="mb-3.5">
+            <div className="mb-2.5">
               <CityPicker value={dropCity} onChange={setDropCity}
                 placeholder="Enter drop city" locations={locations} allowCustom icon={<Flag />} />
             </div>
             <label className={lblCls}>Drop Address</label>
-            <div className="relative mb-3.5">
+            <div className="relative mb-2.5">
               <span className={iconCls}><MapPin /></span>
               <input required type="text" placeholder="Enter drop address or landmark"
                 value={dropAddress} onChange={e => setDropAddress(e.target.value)}
@@ -2006,13 +2006,13 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
             initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
             transition={{ duration: 0.28 }}>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Schedule &amp; Contact</h2>
               <p className="text-[12.5px] text-gray-400 mt-0.5">When, extra needs &amp; who to reach.</p>
             </div>
 
             <p className={subHdCls}>Schedule</p>
-            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
               <div>
                 <label className={lblCls}>Pickup Date</label>
                 <div className="relative">
@@ -2030,7 +2030,7 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
               <div>
                 <label className={lblCls}>Delivery By <small className="text-[10px] text-gray-400 font-normal">(optional)</small></label>
                 <div className="relative">
@@ -2047,7 +2047,7 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
             <label className={lblCls}>
               Preferred Delivery Time <small className="text-[11px] text-gray-400 font-normal ml-1">(optional)</small>
             </label>
-            <div className="grid grid-cols-4 gap-2 mb-3.5">
+            <div className="grid grid-cols-4 gap-2 mb-2.5">
               {[
                 { v: 'MORNING', l: '🌅 Morn' },
                 { v: 'AFTERNOON', l: '☀️ Aft' },
@@ -2067,7 +2067,7 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
             </div>
 
             <p className={subHdCls}>Trip Requirements</p>
-            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
               <div>
                 <label className={lblCls}>Loading/Unloading Help?</label>
                 <YesNoToggle value={requiresLabour} onChange={setRequiresLabour} />
@@ -2081,7 +2081,7 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
                 </div>
               )}
             </div>
-            <div className="mb-3.5">
+            <div className="mb-2.5">
               <label className={lblCls}>Multiple Stops Needed?</label>
               <YesNoToggle value={hasMultipleStops} onChange={setHasMultipleStops} />
             </div>
@@ -2089,9 +2089,9 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
               <textarea placeholder="Describe the additional stops…"
                 value={multipleStopsDetails} onChange={e => setMultipleStopsDetails(e.target.value)}
                 rows={2} maxLength={200}
-                className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all resize-none mb-3.5" />
+                className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all resize-none mb-2.5" />
             )}
-            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
               <div>
                 <label className={lblCls}>Receiver Name <small className="text-[10px] text-gray-400 font-normal">(optional)</small></label>
                 <input type="text" placeholder="Who receives goods"
@@ -2112,7 +2112,7 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
 
             <p className={subHdCls}>Your Contact Details</p>
             {showAutoFill ? (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 mb-3.5">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 mb-2.5">
                 <p className="text-xs text-emerald-600 font-semibold mb-2">Booking as</p>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-emerald-200 flex items-center justify-center text-emerald-700 font-black text-sm shrink-0">
@@ -2132,7 +2132,7 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
             ) : (
               <>
                 <label className={lblCls}>Name <span className="text-red-500">*</span></label>
-                <div className="relative mb-3.5">
+                <div className="relative mb-2.5">
                   <span className={iconCls}><User /></span>
                   <input required type="text" placeholder="Your full name" value={name}
                     onChange={e => { setName(e.target.value); setErr3(''); }}
@@ -2140,7 +2140,7 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
                 </div>
 
                 <label className={lblCls}>Mobile <span className="text-red-500">*</span></label>
-                <div className="relative mb-3.5">
+                <div className="relative mb-2.5">
                   <span className={iconCls}><Phone /></span>
                   <input required type="tel" maxLength={10} placeholder="10-digit mobile number"
                     value={phone} onChange={e => { setPhone(e.target.value.replace(/\D/g, '')); setErr3(''); }}
@@ -2148,7 +2148,7 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
                 </div>
 
                 <label className={lblCls}>Email <span className="text-red-500">*</span></label>
-                <div className="relative mb-3.5">
+                <div className="relative mb-2.5">
                   <span className={iconCls}><Mail /></span>
                   <input required type="email" placeholder="you@example.com"
                     value={email} onChange={e => { setEmail(e.target.value); setErr3(''); }}
@@ -2184,7 +2184,7 @@ export function TruckBookingWidget({ cityName, serviceType }: { cityName: string
             initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -28 }}
             transition={{ duration: 0.28 }}>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <h2 className="text-[18px] font-black text-gray-900 tracking-tight">Review &amp; Confirm</h2>
               <p className="text-[12.5px] text-gray-400 mt-0.5">Please review before requesting quotes.</p>
             </div>
@@ -2294,7 +2294,7 @@ export function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityNa
         {/* Header – 72px (equipment/truck); content-driven height on mobile for bus so wrapped text never clips */}
         <div className={`flex items-center justify-between shrink-0 gap-2 ${
           !isPanel
-            ? 'min-h-[72px] py-3 px-4 sm:px-6 bg-gradient-to-r from-green-700 to-green-600'
+            ? 'min-h-[58px] py-2.5 px-4 sm:px-5 bg-gradient-to-r from-green-700 to-green-600'
             : 'h-[72px] px-[18px] border-b border-gray-100'
         }`}>
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -2342,7 +2342,7 @@ export function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityNa
         {/* Body – scrollable on fixed-height variants, natural height for bus */}
         <div ref={bodyRef} className={`${
           !isPanel
-            ? 'p-6 pt-4'
+            ? 'p-5 pt-3 pb-3'
             : `px-[18px] py-4 flex-1 min-h-0 overflow-y-auto ${isTempo ? 'max-h-[520px]' : ''}
           [&::-webkit-scrollbar]:w-1.5
           [&::-webkit-scrollbar-track]:bg-transparent
@@ -2361,21 +2361,27 @@ export function BookingCard({ cityName, serviceType, variant = 'bus' }: { cityNa
 
         {/* Footer */}
         {!isPanel ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-6 py-4 border-t border-slate-100 bg-white shrink-0">
-            {[
-              { icon: Tag, text: 'Best Price', sub: 'Guaranteed' },
-              { icon: ShieldCheck, text: '500+ Verified', sub: 'Operators' },
-              { icon: Clock, text: '15 Min', sub: 'Callback' },
-              { icon: UserCheck, text: '24/7', sub: 'Support' },
-            ].map(item => (
-              <div key={item.text} className="flex items-center gap-2">
-                <item.icon className="w-4 h-4 text-green-600 flex-shrink-0" />
-                <div className="text-[11px] leading-tight text-slate-600">
-                  <div className="font-semibold text-slate-900">{item.text}</div>
-                  {item.sub}
+          <div className="px-6 pt-3 pb-4 border-t border-slate-100 bg-white shrink-0">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+              {[
+                { icon: Tag, text: 'Best Price', sub: 'Guaranteed' },
+                { icon: ShieldCheck, text: '500+ Verified', sub: 'Operators' },
+                { icon: Clock, text: '15 Min', sub: 'Callback' },
+                { icon: UserCheck, text: '24/7', sub: 'Support' },
+              ].map(item => (
+                <div key={item.text} className="flex items-center gap-2">
+                  <item.icon className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <div className="text-[11px] leading-tight text-slate-600">
+                    <div className="font-semibold text-slate-900">{item.text}</div>
+                    {item.sub}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <button onClick={() => setShowChat(v => !v)}
+              className="w-full flex items-center justify-center gap-1.5 text-[13px] font-bold text-green-700 hover:text-green-600 transition-colors whitespace-nowrap pt-1">
+              {showChat ? '← Back to form' : <>Book with AI Assistant <ChevronRight className="w-3.5 h-3.5" /></>}
+            </button>
           </div>
         ) : isTempo ? (
           /* Equipment-rental form jaisa footer — 4 stats grid me, neeche

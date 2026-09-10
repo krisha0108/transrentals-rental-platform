@@ -1,7 +1,11 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
-import { LocationsGrid } from '@/components/services/LocationsGrid';
+import {
+  Truck, Boxes, Construction, Mountain, Factory, Warehouse, Route, Zap, Ship,
+  Wrench, MessageCircleQuestion, Plus, ArrowRight,
+} from 'lucide-react';
+import { EquipmentBookingHero } from '@/components/equipment-rental/EquipmentBookingHero';
+import { StaticServicePopularCitiesGrid } from '@/components/services/StaticServicePopularCitiesGrid';
 import { HowToSchema, BreadcrumbSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
@@ -43,42 +47,104 @@ export const metadata: Metadata = {
 const HYDRA_TYPES = [
   {
     capacity: '8 Ton',
-    price: '₹6,000',
-    tag: 'Most Popular',
-    desc: 'Ideal for residential construction, loading/unloading at warehouses, and light industrial lifting within 4-metre radius.',
-    uses: 'Steel beams, precast slabs, machinery up to 8T',
+    icon: Truck,
+    anim: 'drive',
+    bestFor: 'Residential construction, warehouse loading/unloading, light industrial lifting',
+    features: ['4m working radius', 'Steel beams, precast slabs', 'Machinery up to 8T'],
   },
   {
     capacity: '10 Ton',
-    price: '₹7,500',
-    tag: '',
-    desc: 'Suited for medium construction sites and industrial plants. Can operate in slightly tighter spaces than a mobile crane.',
-    uses: 'Heavy precast panels, transformer installation, pipe laying',
+    icon: Boxes,
+    anim: 'pulse',
+    bestFor: 'Medium construction sites and industrial plants, tighter spaces than a mobile crane',
+    features: ['Heavy precast panels', 'Transformer installation', 'Pipe laying'],
   },
   {
     capacity: '12 Ton',
-    price: '₹9,000',
-    tag: '',
-    desc: 'For heavier lifting at construction sites, road-laying projects, and industrial equipment installation.',
-    uses: 'Heavy machinery, fabricated steel, large precast elements',
+    icon: Construction,
+    anim: 'wrench',
+    bestFor: 'Heavier lifting at construction sites, road-laying projects, equipment installation',
+    features: ['Heavy machinery', 'Fabricated steel', 'Large precast elements'],
   },
   {
     capacity: '14 Ton',
-    price: '₹10,500',
-    tag: 'Max Capacity',
-    desc: 'Maximum hydra capacity — used for large industrial lifts and heavy structural steel erection within site.',
-    uses: 'Heavy plant equipment, large steel structures, industrial boilers',
+    icon: Mountain,
+    anim: 'lift',
+    bestFor: 'Maximum hydra capacity — large industrial lifts and heavy structural steel erection',
+    features: ['Heavy plant equipment', 'Large steel structures', 'Industrial boilers'],
   },
 ];
 
 const APPLICATIONS = [
-  { icon: '🏗️', title: 'Construction Sites', desc: 'Lifting precast slabs, steel beams, column formwork, and scaffolding material within the construction site perimeter without needing a fixed crane.' },
-  { icon: '🏭', title: 'Factory & Industrial', desc: 'Installing heavy machinery, moving production equipment during plant layout changes, and lifting motors or transformers inside industrial sheds.' },
-  { icon: '🏢', title: 'Warehouses & Logistics', desc: 'Loading and unloading heavy goods from trucks, stacking oversized pallets, and moving heavy freight containers within warehouse yards.' },
-  { icon: '🛣️', title: 'Road & Infrastructure', desc: 'Pipe laying for drainage and water supply, placing pre-cast culverts, and lifting road crash barriers and utility poles.' },
-  { icon: '🔌', title: 'Utilities & Power', desc: 'Transformer installation, distribution panel lifting, and substation equipment erection. Used by MSEDCL, TNEB, and BESCOM contractors regularly.' },
-  { icon: '🚢', title: 'Port & Yard Operations', desc: 'Container and cargo handling in small ports and freight yards where large port cranes are not available. Flexible yard movement.' },
+  { icon: Construction, anim: 'wrench', title: 'Construction Sites', desc: 'Lifting precast slabs, steel beams, column formwork, and scaffolding material within the construction site perimeter without needing a fixed crane.' },
+  { icon: Factory, anim: 'pulse', title: 'Factory & Industrial', desc: 'Installing heavy machinery, moving production equipment during plant layout changes, and lifting motors or transformers inside industrial sheds.' },
+  { icon: Warehouse, anim: 'lift', title: 'Warehouses & Logistics', desc: 'Loading and unloading heavy goods from trucks, stacking oversized pallets, and moving heavy freight containers within warehouse yards.' },
+  { icon: Route, anim: 'drive', title: 'Road & Infrastructure', desc: 'Pipe laying for drainage and water supply, placing pre-cast culverts, and lifting road crash barriers and utility poles.' },
+  { icon: Zap, anim: 'ring', title: 'Utilities & Power', desc: 'Transformer installation, distribution panel lifting, and substation equipment erection. Used by MSEDCL, TNEB, and BESCOM contractors regularly.' },
+  { icon: Ship, anim: 'drive', title: 'Port & Yard Operations', desc: 'Container and cargo handling in small ports and freight yards where large port cranes are not available. Flexible yard movement.' },
 ];
+
+/* Wahi wide-brochure card language jo Excavator on Rent page me hai. */
+const HYD_CSS = `
+.hyd-card {
+  opacity: 0;
+  animation: hyd-in .6s cubic-bezier(.22,1,.36,1) forwards;
+  transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease;
+}
+@keyframes hyd-in {
+  from { opacity: 0; transform: translateY(26px) scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+.hyd-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 22px 46px -18px rgba(16,185,129,.45);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hyd-card { opacity: 1; animation: none; }
+  .hyd-card:hover { transform: none; }
+}
+`;
+
+/* Har icon apne kaam jaisa hilta hai — plain Tailwind group-hover utilities. */
+const ICON_HOVER_ANIM: Record<string, string> = {
+  drive: 'group-hover:translate-x-2',
+  pulse: 'group-hover:scale-125',
+  lift: 'group-hover:-translate-y-2',
+  wrench: 'group-hover:rotate-45',
+  ring: 'group-hover:rotate-12',
+};
+
+/* Wahi "Why Choose Us" card language jo Excavator Applications section me hai. */
+const HYA_CSS = `
+.hya-card {
+  opacity: 0;
+  animation: hya-rise .6s cubic-bezier(.22,1,.36,1) forwards;
+  transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .3s ease;
+}
+@keyframes hya-rise {
+  from { opacity: 0; transform: translateY(22px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+.hya-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px -12px rgba(16,185,129,.28);
+  border-color: rgb(167 243 208);
+}
+.hya-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(16,185,129,.10) 50%, transparent 65%);
+  transform: translateX(-100%);
+  transition: transform .8s ease;
+  pointer-events: none;
+}
+.hya-card:hover .hya-sheen { transform: translateX(100%); }
+@media (prefers-reduced-motion: reduce) {
+  .hya-card { opacity: 1; animation: none; }
+  .hya-card:hover { transform: none; }
+  .hya-sheen { display: none; }
+}
+`;
 
 const HYDRA_VS_CRANE = [
   { feature: 'Mobility', hydra: 'Self-propelled — moves across site on wheels', crane: 'Requires separate transport to reposition' },
@@ -197,37 +263,71 @@ export default function HydraOnRentPage() {
         ]}
       />
 
-      <ServiceHeroWithChat
-        badge="Hydra Crane Rental in 200+ Cities"
-        title="Hydra on Rent"
-        titleHighlight="8T to 14T | Operator Included"
-        description="Rent pick and carry hydra cranes for construction sites, factories, and warehouses. Self-propelled — no repositioning delay. Certified operator included. Same-day deployment in most major cities."
-        features={[
-          { icon: 'star', text: '8T–14T Capacity', color: 'text-amber-500' },
-          { icon: 'shield', text: 'TPI Certified', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Quick Deployment', color: 'text-yellow-600' },
-        ]}
-        gradientFrom="yellow-50"
-        gradientTo="amber-50"
+      <EquipmentBookingHero
+        city="India"
+        citySlug=""
+        serviceType="equipment-hydra"
+        badgeLabel="Hydra Crane Rental"
+        bookingTitle="Book Your Hydra"
+        pageHeading="Hydra on Rent | 8T to 14T"
+        pageDescription="Rent pick and carry hydra cranes for construction sites, factories, and warehouses. Self-propelled — no repositioning delay. Certified operator included. Same-day deployment in most major cities."
       />
 
       {/* Hydra Types & Pricing */}
-      <section className="py-14 bg-white">
-        <div className="container-custom max-w-5xl">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">Hydra Crane Capacity & Daily Rental Rates</h2>
-          <p className="text-gray-500 text-center mb-8 text-sm">Rates include certified operator. Fuel (diesel) charged separately at actuals.</p>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {HYDRA_TYPES.map((h) => (
-              <div key={h.capacity} className="bg-gray-50 rounded-xl border border-gray-100 p-5 relative">
-                {h.tag && (
-                  <span className="absolute top-3 right-3 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
-                    {h.tag}
+      <section className="relative py-16 md:py-24 bg-gradient-to-b from-gray-50 via-white to-gray-50 overflow-hidden">
+        <style dangerouslySetInnerHTML={{ __html: HYD_CSS }} />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: 'radial-gradient(620px 380px at 50% 0%, rgba(16,185,129,.10), transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
+            <h2 className="text-3xl md:text-[2.75rem] leading-[1.1] font-black tracking-tight text-gray-900 mb-3">
+              Hydra Crane Capacity & Rental Options
+            </h2>
+            <p className="text-gray-500">
+              Rates include a certified operator. Fuel (diesel) is charged separately at actuals — choose the right tonnage for your lift.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+            {HYDRA_TYPES.map((h, idx) => (
+              <div
+                key={h.capacity}
+                className="hyd-card group relative flex w-full max-w-lg mx-auto rounded-[18px] bg-white border border-gray-100 shadow-sm overflow-hidden"
+                style={{ animationDelay: `${idx * 80}ms` }}
+              >
+                <div className="w-[124px] shrink-0 flex flex-col items-center justify-center gap-3 px-3 py-6 bg-emerald-50">
+                  <span className="inline-flex">
+                    <h.icon
+                      className={`w-9 h-9 text-emerald-600 transition-transform duration-500 ${ICON_HOVER_ANIM[h.anim]}`}
+                      strokeWidth={1.7}
+                    />
                   </span>
-                )}
-                <p className="text-xl font-bold text-gray-900">{h.capacity}</p>
-                <p className="text-amber-600 font-bold text-lg mb-2">{h.price}<span className="text-sm font-normal text-gray-500">/day</span></p>
-                <p className="text-gray-600 text-sm mb-2">{h.desc}</p>
-                <p className="text-xs text-gray-400"><strong>Typical use:</strong> {h.uses}</p>
+                  <span className="text-[11px] font-bold text-center leading-tight text-emerald-700">
+                    {h.capacity}
+                  </span>
+                </div>
+
+                <div className="flex-1 min-w-0 p-5">
+                  <h3 className="text-[16px] font-bold text-gray-900 leading-snug">{h.capacity} Hydra</h3>
+                  <div className="mt-2.5 text-[11px] font-bold uppercase tracking-[0.06em] text-gray-400">Best for</div>
+                  <p className="mt-0.5 text-[13px] text-gray-600">{h.bestFor}</p>
+
+                  <ul className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap gap-x-5 gap-y-2">
+                    {h.features.map((f) => (
+                      <li key={f} className="flex items-center gap-1.5 text-[12.5px] text-gray-600">
+                        <span className="shrink-0 w-4 h-4 rounded-full bg-emerald-50 grid place-items-center">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        </span>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             ))}
           </div>
@@ -235,15 +335,47 @@ export default function HydraOnRentPage() {
       </section>
 
       {/* Applications */}
-      <section className="py-14 bg-gray-50">
-        <div className="container-custom max-w-5xl">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">Where Is a Hydra Crane Used?</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {APPLICATIONS.map((app) => (
-              <div key={app.title} className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
-                <div className="text-3xl mb-3">{app.icon}</div>
-                <h3 className="font-bold text-gray-900 mb-1">{app.title}</h3>
-                <p className="text-gray-600 text-sm">{app.desc}</p>
+      <section className="hya relative overflow-hidden py-16 md:py-24 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <style dangerouslySetInnerHTML={{ __html: HYA_CSS }} />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
+            <h2 className="text-3xl md:text-[2.75rem] leading-[1.1] font-black tracking-tight text-gray-900">
+              Where Is a <span className="text-emerald-600">Hydra Crane</span> Used?
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 max-w-6xl mx-auto">
+            {APPLICATIONS.map((app, idx) => (
+              <div
+                key={app.title}
+                className="hya-card group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-7 text-center overflow-hidden"
+                style={{ animationDelay: `${idx * 90}ms` }}
+              >
+                <span aria-hidden className="hya-sheen" />
+                <div className="relative">
+                  <div className="relative w-16 h-16 mx-auto mb-4">
+                    <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                    <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                      <app.icon
+                        className={`w-6 h-6 text-emerald-600 transition-all duration-500 group-hover:text-white ${ICON_HOVER_ANIM[app.anim]}`}
+                      />
+                    </span>
+                  </div>
+                  <h3 className="text-[17px] font-bold text-gray-900 mb-2 leading-snug">{app.title}</h3>
+                  <p className="text-[13.5px] leading-relaxed text-gray-500">{app.desc}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -257,10 +389,10 @@ export default function HydraOnRentPage() {
           <div className="overflow-x-auto rounded-xl border border-gray-100">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50">
+                <tr className="bg-emerald-50/60">
                   <th className="px-4 py-3 text-left font-bold text-gray-700">Feature</th>
-                  <th className="px-4 py-3 text-left font-bold text-amber-700">Hydra Crane</th>
-                  <th className="px-4 py-3 text-left font-bold text-blue-700">Mobile Crane</th>
+                  <th className="px-4 py-3 text-left font-bold text-emerald-700">Hydra Crane</th>
+                  <th className="px-4 py-3 text-left font-bold text-gray-500">Mobile Crane</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -278,20 +410,56 @@ export default function HydraOnRentPage() {
         </div>
       </section>
 
-      <LocationsGrid service="hydra-on-rent" />
+      <StaticServicePopularCitiesGrid serviceSlug="hydra-on-rent" title="Hydra Rental in Available Cities" />
 
       {/* FAQs */}
-      <section className="py-14 bg-white">
-        <div className="container-custom max-w-3xl">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">Hydra Crane Rental FAQs</h2>
-          <div className="space-y-3">
-            {HYDRA_FAQS.map((faq, i) => (
-              <details key={i} className="bg-gray-50 rounded-xl border border-gray-100 group">
-                <summary className="px-5 py-4 font-medium text-gray-900 cursor-pointer select-none list-none flex justify-between items-center">
-                  {faq.q}
-                  <span className="text-gray-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-3">▾</span>
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] text-emerald-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              GOOD TO KNOW
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            </span>
+            <h2 className="mt-4 text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Hydra Crane Rental <span className="text-emerald-600">FAQs</span>
+            </h2>
+          </div>
+
+          <div className="max-w-5xl mx-auto space-y-3">
+            {HYDRA_FAQS.map((faq, idx) => (
+              /* <details> — bina kisi client JS ke khulta-band hota hai */
+              <details
+                key={idx}
+                open={idx === 0}
+                className="group rounded-2xl bg-white border border-gray-100 shadow-sm open:border-emerald-200 open:shadow-md transition-all"
+              >
+                <summary className="flex items-center gap-4 px-4 sm:px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span className="shrink-0 w-9 h-9 rounded-full bg-emerald-50 grid place-items-center">
+                    <MessageCircleQuestion className="w-[18px] h-[18px] text-emerald-600" />
+                  </span>
+                  <h3 className="flex-1 font-bold text-[15px] leading-snug text-gray-900">
+                    {faq.q}
+                  </h3>
+                  <span className="shrink-0 w-8 h-8 rounded-lg bg-gray-50 text-gray-500 grid place-items-center transition-all duration-200 group-open:rotate-45 group-open:bg-emerald-600 group-open:text-white">
+                    <Plus className="w-4 h-4" />
+                  </span>
                 </summary>
-                <p className="px-5 pb-4 text-gray-600 text-sm leading-relaxed">{faq.a}</p>
+                <p className="px-4 sm:px-5 pb-5 sm:pl-[4.25rem] text-[14px] leading-relaxed text-gray-500">
+                  {faq.a}
+                </p>
               </details>
             ))}
           </div>
@@ -299,23 +467,42 @@ export default function HydraOnRentPage() {
       </section>
 
       {/* Related Services */}
-      <section className="py-10 bg-gray-50 border-t border-gray-100">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Related Crane & Equipment Services</h2>
-          <div className="flex flex-wrap gap-3">
+      <section className="relative py-16 bg-white border-t border-gray-100 overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-70"
+          style={{
+            backgroundImage:
+              'linear-gradient(#ecfdf5 1px, transparent 1px), linear-gradient(90deg, #ecfdf5 1px, transparent 1px)',
+            backgroundSize: '34px 34px',
+            maskImage: 'radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 90%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 90%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
+              <Construction className="w-4 h-4" />
+              Related Services
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">Related Crane & Equipment Services</h2>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-3 max-w-5xl mx-auto">
             {[
-              { label: 'Crane on Rent', href: '/crane-on-rent' },
-              { label: 'Equipment Rental', href: '/equipment-rental' },
-              { label: 'JCB on Rent', href: '/jcb-on-rent' },
-              { label: 'Excavator on Rent', href: '/excavator-on-rent' },
-              { label: 'Generator on Rent', href: '/generator-on-rent' },
+              { label: 'Crane on Rent', href: '/crane-on-rent', icon: Construction },
+              { label: 'Equipment Rental', href: '/equipment-rental', icon: Wrench },
+              { label: 'JCB on Rent', href: '/jcb-on-rent', icon: Truck },
+              { label: 'Excavator on Rent', href: '/excavator-on-rent', icon: Mountain },
+              { label: 'Generator on Rent', href: '/generator-on-rent', icon: Zap },
             ].map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-amber-500 hover:text-amber-700 transition-colors"
+                className="inline-flex items-center gap-2 bg-white border border-gray-100 hover:border-emerald-200 rounded-xl px-4 py-2.5 text-sm font-bold text-emerald-700 transition-colors"
               >
+                <link.icon className="w-4 h-4 text-emerald-600" />
                 {link.label}
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             ))}
           </div>

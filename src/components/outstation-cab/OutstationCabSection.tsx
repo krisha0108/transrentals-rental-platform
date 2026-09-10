@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
+import { Car as CarIcon } from 'lucide-react';
 
 interface VehicleCategory {
   id: string;
@@ -65,11 +66,13 @@ export function OutstationCabSection({ categories, pricingMap }: Props) {
   }, [categories, activeAC, activeSeat]);
 
   return (
-    <section className="py-12 bg-gray-50">
-      <div className="container-custom">
-        <h2 className="text-2xl md:text-3xl font-bold text-center mb-1">
-          Outstation Cab Options
-        </h2>
+    <section className="relative overflow-hidden py-14 md:py-16 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+      <div className="container-custom relative">
+        <div className="text-center max-w-2xl mx-auto mb-2">
+          <h2 className="text-2xl md:text-[2rem] font-black tracking-tight text-gray-900">
+            Outstation Cab <span className="text-emerald-600">Options</span>
+          </h2>
+        </div>
         <p className="text-center text-gray-500 mb-5 text-sm">Select from our range of well-maintained vehicles</p>
 
         {/* Filters */}
@@ -84,8 +87,8 @@ export function OutstationCabSection({ categories, pricingMap }: Props) {
                   onClick={() => setActiveAC(t)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
                     activeAC === t
-                      ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-purple-400 hover:text-purple-600'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-600'
                   }`}
                 >
                   {t}
@@ -104,8 +107,8 @@ export function OutstationCabSection({ categories, pricingMap }: Props) {
                   onClick={() => setActiveSeat(g.label)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
                     activeSeat === g.label
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-400 hover:text-indigo-600'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-600'
                   }`}
                 >
                   {g.label}
@@ -119,32 +122,23 @@ export function OutstationCabSection({ categories, pricingMap }: Props) {
           <div className="text-center py-12 text-gray-400">No vehicles found for selected filters.</div>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {filtered.map((cat) => {
+            {filtered.map((cat, idx) => {
               let examples: string[] = [];
               try { examples = cat.exampleVehicles ? JSON.parse(cat.exampleVehicles) : []; } catch {}
               const pricing = pricingMap[cat.id];
-              const rate = pricing?.baseKmRate ?? cat.dailyRate;
               const minKm = pricing?.minKmPerDay;
               const driverAllowance = pricing?.driverDayAllowance;
               return (
                 <div
                   key={cat.id}
-                  className={`relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition overflow-hidden flex flex-col ${
-                    cat.isPopular ? 'ring-2 ring-purple-500 scale-[1.02]' : 'border border-purple-100'
-                  }`}
+                  className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-emerald-100 hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col"
+                  style={{ animation: `ocs-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 70}ms forwards`, opacity: 0 }}
                 >
-                  {cat.isPopular && (
-                    <div className="absolute top-0 left-0 right-0 flex justify-center">
-                      <span className="bg-purple-600 text-white text-xs font-bold px-4 py-1 rounded-b-lg">
-                        ⭐ POPULAR
-                      </span>
-                    </div>
-                  )}
-                  <div className={`relative h-44 bg-gradient-to-br from-purple-50 to-indigo-50 flex items-center justify-center ${cat.isPopular ? 'mt-6' : ''}`}>
+                  <div className="relative h-44 bg-emerald-50 flex items-center justify-center">
                     {cat.image ? (
                       <Image src={cat.image} alt={cat.name} fill className="object-contain p-4" sizes="(max-width:640px) 100vw,(max-width:1024px) 50vw,33vw" />
                     ) : (
-                      <span className="text-7xl">🚗</span>
+                      <CarIcon className="w-14 h-14 text-emerald-300" strokeWidth={1.3} />
                     )}
                   </div>
                   <div className="p-5 flex flex-col flex-1">
@@ -156,27 +150,18 @@ export function OutstationCabSection({ categories, pricingMap }: Props) {
                       <p className="text-sm text-gray-500 text-center mb-3">{examples.slice(0, 2).join(', ')}</p>
                     )}
                     <div className="text-center mb-4">
-                      {rate ? (
-                        <>
-                          <div className="flex items-baseline justify-center gap-1">
-                            <span className="text-3xl font-bold text-purple-600">₹{rate.toLocaleString('en-IN')}</span>
-                            <span className="text-sm text-gray-500">/km</span>
-                          </div>
-                          {minKm && <p className="text-xs text-gray-400 mt-0.5">Min {minKm} km/day</p>}
-                        </>
-                      ) : (
-                        <p className="text-xl font-bold text-purple-600">Get Quote</p>
-                      )}
+                      <p className="text-xl font-bold text-emerald-700">Get Quote</p>
+                      {minKm && <p className="text-xs text-gray-400 mt-0.5">Min {minKm} km/day</p>}
                     </div>
                     <div className="space-y-1.5 mb-4">
                       {[
                         `${cat.seatingCapacity} passengers`,
                         'AC & comfortable',
                         'Professional driver',
-                        ...(driverAllowance ? [`Driver allowance ₹${driverAllowance}/day`] : []),
+                        ...(driverAllowance ? ['Driver allowance included'] : []),
                       ].map((f) => (
                         <p key={f} className="text-sm text-gray-600 flex items-center gap-2">
-                          <span className="text-purple-500">✓</span>{f}
+                          <span className="text-emerald-500">✓</span>{f}
                         </p>
                       ))}
                     </div>
@@ -188,9 +173,13 @@ export function OutstationCabSection({ categories, pricingMap }: Props) {
         )}
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          * Rates shown are per km. Final price includes driver allowance + GST (5%). Toll &amp; parking extra.
+          * All-inclusive quote covers driver allowance &amp; GST. Toll &amp; parking extra.
         </p>
       </div>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes ocs-rise { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: none; } }
+        @media (prefers-reduced-motion: reduce) { [style*="ocs-rise"] { animation: none !important; opacity: 1 !important; } }
+      ` }} />
     </section>
   );
 }

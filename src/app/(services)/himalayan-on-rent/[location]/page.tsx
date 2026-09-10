@@ -7,6 +7,7 @@ import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { FAQSection } from '@/components/services/FAQSection';
+import { Mountain, ShieldCheck, Briefcase, Fuel, Route as RouteIcon, Clock, ArrowRight, Compass, Bike } from 'lucide-react';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
@@ -88,61 +89,170 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
         pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
       />
 
-      <section className="bg-gradient-to-br from-slate-800 to-blue-900 text-white py-12">
+      <section className="bg-white py-10 border-b border-gray-100">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Himalayan on Rent in {locationName}</h1>
-          <div className="flex flex-wrap gap-4">
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Starting from</p>
-              <p className="text-xl font-bold">₹1,499/day</p>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">
+                Himalayan on Rent in <span className="text-emerald-600">{locationName}</span>
+              </h2>
+              <p className="text-gray-500 mt-1.5">Adventure touring bike, built for mountain roads.</p>
             </div>
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Engine</p>
-              <p className="text-xl font-bold">411cc / 450cc</p>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Mountain className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Engine</p>
+                  <p className="text-lg font-black text-gray-900">411cc / 450cc</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Coverage</p>
+                  <p className="text-lg font-black text-gray-900">Insured</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-12">
+      {/* Why Rent Himalayan */}
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-[2.5rem] leading-[1.1] font-black tracking-tight text-gray-900 text-center mb-10">
+            Why Rent <span className="text-emerald-600">Himalayan</span> in {locationName}?
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 max-w-5xl mx-auto">
+            {[
+              { icon: Mountain, title: 'Built for Mountains', desc: 'High altitude proven' },
+              { icon: ShieldCheck, title: 'Tough & Reliable', desc: 'Handles rough roads' },
+              { icon: Briefcase, title: 'Luggage Ready', desc: 'Panniers & top box' },
+              { icon: Fuel, title: 'Great Mileage', desc: '30+ km/l economy' },
+            ].map((item, idx) => (
+              <div
+                key={item.title}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-4 py-7 text-center overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-100"
+                style={{ animation: `hml-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 80}ms forwards`, opacity: 0 }}
+              >
+                <div className="relative w-14 h-14 mx-auto mb-4">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                  <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                    <item.icon className="w-5 h-5 text-emerald-600 transition-colors duration-300 group-hover:text-white" />
+                  </span>
+                </div>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-1.5 leading-snug">{item.title}</h3>
+                <p className="text-[13px] leading-relaxed text-gray-500">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes hml-rise { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) { [style*="hml-rise"] { animation: none !important; opacity: 1 !important; } }
+        ` }} />
+      </section>
+
+      {/* Himalayan Options */}
+      <section className="py-16 bg-white">
         <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">Himalayan Options in {locationName}</h2>
-          <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Himalayan Options in <span className="text-emerald-600">{locationName}</span>
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
             {[
               { name: 'Himalayan 411cc', price: 1499 },
               { name: 'Himalayan 450', price: 1799 },
             ].map((v) => (
-              <div key={v.name} className="bg-white rounded-xl shadow-md p-6">
-                <h3 className="text-xl font-bold mb-2">{v.name}</h3>
-                <p className="text-3xl font-bold text-slate-700 mb-4">₹{v.price}<span className="text-sm text-gray-500">/day</span></p>
-                <ul className="text-sm text-gray-600 space-y-1 mb-4">
-                  <li>✓ Helmet included</li>
-                  <li>✓ Insurance covered</li>
-                  <li>✓ Panniers available</li>
+              <div key={v.name} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
+                <span className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <Bike className="w-6 h-6 text-emerald-600" />
+                </span>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">{v.name}</h3>
+                <p className="text-2xl font-black text-emerald-700 mb-4">₹{v.price}<span className="text-sm font-medium text-gray-400">/day</span></p>
+                <ul className="text-sm text-gray-600 space-y-2 text-left max-w-[180px] mx-auto">
+                  {['Helmet included', 'Insurance covered', 'Panniers available'].map((f) => (
+                    <li key={f} className="flex items-center gap-2">
+                      <span className="shrink-0 w-4 h-4 rounded-full bg-emerald-50 grid place-items-center text-emerald-600 text-[10px]">✓</span>
+                      {f}
+                    </li>
+                  ))}
                 </ul>
-                <button className="w-full bg-slate-800 text-white py-2 rounded-lg">Book Now</button>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-12 bg-gray-50">
+      {/* Popular Routes */}
+      <section className="relative py-16 bg-gradient-to-b from-gray-50 via-white to-gray-50 overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{ background: 'radial-gradient(620px 380px at 50% 0%, rgba(16,185,129,.10), transparent 70%)' }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <h2 className="text-2xl md:text-[2.5rem] leading-[1.1] font-black tracking-tight text-gray-900 mb-3">
+              Popular Routes for Himalayan
+            </h2>
+            <p className="text-gray-500">Mountain circuits riders take the Himalayan on most often</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            {[
+              { route: 'Manali to Leh', days: '5-7 days', km: '490 km' },
+              { route: 'Srinagar to Leh', days: '2-3 days', km: '420 km' },
+              { route: 'Spiti Circuit', days: '7-8 days', km: '600 km' },
+              { route: 'Kinnaur Valley', days: '4-5 days', km: '350 km' },
+            ].map((item) => (
+              <div key={item.route} className="group relative flex flex-col items-center text-center bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center mb-4">
+                  <RouteIcon className="w-6 h-6 text-emerald-600" strokeWidth={1.8} />
+                </div>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1.5">{item.route}</h3>
+                <p className="inline-flex items-center gap-1.5 text-[12.5px] text-gray-500">
+                  <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                  {item.days} &bull; {item.km}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 bg-white">
         <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">Other Bikes in {locationName}</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/royal-enfield-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">Royal Enfield</h3><p className="text-sm text-gray-600 mt-2">Classic, Bullet</p>
-            </Link>
-            <Link href={`/ktm-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">KTM</h3><p className="text-sm text-gray-600 mt-2">Duke, RC</p>
-            </Link>
-            <Link href={`/bike-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">All Bikes</h3><p className="text-sm text-gray-600 mt-2">View all</p>
-            </Link>
-            <Link href="/bike-tours/leh-ladakh" className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">Ladakh Tour</h3><p className="text-sm text-gray-600 mt-2">Guided tours</p>
-            </Link>
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Other Bikes in <span className="text-emerald-600">{locationName}</span>
+          </h2>
+          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            {[
+              { href: `/royal-enfield-on-rent/${params.location.toLowerCase()}`, icon: Bike, title: 'Royal Enfield', desc: 'Classic, Bullet' },
+              { href: `/ktm-on-rent/${params.location.toLowerCase()}`, icon: Bike, title: 'KTM', desc: 'Duke, RC' },
+              { href: `/bike-on-rent/${params.location.toLowerCase()}`, icon: Bike, title: 'All Bikes', desc: 'View all' },
+              { href: '/bike-tours/leh-ladakh', icon: Compass, title: 'Ladakh Tour', desc: 'Guided tours' },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="group relative flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+              >
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center mb-4 group-hover:bg-emerald-600 transition-colors">
+                  <item.icon className="w-6 h-6 text-emerald-600 group-hover:text-white transition-colors" strokeWidth={1.8} />
+                </div>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1">{item.title}</h3>
+                <p className="text-[12.5px] text-gray-500 mb-3">{item.desc}</p>
+                <span className="inline-flex items-center gap-1 text-[12.5px] font-bold text-emerald-700 mt-auto">
+                  Explore
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -167,6 +277,8 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="himalayan-on-rent" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

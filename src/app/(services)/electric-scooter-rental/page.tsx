@@ -1,10 +1,30 @@
 import { Metadata } from 'next';
-import Link from 'next/link';
-import { getCitiesByPriority } from '@/data/indian-cities';
 import { BikeHeroWithLocation } from '@/components/bike/BikeHeroWithLocation';
-import { LocationsGrid } from '@/components/services/LocationsGrid';
-import { FAQSection } from '@/components/services/FAQSection';
+import { StaticServicePopularCitiesGrid } from '@/components/services/StaticServicePopularCitiesGrid';
 import { BikeServiceSchema, HowToSchema } from '@/components/seo/schemas';
+import { Home, Zap, Plug, GraduationCap, Briefcase, Leaf, Search, MessageCircleQuestion, Plus } from 'lucide-react';
+
+const CHARGING_INFO = [
+  { icon: Home, anim: 'lift', title: 'Home Charging', desc: 'Plug into any regular socket. Full charge in 4-6 hours overnight.' },
+  { icon: Zap, anim: 'pulse', title: 'Fast Charging', desc: 'Use public fast chargers. 0-80% in just 45-60 minutes.' },
+  { icon: Plug, anim: 'tick', title: 'Partner Stations', desc: 'Access to Ather Grid, Ola Hypercharger network. Some plans include free charging!' },
+];
+
+const PERFECT_FOR = [
+  { icon: GraduationCap, anim: 'lift', title: 'Students', desc: 'Low running cost, perfect for campus' },
+  { icon: Briefcase, anim: 'drive', title: 'Professionals', desc: 'Silent commute, smart features' },
+  { icon: Leaf, anim: 'pulse', title: 'Eco-Conscious', desc: 'Reduce your carbon footprint' },
+  { icon: Search, anim: 'wrench', title: 'Try Before Buy', desc: 'Test EVs before purchasing' },
+];
+
+/* Har icon apne hisaab se hilta hai — plain Tailwind group-hover, no custom keyframes. */
+const ICON_HOVER_ANIM: Record<string, string> = {
+  drive: 'group-hover:translate-x-2',
+  pulse: 'group-hover:scale-125',
+  tick: 'group-hover:rotate-[360deg]',
+  lift: 'group-hover:-translate-y-2',
+  wrench: 'group-hover:rotate-45',
+};
 
 export const metadata: Metadata = {
   title: 'Electric Scooter Rental | EV Bike on Rent @₹399/Day | Ola, Ather, TVS iQube | TransRentals',
@@ -66,8 +86,6 @@ const schemaVehicles = [
 ];
 
 export default function ElectricScooterRentalPage() {
-  const popularCities = getCitiesByPriority(8);
-
   return (
     <>
       <HowToSchema
@@ -95,72 +113,80 @@ export default function ElectricScooterRentalPage() {
 
       <BikeHeroWithLocation />
 
-      {/* Popular Cities */}
-      <section id="locations" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Electric Scooter Rental in Popular Cities
+      <StaticServicePopularCitiesGrid serviceSlug="electric-scooter-rental" title="Electric Scooter Rental in Available Cities" />
+
+      {/* Charging Info */}
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative max-w-4xl">
+          <h2 className="text-3xl font-bold text-center mb-12">
+            Charging Made Easy
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {popularCities.map((city) => (
-              <Link
-                key={city.slug}
-                href={`/electric-scooter-rental/${city.slug}`}
-                className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition group border-l-4 border-green-500"
+          <div className="grid md:grid-cols-3 gap-6">
+            {CHARGING_INFO.map((item) => (
+              <div
+                key={item.title}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-6 py-8 text-center overflow-hidden"
               >
-                <h3 className="font-semibold text-lg group-hover:text-green-700 transition">
-                  {city.name}
-                </h3>
-                <p className="text-sm text-gray-600">{city.state}</p>
-              </Link>
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                  <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                    <item.icon
+                      className={`w-6 h-6 text-emerald-600 transition-transform duration-500 group-hover:text-white ${ICON_HOVER_ANIM[item.anim]}`}
+                    />
+                  </span>
+                </div>
+                <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
+                <p className="text-gray-600 text-sm">{item.desc}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      <LocationsGrid service="electric-scooter-rental" />
-
-      {/* Charging Info */}
-      <section className="py-16">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Charging Made Easy
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="text-4xl mb-4">🏠</div>
-              <h3 className="font-semibold text-lg mb-2">Home Charging</h3>
-              <p className="text-gray-600 text-sm">Plug into any regular socket. Full charge in 4-6 hours overnight.</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="text-4xl mb-4">⚡</div>
-              <h3 className="font-semibold text-lg mb-2">Fast Charging</h3>
-              <p className="text-gray-600 text-sm">Use public fast chargers. 0-80% in just 45-60 minutes.</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="text-4xl mb-4">🔌</div>
-              <h3 className="font-semibold text-lg mb-2">Partner Stations</h3>
-              <p className="text-gray-600 text-sm">Access to Ather Grid, Ola Hypercharger network. Some plans include free charging!</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Perfect For */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
           <h2 className="text-3xl font-bold text-center mb-12">
             Perfect For
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { icon: '🎓', title: 'Students', desc: 'Low running cost, perfect for campus' },
-              { icon: '💼', title: 'Professionals', desc: 'Silent commute, smart features' },
-              { icon: '🌱', title: 'Eco-Conscious', desc: 'Reduce your carbon footprint' },
-              { icon: '🔍', title: 'Try Before Buy', desc: 'Test EVs before purchasing' },
-            ].map((item) => (
-              <div key={item.title} className="bg-white p-6 rounded-lg shadow-md text-center">
-                <div className="text-4xl mb-3">{item.icon}</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
+            {PERFECT_FOR.map((item) => (
+              <div
+                key={item.title}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-4 py-6 text-center overflow-hidden"
+              >
+                <div className="relative w-14 h-14 mx-auto mb-3">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                  <span className="absolute inset-[5px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                    <item.icon
+                      className={`w-5 h-5 text-emerald-600 transition-transform duration-500 group-hover:text-white ${ICON_HOVER_ANIM[item.anim]}`}
+                    />
+                  </span>
+                </div>
                 <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
                 <p className="text-sm text-gray-600">{item.desc}</p>
               </div>
@@ -169,7 +195,56 @@ export default function ElectricScooterRentalPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" customFaqs={schemaFaqs} />
+      {/* FAQs */}
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] text-emerald-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              GOOD TO KNOW
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            </span>
+            <h2 className="mt-4 text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Electric Scooter <span className="text-emerald-600">FAQs</span>
+            </h2>
+          </div>
+
+          <div className="max-w-5xl mx-auto space-y-3">
+            {schemaFaqs.map((faq, idx) => (
+              <details
+                key={idx}
+                open={idx === 0}
+                className="group rounded-2xl bg-white border border-gray-100 shadow-sm open:border-emerald-200 open:shadow-md transition-all"
+              >
+                <summary className="flex items-center gap-4 px-4 sm:px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span className="shrink-0 w-9 h-9 rounded-full bg-emerald-50 grid place-items-center">
+                    <MessageCircleQuestion className="w-[18px] h-[18px] text-emerald-600" />
+                  </span>
+                  <h3 className="flex-1 font-bold text-[15px] leading-snug text-gray-900">{faq.question}</h3>
+                  <span className="shrink-0 w-8 h-8 rounded-lg bg-gray-50 text-gray-500 grid place-items-center transition-all duration-200 group-open:rotate-45 group-open:bg-emerald-600 group-open:text-white">
+                    <Plus className="w-4 h-4" />
+                  </span>
+                </summary>
+                <p className="px-4 sm:px-5 pb-5 sm:pl-[4.25rem] text-[14px] leading-relaxed text-gray-500">
+                  {faq.answer}
+                </p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
     </>
   );
 }

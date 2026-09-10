@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { LocationsGrid } from '@/components/services/LocationsGrid';
-import { FAQSection } from '@/components/services/FAQSection';
+import { MessageCircleQuestion, Plus, Mountain, Landmark, Compass, Clock } from 'lucide-react';
+import { StaticServicePopularCitiesGrid } from '@/components/services/StaticServicePopularCitiesGrid';
 import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { BikeServiceSchema, HowToSchema } from '@/components/seo/schemas';
 
@@ -91,37 +91,37 @@ export default function RoyalEnfieldOnRentPage() {
         <BikeSearchHero />
 
       {/* Popular Routes */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Popular Royal Enfield Trip Routes
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
+      <section className="relative py-16 md:py-24 bg-gradient-to-b from-gray-50 via-white to-gray-50 overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{ background: 'radial-gradient(620px 380px at 50% 0%, rgba(16,185,129,.10), transparent 70%)' }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
+            <h2 className="text-3xl md:text-[2.75rem] leading-[1.1] font-black tracking-tight text-gray-900 mb-3">
+              Popular Royal Enfield Trip Routes
+            </h2>
+            <p className="text-gray-500">Handpicked touring circuits riders book most often</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {[
-              {
-                route: 'Ladakh Circuit',
-                description: 'Manali - Leh - Khardung La - Pangong',
-                duration: '10-15 days',
-                gradient: 'from-blue-500 to-indigo-600',
-              },
-              {
-                route: 'Rajasthan Heritage',
-                description: 'Jaipur - Jodhpur - Jaisalmer - Udaipur',
-                duration: '7-10 days',
-                gradient: 'from-orange-500 to-red-600',
-              },
-              {
-                route: 'Spiti Valley',
-                description: 'Manali - Kaza - Key Monastery - Chandratal',
-                duration: '8-12 days',
-                gradient: 'from-green-500 to-teal-600',
-              },
+              { route: 'Ladakh Circuit', icon: Mountain, description: 'Manali - Leh - Khardung La - Pangong', duration: '10-15 days' },
+              { route: 'Rajasthan Heritage', icon: Landmark, description: 'Jaipur - Jodhpur - Jaisalmer - Udaipur', duration: '7-10 days' },
+              { route: 'Spiti Valley', icon: Compass, description: 'Manali - Kaza - Key Monastery - Chandratal', duration: '8-12 days' },
             ].map((trip) => (
-              <div key={trip.route} className={`bg-gradient-to-br ${trip.gradient} text-white p-6 rounded-xl shadow-lg`}>
-                <h3 className="text-2xl font-bold mb-3">{trip.route}</h3>
-                <p className="mb-4 text-white/90">{trip.description}</p>
-                <div className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded inline-block text-sm font-semibold">
-                  {trip.duration}
+              <div key={trip.route} className="group relative flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                <div className="w-14 h-14 rounded-xl bg-emerald-50 flex items-center justify-center mx-6 mt-6">
+                  <trip.icon className="w-7 h-7 text-emerald-600" strokeWidth={1.8} />
+                </div>
+                <div className="p-6 pt-4">
+                  <h3 className="text-[18px] font-bold text-gray-900 mb-1.5">{trip.route}</h3>
+                  <p className="text-[13.5px] text-gray-500 leading-relaxed mb-4">{trip.description}</p>
+                  <div className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full">
+                    <Clock className="w-3.5 h-3.5" />
+                    {trip.duration}
+                  </div>
                 </div>
               </div>
             ))}
@@ -129,9 +129,60 @@ export default function RoyalEnfieldOnRentPage() {
         </div>
       </section>
 
-        <LocationsGrid service="royal-enfield-on-rent" />
+        <StaticServicePopularCitiesGrid serviceSlug="royal-enfield-on-rent" title="Royal Enfield Rental in Available Cities" />
 
-        <FAQSection service="royal-enfield-on-rent" customFaqs={schemaFaqs} />
+        {/* FAQs */}
+        <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-[0.45]"
+            style={{
+              backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+              backgroundSize: '22px 22px',
+              WebkitMaskImage:
+                'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+              maskImage:
+                'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            }}
+          />
+          <div className="container-custom relative">
+            <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] text-emerald-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                GOOD TO KNOW
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              </span>
+              <h2 className="mt-4 text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+                Royal Enfield Rental <span className="text-emerald-600">FAQs</span>
+              </h2>
+            </div>
+
+            <div className="max-w-5xl mx-auto space-y-3">
+              {schemaFaqs.map((faq, idx) => (
+                <details
+                  key={idx}
+                  open={idx === 0}
+                  className="group rounded-2xl bg-white border border-gray-100 shadow-sm open:border-emerald-200 open:shadow-md transition-all"
+                >
+                  <summary className="flex items-center gap-4 px-4 sm:px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                    <span className="shrink-0 w-9 h-9 rounded-full bg-emerald-50 grid place-items-center">
+                      <MessageCircleQuestion className="w-[18px] h-[18px] text-emerald-600" />
+                    </span>
+                    <h3 className="flex-1 font-bold text-[15px] leading-snug text-gray-900">
+                      {faq.question}
+                    </h3>
+                    <span className="shrink-0 w-8 h-8 rounded-lg bg-gray-50 text-gray-500 grid place-items-center transition-all duration-200 group-open:rotate-45 group-open:bg-emerald-600 group-open:text-white">
+                      <Plus className="w-4 h-4" />
+                    </span>
+                  </summary>
+                  <p className="px-4 sm:px-5 pb-5 sm:pl-[4.25rem] text-[14px] leading-relaxed text-gray-500">
+                    {faq.answer}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
       </div>
     </>
   );

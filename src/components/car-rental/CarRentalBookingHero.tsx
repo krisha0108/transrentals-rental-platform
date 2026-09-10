@@ -31,6 +31,7 @@ import {
   Headphones,
 } from 'lucide-react';
 import { CarRentalBookingConfirmModal } from './CarRentalBookingConfirmModal';
+import { DynamicChatBookingHero } from '@/components/booking/DynamicChatBookingHero';
 
 // Trip types
 type TripType = 'local' | 'outstation' | 'airport';
@@ -263,6 +264,45 @@ interface CarRentalBookingHeroProps {
   // Light, image-backed hero redesign — opt-in only, existing callers are untouched
   heroVariant?: 'classic' | 'aurora';
   heroImage?: string;
+  // Strength of the overlay drawn on top of heroImage (0-100). Per-caller so
+  // tuning one service's photo doesn't drag every other heroImage user's
+  // already-approved overlay along with it.
+  heroOverlayOpacity?: number;
+  // Full Tailwind classes for that overlay — including direction, e.g.
+  // "bg-gradient-to-r from-black/70 via-black/35 to-transparent" — so a
+  // caller can concentrate darkness over just the text side of the hero
+  // instead of a flat diagonal wash over the whole photo. Defaults to a
+  // diagonal wash of the service's own theme gradient (themeColors.gradient).
+  heroOverlayGradient?: string;
+  // Opt-in text-shadow + darker (less translucent) panels for the left
+  // column, for a heroImage whose busy/bright areas make plain white text
+  // hard to read even with the overlay tuned — per-caller so it doesn't
+  // change any other heroImage user's already-approved look (e.g. vintage).
+  heroTextLegibilityBoost?: boolean;
+  // Overrides the panel color used behind the badge/trust-badges/trip-info
+  // boxes when heroTextLegibilityBoost is on — defaults to a plain black
+  // tint, but a caller can swap in a tint matching its own theme instead.
+  heroPanelClassOverride?: string;
+  // Switches the subheading/trust-badge/trip-info text from text-blue-100 to
+  // plain white — independent of heroTextLegibilityBoost's text-shadow, for
+  // a caller whose overlay is dark enough on its own that the shadow just
+  // reads as an unwanted halo.
+  heroLightText?: boolean;
+  // Renders headingLine2 as a shimmering gold gradient instead of a plain
+  // accent-colored span — opt-in per caller.
+  heroHeadingShine?: boolean;
+  // 'cover' (default) fills the hero and crops overflow — can read as an
+  // over-zoomed close-up when the hero's own aspect ratio is much wider
+  // than the photo's. 'contain' shows the whole photo un-cropped instead,
+  // letterboxed by the overlay color. Per-caller, default keeps every
+  // existing heroImage user's current framing.
+  heroImageFit?: 'cover' | 'contain';
+  // Opt-in card header + footer-stats chrome around the classic variant's
+  // booking card (icon/title header row, 3-stat footer strip) — off by
+  // default so the other classic-variant pages this hero powers are
+  // unaffected; only a caller that explicitly sets this gets the new shell.
+  showBrandedShell?: boolean;
+  heroChecklist?: string[];
   // Shrinks the outer section padding + heading/copy sizing for pages where
   // the hero is one of several sections rather than the full page focus
   // (e.g. the /one-way-cab hub) — the booking form itself is unaffected.
@@ -770,9 +810,19 @@ export function CarRentalBookingHero({
   trustBadges,
   heroVariant = 'classic',
   heroImage,
+  heroOverlayOpacity = 25,
+  heroOverlayGradient,
+  heroTextLegibilityBoost = false,
+  heroPanelClassOverride,
+  heroLightText = false,
+  heroHeadingShine = false,
+  heroImageFit = 'cover',
+  showBrandedShell = false,
+  heroChecklist,
   compact = false,
 }: CarRentalBookingHeroProps) {
   const isAurora = heroVariant === 'aurora';
+  const [showChat, setShowChat] = useState(false);
   // Trip type state
   const [tripType, setTripType] = useState<TripType>(initialTripType);
   const [outstationMode, setOutstationMode] = useState<OutstationMode>('round-trip');
@@ -1519,6 +1569,14 @@ export function CarRentalBookingHero({
     { icon: Star, text: '4.8 Rating' },
   ];
   const resolvedTrustBadges = trustBadges ?? defaultTrustBadges;
+  // Reducing the overlay opacity to keep heroImage visible was making the
+  // left-column text hard to read against busy parts of the photo — a text
+  // shadow (plus a darker, less translucent panel behind badges/info) fixes
+  // legibility without needing the overlay itself to carry all the contrast.
+  const heroTextShadowStyle = heroTextLegibilityBoost
+    ? { textShadow: '0 2px 6px rgba(0,0,0,0.85), 0 0 22px rgba(0,0,0,0.6)' }
+    : undefined;
+  const heroPanelClass = heroPanelClassOverride ?? (heroTextLegibilityBoost ? 'bg-black/35' : 'bg-white/10');
 
   // NOTE: We intentionally do NOT early-return a short spinner while loadingData.
   // Doing so rendered the hero at ~190px first, then jumped to full height after
@@ -1532,7 +1590,9 @@ export function CarRentalBookingHero({
       className={
         isAurora
           ? 'relative bg-slate-50 text-slate-900 overflow-hidden'
-          : `relative bg-gradient-to-br ${themeColors.gradient} text-white overflow-hidden`
+          : heroImage
+            ? 'relative bg-gray-900 text-white overflow-hidden'
+            : `relative bg-gradient-to-br ${themeColors.gradient} text-white overflow-hidden`
       }
     >
       {isAurora ? (
@@ -1541,6 +1601,20 @@ export function CarRentalBookingHero({
             <Image src={heroImage} alt="" fill priority className="object-cover object-center" />
           </div>
         )
+      ) : heroImage ? (
+        <div className="absolute inset-0">
+          <Image
+            src={heroImage}
+            alt=""
+            fill
+            priority
+            className={heroImageFit === 'contain' ? 'object-contain object-center' : 'object-cover object-center'}
+          />
+          <div
+            className={`absolute inset-0 ${heroOverlayGradient ?? `bg-gradient-to-br ${themeColors.gradient}`}`}
+            style={{ opacity: heroOverlayOpacity / 100 }}
+          />
+        </div>
       ) : (
         /* Background Pattern */
         <div className="absolute inset-0 opacity-10">
@@ -1553,7 +1627,7 @@ export function CarRentalBookingHero({
         </div>
       )}
 
-      <div className={`relative container-custom ${isAurora ? 'py-8 lg:py-10' : compact ? 'py-8 lg:py-10' : 'py-12 lg:py-16'}`}>
+      <div className={`relative container-custom ${isAurora ? 'py-8 lg:py-10' : showBrandedShell ? 'py-8 lg:py-10' : compact ? 'py-8 lg:py-10' : 'py-12 lg:py-16'}`}>
         <div className={`grid lg:grid-cols-2 items-start ${isAurora ? 'gap-10' : compact ? 'gap-6' : 'gap-10'}`}>
           {/* Left - Hero Content (Aurora variant) */}
           {isAurora && (
@@ -1668,10 +1742,10 @@ export function CarRentalBookingHero({
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 ${compact ? 'mb-3' : 'mb-6'}`}
+              className={`inline-flex items-center gap-2 ${heroPanelClass} backdrop-blur-sm rounded-full px-4 py-2 ${compact ? 'mb-3' : 'mb-6'}`}
             >
               <Car className={`w-4 h-4 text-${themeColors.accent}`} />
-              <span className="text-sm font-medium">
+              <span className="text-sm font-medium" style={heroTextShadowStyle}>
                 {serviceTitle}{city ? ` in ${city}` : ''}
               </span>
             </motion.div>
@@ -1681,25 +1755,68 @@ export function CarRentalBookingHero({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
               className={`font-bold ${compact ? 'text-2xl md:text-3xl lg:text-4xl mb-2' : 'text-3xl md:text-4xl lg:text-5xl mb-4'}`}
+              style={heroTextShadowStyle}
             >
               {h1Text ? (
                 h1Text
               ) : (
                 <>
                   {headingLine1 ?? 'Book Outstation, Local &'}{' '}
-                  <span className={`text-${themeColors.accent}`}>{headingLine2 ?? 'Airport Cabs'}</span>
+                  {heroHeadingShine ? (
+                    <span className="hero-shine-text">{headingLine2 ?? 'Airport Cabs'}</span>
+                  ) : (
+                    <span className={`text-${themeColors.accent}`}>{headingLine2 ?? 'Airport Cabs'}</span>
+                  )}
                 </>
               )}
             </motion.h1>
+            {heroHeadingShine && (
+              <style dangerouslySetInnerHTML={{ __html: `
+                .hero-shine-text {
+                  background: linear-gradient(90deg, #059669 0%, #6ee7b7 25%, #059669 50%, #6ee7b7 75%, #059669 100%);
+                  background-size: 200% 100%;
+                  -webkit-background-clip: text;
+                  background-clip: text;
+                  color: transparent;
+                  animation: hero-shine-sweep 2.8s linear infinite;
+                }
+                @media (prefers-reduced-motion: reduce) {
+                  .hero-shine-text { animation: none; background-position: 50% 0; }
+                }
+                @keyframes hero-shine-sweep {
+                  0% { background-position: 200% 0; }
+                  100% { background-position: -200% 0; }
+                }
+              ` }} />
+            )}
 
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className={`text-blue-100 max-w-xl mx-auto lg:mx-0 ${compact ? 'text-base mb-4' : 'text-lg mb-8'}`}
+              className={`${heroTextLegibilityBoost || heroLightText ? 'text-white' : 'text-blue-100'} max-w-xl mx-auto lg:mx-0 ${compact ? 'text-base mb-4' : 'text-lg mb-8'}`}
+              style={heroTextShadowStyle}
             >
               {subheading ?? 'All-inclusive fares with fuel & driver. Transparent pricing, no hidden charges.'}
             </motion.p>
+
+            {showBrandedShell && heroChecklist && heroChecklist.length > 0 && (
+              <motion.ul
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className={`space-y-2.5 max-w-lg mx-auto lg:mx-0 ${compact ? 'mb-4' : 'mb-7'}`}
+              >
+                {heroChecklist.map((h) => (
+                  <li key={h} className="flex items-center gap-2.5 justify-center lg:justify-start">
+                    <span className={`w-5 h-5 rounded-full bg-${themeColors.accent}/20 border border-${themeColors.accent}/30 flex items-center justify-center shrink-0`}>
+                      <CheckCircle2 className={`w-3 h-3 text-${themeColors.accent}`} />
+                    </span>
+                    <span className="text-gray-200 text-sm">{h}</span>
+                  </li>
+                ))}
+              </motion.ul>
+            )}
 
             {/* Trust badges */}
             <motion.div
@@ -1711,10 +1828,10 @@ export function CarRentalBookingHero({
               {resolvedTrustBadges.map((item) => (
                 <div
                   key={item.text}
-                  className={`flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2`}
+                  className={`flex items-center gap-2 ${heroPanelClass} backdrop-blur-sm rounded-lg px-3 py-2`}
                 >
                   <item.icon className={`w-4 h-4 text-${themeColors.accent}`} />
-                  <span className="text-sm">{item.text}</span>
+                  <span className={`text-sm ${heroTextLegibilityBoost || heroLightText ? 'text-white' : ''}`} style={heroTextShadowStyle}>{item.text}</span>
                 </div>
               ))}
             </motion.div>
@@ -1723,16 +1840,17 @@ export function CarRentalBookingHero({
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className={`bg-white/10 backdrop-blur-sm rounded-xl max-w-md mx-auto lg:mx-0 ${compact ? 'p-3' : 'p-4'}`}
+              className={`${heroPanelClass} backdrop-blur-sm rounded-xl max-w-md mx-auto lg:mx-0 ${compact ? 'p-3' : 'p-4'}`}
+              style={heroTextShadowStyle}
             >
               {tripType === 'local' && (
-                <div className="text-sm text-blue-100">
+                <div className={`text-sm ${heroTextLegibilityBoost || heroLightText ? 'text-white' : 'text-blue-100'}`}>
                   <strong className="text-white">Local Trips:</strong> Perfect for city travel,
                   meetings, shopping. Extra charges apply beyond package limits.
                 </div>
               )}
               {tripType === 'outstation' && (
-                <div className="text-sm text-blue-100">
+                <div className={`text-sm ${heroTextLegibilityBoost || heroLightText ? 'text-white' : 'text-blue-100'}`}>
                   <strong className="text-white">
                     {outstationMode === 'round-trip' ? 'Round Trip:' : 'One Way:'}
                   </strong>{' '}
@@ -1742,7 +1860,7 @@ export function CarRentalBookingHero({
                 </div>
               )}
               {tripType === 'airport' && (
-                <div className="text-sm text-blue-100">
+                <div className={`text-sm ${heroTextLegibilityBoost || heroLightText ? 'text-white' : 'text-blue-100'}`}>
                   <strong className="text-white">Airport Transfer:</strong> Includes 45 min waiting
                   time. Meet & greet service available.
                 </div>
@@ -1756,10 +1874,40 @@ export function CarRentalBookingHero({
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white rounded-2xl shadow-2xl overflow-hidden"
+            className={`bg-white rounded-2xl shadow-2xl overflow-hidden ${showBrandedShell ? 'w-full max-w-[440px] mx-auto lg:mx-0 lg:ml-auto' : ''}`}
           >
+            {showBrandedShell && (
+              <div className="flex items-center justify-between px-[18px] h-[72px] border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className={`relative w-[42px] h-[42px] rounded-[13px] bg-gradient-to-br from-${themeColors.accent} to-${themeColors.primary}-700 flex items-center justify-center shadow-lg`}>
+                    <Car className="w-[22px] h-[22px] text-white" />
+                  </div>
+                  <div>
+                    <p className="text-[17px] font-black text-gray-900 leading-tight">{serviceTitle}</p>
+                    <p className="text-[11.5px] text-gray-400 mt-0.5">Compare prices instantly</p>
+                  </div>
+                </div>
+                {showChat ? (
+                  <button onClick={() => setShowChat(false)}
+                    className="text-[11.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-[9px] px-3 py-1.5 hover:bg-emerald-100 transition-colors whitespace-nowrap">
+                    ← Back to form
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full whitespace-nowrap">
+                    <Shield className="w-3 h-3" /> 100% Safe
+                  </div>
+                )}
+              </div>
+            )}
+
+            {showBrandedShell && showChat && (
+              <div className="p-6">
+                <DynamicChatBookingHero hideHeader defaultLocation={city} />
+              </div>
+            )}
+
             {/* Trip Type Tabs */}
-            <div className={`flex border-b ${hideTabs ? 'hidden' : ''}`}>
+            <div className={`flex border-b ${hideTabs || (showBrandedShell && showChat) ? 'hidden' : ''}`}>
               {[
                 { id: 'local' as TripType, label: 'Local', icon: Navigation },
                 { id: 'outstation' as TripType, label: 'Outstation', icon: MapPin },
@@ -1775,7 +1923,7 @@ export function CarRentalBookingHero({
                       setMultiStops([{ id: '1', locationId: '', cityText: '' }]);
                     }
                   }}
-                  className={`flex-1 flex items-center justify-center gap-2 py-4 font-medium transition ${
+                  className={`flex-1 flex items-center justify-center gap-2 ${showBrandedShell ? 'py-2.5' : 'py-4'} font-medium transition ${
                     tripType === tab.id
                       ? `text-${themeColors.primary}-600 border-b-2 border-${themeColors.primary}-600 bg-${themeColors.primary}-50`
                       : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
@@ -1788,11 +1936,11 @@ export function CarRentalBookingHero({
             </div>
 
             <div
-              className={`p-6 ${
+              className={`${showBrandedShell ? 'p-4 pb-2' : 'p-6'} ${
                 isAurora
                   ? 'max-h-[560px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#f1f5f9_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-100 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-200'
                   : ''
-              }`}
+              } ${showBrandedShell && showChat ? 'hidden' : ''}`}
             >
               <AnimatePresence mode="wait">
                 {cameFromMarketplace && !showCarSelection ? (
@@ -1813,7 +1961,7 @@ export function CarRentalBookingHero({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="space-y-4"
+                    className={showBrandedShell ? 'space-y-3' : 'space-y-4'}
                   >
                     {/* Self-Drive promo link */}
                     <div className={`flex items-center justify-between rounded-xl px-4 py-2 text-xs border ${isAurora ? 'bg-green-50 border-green-100' : 'bg-blue-50 border-blue-100'}`}>
@@ -2733,6 +2881,25 @@ export function CarRentalBookingHero({
                 )}
               </AnimatePresence>
             </div>
+
+            {showBrandedShell && (
+              <div className="px-6 pt-2 pb-4 border-t border-slate-100 bg-white">
+                <div className="grid grid-cols-3 gap-3 mb-3">
+                  {resolvedTrustBadges.map((item) => (
+                    <div key={item.text} className="flex items-center gap-2">
+                      <item.icon className={`w-4 h-4 text-${themeColors.accent} flex-shrink-0`} />
+                      <div className="text-[11px] leading-tight text-slate-600 font-semibold text-slate-900">
+                        {item.text}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={() => setShowChat((s) => !s)}
+                  className="w-full flex items-center justify-center gap-1.5 text-[13px] font-bold text-emerald-700 hover:text-emerald-600 transition-colors whitespace-nowrap">
+                  {showChat ? '← Back to form' : <>Book with AI Assistant <ChevronRight className="w-3.5 h-3.5" /></>}
+                </button>
+              </div>
+            )}
           </motion.div>
         </div>
       </div>

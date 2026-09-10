@@ -13,6 +13,10 @@ import { ChauffeurPackages } from '@/components/chauffeur-service/ChauffeurPacka
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { FAQSection } from '@/components/services/FAQSection';
+import {
+  CheckCircle2, GraduationCap, Map, UserCog, Briefcase, Heart, PartyPopper, Wrench,
+} from 'lucide-react';
 
 interface PageProps {
   params: {
@@ -161,22 +165,24 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
       />
 
       {/* Why Chauffeur Service */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Why Hire Chauffeur in {locationName}?
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Why Hire Chauffeur in <span className="text-emerald-600">{locationName}</span>?
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
             {[
-              { icon: '✅', title: 'Verified Drivers', desc: `Police verified in ${locationName}` },
-              { icon: '🎓', title: 'Experienced', desc: '5+ years experience' },
-              { icon: '🗺️', title: 'Local Knowledge', desc: `Know ${locationName} routes` },
-              { icon: '🤵', title: 'Professional', desc: 'Well-groomed & trained' },
-            ].map((feature) => (
-              <div key={feature.title} className="text-center">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.desc}</p>
+              { Icon: CheckCircle2, title: 'Verified Drivers', desc: `Police verified in ${locationName}` },
+              { Icon: GraduationCap, title: 'Experienced', desc: '5+ years experience' },
+              { Icon: Map, title: 'Local Knowledge', desc: `Know ${locationName} routes` },
+              { Icon: UserCog, title: 'Professional', desc: 'Well-groomed & trained' },
+            ].map(({ Icon, title, desc }) => (
+              <div key={title} className="text-center bg-white border border-dashed border-emerald-200 rounded-2xl px-5 py-8 hover:border-emerald-400 hover:shadow-md transition-all">
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <Icon className="w-6 h-6 text-emerald-600" />
+                </span>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1">{title}</h3>
+                <p className="text-xs text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
@@ -191,22 +197,24 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
       />
 
       {/* Perfect For */}
-      <section className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Perfect for Your Needs in {locationName}
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-gray-50/70 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Perfect for Your Needs in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
             {[
-              { occasion: 'Daily Commute', icon: '💼', desc: `Office in ${locationName}` },
-              { occasion: 'Outstation', icon: '🗺️', desc: `Trips from ${locationName}` },
-              { occasion: 'Weddings', icon: '💒', desc: 'Wedding car driver' },
-              { occasion: 'Events', icon: '🎉', desc: 'Special occasions' },
-            ].map((item) => (
-              <div key={item.occasion} className="bg-gray-50 p-6 rounded-lg text-center">
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{item.occasion}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              { Icon: Briefcase, occasion: 'Daily Commute', desc: `Office in ${locationName}` },
+              { Icon: Map, occasion: 'Outstation', desc: `Trips from ${locationName}` },
+              { Icon: Heart, occasion: 'Weddings', desc: 'Wedding car driver' },
+              { Icon: PartyPopper, occasion: 'Events', desc: 'Special occasions' },
+            ].map(({ Icon, occasion, desc }) => (
+              <div key={occasion} className="text-center bg-white border border-dashed border-emerald-200 rounded-2xl px-5 py-8 hover:border-emerald-400 hover:shadow-md transition-all">
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <Icon className="w-6 h-6 text-emerald-600" />
+                </span>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1">{occasion}</h3>
+                <p className="text-xs text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
@@ -216,58 +224,52 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
       {/* Driver Qualities */}
       <section className="py-16 bg-gray-50">
         <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Our Chauffeurs in {locationName}
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Our Chauffeurs in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-xl mb-4 text-indigo-700">Professional Skills</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-700 mt-1">✓</span>
-                  <span>5+ years experience</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-700 mt-1">✓</span>
-                  <span>Valid driving license</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-700 mt-1">✓</span>
-                  <span>Know all car types</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-700 mt-1">✓</span>
-                  <span>Local route knowledge</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-700 mt-1">✓</span>
-                  <span>Safe driving skills</span>
-                </li>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Wrench className="w-5 h-5 text-white" />
+                </span>
+                <h3 className="font-bold text-lg text-gray-900">Professional Skills</h3>
+              </div>
+              <ul className="space-y-2.5 text-gray-600 text-sm">
+                {[
+                  '5+ years experience',
+                  'Valid driving license',
+                  'Know all car types',
+                  'Local route knowledge',
+                  'Safe driving skills',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-xl mb-4 text-purple-900">Personal Qualities</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-700 mt-1">✓</span>
-                  <span>Police verified</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-700 mt-1">✓</span>
-                  <span>Well-groomed</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-700 mt-1">✓</span>
-                  <span>Punctual & reliable</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-700 mt-1">✓</span>
-                  <span>Good communication</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-700 mt-1">✓</span>
-                  <span>Courteous behavior</span>
-                </li>
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-white" />
+                </span>
+                <h3 className="font-bold text-lg text-gray-900">Personal Qualities</h3>
+              </div>
+              <ul className="space-y-2.5 text-gray-600 text-sm">
+                {[
+                  'Police verified',
+                  'Well-groomed',
+                  'Punctual & reliable',
+                  'Good communication',
+                  'Courteous behavior',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
@@ -275,12 +277,12 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
       </section>
 
       {/* How to Book */}
-      <section className="py-16">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            How to Hire Chauffeur in {locationName}
+      <section className="py-16 bg-white">
+        <div className="container-custom max-w-5xl">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            How to Hire Chauffeur in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="space-y-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               { step: '1', title: 'Choose Package', desc: 'Daily, outstation, or monthly' },
               { step: '2', title: 'Provide Details', desc: `Car type & location in ${locationName}` },
@@ -288,13 +290,16 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
               { step: '4', title: 'Confirm Booking', desc: 'Pay & confirm' },
               { step: '5', title: 'Driver Arrives', desc: 'Professional chauffeur at service' },
             ].map((item) => (
-              <div key={item.step} className="flex gap-4 bg-gray-50 p-4 rounded-lg shadow-md">
-                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
-                  {item.step}
+              <div key={item.step} className="flex gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="relative flex-shrink-0 w-10 h-10">
+                  <span className="absolute inset-0 rounded-full bg-emerald-500/40 animate-ping" />
+                  <div className="relative w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold">
+                    {item.step}
+                  </div>
                 </div>
                 <div>
-                  <h3 className="font-bold mb-1">{item.title}</h3>
-                  <p className="text-sm text-gray-600">{item.desc}</p>
+                  <h3 className="font-bold text-[15px] text-gray-900 mb-1">{item.title}</h3>
+                  <p className="text-xs text-gray-500">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -341,6 +346,8 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="chauffeur-service" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

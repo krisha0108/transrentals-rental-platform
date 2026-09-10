@@ -6,257 +6,255 @@ import {
   Zap, Boxes, Drill, Wind, Shovel,
 } from 'lucide-react';
 
-const EQUIPMENT_SUB_SERVICES = [
-  {
-    id: 'jcb-rental',
-    name: 'JCB on Rent',
-    icon: Tractor,
-    description: 'Backhoe loaders for construction work',
-    features: ['Excavation', 'Construction', 'Expert operators'],
-    price: 'Starting from ₹2499',
-    url: '/jcb-on-rent',
-    gradient: 'from-yellow-600 to-orange-500',
-    popular: true,
-  },
-];
+const FEATURED_EQUIPMENT = {
+  id: 'jcb-rental',
+  name: 'JCB on Rent',
+  icon: Tractor,
+  bestFor: 'Backhoe loaders for construction work',
+  features: ['Excavation', 'Construction', 'Expert operators'],
+  url: '/jcb-on-rent',
+};
 
 const EQUIPMENT_TYPES = [
   {
     id: 'crane',
     name: 'Mobile Crane',
     icon: Construction,
-    description: 'Heavy lifting equipment',
+    bestFor: 'Heavy lifting equipment',
     features: ['10-100 TON', 'Construction sites', 'Material handling'],
-    price: 'Starting from ₹3999',
-    gradient: 'from-orange-500 to-red-500',
-    popular: true,
   },
   {
     id: 'excavator',
     name: 'Excavator',
     icon: Pickaxe,
-    description: 'Digging & earthmoving',
+    bestFor: 'Digging & earthmoving',
     features: ['Trenching', 'Foundation work', 'Demolition'],
-    price: 'Starting from ₹2999',
-    gradient: 'from-yellow-600 to-orange-600',
-    popular: true,
   },
   {
     id: 'jcb',
     name: 'JCB Backhoe Loader',
     icon: Tractor,
-    description: 'Versatile digging & loading',
+    bestFor: 'Versatile digging & loading',
     features: ['Construction', 'Excavation', 'Road work'],
-    price: 'Starting from ₹2499',
-    gradient: 'from-amber-500 to-yellow-500',
-    popular: true,
   },
   {
     id: 'bulldozer',
     name: 'Bulldozer',
     icon: Mountain,
-    description: 'Heavy earthmoving',
+    bestFor: 'Heavy earthmoving',
     features: ['Land clearing', 'Grading', 'Road construction'],
-    price: 'Starting from ₹3499',
-    gradient: 'from-green-600 to-teal-600',
   },
   {
     id: 'roller',
     name: 'Road Roller',
     icon: Blocks,
-    description: 'Road compaction equipment',
+    bestFor: 'Road compaction equipment',
     features: ['Road laying', 'Compaction', 'Paving work'],
-    price: 'Starting from ₹1999',
-    gradient: 'from-blue-600 to-cyan-600',
   },
   {
     id: 'loader',
     name: 'Wheel Loader',
     icon: Shovel,
-    description: 'Material loading equipment',
+    bestFor: 'Material loading equipment',
     features: ['Bulk loading', 'Material handling', 'Site cleanup'],
-    price: 'Starting from ₹2299',
-    gradient: 'from-purple-600 to-pink-600',
   },
   {
     id: 'generator',
     name: 'Generator',
     icon: Zap,
-    description: 'Power backup equipment',
+    bestFor: 'Power backup equipment',
     features: ['25-500 KVA', 'Silent models', 'Events & construction'],
-    price: 'Starting from ₹999',
-    gradient: 'from-indigo-600 to-purple-600',
   },
   {
     id: 'forklift',
     name: 'Forklift',
     icon: Forklift,
-    description: 'Warehouse material handling',
+    bestFor: 'Warehouse material handling',
     features: ['1-5 TON', 'Indoor/outdoor', 'Warehouse ops'],
-    price: 'Starting from ₹1499',
-    gradient: 'from-cyan-600 to-blue-600',
   },
   {
     id: 'concrete-mixer',
     name: 'Concrete Mixer',
     icon: Boxes,
-    description: 'Concrete mixing equipment',
+    bestFor: 'Concrete mixing equipment',
     features: ['Transit mixer', 'Construction', 'Site batching'],
-    price: 'Starting from ₹1799',
-    gradient: 'from-gray-600 to-slate-600',
   },
   {
     id: 'drilling-rig',
     name: 'Drilling Rig',
     icon: Drill,
-    description: 'Borewell & foundation drilling',
+    bestFor: 'Borewell & foundation drilling',
     features: ['Borewell', 'Foundation', 'Deep drilling'],
-    price: 'Starting from ₹4999',
-    gradient: 'from-red-700 to-orange-700',
   },
   {
     id: 'compressor',
     name: 'Air Compressor',
     icon: Wind,
-    description: 'Pneumatic power equipment',
+    bestFor: 'Pneumatic power equipment',
     features: ['Portable', 'Construction', 'Industrial use'],
-    price: 'Starting from ₹799',
-    gradient: 'from-teal-600 to-green-600',
   },
 ];
 
+/* Wahi wide-brochure card language jo Bus Rental Rates aur
+   Truck Types by Size & Capacity me use hui hai. */
+const ETC_CSS = `
+.etc-card {
+  opacity: 0;
+  animation: etc-in .6s cubic-bezier(.22,1,.36,1) forwards;
+  transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease;
+}
+@keyframes etc-in {
+  from { opacity: 0; transform: translateY(26px) scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+.etc-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 22px 46px -18px rgba(16,185,129,.45);
+}
+
+.etc-icon { transition: transform .4s cubic-bezier(.34,1.56,.64,1); }
+.etc-card:hover .etc-icon { transform: scale(1.08); }
+
+.etc-arrow { transition: background-color .3s ease, color .3s ease, transform .3s ease; }
+.etc-card:hover .etc-arrow { transform: translateX(3px); }
+
+.etc-info { transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .3s ease; }
+.etc-info:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px -16px rgba(16,185,129,.32);
+  border-color: rgb(167 243 208);
+}
+.etc-info-icon { transition: background-color .3s ease, transform .3s ease; }
+.etc-info:hover .etc-info-icon { transform: scale(1.06); }
+
+@media (prefers-reduced-motion: reduce) {
+  .etc-card, .etc-info { opacity: 1; animation: none; }
+  .etc-card:hover, .etc-info:hover { transform: none; }
+  .etc-icon, .etc-arrow, .etc-info-icon,
+  .etc-card:hover .etc-icon,
+  .etc-card:hover .etc-arrow,
+  .etc-info:hover .etc-info-icon { transition: none; transform: none; }
+}
+`;
+
+function EquipmentCard({ equipment, idx }: { equipment: typeof EQUIPMENT_TYPES[number]; idx: number }) {
+  return (
+    <div
+      className="etc-card group relative flex w-full max-w-lg mx-auto rounded-[18px] bg-white border border-gray-100 shadow-sm overflow-hidden"
+      style={{ animationDelay: `${idx * 80}ms` }}
+    >
+      <div className="w-[104px] shrink-0 flex items-center justify-center px-3 py-6 bg-emerald-50">
+        <span className="etc-icon">
+          <equipment.icon className="w-9 h-9 text-emerald-600" strokeWidth={1.7} />
+        </span>
+      </div>
+
+      <div className="flex-1 min-w-0 p-5">
+        <h3 className="text-[16px] font-bold text-gray-900 leading-snug">{equipment.name}</h3>
+
+        <div className="mt-2.5 text-[11px] font-bold uppercase tracking-[0.06em] text-gray-400">Best for</div>
+        <p className="mt-0.5 text-[13px] text-gray-600">{equipment.bestFor}</p>
+
+        <ul className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap gap-x-5 gap-y-2">
+          {equipment.features.map((f) => (
+            <li key={f} className="flex items-center gap-1.5 text-[12.5px] text-gray-600">
+              <span className="shrink-0 w-4 h-4 rounded-full bg-emerald-50 grid place-items-center">
+                <Check className="w-2.5 h-2.5 text-emerald-600" strokeWidth={3.5} />
+              </span>
+              {f}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 export function EquipmentTypesCards() {
   return (
-    <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
-      {/* Halka dotted pattern kono me */}
+    <section className="etc relative py-16 md:py-24 bg-gradient-to-b from-gray-50 via-white to-gray-50 overflow-hidden">
+      <style dangerouslySetInnerHTML={{ __html: ETC_CSS }} />
+
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.45]"
+        className="pointer-events-none absolute inset-0"
         style={{
-          backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-          WebkitMaskImage:
-            'radial-gradient(400px 320px at 4% 10%, #000 0%, transparent 72%), radial-gradient(400px 320px at 96% 90%, #000 0%, transparent 72%)',
-          maskImage:
-            'radial-gradient(400px 320px at 4% 10%, #000 0%, transparent 72%), radial-gradient(400px 320px at 96% 90%, #000 0%, transparent 72%)',
+          background: 'radial-gradient(620px 380px at 50% 0%, rgba(16,185,129,.10), transparent 70%)',
         }}
       />
 
       <div className="container-custom relative">
-        <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
-          <span className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] text-primary-700">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            WHAT YOU CAN RENT
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+        <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
+          <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
+            <Sparkles className="w-4 h-4" />
+            What You Can Rent
           </span>
-          <h2 className="mt-4 text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
-            Construction &amp; <span className="text-primary">Industrial Equipment</span>
+          <h2 className="text-3xl md:text-[2.75rem] leading-[1.1] font-black tracking-tight text-gray-900 mb-3">
+            Construction &amp; Industrial Equipment
           </h2>
-          <p className="mt-3 text-base text-gray-600">
+          <p className="text-gray-500">
             Rent heavy equipment and machinery for construction, excavation, and industrial projects
           </p>
         </div>
 
-        {/* Featured Sub-Service */}
-        <div className="mb-10">
-          <h3 className="flex items-center gap-2 text-sm font-bold tracking-wide text-gray-500 uppercase mb-4">
-            <Sparkles className="w-4 h-4 text-primary" />
-            Most Popular
-          </h3>
-          <div className="grid grid-cols-1 gap-6 max-w-3xl mx-auto">
-            {EQUIPMENT_SUB_SERVICES.map((service) => (
-              <Link
-                key={service.id}
-                href={service.url}
-                className="group relative flex flex-col sm:flex-row items-start sm:items-center gap-5 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-lg hover:border-primary-200 hover:-translate-y-1 transition-all duration-200 p-5 sm:p-6"
-              >
-                {service.popular && (
-                  <span className="absolute top-4 right-4 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold tracking-wide text-white">
-                    Most Popular
-                  </span>
-                )}
+        {/* Has Its Own Dedicated Page — the only clickable card, links to jcb-on-rent */}
+        <div className="mb-12 max-w-6xl mx-auto">
+          <h3 className="text-xl font-bold text-gray-900 mb-6">Has Its Own Dedicated Page</h3>
+          <Link
+            href={FEATURED_EQUIPMENT.url}
+            className="etc-card group relative flex w-full max-w-2xl mx-auto rounded-[18px] bg-white border border-gray-100 shadow-sm overflow-hidden"
+          >
+            <div className="w-[124px] shrink-0 flex items-center justify-center px-3 py-6 bg-emerald-50">
+              <span className="etc-icon">
+                <FEATURED_EQUIPMENT.icon className="w-10 h-10 text-emerald-600" strokeWidth={1.7} />
+              </span>
+            </div>
 
-                <div className="w-16 h-16 rounded-2xl bg-primary-50 ring-1 ring-primary-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <service.icon className="w-7 h-7 text-primary-600" strokeWidth={1.9} />
-                </div>
+            <div className="flex-1 min-w-0 p-5">
+              <h3 className="text-[17px] font-bold text-gray-900 leading-snug">{FEATURED_EQUIPMENT.name}</h3>
+              <p className="mt-1.5 text-[13px] leading-snug text-gray-500">{FEATURED_EQUIPMENT.bestFor}</p>
 
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-xl font-black tracking-tight text-gray-900">{service.name}</h4>
-                  <p className="mt-1 text-sm text-gray-600">{service.description}</p>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {service.features.map((feature) => (
-                      <span
-                        key={feature}
-                        className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-100 px-2.5 py-1 text-[11.5px] font-semibold text-gray-600"
-                      >
-                        <Check className="w-3 h-3 text-primary" strokeWidth={3} />
-                        {feature}
+              <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
+                <ul className="flex flex-wrap gap-x-5 gap-y-2">
+                  {FEATURED_EQUIPMENT.features.map((f) => (
+                    <li key={f} className="flex items-center gap-1.5 text-[12.5px] text-gray-600">
+                      <span className="shrink-0 w-4 h-4 rounded-full bg-emerald-50 grid place-items-center">
+                        <Check className="w-2.5 h-2.5 text-emerald-600" strokeWidth={3.5} />
                       </span>
-                    ))}
-                  </div>
-                  <p className="mt-3 text-[15px] font-black text-primary tracking-tight">{service.price}</p>
-                </div>
-
-                <span className="shrink-0 w-10 h-10 rounded-full bg-primary-50 grid place-items-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <span className="etc-arrow w-8 h-8 rounded-full bg-emerald-50 grid place-items-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white shrink-0">
+                  <ArrowRight className="w-4 h-4" />
                 </span>
-              </Link>
-            ))}
-          </div>
+              </div>
+            </div>
+          </Link>
         </div>
 
         {/* All Equipment Types */}
         <div>
-          <h3 className="text-sm font-bold tracking-wide text-gray-500 uppercase mb-4">All Equipment Types</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {EQUIPMENT_TYPES.map((equipment) => (
-              <div
-                key={equipment.id}
-                className="group relative flex flex-col rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-lg hover:border-primary-200 hover:-translate-y-1 transition-all duration-200 p-4 sm:p-5"
-              >
-                {equipment.popular && (
-                  <span className="absolute top-3 right-3 rounded-full bg-primary-50 px-2 py-0.5 text-[10px] font-bold text-primary-700">
-                    Popular
-                  </span>
-                )}
-
-                <div className="w-14 h-14 rounded-2xl bg-primary-50 ring-1 ring-primary-100 flex items-center justify-center mb-3.5 group-hover:scale-105 transition-transform">
-                  <equipment.icon className="w-6 h-6 text-primary-600" strokeWidth={1.9} />
-                </div>
-
-                <h4 className="font-bold text-[15px] leading-snug text-gray-900">{equipment.name}</h4>
-                <p className="mt-1 text-[12.5px] leading-snug text-gray-500">{equipment.description}</p>
-
-                <ul className="mt-3 space-y-1.5 flex-1">
-                  {equipment.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-1.5 text-[12px] leading-snug text-gray-600">
-                      <span className="shrink-0 mt-0.5 w-3.5 h-3.5 rounded-full bg-primary-50 grid place-items-center">
-                        <Check className="w-2 h-2 text-primary" strokeWidth={4} />
-                      </span>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-
-                <p className="mt-4 pt-3 border-t border-gray-100 text-[13px] font-black tracking-tight text-primary">
-                  {equipment.price}
-                </p>
-              </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-6 max-w-6xl mx-auto">All Equipment Types</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+            {EQUIPMENT_TYPES.map((equipment, idx) => (
+              <EquipmentCard key={equipment.id} equipment={equipment} idx={idx} />
             ))}
           </div>
         </div>
 
-        <div className="group mt-12 max-w-4xl mx-auto rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-lg hover:border-primary-200 hover:-translate-y-1 transition-all duration-200 overflow-hidden">
-          <div className="flex items-start gap-4 p-5 sm:p-6 border-l-4 border-primary transition-colors group-hover:bg-primary-50/30">
-            <span className="shrink-0 w-11 h-11 rounded-xl bg-primary-50 grid place-items-center transition-all duration-200 group-hover:bg-primary group-hover:scale-105">
-              <Lightbulb className="w-5 h-5 text-primary transition-colors group-hover:text-white" />
-            </span>
-            <div className="min-w-0">
+        {/* Info Box */}
+        <div className="etc-info group mt-12 max-w-6xl mx-auto bg-white border border-gray-100 shadow-sm rounded-2xl overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-5 p-5 sm:p-6 border-l-4 border-emerald-500 transition-colors group-hover:bg-emerald-50/30">
+            <div className="etc-info-icon w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+              <Lightbulb className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div className="flex-1 min-w-0">
               <h4 className="font-black text-[17px] tracking-tight text-gray-900 mb-1.5">All equipment types available!</h4>
-              <p className="text-[14.5px] leading-relaxed text-gray-600 mb-2">
+              <p className="text-[14.5px] text-gray-600 leading-relaxed mb-1.5">
                 Use the booking form above to specify your equipment type, job duration, and location. We&apos;ll connect you with verified equipment rental vendors with the best rates.
               </p>
-              <p className="text-[13px] leading-relaxed text-gray-500">
+              <p className="text-[13px] text-gray-500 leading-relaxed">
                 <strong className="font-bold text-gray-700">Note:</strong> Operators and fuel can be arranged separately. Transit charges may apply based on distance.
               </p>
             </div>

@@ -5,7 +5,7 @@ import { BikeTypesCards } from '@/components/services/BikeTypesCards';
 import { BikeFleetShowcase } from '@/components/services/BikeFleetShowcase';
 import { BikeServiceSchema, HowToSchema, ItemListSchema, BreadcrumbSchema } from '@/components/seo/schemas';
 import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
-import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
+import { CarRentalPopularCitiesGrid } from '@/components/car-rental/CarRentalPopularCitiesGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { formatPriceHighlight } from '@/lib/utils';
 
@@ -188,11 +188,9 @@ export default function BikeRentalPage() {
         ]}
       />
       {/* Locations from Database */}
-      <ServiceLocationsGrid
+      <CarRentalPopularCitiesGrid
         serviceSlug="bike-on-rent"
-        title="Bike Rental in Popular Cities"
-        startingPrice="₹399"
-        priceUnit="/day"
+        title="Bike Rental in Available Cities"
       />
 
       <DynamicServicePage

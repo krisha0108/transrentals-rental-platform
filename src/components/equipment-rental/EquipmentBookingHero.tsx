@@ -31,6 +31,17 @@ interface EquipmentBookingHeroProps {
    *  aur <main> ki padding uski poori height se kam hai, isliye tab
    *  clearance hero ko khud rakhni padti hai. */
   topClearance?: boolean;
+  /** Booking widget/chat ko diya jaane wala serviceType — crane/excavator/
+   *  generator/hydra jaise specific equipment pages apna alag serviceType
+   *  pass karte hain taaki booking sahi category me jaaye, generic
+   *  'equipment-rental' me nahi mix ho. */
+  serviceType?: string;
+  /** Top badge pill ka label — "Equipment Rental in {city}" ki jagah
+   *  "Crane Rental in {city}" jaisa kuch. */
+  badgeLabel?: string;
+  /** Booking card header ka title — "Book Your Equipment" ki jagah
+   *  "Book Your Crane" jaisa kuch. */
+  bookingTitle?: string;
 }
 
 const HERO_FEATURES = [
@@ -62,6 +73,9 @@ export function EquipmentBookingHero({
   heroImage = '/images/sections/equipment-rental-hero-bg.png',
   cityName,
   topClearance = false,
+  serviceType = 'equipment-rental',
+  badgeLabel = 'Equipment Rental',
+  bookingTitle = 'Book Your Equipment',
 }: EquipmentBookingHeroProps) {
   const [showChat, setShowChat] = useState(false);
 
@@ -95,7 +109,7 @@ export function EquipmentBookingHero({
               className="inline-flex items-center gap-2 bg-white border border-green-200 rounded-full px-4 py-2 mb-5 shadow-sm"
             >
               <HardHat className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-medium text-slate-700">Equipment Rental in {city}</span>
+              <span className="text-sm font-medium text-slate-700">{badgeLabel} in {city}</span>
             </motion.div>
 
             <motion.h1
@@ -126,7 +140,7 @@ export function EquipmentBookingHero({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5"
+              className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8"
             >
               {HERO_FEATURES.map((item) => (
                 <div key={item.text} className="flex flex-col items-start gap-2">
@@ -171,7 +185,7 @@ export function EquipmentBookingHero({
                   <HardHat className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <div className="text-white font-bold text-base">Book Your Equipment</div>
+                  <div className="text-white font-bold text-base">{bookingTitle}</div>
                   <div className="text-green-100 text-xs">Free quote &bull; No advance payment</div>
                 </div>
               </div>
@@ -195,8 +209,8 @@ export function EquipmentBookingHero({
               [&::-webkit-scrollbar-thumb]:bg-gray-200
               [&::-webkit-scrollbar-thumb]:rounded-full">
               {showChat
-                ? <DynamicChatBookingHero hideHeader serviceType="equipment-rental" />
-                : <EquipmentBookingWidget cityName={cityName ?? city} serviceType="equipment-rental" />}
+                ? <DynamicChatBookingHero hideHeader serviceType={serviceType} />
+                : <EquipmentBookingWidget cityName={cityName ?? city} serviceType={serviceType} />}
             </div>
 
             {/* Footer */}

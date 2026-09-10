@@ -5,7 +5,7 @@ import {
   Landmark, Briefcase, Backpack, Heart, Plane, Camera, Map,
 } from 'lucide-react';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
-import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
+import { StaticServicePopularCitiesGrid } from '@/components/services/StaticServicePopularCitiesGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { HowToSchema } from '@/components/seo/schemas';
 
@@ -187,12 +187,10 @@ export default function TempoTravellerPage() {
         priceUnit="/km"
       />
 
-      {/* Locations from Database */}
-      <ServiceLocationsGrid
+      {/* Locations */}
+      <StaticServicePopularCitiesGrid
         serviceSlug="tempo-traveller"
-        title="Tempo Traveller in Popular Cities"
-        startingPrice="₹18"
-        priceUnit="/km"
+        title="Tempo Traveller in Available Cities"
       />
 
       {occasionsSection}

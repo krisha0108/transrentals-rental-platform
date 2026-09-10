@@ -15,6 +15,7 @@ import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { Wallet, Car, Truck, Users, LayoutGrid, ArrowRight, Mountain, Luggage } from 'lucide-react';
 
 interface PageProps {
   params: {
@@ -112,48 +113,67 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
       />
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-slate-800 to-blue-900 text-white py-12">
+      <section className="bg-white py-10 border-b border-gray-100">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            Self Drive SUV Rental in {locationName}
-          </h1>
-          <p className="text-lg opacity-90 mb-6">
-            Drive yourself in a powerful SUV. Perfect for {locationName} roads and beyond.
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Starting from</p>
-              <p className="text-xl font-bold">₹1,999</p>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">
+                Self Drive SUV Rental in <span className="text-emerald-600">{locationName}</span>
+              </h2>
+              <p className="text-gray-500 mt-1.5">Drive yourself in a powerful SUV. Perfect for {locationName} roads and beyond.</p>
             </div>
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Available</p>
-              <p className="text-xl font-bold">6+ SUV Models</p>
-            </div>
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Seating</p>
-              <p className="text-xl font-bold">5-7 Seater</p>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Wallet className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Starting from</p>
+                  <p className="text-lg font-black text-gray-900">₹1,999</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Car className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Available</p>
+                  <p className="text-lg font-black text-gray-900">6+ Models</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Users className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Seating</p>
+                  <p className="text-lg font-black text-gray-900">5-7 Seater</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Why Choose */}
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">
-            Why Rent SUV in {locationName}?
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Why Rent SUV in <span className="text-emerald-600">{locationName}</span>?
           </h2>
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
             {[
-              { icon: '🛣️', title: 'Road Trips', desc: `Explore around ${locationName}` },
-              { icon: '👨‍👩‍👧‍👦', title: 'Family Travel', desc: 'Spacious & comfortable' },
-              { icon: '🧳', title: 'Luggage Space', desc: 'Large boot capacity' },
-              { icon: '🏔️', title: 'Any Terrain', desc: 'Highways, hills, off-road' },
-            ].map((item) => (
-              <div key={item.title} className="bg-white p-4 rounded-lg text-center shadow">
-                <div className="text-3xl mb-2">{item.icon}</div>
-                <h3 className="font-bold">{item.title}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              { Icon: Mountain, title: 'Road Trips', desc: `Explore around ${locationName}` },
+              { Icon: Users, title: 'Family Travel', desc: 'Spacious & comfortable' },
+              { Icon: Luggage, title: 'Luggage Space', desc: 'Large boot capacity' },
+              { Icon: Truck, title: 'Any Terrain', desc: 'Highways, hills, off-road' },
+            ].map(({ Icon, title, desc }) => (
+              <div key={title} className="text-center bg-white border border-dashed border-emerald-200 rounded-2xl px-5 py-8 hover:border-emerald-400 hover:shadow-md transition-all">
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <Icon className="w-6 h-6 text-emerald-600" />
+                </span>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1">{title}</h3>
+                <p className="text-xs text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
@@ -161,24 +181,32 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
       </section>
 
       {/* Other Options */}
-      <section className="py-12">
-        <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">
-            Other Self Drive Options in {locationName}
+      <section className="relative overflow-hidden py-14 md:py-16 bg-gradient-to-b from-white via-gray-50/70 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-[1.75rem] font-black tracking-tight text-gray-900 text-center mb-10">
+            Other Self Drive Options in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <Link href={`/self-drive-sedan-rental/${params.location}`} className="bg-gray-50 p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold text-lg">Sedan Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹1,299/day</p>
-            </Link>
-            <Link href={`/self-drive-hatchback-rental/${params.location}`} className="bg-gray-50 p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold text-lg">Hatchback Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹899/day</p>
-            </Link>
-            <Link href={`/self-drive-car-rentals/${params.location}`} className="bg-gray-50 p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold text-lg">All Self Drive Cars</h3>
-              <p className="text-sm text-gray-600 mt-2">View all options</p>
-            </Link>
+          <div className="grid sm:grid-cols-3 gap-5 max-w-4xl mx-auto">
+            {[
+              { href: `/self-drive-sedan-rental/${params.location}`, icon: Car, title: 'Sedan Rental', desc: 'From ₹1,299/day' },
+              { href: `/self-drive-hatchback-rental/${params.location}`, icon: Car, title: 'Hatchback Rental', desc: 'From ₹899/day' },
+              { href: `/self-drive-car-rentals/${params.location}`, icon: LayoutGrid, title: 'All Self Drive Cars', desc: 'View all options' },
+            ].map((opt) => (
+              <Link
+                key={opt.title}
+                href={opt.href}
+                className="group flex flex-col items-center text-center bg-white border border-gray-100 shadow-sm rounded-2xl px-6 py-8 hover:border-emerald-300 hover:shadow-md transition-all"
+              >
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4 group-hover:bg-emerald-600 transition-colors">
+                  <opt.icon className="w-6 h-6 text-emerald-600 group-hover:text-white transition-colors" />
+                </span>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-1">{opt.title}</h3>
+                <p className="text-xs text-gray-500 flex items-center gap-1">
+                  {opt.desc}
+                  <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
+                </p>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -204,6 +232,8 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="self-drive-suv-rental" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location}

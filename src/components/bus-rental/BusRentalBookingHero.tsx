@@ -21,6 +21,14 @@ interface BusRentalBookingHeroProps {
   city: string;
   citySlug: string;
   heroImage?: string;
+  serviceType?: string;
+  badgeText?: string;
+  headingLine1?: string;
+  headingLine2Plain?: string;
+  headingLine2Accent?: string;
+  subheading?: string;
+  bookingTitle?: string;
+  bookingSubtitle?: string;
 }
 
 const HERO_FEATURES = [
@@ -48,6 +56,14 @@ export function BusRentalBookingHero({
   city,
   citySlug,
   heroImage = '/images/sections/bus-rental-hero-bg.png',
+  serviceType = 'bus-rental',
+  badgeText,
+  headingLine1,
+  headingLine2Plain = 'Like ',
+  headingLine2Accent = 'Never Before',
+  subheading,
+  bookingTitle = 'Book Your Bus',
+  bookingSubtitle = 'Free quote • No advance payment',
 }: BusRentalBookingHeroProps) {
   const [showChat, setShowChat] = useState(false);
 
@@ -67,7 +83,7 @@ export function BusRentalBookingHero({
               className="inline-flex items-center gap-2 bg-white border border-green-200 rounded-full px-4 py-2 mb-5 shadow-sm"
             >
               <Bus className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-medium text-slate-700">Bus Rental in {city}</span>
+              <span className="text-sm font-medium text-slate-700">{badgeText ?? `Bus Rental in ${city}`}</span>
             </motion.div>
 
             <motion.h1
@@ -76,9 +92,9 @@ export function BusRentalBookingHero({
               transition={{ delay: 0.1 }}
               className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 mb-3 leading-tight"
             >
-              Explore {city}
+              {headingLine1 ?? `Explore ${city}`}
               <br />
-              Like <span className="text-green-600">Never Before</span>
+              {headingLine2Plain}<span className="text-green-600">{headingLine2Accent}</span>
             </motion.h1>
 
             <motion.p
@@ -87,14 +103,14 @@ export function BusRentalBookingHero({
               transition={{ delay: 0.2 }}
               className="text-sm text-slate-500 mb-5 max-w-md"
             >
-              Comfortable buses, professional drivers and transparent pricing for every journey in and around {city}.
+              {subheading ?? `Comfortable buses, professional drivers and transparent pricing for every journey in and around ${city}.`}
             </motion.p>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5"
+              className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8"
             >
               {HERO_FEATURES.map((item) => (
                 <div key={item.text} className="flex flex-col items-start gap-2">
@@ -139,8 +155,8 @@ export function BusRentalBookingHero({
                   <Bus className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <div className="text-white font-bold text-base">Book Your Bus</div>
-                  <div className="text-green-100 text-xs">Free quote &bull; No advance payment</div>
+                  <div className="text-white font-bold text-base">{bookingTitle}</div>
+                  <div className="text-green-100 text-xs">{bookingSubtitle}</div>
                 </div>
               </div>
               {showChat ? (
@@ -157,14 +173,10 @@ export function BusRentalBookingHero({
             </div>
 
             <div className="p-6 pt-4">
-              <div className="max-h-[480px] overflow-y-auto
-                [&::-webkit-scrollbar]:w-1.5
-                [&::-webkit-scrollbar-track]:bg-transparent
-                [&::-webkit-scrollbar-thumb]:bg-gray-200
-                [&::-webkit-scrollbar-thumb]:rounded-full">
+              <div>
                 {!showChat
-                  ? <BusBookingWidget cityName={city} serviceType="bus-rental" />
-                  : <DynamicChatBookingHero hideHeader serviceType="bus-rental" />}
+                  ? <BusBookingWidget cityName={city} serviceType={serviceType} />
+                  : <DynamicChatBookingHero hideHeader serviceType={serviceType} />}
               </div>
 
               {/* Footer stats */}

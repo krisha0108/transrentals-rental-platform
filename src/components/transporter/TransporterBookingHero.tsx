@@ -60,7 +60,7 @@ export function TransporterBookingHero({
     <section className="relative bg-slate-50 text-slate-900 overflow-hidden">
       <div className="absolute inset-0">
         <Image src={heroImage} alt="" fill priority className="object-cover object-[center_75%]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-white/55 via-white/15 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-white/58 via-white/22 to-transparent" />
       </div>
 
       <div className="relative container-custom py-6 lg:py-8">
@@ -104,7 +104,7 @@ export function TransporterBookingHero({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5"
+              className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8"
             >
               {HERO_FEATURES.map((item) => (
                 <div key={item.text} className="flex flex-col items-start gap-2">
@@ -143,7 +143,7 @@ export function TransporterBookingHero({
             className="bg-white rounded-2xl shadow-2xl overflow-hidden w-full lg:ml-auto lg:max-w-md flex flex-col"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-green-700 to-green-600 px-6 py-4 flex items-center justify-between shrink-0">
+            <div className="bg-gradient-to-r from-green-700 to-green-600 px-5 py-2.5 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
                   <Truck className="w-5 h-5 text-white" />
@@ -167,11 +167,7 @@ export function TransporterBookingHero({
             </div>
 
             {/* Body */}
-            <div className="px-6 py-4 max-h-[520px] overflow-y-auto
-              [&::-webkit-scrollbar]:w-1.5
-              [&::-webkit-scrollbar-track]:bg-transparent
-              [&::-webkit-scrollbar-thumb]:bg-gray-200
-              [&::-webkit-scrollbar-thumb]:rounded-full">
+            <div className="px-5 pt-3 pb-3">
               {showChat
                 ? <DynamicChatBookingHero hideHeader serviceType="transporter" />
                 : <TruckBookingWidget cityName={city} serviceType="transporter" />}

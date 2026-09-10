@@ -31,7 +31,7 @@ function groupLocationsByState(locations: Location[]): Record<string, Location[]
 
 export function CarRentalPopularCitiesGrid({
   serviceSlug,
-  title = 'Car Rental in Popular Cities',
+  title = 'Car Rental in Available Cities',
   startingPrice,
   priceUnit = '/day',
 }: CarRentalPopularCitiesGridProps) {
@@ -70,7 +70,7 @@ export function CarRentalPopularCitiesGrid({
       )
     : locations;
 
-  const popularLocations = filteredLocations.slice(0, 12);
+  const visibleLocations = filteredLocations.slice(0, 12);
   const locationsByState = groupLocationsByState(filteredLocations);
   const states = Object.keys(locationsByState).sort();
 
@@ -121,10 +121,10 @@ export function CarRentalPopularCitiesGrid({
           </div>
         )}
 
-        {/* Popular Locations */}
+        {/* Available Locations */}
         {!showAll && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {popularLocations.map((location) => (
+            {visibleLocations.map((location) => (
               <Link
                 key={location.id}
                 href={`/${serviceSlug}/${location.slug}`}

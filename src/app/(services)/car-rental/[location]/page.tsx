@@ -301,6 +301,9 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
   const cityFAQs = scContent?.faqs.length
     ? scContent.faqs
     : (CITY_SEO[params.location]?.serviceFAQs?.['car-rental'] || []);
+  const displayFAQs = cityFAQs.length > 0
+    ? cityFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))
+    : CAR_RENTAL_FALLBACK_FAQS;
 
   return (
     <div className="flex flex-col">
@@ -384,23 +387,19 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
         rating={liveRating?.ratingValue}
         reviewCount={liveRating?.reviewCount}
       />
+      <FAQSection service="car-rental" location={locationName} customFaqs={displayFAQs} />
+
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'FAQPage',
-            mainEntity: cityFAQs.length > 0
-              ? cityFAQs.map((faq) => ({
-                  '@type': 'Question',
-                  name: faq.q,
-                  acceptedAnswer: { '@type': 'Answer', text: faq.a },
-                }))
-              : CAR_RENTAL_FALLBACK_FAQS.map((faq) => ({
-                  '@type': 'Question',
-                  name: faq.question,
-                  acceptedAnswer: { '@type': 'Answer', text: faq.answer },
-                })),
+            mainEntity: displayFAQs.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
           }),
         }}
       />

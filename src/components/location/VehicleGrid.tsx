@@ -53,21 +53,21 @@ export function VehicleGrid({
   return (
     <section className="py-16 bg-gray-50">
       <div className="container-custom">
-        <h2 className="text-3xl font-bold mb-2 text-center">
+        <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-2">
           {displayTitle}
         </h2>
 
         {/* Brand Filter Pills */}
         {brands.length > 1 && (
-          <div className="flex flex-wrap justify-center gap-2 mt-4 mb-8">
+          <div className="flex flex-wrap justify-center gap-2 mt-4 mb-10">
             {brands.map(brand => (
               <button
                 key={brand}
                 onClick={() => setActiveBrand(brand)}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
                   activeBrand === brand
-                    ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-orange-400 hover:text-orange-600'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-600'
                 }`}
               >
                 {brand}
@@ -83,14 +83,17 @@ export function VehicleGrid({
               <p className="text-gray-400 text-sm mt-2">Please check back later or try a different location.</p>
             </div>
           ) : (
-            filtered.map((vehicle) => {
+            filtered.map((vehicle, idx) => {
               // Use ID for vendor fleets, slug for legacy fleet
               const vehicleIdentifier = vehicle.slug || String(vehicle.id);
 
               const CardContent = (
-                <div className={`${isClickable ? 'group' : ''} bg-white rounded-xl shadow-md ${isClickable ? 'hover:shadow-xl transition-all duration-300' : ''} overflow-hidden border border-gray-100 flex flex-col h-full`}>
+                <div
+                  className={`${isClickable ? 'group' : ''} bg-white rounded-2xl shadow-sm hover:shadow-xl hover:shadow-emerald-100 ${isClickable ? 'hover:-translate-y-1' : ''} transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full`}
+                  style={{ animation: `vg-rise .6s cubic-bezier(.22,1,.36,1) ${Math.min(idx, 8) * 70}ms forwards`, opacity: 0 }}
+                >
                   {/* Vehicle Image */}
-                  <div className="relative h-48 bg-gray-100 overflow-hidden shrink-0">
+                  <div className="relative h-48 bg-emerald-50/60 overflow-hidden shrink-0">
                     <Image
                       src={vehicle.image}
                       alt={vehicle.name}
@@ -115,13 +118,13 @@ export function VehicleGrid({
                   <div className="p-4 flex flex-col flex-1">
                     {/* Brand */}
                     {vehicle.brand && (
-                      <p className="text-xs font-medium text-orange-600 uppercase tracking-wide mb-1">
+                      <p className="text-xs font-medium text-emerald-600 uppercase tracking-wide mb-1">
                         {vehicle.brand}
                       </p>
                     )}
 
                     {/* Name */}
-                    <h3 className={`text-sm font-bold text-gray-900 mb-2 ${isClickable ? 'group-hover:text-orange-600' : ''} transition-colors line-clamp-1`}>
+                    <h3 className={`text-sm font-bold text-gray-900 mb-2 ${isClickable ? 'group-hover:text-emerald-700' : ''} transition-colors line-clamp-1`}>
                       {vehicle.name}
                     </h3>
 
@@ -152,7 +155,7 @@ export function VehicleGrid({
                     {/* Actions */}
                     <div className="flex items-baseline justify-end pt-3 border-t border-gray-100 mt-auto">
                       {showViewDetails && (
-                        <span className={`text-xs font-medium text-orange-600 ${isClickable ? 'group-hover:text-orange-700' : ''}`}>
+                        <span className={`text-xs font-medium text-emerald-600 ${isClickable ? 'group-hover:text-emerald-700' : ''}`}>
                           View Details →
                         </span>
                       )}
@@ -182,6 +185,10 @@ export function VehicleGrid({
           )}
         </div>
       </div>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes vg-rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+        @media (prefers-reduced-motion: reduce) { [style*="vg-rise"] { animation: none !important; opacity: 1 !important; } }
+      ` }} />
     </section>
   );
 }

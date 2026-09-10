@@ -1,10 +1,93 @@
 import { Metadata } from 'next';
-import Link from 'next/link';
+import { Zap, Mountain, Users, ShieldCheck, Tent, Heart, MessageCircleQuestion, Plus } from 'lucide-react';
 import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
-import { FAQSection } from '@/components/services/FAQSection';
-import { ALL_CITIES } from '@/data/indian-cities';
+import { StaticServicePopularCitiesGrid } from '@/components/services/StaticServicePopularCitiesGrid';
 import { formatPriceHighlight } from '@/lib/utils';
 import { HowToSchema } from '@/components/seo/schemas';
+
+const WHY_SCORPIO = [
+  { icon: Zap, anim: 'tick', title: 'Powerful Engine', desc: '2.2L mHawk Diesel' },
+  { icon: Mountain, anim: 'lift', title: '4x4 Option', desc: 'Go anywhere capability' },
+  { icon: Users, anim: 'pulse', title: '6/7 Seater', desc: 'Family-friendly space' },
+  { icon: ShieldCheck, anim: 'grow', title: 'Rugged Build', desc: 'Built for tough roads' },
+];
+
+const SCORPIO_PERFECT_FOR = [
+  { icon: Mountain, anim: 'lift', title: 'Mountain Trips', desc: 'Ladakh, Spiti, Himalayas' },
+  { icon: Tent, anim: 'wrench', title: 'Adventure Travel', desc: 'Off-road capable' },
+  { icon: Users, anim: 'pulse', title: 'Family Outstation', desc: 'Space for 7 + luggage' },
+  { icon: Heart, anim: 'tick', title: 'Weddings', desc: 'Grand entry vehicle' },
+];
+
+/* Wahi "Why Choose Us" card language jo excavator-on-rent page me hai — dashed
+   icon-ring, sheen on hover. Plain Tailwind group-hover, no custom keyframes. */
+const WCS_CSS = `
+.wcs-card {
+  opacity: 0;
+  animation: wcs-rise .6s cubic-bezier(.22,1,.36,1) forwards;
+  transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .3s ease;
+}
+@keyframes wcs-rise {
+  from { opacity: 0; transform: translateY(22px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+.wcs-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px -12px rgba(16,185,129,.28);
+  border-color: rgb(167 243 208);
+}
+.wcs-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(16,185,129,.10) 50%, transparent 65%);
+  transform: translateX(-100%);
+  transition: transform .8s ease;
+  pointer-events: none;
+}
+.wcs-card:hover .wcs-sheen { transform: translateX(100%); }
+@media (prefers-reduced-motion: reduce) {
+  .wcs-card { opacity: 1; animation: none; }
+  .wcs-card:hover { transform: none; }
+  .wcs-sheen { display: none; }
+}
+`;
+
+const ICON_HOVER_ANIM: Record<string, string> = {
+  drive: 'group-hover:translate-x-2',
+  pulse: 'group-hover:scale-125',
+  tick: 'group-hover:rotate-[360deg]',
+  lift: 'group-hover:-translate-y-2',
+  wrench: 'group-hover:rotate-45',
+  grow: 'group-hover:-translate-y-1.5 group-hover:scale-110',
+};
+
+function WhyChooseGrid({ items }: { items: typeof WHY_SCORPIO }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 max-w-6xl mx-auto">
+      {items.map((item, idx) => (
+        <div
+          key={item.title}
+          className="wcs-card group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-7 text-center overflow-hidden"
+          style={{ animationDelay: `${idx * 90}ms` }}
+        >
+          <span aria-hidden className="wcs-sheen" />
+          <div className="relative">
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+              <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                <item.icon
+                  className={`w-6 h-6 text-emerald-600 transition-all duration-500 group-hover:text-white ${ICON_HOVER_ANIM[item.anim]}`}
+                />
+              </span>
+            </div>
+            <h3 className="text-[17px] font-bold text-gray-900 mb-2 leading-snug">{item.title}</h3>
+            <p className="text-[13.5px] leading-relaxed text-gray-500">{item.desc}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export const metadata: Metadata = {
   title: 'Scorpio on Rent Without Driver | Self Drive @₹2499/Day',
@@ -13,8 +96,6 @@ export const metadata: Metadata = {
   openGraph: { title: formatPriceHighlight('Scorpio on Rent Without Driver @₹2499/Day'), url: 'https://transrentals.in/scorpio-on-rent' },
   alternates: { canonical: 'https://transrentals.in/scorpio-on-rent' },
 };
-
-const topCities = ALL_CITIES.slice(0, 60);
 
 const FAQS = [
   { question: 'What is the difference between Scorpio-N and Scorpio Classic on rent?', answer: 'Scorpio-N (Z4, Z6, Z8, Z8 L) is the newer, more powerful and feature-rich model, while Scorpio Classic is the older body-on-frame design. Both are available for self-drive rental starting around ₹2,499/day.' },
@@ -55,60 +136,84 @@ export default function ScorpioOnRentPage() {
         </div>
       </section>
 
-      <section className="py-12 bg-white">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Why Rent Scorpio?</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            {[
-              { icon: '💪', title: 'Powerful Engine', desc: '2.2L mHawk Diesel' },
-              { icon: '🏔️', title: '4x4 Option', desc: 'Go anywhere capability' },
-              { icon: '👥', title: '6/7 Seater', desc: 'Family-friendly space' },
-              { icon: '🛡️', title: 'Rugged Build', desc: 'Built for tough roads' },
-            ].map((item) => (
-              <div key={item.title} className="text-center p-4 bg-amber-50 rounded-lg">
-                <div className="text-3xl mb-2">{item.icon}</div>
-                <h3 className="font-bold mb-1">{item.title}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
-              </div>
+      <section className="relative overflow-hidden py-16 md:py-24 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <style dangerouslySetInnerHTML={{ __html: WCS_CSS }} />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">Why Rent Scorpio?</h2>
+          <WhyChooseGrid items={WHY_SCORPIO} />
+        </div>
+      </section>
+
+      <section className="relative overflow-hidden py-16 md:py-24 bg-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">Perfect For</h2>
+          <WhyChooseGrid items={SCORPIO_PERFECT_FOR} />
+        </div>
+      </section>
+
+      <StaticServicePopularCitiesGrid serviceSlug="scorpio-on-rent" title="Scorpio on Rent in Available Cities" />
+
+      {/* FAQ */}
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] text-emerald-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              GOOD TO KNOW
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            </span>
+            <h2 className="mt-4 text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Scorpio Rental <span className="text-emerald-600">FAQs</span>
+            </h2>
+          </div>
+          <div className="max-w-5xl mx-auto space-y-3">
+            {FAQS.map((faq, idx) => (
+              <details
+                key={idx}
+                open={idx === 0}
+                className="group rounded-2xl bg-white border border-gray-100 shadow-sm open:border-emerald-200 open:shadow-md transition-all"
+              >
+                <summary className="flex items-center gap-4 px-4 sm:px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span className="shrink-0 w-9 h-9 rounded-full bg-emerald-50 grid place-items-center">
+                    <MessageCircleQuestion className="w-[18px] h-[18px] text-emerald-600" />
+                  </span>
+                  <h3 className="flex-1 font-bold text-[15px] leading-snug text-gray-900">{faq.question}</h3>
+                  <span className="shrink-0 w-8 h-8 rounded-lg bg-gray-50 text-gray-500 grid place-items-center transition-all duration-200 group-open:rotate-45 group-open:bg-emerald-600 group-open:text-white">
+                    <Plus className="w-4 h-4" />
+                  </span>
+                </summary>
+                <p className="px-4 sm:px-5 pb-5 sm:pl-[4.25rem] text-[14px] leading-relaxed text-gray-500">
+                  {faq.answer}
+                </p>
+              </details>
             ))}
           </div>
         </div>
       </section>
-
-      <section className="py-12 bg-amber-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Perfect For</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            {[
-              { icon: '🏔️', title: 'Mountain Trips', desc: 'Ladakh, Spiti, Himalayas' },
-              { icon: '🏕️', title: 'Adventure Travel', desc: 'Off-road capable' },
-              { icon: '👨‍👩‍👧‍👦', title: 'Family Outstation', desc: 'Space for 7 + luggage' },
-              { icon: '💒', title: 'Weddings', desc: 'Grand entry vehicle' },
-            ].map((item) => (
-              <div key={item.title} className="bg-white p-6 rounded-lg text-center shadow-sm">
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-bold text-lg mb-1">{item.title}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="cities" className="py-12 bg-white">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Scorpio on Rent Across India</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {topCities.map((city) => (
-              <Link key={city.slug} href={`/scorpio-on-rent/${city.slug}`} className="p-3 bg-gray-50 rounded-lg text-center hover:bg-amber-50 border border-gray-200 transition">
-                <span className="font-medium text-gray-800">{city.name}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <FAQSection service="self-drive-car-rental" customFaqs={FAQS} />
 
       <script
         type="application/ld+json"

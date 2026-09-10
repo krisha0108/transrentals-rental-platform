@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import {
-  ArrowRight, Sparkles, Star, Lightbulb,
+  ArrowRight, Sparkles, Lightbulb,
   KeyRound, Gem, Map, MoveRight, Heart, Briefcase, CalendarDays, Crown, Gauge,
 } from 'lucide-react';
 
@@ -13,7 +13,6 @@ const CAR_SUB_SERVICES = [
     description: 'Drive yourself, no driver needed',
     price: 'Starting from ₹899',
     url: '/self-drive-car-rentals',
-    popular: true,
   },
   {
     id: 'luxury',
@@ -22,7 +21,6 @@ const CAR_SUB_SERVICES = [
     description: 'BMW, Mercedes, Audi & more',
     price: 'Starting from ₹4999',
     url: '/luxury-car-rental',
-    popular: true,
   },
   {
     id: 'outstation',
@@ -31,7 +29,6 @@ const CAR_SUB_SERVICES = [
     description: 'Intercity trips & long distance travel',
     price: 'Starting from ₹10/km',
     url: '/outstation-car-rental',
-    popular: true,
   },
   {
     id: 'one-way',
@@ -100,53 +97,11 @@ const CAR_SERVICES_CSS = `
   box-shadow: 0 22px 46px -18px rgba(16,185,129,.45);
 }
 
-.crs-bar {
-  position: absolute;
-  top: 0; left: 50%;
-  height: 3px;
-  width: 0;
-  background: linear-gradient(90deg, #10b981, #14b8a6);
-  transform: translateX(-50%);
-  transition: width .45s cubic-bezier(.22,1,.36,1);
-  pointer-events: none;
-}
-.crs-card:hover .crs-bar { width: 100%; }
-
 .crs-icon { transition: transform .4s cubic-bezier(.34,1.56,.64,1); }
 .crs-card:hover .crs-icon { transform: scale(1.08); }
 
-.crs-price { transition: transform .3s cubic-bezier(.34,1.56,.64,1); transform-origin: left center; }
-.crs-card:hover .crs-price { transform: scale(1.06); }
-
 .crs-arrow { transition: background-color .3s ease, color .3s ease, border-color .3s ease, transform .3s ease; }
 .crs-card:hover .crs-arrow { transform: translateX(3px); }
-
-/* "Popular" badge — gradient pill, halki chamak aur dheemi glow */
-.crs-badge {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #10b981, #0d9488);
-  box-shadow: 0 4px 14px -4px rgba(16,185,129,.7);
-  animation: crs-badge-glow 2.6s ease-in-out infinite;
-}
-.crs-badge::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.5) 50%, transparent 60%);
-  transform: translateX(-120%);
-  animation: crs-badge-shine 3.2s ease-in-out infinite;
-}
-@keyframes crs-badge-glow {
-  0%, 100% { box-shadow: 0 4px 14px -4px rgba(16,185,129,.55); }
-  50%      { box-shadow: 0 6px 20px -4px rgba(16,185,129,.95); }
-}
-@keyframes crs-badge-shine {
-  0%, 62%   { transform: translateX(-120%); }
-  92%, 100% { transform: translateX(120%); }
-}
-.crs-badge-star { transition: transform .4s cubic-bezier(.34,1.56,.64,1); }
-.crs-card:hover .crs-badge-star { transform: rotate(72deg) scale(1.12); }
 
 /* info box */
 .crs-info { transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .3s ease; }
@@ -161,12 +116,9 @@ const CAR_SERVICES_CSS = `
 @media (prefers-reduced-motion: reduce) {
   .crs-card, .crs-info { opacity: 1; animation: none; }
   .crs-card:hover, .crs-info:hover { transform: none; }
-  .crs-bar { display: none; }
-  .crs-badge { animation: none; }
-  .crs-badge::after { display: none; }
-  .crs-icon, .crs-price, .crs-arrow, .crs-badge-star, .crs-info-icon,
-  .crs-card:hover .crs-icon, .crs-card:hover .crs-price,
-  .crs-card:hover .crs-arrow, .crs-card:hover .crs-badge-star,
+  .crs-icon, .crs-arrow, .crs-info-icon,
+  .crs-card:hover .crs-icon,
+  .crs-card:hover .crs-arrow,
   .crs-info:hover .crs-info-icon { transition: none; transform: none; }
 }
 `;
@@ -201,51 +153,32 @@ export function CarSubServicesGrid() {
         </div>
 
         {/* Services Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
           {CAR_SUB_SERVICES.map((service, idx) => (
             <Link
               key={service.id}
               href={service.url}
-              className={`crs-card group relative flex flex-col rounded-2xl bg-white overflow-hidden ${
-                service.popular
-                  ? 'ring-2 ring-emerald-500 shadow-lg shadow-emerald-100'
-                  : 'border border-gray-100 shadow-sm'
-              }`}
+              className="crs-card group relative flex w-full max-w-lg mx-auto rounded-[18px] bg-white border border-gray-100 shadow-sm overflow-hidden"
               style={{ animationDelay: `${idx * 80}ms` }}
             >
-              {/* upar ka accent bar — hover par beech se failta hai */}
-              <span aria-hidden className="crs-bar" />
-
-              <div className="p-6 pb-4">
-                <div className="flex items-start justify-between gap-3 mb-4">
-                  <span className="crs-icon w-12 h-12 rounded-2xl bg-emerald-50 ring-1 ring-emerald-100 grid place-items-center shrink-0">
-                    <service.icon className="w-6 h-6 text-emerald-600" strokeWidth={1.9} />
-                  </span>
-                  {service.popular && (
-                    <span className="crs-badge shrink-0 inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-3 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-white">
-                      <span className="crs-badge-star grid place-items-center w-[18px] h-[18px] rounded-full bg-white/25">
-                        <Star className="w-2.5 h-2.5 fill-white text-white" />
-                      </span>
-                      Popular
-                    </span>
-                  )}
-                </div>
-
-                <h3 className="text-[17px] font-bold text-gray-900 leading-snug">{service.name}</h3>
-                <p className="mt-1 text-[13px] leading-snug text-gray-500">{service.description}</p>
-
-                <p className="crs-price mt-4 text-[21px] font-black tracking-tight text-emerald-700 tabular-nums">
-                  {service.price}
-                </p>
+              {/* Icon panel */}
+              <div className="w-[124px] shrink-0 flex items-center justify-center px-3 py-6 bg-emerald-50">
+                <span className="crs-icon">
+                  <service.icon className="w-9 h-9 text-emerald-600" strokeWidth={1.7} />
+                </span>
               </div>
 
-              <div className="mt-auto px-6 py-3.5 bg-gray-50/80 border-t border-gray-100 flex items-center justify-between transition-colors group-hover:bg-emerald-50/60">
-                <span className="text-[12.5px] font-semibold text-gray-500 group-hover:text-emerald-700 transition-colors">
-                  Details
-                </span>
-                <span className="crs-arrow w-8 h-8 rounded-full bg-white border border-gray-100 grid place-items-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600 transition-colors">
-                  <ArrowRight className="w-4 h-4" />
-                </span>
+              {/* Content */}
+              <div className="flex-1 min-w-0 p-5">
+                <h3 className="text-[16px] font-bold text-gray-900 leading-snug">{service.name}</h3>
+                <p className="mt-1.5 text-[13px] leading-snug text-gray-500">{service.description}</p>
+
+                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
+                  <span className="text-[13px] font-bold text-emerald-700">Explore</span>
+                  <span className="crs-arrow w-8 h-8 rounded-full bg-emerald-50 grid place-items-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors shrink-0">
+                    <ArrowRight className="w-4 h-4" />
+                  </span>
+                </div>
               </div>
             </Link>
           ))}

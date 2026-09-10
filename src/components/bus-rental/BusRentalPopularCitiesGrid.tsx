@@ -70,7 +70,7 @@ export function BusRentalPopularCitiesGrid({
       )
     : locations;
 
-  const popularLocations = filteredLocations.slice(0, 12);
+  const visibleLocations = filteredLocations.slice(0, 12);
   const locationsByState = groupLocationsByState(filteredLocations);
   const states = Object.keys(locationsByState).sort();
 
@@ -121,10 +121,10 @@ export function BusRentalPopularCitiesGrid({
           </div>
         )}
 
-        {/* Popular Locations */}
+        {/* Available Locations */}
         {!showAll && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {popularLocations.map((location) => (
+            {visibleLocations.map((location) => (
               <Link
                 key={location.id}
                 href={`/${serviceSlug}/${location.slug}`}
