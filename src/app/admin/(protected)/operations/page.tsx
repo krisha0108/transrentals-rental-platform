@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 import {
   Activity, AlertTriangle, Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, Inbox,
   Loader2, MapPin, Phone, RefreshCw, Store, TrendingDown, Users,
   Search, PackageX, Radar, UserX, PhoneCall, StickyNote, X, CreditCard,
+  Server, Bell, XCircle, MinusCircle, Download,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LabelList,
@@ -56,7 +58,7 @@ const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: 'vendors', label: 'Vendors Needing Action', icon: Store },
   { key: 'gaps', label: 'Coverage Gaps', icon: Radar },
   { key: 'idle', label: 'Idle Vendors', icon: UserX },
-  { key: 'systemHealth', label: 'System Health', icon: Activity },
+  { key: 'systemHealth', label: 'System Health', icon: Server },
 ];
 
 const PAGE_LIMIT = 20;
@@ -112,6 +114,27 @@ interface PaymentFailureItem {
   amount: number; paymentMethod: string | null; createdAt: string;
 }
 
+interface CronJobHealth {
+  sourceName: string;
+  lastStatus: 'SUCCESS' | 'FAILURE' | null;
+  lastRunAt: string | null;
+  lastMessage: string | null;
+  lastDurationMs: number | null;
+  runsLast7d: number;
+  failuresLast7d: number;
+}
+
+interface NotificationHealth {
+  sourceName: string;
+  successLast7d: number;
+  failureLast7d: number;
+}
+
+// "auto-drop-bookings" -> "Auto Drop Bookings"
+function humanizeSourceName(name: string) {
+  return name.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
 interface VendorNeedingAction {
   id: string; businessName: string; ownerName: string; phone: string; email: string;
   city: string | null; status: string; daysSinceUpdate: number;
@@ -137,6 +160,172 @@ interface ManagerRow {
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+// Exports always fetch every matching row (not just the current page) — an
+// export that silently only covered the visible 20 would be a trap for
+// whoever opens the file expecting a complete list. High enough to clear the
+// same MAX_ROWS_PER_TABLE cap the backend list endpoints already use.
+const EXPORT_LIMIT = 5000;
+
+function downloadWorkbook(sheets: { name: string; rows: Record<string, any>[] }[], filename: string) {
+  const wb = XLSX.utils.book_new();
+  for (const { name, rows } of sheets) {
+    const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ 'No data': 'No data in this period' }]);
+    // Excel sheet names cap at 31 chars and can't hold /\?*[]:
+    const safeName = name.replace(/[\\/?*[\]:]/g, '').slice(0, 31) || 'Sheet';
+    XLSX.utils.book_append_sheet(wb, ws, safeName);
+  }
+  XLSX.writeFile(wb, filename);
+}
+
+function exportFilenameDate() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// One row-shaper per exportable dataset — plain, human-labeled columns
+// rather than the raw API field names, matching the convention already used
+// by the fleet page's Excel export.
+const rowsForTrackedItems = (items: TrackedItem[]) => items.map((i) => ({
+  'Request #': i.requestNumber,
+  'Customer': i.customerName,
+  'Phone': i.customerPhone,
+  'Service': i.serviceName,
+  'Location': i.locationName,
+  'Created At': formatDateTime(i.createdAt),
+}));
+
+const rowsForVendors = (items: VendorNeedingAction[]) => items.map((v) => ({
+  'Business Name': v.businessName,
+  'Owner': v.ownerName,
+  'Phone': v.phone,
+  'Email': v.email,
+  'City': v.city || '—',
+  'Status': v.status,
+  'Days Stuck': v.daysSinceUpdate,
+}));
+
+const rowsForGaps = (items: CoverageGapGroup[]) => items.map((g) => ({
+  'Location': g.locationName,
+  'Service': g.serviceType,
+  'No-Vendor Inquiries': g.count,
+  'Sample Requests': g.requestNumbers.join(', '),
+  'Last Occurred': formatDateTime(g.latest),
+}));
+
+const rowsForDemandCoverage = (items: DemandCoverageItem[]) => items.map((d) => ({
+  'Location': d.locationName,
+  'Service': d.serviceName,
+  'Inquiries': d.inquiryCount,
+  'Vendors Available': d.vendorCount,
+}));
+
+const rowsForIdleVendors = (items: IdleVendorRow[]) => items.map((r) => ({
+  'Location': r.locationName,
+  'Service': r.serviceName,
+  'Approved Vendors': r.vendorCount,
+}));
+
+const rowsForManagers = (items: ManagerRow[]) => items.map((m) => ({
+  'Manager': m.name,
+  'Email': m.email,
+  'Inquiries Total': m.inquiries.total,
+  'Inquiries Actioned': m.inquiries.actioned,
+  'Inquiries Coverage %': m.inquiries.coveragePct ?? '—',
+  'Bookings Total': m.bookings.total,
+  'Bookings Actioned': m.bookings.actioned,
+  'Bookings Coverage %': m.bookings.coveragePct ?? '—',
+  'Vendors Created': m.vendors.created,
+  'Vendors Approved': m.vendors.approved,
+}));
+
+const rowsForPaymentFailures = (items: PaymentFailureItem[]) => items.map((p) => ({
+  'Request #': p.requestNumber,
+  'Customer': p.customerName,
+  'Phone': p.customerPhone,
+  'Service': p.serviceName,
+  'Location': p.locationName || '—',
+  'Amount (₹)': p.amount ?? '—',
+  'Payment Method': p.paymentMethod || '—',
+  'Failed At': formatDateTime(p.createdAt),
+}));
+
+const rowsForCronJobs = (items: CronJobHealth[]) => items.map((j) => ({
+  'Job': humanizeSourceName(j.sourceName),
+  'Status': j.lastStatus ?? 'NEVER_RUN',
+  'Last Run': j.lastRunAt ? formatDateTime(j.lastRunAt) : '—',
+  'Last Duration (s)': j.lastDurationMs != null ? (j.lastDurationMs / 1000).toFixed(1) : '—',
+  'Runs (7d)': j.runsLast7d,
+  'Failures (7d)': j.failuresLast7d,
+  'Last Message': j.lastMessage || '—',
+}));
+
+const rowsForNotifications = (items: NotificationHealth[]) => items.map((n) => ({
+  'Source': humanizeSourceName(n.sourceName),
+  'Success (7d)': n.successLast7d,
+  'Failure (7d)': n.failureLast7d,
+}));
+
+// Full (non-paginated) fetchers for export — same endpoints the tabs use,
+// just with EXPORT_LIMIT instead of PAGE_LIMIT and no page number.
+async function fetchAllInquiries(filter: DatePreset, q: string) {
+  const res = await fetch(`/api/admin/operations/inquiries?filter=${filter}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+  const data = await res.json();
+  return (data.items || []) as TrackedItem[];
+}
+async function fetchAllBookings(filter: DatePreset, q: string) {
+  const res = await fetch(`/api/admin/operations/bookings?filter=${filter}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+  const data = await res.json();
+  return (data.items || []) as TrackedItem[];
+}
+async function fetchAllVendorsNeedingAction(q: string) {
+  const res = await fetch(`/api/admin/operations/vendors?page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+  const data = await res.json();
+  return (data.items || []) as VendorNeedingAction[];
+}
+async function fetchAllGaps(filter: DatePreset, q: string) {
+  const res = await fetch(`/api/admin/operations/coverage-gaps?filter=${filter}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+  const data = await res.json();
+  return (data.items || []) as CoverageGapGroup[];
+}
+async function fetchAllDemandCoverage(filter: DatePreset, maxVendors: number, q: string) {
+  const res = await fetch(`/api/admin/operations/demand-coverage?filter=${filter}&maxVendors=${maxVendors}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+  const data = await res.json();
+  return (data.items || []) as DemandCoverageItem[];
+}
+async function fetchAllIdleVendors(filter: DatePreset, q: string) {
+  const res = await fetch(`/api/admin/operations/idle-vendors?filter=${filter}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+  const data = await res.json();
+  return (data.items || []) as IdleVendorRow[];
+}
+async function fetchAllPaymentFailures(filter: DatePreset, q: string) {
+  const res = await fetch(`/api/admin/operations/payment-failures?filter=${filter}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+  const data = await res.json();
+  return (data.items || []) as PaymentFailureItem[];
+}
+async function fetchManagers(filter: DatePreset) {
+  const res = await fetch(`/api/admin/managers/performance?filter=${filter}`);
+  const data = await res.json();
+  return (data.managers || []) as ManagerRow[];
+}
+async function fetchSystemHealth() {
+  const res = await fetch('/api/admin/operations/system-health');
+  const data = await res.json();
+  return { cronJobs: (data.cronJobs || []) as CronJobHealth[], notifications: (data.notifications || []) as NotificationHealth[] };
+}
+
+// Coverage Gaps and Idle Vendors silently widen a too-narrow date selection
+// (Today/Yesterday have almost no data to show a meaningful "top locations"
+// ranking) — this makes that substitution visible instead of just showing
+// numbers that don't match the selected filter pill above.
+function PeriodNote({ selected, effective }: { selected: DatePreset; effective: DatePreset }) {
+  if (selected === effective) return null;
+  const label = DATE_PRESETS.find((p) => p.key === effective)?.label || effective;
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full flex-shrink-0">
+      <Clock className="w-3 h-3" /> Showing {label} — too little data day-to-day
+    </span>
+  );
 }
 
 function coverageColor(pct: number | null) {
@@ -175,7 +364,11 @@ export default function AdminOperationsTrackerPage() {
   const [vendors, setVendors] = useState<Paginated<VendorNeedingAction> | null>(null);
   const [vendorsPage, setVendorsPage] = useState(1);
 
-  const [gaps, setGaps] = useState<Paginated<CoverageGapGroup> & { total: number } | null>(null);
+  // The gaps API's `total` is the raw count of no-vendor inquiry EVENTS, not
+  // the number of grouped rows the list/pagination actually shows — that's
+  // `groupsTotal`. Keeping both distinct avoids the pagination bar quoting a
+  // "47 total" that doesn't match a 2-row list.
+  const [gaps, setGaps] = useState<Paginated<CoverageGapGroup> & { groupsTotal: number } | null>(null);
   const [gapsPage, setGapsPage] = useState(1);
   const [vendorThreshold, setVendorThreshold] = useState<VendorThreshold>('zero');
   const [demandCoverage, setDemandCoverage] = useState<Paginated<DemandCoverageItem> | null>(null);
@@ -189,6 +382,10 @@ export default function AdminOperationsTrackerPage() {
 
   const [paymentFailures, setPaymentFailures] = useState<Paginated<PaymentFailureItem> | null>(null);
   const [paymentFailuresPage, setPaymentFailuresPage] = useState(1);
+
+  // Cron/notification health is a fixed last-7-days window server-side (see
+  // getSystemHealth) — not paginated and not affected by the date filter above.
+  const [systemHealth, setSystemHealth] = useState<{ cronJobs: CronJobHealth[]; notifications: NotificationHealth[] } | null>(null);
 
   // Debounce the search box so typing doesn't fire a request per keystroke.
   useEffect(() => {
@@ -294,14 +491,15 @@ export default function AdminOperationsTrackerPage() {
         if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load manager performance');
         setManagers(data.managers || []);
       } else if (activeTab === 'systemHealth') {
-        // Cron/notification health sections are hidden for now (see
-        // src/app/api/admin/operations/system-health/route.ts — still built
-        // and logging, just nothing in the UI until those jobs are actually
-        // scheduled and producing real runs to show).
-        const res = await fetch(`/api/admin/operations/payment-failures?filter=${preset}&page=${page.paymentFailures}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
-        const data = await res.json();
-        if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load payment failures');
-        setPaymentFailures(data);
+        const [healthRes, paymentsRes] = await Promise.all([
+          fetch('/api/admin/operations/system-health'),
+          fetch(`/api/admin/operations/payment-failures?filter=${preset}&page=${page.paymentFailures}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`),
+        ]);
+        const [healthData, paymentsData] = await Promise.all([healthRes.json(), paymentsRes.json()]);
+        if (!healthRes.ok || healthData.error) throw new Error(healthData?.error || 'Failed to load system health');
+        if (!paymentsRes.ok || paymentsData.error) throw new Error(paymentsData?.error || 'Failed to load payment failures');
+        setSystemHealth(healthData);
+        setPaymentFailures(paymentsData);
       }
     } catch (e: any) {
       setError(e?.message || 'Failed to load data');
@@ -322,11 +520,120 @@ export default function AdminOperationsTrackerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, filter, debouncedSearch, inquiriesPage, bookingsPage, vendorsPage, gapsPage, idlePage, paymentFailuresPage, demandCoveragePage, vendorThreshold, loadTabData]);
 
+  // Same substitution loadTabData applies before fetching — kept here too so
+  // the render side (chart titles, PeriodNote) can show what period the data
+  // on screen actually reflects.
+  const gapsFilter: DatePreset = filter === 'today' || filter === 'yesterday' ? 'thisWeek' : filter;
+  const idleFilter: DatePreset = filter === 'today' || filter === 'yesterday' || filter === 'thisWeek' ? 'thisMonth' : filter;
+
   const handleRefresh = () => {
     loadSummary(filter);
     loadTabData(tab, filter, debouncedSearch, {
       inquiries: inquiriesPage, bookings: bookingsPage, vendors: vendorsPage, gaps: gapsPage, idle: idlePage, managers: managersPage, paymentFailures: paymentFailuresPage, demandCoverage: demandCoveragePage,
     }, vendorThreshold);
+  };
+
+  const [exportingTab, setExportingTab] = useState(false);
+  const [exportingAll, setExportingAll] = useState(false);
+
+  // Exports the ACTIVE tab's full dataset (every matching row, not just the
+  // current page) as a single .xlsx — same filters/search/vendor-threshold
+  // as what's on screen, so the file matches what the admin is looking at.
+  const handleExportTab = async () => {
+    setExportingTab(true);
+    setError(null);
+    try {
+      const q = debouncedSearch;
+      const dateStamp = exportFilenameDate();
+      switch (tab) {
+        case 'inquiries': {
+          const items = await fetchAllInquiries(filter, q);
+          downloadWorkbook([{ name: 'Untouched Inquiries', rows: rowsForTrackedItems(items) }], `untouched_inquiries_${filter}_${dateStamp}.xlsx`);
+          break;
+        }
+        case 'bookings': {
+          const items = await fetchAllBookings(filter, q);
+          downloadWorkbook([{ name: 'Untouched Bookings', rows: rowsForTrackedItems(items) }], `untouched_bookings_${filter}_${dateStamp}.xlsx`);
+          break;
+        }
+        case 'managers': {
+          const items = await fetchManagers(filter);
+          downloadWorkbook([{ name: 'Manager Performance', rows: rowsForManagers(items) }], `manager_performance_${filter}_${dateStamp}.xlsx`);
+          break;
+        }
+        case 'vendors': {
+          const items = await fetchAllVendorsNeedingAction(q);
+          downloadWorkbook([{ name: 'Vendors Needing Action', rows: rowsForVendors(items) }], `vendors_needing_action_${dateStamp}.xlsx`);
+          break;
+        }
+        case 'gaps': {
+          if (vendorThreshold === 'zero') {
+            const items = await fetchAllGaps(gapsFilter, q);
+            downloadWorkbook([{ name: 'Coverage Gaps', rows: rowsForGaps(items) }], `coverage_gaps_${gapsFilter}_${dateStamp}.xlsx`);
+          } else {
+            const items = await fetchAllDemandCoverage(gapsFilter, vendorThreshold, q);
+            downloadWorkbook([{ name: `Demand (le ${vendorThreshold} vendors)`, rows: rowsForDemandCoverage(items) }], `underserved_demand_le${vendorThreshold}v_${gapsFilter}_${dateStamp}.xlsx`);
+          }
+          break;
+        }
+        case 'idle': {
+          const items = await fetchAllIdleVendors(idleFilter, q);
+          downloadWorkbook([{ name: 'Idle Vendors', rows: rowsForIdleVendors(items) }], `idle_vendors_${idleFilter}_${dateStamp}.xlsx`);
+          break;
+        }
+        case 'systemHealth': {
+          const [health, failures] = await Promise.all([fetchSystemHealth(), fetchAllPaymentFailures(filter, q)]);
+          downloadWorkbook([
+            { name: 'Cron Jobs', rows: rowsForCronJobs(health.cronJobs) },
+            { name: 'Notification Sends', rows: rowsForNotifications(health.notifications) },
+            { name: 'Payment Failures', rows: rowsForPaymentFailures(failures) },
+          ], `system_health_${filter}_${dateStamp}.xlsx`);
+          break;
+        }
+        default:
+          break;
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Export failed');
+    } finally {
+      setExportingTab(false);
+    }
+  };
+
+  // One workbook, one sheet per section — everything the tracker covers for
+  // the currently selected date filter, fetched in parallel.
+  const handleExportAll = async () => {
+    setExportingAll(true);
+    setError(null);
+    try {
+      const q = debouncedSearch;
+      const dateStamp = exportFilenameDate();
+      const [inquiriesAll, bookingsAll, vendorsAll, gapsAll, idleAll, managersAll, health, failuresAll] = await Promise.all([
+        fetchAllInquiries(filter, q),
+        fetchAllBookings(filter, q),
+        fetchAllVendorsNeedingAction(q),
+        fetchAllGaps(gapsFilter, q),
+        fetchAllIdleVendors(idleFilter, q),
+        fetchManagers(filter),
+        fetchSystemHealth(),
+        fetchAllPaymentFailures(filter, q),
+      ]);
+      downloadWorkbook([
+        { name: 'Untouched Inquiries', rows: rowsForTrackedItems(inquiriesAll) },
+        { name: 'Untouched Bookings', rows: rowsForTrackedItems(bookingsAll) },
+        { name: 'Vendors Needing Action', rows: rowsForVendors(vendorsAll) },
+        { name: 'Coverage Gaps', rows: rowsForGaps(gapsAll) },
+        { name: 'Idle Vendors', rows: rowsForIdleVendors(idleAll) },
+        { name: 'Manager Performance', rows: rowsForManagers(managersAll) },
+        { name: 'Cron Jobs', rows: rowsForCronJobs(health.cronJobs) },
+        { name: 'Notification Sends', rows: rowsForNotifications(health.notifications) },
+        { name: 'Payment Failures', rows: rowsForPaymentFailures(failuresAll) },
+      ], `operations_tracker_all_${filter}_${dateStamp}.xlsx`);
+    } catch (e: any) {
+      setError(e?.message || 'Export failed');
+    } finally {
+      setExportingAll(false);
+    }
   };
 
   // Inline "Called"/"Note" actions log the action but don't refetch the whole
@@ -482,13 +789,33 @@ export default function AdminOperationsTrackerPage() {
             <p className="text-sm text-slate-500">Everything that needs attention across inquiries, bookings, vendors and managers — in one place.</p>
           </div>
         </div>
-        <button
-          onClick={handleRefresh}
-          disabled={tabLoading}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-600 hover:border-slate-300 disabled:opacity-50 transition"
-        >
-          <RefreshCw className={`w-4 h-4 ${tabLoading ? 'animate-spin' : ''}`} /> Refresh
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {tab !== 'overview' && (
+            <button
+              onClick={handleExportTab}
+              disabled={exportingTab}
+              title="Export this tab's full data (every matching row, not just this page)"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-600 hover:border-slate-300 disabled:opacity-50 transition"
+            >
+              {exportingTab ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Export {TABS.find((t) => t.key === tab)?.label}
+            </button>
+          )}
+          <button
+            onClick={handleExportAll}
+            disabled={exportingAll}
+            title="Export every section as one Excel file, one sheet per section"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-600 hover:border-slate-300 disabled:opacity-50 transition"
+          >
+            {exportingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Export All
+          </button>
+          <button
+            onClick={handleRefresh}
+            disabled={tabLoading}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-600 hover:border-slate-300 disabled:opacity-50 transition"
+          >
+            <RefreshCw className={`w-4 h-4 ${tabLoading ? 'animate-spin' : ''}`} /> Refresh
+          </button>
+        </div>
       </div>
 
       {/* Date filter */}
@@ -661,7 +988,7 @@ export default function AdminOperationsTrackerPage() {
                       </div>
                     </MiniChartCard>
 
-                    <MiniChartCard title="Top Coverage Gaps" onViewAll={() => setTab('gaps')} empty={gapsChartDataMini.length === 0} emptyText="No coverage gaps in this period.">
+                    <MiniChartCard title="Top Coverage Gaps" meta={<PeriodNote selected={filter} effective={gapsFilter} />} onViewAll={() => setTab('gaps')} empty={gapsChartDataMini.length === 0} emptyText="No coverage gaps in this period.">
                       <div className="h-40">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={gapsChartDataMini} layout="vertical" margin={{ top: 4, right: 28, left: 8, bottom: 0 }}>
@@ -677,7 +1004,7 @@ export default function AdminOperationsTrackerPage() {
                       </div>
                     </MiniChartCard>
 
-                    <MiniChartCard title="Top Idle Vendor Coverage" onViewAll={() => setTab('idle')} empty={idleChartDataMini.length === 0} emptyText="No idle vendor coverage in this period.">
+                    <MiniChartCard title="Top Idle Vendor Coverage" meta={<PeriodNote selected={filter} effective={idleFilter} />} onViewAll={() => setTab('idle')} empty={idleChartDataMini.length === 0} emptyText="No idle vendor coverage in this period.">
                       <div className="h-40">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={idleChartDataMini} layout="vertical" margin={{ top: 4, right: 28, left: 8, bottom: 0 }}>
@@ -876,7 +1203,13 @@ export default function AdminOperationsTrackerPage() {
                     <>
                       {gaps.page === 1 && (
                         <div className="p-5 border-b border-slate-100">
-                          <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">Top Locations by Gap Count</p>
+                          <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
+                            <p className="text-xs font-bold uppercase tracking-wide text-slate-400 flex items-center gap-1.5"><Radar className="w-3.5 h-3.5" /> Top Locations by Gap Count</p>
+                            <PeriodNote selected={filter} effective={gapsFilter} />
+                          </div>
+                          <p className="text-xs text-slate-500 mb-3">
+                            <span className="font-bold text-rose-600">{gaps.total}</span> inquir{gaps.total === 1 ? 'y' : 'ies'} had zero eligible vendors, across <span className="font-bold text-slate-700">{gaps.groupsTotal}</span> location + service combo{gaps.groupsTotal === 1 ? '' : 's'}
+                          </p>
                           <div style={{ height: Math.max(160, gapsChartData.length * 34) }}>
                             <ResponsiveContainer width="100%" height="100%">
                               <BarChart data={gapsChartData} layout="vertical" margin={{ top: 4, right: 36, left: 8, bottom: 0 }}>
@@ -906,7 +1239,7 @@ export default function AdminOperationsTrackerPage() {
                           </div>
                         ))}
                       </div>
-                      <PaginationBar page={gaps.page} totalPages={gaps.totalPages} total={gaps.total} onChange={setGapsPage} />
+                      <PaginationBar page={gaps.page} totalPages={gaps.totalPages} total={gaps.groupsTotal} onChange={setGapsPage} />
                     </>
                   )
                 ) : (
@@ -916,7 +1249,13 @@ export default function AdminOperationsTrackerPage() {
                     <>
                       {demandCoverage.page === 1 && (
                         <div className="p-5 border-b border-slate-100">
-                          <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">Top Underserved Locations (≤ {vendorThreshold} vendors)</p>
+                          <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
+                            <p className="text-xs font-bold uppercase tracking-wide text-slate-400 flex items-center gap-1.5"><Radar className="w-3.5 h-3.5" /> Top Underserved Locations (≤ {vendorThreshold} vendors)</p>
+                            <PeriodNote selected={filter} effective={gapsFilter} />
+                          </div>
+                          <p className="text-xs text-slate-500 mb-3">
+                            <span className="font-bold text-rose-600">{demandCoverage.total}</span> location + service combo{demandCoverage.total === 1 ? '' : 's'} with demand sitting on {vendorThreshold} or fewer vendors
+                          </p>
                           <div style={{ height: Math.max(160, demandCoverageChartData.length * 34) }}>
                             <ResponsiveContainer width="100%" height="100%">
                               <BarChart data={demandCoverageChartData} layout="vertical" margin={{ top: 4, right: 36, left: 8, bottom: 0 }}>
@@ -967,8 +1306,13 @@ export default function AdminOperationsTrackerPage() {
                 <>
                   {idle.page === 1 && (
                     <div className="p-5 border-b border-slate-100">
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">Top Locations by Idle Vendor Coverage</p>
-                      <p className="text-xs text-slate-400 -mt-2 mb-3">Approved vendor-slots summed across every service idle at that location</p>
+                      <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
+                        <p className="text-xs font-bold uppercase tracking-wide text-slate-400 flex items-center gap-1.5"><UserX className="w-3.5 h-3.5" /> Top Locations by Idle Vendor Coverage</p>
+                        <PeriodNote selected={filter} effective={idleFilter} />
+                      </div>
+                      <p className="text-xs text-slate-500 mb-3">
+                        <span className="font-bold text-amber-700">{idle.total}</span> location + service combo{idle.total === 1 ? '' : 's'} idle this period — approved vendor-slots summed per location below
+                      </p>
                       <div style={{ height: Math.max(160, idleChartData.length * 34) }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={idleChartData} layout="vertical" margin={{ top: 4, right: 36, left: 8, bottom: 0 }}>
@@ -1010,9 +1354,88 @@ export default function AdminOperationsTrackerPage() {
             {/* System Health */}
             {tab === 'systemHealth' && (
               <div className="divide-y divide-slate-50">
+                <div className="p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Cron Jobs</p>
+                    <p className="text-[11px] text-slate-400">Last 7 days — independent of the date filter above</p>
+                  </div>
+                  {!systemHealth || systemHealth.cronJobs.length === 0 ? (
+                    <div className="text-center py-8 text-slate-400 text-sm">Loading…</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {systemHealth.cronJobs.map((job) => {
+                        const neverRun = job.lastStatus === null;
+                        const failed = job.lastStatus === 'FAILURE';
+                        const badge = neverRun
+                          ? { icon: MinusCircle, classes: 'bg-slate-100 text-slate-500', label: 'Never run' }
+                          : failed
+                          ? { icon: XCircle, classes: 'bg-rose-50 text-rose-700', label: 'Failing' }
+                          : { icon: CheckCircle2, classes: 'bg-emerald-50 text-emerald-700', label: 'Healthy' };
+                        const BadgeIcon = badge.icon;
+                        return (
+                          <div key={job.sourceName} className="rounded-xl border border-slate-100 p-3.5 flex items-center justify-between gap-3 flex-wrap">
+                            <div className="min-w-0">
+                              <p className="font-semibold text-slate-900 text-sm">{humanizeSourceName(job.sourceName)}</p>
+                              <p className="text-xs text-slate-400 mt-0.5">
+                                {job.lastRunAt ? `Last ran ${formatDateTime(job.lastRunAt)}` : 'No runs logged in the last 7 days'}
+                                {job.lastDurationMs != null ? ` · ${(job.lastDurationMs / 1000).toFixed(1)}s` : ''}
+                              </p>
+                              {failed && job.lastMessage && (
+                                <p className="text-xs text-rose-600 mt-1 max-w-md truncate" title={job.lastMessage}>{job.lastMessage}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                              <p className="text-xs text-slate-400">
+                                {job.runsLast7d} run{job.runsLast7d === 1 ? '' : 's'}
+                                {job.failuresLast7d > 0 && <span className="text-rose-600 font-semibold"> · {job.failuresLast7d} failed</span>}
+                              </p>
+                              <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${badge.classes}`}>
+                                <BadgeIcon className="w-3.5 h-3.5" /> {badge.label}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400 flex items-center gap-1.5"><Bell className="w-3.5 h-3.5" /> Notification Sends</p>
+                    <p className="text-[11px] text-slate-400">Last 7 days</p>
+                  </div>
+                  {!systemHealth || systemHealth.notifications.length === 0 ? (
+                    <div className="text-center py-8 text-slate-400 text-sm">No notification sends logged in the last 7 days.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {systemHealth.notifications.map((n) => {
+                        const total = n.successLast7d + n.failureLast7d;
+                        const failurePct = total > 0 ? Math.round((n.failureLast7d / total) * 100) : 0;
+                        return (
+                          <div key={n.sourceName} className="rounded-xl border border-slate-100 p-3.5 flex items-center justify-between gap-3 flex-wrap">
+                            <p className="font-semibold text-slate-900 text-sm">{humanizeSourceName(n.sourceName)}</p>
+                            <div className="flex items-center gap-3 text-xs">
+                              <span className="text-emerald-600 font-semibold">{n.successLast7d} sent</span>
+                              {n.failureLast7d > 0 ? (
+                                <span className="text-rose-600 font-semibold">{n.failureLast7d} failed ({failurePct}%)</span>
+                              ) : (
+                                <span className="text-slate-400">0 failed</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   {!paymentFailures || paymentFailures.items.length === 0 ? (
-                    <EmptyState icon={CheckCircle2} text="No failed payments in this period." good />
+                    <div className="p-5">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">Payment Failures</p>
+                      <EmptyState icon={CheckCircle2} text="No failed payments in this period." good />
+                    </div>
                   ) : (
                     <>
                       {paymentFailures.page === 1 && (
@@ -1062,13 +1485,14 @@ export default function AdminOperationsTrackerPage() {
   );
 }
 
-function MiniChartCard({ title, onViewAll, empty, emptyText, children }: { title: string; onViewAll: () => void; empty: boolean; emptyText: string; children: ReactNode }) {
+function MiniChartCard({ title, meta, onViewAll, empty, emptyText, children }: { title: string; meta?: ReactNode; onViewAll: () => void; empty: boolean; emptyText: string; children: ReactNode }) {
   return (
     <div className="rounded-xl border border-slate-100 p-4">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
         <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{title}</p>
         <button onClick={onViewAll} className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex-shrink-0">View all →</button>
       </div>
+      {meta && <div className="mb-2">{meta}</div>}
       {empty ? (
         <div className="h-40 flex items-center justify-center text-center text-xs text-slate-400 px-4">{emptyText}</div>
       ) : children}
