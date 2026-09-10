@@ -116,18 +116,28 @@ COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma folder (schema + migrations), the pre-generated client, AND the
-# CLI itself (needed at runtime now — docker-entrypoint.sh runs `prisma
-# migrate deploy` on every boot). @prisma already carries the CLI's own
-# dependencies (@prisma/engines, @prisma/config, ...), so copying
-# node_modules/prisma on top is enough; no separate engine-binary handling
-# needed. Every COPY here is --chown'd to the runtime user — a bare COPY
-# leaves root:root ownership from the build stage, which then fails with
-# EACCES the moment the nextjs user needs to touch/replace anything under it.
+# Copy the Prisma schema/migrations folder, plus the ENTIRE builder
+# node_modules (not just .prisma/@prisma/prisma) so `prisma migrate deploy`
+# has its whole dependency closure at runtime.
+#
+# This used to cherry-pick just node_modules/{.prisma,@prisma,prisma}, on the
+# assumption that's everything the CLI needs. It isn't: @prisma/config pulls
+# in `effect`, which itself pulls in `fast-check` — both live outside the
+# @prisma/ scope, so they silently weren't there. Verified by extracting only
+# the cherry-picked folders into a clean directory and running the CLI
+# against it: it fails on a *different* missing module every time one gets
+# added, which means there's no small, stable "just these folders" set to
+# maintain by hand. Copying all of node_modules is what the build stage
+# itself relies on (`npm run build` only works because every dependency is
+# there) — that's the one set already proven complete and self-consistent.
+# The size cost lands on the image, not on request latency.
+#
+# Every COPY here is --chown'd to the runtime user — a bare COPY leaves
+# root:root ownership from the build stage, which then fails with EACCES the
+# moment the nextjs user needs to touch/replace anything under it (this is
+# what broke node_modules/.prisma/client before).
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Copy Firebase service account for push notifications
 COPY --from=builder --chown=nextjs:nodejs /app/firebase-service-account.json ./firebase-service-account.json
