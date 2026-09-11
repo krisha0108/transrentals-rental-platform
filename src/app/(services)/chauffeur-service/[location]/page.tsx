@@ -15,7 +15,7 @@ import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 import { FAQSection } from '@/components/services/FAQSection';
 import {
-  CheckCircle2, GraduationCap, Map, UserCog, Briefcase, Heart, PartyPopper, Wrench,
+  CheckCircle2, GraduationCap, Map as MapIcon, UserCog, Briefcase, Heart, PartyPopper, Wrench,
 } from 'lucide-react';
 
 interface PageProps {
@@ -174,7 +174,7 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
             {[
               { Icon: CheckCircle2, title: 'Verified Drivers', desc: `Police verified in ${locationName}` },
               { Icon: GraduationCap, title: 'Experienced', desc: '5+ years experience' },
-              { Icon: Map, title: 'Local Knowledge', desc: `Know ${locationName} routes` },
+              { Icon: MapIcon, title: 'Local Knowledge', desc: `Know ${locationName} routes` },
               { Icon: UserCog, title: 'Professional', desc: 'Well-groomed & trained' },
             ].map(({ Icon, title, desc }) => (
               <div key={title} className="text-center bg-white border border-dashed border-emerald-200 rounded-2xl px-5 py-8 hover:border-emerald-400 hover:shadow-md transition-all">
@@ -205,7 +205,7 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
             {[
               { Icon: Briefcase, occasion: 'Daily Commute', desc: `Office in ${locationName}` },
-              { Icon: Map, occasion: 'Outstation', desc: `Trips from ${locationName}` },
+              { Icon: MapIcon, occasion: 'Outstation', desc: `Trips from ${locationName}` },
               { Icon: Heart, occasion: 'Weddings', desc: 'Wedding car driver' },
               { Icon: PartyPopper, occasion: 'Events', desc: 'Special occasions' },
             ].map(({ Icon, occasion, desc }) => (

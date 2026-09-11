@@ -5,7 +5,7 @@ import { OneWayCabRoutesGrid } from '@/components/services/OneWayCabRoutesGrid';
 import Link from 'next/link';
 import {
   Car, Star, Shield, Clock, IndianRupee, MapPin, ArrowRight, CheckCircle2,
-  Target, Wallet, UserCheck, Smartphone, Phone, Map, Calendar,
+  Target, Wallet, UserCheck, Smartphone, Phone, Map as MapIcon, Calendar,
   MessageCircleQuestion, Plus,
 } from 'lucide-react';
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
@@ -114,7 +114,7 @@ const WHY_CHOOSE = [
 ];
 
 const HOW_IT_WORKS_STEPS = [
-  { step: '01', title: 'Select Your Route', desc: 'Choose pickup and drop city from our 500+ available routes across India', icon: Map },
+  { step: '01', title: 'Select Your Route', desc: 'Choose pickup and drop city from our 500+ available routes across India', icon: MapIcon },
   { step: '02', title: 'Pick Date & Vehicle', desc: 'Select your travel date, pickup time, and car type — Sedan, SUV, or Innova', icon: Calendar },
   { step: '03', title: 'Book & Confirm', desc: 'Complete booking with advance payment and get instant confirmation on WhatsApp', icon: CheckCircle2 },
   { step: '04', title: 'Driver Assigned', desc: 'A verified, professional driver is assigned and details shared with you', icon: UserCheck },

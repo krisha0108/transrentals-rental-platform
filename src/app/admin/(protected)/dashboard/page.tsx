@@ -88,7 +88,9 @@ async function getStats() {
       totalRedirects,
       activeRedirects,
       totalMedia,
-      totalViews: totalViews._sum.viewCount || 0,
+      // The CI build runs against a mock Prisma client that returns no _sum,
+      // so this has to survive an aggregate() that gives nothing back.
+      totalViews: totalViews?._sum?.viewCount || 0,
       // Fleet management
       totalVehicles,
       activeVehicles,

@@ -42,7 +42,9 @@ const nextConfig = {
     // Limit concurrency to prevent DB connection exhaustion during static generation
     workerThreads: false,
     cpus: 4,
-    staticGenerationMaxConcurrency: 8,
+    // staticGenerationMaxConcurrency was dropped here: Next 14.2 does not
+    // recognise the key, so it did nothing except print an "Invalid
+    // next.config.js options" warning on every build.
   },
   images: {
     remotePatterns: [
