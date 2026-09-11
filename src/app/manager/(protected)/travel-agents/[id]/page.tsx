@@ -27,6 +27,7 @@ import {
   IndianRupee,
   Star,
 } from 'lucide-react';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 interface Document {
   id: string;
@@ -258,6 +259,72 @@ export default function ManagerTravelAgentDetailPage({
     ];
   }, [agent]);
 
+  // Agency identity, status and the approval actions go into the shared sticky
+  // bar, which was otherwise rendering empty above this page's own header card.
+  useManagerPageHeader(
+    agent?.agencyName || 'Travel Agent',
+    agent ? `${agent.ownerName} • ${agent.agencyType || 'Agency'}` : undefined,
+    agent ? (
+      <div className="flex flex-wrap items-center gap-2 justify-end">
+        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_BADGE[agent.status] || 'bg-gray-100 text-gray-800'}`}>
+          {agent.status.replace(/_/g, ' ')}
+        </span>
+        {agent.status !== 'APPROVED' && (
+          <button
+            onClick={() => performAction('APPROVE')}
+            disabled={actionLoading}
+            className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-3 py-1.5 rounded-xl disabled:opacity-50"
+          >
+            <CheckCircle2 className="w-4 h-4" /> Approve
+          </button>
+        )}
+        {agent.status !== 'REJECTED' && (
+          <button
+            onClick={() => setShowRejectForm((v) => !v)}
+            disabled={actionLoading}
+            className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-3 py-1.5 rounded-xl disabled:opacity-50"
+          >
+            <XCircle className="w-4 h-4" /> Reject
+          </button>
+        )}
+        {agent.status === 'APPROVED' && (
+          <button
+            onClick={() => performAction('SUSPEND')}
+            disabled={actionLoading}
+            className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold px-3 py-1.5 rounded-xl disabled:opacity-50"
+          >
+            <AlertTriangle className="w-4 h-4" /> Suspend
+          </button>
+        )}
+        {agent.status === 'SUSPENDED' && (
+          <button
+            onClick={() => performAction('UNSUSPEND')}
+            disabled={actionLoading}
+            className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-3 py-1.5 rounded-xl disabled:opacity-50"
+          >
+            Unsuspend
+          </button>
+        )}
+        {agent.status !== 'BLOCKED' && (
+          <button
+            onClick={() => performAction('BLOCK')}
+            disabled={actionLoading}
+            className="inline-flex items-center gap-1.5 bg-gray-700 hover:bg-gray-800 text-white text-sm font-semibold px-3 py-1.5 rounded-xl disabled:opacity-50"
+          >
+            <Ban className="w-4 h-4" /> Block
+          </button>
+        )}
+      </div>
+    ) : undefined,
+    <Link
+      href="/manager/travel-agents"
+      title="All travel agents"
+      className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0 text-gray-600"
+    >
+      <ArrowLeft className="w-5 h-5" />
+    </Link>,
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -276,14 +343,7 @@ export default function ManagerTravelAgentDetailPage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/manager/travel-agents"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600"
-      >
-        <ArrowLeft className="w-4 h-4" /> All Travel Agents
-      </Link>
-
-      {/* Header with actions */}
+      {/* Name, status and the approve/reject actions now live in the sticky bar. */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
           <div className="min-w-0">
@@ -292,16 +352,9 @@ export default function ManagerTravelAgentDetailPage({
                 <Building2 className="w-6 h-6 text-emerald-600" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-xl font-bold text-gray-900 truncate">{agent.agencyName}</h1>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {agent.ownerName} • {agent.agencyType || 'Agency'}
-                </p>
+                <p className="text-sm font-semibold text-gray-900 truncate">{agent.ownerName}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{agent.agencyType || 'Agency'}</p>
               </div>
-              <span
-                className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_BADGE[agent.status] || 'bg-gray-100 text-gray-800'}`}
-              >
-                {agent.status.replace(/_/g, ' ')}
-              </span>
             </div>
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -331,53 +384,7 @@ export default function ManagerTravelAgentDetailPage({
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2 shrink-0">
-            {agent.status !== 'APPROVED' && (
-              <button
-                onClick={() => performAction('APPROVE')}
-                disabled={actionLoading}
-                className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-50"
-              >
-                <CheckCircle2 className="w-4 h-4" /> Approve
-              </button>
-            )}
-            {agent.status !== 'REJECTED' && (
-              <button
-                onClick={() => setShowRejectForm((v) => !v)}
-                disabled={actionLoading}
-                className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-50"
-              >
-                <XCircle className="w-4 h-4" /> Reject
-              </button>
-            )}
-            {agent.status === 'APPROVED' && (
-              <button
-                onClick={() => performAction('SUSPEND')}
-                disabled={actionLoading}
-                className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-50"
-              >
-                <AlertTriangle className="w-4 h-4" /> Suspend
-              </button>
-            )}
-            {agent.status === 'SUSPENDED' && (
-              <button
-                onClick={() => performAction('UNSUSPEND')}
-                disabled={actionLoading}
-                className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-50"
-              >
-                Unsuspend
-              </button>
-            )}
-            {agent.status !== 'BLOCKED' && (
-              <button
-                onClick={() => performAction('BLOCK')}
-                disabled={actionLoading}
-                className="inline-flex items-center gap-1.5 bg-gray-700 hover:bg-gray-800 text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-50"
-              >
-                <Ban className="w-4 h-4" /> Block
-              </button>
-            )}
-          </div>
+          {/* Actions moved into the sticky bar. */}
         </div>
 
         {showRejectForm && (

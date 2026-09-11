@@ -85,3 +85,6 @@ tr-driver-app/android/app/google-services.json
 tr-app/android/app/google-services.json
 tr-vendor-app/android/app/google-services.json
 .claude/worktrees/
+
+# Local-only helper output (demo seed, probes)
+.probe-*.mjs

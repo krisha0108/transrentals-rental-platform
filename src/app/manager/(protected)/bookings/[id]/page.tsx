@@ -31,6 +31,7 @@ import PackersRequestDetails from '@/components/packers/PackersRequestDetails';
 import { formatShiftingScope } from '@/lib/packers-display';
 import TruckRequestDetails from '@/components/truck/TruckRequestDetails';
 import { formatTruckBodyType, formatTripDirection } from '@/lib/truck-display';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 interface Booking {
   id: string;
@@ -261,6 +262,34 @@ export default function ManagerBookingDetailPage() {
     );
   };
 
+  // Identity, badges and Back go into the shared sticky bar, which was otherwise
+  // rendering empty while this page drew its own header row underneath.
+  const hdrStatus = booking ? getStatusConfig(booking.status) : null;
+  useManagerPageHeader(
+    booking ? `Booking #${booking.bookingNumber}` : 'Booking',
+    undefined,
+    booking ? (
+      <div className="flex items-center gap-2 flex-wrap justify-end">
+        {booking.serviceName && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">{booking.serviceName}</span>
+        )}
+        {booking.tripType && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">{booking.tripType}</span>
+        )}
+        {hdrStatus && (
+          <span className={`text-xs px-2 py-0.5 rounded-full ${hdrStatus.bg} ${hdrStatus.text}`}>{hdrStatus.label}</span>
+        )}
+      </div>
+    ) : undefined,
+    <Link
+      href="/manager/dashboard"
+      title="Back to dashboard"
+      className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0 text-gray-600"
+    >
+      <ArrowLeft className="w-5 h-5" />
+    </Link>,
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -295,31 +324,6 @@ export default function ManagerBookingDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/manager/dashboard" className="p-2 hover:bg-gray-100 rounded-lg">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-bold text-gray-900">Booking #{booking.bookingNumber}</h1>
-            {booking.serviceName && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
-                {booking.serviceName}
-              </span>
-            )}
-            {booking.tripType && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
-                {booking.tripType}
-              </span>
-            )}
-          </div>
-          <span className={`text-xs px-2 py-0.5 rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
-            {statusConfig.label}
-          </span>
-        </div>
-      </div>
-
       {/* Quote Request Notice */}
       {(booking as any).isQuoteRequest && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">

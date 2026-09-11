@@ -98,10 +98,18 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const serviceFilter = searchParams.get('service') || 'all';
-    const statusFilter = searchParams.get('status') || 'all';
+    // service / status / location accept a comma-separated list so the UI can offer
+    // multi-select. An absent param, or the literal 'all', means "no restriction".
+    const multi = (name: string): string[] => {
+      const raw = (searchParams.get(name) || '').trim();
+      if (!raw || raw === 'all') return [];
+      return raw.split(',').map((v) => v.trim()).filter(Boolean);
+    };
+
+    const serviceFilters = multi('service');
+    const statusFilters = multi('status');
+    const locationFilters = multi('location');
     const sourceFilter = searchParams.get('source') || 'all';
-    const locationFilter = searchParams.get('location') || 'all';
     const dateFilter = searchParams.get('date') || 'all';
     const actionedFilter = searchParams.get('actioned') || 'all';
     const search = (searchParams.get('search') || '').trim();
@@ -113,7 +121,8 @@ export async function GET(request: NextRequest) {
     const activeDefs = SERVICE_DEFS.filter((def) => {
       const assigned = assignedServiceSlugs.some((slug) => def.matchSlugs.includes(slug));
       if (!assigned) return false;
-      return serviceFilter === 'all' || def.matchSlugs.includes(serviceFilter);
+      if (serviceFilters.length === 0) return true;
+      return def.matchSlugs.some((slug) => serviceFilters.includes(slug));
     });
 
     if (activeDefs.length === 0) {
@@ -156,9 +165,11 @@ export async function GET(request: NextRequest) {
       ];
 
       if (withFilters) {
-        if (statusFilter !== 'all') conditions.push(Prisma.sql`status = ${statusFilter}`);
+        if (statusFilters.length > 0) conditions.push(Prisma.sql`status IN (${Prisma.join(statusFilters)})`);
         if (sourceFilter !== 'all') conditions.push(Prisma.sql`COALESCE(source, 'web') = ${sourceFilter}`);
-        if (locationFilter !== 'all') conditions.push(Prisma.sql`${ident(def.displayLocationCol)} = ${locationFilter}`);
+        if (locationFilters.length > 0) {
+          conditions.push(Prisma.sql`${ident(def.displayLocationCol)} IN (${Prisma.join(locationFilters)})`);
+        }
         if (dateFrom) conditions.push(Prisma.sql`createdAt >= ${dateFrom}`);
         if (dateTo) conditions.push(Prisma.sql`createdAt < ${dateTo}`);
         if (searchLike) {

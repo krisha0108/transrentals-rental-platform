@@ -7,6 +7,7 @@ import {
   User, Phone, Mail, MapPin, Calendar, Clock, Car, IndianRupee,
   Shield, Fuel, Settings, Star, Package, Hash, Info,
 } from 'lucide-react';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 interface QuoteDetail {
   id: string;
@@ -188,6 +189,38 @@ export default function QuoteDetailPage() {
     ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n)
     : null;
 
+  // Quote number, badges and Back go into the shared sticky bar, which was
+  // otherwise rendering empty above this page's own header row.
+  const hdrCfg = quote ? (STATUS_CONFIG[quote.status] || STATUS_CONFIG.DRAFT) : null;
+  const HdrStatusIcon = hdrCfg ? hdrCfg.icon : null;
+  useManagerPageHeader(
+    quote ? `#${quote.quoteNumber}` : 'Quotation',
+    'Quotation Detail',
+    quote && hdrCfg && HdrStatusIcon ? (
+      <div className="flex flex-wrap items-center gap-2 justify-end">
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold border ${hdrCfg.bg} ${hdrCfg.border} ${hdrCfg.text}`}>
+          <HdrStatusIcon className="w-4 h-4" /> {hdrCfg.label}
+        </span>
+        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${SERVICE_COLORS[quote.serviceType] || 'bg-gray-100 text-gray-600'}`}>
+          {quote.serviceType}
+        </span>
+        {quote.viewCount > 0 && (
+          <span className="flex items-center gap-1 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+            <Eye className="w-3.5 h-3.5" /> Viewed {quote.viewCount} time{quote.viewCount > 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+    ) : undefined,
+    <button
+      type="button"
+      onClick={() => router.back()}
+      title="Back"
+      className="p-2 hover:bg-gray-100 rounded-xl transition-colors shrink-0 text-gray-600"
+    >
+      <ArrowLeft className="w-5 h-5" />
+    </button>,
+  );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -236,30 +269,6 @@ export default function QuoteDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
-
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-xl transition">
-          <ArrowLeft className="w-5 h-5 text-gray-600" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-gray-900">#{quote.quoteNumber}</h1>
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold border ${statusCfg.bg} ${statusCfg.border} ${statusCfg.text}`}>
-              <StatusIcon className="w-4 h-4" /> {statusCfg.label}
-            </span>
-            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${SERVICE_COLORS[quote.serviceType] || 'bg-gray-100 text-gray-600'}`}>
-              {quote.serviceType}
-            </span>
-            {quote.viewCount > 0 && (
-              <span className="flex items-center gap-1 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
-                <Eye className="w-3.5 h-3.5" /> Viewed {quote.viewCount} time{quote.viewCount > 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-          <p className="text-gray-500 text-sm mt-1">Quotation Detail</p>
-        </div>
-      </div>
 
       {/* Status Banner */}
       <div className={`rounded-2xl border px-5 py-4 flex items-start gap-3 ${statusCfg.bg} ${statusCfg.border}`}>

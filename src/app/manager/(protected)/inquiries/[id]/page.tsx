@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
   ArrowLeft, Calendar, MapPin, User, Phone, Mail, FileText, Clock, Building,
   PhoneCall, StickyNote, ThumbsUp, ThumbsDown, Bell, Loader2 as Spinner, History,
@@ -254,6 +255,32 @@ export default function InquiryDetailPage() {
   };
   const getStatusConfig = (s: string) => STATUS_CONFIG[s] || { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', label: s };
 
+  const headerStatusCfg = request ? getStatusConfig(request.status) : null;
+
+  // Registered before the early returns below — a hook must run in the same order on
+  // every render. The back button shows even while loading; the request number and
+  // status badge appear once the request has arrived.
+  useManagerPageHeader(
+    'Inquiry Detail',
+    request?.requestNumber,
+    headerStatusCfg ? (
+      <span
+        key="status"
+        className={`px-3 py-1 rounded-full text-xs font-semibold border ${headerStatusCfg.bg} ${headerStatusCfg.text} ${headerStatusCfg.border}`}
+      >
+        {headerStatusCfg.label}
+      </span>
+    ) : undefined,
+    <button
+      key="back"
+      onClick={() => router.back()}
+      title="Go back"
+      className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
+    >
+      <ArrowLeft className="w-5 h-5 text-gray-600" />
+    </button>,
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -275,27 +302,12 @@ export default function InquiryDetailPage() {
   }
 
   const statusCfg = getStatusConfig(request.status);
+
   const lowestQuote  = quotes.length > 0 ? Math.min(...quotes.map(q => q.grandTotal)) : null;
   const highestQuote = quotes.length > 0 ? Math.max(...quotes.map(q => q.grandTotal)) : null;
 
   return (
     <div className="space-y-5">
-
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Inquiry Detail</h1>
-            <p className="text-sm text-gray-500 font-mono">{request.requestNumber}</p>
-          </div>
-        </div>
-        <span className={`px-4 py-1.5 rounded-full text-sm font-semibold border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}>
-          {statusCfg.label}
-        </span>
-      </div>
 
       {/* ── CRM Tags ── */}
       <div>

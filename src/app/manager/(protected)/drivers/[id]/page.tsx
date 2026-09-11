@@ -10,6 +10,7 @@ import {
   CheckCircle, Ban, RotateCcw, Store, User, Tag, Plus, X, Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 type DriverStatus = 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 type DriverSource = 'standalone' | 'vendor';
@@ -231,6 +232,66 @@ export default function DriverDetailPage() {
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
 
+  // Identity, status and the status actions go into the shared sticky bar, which
+  // was otherwise rendering empty while this page drew its own header below it.
+  const hdrCfg = driver ? (STATUS_CONFIG[driver.status] || FALLBACK_STATUS) : FALLBACK_STATUS;
+  const hdrSuspendStatus = isVendorDriver ? 'TERMINATED' : 'SUSPENDED';
+  const hdrSuspendLabel = isVendorDriver ? 'Terminate' : 'Suspend';
+  useManagerPageHeader(
+    driver?.name || 'Driver',
+    undefined,
+    driver ? (
+      <div className="flex items-center gap-2 flex-wrap justify-end">
+        {isVendorDriver ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold rounded uppercase tracking-wider">
+            <Store className="w-3 h-3" /> Vendor
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold rounded uppercase tracking-wider">
+            <User className="w-3 h-3" /> Direct
+          </span>
+        )}
+        {driver.did && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold rounded-full font-mono">
+            <Shield className="w-3.5 h-3.5" /> {driver.did}
+          </span>
+        )}
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${hdrCfg.pill}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${hdrCfg.dot}`} />
+          {hdrCfg.label}
+        </span>
+        {driver.status !== 'ACTIVE' && (
+          <Button size="sm" onClick={() => changeStatus('ACTIVE')} disabled={updatingStatus} className="bg-green-600 hover:bg-green-700 text-white">
+            <CheckCircle className="w-4 h-4 mr-1" />
+            {driver.status === 'PENDING' ? 'Approve' : 'Activate'}
+          </Button>
+        )}
+        {driver.status !== hdrSuspendStatus && (
+          <Button size="sm" variant="outline" onClick={() => changeStatus(hdrSuspendStatus)} disabled={updatingStatus} className="text-red-700 border-red-200 hover:bg-red-50">
+            <Ban className="w-4 h-4 mr-1" /> {hdrSuspendLabel}
+          </Button>
+        )}
+        {driver.status !== 'INACTIVE' && (
+          <Button size="sm" variant="outline" onClick={() => changeStatus('INACTIVE')} disabled={updatingStatus}>
+            <ShieldAlert className="w-4 h-4 mr-1" /> Mark Inactive
+          </Button>
+        )}
+        {isVendorDriver && driver.status !== 'ON_LEAVE' && (
+          <Button size="sm" variant="outline" onClick={() => changeStatus('ON_LEAVE')} disabled={updatingStatus}>
+            <Clock className="w-4 h-4 mr-1" /> On Leave
+          </Button>
+        )}
+      </div>
+    ) : undefined,
+    <Link
+      href="/manager/drivers"
+      title="Back to drivers"
+      className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0 text-gray-600"
+    >
+      <ArrowLeft className="w-5 h-5" />
+    </Link>,
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -254,16 +315,9 @@ export default function DriverDetailPage() {
   }
 
   const statusCfg = STATUS_CONFIG[driver.status] || FALLBACK_STATUS;
-  const suspendStatus = isVendorDriver ? 'TERMINATED' : 'SUSPENDED';
-  const suspendLabel = isVendorDriver ? 'Terminate' : 'Suspend';
 
   return (
     <div className="space-y-6">
-      {/* Back */}
-      <Link href="/manager/drivers" className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900">
-        <ArrowLeft className="w-4 h-4" /> Back to Drivers
-      </Link>
-
       {/* Vendor-managed banner */}
       {isVendorDriver && driver.vendor && (
         <div className="flex items-center justify-between gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
@@ -299,28 +353,8 @@ export default function DriverDetailPage() {
               </div>
             )}
             <div>
+              {/* Name, type/DID badges and status pill now live in the sticky bar. */}
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl font-bold text-gray-900">{driver.name}</h1>
-                {isVendorDriver ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold rounded uppercase tracking-wider">
-                    <Store className="w-3 h-3" /> Vendor
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold rounded uppercase tracking-wider">
-                    <User className="w-3 h-3" /> Direct
-                  </span>
-                )}
-                {driver.did && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold rounded-full font-mono">
-                    <Shield className="w-3.5 h-3.5" /> {driver.did}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${statusCfg.pill}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
-                  {statusCfg.label}
-                </span>
                 <span className="text-xs text-gray-500 capitalize">{driver.role?.toLowerCase()}</span>
                 <span className="text-xs text-gray-500">·</span>
                 <span className="text-xs text-gray-500">Joined {formatDate(driver.joiningDate)}</span>
@@ -399,51 +433,7 @@ export default function DriverDetailPage() {
             </div>
           </div>
 
-          {/* Status actions */}
-          <div className="flex items-center gap-2">
-            {driver.status !== 'ACTIVE' && (
-              <Button
-                size="sm"
-                onClick={() => changeStatus('ACTIVE')}
-                disabled={updatingStatus}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <CheckCircle className="w-4 h-4 mr-1" />
-                {driver.status === 'PENDING' ? 'Approve' : 'Activate'}
-              </Button>
-            )}
-            {driver.status !== suspendStatus && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => changeStatus(suspendStatus)}
-                disabled={updatingStatus}
-                className="text-red-700 border-red-200 hover:bg-red-50"
-              >
-                <Ban className="w-4 h-4 mr-1" /> {suspendLabel}
-              </Button>
-            )}
-            {driver.status !== 'INACTIVE' && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => changeStatus('INACTIVE')}
-                disabled={updatingStatus}
-              >
-                <ShieldAlert className="w-4 h-4 mr-1" /> Mark Inactive
-              </Button>
-            )}
-            {isVendorDriver && driver.status !== 'ON_LEAVE' && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => changeStatus('ON_LEAVE')}
-                disabled={updatingStatus}
-              >
-                <Clock className="w-4 h-4 mr-1" /> On Leave
-              </Button>
-            )}
-          </div>
+          {/* Status actions moved into the sticky bar. */}
         </div>
       </div>
 

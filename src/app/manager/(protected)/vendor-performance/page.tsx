@@ -16,6 +16,7 @@ import {
     Medal,
     Clock,
     Filter,
+  X,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
@@ -109,6 +110,15 @@ export default function VendorPerformancePage() {
     const [refreshing, setRefreshing] = useState(false);
     const [sortBy, setSortBy] = useState<SortKey>('rate_desc');
     const [statusFilter, setStatusFilter] = useState('ALL');
+
+    // Drives the Clear all button — every filter this page applies.
+    const activeFilterCount =
+        (searchQuery.trim() ? 1 : 0) + (statusFilter !== 'ALL' ? 1 : 0);
+
+    const clearFilters = () => {
+        setSearchQuery('');
+        setStatusFilter('ALL');
+    };
     const [presence, setPresence] = useState<Record<string, PresenceInfo>>({});
     const [todayActivity, setTodayActivity] = useState<Record<string, TodayActivityInfo>>({});
 
@@ -358,6 +368,18 @@ export default function VendorPerformancePage() {
                         ))}
                     </select>
                 </div>
+
+                {/* Clear all — only shown once something is actually filtered. */}
+                {activeFilterCount > 0 && (
+                    <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="inline-flex items-center gap-1 px-2.5 py-2 text-sm text-gray-500 hover:text-red-500 transition shrink-0"
+                    >
+                        <X className="w-4 h-4" />
+                        Clear all ({activeFilterCount})
+                    </button>
+                )}
             </div>
 
             {/* Performance Table */}

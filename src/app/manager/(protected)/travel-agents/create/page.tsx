@@ -7,6 +7,7 @@ import {
   Briefcase, User, Mail, Phone, Lock, MapPin, Loader2,
   CheckCircle, ArrowLeft, Eye, EyeOff, ArrowRight, PhoneCall,
 } from 'lucide-react';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 const agencyTypes = ['SOLO', 'AGENCY', 'CORPORATE'];
 
@@ -118,6 +119,21 @@ function ManagerCreateTravelAgentPageInner() {
     }
   };
 
+  // Header goes into the shared sticky bar, which was otherwise rendering empty.
+  useManagerPageHeader(
+    'Create Travel Agent',
+    'Onboard a travel agent on their behalf. This will be tracked against your account.',
+    undefined,
+    <Link
+      key="back"
+      href={callReportId ? '/manager/call-reports' : '/manager/travel-agents'}
+      title="Back"
+      className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0 text-gray-600"
+    >
+      <ArrowLeft className="w-5 h-5" />
+    </Link>,
+  );
+
   if (success) {
     return (
       <div className="max-w-lg mx-auto py-12">
@@ -167,16 +183,6 @@ function ManagerCreateTravelAgentPageInner() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
-      <div className="flex items-center gap-3">
-        <Link href={callReportId ? '/manager/call-reports' : '/manager/travel-agents'} className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50">
-          <ArrowLeft className="w-4 h-4 text-gray-600" />
-        </Link>
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Create Travel Agent</h1>
-          <p className="text-sm text-gray-500">Onboard a travel agent on their behalf. This will be tracked against your account.</p>
-        </div>
-      </div>
-
       {callReportId && (
         <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-2.5 rounded-xl text-sm font-medium">
           <PhoneCall className="w-4 h-4 flex-shrink-0" /> Prefilled from a call report. Add the agent's email and set a password to finish onboarding.

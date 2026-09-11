@@ -6,6 +6,10 @@ export interface ManagerPageHeaderValue {
   title: string;
   subtitle?: string;
   action?: React.ReactNode;
+  // Rendered immediately left of the title — used by detail pages for a Back
+  // button, so the whole header sits in the sticky bar rather than in a second
+  // row below it.
+  leading?: React.ReactNode;
 }
 
 // Split into two contexts on purpose: pages calling useManagerPageHeader()
@@ -48,11 +52,16 @@ export function useManagerPageHeaderContext() {
 // sync), clears on unmount so navigating to a page that hasn't adopted this
 // yet doesn't leave a stale title showing. Safe to run every render because
 // this only subscribes to the setter context, which never changes identity.
-export function useManagerPageHeader(title: string, subtitle?: string, action?: React.ReactNode) {
+export function useManagerPageHeader(
+  title: string,
+  subtitle?: string,
+  action?: React.ReactNode,
+  leading?: React.ReactNode,
+) {
   const setHeader = useContext(ManagerHeaderSetterContext);
   if (!setHeader) throw new Error('useManagerPageHeader must be used within ManagerPageHeaderProvider');
   useEffect(() => {
-    setHeader({ title, subtitle, action });
+    setHeader({ title, subtitle, action, leading });
     return () => setHeader(null);
   });
 }

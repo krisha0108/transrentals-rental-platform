@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
+import FilterMultiSelect from '@/components/manager/FilterMultiSelect';
+import Pagination from '@/components/manager/Pagination';
 import {
   Loader2,
   Search,
@@ -24,9 +27,9 @@ import {
   Truck,
   Package,
   Layers,
-  ChevronLeft,
   Globe,
   Smartphone,
+  X,
 } from 'lucide-react';
 
 interface Service {
@@ -121,7 +124,7 @@ const DATE_FILTERS: { value: DateFilter; label: string }[] = [
   { value: 'all', label: 'All Bookings' },
 ];
 
-export default function ManagerBookingsPage() {
+function ManagerBookingsPageInner() {
   // `bookings` now holds only the current page's rows — filtering, stats,
   // and pagination all happen server-side (see fetchBookings below) instead
   // of fetching every booking and slicing in the browser.
@@ -130,35 +133,82 @@ export default function ManagerBookingsPage() {
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sourceFilter, setSourceFilter] = useState('all');
-  const [serviceFilter, setServiceFilter] = useState('all');
-  const [locationFilter, setLocationFilter] = useState('all');
+  // Filters read from the URL rather than local state, so applying a filter,
+  // opening a booking, then hitting Back restores exactly what was selected.
+  // Same approach as /manager/inquiries and /manager/vendors.
+  const router = useRouter();
+  const rawSearchParams = useSearchParams();
+  const searchParams = rawSearchParams ?? new URLSearchParams();
+
+  const csv = (name: string): string[] => {
+    const raw = (searchParams.get(name) || '').trim();
+    return !raw || raw === 'all' ? [] : raw.split(',').map((v) => v.trim()).filter(Boolean);
+  };
+
+  const searchTerm = searchParams.get('search') || '';
+  const statusFilters = csv('status');
+  const serviceFilters = csv('service');
+  const locationFilters = csv('location');
+  const sourceFilter = searchParams.get('source') || 'all';
+  const dateFilter = (searchParams.get('date') || 'all') as DateFilter;
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
+
+  // Local echo of the search box so typing stays instant; committed to the URL
+  // on a debounce rather than on every keystroke.
+  const [searchInput, setSearchInput] = useState(searchTerm);
+  useEffect(() => { setSearchInput(searchTerm); }, [searchTerm]);
+
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
-  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [bookingStats, setBookingStats] = useState({ total: 0, active: 0, completed: 0, cancelled: 0, revenue: 0 });
 
 
   // Debounce the search box so typing doesn't fire a request per keystroke.
+  // Writes filter changes into the URL, merged with what is already there, and
+  // resets pagination — passing '' removes a param instead of writing a default.
+  const updateFilter = useCallback((updates: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([k, v]) => { if (v) params.set(k, v); else params.delete(k); });
+    params.delete('page');
+    const qs = params.toString();
+    router.push(qs ? `/manager/bookings?${qs}` : '/manager/bookings', { scroll: false });
+  }, [searchParams, router]);
+
+  // Drives the Clear all button — every filter this page puts in the URL.
+  const activeFilterCount =
+    (searchTerm ? 1 : 0) +
+    (dateFilter !== 'all' ? 1 : 0) +
+    (sourceFilter !== 'all' ? 1 : 0) +
+    serviceFilters.length + statusFilters.length + locationFilters.length;
+
+  const clearFilters = useCallback(() => {
+    setSearchInput('');
+    router.push('/manager/bookings', { scroll: false });
+  }, [router]);
+
+  const setCurrentPage = useCallback((pg: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (pg > 1) params.set('page', String(pg)); else params.delete('page');
+    const qs = params.toString();
+    router.push(qs ? `/manager/bookings?${qs}` : '/manager/bookings', { scroll: false });
+  }, [searchParams, router]);
+
   useEffect(() => {
-    const t = setTimeout(() => setSearchTerm(searchInput), 400);
+    if (searchInput === searchTerm) return;
+    const t = setTimeout(() => updateFilter({ search: searchInput }), 400);
     return () => clearTimeout(t);
-  }, [searchInput]);
+  }, [searchInput, searchTerm, updateFilter]);
   const itemsPerPage = 10;
 
   const fetchBookings = async (page = currentPage) => {
     try {
       setError(null);
       const params = new URLSearchParams();
-      if (statusFilter !== 'all') params.set('status', statusFilter);
-      if (serviceFilter !== 'all') params.set('service', serviceFilter);
+      if (statusFilters.length) params.set('status', statusFilters.join(','));
+      if (serviceFilters.length) params.set('service', serviceFilters.join(','));
       if (sourceFilter !== 'all') params.set('source', sourceFilter);
-      if (locationFilter !== 'all') params.set('location', locationFilter);
+      if (locationFilters.length) params.set('location', locationFilters.join(','));
       if (dateFilter !== 'all') params.set('date', dateFilter);
       if (searchTerm) params.set('search', searchTerm);
       params.set('page', String(page));
@@ -185,17 +235,12 @@ export default function ManagerBookingsPage() {
     }
   };
 
-  // Any filter change resets to page 1; this effect does the actual fetch
-  // for the current filters + page, re-running on every filter change and
-  // page navigation.
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [statusFilter, serviceFilter, sourceFilter, locationFilter, dateFilter, searchTerm]);
-
+  // updateFilter already drops `page` on every change, so the URL is the single
+  // source of truth and this effect just refetches whenever it moves.
   useEffect(() => {
     fetchBookings(currentPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, statusFilter, serviceFilter, sourceFilter, locationFilter, dateFilter, searchTerm]);
+  }, [searchParams]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -238,38 +283,6 @@ export default function ManagerBookingsPage() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
-  // Generate page numbers for pagination
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-
-    if (totalPages <= 7) {
-      // Show all pages if 7 or fewer
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Always show first page
-      pages.push(1);
-
-      if (currentPage > 3) {
-        pages.push('...');
-      }
-
-      // Show pages around current page
-      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-        pages.push(i);
-      }
-
-      if (currentPage < totalPages - 2) {
-        pages.push('...');
-      }
-
-      // Always show last page
-      pages.push(totalPages);
-    }
-
-    return pages;
-  };
 
   if (isLoading) {
     return (
@@ -311,7 +324,7 @@ export default function ManagerBookingsPage() {
           {DATE_FILTERS.map((filter) => (
             <button
               key={filter.value}
-              onClick={() => setDateFilter(filter.value)}
+              onClick={() => updateFilter({ date: filter.value === 'all' ? '' : filter.value })}
               className={`px-4 py-2 rounded-lg font-medium transition ${
                 dateFilter === filter.value
                   ? 'bg-green-600 text-white'
@@ -339,60 +352,42 @@ export default function ManagerBookingsPage() {
             />
           </div>
 
-          {/* Service Filter */}
-          <div className="relative">
-            <Layers className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <select
-              value={serviceFilter}
-              onChange={(e) => setServiceFilter(e.target.value)}
-              className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[180px]"
-            >
-              <option value="all">All Services</option>
-              {assignedServices.map((service) => (
-                <option key={service.id} value={service.slug}>
-                  {service.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Service — multi-select */}
+          <FilterMultiSelect
+            label="Services"
+            allLabel="All Services"
+            icon={Layers}
+            options={assignedServices.map((sv) => ({ value: sv.slug, label: sv.name }))}
+            values={serviceFilters}
+            onChange={(v) => updateFilter({ service: v.join(',') })}
+          />
 
-          {/* Status Filter */}
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[180px]"
-            >
-              {STATUS_FILTERS.map((filter) => (
-                <option key={filter.value} value={filter.value}>
-                  {filter.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Status — multi-select */}
+          <FilterMultiSelect
+            label="Status"
+            allLabel="All Bookings"
+            icon={Filter}
+            options={STATUS_FILTERS.filter((f) => f.value !== 'all').map((f) => ({ value: f.value, label: f.label }))}
+            values={statusFilters}
+            onChange={(v) => updateFilter({ status: v.join(',') })}
+          />
 
-          {/* Location Filter */}
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <select
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[160px]"
-            >
-              <option value="all">All Locations</option>
-              {uniqueLocations.map((loc) => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </select>
-          </div>
+          {/* Location — searchable multi-select, same styling as /manager/vendors */}
+          <FilterMultiSelect
+            label="Locations"
+            allLabel="All Locations"
+            icon={MapPin}
+            options={uniqueLocations.map((loc) => ({ value: loc, label: loc }))}
+            values={locationFilters}
+            onChange={(v) => updateFilter({ location: v.join(',') })}
+          />
 
           {/* Source Filter */}
           <div className="relative">
             <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <select
               value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value)}
+              onChange={(e) => updateFilter({ source: e.target.value === 'all' ? '' : e.target.value })}
               className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[140px]"
             >
               <option value="all">All Sources</option>
@@ -400,6 +395,18 @@ export default function ManagerBookingsPage() {
               <option value="app">App</option>
             </select>
           </div>
+
+          {/* Clear all — only shown once something is actually filtered. */}
+          {activeFilterCount > 0 && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="flex items-center gap-1 px-2.5 py-2 text-sm text-gray-500 hover:text-red-500 transition shrink-0"
+            >
+              <X className="w-4 h-4" />
+              Clear all ({activeFilterCount})
+            </button>
+          )}
         </div>
       </div>
 
@@ -430,7 +437,7 @@ export default function ManagerBookingsPage() {
             <Bike className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No bookings found</h3>
             <p className="text-gray-500">
-              {searchTerm || statusFilter !== 'all'
+              {searchTerm || statusFilters.length > 0 || serviceFilters.length > 0 || locationFilters.length > 0
                 ? 'Try adjusting your search or filters'
                 : 'No bookings are assigned to your locations yet'}
             </p>
@@ -604,44 +611,22 @@ export default function ManagerBookingsPage() {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2">
-          <button
-            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-
-          {getPageNumbers().map((page, index) => (
-            <React.Fragment key={index}>
-              {page === '...' ? (
-                <span className="px-3 py-2 text-gray-400">...</span>
-              ) : (
-                <button
-                  onClick={() => setCurrentPage(page as number)}
-                  className={`px-4 py-2 rounded-lg font-medium transition ${
-                    currentPage === page
-                      ? 'bg-green-600 text-white'
-                      : 'border border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  {page}
-                </button>
-              )}
-            </React.Fragment>
-          ))}
-
-          <button
-            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-            disabled={currentPage === totalPages}
-            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      )}
+      <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
     </div>
+  );
+}
+
+// useSearchParams requires a Suspense boundary during prerendering.
+export default function ManagerBookingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        </div>
+      }
+    >
+      <ManagerBookingsPageInner />
+    </Suspense>
   );
 }

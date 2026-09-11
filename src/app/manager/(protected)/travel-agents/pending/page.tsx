@@ -10,6 +10,7 @@ import {
   Loader2,
   ArrowLeft,
 } from 'lucide-react';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 interface TravelAgent {
   id: string;
@@ -51,25 +52,23 @@ export default function ManagerPendingTravelAgentsPage() {
     load();
   }, []);
 
+  // Header goes into the shared sticky bar, which was otherwise rendering empty.
+  useManagerPageHeader(
+    'Pending Approvals',
+    `${agents.length} awaiting review`,
+    undefined,
+    <Link
+      key="back"
+      href="/manager/travel-agents"
+      title="All travel agents"
+      className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0 text-gray-600"
+    >
+      <ArrowLeft className="w-5 h-5" />
+    </Link>,
+  );
+
   return (
     <div className="space-y-6">
-      <Link
-        href="/manager/travel-agents"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600"
-      >
-        <ArrowLeft className="w-4 h-4" /> All Travel Agents
-      </Link>
-
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-          <Clock className="w-5 h-5 text-amber-600" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pending Approvals</h1>
-          <p className="text-sm text-gray-500">{agents.length} awaiting review</p>
-        </div>
-      </div>
-
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />

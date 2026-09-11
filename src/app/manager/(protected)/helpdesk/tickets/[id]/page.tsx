@@ -17,6 +17,7 @@ import {
   Image as ImageIcon,
   ExternalLink,
 } from 'lucide-react';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 interface Ticket {
   id: string;
@@ -149,6 +150,31 @@ export default function ManagerTicketDetailPage() {
     }
   };
 
+  // Ticket number, status/priority badges and Back go into the shared sticky bar,
+  // which was otherwise rendering empty above this page's own header row.
+  useManagerPageHeader(
+    ticket ? ticket.ticket_no : 'Ticket',
+    ticket ? `Created ${formatDateTime(ticket.created_at)}` : undefined,
+    ticket ? (
+      <div className="flex items-center gap-2 flex-wrap justify-end">
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(ticket.status)}`}>
+          {ticket.status.replace('_', ' ')}
+        </span>
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getPriorityColor(ticket.priority)}`}>
+          {ticket.priority}
+        </span>
+      </div>
+    ) : undefined,
+    <button
+      type="button"
+      onClick={() => router.back()}
+      title="Back"
+      className="p-2 hover:bg-slate-100 rounded-lg transition-colors shrink-0 text-slate-600"
+    >
+      <ArrowLeft className="w-5 h-5" />
+    </button>,
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -195,34 +221,6 @@ export default function ManagerTicketDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.back()}
-            className="p-2 hover:bg-slate-100 rounded-lg transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-slate-900">{ticket.ticket_no}</h1>
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(ticket.status)}`}
-              >
-                {ticket.status.replace('_', ' ')}
-              </span>
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold border ${getPriorityColor(ticket.priority)}`}
-              >
-                {ticket.priority}
-              </span>
-            </div>
-            <p className="text-slate-500 text-sm mt-1">Created {formatDateTime(ticket.created_at)}</p>
-          </div>
-        </div>
-      </div>
-
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">

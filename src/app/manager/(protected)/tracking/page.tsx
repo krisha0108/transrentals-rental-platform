@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import LiveMap, { LiveMarker } from '@/components/tracking/LiveMap';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
+import Pagination from '@/components/manager/Pagination';
 
 interface MgrDriver {
   id: string; name: string; phone: string; profilePhoto: string | null; vendorName: string | null;
@@ -29,6 +30,11 @@ const VENDOR_HEX = '#6366f1';
 const POLL_MS = 10000;
 type Filter = 'all' | 'vendor-drivers' | 'independent' | 'vendors';
 
+// Rows per page in the side list. Kept small because the panel is a narrow
+// fixed-height column - ~10 rows is what fits without scrolling past the
+// pagination control at the bottom.
+const LIST_PAGE_SIZE = 10;
+
 function timeAgo(iso: string | null): string {
   if (!iso) return '—';
   const s = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
@@ -48,6 +54,7 @@ export default function ManagerTrackingPage() {
   const [cityFilter, setCityFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [rawListPage, setRawListPage] = useState(1);
   const [isLive, setIsLive] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -123,6 +130,34 @@ export default function ManagerTrackingPage() {
       }));
     return [...vm, ...dm];
   }, [fDrivers, fVendors]);
+
+  // The side list pages LIST_PAGE_SIZE rows at a time, same control as
+  // /manager/inquiries.
+  // The map deliberately keeps every marker regardless of the page.
+  const listItems = useMemo(
+    () => [
+      ...(showVendors ? fVendors.map((v) => ({ kind: 'vendor' as const, vendor: v })) : []),
+      ...fDrivers.map((d) => ({ kind: 'driver' as const, driver: d })),
+    ],
+    [fVendors, fDrivers, showVendors],
+  );
+  const listTotalPages = Math.max(1, Math.ceil(listItems.length / LIST_PAGE_SIZE));
+  const listPage = Math.min(rawListPage, listTotalPages);
+  const pagedItems = listItems.slice((listPage - 1) * LIST_PAGE_SIZE, listPage * LIST_PAGE_SIZE);
+
+  // Any filter or search change starts again from the first page.
+  useEffect(() => { setRawListPage(1); }, [filter, stateFilter, cityFilter, search]);
+
+  const activeFilterCount =
+    (filter !== 'all' ? 1 : 0) + (stateFilter !== 'all' ? 1 : 0) +
+    (cityFilter !== 'all' ? 1 : 0) + (search.trim() ? 1 : 0);
+
+  const clearFilters = () => {
+    setFilter('all');
+    setStateFilter('all');
+    setCityFilter('all');
+    setSearch('');
+  };
 
   const FilterChip = ({ value, label, icon: Icon }: { value: Filter; label: string; icon: any }) => (
     <button
@@ -226,6 +261,16 @@ export default function ManagerTrackingPage() {
             </select>
           </div>
         )}
+        {activeFilterCount > 0 && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-sm text-gray-500 hover:text-red-500 transition"
+          >
+            <X className="w-3.5 h-3.5" />
+            Clear all ({activeFilterCount})
+          </button>
+        )}
         <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-full px-3 py-1.5 ml-auto">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {stats.driversLive} drivers live now
         </span>
@@ -248,7 +293,7 @@ export default function ManagerTrackingPage() {
             {loading && <p className="p-4 text-sm text-gray-400">Loading…</p>}
             {!loading && error && <p className="p-4 text-sm text-red-500 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> {error}</p>}
 
-            {showVendors && fVendors.map((v) => (
+            {pagedItems.flatMap((i) => (i.kind === 'vendor' ? [i.vendor] : [])).map((v) => (
               <button key={`v_${v.id}`} onClick={() => setSelectedId(`v_${v.id}`)}
                 className={`flex items-center gap-3 w-full text-left p-3 border-b border-gray-50 hover:bg-gray-50 ${selectedId === `v_${v.id}` ? 'bg-indigo-50 border-l-4 border-l-indigo-500' : ''}`}>
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: VENDOR_HEX }}>
@@ -261,7 +306,7 @@ export default function ManagerTrackingPage() {
               </button>
             ))}
 
-            {fDrivers.map((d) => (
+            {pagedItems.flatMap((i) => (i.kind === 'driver' ? [i.driver] : [])).map((d) => (
               <button key={`d_${d.id}`} onClick={() => setSelectedId(`d_${d.id}`)}
                 className={`flex items-center gap-3 w-full text-left p-3 border-b border-gray-50 hover:bg-gray-50 ${selectedId === `d_${d.id}` ? 'bg-green-50 border-l-4 border-l-green-500' : ''}`}>
                 <div className="relative shrink-0">
@@ -281,10 +326,22 @@ export default function ManagerTrackingPage() {
               </button>
             ))}
 
-            {!loading && !error && fVendors.length === 0 && fDrivers.length === 0 && (
+            {!loading && !error && listItems.length === 0 && (
               <p className="p-4 text-sm text-gray-400">Nothing to show for this filter.</p>
             )}
           </div>
+
+          {/* Pagination — same control as the other manager lists. */}
+          {listTotalPages > 1 && (
+            <div className="border-t border-gray-100 px-2 py-2.5">
+              <Pagination
+                className="flex-wrap"
+                currentPage={listPage}
+                totalPages={listTotalPages}
+                onPageChange={setRawListPage}
+              />
+            </div>
+          )}
         </div>
 
         {/* Map */}

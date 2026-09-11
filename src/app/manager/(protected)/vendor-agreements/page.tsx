@@ -12,6 +12,7 @@ import {
   PenLine, Hourglass, FileText, MapPin,
 } from 'lucide-react';
 import { TERM_OPTIONS_MONTHS } from '@/lib/content/partnership-agreement';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 type ReviewStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
 
@@ -179,28 +180,23 @@ export default function ManagerVendorAgreementsPage() {
     );
   }, [items, query]);
 
+  // Header lives in the shared sticky bar rather than a second row underneath it.
+  useManagerPageHeader(
+    'Vendor Agreements',
+    counts.pending > 0
+      ? `${counts.pending} signed agreement${counts.pending === 1 ? '' : 's'} awaiting your review`
+      : 'Nothing waiting on you right now',
+    <button
+      key="refresh"
+      onClick={() => { setLoading(true); load(); }}
+      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition"
+    >
+      <RefreshCw className="w-3.5 h-3.5" /> Refresh
+    </button>,
+  );
+
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-          <FileSignature className="w-5 h-5 text-emerald-600" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">Vendor Agreements</h1>
-          <p className="text-sm text-gray-500">
-            {counts.pending > 0
-              ? `${counts.pending} signed agreement${counts.pending === 1 ? '' : 's'} awaiting your review`
-              : 'Nothing waiting on you right now'}
-          </p>
-        </div>
-        <button
-          onClick={() => { setLoading(true); load(); }}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition"
-        >
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh
-        </button>
-      </div>
 
       {/* Filters + search */}
       <div className="flex flex-wrap items-center gap-3">
