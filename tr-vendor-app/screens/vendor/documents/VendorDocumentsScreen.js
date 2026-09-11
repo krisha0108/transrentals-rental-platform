@@ -26,7 +26,7 @@ import {
 } from '../../api/client';
 import { SC as T, G, rs, rf, GUT, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already used everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -65,6 +65,10 @@ const STATUS_META = {
 // travel-agent DocumentsScreen.
 const HERO_TAIL = rs(26);
 const STATS_OVERLAP = rs(22);
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 export default function VendorDocumentsScreen({ navigation }) {
   const [documents, setDocuments]           = useState([]);
@@ -193,14 +197,48 @@ export default function VendorDocumentsScreen({ navigation }) {
     return (
       <View style={st.root}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={G.hero} style={st.heroLoading}>
-          <SafeAreaView edges={['top']} style={st.heroLoadingInner}>
-            <Text style={st.heroLoadingTitle}>Documents</Text>
+        <LinearGradient colors={G.hero} style={st.hero}>
+          <CornerGrid style={st.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+          <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
+            <View style={st.heroBadge}>
+              <MaterialCommunityIcons name="file-document-multiple-outline" size={rs(11)} color={C.g400} />
+              <Text style={st.heroBadgeTxt}>Vendor Portal</Text>
+            </View>
+            <Text style={st.heroTitle}>Business Documents</Text>
+            <Text style={st.heroSub}>Upload & manage your verification documents</Text>
+            <View style={{ height: HERO_TAIL }} />
           </SafeAreaView>
         </LinearGradient>
-        <View style={st.loaderWrap}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={st.loaderTxt}>Loading documents...</Text>
+
+        <View style={st.statsWrap}>
+          <View style={[st.statsCard, cardShadow]}>
+            {[0, 1, 2, 3].map(i => (
+              <React.Fragment key={i}>
+                {i > 0 && <View style={st.statDivider} />}
+                <View style={st.statCell}>
+                  <Bone w={20} h={13} style={{ marginBottom: 4 }} />
+                  <Bone w={40} h={9} />
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+        </View>
+
+        <View style={st.scrollContent}>
+          {DOCUMENT_TYPES.slice(0, 4).map((docType, i) => (
+            <View key={i} style={st.docCard}>
+              <View style={st.docBody}>
+                <View style={st.docRow}>
+                  <Bone w={rs(42)} h={rs(42)} r={rs(12)} />
+                  <View style={st.docContent}>
+                    <Bone w={130} h={13} style={{ marginBottom: 8 }} />
+                    <Bone w="80%" h={11} style={{ marginBottom: 10 }} />
+                    <Bone w={80} h={22} r={20} />
+                  </View>
+                </View>
+              </View>
+            </View>
+          ))}
         </View>
       </View>
     );
@@ -212,8 +250,7 @@ export default function VendorDocumentsScreen({ navigation }) {
 
       {/* ── Hero ── */}
       <LinearGradient colors={G.hero} style={st.hero}>
-        <AnimatedOrb style={st.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={st.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={st.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
           <View style={st.heroBadge}>
@@ -562,19 +599,7 @@ const st = StyleSheet.create({
     borderBottomRightRadius: rs(26),
     overflow: 'hidden',
   },
-  orbA: {
-    position: 'absolute', top: -rs(60), right: -rs(40),
-    width: rs(180), height: rs(180), borderRadius: rs(90),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(60), left: -rs(40),
-    width: rs(150), height: rs(150), borderRadius: rs(75),
-    backgroundColor: 'rgba(46,158,120,0.16)',
-  },
-  heroLoading:      { paddingBottom: rs(14), borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26), overflow: 'hidden' },
-  heroLoadingInner: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: GUT, paddingTop: rs(14), gap: rs(12) },
-  heroLoadingTitle: { fontFamily: DISPLAY, fontSize: rf(18), fontWeight: '800', color: '#fff' },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
 
   heroBadge:   { flexDirection: 'row', alignItems: 'center', gap: rs(5), backgroundColor: 'rgba(255,255,255,0.1)', alignSelf: 'flex-start', paddingHorizontal: rs(10), paddingVertical: rs(4), borderRadius: 20, marginTop: rs(10), marginBottom: rs(5) },
   heroBadgeTxt:{ fontFamily: DISPLAY, fontSize: rf(11), fontWeight: '600', color: C.g400 },
@@ -667,10 +692,6 @@ const st = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#E5E7EB',
   },
   goDashboardBtnTxt: { fontSize: rf(14), fontWeight: '700', color: C.text, letterSpacing: 0.2 },
-
-  /* ── Loader ── */
-  loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: rs(10) },
-  loaderTxt:  { fontSize: rf(14), color: C.muted },
 
   /* ── Modal ── */
   modalOverlay: { flex: 1, backgroundColor: T.scrim, justifyContent: 'flex-end' },

@@ -12,7 +12,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { getBookingsByService, getVendorQuotes, getQuoteRequests } from '../../../api/client';
 import { SC as T, G, rs, shade, cardShadow, alpha } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
 
 const { width: W } = Dimensions.get('window');
 const CARD_W  = (W - 32 - 10) / 2;
@@ -239,35 +239,42 @@ export default function SelfDriveHomeScreen({ navigation }) {
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
           <SafeAreaView>
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, marginBottom: 16 }}>
-              <Bone w={34} h={34} r={10} />
-              <View style={{ flex: 1, marginLeft: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Bone w={20} h={20} r={4} />
-                <Bone w={120} h={16} r={5} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 16, marginBottom: 4 }}>
+              <Bone w={34} h={34} r={17} />
+              <View style={{ alignItems: 'center', justifyContent: 'center', minHeight: 34, gap: 6 }}>
+                <Bone w={80} h={11} r={4} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Bone w={20} h={20} r={4} />
+                  <Bone w={120} h={17} r={5} />
+                </View>
               </View>
-            </View>
-            <View style={{ marginHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: 16 }}>
-              <Bone w={120} h={10} r={4} style={{ marginBottom: 8 }} />
-              <Bone w={60} h={32} r={6} style={{ marginBottom: 16 }} />
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                {[0,1,2,3].map(i => (
-                  <View key={i} style={{ alignItems: 'center', gap: 5 }}>
-                    <Bone w={44} h={13} r={4} />
-                    <Bone w={36} h={9} r={3} />
-                  </View>
-                ))}
-              </View>
+              <View style={{ width: 34 }} />
             </View>
           </SafeAreaView>
         </LinearGradient>
 
         <View style={{ paddingHorizontal: 16, paddingTop: 16, gap: 16 }}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {[0,1,2,3].map(i => (
-              <View key={i} style={{ width: (W - 32 - 30) / 4, backgroundColor: C.card, borderRadius: 14, padding: 12, alignItems: 'center', gap: 6 }}>
-                <Bone w={32} h={32} r={8} />
-                <Bone w={36} h={14} r={4} />
-                <Bone w={28} h={9} r={3} />
+          {/* Quote Requests card — now lives in the body, matches real layout */}
+          <View style={{ backgroundColor: C.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: C.border }}>
+            <Bone w={120} h={10} r={4} style={{ marginBottom: 8 }} />
+            <Bone w={60} h={32} r={6} style={{ marginBottom: 16 }} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              {[0,1,2,3].map(i => (
+                <View key={i} style={{ alignItems: 'center', gap: 5 }}>
+                  <Bone w={44} h={13} r={4} />
+                  <Bone w={36} h={9} r={3} />
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* This Week / Last Week — matches the real 2-card perf row */}
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {[0,1].map(i => (
+              <View key={i} style={{ flex: 1, backgroundColor: C.card, borderRadius: 14, padding: 14, gap: 8 }}>
+                <Bone w={70} h={9} r={4} />
+                <Bone w={90} h={20} r={5} />
+                <Bone w={100} h={9} r={4} />
               </View>
             ))}
           </View>
@@ -278,6 +285,24 @@ export default function SelfDriveHomeScreen({ navigation }) {
               <Bone w={80} h={24} r={12} />
             </View>
             <Bone w="100%" h={140} r={8} />
+          </View>
+
+          {/* Bookings list — matches the Upcoming/Recent Bookings row shape */}
+          <View style={{ gap: 8 }}>
+            <Bone w={140} h={13} r={5} />
+            {[0,1].map(i => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 14, padding: 12, gap: 12 }}>
+                <Bone w={44} h={44} r={12} />
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Bone w={120} h={12} r={4} />
+                  <Bone w={90} h={9} r={3} />
+                </View>
+                <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                  <Bone w={50} h={16} r={10} />
+                  <Bone w={40} h={11} r={3} />
+                </View>
+              </View>
+            ))}
           </View>
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
@@ -300,7 +325,7 @@ export default function SelfDriveHomeScreen({ navigation }) {
 
       {/* ── Header ── */}
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
-        <AnimatedOrb style={s.deco1} /><AnimatedOrb style={s.deco2} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView>
           <View style={s.topBar}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -315,6 +340,15 @@ export default function SelfDriveHomeScreen({ navigation }) {
             </View>
             <View style={{ width: 34 }} />
           </View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* ── Body ── */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g500]} tintColor={C.g500} />}
+      >
+        <View style={s.body}>
 
           <TouchableOpacity style={s.quoteCard} onPress={() => navigation.navigate('SelfDriveQuoteRequests')} activeOpacity={0.88}>
             <View style={s.quoteTop}>
@@ -335,25 +369,16 @@ export default function SelfDriveHomeScreen({ navigation }) {
                     <Ionicons
                       name={m.icon}
                       size={13}
-                      color={m.accent ? C.g400 : 'rgba(255,255,255,0.55)'}
+                      color={m.accent ? C.g600 : C.muted}
                       style={{ marginBottom: 3 }}
                     />
-                    <Text style={[s.miniVal, m.accent && { color: C.g400, fontSize: 11 }]}>{m.v}</Text>
+                    <Text style={[s.miniVal, m.accent && { color: C.g600, fontSize: 12 }]}>{m.v}</Text>
                     <Text style={s.miniLbl}>{m.l}</Text>
                   </View>
                 </React.Fragment>
               ))}
             </View>
           </TouchableOpacity>
-        </SafeAreaView>
-      </LinearGradient>
-
-      {/* ── Body ── */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g500]} tintColor={C.g500} />}
-      >
-        <View style={s.body}>
 
           {stats.quoteRequests > 0 && (
             <TouchableOpacity style={s.tipCard} onPress={() => navigation.navigate('SelfDriveQuoteRequests')} activeOpacity={0.8}>
@@ -552,40 +577,39 @@ const s = StyleSheet.create({
 
   /* Header */
   hero: {
-    paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden',
+    paddingHorizontal: 16, paddingBottom: 8, overflow: 'hidden',
     borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22),
   },
-  deco1: { position: 'absolute', top: -46, right: -30, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)' },
-  deco2: { position: 'absolute', bottom: -40, left: -34, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)' },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 18 },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16, marginBottom: 4 },
   backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  titleWrap: { alignItems: 'center' },
-  headerEyebrow: { fontSize: 10, color: 'rgba(255,255,255,0.65)', fontWeight: '700', letterSpacing: 1.2, fontFamily: DISPLAY, marginBottom: 2 },
+  titleWrap: { alignItems: 'center', justifyContent: 'center', minHeight: 34 },
+  headerEyebrow: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '700', letterSpacing: 1.2, fontFamily: DISPLAY, marginBottom: 2 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerTitle: { fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.2, fontFamily: DISPLAY },
 
-  quoteCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: rs(16), padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
+  quoteCard: { backgroundColor: C.card, borderRadius: rs(16), padding: 16, borderWidth: 1, borderColor: C.border, ...cardShadow, marginBottom: 16 },
   quoteTop: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 14 },
-  quoteLbl: { fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 4 },
-  quoteNum: { fontSize: 38, fontWeight: '900', color: '#fff', letterSpacing: -1, fontFamily: DISPLAY },
-  pendingPill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(217,119,6,0.25)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(217,119,6,0.35)' },
+  quoteLbl: { fontSize: 10, color: C.muted, fontWeight: '700', letterSpacing: 1.5, marginBottom: 4 },
+  quoteNum: { fontSize: 38, fontWeight: '900', color: C.text, letterSpacing: -1, fontFamily: DISPLAY },
+  pendingPill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.amberL, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: '#FDE68A' },
   pendingDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.amber },
-  pendingTxt: { fontSize: 10, fontWeight: '700', color: C.amber },
-  miniStrip: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.13)', borderRadius: 10, paddingVertical: 9, paddingHorizontal: 10 },
-  vLine: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 6 },
+  pendingTxt: { fontSize: 11, fontWeight: '700', color: C.amber },
+  miniStrip: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.bg, borderRadius: 10, paddingVertical: 9, paddingHorizontal: 10 },
+  vLine: { width: 1, height: 24, backgroundColor: C.border, marginHorizontal: 6 },
   miniCell: { flex: 1, alignItems: 'center' },
-  miniVal: { fontSize: 12, fontWeight: '800', color: '#fff', marginBottom: 1, fontFamily: DISPLAY },
-  miniLbl: { fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.38)' },
+  miniVal: { fontSize: 13, fontWeight: '800', color: C.text, marginBottom: 1, fontFamily: DISPLAY },
+  miniLbl: { fontSize: 8, fontWeight: '600', color: C.muted },
 
   body: { paddingHorizontal: 16, paddingTop: 16 },
 
-  sectionTitle: { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: -0.2, marginBottom: 10, marginTop: 18, fontFamily: DISPLAY },
+  sectionTitle: { fontSize: 14, fontWeight: '800', color: C.text, letterSpacing: -0.2, marginBottom: 10, marginTop: 18, fontFamily: DISPLAY },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, marginBottom: 10 },
-  seeAll: { fontSize: 12, fontWeight: '600', color: C.g600 },
+  seeAll: { fontSize: 13, fontWeight: '600', color: C.g600 },
 
   tipCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.amberM, borderRadius: rs(14), padding: 14, borderWidth: 1, borderColor: '#FDE68A' },
   tipIconWrap: { width: 34, height: 34, borderRadius: 10, backgroundColor: C.amberL, alignItems: 'center', justifyContent: 'center' },
-  tipText: { flex: 1, fontSize: 12, color: '#78350F', lineHeight: 17 },
+  tipText: { flex: 1, fontSize: 13, color: '#78350F', lineHeight: 17 },
   tipBold: { fontWeight: '700' },
 
   activeCard: { borderRadius: rs(16), overflow: 'hidden', marginTop: 10 },
@@ -593,7 +617,7 @@ const s = StyleSheet.create({
   activeLiveDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#fff', position: 'absolute', left: 18 },
   activeLiveDotPulse: { width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.3)', position: 'absolute', left: 13 },
   activeTitle: { fontSize: 15, fontWeight: '800', color: '#fff', fontFamily: DISPLAY },
-  activeSub: { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  activeSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   activeCountBadge: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   activeCountNum: { fontSize: 18, fontWeight: '900', color: '#fff', fontFamily: DISPLAY },
 
@@ -601,9 +625,9 @@ const s = StyleSheet.create({
   perfCard: { flex: 1, backgroundColor: C.card, borderRadius: rs(14), padding: 14, borderWidth: 1, borderColor: C.border, ...cardShadow },
   perfLbl: { fontSize: 8, fontWeight: '700', color: C.muted, letterSpacing: 1.2, marginBottom: 6 },
   perfAmt: { fontSize: 22, fontWeight: '900', color: C.text, letterSpacing: -0.5, fontFamily: DISPLAY },
-  perfSub: { fontSize: 10, color: C.muted, marginTop: 6 },
+  perfSub: { fontSize: 11, color: C.muted, marginTop: 6 },
   growthRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  growthTxt: { fontSize: 11, fontWeight: '700' },
+  growthTxt: { fontSize: 12, fontWeight: '700' },
 
   chartCard: {
     backgroundColor: C.card, borderRadius: rs(16), padding: 16,
@@ -612,32 +636,32 @@ const s = StyleSheet.create({
     marginTop: 18,
   },
   chartHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  chartTitle: { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: -0.2, fontFamily: DISPLAY },
-  chartSub: { fontSize: 11, color: C.muted, marginTop: 3 },
+  chartTitle: { fontSize: 14, fontWeight: '800', color: C.text, letterSpacing: -0.2, fontFamily: DISPLAY },
+  chartSub: { fontSize: 12, color: C.muted, marginTop: 3 },
   periodRow: { flexDirection: 'row', gap: 3, backgroundColor: C.bg, borderRadius: 20, padding: 3 },
   periodBtn: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 16 },
   periodBtnActive: { backgroundColor: C.g900 },
-  periodTxt: { fontSize: 11, fontWeight: '700', color: C.muted },
+  periodTxt: { fontSize: 12, fontWeight: '700', color: C.muted },
   periodTxtActive: { color: '#fff' },
 
   bookingCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: rs(14), padding: 12, marginBottom: 8, borderWidth: 1, borderColor: C.border, ...cardShadow },
   bookingLeft: { marginRight: 12 },
   bookingDateBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   bookingDateDay: { fontSize: 16, fontWeight: '900', lineHeight: 20 },
-  bookingDateMon: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase' },
+  bookingDateMon: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
   bookingMid: { flex: 1 },
-  bookingName: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 2, fontFamily: DISPLAY },
-  bookingTime: { fontSize: 11, color: C.sub },
-  bookingVehicle: { fontSize: 10, color: C.muted, marginTop: 2 },
+  bookingName: { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 2, fontFamily: DISPLAY },
+  bookingTime: { fontSize: 12, color: C.sub },
+  bookingVehicle: { fontSize: 11, color: C.muted, marginTop: 2 },
   bookingRight: { alignItems: 'flex-end', gap: 6, marginLeft: 8 },
   statusChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  statusChipTxt: { fontSize: 10, fontWeight: '700' },
-  bookingAmt: { fontSize: 13, fontWeight: '800', color: C.g600, fontFamily: DISPLAY },
+  statusChipTxt: { fontSize: 11, fontWeight: '700' },
+  bookingAmt: { fontSize: 14, fontWeight: '800', color: C.g600, fontFamily: DISPLAY },
 
   manageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   manageCard: { width: CARD_W, backgroundColor: C.card, borderRadius: rs(14), padding: 14, ...cardShadow, borderWidth: 1, borderColor: C.border },
   manageIconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  manageLabel: { fontSize: 12.5, fontWeight: '800', color: C.text, marginBottom: 2, fontFamily: DISPLAY },
-  manageSub: { fontSize: 10, color: C.muted, lineHeight: 14 },
+  manageLabel: { fontSize: 13.5, fontWeight: '800', color: C.text, marginBottom: 2, fontFamily: DISPLAY },
+  manageSub: { fontSize: 11, color: C.muted, lineHeight: 14 },
   manageArrow: { position: 'absolute', bottom: 12, right: 12 },
 });

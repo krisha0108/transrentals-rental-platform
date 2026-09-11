@@ -21,7 +21,7 @@ import { getStaffAttendance, markStaffAttendance } from '../../api/staff-api';
 import { showError, showSuccess, showInfo, showConfirm } from '../../../services/alertService';
 import { SC as T, G, rs, rf, GUT, shade, cardShadow, rowShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already used — only the values now come from
 // the shared "Elevate" theme instead of hardcoded hex, mirroring the mapping
@@ -52,6 +52,10 @@ const MONTH_NAMES = [
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const { width: SW } = Dimensions.get('window');
 const DAY_W = rs(36);
@@ -195,18 +199,63 @@ export default function StaffAttendanceScreen({ navigation }) {
     return (
       <View style={s.root}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={G.hero} style={s.headerGradLoading}>
+
+        <LinearGradient colors={G.hero} style={s.headerGrad}>
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
             <View style={s.headerTopRow}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={s.backCircle}>
                 <Icon name="arrow-left" size={rs(20)} color="#fff" />
               </TouchableOpacity>
-              <Text style={s.loadTitle}>Staff Attendance</Text>
-              <View style={{ width: rs(40) }} />
+              <View style={s.titleWrap}>
+                <View style={s.heroBadge}>
+                  <MaterialCommunityIcons name="calendar-check" size={rs(11)} color={C.g400} />
+                  <Text style={s.heroBadgeTxt}>Attendance Tracker</Text>
+                </View>
+                <Text style={s.headerTitle}>Staff Attendance</Text>
+              </View>
+              <View style={{ width: rs(38) }} />
+            </View>
+
+            <View style={s.monthNavRow}>
+              <View style={s.monthNavBtn} />
+              <View style={s.monthNavPill}>
+                <Icon name="calendar" size={rs(13)} color={C.g400} />
+                <Text style={s.monthNavPillTxt}>{MONTH_NAMES[month]} {year}</Text>
+              </View>
+              <View style={s.monthNavBtn} />
             </View>
           </SafeAreaView>
         </LinearGradient>
-        <View style={s.centered}><ActivityIndicator size="large" color={C.g600} /></View>
+
+        <View style={s.statsWrap}>
+          <View style={[s.statsCard, cardShadow]}>
+            <Bone w={rs(46)} h={rs(46)} r={rs(13)} />
+            <View style={s.statsRow}>
+              <View style={s.statItem}><Bone w={28} h={16} style={{ marginBottom: 4 }} /><Bone w={40} h={9} /></View>
+              <View style={s.statDiv} />
+              <View style={s.statItem}><Bone w={28} h={16} style={{ marginBottom: 4 }} /><Bone w={40} h={9} /></View>
+            </View>
+          </View>
+        </View>
+
+        <View style={s.scroll}>
+          <View style={[s.gridCard, cardShadow]}>
+            <View style={s.legendBar}>
+              {[0, 1, 2, 3].map((i) => <Bone key={i} w={70} h={12} />)}
+            </View>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <View key={i} style={[s.gRow, i % 2 === 0 && s.gRowStripe, { paddingVertical: rs(9), paddingHorizontal: rs(8) }]}>
+                <Bone w={rs(26)} h={rs(26)} r={rs(8)} style={{ marginRight: rs(8) }} />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Bone w={80} h={11} />
+                  <Bone w={50} h={9} />
+                </View>
+                <Bone w={120} h={20} r={6} />
+              </View>
+            ))}
+          </View>
+        </View>
       </View>
     );
   }
@@ -220,25 +269,23 @@ export default function StaffAttendanceScreen({ navigation }) {
 
       {/* ── Hero header — month/year nav integrated in the hero ── */}
       <LinearGradient colors={G.hero} style={s.headerGrad}>
-        <AnimatedOrb style={s.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: GUT }}>
           <View style={s.headerTopRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backCircle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Icon name="arrow-left" size={rs(20)} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }} />
+            <View style={s.titleWrap}>
+              <View style={s.heroBadge}>
+                <MaterialCommunityIcons name="calendar-check" size={rs(11)} color={C.g400} />
+                <Text style={s.heroBadgeTxt}>Attendance Tracker</Text>
+              </View>
+              <Text style={s.headerTitle}>Staff Attendance</Text>
+            </View>
             <TouchableOpacity onPress={onRefresh} style={s.refreshCircle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Icon name="refresh-cw" size={rs(16)} color="rgba(255,255,255,0.75)" />
             </TouchableOpacity>
           </View>
-
-          <View style={s.heroBadge}>
-            <MaterialCommunityIcons name="calendar-check" size={rs(12)} color={C.g400} />
-            <Text style={s.heroBadgeTxt}>Attendance Tracker</Text>
-          </View>
-          <Text style={s.bigTitle}>Staff Attendance</Text>
-          <Text style={s.bigSub}>Track daily check-ins for your team</Text>
 
           <View style={s.monthNavRow}>
             <TouchableOpacity onPress={goToPrevMonth} style={s.monthNavBtn} activeOpacity={0.7}>
@@ -257,8 +304,6 @@ export default function StaffAttendanceScreen({ navigation }) {
               <Icon name="chevron-right" size={rs(18)} color="#fff" />
             </TouchableOpacity>
           </View>
-
-          <View style={{ height: rs(isCurrentMonth ? 28 : 12) }} />
         </SafeAreaView>
       </LinearGradient>
 
@@ -555,26 +600,16 @@ export default function StaffAttendanceScreen({ navigation }) {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   // Hero
   headerGrad: {
     overflow: 'hidden',
     borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
-    paddingBottom: rs(4),
+    paddingBottom: rs(8),
   },
-  headerGradLoading: { paddingBottom: rs(14) },
-  orbA: {
-    position: 'absolute', top: -rs(50), right: -rs(30),
-    width: rs(170), height: rs(170), borderRadius: rs(85),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(60), left: -rs(40),
-    width: rs(150), height: rs(150), borderRadius: rs(75),
-    backgroundColor: 'rgba(46,158,120,0.16)',
-  },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(12) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: rs(10) },
+  titleWrap: { alignItems: 'center', justifyContent: 'center', minHeight: rs(38) },
   backCircle: {
     width: rs(38), height: rs(38), borderRadius: rs(19),
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -586,19 +621,17 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center', alignItems: 'center',
   },
-  loadTitle: { fontFamily: DISPLAY, fontSize: rf(17), fontWeight: '800', color: '#fff', flex: 1, textAlign: 'center' },
 
   heroBadge: {
     flexDirection: 'row', alignItems: 'center', gap: rs(5),
-    backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start',
-    paddingHorizontal: rs(10), paddingVertical: rs(4), borderRadius: 999, marginBottom: rs(6),
+    backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'center',
+    paddingHorizontal: rs(10), paddingVertical: rs(4), borderRadius: 999, marginBottom: rs(4),
   },
   heroBadgeTxt: { fontFamily: DISPLAY, fontSize: rf(10.5), fontWeight: '700', color: C.g400, letterSpacing: 0.4 },
-  bigTitle: { fontFamily: DISPLAY, fontSize: rf(25), color: '#fff', letterSpacing: 0.2, fontWeight: '800' },
-  bigSub: { fontFamily: DISPLAY, fontSize: rf(12.5), color: 'rgba(255,255,255,0.68)', fontWeight: '600', marginTop: rs(3) },
+  headerTitle: { fontFamily: DISPLAY, fontSize: rf(19), color: '#fff', letterSpacing: -0.2, fontWeight: '800' },
 
   // Month nav (in-hero)
-  monthNavRow: { flexDirection: 'row', alignItems: 'center', gap: rs(10), marginTop: rs(16) },
+  monthNavRow: { flexDirection: 'row', alignItems: 'center', gap: rs(10), marginTop: rs(12) },
   monthNavBtn: {
     width: rs(34), height: rs(34), borderRadius: rs(17),
     backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
@@ -613,7 +646,7 @@ const s = StyleSheet.create({
   monthNavPillTxt: { fontFamily: DISPLAY, fontSize: rf(13.5), fontWeight: '700', color: '#fff' },
 
   // Floating today-summary card
-  statsWrap: { marginHorizontal: GUT, marginTop: -rs(24) },
+  statsWrap: { marginHorizontal: GUT, marginTop: rs(14) },
   statsCard: {
     flexDirection: 'row', alignItems: 'center', gap: rs(12),
     backgroundColor: C.card, borderRadius: rs(18),

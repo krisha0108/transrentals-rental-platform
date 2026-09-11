@@ -16,7 +16,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -77,6 +76,13 @@ const FEATURES = [
   { emoji: '🌐', title: 'Social Network',     desc: 'Connect with vendors, share posts, grow your brand.' },
 ];
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: 'rgba(255,255,255,0.15)' }, style]} />
+);
+const BoneDark = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 // Progress ring built without SVG — two layered circles with a clipped arc
 // via a rotation trick. Keeps the screen dependency-light.
 function ProgressRing({ pct }) {
@@ -90,7 +96,7 @@ function ProgressRing({ pct }) {
       {/* Track */}
       <View style={{
         position: 'absolute', width: size, height: size, borderRadius: size / 2,
-        borderWidth: stroke, borderColor: 'rgba(255,255,255,0.15)',
+        borderWidth: stroke, borderColor: C.border,
       }} />
       {/* Filled portion — approximated using SVG-less inline arc proxy: a
           rotated semi-transparent overlay. Visual approximation, not perfect.
@@ -98,11 +104,11 @@ function ProgressRing({ pct }) {
       <View style={{
         position: 'absolute', width: size, height: size, borderRadius: size / 2,
         borderWidth: stroke, borderColor: 'transparent',
-        borderTopColor: C.g300, borderRightColor: pct >= 50 ? C.g300 : 'transparent',
+        borderTopColor: C.g600, borderRightColor: pct >= 50 ? C.g600 : 'transparent',
         transform: [{ rotate: `${(pct / 100) * 360 - 90}deg` }],
       }} />
-      <Text style={{ color: '#fff', fontSize: 22, fontWeight: '900' }}>{pct}%</Text>
-      <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 9, fontWeight: '700', letterSpacing: 0.5 }}>DONE</Text>
+      <Text style={{ color: C.text, fontSize: 22, fontWeight: '900' }}>{pct}%</Text>
+      <Text style={{ color: C.muted, fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>DONE</Text>
     </View>
   );
 }
@@ -162,8 +168,62 @@ export default function GetStartedScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={C.g600} size="large" />
+      <View style={{ flex: 1, backgroundColor: C.bg }}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g950} />
+
+        <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.hero}>
+          <SafeAreaView edges={['top']}>
+            <View style={s.heroTopRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={s.iconBtn} activeOpacity={0.7}>
+                <Ionicons name="arrow-back" size={20} color="#fff" />
+              </TouchableOpacity>
+              <Bone w={120} h={22} r={999} />
+              <View style={{ width: 38 }} />
+            </View>
+
+            <View style={s.heroBody}>
+              <Bone w="80%" h={22} style={{ marginBottom: 8 }} />
+              <Bone w="60%" h={14} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
+        <View style={{ flex: 1, padding: 16 }}>
+          <View style={s.heroProgressRow}>
+            <BoneDark w={92} h={92} r={46} />
+            <View style={{ flex: 1, marginLeft: 16, gap: 8 }}>
+              <BoneDark w={130} h={11} />
+              <BoneDark w="100%" h={26} r={13} />
+              <BoneDark w="100%" h={26} r={13} />
+              <BoneDark w="100%" h={26} r={13} />
+            </View>
+          </View>
+
+          <View style={s.card}>
+            {[0, 1, 2].map((i) => (
+              <View key={i}>
+                <View style={s.stepRow}>
+                  <BoneDark w={38} h={38} r={12} />
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <BoneDark w={140} h={13} />
+                    <BoneDark w={180} h={11} />
+                  </View>
+                  <BoneDark w={90} h={30} r={9} />
+                </View>
+                {i < 2 && <View style={s.connector} />}
+              </View>
+            ))}
+          </View>
+
+          <View style={s.card}>
+            {[0, 1, 2].map((i) => (
+              <View key={i} style={[s.linkRow, i < 2 && s.linkBorder]}>
+                <BoneDark w={34} h={34} r={10} />
+                <BoneDark w={150} h={13} />
+              </View>
+            ))}
+          </View>
+        </View>
       </View>
     );
   }
@@ -195,48 +255,6 @@ export default function GetStartedScreen({ navigation }) {
                 ? 'A complete reference for managing services, fleet, bookings and more.'
                 : 'Complete 3 quick steps to get verified and start receiving booking requests.'}
             </Text>
-
-            {!isApproved ? (
-              <View style={s.heroProgressRow}>
-                <ProgressRing pct={pct} />
-                <View style={{ flex: 1, marginLeft: 16 }}>
-                  <Text style={s.progressLabel}>{doneCount} of 3 steps complete</Text>
-                  <View style={s.stepPills}>
-                    {steps.map((st) => (
-                      <View
-                        key={st.n}
-                        style={[
-                          s.stepPill,
-                          st.done && s.stepPillDone,
-                          st.active && s.stepPillActive,
-                        ]}
-                      >
-                        {st.done ? (
-                          <Ionicons name="checkmark" size={10} color="#fff" />
-                        ) : (
-                          <Text style={s.stepPillNum}>{st.n}</Text>
-                        )}
-                        <Text
-                          style={[
-                            s.stepPillTxt,
-                            st.done && s.stepPillTxtDone,
-                            st.active && { color: '#fff' },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {st.title.split(' ')[1] || st.title}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              </View>
-            ) : (
-              <View style={s.verifiedBadge}>
-                <Ionicons name="checkmark-circle" size={16} color={C.g300} />
-                <Text style={s.verifiedTxt}>Account Verified & Active</Text>
-              </View>
-            )}
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -246,6 +264,49 @@ export default function GetStartedScreen({ navigation }) {
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
       >
+        {/* Progress — moved out of the header into the body */}
+        {!isApproved ? (
+          <View style={s.heroProgressRow}>
+            <ProgressRing pct={pct} />
+            <View style={{ flex: 1, marginLeft: 16 }}>
+              <Text style={s.progressLabel}>{doneCount} of 3 steps complete</Text>
+              <View style={s.stepPills}>
+                {steps.map((st) => (
+                  <View
+                    key={st.n}
+                    style={[
+                      s.stepPill,
+                      st.done && s.stepPillDone,
+                      st.active && s.stepPillActive,
+                    ]}
+                  >
+                    {st.done ? (
+                      <Ionicons name="checkmark" size={10} color={C.g700} />
+                    ) : (
+                      <Text style={[s.stepPillNum, st.active && { color: '#fff' }]}>{st.n}</Text>
+                    )}
+                    <Text
+                      style={[
+                        s.stepPillTxt,
+                        st.done && s.stepPillTxtDone,
+                        st.active && { color: '#fff' },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {st.title.split(' ')[1] || st.title}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        ) : (
+          <View style={s.verifiedBadge}>
+            <Ionicons name="checkmark-circle" size={16} color={C.g600} />
+            <Text style={s.verifiedTxt}>Account Verified & Active</Text>
+          </View>
+        )}
+
         {/* ── VERIFICATION STEPS ── */}
         <View style={s.sectionHead}>
           <Ionicons name="shield-checkmark" size={16} color={C.g700} />
@@ -474,7 +535,7 @@ export default function GetStartedScreen({ navigation }) {
 
 const s = StyleSheet.create({
   /* Hero */
-  hero: { paddingHorizontal: 16, paddingBottom: 22 },
+  hero: { paddingHorizontal: 16, paddingBottom: 14, overflow: 'hidden', borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
   heroTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 10 },
   iconBtn: {
     width: 38, height: 38, borderRadius: 12,
@@ -486,29 +547,33 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
   },
-  heroPillTxt: { color: C.g300, fontSize: 10, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
+  heroPillTxt: { color: C.g300, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
   heroBody: { paddingTop: 10 },
   heroTitle: { color: '#fff', fontSize: 24, fontWeight: '900', letterSpacing: -0.4, lineHeight: 30 },
-  heroSub: { color: 'rgba(255,255,255,0.72)', fontSize: 13, lineHeight: 19, marginTop: 6 },
-  heroProgressRow: { flexDirection: 'row', alignItems: 'center', marginTop: 18, padding: 14, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  progressLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '700', marginBottom: 8, letterSpacing: 0.3 },
+  heroSub: { color: 'rgba(255,255,255,0.72)', fontSize: 14, lineHeight: 19, marginTop: 6 },
+  heroProgressRow: {
+    flexDirection: 'row', alignItems: 'center', marginBottom: 18, padding: 14, borderRadius: 16,
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
+  },
+  progressLabel: { color: C.sub, fontSize: 12, fontWeight: '700', marginBottom: 8, letterSpacing: 0.3 },
   stepPills: { gap: 6 },
   stepPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: C.bg, borderWidth: 1, borderColor: C.border,
     paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999,
   },
-  stepPillDone:   { backgroundColor: 'rgba(52,211,153,0.18)', borderColor: 'rgba(52,211,153,0.4)' },
-  stepPillActive: { backgroundColor: 'rgba(255,255,255,0.18)', borderColor: 'rgba(255,255,255,0.3)' },
-  stepPillNum: { color: '#fff', fontSize: 10, fontWeight: '900', width: 12, textAlign: 'center' },
-  stepPillTxt: { color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: '700' },
-  stepPillTxtDone: { color: C.g300, textDecorationLine: 'line-through' },
+  stepPillDone:   { backgroundColor: C.g50, borderColor: C.g100 },
+  stepPillActive: { backgroundColor: C.g600, borderColor: C.g600 },
+  stepPillNum: { color: C.text, fontSize: 11, fontWeight: '900', width: 12, textAlign: 'center' },
+  stepPillTxt: { color: C.sub, fontSize: 12, fontWeight: '700' },
+  stepPillTxtDone: { color: C.g600, textDecorationLine: 'line-through' },
   verifiedBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, alignSelf: 'flex-start',
-    backgroundColor: 'rgba(52,211,153,0.15)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)',
+    flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 18, alignSelf: 'flex-start',
+    backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
   },
-  verifiedTxt: { color: C.g300, fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
+  verifiedTxt: { color: C.g700, fontSize: 13, fontWeight: '800', letterSpacing: 0.2 },
 
   /* Scroll */
   scroll: { padding: 16 },
@@ -516,8 +581,8 @@ const s = StyleSheet.create({
   /* Section headers */
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4, paddingHorizontal: 2 },
   sectionIcon: { width: 24, height: 24, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
-  sectionTitle: { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: -0.2 },
-  sectionSub: { fontSize: 11, color: C.muted, fontWeight: '600' },
+  sectionTitle: { fontSize: 14, fontWeight: '800', color: C.text, letterSpacing: -0.2 },
+  sectionSub: { fontSize: 12, color: C.muted, fontWeight: '600' },
 
   /* Cards */
   card: {
@@ -535,43 +600,43 @@ const s = StyleSheet.create({
   stepRowDone:   { backgroundColor: C.g50, borderColor: C.g100 },
   stepRowActive: { backgroundColor: C.blueL, borderColor: '#BFDBFE' },
   stepIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  stepTitle: { fontSize: 13, fontWeight: '800', color: C.text },
-  stepSub: { fontSize: 11, color: C.muted, marginTop: 2 },
+  stepTitle: { fontSize: 14, fontWeight: '800', color: C.text },
+  stepSub: { fontSize: 12, color: C.muted, marginTop: 2 },
   nextBadge: { backgroundColor: C.blue, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   nextBadgeTxt: { color: '#fff', fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
   stepCta: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: C.g700, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 9 },
   stepCtaDone: { backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100 },
-  stepCtaTxt: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  stepCtaTxt: { color: '#fff', fontSize: 12, fontWeight: '800' },
   connector: { width: 2, height: 8, backgroundColor: C.border, marginLeft: 24, marginVertical: 2 },
   reviewNotice: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 6,
     backgroundColor: C.amberL, borderWidth: 1, borderColor: '#FCD34D',
     padding: 10, borderRadius: 10, marginTop: 10,
   },
-  reviewNoticeTxt: { flex: 1, fontSize: 11, color: '#92400E', lineHeight: 16 },
+  reviewNoticeTxt: { flex: 1, fontSize: 12, color: '#92400E', lineHeight: 16 },
 
   /* Quick links */
   linkRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 4, gap: 12 },
   linkBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
   linkIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  linkLabel: { flex: 1, fontSize: 13, fontWeight: '700', color: C.text },
+  linkLabel: { flex: 1, fontSize: 14, fontWeight: '700', color: C.text },
   openLink: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100, marginLeft: 'auto' },
-  openLinkTxt: { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
+  openLinkTxt: { fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
 
   /* Guide steps */
   guideRow: { flexDirection: 'row', gap: 12 },
   guideLeft: { alignItems: 'center' },
   guideIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   guideConnector: { width: 2, flex: 1, backgroundColor: C.border, marginVertical: 4 },
-  guideStep: { fontSize: 9, fontWeight: '900', color: C.muted, letterSpacing: 1 },
-  guideTitle: { fontSize: 12, fontWeight: '800', color: C.text, marginTop: 1 },
-  guideDesc: { fontSize: 11, color: C.sub, lineHeight: 16, marginTop: 2 },
+  guideStep: { fontSize: 10, fontWeight: '900', color: C.muted, letterSpacing: 1 },
+  guideTitle: { fontSize: 13, fontWeight: '800', color: C.text, marginTop: 1 },
+  guideDesc: { fontSize: 12, color: C.sub, lineHeight: 16, marginTop: 2 },
   tip: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, padding: 10, borderRadius: 10, borderWidth: 1, marginTop: 6 },
-  tipTxt: { flex: 1, fontSize: 11, lineHeight: 16 },
+  tipTxt: { flex: 1, fontSize: 12, lineHeight: 16 },
 
   /* Features grid */
   unlockedPill: { backgroundColor: C.g100, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, marginLeft: 'auto' },
-  unlockedPillTxt: { color: C.g700, fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  unlockedPillTxt: { color: C.g700, fontSize: 10, fontWeight: '900', letterSpacing: 1 },
   featuresGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18 },
   featureCard: {
     width: '48%',
@@ -580,8 +645,8 @@ const s = StyleSheet.create({
   },
   featureLockWrap: { position: 'absolute', top: 8, right: 8 },
   featureEmoji: { fontSize: 26, marginBottom: 6 },
-  featureTitle: { fontSize: 11, fontWeight: '800', color: C.text, textAlign: 'center' },
-  featureDesc: { fontSize: 10, color: C.muted, textAlign: 'center', lineHeight: 14, marginTop: 3 },
+  featureTitle: { fontSize: 12, fontWeight: '800', color: C.text, textAlign: 'center' },
+  featureDesc: { fontSize: 11, color: C.muted, textAlign: 'center', lineHeight: 14, marginTop: 3 },
 
   /* Help card */
   helpCard: {
@@ -590,7 +655,7 @@ const s = StyleSheet.create({
   },
   helpIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: C.blue, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   helpTitle: { fontSize: 14, fontWeight: '800', color: '#1E3A8A', marginBottom: 3 },
-  helpSub: { fontSize: 12, color: '#3B82F6', textAlign: 'center', lineHeight: 17, marginBottom: 14 },
+  helpSub: { fontSize: 13, color: '#3B82F6', textAlign: 'center', lineHeight: 17, marginBottom: 14 },
   helpBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.blue, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 12 },
-  helpBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.2 },
+  helpBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.2 },
 });

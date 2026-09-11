@@ -185,15 +185,6 @@ export default function VendorForgotPasswordScreen({ navigation }) {
   return (
     <SafeAreaView style={{flex:1, backgroundColor: BRAND.bg}}>
       <StatusBar barStyle="dark-content" />
-      {/* Decorative bubbles */}
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        {/* top-right bubble cluster */}
-        <View style={[styles.bubble, {top:-70, right:-60, width:220, height:220, backgroundColor:"#DFF7EA"}]} />
-        <View style={[styles.bubble, {top:40, right:-30, width:120, height:120, backgroundColor:"#EAFBF2"}]} />
-        {/* bottom-left bubble */}
-        <View style={[styles.bubble, {bottom:-80, left:-70, width:280, height:280, backgroundColor:"#E7F1FF"}]} />
-      </View>
-
       <KeyboardAvoidingView style={{flex:1,justifyContent:'center'}} behavior={Platform.OS==="ios" ? "padding" : undefined}>
         {/* Hero header similar to login */}
         <View style={styles.heroHead}>
@@ -367,12 +358,6 @@ export default function VendorForgotPasswordScreen({ navigation }) {
 const CARD_RADIUS = 18;
 
 const styles = StyleSheet.create({
-  bubble: {
-    position: "absolute",
-    borderRadius: 999,
-    opacity: 0.55,
-  },
-
   heroHead: {
     alignItems: "center",
     marginTop: 6,
@@ -393,7 +378,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   brandTitle: { marginTop: 10, color: BRAND.ink, fontSize: 22, fontWeight: "800" },
-  brandSub: { color: BRAND.sub, fontSize: 13, marginTop: 2 },
+  brandSub: { color: BRAND.sub, fontSize: 14, marginTop: 2 },
 
   card: {
     marginHorizontal: 16,
@@ -419,13 +404,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  stepChipText: { color: BRAND.text, fontSize: 12, fontWeight: "800" },
+  stepChipText: { color: BRAND.text, fontSize: 13, fontWeight: "800" },
 
   titleCenter: { color: BRAND.ink, fontSize: 18, fontWeight: "800", textAlign: "center" },
-  captionCenter: { color: BRAND.sub, fontSize: 13, textAlign: "center", marginTop: 4, marginBottom: 12 },
+  captionCenter: { color: BRAND.sub, fontSize: 14, textAlign: "center", marginTop: 4, marginBottom: 12 },
   captionStrong: { color: BRAND.text, fontWeight: "800" },
 
-  fieldLabel: { color: BRAND.text, fontSize: 12, fontWeight: "800", marginBottom: 6, marginTop: 6 },
+  fieldLabel: { color: BRAND.text, fontSize: 13, fontWeight: "800", marginBottom: 6, marginTop: 6 },
 
   inputWrap: {
     height: 48,
@@ -441,7 +426,7 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, color: BRAND.ink, fontSize: 14 },
   inputError: { borderColor: "#F3C1C1", backgroundColor: "#FFF9F9" },
-  errorText: { color: BRAND.error, fontSize: 12, marginTop: -6, marginBottom: 8 },
+  errorText: { color: BRAND.error, fontSize: 13, marginTop: -6, marginBottom: 8 },
 
   primaryBtn: {
     height: 48,
@@ -471,12 +456,12 @@ const styles = StyleSheet.create({
   },
 
   resendRow: { marginTop: 10, flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" },
-  caption: { color: BRAND.sub, fontSize: 13 },
+  caption: { color: BRAND.sub, fontSize: 14 },
 
   strengthWrap: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8, marginTop: -2 },
   strengthSeg: { width: 26, height: 6, borderRadius: 4 },
-  strengthText: { marginLeft: 6, fontWeight: "800", fontSize: 12 },
+  strengthText: { marginLeft: 6, fontWeight: "800", fontSize: 13 },
 
   footerNote: { alignItems: "center", flexDirection: "row", gap: 6, justifyContent: "center", marginTop: 14, marginBottom: 12 },
-  footerText: { color: BRAND.sub, fontSize: 13 },
+  footerText: { color: BRAND.sub, fontSize: 14 },
 });

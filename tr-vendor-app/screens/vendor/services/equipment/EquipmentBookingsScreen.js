@@ -13,7 +13,7 @@ import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
 import DateFilterModal from '../../../../components/DateFilterModal';
 import { SC as T, G, rs, shade, cardShadow } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -49,6 +49,10 @@ const STATUS_CONFIG = {
 
 const fmt = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '--';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 /* ── Expanded info row ─────────────────────────────────────────────────── */
 const ERow = ({ iconName, label, value }) => (
@@ -108,13 +112,14 @@ export default function EquipmentBookingsScreen({ navigation, route }) {
   const [selectedFilter,  setSelectedFilter]  = useState('active');
   const [expandedId,      setExpandedId]      = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const {
     data: allBookings, loading, refreshing, hasMore,
     loadMore, refresh, initialLoad, applyDateFilter, dateFilter,
   } = useInfiniteScroll(getBookings, { service: 'equipment', type: filter });
 
-  useEffect(() => { initialLoad(); }, []);
+  useEffect(() => { initialLoad(); }, [initialLoad]);
 
   const tabFiltered = selectedFilter === 'completed'
     ? allBookings.filter(b => b.status === 'COMPLETED')
@@ -293,33 +298,39 @@ export default function EquipmentBookingsScreen({ navigation, route }) {
 
       {/* Hero header */}
       <LinearGradient colors={G.hero} style={styles.header}>
-        <AnimatedOrb style={styles.orbA} />
-        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={styles.headerSafe}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
-              <Icon name="arrow-left" size={20} color="#fff" />
+              <Icon name="arrow-left" size={17} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }} />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={styles.headerEyebrow}>EQUIPMENT RENTALS</Text>
+              <Text style={styles.bigTitle}>Bookings</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => { setSearchOpen(v => !v); if (searchOpen) setSearchQuery(''); }}
+              style={[styles.dateCircle, cardShadow, { marginRight: 10 }]}
+              activeOpacity={0.85}
+            >
+              <Icon name={searchOpen ? 'x' : 'search'} size={17} color={C.g700} />
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowDateFilter(true)}
               style={[styles.dateCircle, cardShadow]}
               activeOpacity={0.85}
             >
-              <Icon name="calendar" size={20} color={C.g700} />
+              <Icon name="calendar" size={17} color={C.g700} />
               {dateFilter.start && <View style={styles.filterDot} />}
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.headerEyebrow}>EQUIPMENT RENTALS</Text>
-          <Text style={styles.bigTitle}>Bookings</Text>
-          <Text style={styles.bigSub}>Track and manage all your equipment rental bookings.</Text>
-
-          <View style={{ height: rs(28) }} />
+          <View style={{ height: searchOpen ? rs(28) : 0 }} />
         </SafeAreaView>
       </LinearGradient>
 
       {/* Floating search — tucks into the hero's bottom curve */}
+      {searchOpen && (
       <View style={styles.searchBarWrap}>
         <View style={styles.searchCard}>
           <Icon name="search" size={16} color={C.muted} />
@@ -332,6 +343,7 @@ export default function EquipmentBookingsScreen({ navigation, route }) {
             returnKeyType="search"
             clearButtonMode="while-editing"
             autoCorrect={false}
+            autoFocus
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -340,10 +352,11 @@ export default function EquipmentBookingsScreen({ navigation, route }) {
           )}
         </View>
       </View>
+      )}
 
       {/* Fixed filter pills — kept OUTSIDE the FlatList so switching tabs
           doesn't reset scroll position. */}
-      <View style={styles.filtersFixed}>
+      <View style={[styles.filtersFixed, !searchOpen && { paddingTop: rs(6) }]}>
         {[
           { key: 'active',    label: 'Active',    count: activeCount,    icon: 'activity'      },
           { key: 'completed', label: 'Completed', count: completedCount, icon: 'check-circle'  },
@@ -369,9 +382,34 @@ export default function EquipmentBookingsScreen({ navigation, route }) {
       </View>
 
       {/* List */}
-      {loading && allBookings.length === 0 ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={C.g600} />
+      {(loading || refreshing) && allBookings.length === 0 ? (
+        <View style={styles.listContent}>
+          {[0, 1, 2].map(i => (
+            <View key={i} style={styles.card}>
+              <View style={[styles.cardRail, { backgroundColor: '#DDE4EE' }]} />
+              <View style={styles.cardInner}>
+                <View style={styles.cardTopStripe}>
+                  <Bone w={rs(26)} h={rs(26)} r={rs(8)} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Bone w={90} h={13} />
+                  </View>
+                  <Bone w={70} h={20} r={999} />
+                </View>
+                <Bone w={130} h={14} style={{ marginBottom: 7 }} />
+                <View style={styles.metaRow}>
+                  <Bone w={80} h={11} />
+                  <Bone w={90} h={11} />
+                </View>
+                <View style={styles.cardFooter}>
+                  <View>
+                    <Bone w={70} h={10} style={{ marginBottom: 4 }} />
+                    <Bone w={90} h={18} />
+                  </View>
+                  <Bone w={26} h={26} r={13} />
+                </View>
+              </View>
+            </View>
+          ))}
         </View>
       ) : (
         <FlatList
@@ -416,34 +454,25 @@ export default function EquipmentBookingsScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: C.bg },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   /* Hero header */
   header: {
     overflow: 'hidden',
     borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
-    paddingBottom: rs(8),
+    paddingBottom: rs(6),
   },
   headerSafe: { paddingHorizontal: 16 },
-  orbA: {
-    position: 'absolute', top: -46, right: -30, width: 150, height: 150,
-    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -40, left: -34, width: 120, height: 120,
-    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
-  },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(4), marginBottom: rs(10) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', paddingTop: rs(12), marginBottom: rs(6) },
   backCircle: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 34, height: 34, borderRadius: 17,
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center', alignItems: 'center',
   },
   dateCircle: {
-    width: rs(48), height: rs(48), borderRadius: rs(24),
+    width: rs(40), height: rs(40), borderRadius: rs(20),
     backgroundColor: C.ivory,
     justifyContent: 'center', alignItems: 'center',
-    transform: [{ translateY: rs(14) }],
   },
   filterDot: {
     position: 'absolute', top: 6, right: 6,
@@ -451,8 +480,8 @@ const styles = StyleSheet.create({
     backgroundColor: C.g600, borderWidth: 1.5, borderColor: C.ivory,
   },
   headerEyebrow: { fontSize: 10, color: 'rgba(255,255,255,0.65)', fontWeight: '700', letterSpacing: 1.2, fontFamily: DISPLAY, marginBottom: 2 },
-  bigTitle: { fontSize: 28, fontWeight: '700', color: '#fff', fontFamily: DISPLAY },
-  bigSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', marginTop: 4, fontFamily: DISPLAY },
+  bigTitle: { fontSize: 22, fontWeight: '700', color: '#fff', fontFamily: DISPLAY },
+  bigSub: { fontSize: 12, color: 'rgba(255,255,255,0.72)', fontWeight: '600', marginTop: 3, fontFamily: DISPLAY },
 
   /* Floating search */
   searchBarWrap: { marginHorizontal: 16, marginTop: -rs(24) },
@@ -478,7 +507,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: C.border,
   },
   chipActive: { backgroundColor: C.g700, borderColor: C.g700 },
-  chipText:       { fontSize: 13, fontWeight: '700', color: C.sub, fontFamily: DISPLAY },
+  chipText:       { fontSize: 14, fontWeight: '700', color: C.sub, fontFamily: DISPLAY },
   chipTextActive: { color: '#fff' },
   chipBadge: {
     minWidth: 22, height: 22, borderRadius: 11,
@@ -487,7 +516,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   chipBadgeActive:     { backgroundColor: 'rgba(255,255,255,0.25)' },
-  chipBadgeText:       { fontSize: 11, fontWeight: '700', color: C.g700 },
+  chipBadgeText:       { fontSize: 12, fontWeight: '700', color: C.g700 },
   chipBadgeTextActive: { color: '#fff' },
 
   listContent: { paddingHorizontal: 16, paddingBottom: 40, gap: 12 },
@@ -511,27 +540,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   cardTopLeft:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  bookingNum:   { fontSize: 12.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
+  bookingNum:   { fontSize: 13.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY },
   daysChip: {
     backgroundColor: C.g50, paddingHorizontal: 7, paddingVertical: 1.5,
     borderRadius: 7, borderWidth: 1, borderColor: C.g100,
   },
-  daysChipText: { fontSize: 10, color: C.g700, fontWeight: '600' },
+  daysChipText: { fontSize: 11, color: C.g700, fontWeight: '600' },
   statusPill:  { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
-  statusText:  { fontSize: 9.5, fontWeight: '700' },
+  statusText:  { fontSize: 10.5, fontWeight: '700' },
 
   cardName: { fontSize: 14.5, fontWeight: '700', color: C.text, fontFamily: DISPLAY, marginBottom: 4 },
 
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 7 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  metaText: { fontSize: 10.5, color: C.sub, fontWeight: '600' },
+  metaText: { fontSize: 11.5, color: C.sub, fontWeight: '600' },
 
   cardFooter: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: 9,
     borderTopWidth: 1, borderTopColor: C.border,
   },
-  amtLabel: { fontSize: 10, color: C.muted, marginBottom: 1 },
+  amtLabel: { fontSize: 11, color: C.muted, marginBottom: 1 },
   amtValue: { fontSize: 15, fontWeight: '800', color: C.g700, fontFamily: DISPLAY },
   footerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   expandCircle: {
@@ -556,14 +585,14 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg,
     justifyContent: 'center', alignItems: 'center',
   },
-  eLabel: { fontSize: 11, color: C.muted, width: 72 },
-  eVal:   { fontSize: 12, color: C.text, fontWeight: '500', flex: 1 },
+  eLabel: { fontSize: 12, color: C.muted, width: 72 },
+  eVal:   { fontSize: 13, color: C.text, fontWeight: '500', flex: 1 },
   viewDetailsBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
     marginTop: 9, paddingVertical: 8, borderRadius: 9,
     backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
   },
-  viewDetailsBtnText: { fontSize: 11.5, fontWeight: '700', color: C.g700 },
+  viewDetailsBtnText: { fontSize: 12.5, fontWeight: '700', color: C.g700 },
 
   /* Elaborate empty state */
   emptyCardWrap: {
@@ -602,7 +631,7 @@ const styles = StyleSheet.create({
   emptyArtTagTxt: { fontSize: 8.5, fontWeight: '700', color: C.g700, letterSpacing: 0.6, fontFamily: DISPLAY },
   emptyTitle:    { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 6, fontFamily: DISPLAY, textAlign: 'center' },
   emptyBody: {
-    fontSize: 13, color: C.muted, textAlign: 'center',
+    fontSize: 14, color: C.muted, textAlign: 'center',
     lineHeight: 19, maxWidth: rs(260),
   },
   emptyCtaWrap: { marginTop: rs(16) },

@@ -15,6 +15,10 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import {
+  Wallet, Wrench, ShieldCheck, CalendarClock, RefreshCw, Home as HomeIcon,
+  GraduationCap, Briefcase, Package, Building2, Bike as BikeIcon, Zap,
+} from 'lucide-react';
 
 interface PageProps {
   params: {
@@ -156,65 +160,61 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
         pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
       />
 
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-emerald-600 to-teal-700 text-white py-16 mt-6">
+      {/* Quick facts */}
+      <section className="bg-white py-10 border-b border-gray-100">
         <div className="container-custom">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">
-              Monthly Bike Rental in {locationName}
-            </h1>
-            <p className="text-lg md:text-xl mb-6 opacity-90">
-              Long Term Bike & Scooty Subscription | Starting @₹2,999/Month
-            </p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <Link
-                href="#plans"
-                className="bg-white text-emerald-700 px-6 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition"
-              >
-                View Monthly Plans
-              </Link>
-              <Link
-                href={`/bike-on-rent/${params.location}`}
-                className="border-2 border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-emerald-700 transition"
-              >
-                Daily Rental Options
-              </Link>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">
+                Monthly Bike Rental in <span className="text-emerald-600">{locationName}</span>
+              </h2>
+              <p className="text-gray-500 mt-1.5">Long term bike &amp; scooty subscription, starting @₹2,999/month.</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <BikeIcon className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Fleet</p>
+                  <p className="text-lg font-black text-gray-900">50+ Bikes</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Zap className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Delivery</p>
+                  <p className="text-lg font-black text-gray-900">Within 24hr</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Quick Stats */}
-      <section className="py-8 bg-white border-b">
-        <div className="container-custom">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div className="p-4">
-              <div className="text-3xl font-bold text-emerald-700">₹2,999</div>
-              <div className="text-sm text-gray-600">Starting Price/Month</div>
-            </div>
-            <div className="p-4">
-              <div className="text-3xl font-bold text-emerald-700">50+</div>
-              <div className="text-sm text-gray-600">Bikes Available</div>
-            </div>
-            <div className="p-4">
-              <div className="text-3xl font-bold text-emerald-700">24hr</div>
-              <div className="text-sm text-gray-600">Delivery Time</div>
-            </div>
-            <div className="p-4">
-              <div className="text-3xl font-bold text-emerald-700">4.7★</div>
-              <div className="text-sm text-gray-600">Customer Rating</div>
-            </div>
+          <div className="flex flex-wrap gap-4 mt-6">
+            <Link
+              href="#plans"
+              className="bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition"
+            >
+              View Monthly Plans
+            </Link>
+            <Link
+              href={`/bike-on-rent/${params.location}`}
+              className="border-2 border-emerald-600 text-emerald-700 px-6 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition"
+            >
+              Daily Rental Options
+            </Link>
           </div>
         </div>
       </section>
 
       {/* Monthly Plans */}
-      <section id="plans" className="py-16">
+      <section id="plans" className="py-16 bg-white">
         <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-4">
-            Monthly Bike Rental Plans in {locationName}
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-3">
+            Monthly Bike Rental Plans in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <p className="text-center text-gray-600 mb-12">
+          <p className="text-center text-gray-500 mb-12">
             Choose from scooters, commuter bikes, sports bikes, or premium bikes
           </p>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -258,7 +258,7 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
             ].map((plan) => (
               <div
                 key={plan.category}
-                className={`bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition relative ${plan.popular ? 'ring-2 ring-emerald-500' : ''}`}
+                className={`bg-white p-6 rounded-2xl border shadow-sm hover:shadow-lg transition-all relative ${plan.popular ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-gray-100'}`}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs px-3 py-1 rounded-full">
@@ -290,71 +290,81 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
       </section>
 
       {/* Why Monthly Rental */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Why Monthly Bike Rental in {locationName}?
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <h2 className="text-3xl md:text-[2.5rem] font-black tracking-tight text-gray-900 text-center mb-12">
+            Why Monthly Bike Rental in <span className="text-emerald-600">{locationName}</span>?
           </h2>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 max-w-5xl mx-auto">
             {[
-              {
-                icon: '💰',
-                title: 'Save 40% vs Daily',
-                desc: `Monthly rental in ${locationName} costs significantly less than daily rates. Perfect for long stays.`
-              },
-              {
-                icon: '🔧',
-                title: 'Zero Maintenance',
-                desc: 'Free servicing, repairs, and breakdown assistance included. We handle everything.'
-              },
-              {
-                icon: '🏠',
-                title: 'Doorstep Delivery',
-                desc: `Bike delivered to your address in ${locationName} within 24 hours. Pickup also available.`
-              },
-              {
-                icon: '🛡️',
-                title: 'Fully Insured',
-                desc: 'Comprehensive insurance coverage included. Ride worry-free.'
-              },
-              {
-                icon: '📅',
-                title: 'Flexible Duration',
-                desc: 'Rent for 1 month to 12+ months. Extend or cancel anytime.'
-              },
-              {
-                icon: '🔄',
-                title: 'Free Replacement',
-                desc: 'If your bike breaks down, we provide a replacement within hours.'
-              },
-            ].map((feature) => (
-              <div key={feature.title} className="bg-white p-6 rounded-lg shadow-md text-center">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600 text-sm">{feature.desc}</p>
+              { Icon: Wallet, title: 'Save 40% vs Daily', desc: `Monthly rental in ${locationName} costs significantly less than daily rates. Perfect for long stays.` },
+              { Icon: Wrench, title: 'Zero Maintenance', desc: 'Free servicing, repairs, and breakdown assistance included. We handle everything.' },
+              { Icon: HomeIcon, title: 'Doorstep Delivery', desc: `Bike delivered to your address in ${locationName} within 24 hours. Pickup also available.` },
+              { Icon: ShieldCheck, title: 'Fully Insured', desc: 'Comprehensive insurance coverage included. Ride worry-free.' },
+              { Icon: CalendarClock, title: 'Flexible Duration', desc: 'Rent for 1 month to 12+ months. Extend or cancel anytime.' },
+              { Icon: RefreshCw, title: 'Free Replacement', desc: 'If your bike breaks down, we provide a replacement within hours.' },
+            ].map((item, idx) => (
+              <div
+                key={item.title}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-7 text-center overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-100"
+                style={{ animation: `mbr-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 90}ms forwards`, opacity: 0 }}
+              >
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                  <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                    <item.Icon className="w-6 h-6 text-emerald-600 transition-colors duration-500 group-hover:text-white" />
+                  </span>
+                </div>
+                <h3 className="text-[17px] font-bold text-gray-900 mb-2 leading-snug">{item.title}</h3>
+                <p className="text-[13.5px] leading-relaxed text-gray-500">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes mbr-rise { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) { [style*="mbr-rise"] { animation: none !important; opacity: 1 !important; } }
+        ` }} />
       </section>
 
       {/* Perfect For Section */}
-      <section className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Who Rents Monthly in {locationName}?
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-gray-50/70 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-3xl md:text-[2.5rem] font-black tracking-tight text-gray-900 text-center mb-12">
+            Who Rents Monthly in <span className="text-emerald-600">{locationName}</span>?
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 max-w-6xl mx-auto">
             {[
-              { icon: '🎓', title: 'Students', desc: 'College semester rentals' },
-              { icon: '💼', title: 'Professionals', desc: 'Daily office commute' },
-              { icon: '📦', title: 'Delivery Partners', desc: 'Zomato, Swiggy, Amazon' },
-              { icon: '🏢', title: 'Job Transfers', desc: 'Temporary relocations' },
-            ].map((item) => (
-              <div key={item.title} className="bg-gradient-to-br from-emerald-50 to-teal-50 p-6 rounded-lg text-center">
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-semibold text-lg mb-1">{item.title}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              { Icon: GraduationCap, title: 'Students', desc: 'College semester rentals' },
+              { Icon: Briefcase, title: 'Professionals', desc: 'Daily office commute' },
+              { Icon: Package, title: 'Delivery Partners', desc: 'Zomato, Swiggy, Amazon' },
+              { Icon: Building2, title: 'Job Transfers', desc: 'Temporary relocations' },
+            ].map((item, idx) => (
+              <div
+                key={item.title}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-7 text-center overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-100"
+                style={{ animation: `mbr-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 90}ms forwards`, opacity: 0 }}
+              >
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                  <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                    <item.Icon className="w-6 h-6 text-emerald-600 transition-colors duration-500 group-hover:text-white" />
+                  </span>
+                </div>
+                <h3 className="text-[17px] font-bold text-gray-900 mb-2 leading-snug">{item.title}</h3>
+                <p className="text-[13.5px] leading-relaxed text-gray-500">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -363,24 +373,27 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
 
       {/* How It Works */}
       <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            How to Rent Bike Monthly in {locationName}
+        <div className="container-custom max-w-5xl">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            How to Rent Bike Monthly in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="space-y-4">
+          <div className="grid sm:grid-cols-2 gap-6">
             {[
               { step: '1', title: 'Choose Your Bike', desc: 'Select scooter or bike type and monthly plan' },
               { step: '2', title: 'Submit Documents', desc: 'Upload driving license and Aadhar card' },
               { step: '3', title: 'Pay & Confirm', desc: 'Pay first month rent + refundable deposit' },
               { step: '4', title: 'Get Delivered', desc: `Bike delivered to your ${locationName} address in 24hrs` },
             ].map((item) => (
-              <div key={item.step} className="flex gap-4 bg-white p-5 rounded-lg shadow-md">
-                <div className="flex-shrink-0 w-12 h-12 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
-                  {item.step}
+              <div key={item.step} className="flex gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="relative flex-shrink-0 w-10 h-10">
+                  <span className="absolute inset-0 rounded-full bg-emerald-500/40 animate-ping" />
+                  <div className="relative w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold">
+                    {item.step}
+                  </div>
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg mb-1">{item.title}</h3>
-                  <p className="text-gray-600">{item.desc}</p>
+                  <h3 className="font-bold text-[15px] text-gray-900 mb-1">{item.title}</h3>
+                  <p className="text-xs text-gray-500">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -388,37 +401,32 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
         </div>
       </section>
 
+      <FAQSection service="monthly-bike-rental" location={locationName} customFaqs={pageFaqs} />
+
       {/* Related Services */}
-      <section className="py-16">
+      <section className="py-16 bg-white">
         <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Other Bike Services in {locationName}
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Other Bike Services in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <Link
-              href={`/bike-on-rent/${params.location}`}
-              className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition group"
-            >
-              <div className="text-4xl mb-3">🏍️</div>
-              <h3 className="font-semibold text-lg group-hover:text-primary transition">Daily Bike Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">Rent by day or week. From ₹299/day</p>
-            </Link>
-            <Link
-              href={`/activa-on-rent/${params.location}`}
-              className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition group"
-            >
-              <div className="text-4xl mb-3">🛵</div>
-              <h3 className="font-semibold text-lg group-hover:text-primary transition">Activa on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">Scooters for easy city rides. From ₹299/day</p>
-            </Link>
-            <Link
-              href={`/royal-enfield-on-rent/${params.location}`}
-              className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition group"
-            >
-              <div className="text-4xl mb-3">🔥</div>
-              <h3 className="font-semibold text-lg group-hover:text-primary transition">Royal Enfield Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">Bullet, Classic 350, Himalayan. From ₹599/day</p>
-            </Link>
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {[
+              { href: `/bike-on-rent/${params.location}`, Icon: BikeIcon, title: 'Daily Bike Rental', desc: 'Rent by day or week. From ₹299/day' },
+              { href: `/activa-on-rent/${params.location}`, Icon: Zap, title: 'Activa on Rent', desc: 'Scooters for easy city rides. From ₹299/day' },
+              { href: `/royal-enfield-on-rent/${params.location}`, Icon: BikeIcon, title: 'Royal Enfield Rental', desc: 'Bullet, Classic 350, Himalayan. From ₹599/day' },
+            ].map((opt) => (
+              <Link
+                key={opt.title}
+                href={opt.href}
+                className="group flex flex-col items-center text-center bg-white border border-gray-100 shadow-sm rounded-2xl px-6 py-8 hover:border-emerald-300 hover:shadow-md transition-all"
+              >
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4 group-hover:bg-emerald-600 transition-colors">
+                  <opt.Icon className="w-6 h-6 text-emerald-600 group-hover:text-white transition-colors" />
+                </span>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-1">{opt.title}</h3>
+                <p className="text-xs text-gray-500">{opt.desc}</p>
+              </Link>
+            ))}
           </div>
         </div>
       </section>

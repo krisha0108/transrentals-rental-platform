@@ -1,9 +1,34 @@
 import { Metadata } from 'next';
-import { Crown, Star, Shield, Car, MapPin, Clock } from 'lucide-react';
+import {
+  Crown, Star, Shield, Car, MapPin, Clock,
+  Heart, Briefcase, PartyPopper, Plane, Camera, Handshake, Compass,
+  MessageCircleQuestion, Plus,
+} from 'lucide-react';
 import { LuxuryBookingHero } from '@/components/luxury';
-import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
+import { CarRentalPopularCitiesGrid } from '@/components/car-rental/CarRentalPopularCitiesGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { HowToSchema, BreadcrumbSchema } from '@/components/seo/schemas';
+
+const OCCASIONS = [
+  { icon: Heart, anim: 'pulse', occasion: 'Weddings', desc: 'Arrive in grand style on your special day' },
+  { icon: Briefcase, anim: 'drive', occasion: 'Corporate Events', desc: 'Impress clients and business partners' },
+  { icon: PartyPopper, anim: 'grow', occasion: 'Parties & Celebrations', desc: 'Make a statement at every event' },
+  { icon: Plane, anim: 'drive', occasion: 'Airport Transfers', desc: 'VIP pick-up and drop service' },
+  { icon: Camera, anim: 'tick', occasion: 'Photoshoots', desc: 'Perfect backdrop for your shoot' },
+  { icon: Heart, anim: 'pulse', occasion: 'Date Nights', desc: 'Create romantic memories' },
+  { icon: Handshake, anim: 'wrench', occasion: 'Business Meetings', desc: 'Professional first impression' },
+  { icon: Compass, anim: 'lift', occasion: 'City Tours', desc: 'Explore in ultimate comfort' },
+];
+
+/* Har icon apne hisaab se hilta hai — plain Tailwind group-hover, no custom keyframes. */
+const ICON_HOVER_ANIM: Record<string, string> = {
+  drive: 'group-hover:translate-x-2',
+  pulse: 'group-hover:scale-125',
+  tick: 'group-hover:rotate-[360deg]',
+  wrench: 'group-hover:rotate-45',
+  lift: 'group-hover:-translate-y-2',
+  grow: 'group-hover:-translate-y-1.5 group-hover:scale-110',
+};
 
 export const metadata: Metadata = {
   title: 'Luxury Car Rental - BMW, Mercedes, Audi, Ferrari, Lamborghini | TransRentals',
@@ -76,43 +101,54 @@ export default function LuxuryCarRentalPage() {
       </div>
 
       {/* Locations from Database */}
-      <ServiceLocationsGrid
+      <CarRentalPopularCitiesGrid
         serviceSlug="luxury-car-rental"
-        title="Luxury Cars Across India"
-        startingPrice="₹5,999"
-        priceUnit="/day"
+        title="Luxury Car Rental in Available Cities"
       />
 
       {/* Occasions Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-              Perfect for Every Occasion
+      <section className="relative overflow-hidden py-16 md:py-24 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container mx-auto px-4 relative">
+          <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
+            <h2 className="text-3xl md:text-[2.75rem] leading-[1.1] font-black tracking-tight text-gray-900 mb-3">
+              Perfect for <span className="text-emerald-600">Every Occasion</span>
             </h2>
-            <p className="text-gray-600 text-lg">
-              Make every moment unforgettable
-            </p>
+            <p className="text-gray-500 text-lg">Make every moment unforgettable</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { occasion: 'Weddings', icon: '💒', desc: 'Arrive in grand style on your special day', color: 'from-pink-50 to-rose-50' },
-              { occasion: 'Corporate Events', icon: '💼', desc: 'Impress clients and business partners', color: 'from-blue-50 to-indigo-50' },
-              { occasion: 'Parties & Celebrations', icon: '🎉', desc: 'Make a statement at every event', color: 'from-purple-50 to-violet-50' },
-              { occasion: 'Airport Transfers', icon: '✈️', desc: 'VIP pick-up and drop service', color: 'from-cyan-50 to-sky-50' },
-              { occasion: 'Photoshoots', icon: '📸', desc: 'Perfect backdrop for your shoot', color: 'from-amber-50 to-orange-50' },
-              { occasion: 'Date Nights', icon: '❤️', desc: 'Create romantic memories', color: 'from-red-50 to-pink-50' },
-              { occasion: 'Business Meetings', icon: '🤝', desc: 'Professional first impression', color: 'from-slate-50 to-gray-100' },
-              { occasion: 'City Tours', icon: '🌆', desc: 'Explore in ultimate comfort', color: 'from-green-50 to-emerald-50' },
-            ].map((item) => (
-              <div key={item.occasion} className={`bg-gradient-to-br ${item.color} p-6 rounded-xl text-center hover:shadow-lg transition-shadow duration-300`}>
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-semibold text-lg mb-2 text-gray-900">{item.occasion}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            {OCCASIONS.map((item, idx) => (
+              <div
+                key={item.occasion}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm p-5 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                style={{ animation: `lux-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 80}ms forwards`, opacity: 0 }}
+              >
+                <span className="inline-flex w-12 h-12 rounded-xl bg-emerald-50 items-center justify-center mb-4 transition-colors duration-300 group-hover:bg-emerald-600">
+                  <item.icon
+                    className={`w-6 h-6 text-emerald-600 transition-transform duration-500 group-hover:text-white ${ICON_HOVER_ANIM[item.anim]}`}
+                  />
+                </span>
+                <h3 className="text-[15px] font-bold text-gray-900 leading-snug mb-1.5">{item.occasion}</h3>
+                <p className="text-[13px] leading-relaxed text-gray-500">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes lux-rise { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) { [style*="lux-rise"] { animation: none !important; opacity: 1 !important; } }
+        ` }} />
       </section>
 
       {/* Why Choose Us */}
@@ -150,14 +186,31 @@ export default function LuxuryCarRentalPage() {
       </section>
 
       {/* FAQs */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-              Frequently Asked Questions
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container mx-auto px-4 max-w-5xl relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] text-emerald-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              GOOD TO KNOW
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            </span>
+            <h2 className="mt-4 text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Luxury Car Rental <span className="text-emerald-600">FAQs</span>
             </h2>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {[
               {
                 q: 'What luxury cars are available for rent?',
@@ -192,10 +245,22 @@ export default function LuxuryCarRentalPage() {
                 a: 'Yes, hourly packages (minimum 4 hours) are available for airport transfers, corporate meetings, and short-duration events. Full-day rates offer better value for weddings and all-day photoshoots.',
               },
             ].map((faq, idx) => (
-              <div key={idx} className="bg-white p-6 rounded-xl shadow-sm">
-                <h3 className="font-semibold text-lg text-gray-900 mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
+              <details
+                key={idx}
+                open={idx === 0}
+                className="group rounded-2xl bg-white border border-gray-100 shadow-sm open:border-emerald-200 open:shadow-md transition-all"
+              >
+                <summary className="flex items-center gap-4 px-4 sm:px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span className="shrink-0 w-9 h-9 rounded-full bg-emerald-50 grid place-items-center">
+                    <MessageCircleQuestion className="w-[18px] h-[18px] text-emerald-600" />
+                  </span>
+                  <h3 className="flex-1 font-bold text-[15px] leading-snug text-gray-900">{faq.q}</h3>
+                  <span className="shrink-0 w-8 h-8 rounded-lg bg-gray-50 text-gray-500 grid place-items-center transition-all duration-200 group-open:rotate-45 group-open:bg-emerald-600 group-open:text-white">
+                    <Plus className="w-4 h-4" />
+                  </span>
+                </summary>
+                <p className="px-4 sm:px-5 pb-5 sm:pl-[4.25rem] text-[14px] leading-relaxed text-gray-500">{faq.a}</p>
+              </details>
             ))}
           </div>
         </div>

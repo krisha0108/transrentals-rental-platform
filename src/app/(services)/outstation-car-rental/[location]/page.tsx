@@ -20,6 +20,9 @@ import { BikeServiceSchema } from '@/components/seo/schemas';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import {
+  UserCog, Fuel, Route as RouteIcon, Briefcase, Shield, MapPinned, Headphones, Sparkles, ArrowRight,
+} from 'lucide-react';
 
 const COMING_SOON_SLUGS = new Set([
   'ahmedabad-airport-amd',
@@ -223,26 +226,31 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
       <OutstationBookingHero cityName={locationName} citySlug={params.location.toLowerCase()} vehicleCategories={vehicleCategories} cityPricing={cityPricing} />
 
       {/* What's Included */}
-      <section className="py-12 bg-white">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            What&apos;s Included?
+      <section className="relative overflow-hidden py-14 md:py-16 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-[2rem] font-black tracking-tight text-gray-900 text-center mb-10">
+            What&apos;s <span className="text-emerald-600">Included?</span>
           </h2>
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
             {[
-              { icon: '👨‍✈️', title: 'Professional Driver', desc: 'Experienced & courteous' },
-              { icon: '⛽', title: 'Fuel Charges', desc: 'All fuel included' },
-              { icon: '🛣️', title: 'Toll & Parking', desc: 'All charges included' },
-              { icon: '💼', title: 'Driver Allowance', desc: 'Daily allowance covered' },
-              { icon: '🛡️', title: 'Insurance', desc: 'Fully insured vehicles' },
-              { icon: '🗺️', title: 'State Permits', desc: 'All India permits' },
-              { icon: '📞', title: '24/7 Support', desc: 'Always available' },
-              { icon: '🧼', title: 'Clean Vehicles', desc: 'Sanitized cars' },
+              { icon: UserCog, title: 'Professional Driver', desc: 'Experienced & courteous' },
+              { icon: Fuel, title: 'Fuel Charges', desc: 'All fuel included' },
+              { icon: RouteIcon, title: 'Toll & Parking', desc: 'All charges included' },
+              { icon: Briefcase, title: 'Driver Allowance', desc: 'Daily allowance covered' },
+              { icon: Shield, title: 'Insurance', desc: 'Fully insured vehicles' },
+              { icon: MapPinned, title: 'State Permits', desc: 'All India permits' },
+              { icon: Headphones, title: '24/7 Support', desc: 'Always available' },
+              { icon: Sparkles, title: 'Clean Vehicles', desc: 'Sanitized cars' },
             ].map((item) => (
-              <div key={item.title} className="bg-gradient-to-br from-purple-50 to-white p-5 rounded-lg border border-purple-200 text-center">
-                <div className="text-3xl mb-2">{item.icon}</div>
-                <h3 className="font-bold mb-1">{item.title}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              <div
+                key={item.title}
+                className="group bg-white border border-gray-100 shadow-sm rounded-2xl p-5 text-center hover:-translate-y-1 hover:shadow-lg transition-all duration-300"
+              >
+                <span className="inline-flex w-11 h-11 rounded-xl bg-emerald-50 items-center justify-center mb-3 group-hover:bg-emerald-600 transition-colors duration-300">
+                  <item.icon className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors duration-300" />
+                </span>
+                <h3 className="text-[13.5px] font-bold text-gray-900 leading-snug mb-1">{item.title}</h3>
+                <p className="text-[11.5px] leading-relaxed text-gray-500">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -259,38 +267,30 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
 
       {/* Popular Round Trip Routes from DB */}
       {popularRoutes.length > 0 && (
-        <section className="py-12 bg-white">
-          <div className="container-custom">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                Popular Outstation Routes from {locationName}
+        <section className="relative overflow-hidden py-14 md:py-16 bg-white">
+          <div className="container-custom relative">
+            <div className="text-center max-w-2xl mx-auto mb-10">
+              <h2 className="text-2xl md:text-[2rem] font-black tracking-tight text-gray-900">
+                Popular Outstation Routes from <span className="text-emerald-600">{locationName}</span>
               </h2>
-              <p className="text-gray-500 text-sm">Fixed prices · All-inclusive · Professional drivers</p>
+              <p className="text-gray-500 text-sm mt-2">All-inclusive · Professional drivers · All India permit</p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {popularRoutes.map((route) => (
                 <a
                   key={route.toSlug}
                   href={`/one-way-cab/${params.location.toLowerCase()}-to-${route.toSlug}`}
-                  className={`group relative bg-white rounded-xl border-2 p-5 hover:shadow-lg transition-all ${
-                    route.isPopular ? 'border-purple-300 shadow-md' : 'border-gray-200 hover:border-purple-200'
-                  }`}
+                  className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-emerald-300 hover:shadow-lg transition-all"
                 >
-                  {route.isPopular && (
-                    <span className="absolute -top-2.5 left-4 bg-purple-600 text-white text-xs font-bold px-3 py-0.5 rounded-full">
-                      Popular
-                    </span>
-                  )}
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <p className="text-xs text-gray-400 mb-0.5">{locationName}</p>
-                      <h3 className="font-bold text-gray-900 text-lg leading-tight group-hover:text-purple-700 transition-colors">
-                        → {route.toName}
+                      <h3 className="font-bold text-gray-900 text-lg leading-tight group-hover:text-emerald-700 transition-colors flex items-center gap-1.5">
+                        {route.toName} <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
                       </h3>
                     </div>
                     <div className="text-right shrink-0 ml-3">
-                      <p className="text-xl font-bold text-purple-600">₹{route.minRoundTrip.toLocaleString('en-IN')}</p>
-                      <p className="text-xs text-gray-400">round trip</p>
+                      <p className="text-sm font-semibold text-emerald-700">Get Quote</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
@@ -300,11 +300,11 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
                     {route.estimatedDuration && (
                       <span>~{route.estimatedDuration}</span>
                     )}
-                    <span className="text-green-600 font-medium">One-way ₹{route.minOneWay.toLocaleString('en-IN')}</span>
+                    <span className="text-emerald-600 font-medium">Round trip &amp; one-way available</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {route.vehicles.slice(0, 3).map((v) => (
-                      <span key={v} className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full capitalize">
+                      <span key={v} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full capitalize">
                         {v}
                       </span>
                     ))}
@@ -316,7 +316,7 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
         </section>
       )}
 
-      <WhyRentHere locationName={locationName} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location.toLowerCase()}

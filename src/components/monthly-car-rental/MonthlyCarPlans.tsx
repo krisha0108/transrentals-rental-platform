@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
+import { Car as CarIcon, Users, ArrowRight } from 'lucide-react';
 
 interface Plan {
   id: string;
@@ -68,13 +69,17 @@ export function MonthlyCarPlans({ plans, locationName }: Props) {
     'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
   return (
-    <section className="py-16 bg-gray-50">
-      <div className="container-custom">
-        <h2 className="text-3xl font-bold mb-2 text-center">Monthly Plans in {locationName}</h2>
-        <p className="text-center text-gray-500 mb-5">Self-drive · All-inclusive · Flexible terms</p>
+    <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+      <div className="container-custom relative">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <h2 className="text-3xl md:text-[2.5rem] font-black tracking-tight text-gray-900">
+            Monthly Plans in <span className="text-emerald-600">{locationName}</span>
+          </h2>
+          <p className="text-gray-500 mt-3">Self-drive · All-inclusive · Flexible terms</p>
+        </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row justify-center gap-3 mb-8">
+        <div className="flex flex-col sm:flex-row justify-center gap-3 mb-10">
           {bodyTypes.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2">
               <span className="text-xs text-gray-400 font-semibold self-center mr-1 uppercase tracking-wide">Type:</span>
@@ -84,8 +89,8 @@ export function MonthlyCarPlans({ plans, locationName }: Props) {
                   onClick={() => setActiveBodyType(t)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
                     activeBodyType === t
-                      ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-teal-400 hover:text-teal-600'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-600'
                   }`}
                 >
                   {t}
@@ -103,8 +108,8 @@ export function MonthlyCarPlans({ plans, locationName }: Props) {
                   onClick={() => setActiveSeat(g.label)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
                     activeSeat === g.label
-                      ? 'bg-cyan-600 text-white border-cyan-600 shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-cyan-400 hover:text-cyan-600'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-600'
                   }`}
                 >
                   {g.label}
@@ -118,22 +123,13 @@ export function MonthlyCarPlans({ plans, locationName }: Props) {
           <div className="text-center py-12 text-gray-400">No plans found for selected filters.</div>
         ) : (
         <div className={`grid gap-6 ${gridClass}`}>
-          {visible.map((plan) => (
+          {visible.map((plan, idx) => (
             <div
               key={plan.id}
-              className={`relative bg-white rounded-2xl shadow-md hover:shadow-xl transition overflow-hidden flex flex-col ${
-                plan.isPopular ? 'ring-2 ring-teal-500 scale-[1.02]' : 'border border-gray-200'
-              }`}
+              className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-emerald-100 hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col"
+              style={{ animation: `mcp-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 70}ms forwards`, opacity: 0 }}
             >
-              {plan.isPopular && (
-                <div className="absolute top-0 left-0 right-0 flex justify-center z-10">
-                  <span className="bg-teal-600 text-white text-xs font-bold px-4 py-1 rounded-b-lg">
-                    ⭐ POPULAR
-                  </span>
-                </div>
-              )}
-
-              <div className={`relative h-40 bg-gradient-to-br from-teal-50 to-cyan-50 flex items-center justify-center ${plan.isPopular ? 'mt-6' : ''}`}>
+              <div className="relative h-40 bg-emerald-50 flex items-center justify-center">
                 {plan.sideImage ? (
                   <Image
                     src={plan.sideImage}
@@ -143,7 +139,7 @@ export function MonthlyCarPlans({ plans, locationName }: Props) {
                     sizes="(max-width:640px) 100vw,(max-width:1024px) 50vw,33vw"
                   />
                 ) : (
-                  <span className="text-7xl">🚗</span>
+                  <CarIcon className="w-14 h-14 text-emerald-300" strokeWidth={1.3} />
                 )}
               </div>
 
@@ -151,25 +147,21 @@ export function MonthlyCarPlans({ plans, locationName }: Props) {
                 <div className="text-center mb-4">
                   <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
                   {(plan.seatingCapacity || plan.bodyType) && (
-                    <p className="text-sm text-gray-500 mt-0.5">
-                      {[plan.seatingCapacity ? `${plan.seatingCapacity} Seater` : null, plan.bodyType]
-                        .filter(Boolean)
-                        .join(' · ')}
+                    <p className="flex items-center justify-center gap-1 text-sm text-gray-500 mt-1">
+                      {plan.seatingCapacity && (
+                        <span className="flex items-center gap-1">
+                          <Users className="w-3.5 h-3.5" /> {plan.seatingCapacity} Seater
+                        </span>
+                      )}
+                      {plan.seatingCapacity && plan.bodyType ? ' · ' : ''}
+                      {plan.bodyType}
                     </p>
                   )}
                 </div>
 
-                <div className="text-center mb-4">
-                  <p className="text-xs text-gray-400 mb-0.5">Starting from</p>
-                  <p className="text-3xl font-bold text-teal-700">
-                    ₹{plan.monthlyPrice.toLocaleString('en-IN')}
-                  </p>
-                  <p className="text-xs text-gray-500">/month</p>
-                  {plan.monthlyDiscount && plan.monthlyDiscount > 0 ? (
-                    <span className="inline-block mt-1.5 text-xs bg-teal-100 text-teal-700 font-semibold px-2.5 py-0.5 rounded-full">
-                      {plan.monthlyDiscount}% monthly discount
-                    </span>
-                  ) : null}
+                <div className="flex items-center justify-center gap-1.5 mt-auto pt-3 border-t border-gray-100">
+                  <p className="text-sm font-semibold text-emerald-700">Get Quote</p>
+                  <ArrowRight className="w-3.5 h-3.5 text-emerald-700 transition-transform duration-300 group-hover:translate-x-1" />
                 </div>
               </div>
             </div>
@@ -181,7 +173,7 @@ export function MonthlyCarPlans({ plans, locationName }: Props) {
           <div className="flex justify-center mt-10">
             <button
               onClick={() => setShowAll((prev) => !prev)}
-              className="flex items-center gap-2 px-8 py-3 rounded-full border-2 border-teal-600 text-teal-600 font-semibold text-sm hover:bg-teal-600 hover:text-white transition-all"
+              className="flex items-center gap-2 px-8 py-3 rounded-full border-2 border-emerald-600 text-emerald-700 font-semibold text-sm hover:bg-emerald-600 hover:text-white transition-all"
             >
               {showAll ? 'Show Less ↑' : `View All ${filtered.length} Plans ↓`}
             </button>
@@ -192,6 +184,10 @@ export function MonthlyCarPlans({ plans, locationName }: Props) {
           * Monthly price = 30 days self-drive. Fuel, toll &amp; parking extra. Security deposit required. Prices may vary based on vendor availability.
         </p>
       </div>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes mcp-rise { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: none; } }
+        @media (prefers-reduced-motion: reduce) { [style*="mcp-rise"] { animation: none !important; opacity: 1 !important; } }
+      ` }} />
     </section>
   );
 }

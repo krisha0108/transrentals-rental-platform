@@ -364,31 +364,15 @@ export function OutstationBookingHero({ cityName, citySlug, vehicleCategories = 
               Round trips, one-way drops & multi-city tours. Professional drivers with all India permits.
             </motion.p>
 
-            {/* Price highlight */}
+            {/* All-inclusive highlight */}
             <motion.div
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
               className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-8 max-w-md mx-auto lg:mx-0"
             >
-              {(() => {
-                const rates = cityPricing.map((p) => p.baseKmRate).filter(Boolean);
-                const minRate = rates.length > 0 ? Math.min(...rates) : null;
-                return (
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="text-purple-200 text-sm">Starting from</p>
-                      {minRate ? (
-                        <p className="text-4xl font-bold">₹{minRate}<span className="text-xl font-normal text-purple-200">/km</span></p>
-                      ) : (
-                        <p className="text-2xl font-bold">Get Quote</p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-purple-200 text-sm">All-inclusive</p>
-                      <p className="text-lg font-semibold">Driver + Fuel</p>
-                    </div>
-                  </div>
-                );
-              })()}
+              <div className="mb-4">
+                <p className="text-purple-200 text-sm">All-Inclusive Pricing</p>
+                <p className="text-2xl font-bold">Driver + Fuel + Permits</p>
+              </div>
               <div className="flex flex-wrap gap-2 text-sm">
                 {['✓ Driver included', '✓ Fuel included', '✓ All India permit'].map((t) => (
                   <span key={t} className="bg-purple-500/20 text-purple-200 px-3 py-1 rounded-full">{t}</span>
@@ -492,19 +476,7 @@ export function OutstationBookingHero({ cityName, citySlug, vehicleCategories = 
                                 )}
                               </div>
                               <div className="text-right shrink-0">
-                                {total !== null ? (
-                                  <>
-                                    <p className="text-xs text-gray-400">Est. total</p>
-                                    <p className="font-bold text-primary text-sm">₹{total.toLocaleString('en-IN')}</p>
-                                  </>
-                                ) : rate !== null ? (
-                                  <>
-                                    <p className="text-xs text-gray-400">Starting</p>
-                                    <p className="font-bold text-primary text-sm">₹{rate}/km</p>
-                                  </>
-                                ) : (
-                                  <p className="text-sm font-semibold text-primary">Get Quote</p>
-                                )}
+                                <p className="text-sm font-semibold text-primary">Get Quote</p>
                               </div>
                             </div>
 
@@ -514,7 +486,7 @@ export function OutstationBookingHero({ cityName, citySlug, vehicleCategories = 
                                 onClick={() => setExpandedCard(isExpanded ? null : cat.id)}
                                 className="w-full flex items-center justify-between text-xs text-purple-600 font-semibold bg-purple-50 px-3 py-2 rounded-lg hover:bg-purple-100 transition mb-2"
                               >
-                                <span>Route Breakdown</span>
+                                <span>Route Details</span>
                                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                               </button>
 
@@ -530,30 +502,13 @@ export function OutstationBookingHero({ cityName, citySlug, vehicleCategories = 
                                       {totalRouteDist !== null && totalRouteDist > minKm && ` · Actual ~${totalRouteDist} km`}
                                     </p>
                                     <p className="text-gray-400 text-xs mb-2">
-                                      Minimum {minKm} km charged for {days} day{days > 1 ? 's' : ''} ({minKmPerDay} km/day).{rate !== null ? ` Extra km beyond this charged at ₹${rate}/km.` : ''}
+                                      Minimum {minKm} km charged for {days} day{days > 1 ? 's' : ''} ({minKmPerDay} km/day).
                                     </p>
-                                  </div>
-                                  {/* Cost lines */}
-                                  {distCost !== null && (
-                                    <div className="flex justify-between font-medium">
-                                      <span>Distance ({chargedKm} km × ₹{rate}/km)</span>
-                                      <span>₹{distCost.toLocaleString('en-IN')}</span>
-                                    </div>
-                                  )}
-                                  <div className="flex justify-between">
-                                    <span>Driver allowance ({days}d)</span>
-                                    <span>₹{driverCost.toLocaleString('en-IN')}</span>
                                   </div>
                                   <div className="flex justify-between text-gray-400">
                                     <span>Toll/Parking</span>
                                     <span>Extra (as applicable)</span>
                                   </div>
-                                  {total !== null && (
-                                    <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-1.5 mt-1">
-                                      <span>Est. Total</span>
-                                      <span>₹{total.toLocaleString('en-IN')}</span>
-                                    </div>
-                                  )}
                                 </div>
                               )}
 

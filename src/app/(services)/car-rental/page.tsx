@@ -171,9 +171,7 @@ export default function CarRentalPage() {
       {/* Locations from Database */}
       <CarRentalPopularCitiesGrid
         serviceSlug="car-rental"
-        title="Car Rental in Popular Cities"
-        startingPrice="₹999"
-        priceUnit="/day"
+        title="Car Rental in Available Cities"
       />
 
       {/* Specialized Car Services */}

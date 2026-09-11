@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar,
@@ -12,7 +12,7 @@ import { createDirectBooking } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
 import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already used — only the values now come from
 // the shared "Elevate" theme instead of hardcoded hex, mirroring the mapping
@@ -39,6 +39,10 @@ const SERVICE_TYPES = [
   { value: 'equipment',       label: 'Equipment',     icon: 'wrench',          color: C.red    },
   { value: 'general',         label: 'General',       icon: 'clipboard-text',  color: C.muted  },
 ];
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const VEHICLE_OPTIONS = {
   bike:              ['Activa', 'Royal Enfield', 'KTM', 'Pulsar', 'Apache', 'Splendor', 'Other'],
@@ -68,6 +72,12 @@ export default function AddDirectBookingScreen({ navigation }) {
   const [saving, setSaving] = useState(false);
   const [showPickupDate, setShowPickupDate] = useState(false);
   const [showReturnDate, setShowReturnDate] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setInitializing(false), 350);
+    return () => clearTimeout(t);
+  }, []);
 
   const [alert, setAlert] = useState({ visible: false, type: 'info', title: '', message: '', actions: null });
   const showAlert = (type, title, message) => setAlert({ visible: true, type, title, message, actions: null });
@@ -300,14 +310,84 @@ export default function AddDirectBookingScreen({ navigation }) {
 
   const svcMeta = SERVICE_TYPES.find(sv => sv.value === form.serviceType) || SERVICE_TYPES[0];
 
+  if (initializing) {
+    return (
+      <View style={s.root}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+        <LinearGradient colors={G.hero} style={s.hero}>
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+          <SafeAreaView edges={['top']} style={s.heroSafe}>
+            <View style={s.topRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={s.backCircle}>
+                <Icon name="arrow-left" size={20} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.heroIconChip}>
+                <MaterialCommunityIcons name="book-plus" size={20} color="#fff" />
+              </View>
+            </View>
+
+            <View style={s.heroBadge}>
+              <MaterialCommunityIcons name="book-plus" size={12} color={C.g400} />
+              <Text style={s.heroBadgeTxt}>MANUAL ENTRY</Text>
+            </View>
+            <Text style={s.heroTitle}>Add Direct Booking</Text>
+            <Text style={s.heroSub}>Manual walk-in entry</Text>
+
+            <View style={{ height: rs(18) }} />
+          </SafeAreaView>
+        </LinearGradient>
+
+        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+          <View style={s.section}>
+            <View style={s.sectionHead}>
+              <View style={[s.sectionIcon, { backgroundColor: C.g100 }]}>
+                <MaterialCommunityIcons name="car-multiple" size={16} color={C.g700} />
+              </View>
+              <Bone w={100} h={14} />
+            </View>
+            <View style={s.serviceGrid}>
+              {[0, 1, 2, 3].map((i) => (
+                <View key={i} style={s.svcCard}>
+                  <Bone w={22} h={22} r={6} style={{ marginBottom: 8 }} />
+                  <Bone w={50} h={10} />
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={s.section}>
+            <View style={s.sectionHead}>
+              <View style={[s.sectionIcon, { backgroundColor: '#E0E7FF' }]}>
+                <Icon name="user" size={15} color={C.indigo} />
+              </View>
+              <Bone w={120} h={14} />
+            </View>
+            <Bone w={80} h={11} style={{ marginBottom: 8 }} />
+            <Bone w="100%" h={44} r={10} style={{ marginBottom: 14 }} />
+            <View style={s.rowFields}>
+              <View style={{ flex: 1 }}>
+                <Bone w={50} h={11} style={{ marginBottom: 8 }} />
+                <Bone w="100%" h={44} r={10} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Bone w={90} h={11} style={{ marginBottom: 8 }} />
+                <Bone w="100%" h={44} r={10} />
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* ── Hero header ── */}
       <LinearGradient colors={G.hero} style={s.hero}>
-        <AnimatedOrb style={s.orbA} />
-        <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={s.heroSafe}>
           <View style={s.topRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backCircle}>
@@ -612,14 +692,7 @@ const s = StyleSheet.create({
     borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
   },
   heroSafe: {},
-  orbA: {
-    position: 'absolute', top: -50, right: -34, width: 170, height: 170,
-    borderRadius: 85, backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -34, left: -30, width: 120, height: 120,
-    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: rs(4), marginBottom: rs(14) },
   backCircle: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)',
@@ -634,9 +707,9 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 8,
   },
-  heroBadgeTxt: { fontSize: 10.5, fontWeight: '700', color: C.g400, fontFamily: DISPLAY, textTransform: 'uppercase', letterSpacing: 0.5 },
+  heroBadgeTxt: { fontSize: 11.5, fontWeight: '700', color: C.g400, fontFamily: DISPLAY, textTransform: 'uppercase', letterSpacing: 0.5 },
   heroTitle: { fontFamily: DISPLAY, fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 3, letterSpacing: -0.4 },
-  heroSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', fontFamily: DISPLAY },
+  heroSub: { fontSize: 13.5, color: 'rgba(255,255,255,0.72)', fontWeight: '600', fontFamily: DISPLAY },
 
   scroll: { padding: 16, gap: 14 },
 
@@ -649,12 +722,12 @@ const s = StyleSheet.create({
   /* Service grid */
   serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   svcCard: { width: '31%', alignItems: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.bg },
-  svcCardLabel: { fontSize: 10, fontWeight: '700', color: C.muted, textAlign: 'center' },
+  svcCardLabel: { fontSize: 11, fontWeight: '700', color: C.muted, textAlign: 'center' },
   activeDot: { width: 6, height: 6, borderRadius: 3 },
 
   /* Fields */
   fieldGroup: {},
-  fieldLabel: { fontSize: 12, fontWeight: '600', color: C.text, marginBottom: 8, marginTop: 4 },
+  fieldLabel: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 8, marginTop: 4 },
   input: { backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: C.text },
   rowFields: { flexDirection: 'row', gap: 10, marginTop: 4 },
 
@@ -662,14 +735,14 @@ const s = StyleSheet.create({
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingVertical: 10, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.bg, alignItems: 'center' },
   chipActive: { borderColor: C.g500, backgroundColor: C.g50 },
-  chipTxt: { fontSize: 12, fontWeight: '600', color: C.subtext, textAlign: 'center' },
+  chipTxt: { fontSize: 13, fontWeight: '600', color: C.subtext, textAlign: 'center' },
   chipTxtActive: { color: C.g700, fontWeight: '800' },
 
   /* Toggle */
   toggleRow: { flexDirection: 'row', gap: 8 },
   toggle: { flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', backgroundColor: C.bg },
   toggleActive: { borderColor: C.g500, backgroundColor: C.g50 },
-  toggleTxt: { fontSize: 13, fontWeight: '700', color: C.subtext },
+  toggleTxt: { fontSize: 14, fontWeight: '700', color: C.subtext },
   toggleTxtActive: { color: C.g700 },
 
   /* Weight */
@@ -677,7 +750,7 @@ const s = StyleSheet.create({
   unitToggle: { flexDirection: 'row', borderRadius: 10, overflow: 'hidden', borderWidth: 1.5, borderColor: C.border },
   unitBtn: { paddingHorizontal: 16, paddingVertical: 11, backgroundColor: C.bg },
   unitBtnActive: { backgroundColor: C.g700 },
-  unitBtnTxt: { fontSize: 13, fontWeight: '700', color: C.subtext },
+  unitBtnTxt: { fontSize: 14, fontWeight: '700', color: C.subtext },
   unitBtnTxtActive: { color: '#fff' },
 
   /* Date */
@@ -687,7 +760,7 @@ const s = StyleSheet.create({
   /* Payment */
   payStatusRow: { flexDirection: 'row', gap: 8 },
   payStatusBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 12, borderRadius: 10, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.bg },
-  payStatusTxt: { fontSize: 12, fontWeight: '700', color: C.subtext },
+  payStatusTxt: { fontSize: 13, fontWeight: '700', color: C.subtext },
 
   /* Submit */
   submitWrap: { borderRadius: rs(14), overflow: 'hidden', marginTop: 8 },

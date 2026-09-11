@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, SectionList, TouchableOpacity, StyleSheet,
-  RefreshControl, ActivityIndicator, ScrollView, StatusBar,
+  RefreshControl, ScrollView, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
@@ -19,7 +19,7 @@ import { showConfirm, showError } from '../../../services/alertService';
 import { NotifBadgeContext } from '../../../contexts/NotifBadgeContext';
 import { SC as T, G, rs } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -190,6 +190,10 @@ function getGroup(dateStr) {
 }
 const GROUP_ORDER = ['Today', 'Yesterday', 'This Week', 'Earlier'];
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 export default function NotificationsScreen({ navigation }) {
   const { refreshBadge } = React.useContext(NotifBadgeContext);
   const [loading, setLoading]           = useState(true);
@@ -317,8 +321,7 @@ export default function NotificationsScreen({ navigation }) {
 
       {/* ── Gradient header ──────────────────────────────────── */}
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
-        <AnimatedOrb style={s.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: 12 }}>
           <View style={s.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.iconBtn}>
@@ -385,7 +388,21 @@ export default function NotificationsScreen({ navigation }) {
 
       {/* ── List / Empty ─────────────────────────────────────── */}
       {loading ? (
-        <View style={s.loadingWrap}><ActivityIndicator size="large" color={C.g600} /></View>
+        <View style={s.listContent}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <View key={i} style={s.card}>
+              <Bone w={38} h={38} r={13} />
+              <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+                <View style={s.cardTopLine}>
+                  <Bone w={50} h={14} r={4} />
+                  <Bone w={40} h={10} style={{ marginLeft: 'auto' }} />
+                </View>
+                <Bone w="70%" h={13} />
+                <Bone w="90%" h={11} />
+              </View>
+            </View>
+          ))}
+        </View>
       ) : sections.length === 0 ? (
         <EmptyState filter={filter} />
       ) : (
@@ -487,18 +504,13 @@ const s = StyleSheet.create({
     paddingBottom: rs(16), overflow: 'hidden',
     borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24),
   },
-  orbA: {
-    position: 'absolute', top: -50, right: -40, width: 190, height: 190,
-    borderRadius: 95, backgroundColor: 'rgba(201,154,63,0.10)',
-  },
-  orbB: {
-    position: 'absolute', top: 30, left: -60, width: 150, height: 150,
-    borderRadius: 75, backgroundColor: 'rgba(46,158,119,0.14)',
+  headerDots: {
+    position: 'absolute', top: 0, right: 0, width: '60%', height: '100%',
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 4, paddingHorizontal: 4 },
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontFamily: DISPLAY, fontSize: 19, fontWeight: '800', color: '#fff' },
-  headerSub:   { fontFamily: DISPLAY, fontSize: 11.5, color: 'rgba(255,255,255,0.85)', fontWeight: '700', marginTop: 2 },
+  headerSub:   { fontFamily: DISPLAY, fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: '700', marginTop: 2 },
 
   // Filter pills
   filtersRow: { paddingHorizontal: 8, paddingTop: 12, gap: 6, flexDirection: 'row' },
@@ -509,14 +521,14 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
   },
   filterChipActive: { backgroundColor: '#fff', borderColor: '#fff' },
-  filterText: { fontFamily: DISPLAY, fontSize: 12, color: '#fff', fontWeight: '700' },
+  filterText: { fontFamily: DISPLAY, fontSize: 13, color: '#fff', fontWeight: '700' },
   filterTextActive: { color: C.g700, fontWeight: '700' },
   filterBadge: {
     minWidth: 18, height: 16, paddingHorizontal: 5, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.3)',
     alignItems: 'center', justifyContent: 'center',
   },
-  filterBadgeText: { fontFamily: DISPLAY, color: '#fff', fontSize: 10, fontWeight: '700' },
+  filterBadgeText: { fontFamily: DISPLAY, color: '#fff', fontSize: 11, fontWeight: '700' },
 
   // Error
   errorBox: {
@@ -524,10 +536,9 @@ const s = StyleSheet.create({
     margin: 14, padding: 10, backgroundColor: C.redL, borderRadius: rs(10),
     borderWidth: 1, borderColor: '#FECACA',
   },
-  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 12.5, flex: 1 },
-  errorRetry: { fontFamily: DISPLAY, color: C.red, fontWeight: '700', fontSize: 12.5 },
+  errorText: { fontFamily: DISPLAY, color: C.red, fontSize: 13.5, flex: 1 },
+  errorRetry: { fontFamily: DISPLAY, color: C.red, fontWeight: '700', fontSize: 13.5 },
 
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   // ── List ─────────────────────────────────────────────────────
   listContent: { padding: 14, paddingTop: 10, paddingBottom: 100 },
@@ -537,8 +548,8 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 4, paddingTop: 12, paddingBottom: 8,
   },
-  sectionTitle: { fontFamily: DISPLAY, fontSize: 11.5, fontWeight: '800', color: C.muted, letterSpacing: 0.7, textTransform: 'uppercase' },
-  sectionCount: { fontFamily: DISPLAY, fontSize: 11, color: C.muted, fontWeight: '700' },
+  sectionTitle: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: '800', color: C.muted, letterSpacing: 0.7, textTransform: 'uppercase' },
+  sectionCount: { fontFamily: DISPLAY, fontSize: 12, color: C.muted, fontWeight: '700' },
 
   // ── Notification card ─────────────────────────────────────────
   card: {
@@ -559,10 +570,10 @@ const s = StyleSheet.create({
   unreadDot: { position: 'absolute', top: -2, right: -2, width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: '#FCFAF4' },
   cardTopLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   typeBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  typeBadgeText: { fontFamily: DISPLAY, fontSize: 9.5, fontWeight: '800', letterSpacing: 0.4, textTransform: 'uppercase' },
-  cardTime: { fontFamily: DISPLAY, fontSize: 10.5, color: C.muted, fontWeight: '700', marginLeft: 'auto' },
+  typeBadgeText: { fontFamily: DISPLAY, fontSize: 10.5, fontWeight: '800', letterSpacing: 0.4, textTransform: 'uppercase' },
+  cardTime: { fontFamily: DISPLAY, fontSize: 11.5, color: C.muted, fontWeight: '700', marginLeft: 'auto' },
   cardTitle: { fontFamily: DISPLAY, fontSize: 13.5, color: C.text, fontWeight: '700', marginTop: 4 },
-  cardBody: { fontFamily: DISPLAY, fontSize: 12, color: C.muted, marginTop: 3, lineHeight: 17 },
+  cardBody: { fontFamily: DISPLAY, fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 17 },
   deleteBtn: {
     width: 28, height: 28, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
@@ -577,5 +588,5 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(28,107,82,0.12)',
   },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: C.text, textAlign: 'center' },
-  emptyBody: { fontFamily: DISPLAY, fontSize: 13, color: C.muted, marginTop: 8, textAlign: 'center', lineHeight: 19, maxWidth: 280 },
+  emptyBody: { fontFamily: DISPLAY, fontSize: 14, color: C.muted, marginTop: 8, textAlign: 'center', lineHeight: 19, maxWidth: 280 },
 });

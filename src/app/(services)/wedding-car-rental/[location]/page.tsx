@@ -12,6 +12,11 @@ import { WeddingFleetSection } from '@/components/wedding-car-rental/WeddingFlee
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { FAQSection } from '@/components/services/FAQSection';
+import {
+  Sparkles, Palette, UserCheck, Camera, Music, Heart, PartyPopper, Flower2,
+  CheckCircle2, Gem,
+} from 'lucide-react';
 
 interface PageProps {
   params: {
@@ -122,22 +127,24 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
       <SpecialtyCarBookingHero service="wedding" city={locationName} citySlug={params.location.toLowerCase()} />
 
       {/* Why Wedding Cars in This City */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Why Book Wedding Cars in {locationName}?
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Why Book Wedding Cars in <span className="text-emerald-600">{locationName}</span>?
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
             {[
-              { icon: '💒', title: 'Grand Baraat Entry', desc: `Make memorable entry in ${locationName}` },
-              { icon: '🎀', title: 'Free Decoration', desc: 'Flowers & ribbons included' },
-              { icon: '👨‍✈️', title: 'Uniformed Chauffeur', desc: 'Professional drivers' },
-              { icon: '📸', title: 'Photo-Ready Cars', desc: 'Perfect for wedding shoots' },
-            ].map((feature) => (
-              <div key={feature.title} className="text-center">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.desc}</p>
+              { Icon: Sparkles, title: 'Grand Baraat Entry', desc: `Make memorable entry in ${locationName}` },
+              { Icon: Palette, title: 'Free Decoration', desc: 'Flowers & ribbons included' },
+              { Icon: UserCheck, title: 'Uniformed Chauffeur', desc: 'Professional drivers' },
+              { Icon: Camera, title: 'Photo-Ready Cars', desc: 'Perfect for wedding shoots' },
+            ].map(({ Icon, title, desc }) => (
+              <div key={title} className="text-center bg-white border border-dashed border-emerald-200 rounded-2xl px-5 py-8 hover:border-emerald-400 hover:shadow-md transition-all">
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <Icon className="w-6 h-6 text-emerald-600" />
+                </span>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1">{title}</h3>
+                <p className="text-xs text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
@@ -150,22 +157,24 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
       )}
 
       {/* Wedding Functions */}
-      <section className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Perfect for All Wedding Functions in {locationName}
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-gray-50/70 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Perfect for All Wedding Functions in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
             {[
-              { occasion: 'Baraat (बारात)', icon: '🎺', desc: 'Groom entry car' },
-              { occasion: 'Bride Entry', icon: '👰', desc: 'Dulhan car service' },
-              { occasion: 'Reception', icon: '🎊', desc: 'Couple car' },
-              { occasion: 'Haldi/Mehendi', icon: '🌼', desc: 'Pre-wedding car' },
-            ].map((item) => (
-              <div key={item.occasion} className="bg-gray-50 p-6 rounded-lg text-center">
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{item.occasion}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              { Icon: Music, occasion: 'Baraat (बारात)', desc: 'Groom entry car' },
+              { Icon: Heart, occasion: 'Bride Entry', desc: 'Dulhan car service' },
+              { Icon: PartyPopper, occasion: 'Reception', desc: 'Couple car' },
+              { Icon: Flower2, occasion: 'Haldi/Mehendi', desc: 'Pre-wedding car' },
+            ].map(({ Icon, occasion, desc }) => (
+              <div key={occasion} className="text-center bg-white border border-dashed border-emerald-200 rounded-2xl px-5 py-8 hover:border-emerald-400 hover:shadow-md transition-all">
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <Icon className="w-6 h-6 text-emerald-600" />
+                </span>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1">{occasion}</h3>
+                <p className="text-xs text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
@@ -175,50 +184,50 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
       {/* Decoration Options */}
       <section className="py-16 bg-gray-50">
         <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Wedding Car Decoration in {locationName}
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Wedding Car Decoration in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-xl mb-4 text-rose-800">Standard (Free)</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-700 mt-1">✓</span>
-                  <span>Fresh flower garlands</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-700 mt-1">✓</span>
-                  <span>Ribbon & bows</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-700 mt-1">✓</span>
-                  <span>Side door decorations</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-700 mt-1">✓</span>
-                  <span>Basic floral arrangements</span>
-                </li>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-white" />
+                </span>
+                <h3 className="font-bold text-lg text-gray-900">Standard (Free)</h3>
+              </div>
+              <ul className="space-y-2.5 text-gray-600 text-sm">
+                {[
+                  'Fresh flower garlands',
+                  'Ribbon & bows',
+                  'Side door decorations',
+                  'Basic floral arrangements',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-xl mb-4 text-amber-900">Premium (+₹1500)</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Premium flowers</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>LED lights</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Custom name board</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Full car wrapping</span>
-                </li>
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Gem className="w-5 h-5 text-white" />
+                </span>
+                <h3 className="font-bold text-lg text-gray-900">Premium (+₹1500)</h3>
+              </div>
+              <ul className="space-y-2.5 text-gray-600 text-sm">
+                {[
+                  'Premium flowers',
+                  'LED lights',
+                  'Custom name board',
+                  'Full car wrapping',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
@@ -226,12 +235,12 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
       </section>
 
       {/* How to Book */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            How to Book Wedding Car in {locationName}
+      <section className="py-16 bg-white">
+        <div className="container-custom max-w-5xl">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            How to Book Wedding Car in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="space-y-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               { step: '1', title: 'Choose Wedding Car', desc: 'Select from premium collection' },
               { step: '2', title: 'Select Date & Time', desc: `Pick your wedding date in ${locationName}` },
@@ -239,13 +248,16 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
               { step: '4', title: 'Book Online', desc: 'Complete booking with payment' },
               { step: '5', title: 'Enjoy Your Wedding', desc: 'We deliver decorated car on time' },
             ].map((item) => (
-              <div key={item.step} className="flex gap-4 bg-white p-4 rounded-lg shadow-md">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-600 text-white rounded-full flex items-center justify-center font-bold">
-                  {item.step}
+              <div key={item.step} className="flex gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="relative flex-shrink-0 w-10 h-10">
+                  <span className="absolute inset-0 rounded-full bg-emerald-500/40 animate-ping" />
+                  <div className="relative w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold">
+                    {item.step}
+                  </div>
                 </div>
                 <div>
-                  <h3 className="font-bold mb-1">{item.title}</h3>
-                  <p className="text-sm text-gray-600">{item.desc}</p>
+                  <h3 className="font-bold text-[15px] text-gray-900 mb-1">{item.title}</h3>
+                  <p className="text-xs text-gray-500">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -292,6 +304,8 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="wedding-car-rental" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

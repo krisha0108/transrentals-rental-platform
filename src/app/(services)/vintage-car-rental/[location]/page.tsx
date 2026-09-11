@@ -1,5 +1,6 @@
 ﻿import { Metadata } from 'next';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
+import { Crown, Camera, Palette, Gem, Music2, Landmark, Car, Check } from 'lucide-react';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
@@ -10,9 +11,18 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import { getLuxuryServiceId, getLocationId } from '@/lib/db/build-cache';
 import { VintageCarsGrid } from '@/components/vintage-car-rental/VintageCarsGrid';
+import { FAQSection } from '@/components/services/FAQSection';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+
+/* Har icon apne hisaab se hilta hai — plain Tailwind group-hover, no custom keyframes. */
+const ICON_HOVER_ANIM: Record<string, string> = {
+  lift: 'group-hover:-translate-y-2',
+  tick: 'group-hover:rotate-[360deg]',
+  pulse: 'group-hover:scale-125',
+  ring: 'group-hover:rotate-12',
+};
 
 interface PageProps {
   params: {
@@ -126,26 +136,55 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
       <SpecialtyCarBookingHero service="vintage" city={locationName} citySlug={params.location.toLowerCase()} />
 
       {/* Why Vintage Car */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Why Choose Vintage Car in {locationName}?
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
+            <h2 className="text-3xl md:text-[2.75rem] leading-[1.1] font-black tracking-tight text-gray-900">
+              Why Choose <span className="text-emerald-600">Vintage Car</span> in {locationName}?
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
             {[
-              { icon: '👑', title: 'Royal Appeal', desc: `Classic charm in ${locationName}` },
-              { icon: '📸', title: 'Photo Perfect', desc: 'Stunning wedding photos' },
-              { icon: '🎨', title: 'Unique Style', desc: 'Stand out' },
-              { icon: '💎', title: 'Heritage', desc: 'Timeless elegance' },
-            ].map((feature) => (
-              <div key={feature.title} className="text-center">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.desc}</p>
+              { icon: Crown, anim: 'lift', title: 'Royal Appeal', desc: `Classic charm in ${locationName}` },
+              { icon: Camera, anim: 'tick', title: 'Photo Perfect', desc: 'Stunning wedding photos' },
+              { icon: Palette, anim: 'pulse', title: 'Unique Style', desc: 'Stand out from crowd' },
+              { icon: Gem, anim: 'pulse', title: 'Heritage', desc: 'Timeless elegance' },
+            ].map((item, idx) => (
+              <div
+                key={item.title}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-7 text-center overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-100"
+                style={{ animation: `vtg-loc-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 80}ms forwards`, opacity: 0 }}
+              >
+                <div className="relative w-14 h-14 mx-auto mb-4">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                  <span className="absolute inset-[5px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                    <item.icon
+                      className={`w-5 h-5 text-emerald-600 transition-transform duration-500 group-hover:text-white ${ICON_HOVER_ANIM[item.anim]}`}
+                    />
+                  </span>
+                </div>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-1.5 leading-snug">{item.title}</h3>
+                <p className="text-[13px] leading-relaxed text-gray-500">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes vtg-loc-rise { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) { [style*="vtg-loc-rise"] { animation: none !important; opacity: 1 !important; } }
+        ` }} />
       </section>
 
       {/* Vintage / Luxury Cars Available — dynamic */}
@@ -154,22 +193,32 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
       )}
 
       {/* Perfect Occasions */}
-      <section className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Perfect for Events in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-gray-50/70 to-white">
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <h2 className="text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Perfect for <span className="text-emerald-600">Events in {locationName}</span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
             {[
-              { occasion: 'Baraat Entry', icon: '🎺', desc: `Traditional entry in ${locationName}` },
-              { occasion: 'Wedding Photos', icon: '📸', desc: 'Stunning backdrops' },
-              { occasion: 'Pre-Wedding', icon: '📷', desc: 'Vintage theme shoots' },
-              { occasion: 'Heritage Events', icon: '🏛️', desc: 'Traditional functions' },
-            ].map((item) => (
-              <div key={item.occasion} className="bg-gray-50 p-6 rounded-lg text-center">
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{item.occasion}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              { occasion: 'Baraat Entry', icon: Music2, anim: 'ring', desc: `Traditional entry in ${locationName}` },
+              { occasion: 'Wedding Photos', icon: Camera, anim: 'tick', desc: 'Stunning backdrops' },
+              { occasion: 'Pre-Wedding', icon: Camera, anim: 'tick', desc: 'Vintage theme shoots' },
+              { occasion: 'Heritage Events', icon: Landmark, anim: 'lift', desc: 'Traditional functions' },
+            ].map((item, idx) => (
+              <div
+                key={item.occasion}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm p-5 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                style={{ animation: `vtg-loc-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 80}ms forwards`, opacity: 0 }}
+              >
+                <span className="inline-flex w-12 h-12 rounded-xl bg-emerald-50 items-center justify-center mb-4 transition-colors duration-300 group-hover:bg-emerald-600">
+                  <item.icon
+                    className={`w-6 h-6 text-emerald-600 transition-transform duration-500 group-hover:text-white ${ICON_HOVER_ANIM[item.anim]}`}
+                  />
+                </span>
+                <h3 className="text-[15px] font-bold text-gray-900 leading-snug mb-1.5">{item.occasion}</h3>
+                <p className="text-[13px] leading-relaxed text-gray-500">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -177,62 +226,46 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
       </section>
 
       {/* Features */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Vintage Car Features in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-xl mb-4 text-amber-800">Car Features</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Well-restored classics</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Pristine condition</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Photo-ready exteriors</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Period interiors</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Unique vintage appeal</span>
-                </li>
-              </ul>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-xl mb-4 text-yellow-900">Decoration</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-yellow-800 mt-1">✓</span>
-                  <span>Vintage-style flowers</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-yellow-800 mt-1">✓</span>
-                  <span>Traditional ribbons</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-yellow-800 mt-1">✓</span>
-                  <span>Heritage-themed decor</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-yellow-800 mt-1">✓</span>
-                  <span>Custom nameplate</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-yellow-800 mt-1">✓</span>
-                  <span>Uniformed driver</span>
-                </li>
-              </ul>
-            </div>
+      <section className="relative overflow-hidden py-16 md:py-20 bg-white">
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <h2 className="text-3xl md:text-[2.5rem] leading-[1.1] font-black tracking-tight text-gray-900">
+              Vintage Car <span className="text-emerald-600">Features in {locationName}</span>
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            {[
+              {
+                icon: Car,
+                title: 'Car Features',
+                items: ['Well-restored classics', 'Pristine condition', 'Photo-ready exteriors', 'Period interiors', 'Unique vintage appeal'],
+              },
+              {
+                icon: Palette,
+                title: 'Decoration',
+                items: ['Vintage-style flowers', 'Traditional ribbons', 'Heritage-themed decor', 'Custom nameplate', 'Uniformed driver'],
+              },
+            ].map((panel) => (
+              <div
+                key={panel.title}
+                className="rounded-[18px] border border-gray-100 shadow-sm overflow-hidden bg-white flex max-w-lg mx-auto md:max-w-none"
+              >
+                <div className="w-[104px] shrink-0 bg-emerald-50 flex items-center justify-center">
+                  <panel.icon className="w-10 h-10 text-emerald-600" strokeWidth={1.5} />
+                </div>
+                <div className="flex-1 p-6">
+                  <h3 className="font-bold text-lg text-gray-900 mb-4">{panel.title}</h3>
+                  <ul className="space-y-2.5">
+                    {panel.items.map((item) => (
+                      <li key={item} className="flex items-center gap-2 text-sm text-gray-600">
+                        <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -276,6 +309,8 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="vintage-car-rental" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

@@ -1,10 +1,12 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { getCitiesByPriority } from '@/data/indian-cities';
 import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
-import { LocationsGrid } from '@/components/services/LocationsGrid';
-import { FAQSection } from '@/components/services/FAQSection';
+import { StaticServicePopularCitiesGrid } from '@/components/services/StaticServicePopularCitiesGrid';
 import { BikeServiceSchema, HowToSchema } from '@/components/seo/schemas';
+import {
+  MessageCircleQuestion, Plus, Wallet, Wrench, ShieldCheck, CalendarClock, Rocket, Smartphone, RefreshCw, Unlock,
+  GraduationCap, Briefcase, Building2, Package, Palmtree, Search, Building,
+} from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Monthly Bike Rental | Scooty on Rent Monthly @₹2999/Month | TransRentals',
@@ -57,6 +59,92 @@ const schemaFaqs = [
   { question: 'Is there a km limit for monthly rentals?', answer: 'Most monthly plans include 1500-2000 km/month. Extra km charges apply at ₹2-5/km depending on the bike.' },
 ];
 
+const WHY_MONTHLY = [
+  { icon: Wallet, anim: 'pulse', title: 'Save 40% vs Daily', desc: 'Cheaper than daily rental rates' },
+  { icon: Wrench, anim: 'wrench', title: 'Free Maintenance', desc: 'Servicing & repairs included' },
+  { icon: ShieldCheck, anim: 'pulse', title: 'Fully Insured', desc: 'Comprehensive coverage' },
+  { icon: CalendarClock, anim: 'tick', title: 'Flexible Duration', desc: '1 month to 12+ months' },
+  { icon: Rocket, anim: 'drive', title: 'Quick Delivery', desc: 'Same day in metro cities' },
+  { icon: Smartphone, anim: 'lift', title: 'Easy Process', desc: 'Minimal documentation' },
+  { icon: RefreshCw, anim: 'tick', title: 'Free Replacement', desc: 'If bike breaks down' },
+  { icon: Unlock, anim: 'lift', title: 'No Long Commitment', desc: 'Cancel after 1 month' },
+];
+
+const PERFECT_FOR = [
+  { icon: GraduationCap, anim: 'lift', title: 'College Students', desc: 'Semester-long rentals' },
+  { icon: Briefcase, anim: 'drive', title: 'Working Professionals', desc: 'Daily office commute' },
+  { icon: Building2, anim: 'lift', title: 'Job Transfers', desc: 'Temporary relocation' },
+  { icon: Package, anim: 'drive', title: 'Delivery Partners', desc: 'Swiggy, Zomato, Amazon' },
+  { icon: Palmtree, anim: 'grow', title: 'Long Vacation', desc: 'Extended city stays' },
+  { icon: Wrench, anim: 'wrench', title: 'Own Bike Repair', desc: 'Temporary replacement' },
+  { icon: Search, anim: 'pulse', title: 'Try Before Buy', desc: 'Test drive for months' },
+  { icon: Building, anim: 'lift', title: 'New to City', desc: 'Just moved, need transport' },
+];
+
+/* Wahi "Why Choose Us" card language jo excavator-on-rent ke Applications section me hai. */
+const APP_CSS = `
+.app-card {
+  opacity: 0;
+  animation: app-rise .6s cubic-bezier(.22,1,.36,1) forwards;
+  transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .3s ease;
+}
+@keyframes app-rise {
+  from { opacity: 0; transform: translateY(22px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+.app-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px -12px rgba(16,185,129,.28);
+  border-color: rgb(167 243 208);
+}
+.app-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(16,185,129,.10) 50%, transparent 65%);
+  transform: translateX(-100%);
+  transition: transform .8s ease;
+  pointer-events: none;
+}
+.app-card:hover .app-sheen { transform: translateX(100%); }
+@media (prefers-reduced-motion: reduce) {
+  .app-card { opacity: 1; animation: none; }
+  .app-card:hover { transform: none; }
+  .app-sheen { display: none; }
+}
+`;
+
+const ICON_HOVER_ANIM: Record<string, string> = {
+  drive: 'group-hover:translate-x-2',
+  pulse: 'group-hover:scale-125',
+  tick: 'group-hover:rotate-[360deg]',
+  wrench: 'group-hover:rotate-45',
+  lift: 'group-hover:-translate-y-2',
+  grow: 'group-hover:-translate-y-1.5 group-hover:scale-110',
+};
+
+function AppCard({ item, idx }: { item: typeof WHY_MONTHLY[number]; idx: number }) {
+  return (
+    <div
+      className="app-card group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-7 text-center overflow-hidden"
+      style={{ animationDelay: `${idx * 90}ms` }}
+    >
+      <span aria-hidden className="app-sheen" />
+      <div className="relative">
+        <div className="relative w-16 h-16 mx-auto mb-4">
+          <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+          <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+            <item.icon
+              className={`w-6 h-6 text-emerald-600 transition-all duration-500 group-hover:text-white ${ICON_HOVER_ANIM[item.anim]}`}
+            />
+          </span>
+        </div>
+        <h3 className="text-[17px] font-bold text-gray-900 mb-2 leading-snug">{item.title}</h3>
+        <p className="text-[13.5px] leading-relaxed text-gray-500">{item.desc}</p>
+      </div>
+    </div>
+  );
+}
+
 const schemaVehicles = [
   { name: 'Honda Activa 6G', brand: 'Honda', price: 2999, image: 'https://transrentals.in/images/scooters/activa-6g.jpg' },
   { name: 'TVS Jupiter', brand: 'TVS', price: 3499, image: 'https://transrentals.in/images/scooters/jupiter.jpg' },
@@ -66,8 +154,6 @@ const schemaVehicles = [
 ];
 
 export default function MonthlyBikeRentalPage() {
-  const popularCities = getCitiesByPriority(8);
-
   return (
     <>
       <HowToSchema
@@ -141,80 +227,44 @@ export default function MonthlyBikeRentalPage() {
       </section>
 
       {/* Why Monthly Bike Rental */}
-      <section className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <style dangerouslySetInnerHTML={{ __html: APP_CSS }} />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <h2 className="text-3xl md:text-[2.5rem] font-black tracking-tight text-gray-900 text-center mb-12">
             Why Choose Monthly Bike Rental?
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              { icon: '💰', title: 'Save 40% vs Daily', desc: 'Cheaper than daily rental rates' },
-              { icon: '🔧', title: 'Free Maintenance', desc: 'Servicing & repairs included' },
-              { icon: '🛡️', title: 'Fully Insured', desc: 'Comprehensive coverage' },
-              { icon: '📅', title: 'Flexible Duration', desc: '1 month to 12+ months' },
-              { icon: '🚀', title: 'Quick Delivery', desc: 'Same day in metro cities' },
-              { icon: '📱', title: 'Easy Process', desc: 'Minimal documentation' },
-              { icon: '🔄', title: 'Free Replacement', desc: 'If bike breaks down' },
-              { icon: '❌', title: 'No Long Commitment', desc: 'Cancel after 1 month' },
-            ].map((feature) => (
-              <div key={feature.title} className="text-center">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.desc}</p>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 max-w-6xl mx-auto">
+            {WHY_MONTHLY.map((item, idx) => (
+              <AppCard key={item.title} item={item} idx={idx} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* Monthly Plans */}
-      {/* Popular Cities */}
-      <section id="locations" className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Monthly Bike Rental in Popular Cities
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {popularCities.map((city) => (
-              <Link
-                key={city.slug}
-                href={`/monthly-bike-rental/${city.slug}`}
-                className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition group border-l-4 border-emerald-500"
-              >
-                <h3 className="font-semibold text-lg group-hover:text-emerald-700 transition">
-                  {city.name}
-                </h3>
-                <p className="text-sm text-gray-600">{city.state}</p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <LocationsGrid service="monthly-bike-rental" />
+      {/* Cities */}
+      <StaticServicePopularCitiesGrid serviceSlug="monthly-bike-rental" title="Monthly Bike Rental in Available Cities" />
 
       {/* Perfect For */}
-      <section className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-gray-50/70 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-3xl md:text-[2.5rem] font-black tracking-tight text-gray-900 text-center mb-12">
             Perfect for Every Need
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { occasion: 'College Students', icon: '🎓', desc: 'Semester-long rentals' },
-              { occasion: 'Working Professionals', icon: '💼', desc: 'Daily office commute' },
-              { occasion: 'Job Transfers', icon: '🏢', desc: 'Temporary relocation' },
-              { occasion: 'Delivery Partners', icon: '📦', desc: 'Swiggy, Zomato, Amazon' },
-              { occasion: 'Long Vacation', icon: '🏖️', desc: 'Extended city stays' },
-              { occasion: 'Own Bike Repair', icon: '🔧', desc: 'Temporary replacement' },
-              { occasion: 'Try Before Buy', icon: '🔍', desc: 'Test drive for months' },
-              { occasion: 'New to City', icon: '🏙️', desc: 'Just moved, need transport' },
-            ].map((item) => (
-              <div key={item.occasion} className="bg-white p-6 rounded-lg shadow-md text-center hover:shadow-lg transition">
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{item.occasion}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 max-w-6xl mx-auto">
+            {PERFECT_FOR.map((item, idx) => (
+              <AppCard key={item.title} item={item} idx={idx} />
             ))}
           </div>
         </div>
@@ -249,7 +299,55 @@ export default function MonthlyBikeRentalPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" customFaqs={schemaFaqs} />
+      {/* FAQs */}
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] text-emerald-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              GOOD TO KNOW
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            </span>
+            <h2 className="mt-4 text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Monthly Bike Rental <span className="text-emerald-600">FAQs</span>
+            </h2>
+          </div>
+          <div className="max-w-5xl mx-auto space-y-3">
+            {schemaFaqs.map((faq, idx) => (
+              <details
+                key={idx}
+                open={idx === 0}
+                className="group rounded-2xl bg-white border border-gray-100 shadow-sm open:border-emerald-200 open:shadow-md transition-all"
+              >
+                <summary className="flex items-center gap-4 px-4 sm:px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span className="shrink-0 w-9 h-9 rounded-full bg-emerald-50 grid place-items-center">
+                    <MessageCircleQuestion className="w-[18px] h-[18px] text-emerald-600" />
+                  </span>
+                  <h3 className="flex-1 font-bold text-[15px] leading-snug text-gray-900">{faq.question}</h3>
+                  <span className="shrink-0 w-8 h-8 rounded-lg bg-gray-50 text-gray-500 grid place-items-center transition-all duration-200 group-open:rotate-45 group-open:bg-emerald-600 group-open:text-white">
+                    <Plus className="w-4 h-4" />
+                  </span>
+                </summary>
+                <p className="px-4 sm:px-5 pb-5 sm:pl-[4.25rem] text-[14px] leading-relaxed text-gray-500">
+                  {faq.answer}
+                </p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
     </>
   );
 }

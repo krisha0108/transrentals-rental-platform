@@ -13,6 +13,8 @@ import { SupercarsGrid } from '@/components/sports-car-rental/SupercarsGrid';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { FAQSection } from '@/components/services/FAQSection';
+import { Trophy, Gem, Camera, PartyPopper, Heart, Cake, Sparkles, ShieldCheck, UserCog } from 'lucide-react';
 
 interface PageProps {
   params: {
@@ -125,22 +127,24 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
       <SpecialtyCarBookingHero service="sports" city={locationName} citySlug={params.location.toLowerCase()} />
 
       {/* Why Sports Car */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Why Rent Sports Car in {locationName}?
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Why Rent Sports Car in <span className="text-emerald-600">{locationName}</span>?
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
             {[
-              { icon: '🏆', title: 'Ultimate Experience', desc: `Dream driving in ${locationName}` },
-              { icon: '💎', title: 'Luxury & Style', desc: 'Arrive in elegance' },
-              { icon: '📸', title: 'Photo Perfect', desc: 'Instagram-worthy' },
-              { icon: '🎉', title: 'Special Events', desc: 'Weddings, parties' },
-            ].map((feature) => (
-              <div key={feature.title} className="text-center">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.desc}</p>
+              { Icon: Trophy, title: 'Ultimate Experience', desc: `Dream driving in ${locationName}` },
+              { Icon: Gem, title: 'Luxury & Style', desc: 'Arrive in elegance' },
+              { Icon: Camera, title: 'Photo Perfect', desc: 'Instagram-worthy' },
+              { Icon: PartyPopper, title: 'Special Events', desc: 'Weddings, parties' },
+            ].map(({ Icon, title, desc }) => (
+              <div key={title} className="text-center bg-white border border-dashed border-emerald-200 rounded-2xl px-5 py-8 hover:border-emerald-400 hover:shadow-md transition-all">
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <Icon className="w-6 h-6 text-emerald-600" />
+                </span>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1">{title}</h3>
+                <p className="text-xs text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
@@ -153,22 +157,24 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
       )}
 
       {/* Perfect Occasions */}
-      <section className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Perfect for Events in {locationName}
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-gray-50/70 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Perfect for Events in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
             {[
-              { occasion: 'Weddings', icon: '💒', desc: `Grand entry in ${locationName}` },
-              { occasion: 'Birthdays', icon: '🎂', desc: 'Celebration' },
-              { occasion: 'Proposals', icon: '💍', desc: 'Romantic surprise' },
-              { occasion: 'Photo Shoots', icon: '📸', desc: 'Luxury backdrops' },
-            ].map((item) => (
-              <div key={item.occasion} className="bg-gray-50 p-6 rounded-lg text-center">
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{item.occasion}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              { Icon: Heart, occasion: 'Weddings', desc: `Grand entry in ${locationName}` },
+              { Icon: Cake, occasion: 'Birthdays', desc: 'Celebration' },
+              { Icon: Sparkles, occasion: 'Proposals', desc: 'Romantic surprise' },
+              { Icon: Camera, occasion: 'Photo Shoots', desc: 'Luxury backdrops' },
+            ].map(({ Icon, occasion, desc }) => (
+              <div key={occasion} className="text-center bg-white border border-dashed border-emerald-200 rounded-2xl px-5 py-8 hover:border-emerald-400 hover:shadow-md transition-all">
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <Icon className="w-6 h-6 text-emerald-600" />
+                </span>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1">{occasion}</h3>
+                <p className="text-xs text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
@@ -178,58 +184,52 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
       {/* Features */}
       <section className="py-16 bg-gray-50">
         <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Sports Car Features in {locationName}
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Sports Car Features in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-xl mb-4 text-red-800">Car Features</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-red-800 mt-1">✓</span>
-                  <span>Latest supercar models</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-800 mt-1">✓</span>
-                  <span>Pristine condition</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-800 mt-1">✓</span>
-                  <span>High-performance engines</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-800 mt-1">✓</span>
-                  <span>Exotic interiors</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-800 mt-1">✓</span>
-                  <span>Advanced safety</span>
-                </li>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-white" />
+                </span>
+                <h3 className="font-bold text-lg text-gray-900">Car Features</h3>
+              </div>
+              <ul className="space-y-2.5 text-gray-600 text-sm">
+                {[
+                  'Latest supercar models',
+                  'Pristine condition',
+                  'High-performance engines',
+                  'Exotic interiors',
+                  'Advanced safety',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-xl mb-4 text-orange-900">Rental Options</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-orange-800 mt-1">✓</span>
-                  <span>Self-drive available</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange-800 mt-1">✓</span>
-                  <span>Chauffeur service</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange-800 mt-1">✓</span>
-                  <span>Hourly/daily rentals</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange-800 mt-1">✓</span>
-                  <span>Full insurance</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange-800 mt-1">✓</span>
-                  <span>24/7 support</span>
-                </li>
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <UserCog className="w-5 h-5 text-white" />
+                </span>
+                <h3 className="font-bold text-lg text-gray-900">Rental Options</h3>
+              </div>
+              <ul className="space-y-2.5 text-gray-600 text-sm">
+                {[
+                  'Self-drive available',
+                  'Chauffeur service',
+                  'Hourly/daily rentals',
+                  'Full insurance',
+                  '24/7 support',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
@@ -275,6 +275,8 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="sports-car-rental" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

@@ -23,11 +23,15 @@ import { getSocialCategories, createSocialPost } from '../../api/socialApi';
 import { uploadVendorImage, getFullImageURL } from '../../api/client';
 import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 const MAX_IMAGES = 4;
 
 // getFullImageURL is async (resolves the base URL), so resolve into state.
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 function RemoteThumb({ url, style }) {
   const [uri, setUri] = useState(null);
   useEffect(() => {
@@ -62,6 +66,12 @@ export default function CreatePostScreen({ navigation }) {
   const [loadingCats, setLoadingCats] = useState(true);
   const [images, setImages] = useState([]);
   const [uploadingImg, setUploadingImg] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setInitializing(false), 350);
+    return () => clearTimeout(t);
+  }, []);
 
   const pickImages = async () => {
     const room = MAX_IMAGES - images.length;
@@ -142,14 +152,81 @@ export default function CreatePostScreen({ navigation }) {
     if (Platform.OS === 'android') StatusBar.setBackgroundColor(C.g900);
   }, []));
 
+  if (initializing) {
+    return (
+      <View style={styles.safe}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} translucent={false} />
+        <LinearGradient colors={G.hero} style={styles.hero}>
+          <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+          <SafeAreaView edges={['top']} style={styles.heroSafe}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-left" size={20} color="#fff" />
+              </TouchableOpacity>
+              <View style={styles.headerTitleBlock}>
+                <Text style={styles.headerEyebrow}>COMPOSE</Text>
+                <Text style={styles.headerTitle} numberOfLines={1}>Create Post</Text>
+              </View>
+              <View style={[styles.submitBtn, styles.submitBtnDisabled]}>
+                <Text style={styles.submitBtnText}>Post</Text>
+              </View>
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIcon, { backgroundColor: C.violetL }]} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Bone w={70} h={13} style={{ marginBottom: 6 }} />
+                <Bone w={140} h={10} />
+              </View>
+            </View>
+            <View style={styles.categoryPicker}>
+              <Bone w={130} h={14} />
+              <Icon name="chevron-down" size={18} color={C.muted} />
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIcon, { backgroundColor: C.violetL }]} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Bone w={150} h={13} style={{ marginBottom: 6 }} />
+                <Bone w={170} h={10} />
+              </View>
+            </View>
+            <View style={[styles.contentInputWrap, { justifyContent: 'flex-start', paddingTop: rs(12) }]}>
+              <Bone w="90%" h={11} style={{ marginBottom: 8 }} />
+              <Bone w="70%" h={11} />
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIcon, { backgroundColor: C.violetL }]} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Bone w={60} h={13} style={{ marginBottom: 6 }} />
+                <Bone w={110} h={10} />
+              </View>
+            </View>
+            <View style={styles.imageRow}>
+              <Bone w={rs(84)} h={rs(84)} r={rs(12)} />
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} translucent={false} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {/* ── HERO HEADER ── */}
         <LinearGradient colors={G.hero} style={styles.hero}>
-          <AnimatedOrb style={styles.orbA} />
-          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+          <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']} style={styles.heroSafe}>
             <View style={styles.headerRow}>
               <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
@@ -187,7 +264,7 @@ export default function CreatePostScreen({ navigation }) {
             </View>
             <TouchableOpacity style={styles.categoryPicker} onPress={() => setCatModalVisible(true)} activeOpacity={0.85}>
               {loadingCats ? (
-                <ActivityIndicator size="small" color={C.violet} />
+                <Bone w={130} h={14} />
               ) : selectedCategory ? (
                 <View style={styles.catSelected}>
                   <View style={[styles.catDot, { backgroundColor: isSOS ? C.red : C.violet }]} />
@@ -234,7 +311,6 @@ export default function CreatePostScreen({ navigation }) {
                 value={content}
                 onChangeText={(t) => { if (t.length <= MAX_CHARS) setContent(t); }}
                 textAlignVertical="top"
-                autoFocus
               />
             </View>
             <Text style={[styles.charCounter, content.length > MAX_CHARS * 0.9 && styles.charCounterWarning]}>
@@ -376,14 +452,7 @@ const styles = StyleSheet.create({
 
   // Hero header
   hero: { borderBottomLeftRadius: rs(28), borderBottomRightRadius: rs(28), overflow: 'hidden' },
-  orbA: {
-    position: 'absolute', top: -rs(50), right: -rs(40), width: rs(180), height: rs(180), borderRadius: rs(90),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  orbB: {
-    position: 'absolute', top: rs(30), left: -rs(60), width: rs(150), height: rs(150), borderRadius: rs(75),
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   heroSafe: { paddingHorizontal: rs(16), paddingTop: rs(8), paddingBottom: rs(14) },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: rs(12) },
   backBtn: {

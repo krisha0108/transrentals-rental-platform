@@ -1,11 +1,48 @@
 import { Metadata } from 'next';
-import Link from 'next/link';
+import {
+  CheckCircle2, GraduationCap, Star, Map, MessageSquare, ShieldCheck, Smartphone, Shirt,
+  Briefcase, Heart, PartyPopper, Plane, Stethoscope, Users, Clock,
+  MessageCircleQuestion, Plus,
+} from 'lucide-react';
 import { HowToSchema, FAQSchema, BreadcrumbSchema } from '@/components/seo/schemas';
-import { getCitiesByPriority } from '@/data/indian-cities';
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 import { prisma } from '@/lib/db/prisma';
 import { getCarRentalServiceId } from '@/lib/db/build-cache';
 import { ChauffeurPackages } from '@/components/chauffeur-service/ChauffeurPackages';
+import { StaticServicePopularCitiesGrid } from '@/components/services/StaticServicePopularCitiesGrid';
+
+const WHY_CHAUFFEUR = [
+  { icon: CheckCircle2, anim: 'pulse', title: 'Verified Drivers', desc: 'Police verification done' },
+  { icon: GraduationCap, anim: 'lift', title: 'Trained & Licensed', desc: 'Professional training' },
+  { icon: Star, anim: 'tick', title: 'Experienced', desc: '5+ years experience' },
+  { icon: Map, anim: 'drive', title: 'Know All Routes', desc: 'Local & highway expert' },
+  { icon: Shirt, anim: 'pulse', title: 'Professional Attire', desc: 'Well-groomed drivers' },
+  { icon: MessageSquare, anim: 'wrench', title: 'Good Communication', desc: 'Hindi, English speaking' },
+  { icon: ShieldCheck, anim: 'pulse', title: 'Fully Insured', desc: 'Covered for safety' },
+  { icon: Smartphone, anim: 'ring', title: 'Available on Demand', desc: '24/7 booking' },
+];
+
+const PERFECT_OCCASIONS = [
+  { icon: Briefcase, anim: 'drive', occasion: 'Daily Commute', desc: 'Office, business trips' },
+  { icon: Map, anim: 'drive', occasion: 'Outstation Tours', desc: 'Hill stations, pilgrimages' },
+  { icon: Heart, anim: 'pulse', occasion: 'Weddings', desc: 'Wedding car driver' },
+  { icon: PartyPopper, anim: 'grow', occasion: 'Events', desc: 'Parties, celebrations' },
+  { icon: Plane, anim: 'drive', occasion: 'Airport Transfers', desc: 'Pickup & drop service' },
+  { icon: Stethoscope, anim: 'lift', occasion: 'Medical Needs', desc: 'Hospital visits, care' },
+  { icon: Users, anim: 'pulse', occasion: 'Elderly Care', desc: 'Senior citizen assistance' },
+  { icon: Clock, anim: 'tick', occasion: 'Temporary Need', desc: 'Short-term requirement' },
+];
+
+/* Har icon apne hisaab se hilta hai — plain Tailwind group-hover, no custom keyframes. */
+const ICON_HOVER_ANIM: Record<string, string> = {
+  drive: 'group-hover:translate-x-2',
+  pulse: 'group-hover:scale-125',
+  tick: 'group-hover:rotate-[360deg]',
+  wrench: 'group-hover:rotate-45',
+  ring: 'group-hover:rotate-12',
+  lift: 'group-hover:-translate-y-2',
+  grow: 'group-hover:-translate-y-1.5 group-hover:scale-110',
+};
 
 export const metadata: Metadata = {
   title: 'Chauffeur Service | Driver on Hire @₹599/Day | Professional Car Driver',
@@ -60,7 +97,6 @@ export default async function ChauffeurServicePage() {
     else existing.vehicles.push(pkg);
   }
   const hourGroups = Array.from(packagesByHour.values()).sort((a, b) => a.hours - b.hours);
-  const popularCities = getCitiesByPriority(8);
 
   return (
     <>
@@ -102,54 +138,53 @@ export default async function ChauffeurServicePage() {
       />
 
       {/* Why Chauffeur Service */}
-      <section className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Why Choose Our Chauffeur Service?
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              { icon: '✅', title: 'Verified Drivers', desc: 'Police verification done' },
-              { icon: '🎓', title: 'Trained & Licensed', desc: 'Professional training' },
-              { icon: '🌟', title: 'Experienced', desc: '5+ years experience' },
-              { icon: '🚗', title: 'Know All Routes', desc: 'Local & highway expert' },
-              { icon: '🤵', title: 'Professional Attire', desc: 'Well-groomed drivers' },
-              { icon: '💬', title: 'Good Communication', desc: 'Hindi, English speaking' },
-              { icon: '🛡️', title: 'Fully Insured', desc: 'Covered for safety' },
-              { icon: '📱', title: 'Available on Demand', desc: '24/7 booking' },
-            ].map((feature) => (
-              <div key={feature.title} className="text-center">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.desc}</p>
+      <section className="relative overflow-hidden py-16 md:py-24 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
+            <h2 className="text-3xl md:text-[2.75rem] leading-[1.1] font-black tracking-tight text-gray-900">
+              Why Choose Our <span className="text-emerald-600">Chauffeur Service?</span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            {WHY_CHAUFFEUR.map((item, idx) => (
+              <div
+                key={item.title}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-7 text-center overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-100"
+                style={{ animation: `chf-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 80}ms forwards`, opacity: 0 }}
+              >
+                <div className="relative w-14 h-14 mx-auto mb-4">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                  <span className="absolute inset-[5px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                    <item.icon
+                      className={`w-5 h-5 text-emerald-600 transition-transform duration-500 group-hover:text-white ${ICON_HOVER_ANIM[item.anim]}`}
+                    />
+                  </span>
+                </div>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-1.5 leading-snug">{item.title}</h3>
+                <p className="text-[13px] leading-relaxed text-gray-500">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes chf-rise { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) { [style*="chf-rise"] { animation: none !important; opacity: 1 !important; } }
+        ` }} />
       </section>
 
-      {/* Popular Cities Grid */}
-      <section id="locations" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Chauffeur Service in Popular Cities
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {popularCities.map((city) => (
-              <Link
-                key={city.slug}
-                href={`/chauffeur-service/${city.slug}`}
-                className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition group"
-              >
-                <h3 className="font-semibold text-lg group-hover:text-indigo-700 transition">
-                  {city.name}
-                </h3>
-                <p className="text-sm text-gray-600">{city.state}</p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+      <StaticServicePopularCitiesGrid serviceSlug="chauffeur-service" title="Chauffeur Service in Available Cities" />
 
       {hourGroups.length > 0 && (
         <ChauffeurPackages
@@ -160,26 +195,27 @@ export default async function ChauffeurServicePage() {
       )}
 
       {/* Perfect Occasions */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Perfect for Every Need
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { occasion: 'Daily Commute', icon: '💼', desc: 'Office, business trips' },
-              { occasion: 'Outstation Tours', icon: '🗺️', desc: 'Hill stations, pilgrimages' },
-              { occasion: 'Weddings', icon: '💒', desc: 'Wedding car driver' },
-              { occasion: 'Events', icon: '🎉', desc: 'Parties, celebrations' },
-              { occasion: 'Airport Transfers', icon: '✈️', desc: 'Pickup & drop service' },
-              { occasion: 'Medical Needs', icon: '🏥', desc: 'Hospital visits, care' },
-              { occasion: 'Elderly Care', icon: '👴', desc: 'Senior citizen assistance' },
-              { occasion: 'Temporary Need', icon: '⏰', desc: 'Short-term requirement' },
-            ].map((item) => (
-              <div key={item.occasion} className="bg-white p-6 rounded-lg shadow-md text-center">
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{item.occasion}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-gray-50/70 to-white">
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <h2 className="text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Perfect for <span className="text-emerald-600">Every Need</span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            {PERFECT_OCCASIONS.map((item, idx) => (
+              <div
+                key={item.occasion}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm p-5 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                style={{ animation: `chf-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 80}ms forwards`, opacity: 0 }}
+              >
+                <span className="inline-flex w-12 h-12 rounded-xl bg-emerald-50 items-center justify-center mb-4 transition-colors duration-300 group-hover:bg-emerald-600">
+                  <item.icon
+                    className={`w-6 h-6 text-emerald-600 transition-transform duration-500 group-hover:text-white ${ICON_HOVER_ANIM[item.anim]}`}
+                  />
+                </span>
+                <h3 className="text-[15px] font-bold text-gray-900 leading-snug mb-1.5">{item.occasion}</h3>
+                <p className="text-[13px] leading-relaxed text-gray-500">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -284,12 +320,31 @@ export default async function ChauffeurServicePage() {
       </section>
 
       {/* FAQs */}
-      <section className="py-16">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-6">
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container mx-auto px-4 relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] text-emerald-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              GOOD TO KNOW
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            </span>
+            <h2 className="mt-4 text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Chauffeur Service <span className="text-emerald-600">FAQs</span>
+            </h2>
+          </div>
+          <div className="max-w-5xl mx-auto space-y-3">
             {[
               {
                 q: 'How much does a chauffeur service cost?',
@@ -316,10 +371,22 @@ export default async function ChauffeurServicePage() {
                 a: 'For local bookings, we can provide a chauffeur within 2-4 hours. For outstation or special requirements, we recommend booking 24 hours in advance.',
               },
             ].map((faq, idx) => (
-              <div key={idx} className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
+              <details
+                key={idx}
+                open={idx === 0}
+                className="group rounded-2xl bg-white border border-gray-100 shadow-sm open:border-emerald-200 open:shadow-md transition-all"
+              >
+                <summary className="flex items-center gap-4 px-4 sm:px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span className="shrink-0 w-9 h-9 rounded-full bg-emerald-50 grid place-items-center">
+                    <MessageCircleQuestion className="w-[18px] h-[18px] text-emerald-600" />
+                  </span>
+                  <h3 className="flex-1 font-bold text-[15px] leading-snug text-gray-900">{faq.q}</h3>
+                  <span className="shrink-0 w-8 h-8 rounded-lg bg-gray-50 text-gray-500 grid place-items-center transition-all duration-200 group-open:rotate-45 group-open:bg-emerald-600 group-open:text-white">
+                    <Plus className="w-4 h-4" />
+                  </span>
+                </summary>
+                <p className="px-4 sm:px-5 pb-5 sm:pl-[4.25rem] text-[14px] leading-relaxed text-gray-500">{faq.a}</p>
+              </details>
             ))}
           </div>
         </div>

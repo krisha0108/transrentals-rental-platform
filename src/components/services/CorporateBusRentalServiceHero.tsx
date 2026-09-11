@@ -32,7 +32,7 @@ export function CorporateBusRentalServiceHero() {
               </h1>
 
               <p className="text-xl md:text-2xl mb-8 text-gray-200">
-                Starting from ₹4999
+                Reliable Transport for Your Business
               </p>
 
               <div className="space-y-4 mb-8">

@@ -20,8 +20,8 @@ import DeviceInfo from 'react-native-device-info';
 import AppEvents, { EVT_NEW_QUOTE, EVT_QUOTE_SENT } from '../../../utils/AppEvents';
 import { SC as T, G, rs, rf, shade, cardShadow, rowShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
 import SheetHandle from '../_shared/SheetHandle';
+import CornerGrid from '../_shared/CornerGrid';
 const { width: W } = Dimensions.get('window');
 
 // Fixed top bar's gradient (not in the shared theme file).
@@ -136,32 +136,6 @@ function Ico({ lib, name, size, color }) {
   return <Icon name={name} size={size} color={color} />;
 }
 
-// ── Animated tile bubble ─────────────────────────────────────────
-// Same "softly breathing corner bubble" travel-agent uses on its compact
-// tiles — a gentle scale/float/opacity pulse, native-driven so it's cheap.
-function AnimatedWash({ color, delay = 0 }) {
-  const a = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 2600, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 2600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [a, delay]);
-  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] });
-  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, 6] });
-  const opacity = a.interpolate({ inputRange: [0, 1], outputRange: [0.6, 0.32] });
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[s.tileWash, { backgroundColor: color, opacity, transform: [{ scale }, { translateY }] }]}
-    />
-  );
-}
-
 // ── Section heading (kicker + title, optional right slot) ────────
 function SectionHeading({ kicker, title, right }) {
   return (
@@ -213,9 +187,6 @@ function CollectionRingCard({
 }) {
   return (
     <View style={[s.crCard]}>
-      <AnimatedOrb style={s.crOrb1} />
-      <AnimatedOrb style={s.crOrb2} delay={1200} dx={-10} dy={8} />
-
       <TouchableOpacity activeOpacity={0.9} onPress={onPressRing} style={s.crTop}>
         <View style={s.crRingWrap}>
           <Ring pct={pct} />
@@ -272,6 +243,7 @@ function CollectionRingCard({
     </View>
   );
 }
+
 
 // ── Bento tile (Quick Actions) — big feature tile / side stack / row-of-5.
 // Verbatim port of travel-agent's BentoTile: circular icon chip top, label
@@ -336,17 +308,6 @@ function PriorityCard({ tone, icon, title, desc, onPress }) {
   );
 }
 
-// ── Status config ──────────────────────────────────────────────
-const STATUS_CONFIG = {
-  APPROVED:          { color: '#fff',    bg: 'rgba(255,255,255,0.22)', dot: '#34D399', label: 'Active'      },
-  DOCUMENTS_PENDING: { color: '#FCD34D', bg: 'rgba(252,211,77,0.2)',  dot: '#FCD34D', label: 'Docs Pending' },
-  UNDER_REVIEW:      { color: '#93C5FD', bg: 'rgba(147,197,253,0.2)', dot: '#93C5FD', label: 'In Review'    },
-  PENDING:           { color: '#FCD34D', bg: 'rgba(252,211,77,0.2)',  dot: '#FCD34D', label: 'Pending'      },
-  REJECTED:          { color: '#FCA5A5', bg: 'rgba(252,165,165,0.2)', dot: '#FCA5A5', label: 'Rejected'     },
-  BLOCKED:           { color: '#FCA5A5', bg: 'rgba(252,165,165,0.2)', dot: '#FCA5A5', label: 'Blocked'      },
-  SUSPENDED:         { color: '#FCA5A5', bg: 'rgba(252,165,165,0.2)', dot: '#FCA5A5', label: 'Suspended'    },
-};
-
 export default function DashboardScreen({ navigation }) {
   const { unreadCount, refreshBadge } = React.useContext(NotifBadgeContext);
   const [loading, setLoading]           = useState(true);
@@ -362,6 +323,7 @@ export default function DashboardScreen({ navigation }) {
   const [updateInfo, setUpdateInfo]           = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [searchQuery, setSearchQuery]         = useState('');
+  const [searchOpen, setSearchOpen]           = useState(false);
 
   const fetchQuoteCounts = useCallback(async () => {
     try {
@@ -521,7 +483,6 @@ export default function DashboardScreen({ navigation }) {
   const approvedSvcIds = profile?.approvedServiceIds || [];
   const hasService     = id => approvedSvcIds.includes(id);
   const bizName        = profile?.businessName || vendor?.businessName || 'Vendor';
-  const stCfg          = STATUS_CONFIG[vendorStatus] || STATUS_CONFIG.PENDING;
 
   const fmt = v => {
     if (!v || v === 0) return '₹0';
@@ -551,7 +512,7 @@ export default function DashboardScreen({ navigation }) {
   const doneCount = steps.filter(s => s.done).length;
 
   // Fixed icons — use only well-supported MCI / Ionicons names
-  const quickActions = [
+  const quickActions = React.useMemo(() => [
     { label: 'Add Vehicle',  icon: 'car-outline',          lib: 'ion', color: C.blue,   route: 'AddVehicleScreen' },
     { label: 'Add Staff',    icon: 'people-outline',        lib: 'ion', color: C.purple, route: 'AddStaffScreen' },
     { label: 'Direct Book',  icon: 'book-outline',          lib: 'ion', color: C.orange, route: 'DirectBookings' },
@@ -560,7 +521,7 @@ export default function DashboardScreen({ navigation }) {
     { label: 'B2B',          icon: 'briefcase-outline',      lib: 'ion', color: C.indigo, route: 'B2BDashboard' },
     { label: 'Social',       icon: 'newspaper-outline',      lib: 'ion', color: C.pink,   route: 'SocialFeed' },
     { label: 'Tracking',     icon: 'navigate-outline',       lib: 'ion', color: C.red,    route: 'VendorTracking' },
-  ];
+  ], []);
 
   const SERVICES = [
     { id: SERVICE_IDS.BIKE,        name: 'Bike Rentals',     icon: 'motorbike',       color: C.amber,  route: 'BikeHomeScreen' },
@@ -578,17 +539,17 @@ export default function DashboardScreen({ navigation }) {
   const positive = growth >= 0;
 
   // Manage — 2-column grid (no more giant single card)
-  const manageItems = [
+  const manageItems = React.useMemo(() => [
     { label: 'Fleet',          sub: `${profile?.fleetsCount ?? 0} vehicles`, icon: 'car-outline',             lib: 'ion', color: C.blue,   route: 'FleetListScreen', value: String(profile?.fleetsCount ?? 0) },
     { label: 'Staff',          sub: 'Manage team',                           icon: 'people-outline',           lib: 'ion', color: C.purple, route: 'StaffListScreen' },
-{ label: 'Direct Booking', sub: 'Walk-ins',                              icon: 'book-outline',             lib: 'ion', color: C.orange, route: 'DirectBookings' },
+    { label: 'Direct Booking', sub: 'Walk-ins',                              icon: 'book-outline',             lib: 'ion', color: C.orange, route: 'DirectBookings' },
     { label: 'Booking Links',  sub: 'Share & track',                         icon: 'link-outline',             lib: 'ion', color: C.indigo, route: 'BookingLinks' },
     { label: 'Financials',     sub: 'P&L reports',                           icon: 'bar-chart-outline',        lib: 'ion', color: C.purple, route: 'Financials' },
     { label: 'Earnings',       sub: 'Revenue & payouts',                     icon: 'trending-up-outline',      lib: 'ion', color: C.g600,   route: 'EarningsScreen', value: earnings ? `${positive ? '+' : '-'}${Math.abs(growth)}%` : null },
     { label: 'P2P Market',     sub: 'Trade fleet',                           icon: 'swap-horizontal-outline',  lib: 'ion', color: C.teal,   route: 'P2PDashboard' },
     { label: 'B2B',            sub: 'Marketplace',                           icon: 'briefcase-outline',        lib: 'ion', color: C.cyan,   route: 'B2BDashboard' },
     { label: 'Live Tracking',  sub: 'Driver GPS',                            icon: 'navigate-outline',         lib: 'ion', color: C.red,    route: 'VendorTracking' },
-  ];
+  ], [profile, earnings, growth, positive]);
 
   const pendingActions = [
     { name: 'Complete Profile',  desc: 'Business details',  icon: 'person-outline',         lib: 'ion', color: C.blue,   grad: [C.blue,   shade(C.blue, -20)],   route: 'ProfileScreen' },
@@ -650,43 +611,25 @@ export default function DashboardScreen({ navigation }) {
       <View style={{ flex: 1, backgroundColor: C.bg }}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-        {/* Header skeleton — matches real header layout */}
-        <LinearGradient colors={G.hero} style={sk.hero}>
-          <SafeAreaView>
-            {/* Top bar: avatar + name/greeting + bell */}
+        {/* Header skeleton — matches real header layout (just the fixed
+            top bar; the earnings card is a body panel now, not part of
+            the header gradient) */}
+        <LinearGradient colors={G_HERO_TOP} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={sk.hero}>
+          <CornerGrid style={s.deco1} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+          <SafeAreaView edges={['top']}>
+            {/* Top bar: avatar + name/ID + search & bell */}
             <View style={sk.topRow}>
               {/* Avatar */}
               <View style={sk.avatarCircle} />
               {/* Name block */}
-              <View style={{ flex: 1, marginLeft: 10, gap: 6 }}>
-                <Bone w={60} h={9} r={4} />
-                <Bone w={150} h={14} r={5} />
-                <Bone w={58} h={18} r={9} style={{ marginTop: 2 }} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Bone w={150} h={17} r={5} />
+                <Bone w={90} h={13} r={4} style={{ marginTop: 6 }} />
               </View>
-              {/* Bell button */}
-              <View style={sk.iconCircle} />
-            </View>
-
-            {/* Earnings card skeleton */}
-            <View style={sk.earningsCard}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 }}>
-                <View style={{ gap: 6 }}>
-                  <Bone w={80} h={9} r={4} />
-                  <Bone w={130} h={30} r={6} />
-                </View>
-                <Bone w={52} h={22} r={11} />
-              </View>
-              {/* Mini strip */}
-              <View style={sk.miniStripSk}>
-                {[0,1,2,3].map(i => (
-                  <React.Fragment key={i}>
-                    {i > 0 && <View style={sk.vLine} />}
-                    <View style={{ flex: 1, alignItems: 'center', gap: 5 }}>
-                      <Bone w={36} h={11} r={4} />
-                      <Bone w={28} h={8} r={3} />
-                    </View>
-                  </React.Fragment>
-                ))}
+              {/* Search + bell buttons */}
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                <View style={sk.iconCircle} />
+                <View style={sk.iconCircle} />
               </View>
             </View>
           </SafeAreaView>
@@ -694,28 +637,73 @@ export default function DashboardScreen({ navigation }) {
 
         {/* Body skeleton */}
         <View style={{ paddingHorizontal: 16, paddingTop: 18, gap: 22 }}>
-          {/* Quick actions */}
+          {/* Earnings card — now a body panel, matches real layout */}
+          <View style={sk.earningsCard}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 }}>
+              <View style={{ gap: 6 }}>
+                <Bone w={80} h={9} r={4} />
+                <Bone w={130} h={30} r={6} />
+              </View>
+              <Bone w={52} h={22} r={11} />
+            </View>
+            {/* Mini strip */}
+            <View style={sk.miniStripSk}>
+              {[0,1,2,3].map(i => (
+                <React.Fragment key={i}>
+                  {i > 0 && <View style={sk.vLine} />}
+                  <View style={{ flex: 1, alignItems: 'center', gap: 5 }}>
+                    <Bone w={36} h={11} r={4} />
+                    <Bone w={28} h={8} r={3} />
+                  </View>
+                </React.Fragment>
+              ))}
+            </View>
+          </View>
+
+          {/* Quick Actions — matches the real bento layout (big tile +
+              side stack, then a row of 5) */}
           <View style={{ gap: 10 }}>
             <Bone w={110} h={13} r={5} />
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 14, columnGap: 6 }}>
-              {[0,1,2,3,4,5,6,7].map(i => (
-                <View key={i} style={[sk.qaItem, { width: QA_W }]}>
-                  <Bone w={56} h={56} r={28} style={{ marginBottom: 6 }} />
-                  <Bone w={QA_W - 12} h={9} r={3} />
+            <View style={{ flexDirection: 'row', gap: BENTO_GAP }}>
+              <Bone w={BENTO_BIG_W} h={BENTO_BIG_H} r={rs(22)} />
+              <View style={{ width: BENTO_SIDE_W, gap: BENTO_GAP }}>
+                <Bone w={BENTO_SIDE_W} h={BENTO_ROW_H} r={rs(22)} />
+                <Bone w={BENTO_SIDE_W} h={BENTO_ROW_H} r={rs(22)} />
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', gap: BENTO_GAP }}>
+              {[0,1,2,3,4].map(i => (
+                <Bone key={i} w={BENTO_5W} h={rs(92)} r={rs(22)} />
+              ))}
+            </View>
+          </View>
+
+          {/* Your Services — row-style cards (icon left, name right) */}
+          <View style={{ gap: 10 }}>
+            <Bone w={110} h={13} r={5} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              {[0,1,2,3].map(i => (
+                <View key={i} style={{
+                  width: CARD_W, flexDirection: 'row', alignItems: 'center',
+                  backgroundColor: C.card, borderRadius: rs(18), padding: 13,
+                  borderWidth: 1, borderColor: C.border,
+                }}>
+                  <Bone w={36} h={36} r={10} />
+                  <Bone w={CARD_W - 80} h={13} r={4} style={{ marginLeft: 9 }} />
                 </View>
               ))}
             </View>
           </View>
 
-          {/* Manage grid */}
+          {/* Stay in the loop — column-style cards (icon top, label + sub) */}
           <View style={{ gap: 10 }}>
-            <Bone w={70} h={13} r={5} />
+            <Bone w={130} h={13} r={5} />
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              {[0,1,2,3,4,5,6,7].map(i => (
+              {[0,1].map(i => (
                 <View key={i} style={sk.manageCard}>
-                  <Bone w={40} h={40} r={12} style={{ marginBottom: 10 }} />
-                  <Bone w={CARD_W - 40} h={12} r={4} style={{ marginBottom: 5 }} />
-                  <Bone w={CARD_W - 56} h={9} r={3} />
+                  <Bone w={38} h={38} r={13} style={{ marginBottom: 10 }} />
+                  <Bone w={80} h={13} r={4} style={{ marginBottom: 4 }} />
+                  <Bone w={100} h={11} r={3} />
                 </View>
               ))}
             </View>
@@ -732,25 +720,25 @@ export default function DashboardScreen({ navigation }) {
       {/* ══════════════════════════════════════════
           FIXED TOP BAR — pinned above the scroll, like travel-agent's header
       ══════════════════════════════════════════ */}
-      <LinearGradient colors={G_HERO_TOP} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={s.heroTop}>
-        <AnimatedOrb style={s.deco1} />
+      <LinearGradient colors={G_HERO_TOP} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={[s.heroTop, { paddingBottom: searchOpen ? rs(12) : rs(8) }]}>
+        <CornerGrid style={s.deco1} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']}>
-          <View style={s.topBar}>
+          <View style={[s.topBar, { marginBottom: searchOpen ? 16 : 8 }]}>
             <View style={s.topLeft}>
               <Avatar name={bizName} size={40} onPress={() => navigation.navigate('ProfileScreen')} />
               <View style={{ marginLeft: 10, flex: 1 }}>
-                <Text style={s.greeting}>Good day 👋</Text>
                 <Text style={s.bizName} numberOfLines={1}>{bizName}</Text>
-                {profile?.vid && <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 2 }}>ID: {profile.vid}</Text>}
-                {/* Status pill — sits below name, no overlap */}
-                <View style={[s.statusPill, { backgroundColor: stCfg.bg, borderColor: 'rgba(255,255,255,0.25)', alignSelf: 'flex-start', marginTop: 4 }]}>
-                  <View style={[s.statusDot, { backgroundColor: stCfg.dot }]} />
-                  <Text style={[s.statusTxt, { color: stCfg.color }]}>{stCfg.label}</Text>
-                </View>
+                {profile?.vid && <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 2 }}>ID: {profile.vid}</Text>}
               </View>
             </View>
             <View style={s.topRight}>
-              {/* Bell only — profile is the avatar on the left */}
+              <TouchableOpacity style={s.iconBtn}
+                onPress={() => {
+                  setSearchOpen(v => !v);
+                  if (searchOpen) setSearchQuery('');
+                }} activeOpacity={0.75}>
+                <Ionicons name={searchOpen ? 'close' : 'search-outline'} size={16} color="rgba(255,255,255,0.9)" />
+              </TouchableOpacity>
               <TouchableOpacity style={s.iconBtn}
                 onPress={() => navigation.navigate('NotificationsScreen')} activeOpacity={0.75}>
                 <Ionicons name="notifications-outline" size={16} color="rgba(255,255,255,0.9)" />
@@ -765,24 +753,27 @@ export default function DashboardScreen({ navigation }) {
 
           {/* ── Search — live filter over services / manage shortcuts /
               quick actions / open inquiries already loaded on this screen.
-              Lives in the fixed header so it stays reachable while scrolled. */}
-          <View style={s.heroSearchBar}>
-            <Ionicons name="search-outline" size={16} color="rgba(255,255,255,0.7)" />
-            <TextInput
-              style={s.heroSearchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search services, manage, inquiries..."
-              placeholderTextColor="rgba(255,255,255,0.55)"
-              returnKeyType="search"
-              autoCorrect={false}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.7)" />
-              </TouchableOpacity>
-            )}
-          </View>
+              Toggled open/closed via the search icon next to the bell. */}
+          {searchOpen && (
+            <View style={s.heroSearchBar}>
+              <Ionicons name="search-outline" size={16} color="rgba(255,255,255,0.7)" />
+              <TextInput
+                style={s.heroSearchInput}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search services, manage, inquiries..."
+                placeholderTextColor="rgba(255,255,255,0.55)"
+                returnKeyType="search"
+                autoCorrect={false}
+                autoFocus
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.7)" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </SafeAreaView>
       </LinearGradient>
 
@@ -853,7 +844,7 @@ export default function DashboardScreen({ navigation }) {
                     <React.Fragment key={i}>
                       {i > 0 && <View style={s.vLine} />}
                       <View style={s.miniCell}>
-                        <Text style={[s.miniVal, m.accent && { color: C.g400, fontSize: 13 }]}>{m.v}</Text>
+                        <Text style={[s.miniVal, m.accent && { color: C.g400, fontSize: 14 }]}>{m.v}</Text>
                         <Text style={s.miniLbl}>{m.l}</Text>
                       </View>
                     </React.Fragment>
@@ -1139,60 +1130,6 @@ export default function DashboardScreen({ navigation }) {
             </View>
           )}
 
-          {/* ── Manage ─────────────────────────────────── */}
-          {/* Visible to pending vendors too. Browsing is free; write
-              actions inside each destination screen are gated. */}
-          <View style={s.section}>
-            <SectionHeading kicker="Operate" title="Management" right={!isApproved ? <PreviewPill /> : null} />
-
-            {/* Payments — big gradient card, vendor's own real numbers */}
-            {isApproved && earnings && (
-              <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('EarningsScreen')}
-                style={{ marginBottom: BENTO_GAP }}>
-                <LinearGradient colors={[C.g800, C.g600]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.payCard}>
-                  <View style={s.payOrb} />
-                  <Text style={s.payKicker}>THIS MONTH</Text>
-                  <Text style={s.payAmt} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{fmt(earnings?.thisMonth || 0)}</Text>
-                  <View style={s.payStrip}>
-                    {[
-                      { l: 'Today',   v: fmt(earnings?.today || 0),        c: '#7CE0B8' },
-                      { l: 'Pending', v: fmt(earnings?.pendingPayout || 0), c: T.goldLight },
-                      { l: 'Trips',   v: `${bookingsData?.completed || 0}`, c: 'rgba(255,255,255,0.85)' },
-                    ].map((m, i) => (
-                      <React.Fragment key={i}>
-                        {i > 0 && <View style={s.payDivider} />}
-                        <View style={s.payCell}>
-                          <View style={s.payCellTop}>
-                            <View style={[s.payCellDot, { backgroundColor: m.c }]} />
-                            <Text style={s.payCellLbl}>{m.l}</Text>
-                          </View>
-                          <Text style={s.payCellVal}>{m.v}</Text>
-                        </View>
-                      </React.Fragment>
-                    ))}
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-
-            {/* Single dark "hub" card — compact icon strip inside, same
-                visual weight as the Payments card above it. */}
-            <LinearGradient colors={[C.g800, C.g600]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hubCard}>
-              <Text style={s.hubKicker}>Quick access</Text>
-              <View style={s.hubGrid}>
-                {manageItems.map((m, i) => (
-                  <TouchableOpacity key={i} style={s.hubItem}
-                    onPress={() => navigation.navigate(m.route)} activeOpacity={0.7}>
-                    <View style={s.hubCircle}>
-                      <Ico lib={m.lib} name={m.icon} size={21} color="#fff" />
-                    </View>
-                    <Text style={s.hubLabel} numberOfLines={1}>{m.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </LinearGradient>
-          </View>
-
           {/* ── Community / Social ───────────────────── */}
           {/* Visible to pending vendors too — browsing the feed/messages
               is allowed; posting / sending is gated inside each screen. */}
@@ -1205,7 +1142,6 @@ export default function DashboardScreen({ navigation }) {
                 ].map((m, i) => (
                   <TouchableOpacity key={i} style={s.manageCard}
                     onPress={() => navigation.navigate(m.route)} activeOpacity={0.75}>
-                    <AnimatedWash color={shade(m.color, 75)} delay={i * 300} />
                     <View style={[s.manageIconBox, { backgroundColor: m.color + '14' }]}>
                       <Ico lib={m.lib} name={m.icon} size={20} color={m.color} />
                     </View>
@@ -1263,8 +1199,8 @@ export default function DashboardScreen({ navigation }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 const sk = StyleSheet.create({
-  hero:   { paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden' },
-  topRow: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: 10, marginBottom: 18 },
+  hero:   { paddingHorizontal: 16, paddingBottom: 8, overflow: 'hidden' },
+  topRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 12, marginBottom: 8 },
   avatarCircle: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.18)',
@@ -1290,12 +1226,10 @@ const sk = StyleSheet.create({
     flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 11,
     borderWidth: 1, borderColor: '#E2E8F0',
   },
-  qaItem:     { alignItems: 'center' },
   manageCard: { width: CARD_W, backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#E2E8F0' },
 });
 
 const CARD_W = (W - 32 - 10) / 2;   // 2-col grid with 10 gap
-const QA_W   = (W - 32 - 18) / 4;   // 4 per row (16+16 padding, 3 gaps of 6 → 8 actions = balanced 4+4)
 
 // Bento (Quick Actions) — big feature tile + 2-tile side stack (8 vendor
 // quick actions total) + 5-across bottom row.
@@ -1319,24 +1253,11 @@ const s = StyleSheet.create({
   heroRevPanel: {
     backgroundColor: C.bg, paddingHorizontal: 16, paddingTop: rs(14), paddingBottom: rs(2),
   },
-  deco1: {
-    position: 'absolute', width: 200, height: 200, borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40,
-  },
-  topBar:   { flexDirection: 'row', alignItems: 'center', paddingTop: 4, marginBottom: 16 },
+  deco1: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
+  topBar:   { flexDirection: 'row', alignItems: 'center', paddingTop: 12, marginBottom: 16 },
   topLeft:  { flexDirection: 'row', alignItems: 'center', flex: 1 },
   topRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  greeting: { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: '600', letterSpacing: 0.3 },
   bizName:  { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.3, marginTop: 2 },
-
-  // Status pill — white text + white border so it's always visible on green
-  statusPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20,
-    borderWidth: 1,
-  },
-  statusDot: { width: 5, height: 5, borderRadius: 3 },
-  statusTxt: { fontSize: 10, fontWeight: '700' },
 
   iconBtn: {
     width: 34, height: 34, borderRadius: 17,
@@ -1362,10 +1283,10 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'flex-end',
     justifyContent: 'space-between', marginBottom: 12,
   },
-  earningsLbl: { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 3 },
+  earningsLbl: { fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 3 },
   earningsAmt: { fontFamily: DISPLAY, fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -1 },
   growthPill:  { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
-  growthTxt:   { fontSize: 13, fontWeight: '800' },
+  growthTxt:   { fontSize: 14, fontWeight: '800' },
   miniStrip: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.13)', borderRadius: 10,
@@ -1374,7 +1295,7 @@ const s = StyleSheet.create({
   vLine:    { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 6 },
   miniCell: { flex: 1, alignItems: 'center' },
   miniVal:  { fontSize: 15, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  miniLbl:  { fontSize: 9.5, fontWeight: '600', color: 'rgba(255,255,255,0.5)' },
+  miniLbl:  { fontSize: 11.5, fontWeight: '600', color: 'rgba(255,255,255,0.5)' },
 
   // ── Progress (pending) — now a light card on the body ──────
   progressBlock: {
@@ -1382,8 +1303,8 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: C.border, marginBottom: 2, ...cardShadow,
   },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  progressTitle:  { fontSize: 13, color: C.text, fontWeight: '700' },
-  progressCount:  { fontSize: 11, color: C.muted, fontWeight: '600' },
+  progressTitle:  { fontSize: 14, color: C.text, fontWeight: '700' },
+  progressCount:  { fontSize: 13, color: C.muted, fontWeight: '600' },
   progressBarBg:  { height: 4, backgroundColor: C.bg, borderRadius: 2, marginBottom: 12 },
   progressBarFill:{ height: 4, backgroundColor: C.g500, borderRadius: 2 },
   stepRow:    { flexDirection: 'row', alignItems: 'center' },
@@ -1395,9 +1316,9 @@ const s = StyleSheet.create({
   },
   stepDotDone:   { backgroundColor: C.g600, borderColor: C.g600 },
   stepDotActive: { backgroundColor: C.blue, borderColor: C.blue },
-  stepNum:       { fontSize: 9, fontWeight: '800', color: C.muted },
+  stepNum:       { fontSize: 11, fontWeight: '800', color: C.muted },
   stepLine:      { flex: 1, height: 1.5, backgroundColor: C.border, maxWidth: 28 },
-  stepCurrent:   { fontSize: 10, color: C.muted, fontWeight: '600', marginLeft: 10 },
+  stepCurrent:   { fontSize: 12, color: C.muted, fontWeight: '600', marginLeft: 10 },
 
   // ── Body ────────────────────────────────────────────────────
   body: { paddingHorizontal: 16, paddingTop: 18 },
@@ -1410,7 +1331,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: rs(12), paddingHorizontal: 14, height: 38,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', marginBottom: 10,
   },
-  heroSearchInput: { flex: 1, fontSize: 12.5, color: '#fff', fontWeight: '600', padding: 0 },
+  heroSearchInput: { flex: 1, fontSize: 13.5, color: '#fff', fontWeight: '600', padding: 0 },
   // Results dropdown — docked right under the fixed header's search field,
   // above the scrolling content (not inside s.body, so needs its own margins).
   searchResults: {
@@ -1418,20 +1339,20 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: C.border, overflow: 'hidden',
     ...cardShadow,
   },
-  searchEmptyTxt: { fontSize: 12, color: C.muted, textAlign: 'center', paddingVertical: 16 },
+  searchEmptyTxt: { fontSize: 14, color: C.muted, textAlign: 'center', paddingVertical: 16 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
   searchRowDivider: { borderBottomWidth: 1, borderBottomColor: C.border },
   searchRowIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  searchRowLabel: { fontSize: 12.5, fontWeight: '700', color: C.text },
-  searchRowSub: { fontSize: 10.5, color: C.muted, marginTop: 1 },
+  searchRowLabel: { fontSize: 13.5, fontWeight: '700', color: C.text },
+  searchRowSub: { fontSize: 12.5, color: C.muted, marginTop: 1 },
 
   // ── Section ─────────────────────────────────────────────────
   section:      { marginBottom: 22 },
   sectionRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  sectionTitle: { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: -0.2, marginBottom: 10 },
+  sectionTitle: { fontSize: 14, fontWeight: '800', color: C.text, letterSpacing: -0.2, marginBottom: 10 },
   // SectionHeading — kicker (small caps label) + serif title, TA's convention.
   headingRow:     { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 },
-  headingKicker:  { fontSize: 10, fontWeight: '800', color: C.g600, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
+  headingKicker:  { fontSize: 12, fontWeight: '800', color: C.g600, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
   headingTitle:   { fontFamily: DISPLAY, fontSize: rf(17), fontWeight: '800', color: C.text, letterSpacing: -0.2 },
 
   // ── Collection ring card (Business snapshot) ──────────────────
@@ -1440,28 +1361,26 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: C.border, overflow: 'hidden',
     ...cardShadow,
   },
-  crOrb1: { position: 'absolute', top: -30, right: -30, width: rs(110), height: rs(110), borderRadius: rs(55), backgroundColor: T.tintEmerald },
-  crOrb2: { position: 'absolute', bottom: -20, left: -20, width: rs(80), height: rs(80), borderRadius: rs(40), backgroundColor: T.tintGold },
   crTop: { flexDirection: 'row', alignItems: 'center' },
   crRingWrap: { width: 116, height: 116, alignItems: 'center', justifyContent: 'center' },
   crRingCenter: { position: 'absolute', alignItems: 'center' },
   crRingPct: { fontFamily: DISPLAY, fontSize: rf(26), fontWeight: '800', color: C.text },
   crRingPctLbl: { fontSize: 8, fontWeight: '700', color: C.muted, letterSpacing: 1 },
-  crKicker: { fontSize: 10, fontWeight: '800', color: C.muted, letterSpacing: 1, marginBottom: 4 },
+  crKicker: { fontSize: 12, fontWeight: '800', color: C.muted, letterSpacing: 1, marginBottom: 4 },
   crDeltaPill: { flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-start', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10, marginBottom: 4 },
-  crDeltaTxt: { fontSize: 10, fontWeight: '800' },
+  crDeltaTxt: { fontSize: 12, fontWeight: '800' },
   crAmt: { fontFamily: DISPLAY, fontSize: rf(24), fontWeight: '800', color: C.text },
-  crSub: { fontSize: 10.5, color: C.muted, marginTop: 1 },
+  crSub: { fontSize: 12.5, color: C.muted, marginTop: 1 },
   crLegend: { flexDirection: 'row', gap: 18, marginTop: 14 },
   crLegendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   crLegendDot: { width: 7, height: 7, borderRadius: 3.5 },
-  crLegendLbl: { fontSize: 10.5, color: C.muted, fontWeight: '600' },
-  crLegendVal: { fontSize: 10.5, color: C.text, fontWeight: '800' },
+  crLegendLbl: { fontSize: 12.5, color: C.muted, fontWeight: '600' },
+  crLegendVal: { fontSize: 12.5, color: C.text, fontWeight: '800' },
   crRule: { height: 1, backgroundColor: C.border, marginVertical: 14 },
   crStrip: { flexDirection: 'row', alignItems: 'center' },
   crStripCell: { flex: 1, alignItems: 'center' },
   crStripVal: { fontFamily: DISPLAY, fontSize: rf(15), fontWeight: '800', color: C.text },
-  crStripLbl: { fontSize: 9.5, color: C.muted, fontWeight: '600', marginTop: 1 },
+  crStripLbl: { fontSize: 11.5, color: C.muted, fontWeight: '600', marginTop: 1 },
   crStripDiv: { width: 1, height: 24, backgroundColor: C.border },
 
   // ── Bento tiles (Quick Actions) ────────────────────────────────
@@ -1488,10 +1407,10 @@ const s = StyleSheet.create({
   },
   priorityBar: { position: 'absolute', top: 0, left: 0, right: 0, height: 4 },
   priorityIcon: { width: rs(38), height: rs(38), borderRadius: rs(13), alignItems: 'center', justifyContent: 'center', marginTop: 6, marginBottom: 10 },
-  priorityTitle: { fontSize: 13, fontWeight: '800', color: C.text, marginBottom: 3 },
-  priorityDesc: { fontSize: 10.5, color: C.muted, lineHeight: 14, marginBottom: 10 },
+  priorityTitle: { fontSize: 14, fontWeight: '800', color: C.text, marginBottom: 3 },
+  priorityDesc: { fontSize: 12.5, color: C.muted, lineHeight: 14, marginBottom: 10 },
   priorityCta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  priorityCtaTxt: { fontSize: 11, fontWeight: '800', color: C.g700 },
+  priorityCtaTxt: { fontSize: 13, fontWeight: '800', color: C.g700 },
 
   // ── Setup list rows (Pending setup, list not grid) ─────────────
   setupRow: {
@@ -1502,30 +1421,18 @@ const s = StyleSheet.create({
   },
   setupAccent: { position: 'absolute', top: 0, left: 0, bottom: 0, width: 4 },
   setupIcon: { width: rs(40), height: rs(40), borderRadius: rs(13), alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  setupName: { fontSize: 13, fontWeight: '800', color: C.text, marginBottom: 2 },
-  setupDesc: { fontSize: 10.5, color: C.muted },
-  setupStepInline: { fontSize: 10.5, color: C.g700, fontWeight: '800' },
+  setupName: { fontSize: 14, fontWeight: '800', color: C.text, marginBottom: 2 },
+  setupDesc: { fontSize: 12.5, color: C.muted },
+  setupStepInline: { fontSize: 12.5, color: C.g700, fontWeight: '800' },
   setupStart: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.g50, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, marginLeft: 8 },
-  setupStartTxt: { fontSize: 11, fontWeight: '800', color: C.g700 },
+  setupStartTxt: { fontSize: 13, fontWeight: '800', color: C.g700 },
 
-  // ── Payments card (Management) ─────────────────────────────────
-  payCard: { borderRadius: rs(22), padding: rs(18), overflow: 'hidden' },
-  payOrb: { position: 'absolute', top: -40, right: -40, width: rs(140), height: rs(140), borderRadius: rs(70), backgroundColor: 'rgba(255,255,255,0.06)' },
-  payKicker: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.6)', letterSpacing: 1.5, marginBottom: 4 },
-  payAmt: { fontFamily: DISPLAY, fontSize: rf(30), fontWeight: '800', color: '#fff', marginBottom: 14 },
-  payStrip: { flexDirection: 'row', alignItems: 'center' },
-  payCell: { flex: 1, alignItems: 'center' },
-  payCellTop: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
-  payCellDot: { width: 6, height: 6, borderRadius: 3 },
-  payCellLbl: { fontSize: 9.5, color: 'rgba(255,255,255,0.65)', fontWeight: '600' },
-  payCellVal: { fontSize: 13, color: '#fff', fontWeight: '800' },
-  payDivider: { width: 1, height: 26, backgroundColor: 'rgba(255,255,255,0.15)' },
   countPill:    { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 20, backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100 },
-  countPillTxt: { fontSize: 10, fontWeight: '700', color: C.g700 },
+  countPillTxt: { fontSize: 12, fontWeight: '700', color: C.g700 },
   // "Preview" badge — sits next to Quick Actions / Manage section titles
   // for pending vendors so they know they can look but not act.
   previewPill:    { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, backgroundColor: C.amberL, borderWidth: 1, borderColor: '#FDE68A' },
-  previewPillTxt: { fontSize: 10, fontWeight: '800', color: C.amber, letterSpacing: 0.3 },
+  previewPillTxt: { fontSize: 12, fontWeight: '800', color: C.amber, letterSpacing: 0.3 },
 
   // ── Metrics ──────────────────────────────────────────────────
   metricsRow: { flexDirection: 'row', gap: 8, marginBottom: 22 },
@@ -1537,13 +1444,13 @@ const s = StyleSheet.create({
   },
   metricIconBox: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   metricVal:  { fontSize: 18, fontWeight: '900', color: C.text, letterSpacing: -0.5, marginBottom: 2 },
-  metricLbl:  { fontSize: 9,  fontWeight: '700', color: C.sub },
+  metricLbl:  { fontSize: 11,  fontWeight: '700', color: C.sub },
   metricUnit: { fontSize: 8.5,fontWeight: '500', color: C.muted },
 
   // ── New Inquiries (mockup) ────────────────────────────────────
   inqCountPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 20, backgroundColor: C.redL, borderWidth: 1, borderColor: '#FECACA' },
   inqLiveDot:   { width: 6, height: 6, borderRadius: 3, backgroundColor: C.red },
-  inqCountTxt:  { fontSize: 10, fontWeight: '800', color: C.red },
+  inqCountTxt:  { fontSize: 12, fontWeight: '800', color: C.red },
   inqCard: {
     backgroundColor: C.card, borderRadius: rs(18), padding: 13,
     borderWidth: 1, borderColor: C.border,
@@ -1551,27 +1458,21 @@ const s = StyleSheet.create({
   },
   inqTop:     { flexDirection: 'row', alignItems: 'center', gap: 10 },
   inqIconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  inqTitle:   { fontSize: 13, fontWeight: '800', color: C.text },
-  inqSub:     { fontSize: 11, color: C.sub, marginTop: 2 },
-  inqAgo:     { fontSize: 10, color: C.muted, fontWeight: '600' },
+  inqTitle:   { fontSize: 14, fontWeight: '800', color: C.text },
+  inqSub:     { fontSize: 13, color: C.sub, marginTop: 2 },
+  inqAgo:     { fontSize: 12, color: C.muted, fontWeight: '600' },
   inqUrgent:  { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: C.redL, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10 },
-  inqUrgentTxt: { fontSize: 9, fontWeight: '800', color: C.red },
+  inqUrgentTxt: { fontSize: 11, fontWeight: '800', color: C.red },
   inqBottom:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 11, borderTopWidth: 1, borderTopColor: C.border },
   inqCustomer:    { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   inqAvatar:      { width: 26, height: 26, borderRadius: 13, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
-  inqAvatarTxt:   { fontSize: 11, fontWeight: '800', color: C.g700 },
-  inqCustomerTxt: { fontSize: 12, fontWeight: '600', color: C.text, flex: 1 },
+  inqAvatarTxt:   { fontSize: 13, fontWeight: '800', color: C.g700 },
+  inqCustomerTxt: { fontSize: 14, fontWeight: '600', color: C.text, flex: 1 },
   inqBtn:    { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.g600, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-  inqBtnTxt: { fontSize: 12, fontWeight: '800', color: '#fff' },
+  inqBtnTxt: { fontSize: 14, fontWeight: '800', color: '#fff' },
   inqViewAll:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, paddingVertical: 11, borderRadius: 12, backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100 },
-  inqViewAllTxt: { fontSize: 12, fontWeight: '800', color: C.g700 },
+  inqViewAllTxt: { fontSize: 14, fontWeight: '800', color: C.g700 },
 
-  // ── Quick Actions ─────────────────────────────────────────────
-  qaRow:    { flexDirection: 'row', flexWrap: 'wrap', rowGap: 14, columnGap: 6 },
-  qaItem:   { width: QA_W, alignItems: 'center' },
-  qaCircle: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  // fixed 2-line height so 1-word and 2-word labels keep every cell aligned
-  qaLabel:  { fontSize: 9, fontWeight: '700', color: C.sub, textAlign: 'center', lineHeight: 12, height: 24 },
 
   // ── Services ──────────────────────────────────────────────────
   svcGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -1582,7 +1483,7 @@ const s = StyleSheet.create({
     ...rowShadow,
   },
   svcIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  svcName:    { flex: 1, fontSize: 11.5, fontWeight: '700', color: C.text, marginLeft: 9, lineHeight: 15 },
+  svcName:    { flex: 1, fontSize: 13.5, fontWeight: '700', color: C.text, marginLeft: 9, lineHeight: 15 },
   svcCountDot: {
     position: 'absolute', top: -5, right: -5,
     minWidth: 18, height: 18, borderRadius: 9,
@@ -1590,7 +1491,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 4,
     borderWidth: 1.5, borderColor: C.card,
   },
-  svcCountDotTxt: { fontSize: 9, fontWeight: '800', color: '#fff' },
+  svcCountDotTxt: { fontSize: 11, fontWeight: '800', color: '#fff' },
 
   // ── Manage — 2-column grid (NO single giant card) ─────────────
   manageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -1605,24 +1506,9 @@ const s = StyleSheet.create({
   managePill:    { minWidth: 30, height: rs(24), paddingHorizontal: rs(8), borderRadius: rs(12), alignItems: 'center', justifyContent: 'center' },
   managePillTxt: { fontFamily: DISPLAY, fontSize: rf(12), fontWeight: '800' },
   manageChev:    { width: rs(24), height: rs(24), borderRadius: rs(12), alignItems: 'center', justifyContent: 'center' },
-  manageLabel:   { fontSize: 12.5, fontWeight: '800', color: C.text, marginBottom: 2 },
-  manageSub:     { fontSize: 10, color: C.muted, lineHeight: 14 },
+  manageLabel:   { fontSize: 13.5, fontWeight: '800', color: C.text, marginBottom: 2 },
+  manageSub:     { fontSize: 12, color: C.muted, lineHeight: 14 },
 
-  // ── Management section tiles — 3-column variant (9 items divide evenly) ──
-  // ── Management section — simple list rows (same idiom as "Complete Setup") ──
-  // ── Management — round icon grid, 3 per row (9 items fit evenly) ──
-  // ── Management — single dark "hub" card with a compact icon strip ──
-  hubCard: { borderRadius: rs(20), padding: rs(16) },
-  hubKicker: { fontFamily: DISPLAY, fontSize: rf(13), fontWeight: '700', color: '#fff', marginBottom: 14 },
-  hubGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  // 3 per row — 9 items divide evenly, no lonely leftover in the last row.
-  hubItem: { width: '33.33%', alignItems: 'center', marginBottom: 14 },
-  hubCircle: {
-    width: rs(50), height: rs(50), borderRadius: rs(16),
-    backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 7,
-  },
-  hubLabel: { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.85)', textAlign: 'center' },
   // Still used by the (unchanged) Community grid's plain chevron-in-corner tiles.
   manageArrow:   { position: 'absolute', bottom: 12, right: 12 },
 
@@ -1634,15 +1520,15 @@ const s = StyleSheet.create({
     ...rowShadow,
   },
   pendingIconBox: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  pendingName:    { fontSize: 12, fontWeight: '800', color: C.text, marginBottom: 3 },
-  pendingDesc:    { fontSize: 10, color: C.muted },
+  pendingName:    { fontSize: 14, fontWeight: '800', color: C.text, marginBottom: 3 },
+  pendingDesc:    { fontSize: 12, color: C.muted },
 
   // ── Alert ─────────────────────────────────────────────────────
   alertRow: {
     flexDirection: 'row', alignItems: 'center',
     borderRadius: 12, padding: 12, borderWidth: 1, marginBottom: 12,
   },
-  alertTxt: { fontSize: 12, fontWeight: '600' },
+  alertTxt: { fontSize: 14, fontWeight: '600' },
 
   // ── Getting started ───────────────────────────────────────────
   guideCard: {
@@ -1652,13 +1538,10 @@ const s = StyleSheet.create({
   },
   guideRow:    { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 10 },
   guideNum:    { width: 26, height: 26, borderRadius: 13, backgroundColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  guideNumTxt: { fontSize: 11, fontWeight: '800', color: C.sub },
-  guideTitle:  { fontSize: 12, fontWeight: '700', color: C.text, marginBottom: 2 },
-  guideDesc:   { fontSize: 11, color: C.muted, lineHeight: 15 },
+  guideNumTxt: { fontSize: 13, fontWeight: '800', color: C.sub },
+  guideTitle:  { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 2 },
+  guideDesc:   { fontSize: 13, color: C.muted, lineHeight: 15 },
   guideLine:   { height: 1, backgroundColor: C.border, marginLeft: 38 },
-
-  // ── Animated tile bubble (top-right corner of Service/Manage/Pending tiles)
-  tileWash: { position: 'absolute', top: -30, right: -30, width: rs(96), height: rs(96), borderRadius: rs(48) },
 
   // ── Update modal ──────────────────────────────────────────────
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
@@ -1670,7 +1553,7 @@ const s = StyleSheet.create({
   modalIconWrap: { marginBottom: 16 },
   modalIconGrad: { width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   modalTitle:    { fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: C.text, marginBottom: 4 },
-  modalVersion:  { fontSize: 13, color: C.sub, marginBottom: 12 },
+  modalVersion:  { fontSize: 14, color: C.sub, marginBottom: 12 },
   modalMsg:      { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 21, marginBottom: 24 },
   modalBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -1678,5 +1561,5 @@ const s = StyleSheet.create({
   },
   modalBtnTxt:  { fontSize: 16, fontWeight: '800', color: '#fff' },
   modalSkip:    { marginTop: 14 },
-  modalSkipTxt: { fontSize: 13, color: C.muted, fontWeight: '600' },
+  modalSkipTxt: { fontSize: 14, color: C.muted, fontWeight: '600' },
 });

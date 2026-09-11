@@ -2,6 +2,11 @@
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { FAQSection } from '@/components/services/FAQSection';
+import {
+  Users, Snowflake, Armchair, Map, Briefcase, Landmark, Heart,
+  CheckCircle2, Sparkles, RefreshCw, Route as RouteIcon, MapPinned,
+} from 'lucide-react';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
@@ -195,25 +200,40 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
         ]}
         gradientFrom="orange-50"
         gradientTo="amber-50"
+        cityName={locationName}
+        serviceType="tempo-traveller"
+        backgroundImage="/images/sections/tempo-traveller-hero-bg.webp"
+        bookingVariant="tempo"
+        heroStats={[
+          { icon: 'tag', value: '₹18/km', label: 'Starting rate' },
+          { icon: 'shield', value: '500+', label: 'Verified operators' },
+          { icon: 'map', value: '150+', label: 'Cities served' },
+          { icon: 'headphones', value: '24/7', label: 'Customer support' },
+        ]}
       />
 
       {/* Why Tempo Traveller in This City */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Why Choose Tempo Traveller in {locationName}?
+      <section className="relative overflow-hidden py-16 bg-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Why Choose Tempo Traveller in <span className="text-emerald-600">{locationName}</span>?
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 max-w-5xl mx-auto">
             {[
-              { icon: '👥', title: 'Group Travel', desc: `Perfect for ${locationName} tours` },
-              { icon: '❄️', title: 'AC Comfort', desc: 'Fully air-conditioned' },
-              { icon: '💺', title: 'Comfortable Seats', desc: 'Push-back seating' },
-              { icon: '🗺️', title: 'Outstation Ready', desc: 'Multi-city trips allowed' },
-            ].map((feature) => (
-              <div key={feature.title} className="text-center">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.desc}</p>
+              { Icon: Users, title: 'Group Travel', desc: `Perfect for ${locationName} tours` },
+              { Icon: Snowflake, title: 'AC Comfort', desc: 'Fully air-conditioned' },
+              { Icon: Armchair, title: 'Comfortable Seats', desc: 'Push-back seating' },
+              { Icon: Map, title: 'Outstation Ready', desc: 'Multi-city trips allowed' },
+            ].map(({ Icon, title, desc }) => (
+              <div key={title} className="group rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 px-4 py-5 text-center">
+                <div className="relative w-14 h-14 mx-auto mb-3.5">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[78deg] transition-transform duration-500" />
+                  <span className="absolute inset-[5px] rounded-full bg-emerald-50 flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-emerald-600" strokeWidth={1.9} />
+                  </span>
+                </div>
+                <h3 className="font-bold text-[15px] text-gray-900 leading-snug">{title}</h3>
+                <p className="mt-1 text-[12.5px] leading-snug text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
@@ -224,22 +244,27 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
       <TempoFleetSection vehicles={tempoFleet} locationName={locationName} />
 
       {/* Perfect Occasions in City */}
-      <section className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Perfect for Events in {locationName}
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Perfect for Events in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 max-w-5xl mx-auto">
             {[
-              { occasion: 'Family Trips', icon: '👨‍👩‍👧‍👦', desc: `${locationName} outstation tours` },
-              { occasion: 'Corporate Events', icon: '💼', desc: 'Team outings & meetings' },
-              { occasion: 'Pilgrimages', icon: '🛕', desc: 'Temple tours from city' },
-              { occasion: 'Weddings', icon: '💒', desc: 'Guest transport service' },
-            ].map((item) => (
-              <div key={item.occasion} className="bg-gray-50 p-6 rounded-lg text-center">
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{item.occasion}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              { Icon: Users, occasion: 'Family Trips', desc: `${locationName} outstation tours` },
+              { Icon: Briefcase, occasion: 'Corporate Events', desc: 'Team outings & meetings' },
+              { Icon: Landmark, occasion: 'Pilgrimages', desc: 'Temple tours from city' },
+              { Icon: Heart, occasion: 'Weddings', desc: 'Guest transport service' },
+            ].map(({ Icon, occasion, desc }) => (
+              <div key={occasion} className="group rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 px-4 py-5 text-center">
+                <div className="relative w-14 h-14 mx-auto mb-3.5">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[78deg] transition-transform duration-500" />
+                  <span className="absolute inset-[5px] rounded-full bg-emerald-50 flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-emerald-600" strokeWidth={1.9} />
+                  </span>
+                </div>
+                <h3 className="font-bold text-[15px] text-gray-900 leading-snug">{occasion}</h3>
+                <p className="mt-1 text-[12.5px] leading-snug text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
@@ -249,58 +274,52 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
       {/* Features */}
       <section className="py-16 bg-gray-50">
         <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Tempo Traveller Features in {locationName}
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Tempo Traveller Features in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-xl mb-4 text-orange-700">Included Features</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-orange-700 mt-1">✓</span>
-                  <span>Fully air-conditioned</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange-700 mt-1">✓</span>
-                  <span>Push-back/reclining seats</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange-700 mt-1">✓</span>
-                  <span>Music system included</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange-700 mt-1">✓</span>
-                  <span>Ample luggage space</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange-700 mt-1">✓</span>
-                  <span>Experienced driver in {locationName}</span>
-                </li>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-white" />
+                </span>
+                <h3 className="font-bold text-lg text-gray-900">Included Features</h3>
+              </div>
+              <ul className="space-y-2.5 text-gray-600 text-sm">
+                {[
+                  'Fully air-conditioned',
+                  'Push-back/reclining seats',
+                  'Music system included',
+                  'Ample luggage space',
+                  `Experienced driver in ${locationName}`,
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-xl mb-4 text-amber-900">Service Amenities</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>24/7 pickup available</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Flexible rental packages</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Outstation trips allowed</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Full vehicle insurance</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Customer support</span>
-                </li>
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </span>
+                <h3 className="font-bold text-lg text-gray-900">Service Amenities</h3>
+              </div>
+              <ul className="space-y-2.5 text-gray-600 text-sm">
+                {[
+                  '24/7 pickup available',
+                  'Flexible rental packages',
+                  'Outstation trips allowed',
+                  'Full vehicle insurance',
+                  'Customer support',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
@@ -308,21 +327,24 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
       </section>
 
       {/* Rental Packages */}
-      <section className="py-16">
+      <section className="py-16 bg-white">
         <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Tempo Traveller Packages in {locationName}
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Tempo Traveller Packages in <span className="text-emerald-600">{locationName}</span>
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { duration: 'Local (8 hrs)', price: '2500-4000', desc: '80 km' },
-              { duration: 'Outstation', price: '18-35/km', desc: 'Per km rate' },
-              { duration: 'Multi-Day', price: '3000-5500/day', desc: '250-300 km/day' },
+              { Icon: RefreshCw, duration: 'Local (8 hrs)', price: '2500-4000', desc: '80 km' },
+              { Icon: RouteIcon, duration: 'Outstation', price: '18-35/km', desc: 'Per km rate' },
+              { Icon: MapPinned, duration: 'Multi-Day', price: '3000-5500/day', desc: '250-300 km/day' },
             ].map((plan) => (
-              <div key={plan.duration} className="bg-gray-50 p-6 rounded-lg text-center">
-                <h3 className="font-semibold text-lg mb-2">{plan.duration}</h3>
-                <p className="text-2xl font-bold text-orange-700 mb-2">₹{plan.price}</p>
-                <p className="text-sm text-gray-600">{plan.desc}</p>
+              <div key={plan.duration} className="group bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-white hover:shadow-md rounded-2xl p-6 text-center transition-all">
+                <span className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-600 transition-colors">
+                  <plan.Icon className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
+                </span>
+                <h3 className="font-bold text-lg text-gray-900 mb-1.5">{plan.duration}</h3>
+                <p className="text-2xl font-black text-emerald-700 mb-1">₹{plan.price}</p>
+                <p className="text-sm text-gray-500">{plan.desc}</p>
               </div>
             ))}
           </div>
@@ -331,11 +353,11 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
 
       {/* How to Book */}
       <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            How to Book Tempo Traveller in {locationName}
+        <div className="container-custom max-w-5xl">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            How to Book Tempo Traveller in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="space-y-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               { step: '1', title: 'Select Vehicle', desc: 'Choose seating capacity (12-20 seater)' },
               { step: '2', title: 'Choose Package', desc: `Local or outstation from ${locationName}` },
@@ -343,19 +365,22 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
               { step: '4', title: 'Get Confirmation', desc: 'Driver details shared via SMS' },
               { step: '5', title: 'Enjoy Your Trip', desc: 'Comfortable group travel' },
             ].map((item) => (
-              <div key={item.step} className="flex gap-4 bg-white p-4 rounded-lg shadow-md">
-                <div className="flex-shrink-0 w-10 h-10 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold">
-                  {item.step}
+              <div key={item.step} className="flex gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="relative flex-shrink-0 w-10 h-10">
+                  <span className="absolute inset-0 rounded-full bg-emerald-500/40 animate-ping" />
+                  <div className="relative w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold">
+                    {item.step}
+                  </div>
                 </div>
                 <div>
-                  <h3 className="font-bold mb-1">{item.title}</h3>
-                  <p className="text-sm text-gray-600">{item.desc}</p>
+                  <h3 className="font-bold text-[15px] text-gray-900 mb-1">{item.title}</h3>
+                  <p className="text-xs text-gray-500">{item.desc}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content
@@ -432,6 +457,12 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection
+        service="tempo-traveller"
+        location={locationName}
+        customFaqs={displayFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))}
+      />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

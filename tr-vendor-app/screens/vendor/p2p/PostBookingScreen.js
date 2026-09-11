@@ -13,7 +13,7 @@ import { createP2PBooking, updateP2PBooking } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
 import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -39,6 +39,10 @@ const URGENCY_OPTIONS = [
   { value: 'LOW', label: 'Low', desc: 'Flexible', color: C.g500, activeBg: C.g50, activeBorder: C.g500 },
 ];
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 function fmtDate(d) { return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
 function fmtTime(d) { return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }); }
 
@@ -47,6 +51,7 @@ export default function PostBookingScreen({ navigation, route }) {
   const isEditing = !!editData;
 
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [alert, setAlert] = useState({ visible: false, type: 'info', title: '', message: '', actions: [] });
   const showAlert = (type, title, message) => setAlert({ visible: true, type, title, message, actions: [{ label: 'OK', variant: 'primary', onPress: () => hideAlert() }] });
   const hideAlert = () => setAlert(a => ({ ...a, visible: false }));
@@ -115,6 +120,11 @@ export default function PostBookingScreen({ navigation, route }) {
     setUrgency(editData.urgency || 'MEDIUM');
     setReason(editData.reasonForSharing || '');
     setNotes(editData.notes || '');
+  }, [editData]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setInitializing(false), 350);
+    return () => clearTimeout(t);
   }, []);
 
   const onDateChange = (event, selectedDate) => {
@@ -175,6 +185,57 @@ export default function PostBookingScreen({ navigation, route }) {
     } finally { setLoading(false); }
   };
 
+  if (initializing) {
+    return (
+      <View style={s.root}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g950} />
+
+        <LinearGradient colors={G.hero} style={s.headerGradient}>
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+          <SafeAreaView edges={['top']}>
+            <View style={s.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+                <Icon name="arrow-left" size={20} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.headerCenter}>
+                <View style={s.headerIconWrap}>
+                  <MCI name="share-variant" size={22} color="#fff" />
+                </View>
+                <Text style={s.headerTitle}>{isEditing ? 'Edit Booking' : 'Share Booking'}</Text>
+                <Text style={s.headerSub}>{isEditing ? 'Update your booking posting' : 'Sub-contract a booking to partner vendor'}</Text>
+              </View>
+              <View style={{ width: 44 }} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
+        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+          <View style={s.sectionCard}>
+            <StepHeader step="1" gradColors={[C.g700, C.g500]} title="Service Type" />
+            <View style={s.serviceTypeRow}>
+              {[0, 1].map(i => (
+                <View key={i} style={s.serviceCard}>
+                  <Bone w={48} h={48} r={14} style={{ marginBottom: 10 }} />
+                  <Bone w={60} h={13} style={{ marginBottom: 6 }} />
+                  <Bone w={90} h={10} />
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={s.sectionCard}>
+            <StepHeader step="2" gradColors={[C.blueDark, C.blue]} title="Vehicle Required" />
+            <View style={s.chipGrid}>
+              {[0, 1, 2, 3].map(i => (
+                <Bone key={i} w={80} h={32} r={10} />
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g950} />
@@ -182,8 +243,7 @@ export default function PostBookingScreen({ navigation, route }) {
       {/* ── HEADER ── */}
       <LinearGradient colors={G.hero} style={s.headerGradient}>
         {/* Decorative orbs */}
-        <AnimatedOrb style={s.headerCircle1} />
-        <AnimatedOrb style={s.headerCircle2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -521,8 +581,8 @@ export default function PostBookingScreen({ navigation, route }) {
                   <Text style={[s.previewValueWhite, { fontSize: 20, color: C.g300, fontWeight: '800' }]}>{'₹'}{partnerEarning.toLocaleString('en-IN')}</Text>
                 </View>
                 <View style={s.previewRow}>
-                  <Text style={[s.previewLabel, { fontSize: 11, color: 'rgba(255,255,255,0.4)' }]}>Platform Fee (5%)</Text>
-                  <Text style={[s.previewValueWhite, { fontSize: 11, color: 'rgba(255,255,255,0.4)' }]}>-{'₹'}{platformFee.toLocaleString('en-IN')}</Text>
+                  <Text style={[s.previewLabel, { fontSize: 12, color: 'rgba(255,255,255,0.4)' }]}>Platform Fee (5%)</Text>
+                  <Text style={[s.previewValueWhite, { fontSize: 12, color: 'rgba(255,255,255,0.4)' }]}>-{'₹'}{platformFee.toLocaleString('en-IN')}</Text>
                 </View>
               </LinearGradient>
             )}
@@ -661,14 +721,7 @@ const s = StyleSheet.create({
 
   // Header
   headerGradient: { paddingBottom: 20, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
-  headerCircle1: {
-    position: 'absolute', width: 200, height: 200, borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -50,
-  },
-  headerCircle2: {
-    position: 'absolute', width: 140, height: 140, borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.045)', bottom: -30, left: -30,
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 10, paddingBottom: 6,
@@ -685,7 +738,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   headerTitle: { fontFamily: DISPLAY, fontSize: 22, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.2 },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
+  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
 
   // Scroll
   scroll: { padding: 16, gap: 14 },
@@ -706,7 +759,7 @@ const s = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14,
     justifyContent: 'center', alignItems: 'center',
   },
-  stepNumber: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: '#fff' },
+  stepNumber: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
   stepTitle: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '800', color: C.text, letterSpacing: 0.1 },
 
   // Service type
@@ -733,7 +786,7 @@ const s = StyleSheet.create({
   serviceCardIconWrapPurple: { backgroundColor: '#EDE9FE' },
   serviceCardIconWrapGray: { backgroundColor: '#F1F5F9' },
   serviceCardLabel: { fontSize: 15, fontWeight: '800', color: C.muted, letterSpacing: 0.1 },
-  serviceCardSub: { fontSize: 11, color: C.muted, textAlign: 'center' },
+  serviceCardSub: { fontSize: 12, color: C.muted, textAlign: 'center' },
 
   // Vehicle chips grid
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16 },
@@ -743,7 +796,7 @@ const s = StyleSheet.create({
     borderWidth: 2, borderColor: C.border, backgroundColor: C.surface,
   },
   vehicleChipActive: { borderColor: C.g600, backgroundColor: C.g50 },
-  vehicleChipText: { fontSize: 12, fontWeight: '600', color: C.muted },
+  vehicleChipText: { fontSize: 13, fontWeight: '600', color: C.muted },
   vehicleChipTextActive: { color: C.g700, fontWeight: '700' },
 
   // Route card (boarding pass style)
@@ -756,7 +809,7 @@ const s = StyleSheet.create({
   routeDotRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   routeDotGreen: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.g500 },
   routeDotRed: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.red },
-  routeCityLabel: { fontSize: 10, fontWeight: '700', color: C.muted, letterSpacing: 1, textTransform: 'uppercase' },
+  routeCityLabel: { fontSize: 11, fontWeight: '700', color: C.muted, letterSpacing: 1, textTransform: 'uppercase' },
   routeInput: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '700', color: C.text, paddingVertical: 0 },
   routeDivider: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
@@ -778,8 +831,8 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface,
   },
   dateTimeCardActive: { borderColor: C.g400, backgroundColor: C.g50 },
-  dateTimeCardLabel: { fontSize: 10, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  dateTimeCardValue: { fontSize: 13, fontWeight: '700', color: C.muted },
+  dateTimeCardLabel: { fontSize: 11, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  dateTimeCardValue: { fontSize: 14, fontWeight: '700', color: C.muted },
 
   // Field card (icon + label + input)
   fieldCard: {
@@ -791,7 +844,7 @@ const s = StyleSheet.create({
   fieldCardIconBox: {
     width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
   },
-  fieldCardLabel: { fontSize: 10, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+  fieldCardLabel: { fontSize: 11, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
   fieldCardInput: { fontSize: 14, color: C.text, fontWeight: '600', paddingVertical: 0 },
 
   // Toggle card (icon + label + switch)
@@ -804,13 +857,13 @@ const s = StyleSheet.create({
     width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
   },
   toggleCardLabel: { fontSize: 14, fontWeight: '700', color: C.text },
-  toggleCardSub: { fontSize: 12, color: C.muted, marginTop: 1 },
+  toggleCardSub: { fontSize: 13, color: C.muted, marginTop: 1 },
 
   // Budget card
   budgetCard: {
     marginHorizontal: 16, marginTop: 4, borderRadius: rs(14), paddingHorizontal: 18, paddingVertical: 16,
   },
-  budgetCardLabel: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 },
+  budgetCardLabel: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 },
   budgetInputRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   budgetRupee: { fontFamily: DISPLAY, fontSize: 30, fontWeight: '700', color: 'rgba(255,255,255,0.7)' },
   budgetInput: { fontFamily: DISPLAY, flex: 1, fontSize: 36, fontWeight: '900', color: '#fff', paddingVertical: 0 },
@@ -823,7 +876,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 10,
   },
   commissionLabelCol: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
-  commissionLabel: { fontSize: 13, fontWeight: '700', color: C.sub },
+  commissionLabel: { fontSize: 14, fontWeight: '700', color: C.sub },
   commissionInput: {
     width: 56, textAlign: 'center', fontSize: 16, fontWeight: '700', color: C.text,
     backgroundColor: C.surface, borderRadius: 8, borderWidth: 1.5, borderColor: C.border,
@@ -833,7 +886,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10,
     backgroundColor: C.g50, borderWidth: 1.5, borderColor: C.g300,
   },
-  commissionBadgeText: { fontSize: 13, fontWeight: '700', color: C.g700 },
+  commissionBadgeText: { fontSize: 14, fontWeight: '700', color: C.g700 },
 
   // Earnings preview
   previewCard: {
@@ -842,7 +895,7 @@ const s = StyleSheet.create({
     ...cardShadow,
   },
   previewRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  previewLabel: { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
+  previewLabel: { fontSize: 14, color: 'rgba(255,255,255,0.6)' },
   previewValueWhite: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#fff' },
   previewDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 4 },
 
@@ -853,8 +906,8 @@ const s = StyleSheet.create({
     borderRadius: rs(14), borderWidth: 2, gap: 6,
   },
   urgencyDot: { width: 8, height: 8, borderRadius: 4 },
-  urgencyLabel: { fontSize: 13, fontWeight: '800' },
-  urgencyDesc: { fontSize: 10, textAlign: 'center', fontWeight: '600' },
+  urgencyLabel: { fontSize: 14, fontWeight: '800' },
+  urgencyDesc: { fontSize: 11, textAlign: 'center', fontWeight: '600' },
 
   // Notes section
   notesSectionHead: {

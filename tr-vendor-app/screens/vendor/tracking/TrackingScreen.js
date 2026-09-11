@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, RefreshControl, ActivityIndicator, TextInput, Linking, Dimensions,
+  StatusBar, RefreshControl, TextInput, Linking, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -13,7 +13,7 @@ import { apiGet, getBaseURL } from '../../api/client';
 import LiveMap from './LiveMap';
 import { SC as T, G, rs, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already used — only the values now come from
 // the shared "Elevate" theme instead of hardcoded hex.
@@ -36,6 +36,10 @@ const STATUS_META = {
   offline: { label: 'Offline', color: C.muted, dot: C.muted, bg: C.bg },
 };
 
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
 function timeAgo(d) {
   if (!d) return 'never';
   const diff = Date.now() - new Date(d).getTime();
@@ -55,6 +59,7 @@ export default function TrackingScreen({ navigation }) {
   const [isLive, setIsLive]         = useState(true);
   const [filter, setFilter]         = useState('all');   // all | onTrip | moving | idle | offline
   const [query, setQuery]           = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [satellite, setSatellite]     = useState(false);
   const [baseURL, setBaseURL]         = useState('');
@@ -125,8 +130,7 @@ export default function TrackingScreen({ navigation }) {
 
       {/* Header */}
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
-        <AnimatedOrb style={s.orbA} />
-        <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerRow}>
             <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
@@ -137,6 +141,10 @@ export default function TrackingScreen({ navigation }) {
               <Text style={s.headerTitle}>Live Tracking</Text>
               <Text style={s.headerSub}>{stats.sharing} of {stats.total} drivers sharing location</Text>
             </View>
+            <TouchableOpacity style={[s.backBtn, { marginRight: 8 }]} activeOpacity={0.75}
+              onPress={() => { setSearchOpen(v => !v); if (searchOpen) setQuery(''); }}>
+              <Ionicons name={searchOpen ? 'close' : 'search'} size={18} color="#fff" />
+            </TouchableOpacity>
             <TouchableOpacity style={[s.liveBtn, isLive && s.liveBtnOn]} activeOpacity={0.8} onPress={() => setIsLive(v => !v)}>
               <View style={[s.liveDot, { backgroundColor: isLive ? C.g400 : C.muted }]} />
               <Text style={s.liveTxt}>{isLive ? 'Live' : 'Paused'}</Text>
@@ -160,6 +168,7 @@ export default function TrackingScreen({ navigation }) {
           </View>
 
           {/* Search */}
+          {searchOpen && (
           <View style={s.searchBox}>
             <Icon name="search" size={15} color="rgba(255,255,255,0.6)" style={{ marginRight: 8 }} />
             <TextInput
@@ -167,6 +176,7 @@ export default function TrackingScreen({ navigation }) {
               placeholder="Search driver or phone"
               placeholderTextColor="rgba(255,255,255,0.5)"
               value={query} onChangeText={setQuery} autoCorrect={false} returnKeyType="search"
+              autoFocus
             />
             {query.length > 0 && (
               <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -174,6 +184,7 @@ export default function TrackingScreen({ navigation }) {
               </TouchableOpacity>
             )}
           </View>
+          )}
         </SafeAreaView>
       </LinearGradient>
 
@@ -195,7 +206,11 @@ export default function TrackingScreen({ navigation }) {
       </View>
 
       {/* Live map — always visible; markers follow the active filter */}
-      {!loading && (
+      {loading ? (
+        <View style={[s.mapWrap, s.mapSkeleton, { height: mapExpanded ? Math.round(SCREEN_H * 0.62) : 230 }]}>
+          <MaterialCommunityIcons name="map-marker-radius-outline" size={28} color={C.border} />
+        </View>
+      ) : (
         <View style={[s.mapWrap, { height: mapExpanded ? Math.round(SCREEN_H * 0.62) : 230 }]}>
           <LiveMap markers={markers} satellite={satellite} style={{ flex: 1 }} />
           <View style={s.mapCtrls}>
@@ -217,9 +232,25 @@ export default function TrackingScreen({ navigation }) {
 
       {/* List */}
       {loading ? (
-        <View style={s.empty}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={[s.emptySub, { marginTop: 12 }]}>Loading drivers…</Text>
+        <View style={s.body}>
+          {[0, 1, 2].map(i => (
+            <View key={i} style={s.card}>
+              <View style={s.cardTop}>
+                <Bone w={40} h={40} r={20} />
+                <View style={{ flex: 1 }}>
+                  <Bone w={120} h={13} style={{ marginBottom: 6 }} />
+                  <Bone w={70} h={10} />
+                </View>
+              </View>
+              <View style={[s.locRow, { marginTop: 11 }]}>
+                <Bone w={150} h={11} />
+              </View>
+              <View style={s.actions}>
+                <Bone w="100%" h={34} r={10} style={{ flex: 1 }} />
+                <Bone w="100%" h={34} r={10} style={{ flex: 1 }} />
+              </View>
+            </View>
+          ))}
         </View>
       ) : (
         <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}
@@ -301,47 +332,41 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingBottom: 14, overflow: 'hidden',
     borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22),
   },
-  orbA: {
-    position: 'absolute', top: -46, right: -30, width: 150, height: 150,
-    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -40, left: -34, width: 120, height: 120,
-    borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 8, marginBottom: 16 },
   backBtn:     { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  headerEyebrow: { fontSize: 10, color: 'rgba(255,255,255,0.65)', fontWeight: '700', letterSpacing: 1.2, fontFamily: DISPLAY, marginBottom: 1 },
+  headerEyebrow: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '700', letterSpacing: 1.2, fontFamily: DISPLAY, marginBottom: 1 },
   headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: -0.3, fontFamily: DISPLAY },
-  headerSub:   { fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: '600', marginTop: 2 },
+  headerSub:   { fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: '600', marginTop: 2 },
   liveBtn:     { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
   liveBtnOn:   { borderColor: 'rgba(52,211,153,0.5)' },
   liveDot:     { width: 7, height: 7, borderRadius: 4 },
-  liveTxt:     { fontSize: 11, fontWeight: '800', color: '#fff' },
+  liveTxt:     { fontSize: 12, fontWeight: '800', color: '#fff' },
 
   statRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: rs(14), padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 12 },
   statBox: { flex: 1, alignItems: 'center' },
   statVal: { fontSize: 20, fontWeight: '900', marginBottom: 2, fontFamily: DISPLAY },
-  statLbl: { fontSize: 9.5, fontWeight: '600', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.3 },
+  statLbl: { fontSize: 10.5, fontWeight: '600', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.3 },
 
   searchBox:   { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   searchInput: { flex: 1, fontSize: 14, color: '#fff', padding: 0 },
 
   mapWrap:  { borderBottomWidth: 1, borderBottomColor: C.border, position: 'relative' },
+  mapSkeleton: { backgroundColor: '#EEF2F6', alignItems: 'center', justifyContent: 'center' },
   mapCtrls: { position: 'absolute', top: 10, right: 10, gap: 8 },
   mapBtn:   { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.95)', alignItems: 'center', justifyContent: 'center', ...cardShadow },
   mapEmpty:    { position: 'absolute', top: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.95)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  mapEmptyTxt: { fontSize: 11, fontWeight: '700', color: C.sub },
+  mapEmptyTxt: { fontSize: 12, fontWeight: '700', color: C.sub },
 
   chipsWrap: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
   chipsRow:  { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   chip:      { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
   chipOn:    { backgroundColor: C.g600, borderColor: C.g600 },
-  chipTxt:   { fontSize: 12, fontWeight: '700', color: C.sub },
+  chipTxt:   { fontSize: 13, fontWeight: '700', color: C.sub },
   chipTxtOn: { color: '#fff' },
   chipPill:    { minWidth: 18, paddingHorizontal: 5, height: 16, borderRadius: 8, backgroundColor: C.border, alignItems: 'center', justifyContent: 'center' },
   chipPillOn:  { backgroundColor: 'rgba(255,255,255,0.25)' },
-  chipPillTxt: { fontSize: 9.5, fontWeight: '800', color: C.sub },
+  chipPillTxt: { fontSize: 10.5, fontWeight: '800', color: C.sub },
   chipPillTxtOn: { color: '#fff' },
 
   body: { paddingHorizontal: 16, paddingTop: 14, gap: 10 },
@@ -353,28 +378,28 @@ const s = StyleSheet.create({
   name:    { fontSize: 14, fontWeight: '800', color: C.text, fontFamily: DISPLAY },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusTxt: { fontSize: 11, fontWeight: '700' },
-  speedTxt:  { fontSize: 11, color: C.muted, fontWeight: '600' },
+  statusTxt: { fontSize: 12, fontWeight: '700' },
+  speedTxt:  { fontSize: 12, color: C.muted, fontWeight: '600' },
   tripPill:    { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.blueL, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  tripPillTxt: { fontSize: 9.5, fontWeight: '800', color: C.blue },
+  tripPillTxt: { fontSize: 10.5, fontWeight: '800', color: C.blue },
 
   locRow:  { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 11 },
-  locTxt:  { flex: 1, fontSize: 12, color: C.sub, fontWeight: '600' },
-  locTime: { fontSize: 10, color: C.muted, fontWeight: '600' },
+  locTxt:  { flex: 1, fontSize: 13, color: C.sub, fontWeight: '600' },
+  locTime: { fontSize: 11, color: C.muted, fontWeight: '600' },
 
   tripBox:  { marginTop: 10, padding: 10, borderRadius: 10, backgroundColor: C.bg, gap: 3 },
-  tripCust: { fontSize: 12, fontWeight: '700', color: C.text },
-  tripRoute:{ fontSize: 11, color: C.sub },
-  tripVeh:  { fontSize: 11, color: C.muted },
+  tripCust: { fontSize: 13, fontWeight: '700', color: C.text },
+  tripRoute:{ fontSize: 12, color: C.sub },
+  tripVeh:  { fontSize: 12, color: C.muted },
 
   actions:  { flexDirection: 'row', gap: 8, marginTop: 12 },
   actBtn:   { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: C.g600, paddingVertical: 9, borderRadius: 10 },
   actBtnDisabled: { backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
   callBtn:  { backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100 },
-  actBtnTxt:{ fontSize: 12.5, fontWeight: '800', color: '#fff' },
+  actBtnTxt:{ fontSize: 13.5, fontWeight: '800', color: '#fff' },
 
   empty:      { alignItems: 'center', paddingTop: 60, gap: 6 },
   emptyIcon:  { width: 60, height: 60, borderRadius: 30, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   emptyTitle: { fontSize: 15, fontWeight: '800', color: C.text, fontFamily: DISPLAY },
-  emptySub:   { fontSize: 12, color: C.muted, textAlign: 'center', paddingHorizontal: 30 },
+  emptySub:   { fontSize: 13, color: C.muted, textAlign: 'center', paddingHorizontal: 30 },
 });

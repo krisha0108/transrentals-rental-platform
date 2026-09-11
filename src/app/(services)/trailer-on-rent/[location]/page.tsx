@@ -2,7 +2,10 @@
 import { LocationHighlights } from '@/components/location/LocationHighlights';
 import { cities } from '@/data/cities';
 import type { Metadata } from 'next';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { TrailerBookingHero } from '@/components/services/trailer/TrailerBookingHero';
+import { TrailerTypes } from '@/components/services/trailer/TrailerTypes';
+import { TrailerBookingProcess } from '@/components/services/trailer/TrailerBookingProcess';
+import { TrailerFAQ } from '@/components/services/trailer/TrailerFAQ';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
@@ -85,29 +88,13 @@ export default async function TrailerLocationPage({ params }: Props) {
     getServiceCityContent('trailer-on-rent', params.location),
   ]);
 
-  const pageFaqs = [
-    { question: 'What sizes of trailers are available on rent?', answer: 'We offer 20ft, 32ft, and 40ft flatbed and lowbed trailers for heavy cargo, machinery, and construction equipment transport.' },
-    { question: 'What is the load capacity of the rental trailer?', answer: 'Flatbed trailers handle up to 25 tons; lowbed trailers up to 40 tons. All trailers come with all-India permits and valid insurance.' },
-    { question: 'Is an experienced driver included in the trailer rental?', answer: 'Yes, all trailers come with experienced heavy-vehicle drivers licensed for transport of oversized and overweight cargo.' },
-    { question: 'Can I rent a trailer for interstate transport of machinery?', answer: 'Yes, our trailers have all-India permits for interstate movement. Route survey and escort vehicles can be arranged for oversized loads.' },
-  ];
-
   return (
     <>
-      <ServiceHeroWithChat
+      <TrailerBookingHero
+        city={location.name}
+        citySlug={params.location}
         pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
         pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
-        badge={`Trailer Rental in ${location.name}`}
-        title="Trailer on Rent"
-        titleHighlight="Heavy Cargo @₹5999/day"
-        description={`Move the heaviest loads from ${location.name}. Flatbed, lowbed, and container trailers for industrial equipment, construction machinery, and oversized cargo transport.`}
-        features={[
-          { icon: 'zap', text: 'Up to 40-Ton Capacity', color: 'text-red-700' },
-          { icon: 'shield', text: 'All-India Permits', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="red-50"
-        gradientTo="gray-50"
       />
 
       <LocationHighlights
@@ -115,6 +102,10 @@ export default async function TrailerLocationPage({ params }: Props) {
         service="Trailer Rental"
         highlights={highlights}
       />
+
+      <TrailerTypes />
+      <TrailerBookingProcess />
+      <TrailerFAQ />
 
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection

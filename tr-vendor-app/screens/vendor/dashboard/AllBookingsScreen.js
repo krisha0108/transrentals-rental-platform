@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, RefreshControl, ActivityIndicator,
+  StatusBar, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -11,7 +11,11 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { getVendorEarnings } from '../../api/client';
 import { SC as T, G, rs, rf, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -111,8 +115,7 @@ export default function AllBookingsScreen({ navigation, route }) {
       {/* Header */}
       <LinearGradient colors={G.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
-        <AnimatedOrb style={s.deco1} />
-        <AnimatedOrb style={s.deco2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']}>
           <View style={s.headerRow}>
             <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
@@ -165,9 +168,26 @@ export default function AllBookingsScreen({ navigation, route }) {
 
       {/* List */}
       {loading ? (
-        <View style={s.empty}>
-          <ActivityIndicator size="large" color={C.g600} />
-          <Text style={[s.emptySub, { marginTop: 12 }]}>Loading bookings…</Text>
+        <View style={s.body}>
+          {[0,1,2,3,4].map(i => (
+            <View key={i} style={s.card}>
+              <View style={s.cardTop}>
+                <Bone w={40} h={40} r={12} />
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Bone w={140} h={12} r={4} />
+                  <Bone w={90} h={10} r={4} />
+                </View>
+                <Bone w={60} h={20} r={10} />
+              </View>
+              <View style={s.cardBottom}>
+                <View style={s.customer}>
+                  <Bone w={26} h={26} r={13} />
+                  <Bone w={90} h={11} r={4} />
+                </View>
+                <Bone w={60} h={11} r={4} />
+              </View>
+            </View>
+          ))}
         </View>
       ) : (
         <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}
@@ -225,28 +245,27 @@ export default function AllBookingsScreen({ navigation, route }) {
 const s = StyleSheet.create({
   // Header
   hero: { paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
-  deco1: { position: 'absolute', width: 190, height: 190, borderRadius: 95, backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40 },
-  deco2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.045)', bottom: -10, left: 40 },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 8, marginBottom: 18 },
   backBtn:     { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontFamily: DISPLAY, fontSize: 21, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  headerSub:   { fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: '600', marginTop: 2 },
+  headerSub:   { fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: '600', marginTop: 2 },
 
   toggle:          { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: 12, padding: 4, gap: 4 },
   toggleBtn:       { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 9 },
   toggleBtnActive: { backgroundColor: C.g700 },
-  toggleTxt:       { fontSize: 13, fontWeight: '800', color: 'rgba(255,255,255,0.7)' },
+  toggleTxt:       { fontSize: 14, fontWeight: '800', color: 'rgba(255,255,255,0.7)' },
   toggleTxtActive: { color: '#fff' },
   togglePill:      { minWidth: 20, paddingHorizontal: 6, height: 18, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
   togglePillActive:{ backgroundColor: 'rgba(255,255,255,0.22)' },
-  togglePillTxt:   { fontSize: 10, fontWeight: '800', color: '#fff' },
+  togglePillTxt:   { fontSize: 11, fontWeight: '800', color: '#fff' },
   togglePillTxtActive: { color: '#fff' },
 
   chipsWrap: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
   chipsRow:  { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   chip:      { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
   chipActive:{ backgroundColor: C.g700, borderColor: C.g700 },
-  chipTxt:   { fontSize: 12, fontWeight: '700', color: C.sub },
+  chipTxt:   { fontSize: 13, fontWeight: '700', color: C.sub },
   chipTxtActive: { color: '#fff' },
 
   body: { paddingHorizontal: 16, paddingTop: 14, gap: 10 },
@@ -257,22 +276,22 @@ const s = StyleSheet.create({
   },
   cardTop:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
   iconBox:   { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text },
-  cardSub:   { fontSize: 11, color: C.sub, marginTop: 2 },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text },
+  cardSub:   { fontSize: 12, color: C.sub, marginTop: 2 },
   statusPill:{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: rs(8) },
-  statusTxt: { fontSize: 9.5, fontWeight: '800' },
+  statusTxt: { fontSize: 10.5, fontWeight: '800' },
 
   cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 11, borderTopWidth: 1, borderTopColor: C.border },
   customer:    { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   avatar:      { width: 26, height: 26, borderRadius: 13, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
-  avatarTxt:   { fontFamily: DISPLAY, fontSize: 11, fontWeight: '800', color: C.g700 },
-  customerTxt: { fontFamily: DISPLAY, fontSize: 12.5, fontWeight: '800', color: C.text, flex: 1 },
+  avatarTxt:   { fontFamily: DISPLAY, fontSize: 12, fontWeight: '800', color: C.g700 },
+  customerTxt: { fontFamily: DISPLAY, fontSize: 13.5, fontWeight: '800', color: C.text, flex: 1 },
   metaRight:   { alignItems: 'flex-end' },
-  dateTxt:     { fontSize: 10, color: C.muted, fontWeight: '600' },
-  amountTxt:   { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.g700, marginTop: 1 },
+  dateTxt:     { fontSize: 11, color: C.muted, fontWeight: '600' },
+  amountTxt:   { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.g700, marginTop: 1 },
 
   empty:      { alignItems: 'center', paddingTop: 60, gap: 6 },
   emptyIcon:  { width: rs(60), height: rs(60), borderRadius: rs(30), backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6, ...cardShadow },
   emptyTitle: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: C.text, textTransform: 'capitalize' },
-  emptySub:   { fontSize: 12, color: C.muted, textAlign: 'center' },
+  emptySub:   { fontSize: 13, color: C.muted, textAlign: 'center' },
 });

@@ -2,7 +2,7 @@
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
-import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
@@ -14,6 +14,11 @@ import { RelatedServices } from '@/components/services/RelatedServices';
 import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { FAQSection } from '@/components/services/FAQSection';
+import {
+  Wallet, Clock, Car, UserCheck, CheckCircle2, Sparkles,
+  ShoppingBag, Camera, Briefcase, ClipboardList,
+} from 'lucide-react';
 
 const COMING_SOON_SLUGS = new Set([
   'bhavnagar',
@@ -165,31 +170,32 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Booking Hero - Same as Car Rental */}
-      <CarRentalBookingHero
+      {/* Booking Hero */}
+      <SpecialtyCarBookingHero
+        service="local-taxi"
         city={locationName}
         citySlug={params.location.toLowerCase()}
-        serviceSlug="car-rental"
-        serviceTitle="Local Taxi"
       />
 
       {/* Why Local Taxi */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Why Choose Local Taxi in {locationName}?
+      <section className="relative overflow-hidden py-16 bg-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Why Choose Local Taxi in <span className="text-emerald-600">{locationName}</span>?
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             {[
-              { icon: '💰', title: 'Affordable', desc: 'Starting @₹399' },
-              { icon: '⏰', title: 'Flexible Packages', desc: '4hr, 8hr, 12hr' },
-              { icon: '🚗', title: 'Multiple Stops', desc: `Around ${locationName}` },
-              { icon: '👨‍✈️', title: 'Local Drivers', desc: `Know ${locationName} well` },
+              { Icon: Wallet, title: 'Affordable', desc: 'All-inclusive hourly rates' },
+              { Icon: Clock, title: 'Flexible Packages', desc: '4hr, 8hr, 12hr' },
+              { Icon: Car, title: 'Multiple Stops', desc: `Around ${locationName}` },
+              { Icon: UserCheck, title: 'Local Drivers', desc: `Know ${locationName} well` },
             ].map((feature) => (
-              <div key={feature.title} className="text-center">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.desc}</p>
+              <div key={feature.title} className="text-center bg-white border border-dashed border-emerald-200 rounded-2xl px-5 py-8 hover:border-emerald-400 hover:shadow-md transition-all">
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <feature.Icon className="w-6 h-6 text-emerald-600" />
+                </span>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1">{feature.title}</h3>
+                <p className="text-xs text-gray-500">{feature.desc}</p>
               </div>
             ))}
           </div>
@@ -202,22 +208,24 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
       )}
 
       {/* Perfect Occasions */}
-      <section className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Perfect for Activities in {locationName}
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Perfect for Activities in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             {[
-              { occasion: 'Shopping', icon: '🛍️', desc: `${locationName} malls & markets` },
-              { occasion: 'Sightseeing', icon: '📸', desc: 'City tours' },
-              { occasion: 'Business Meetings', icon: '💼', desc: 'Office visits' },
-              { occasion: 'Running Errands', icon: '📋', desc: 'Multiple stops' },
+              { Icon: ShoppingBag, occasion: 'Shopping', desc: `${locationName} malls & markets` },
+              { Icon: Camera, occasion: 'Sightseeing', desc: 'City tours' },
+              { Icon: Briefcase, occasion: 'Business Meetings', desc: 'Office visits' },
+              { Icon: ClipboardList, occasion: 'Running Errands', desc: 'Multiple stops' },
             ].map((item) => (
-              <div key={item.occasion} className="bg-gray-50 p-6 rounded-lg text-center">
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{item.occasion}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              <div key={item.occasion} className="text-center bg-white border border-dashed border-emerald-200 rounded-2xl px-5 py-8 hover:border-emerald-400 hover:shadow-md transition-all">
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <item.Icon className="w-6 h-6 text-emerald-600" />
+                </span>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1">{item.occasion}</h3>
+                <p className="text-xs text-gray-500">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -227,58 +235,52 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
       {/* Features */}
       <section className="py-16 bg-gray-50">
         <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Local Taxi Features in {locationName}
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Local Taxi Features in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-xl mb-4 text-green-700">Package Includes</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-700 mt-1">✓</span>
-                  <span>Professional driver</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-700 mt-1">✓</span>
-                  <span>Fuel charges included</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-700 mt-1">✓</span>
-                  <span>AC car (Sedan/SUV)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-700 mt-1">✓</span>
-                  <span>Multiple pickup/drops in {locationName}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-700 mt-1">✓</span>
-                  <span>Full insurance</span>
-                </li>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-white" />
+                </span>
+                <h3 className="font-bold text-lg text-gray-900">Package Includes</h3>
+              </div>
+              <ul className="space-y-2.5 text-gray-600 text-sm">
+                {[
+                  'Professional driver',
+                  'Fuel charges included',
+                  'AC car (Sedan/SUV)',
+                  `Multiple pickup/drops in ${locationName}`,
+                  'Full insurance',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-xl mb-4 text-emerald-900">Service Features</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-700 mt-1">✓</span>
-                  <span>Doorstep pickup</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-700 mt-1">✓</span>
-                  <span>Clean & sanitized</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-700 mt-1">✓</span>
-                  <span>Flexible timings</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-700 mt-1">✓</span>
-                  <span>24/7 availability</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-700 mt-1">✓</span>
-                  <span>Easy online booking</span>
-                </li>
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </span>
+                <h3 className="font-bold text-lg text-gray-900">Service Features</h3>
+              </div>
+              <ul className="space-y-2.5 text-gray-600 text-sm">
+                {[
+                  'Doorstep pickup',
+                  'Clean & sanitized',
+                  'Flexible timings',
+                  '24/7 availability',
+                  'Easy online booking',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
@@ -286,12 +288,12 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
       </section>
 
       {/* How to Book */}
-      <section className="py-16">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            How to Book Local Taxi in {locationName}
+      <section className="py-16 bg-white">
+        <div className="container-custom max-w-5xl">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            How to Book Local Taxi in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="space-y-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               { step: '1', title: 'Choose Package', desc: 'Select 4hr, 8hr or 12hr' },
               { step: '2', title: 'Select Car', desc: 'Sedan or SUV' },
@@ -299,13 +301,16 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
               { step: '4', title: 'Driver Arrives', desc: 'At your doorstep' },
               { step: '5', title: 'Travel Around', desc: `Visit multiple places in ${locationName}` },
             ].map((item) => (
-              <div key={item.step} className="flex gap-4 bg-gray-50 p-4 rounded-lg shadow-md">
-                <div className="flex-shrink-0 w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">
-                  {item.step}
+              <div key={item.step} className="flex gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="relative flex-shrink-0 w-10 h-10">
+                  <span className="absolute inset-0 rounded-full bg-emerald-500/40 animate-ping" />
+                  <div className="relative w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold">
+                    {item.step}
+                  </div>
                 </div>
                 <div>
-                  <h3 className="font-bold mb-1">{item.title}</h3>
-                  <p className="text-sm text-gray-600">{item.desc}</p>
+                  <h3 className="font-bold text-[15px] text-gray-900 mb-1">{item.title}</h3>
+                  <p className="text-xs text-gray-500">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -352,6 +357,8 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="local-taxi" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

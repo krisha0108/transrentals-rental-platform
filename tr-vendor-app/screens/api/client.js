@@ -466,8 +466,18 @@ export async function registerVendor(data) {
     city: data.city || null,
     state: data.state || null,
     pincode: data.pincode || null,
+    serviceLocations: data.serviceLocations || [],
   });
 
+  return res.data;
+}
+
+/**
+ * Fetch the list of cities vendors can pick as a service location —
+ * same public endpoint the web vendor-register form uses.
+ */
+export async function getServiceLocations() {
+  const res = await apiGet('/locations');
   return res.data;
 }
 

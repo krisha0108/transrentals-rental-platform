@@ -15,6 +15,8 @@ import { AutoRentalSchema } from '@/components/seo/schemas';
 import { getServiceLocationRating } from '@/lib/services/cached-service-lookups';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { FAQSection } from '@/components/services/FAQSection';
+import { ShieldCheck, Clock, Wallet, MapPin as MapPinIcon } from 'lucide-react';
 
 const COMING_SOON_SLUGS = new Set([
   'varanasi',
@@ -306,6 +308,14 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
   const city = pageContext.city;
   const locationName = city.name;
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['self-drive-car-rentals'] || [];
+  const pageFaqs = cityFAQs.length > 0
+    ? cityFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))
+    : [
+        { question: `How much does self-drive car rental cost in ${locationName}?`, answer: `Self-drive car rental in ${locationName} starts from ₹899/day for hatchbacks. Sedans cost around ₹1299/day and SUVs from ₹2199/day.` },
+        { question: `What documents are required for self-drive car rental in ${locationName}?`, answer: `You need a valid driving license (minimum 1 year old), Aadhaar card/PAN card for ID proof, and a refundable security deposit.` },
+        { question: `Is fuel included in self-drive car rental?`, answer: `No, fuel charges are separate. The car will have some fuel when you pick it up, and you should return it with the same fuel level.` },
+        { question: `Can I take a self-drive car for outstation trips from ${locationName}?`, answer: `Yes, you can take self-drive cars for outstation trips from ${locationName}. Additional charges may apply for inter-state travel.` },
+      ];
 
   const [seoData, liveRating, scContent] = await Promise.all([
     resolvePageMeta(`self-drive-car-rentals:${params.location.toLowerCase()}`),
@@ -323,22 +333,44 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
       />
 
       {/* Why Self Drive in This City */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Why Choose Self Drive Cars in {locationName}?
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
+            <h2 className="text-3xl md:text-[2.75rem] leading-[1.1] font-black tracking-tight text-gray-900">
+              Why Choose Self Drive Cars in <span className="text-primary">{locationName}</span>?
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 max-w-5xl mx-auto">
             {[
-              { icon: '🔐', title: 'Complete Privacy', desc: 'Drive alone without a driver' },
-              { icon: '⏰', title: 'Your Schedule', desc: 'No time restrictions' },
-              { icon: '💰', title: 'No Driver Cost', desc: 'Save on driver charges' },
-              { icon: '🗺️', title: 'Explore Freely', desc: `Discover ${locationName} at your pace` },
-            ].map((feature) => (
-              <div key={feature.title} className="text-center">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.desc}</p>
+              { Icon: ShieldCheck, title: 'Complete Privacy', desc: 'Drive alone without a driver' },
+              { Icon: Clock, title: 'Your Schedule', desc: 'No time restrictions' },
+              { Icon: Wallet, title: 'No Driver Cost', desc: 'Save on driver charges' },
+              { Icon: MapPinIcon, title: 'Explore Freely', desc: `Discover ${locationName} at your pace` },
+            ].map(({ Icon, title, desc }) => (
+              <div
+                key={title}
+                className="group rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 px-4 py-5 text-center"
+              >
+                <div className="relative w-14 h-14 mx-auto mb-3.5">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-primary-200 rotate-[18deg] group-hover:rotate-[78deg] transition-transform duration-500" />
+                  <span className="absolute inset-[5px] rounded-full bg-primary-50 flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-primary-600" strokeWidth={1.9} />
+                  </span>
+                </div>
+                <h3 className="font-bold text-[15px] text-gray-900 leading-snug">{title}</h3>
+                <p className="mt-1 text-[12.5px] leading-snug text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
@@ -358,6 +390,8 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="self-drive-car-rentals" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}
@@ -389,15 +423,10 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'FAQPage',
-            mainEntity: (cityFAQs.length > 0 ? cityFAQs : [
-              { q: `How much does self-drive car rental cost in ${locationName}?`, a: `Self-drive car rental in ${locationName} starts from ₹899/day for hatchbacks. Sedans cost around ₹1299/day and SUVs from ₹2199/day.` },
-              { q: `What documents are required for self-drive car rental in ${locationName}?`, a: `You need a valid driving license (minimum 1 year old), Aadhaar card/PAN card for ID proof, and a refundable security deposit.` },
-              { q: `Is fuel included in self-drive car rental?`, a: `No, fuel charges are separate. The car will have some fuel when you pick it up, and you should return it with the same fuel level.` },
-              { q: `Can I take a self-drive car for outstation trips from ${locationName}?`, a: `Yes, you can take self-drive cars for outstation trips from ${locationName}. Additional charges may apply for inter-state travel.` },
-            ]).map((faq) => ({
+            mainEntity: pageFaqs.map((faq) => ({
               '@type': 'Question',
-              name: faq.q,
-              acceptedAnswer: { '@type': 'Answer', text: faq.a },
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
             })),
           }),
         }}

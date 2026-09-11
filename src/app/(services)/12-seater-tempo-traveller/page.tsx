@@ -1,7 +1,10 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import {
+  Users, Armchair, Backpack, Snowflake, Heart, Landmark, Briefcase, Bus,
+  MessageCircleQuestion, Plus, ArrowRight,
+} from 'lucide-react';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
-import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 import { HowToSchema } from '@/components/seo/schemas';
 
@@ -62,6 +65,15 @@ export default function TwelveSeaterTempoTravellerPage() {
         ]}
         gradientFrom="blue-50"
         gradientTo="indigo-50"
+        serviceType="tempo-12seater"
+        backgroundImage="/images/sections/tempo-traveller-hero-bg.webp"
+        bookingVariant="tempo"
+        heroStats={[
+          { icon: 'tag', value: '₹18/km', label: 'Starting rate' },
+          { icon: 'shield', value: '500+', label: 'Verified operators' },
+          { icon: 'map', value: '150+', label: 'Cities served' },
+          { icon: 'headphones', value: '24/7', label: 'Customer support' },
+        ]}
       />
 
       <section className="relative bg-gradient-to-br from-blue-700 to-indigo-800 text-white py-16">
@@ -85,44 +97,66 @@ export default function TwelveSeaterTempoTravellerPage() {
         </div>
       </section>
 
-      <section className="py-12 bg-white">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">
             Why Choose 12 Seater Tempo Traveller?
           </h2>
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
             {[
-              { icon: '👨‍👩‍👧‍👦', title: 'Ideal Group Size', desc: 'Perfect for 10-12 people' },
-              { icon: '💺', title: 'Comfortable Seats', desc: 'Push-back & reclining options' },
-              { icon: '🧳', title: 'Luggage Space', desc: 'Carrier + boot space' },
-              { icon: '❄️', title: 'AC Available', desc: 'Beat the heat in comfort' },
-            ].map((item) => (
-              <div key={item.title} className="text-center p-4 bg-blue-50 rounded-lg">
-                <div className="text-3xl mb-2">{item.icon}</div>
-                <h3 className="font-bold mb-1">{item.title}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              { Icon: Users, title: 'Ideal Group Size', desc: 'Perfect for 10-12 people' },
+              { Icon: Armchair, title: 'Comfortable Seats', desc: 'Push-back & reclining options' },
+              { Icon: Backpack, title: 'Luggage Space', desc: 'Carrier + boot space' },
+              { Icon: Snowflake, title: 'AC Available', desc: 'Beat the heat in comfort' },
+            ].map(({ Icon, title, desc }) => (
+              <div key={title} className="group rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 px-4 py-5 text-center">
+                <div className="relative w-14 h-14 mx-auto mb-3.5">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[78deg] transition-transform duration-500" />
+                  <span className="absolute inset-[5px] rounded-full bg-emerald-50 flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-emerald-600" strokeWidth={1.9} />
+                  </span>
+                </div>
+                <h3 className="font-bold text-[15px] text-gray-900 leading-snug">{title}</h3>
+                <p className="mt-1 text-[12.5px] leading-snug text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-12 bg-blue-50">
+      <section className="py-16 bg-gray-50">
         <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">
             Perfect For
           </h2>
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
             {[
-              { icon: '👨‍👩‍👧‍👦', title: 'Family Trips', desc: 'Outstation vacations' },
-              { icon: '💒', title: 'Weddings', desc: 'Guest transportation' },
-              { icon: '🛕', title: 'Pilgrimages', desc: 'Temple & religious tours' },
-              { icon: '🏢', title: 'Corporate', desc: 'Team outings & events' },
-            ].map((item) => (
-              <div key={item.title} className="bg-white p-6 rounded-lg text-center shadow-sm">
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-bold text-lg mb-1">{item.title}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              { Icon: Users, title: 'Family Trips', desc: 'Outstation vacations' },
+              { Icon: Heart, title: 'Weddings', desc: 'Guest transportation' },
+              { Icon: Landmark, title: 'Pilgrimages', desc: 'Temple & religious tours' },
+              { Icon: Briefcase, title: 'Corporate', desc: 'Team outings & events' },
+            ].map(({ Icon, title, desc }) => (
+              <div key={title} className="group rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 px-4 py-5 text-center">
+                <div className="relative w-14 h-14 mx-auto mb-3.5">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[78deg] transition-transform duration-500" />
+                  <span className="absolute inset-[5px] rounded-full bg-emerald-50 flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-emerald-600" strokeWidth={1.9} />
+                  </span>
+                </div>
+                <h3 className="font-bold text-[15px] text-gray-900 leading-snug">{title}</h3>
+                <p className="mt-1 text-[12.5px] leading-snug text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
@@ -151,37 +185,84 @@ export default function TwelveSeaterTempoTravellerPage() {
         </div>
       </section>
 
-      <section className="py-12 bg-gray-50">
+      <section className="py-16 bg-white border-t border-gray-100">
         <div className="container-custom">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
             Other Tempo Traveller Options
           </h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href="/tempo-traveller" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🚐</div>
-              <h3 className="font-bold text-lg group-hover:text-blue-600">All Tempo Travellers</h3>
-              <p className="text-sm text-gray-600 mt-2">View all seating options</p>
-            </Link>
-            <Link href="/17-seater-tempo-traveller" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🚌</div>
-              <h3 className="font-bold text-lg group-hover:text-blue-600">17 Seater</h3>
-              <p className="text-sm text-gray-600 mt-2">For larger groups</p>
-            </Link>
-            <Link href="/20-seater-tempo-traveller" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🚍</div>
-              <h3 className="font-bold text-lg group-hover:text-blue-600">20 Seater</h3>
-              <p className="text-sm text-gray-600 mt-2">Big family groups</p>
-            </Link>
-            <Link href="/bus-rental" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🚎</div>
-              <h3 className="font-bold text-lg group-hover:text-blue-600">Bus Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">26+ seater buses</p>
-            </Link>
+          <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
+            {[
+              { href: '/tempo-traveller', label: 'All Tempo Travellers', icon: Bus },
+              { href: '/17-seater-tempo-traveller', label: '17 Seater', icon: Bus },
+              { href: '/20-seater-tempo-traveller', label: '20 Seater', icon: Bus },
+              { href: '/bus-rental', label: 'Bus Rental', icon: Bus },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="inline-flex items-center gap-2 bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50 rounded-xl px-4 py-2.5 text-sm font-bold text-gray-700 hover:text-emerald-700 transition-colors"
+              >
+                <link.icon className="w-4 h-4 text-emerald-600" />
+                {link.label}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
-      <FAQSection service="bus-rental" customFaqs={FAQS} />
+      {/* FAQs */}
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] text-emerald-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              GOOD TO KNOW
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            </span>
+            <h2 className="mt-4 text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              12 Seater Tempo Traveller <span className="text-emerald-600">FAQs</span>
+            </h2>
+          </div>
+
+          <div className="max-w-5xl mx-auto space-y-3">
+            {FAQS.map((faq, idx) => (
+              <details
+                key={idx}
+                open={idx === 0}
+                className="group rounded-2xl bg-white border border-gray-100 shadow-sm open:border-emerald-200 open:shadow-md transition-all"
+              >
+                <summary className="flex items-center gap-4 px-4 sm:px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span className="shrink-0 w-9 h-9 rounded-full bg-emerald-50 grid place-items-center">
+                    <MessageCircleQuestion className="w-[18px] h-[18px] text-emerald-600" />
+                  </span>
+                  <h3 className="flex-1 font-bold text-[15px] leading-snug text-gray-900">
+                    {faq.question}
+                  </h3>
+                  <span className="shrink-0 w-8 h-8 rounded-lg bg-gray-50 text-gray-500 grid place-items-center transition-all duration-200 group-open:rotate-45 group-open:bg-emerald-600 group-open:text-white">
+                    <Plus className="w-4 h-4" />
+                  </span>
+                </summary>
+                <p className="px-4 sm:px-5 pb-5 sm:pl-[4.25rem] text-[14px] leading-relaxed text-gray-500">
+                  {faq.answer}
+                </p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <script
         type="application/ld+json"

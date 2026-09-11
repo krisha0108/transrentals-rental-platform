@@ -19,6 +19,7 @@ import { RelatedServices } from '@/components/services/RelatedServices';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { Wallet, Zap, Target, Building } from 'lucide-react';
 
 const COMING_SOON_SLUGS = new Set([
   'margao',
@@ -243,26 +244,51 @@ export default async function ActivaLocationPage({ params }: PageProps) {
       />
 
       {/* Why Choose Activa */}
-      <section className="py-12 bg-white">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Why Rent Activa in {locationName}?
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <h2 className="text-3xl md:text-[2.5rem] font-black tracking-tight text-gray-900 text-center mb-12">
+            Why Rent Activa in <span className="text-emerald-600">{locationName}?</span>
           </h2>
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-6 max-w-5xl mx-auto">
             {[
-              { icon: '💰', title: 'Affordable', desc: 'Starting @₹299/day' },
-              { icon: '⚡', title: 'Fuel Efficient', desc: '50-60 km/litre mileage' },
-              { icon: '🎯', title: 'Easy to Ride', desc: 'No gear, automatic' },
-              { icon: '🏙️', title: 'City Friendly', desc: 'Perfect for traffic' },
-            ].map((item) => (
-              <div key={item.title} className="text-center p-4 bg-gradient-to-br from-cyan-50 to-white rounded-lg border border-cyan-200">
-                <div className="text-3xl mb-2">{item.icon}</div>
-                <h3 className="font-bold mb-1">{item.title}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              { Icon: Wallet, title: 'Affordable', desc: 'Starting @₹299/day' },
+              { Icon: Zap, title: 'Fuel Efficient', desc: '50-60 km/litre mileage' },
+              { Icon: Target, title: 'Easy to Ride', desc: 'No gear, automatic' },
+              { Icon: Building, title: 'City Friendly', desc: 'Perfect for traffic' },
+            ].map((item, idx) => (
+              <div
+                key={item.title}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-7 text-center overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-100"
+                style={{ animation: `act-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 90}ms forwards`, opacity: 0 }}
+              >
+                <div className="relative w-14 h-14 mx-auto mb-4">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                  <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                    <item.Icon className="w-5 h-5 text-emerald-600 transition-colors duration-500 group-hover:text-white" />
+                  </span>
+                </div>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-1.5 leading-snug">{item.title}</h3>
+                <p className="text-[13px] leading-relaxed text-gray-500">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes act-rise { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) { [style*="act-rise"] { animation: none !important; opacity: 1 !important; } }
+        ` }} />
       </section>
 
       <VehicleGrid
@@ -289,6 +315,8 @@ export default async function ActivaLocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="activa-on-rent" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location}

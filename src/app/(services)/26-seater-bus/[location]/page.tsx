@@ -1,13 +1,14 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Armchair, Bus, ArrowRight } from 'lucide-react';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { TwentySixSeaterBusBookingHero } from '@/components/bus-rental/TwentySixSeaterBusBookingHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
@@ -81,78 +82,98 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
         </div>
       </section>
 
-      <ServiceHeroWithChat
+      <TwentySixSeaterBusBookingHero
+        city={locationName}
+        citySlug={params.location}
         pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
         pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
-        badge={`26 Seater Bus in ${locationName}`}
-        title="26 Seater Bus Rental"
-        titleHighlight="Full Group Travel @₹25/km"
-        description={`Move your entire group in one bus from ${locationName}. 26-seater AC mini bus — ideal for large corporate events, school picnics, and multi-city tour packages.`}
-        features={[
-          { icon: 'zap', text: '26 Reclining Seats', color: 'text-red-600' },
-          { icon: 'shield', text: 'AC & Entertainment', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="red-50"
-        gradientTo="orange-50"
       />
 
-      <section className="bg-gradient-to-br from-green-700 to-teal-700 text-white py-12">
+      <section className="bg-white py-10 border-b border-gray-100">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">26 Seater Bus in {locationName}</h1>
-          <div className="flex flex-wrap gap-4">
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Starting from</p>
-              <p className="text-xl font-bold">₹28/km</p>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">
+                26 Seater Bus in <span className="text-emerald-600">{locationName}</span>
+              </h2>
+              <p className="text-gray-500 mt-1.5">Mini bus travel with professional driver. AC &amp; Non-AC available.</p>
             </div>
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Seating</p>
-              <p className="text-xl font-bold">26 Seats</p>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Armchair className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Seating</p>
+                  <p className="text-lg font-black text-gray-900">26 Seats</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-12">
-        <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">26 Seater Options in {locationName}</h2>
-          <div className="grid md:grid-cols-3 gap-6">
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            26 Seater Options in <span className="text-emerald-600">{locationName}</span>
+          </h2>
+          <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {[
               { name: '26 Seater Non-AC', price: 28 },
               { name: '26 Seater AC', price: 35 },
               { name: '26 Seater Luxury', price: 45 },
-            ].map((v) => (
-              <div key={v.name} className="bg-white rounded-xl shadow-md p-6">
-                <h3 className="text-lg font-bold mb-2">{v.name}</h3>
-                <p className="text-3xl font-bold text-green-600 mb-4">₹{v.price}<span className="text-sm text-gray-500">/km</span></p>
-                <button className="w-full bg-green-600 text-white py-2 rounded-lg">Book Now</button>
+            ].map((v, idx) => (
+              <div
+                key={v.name}
+                className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-emerald-100 hover:-translate-y-1 transition-all duration-300 p-6"
+                style={{ animation: `tt26-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 80}ms forwards`, opacity: 0 }}
+              >
+                <span className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4 group-hover:bg-emerald-600 transition-colors">
+                  <Bus className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
+                </span>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{v.name}</h3>
+                <p className="text-2xl font-black text-emerald-700 mb-4">₹{v.price}<span className="text-sm font-normal text-gray-500">/km</span></p>
+                <button className="w-full bg-emerald-600 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-emerald-700 transition-colors">Book Now</button>
               </div>
+            ))}
+          </div>
+        </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes tt26-rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) { [style*="tt26-rise"] { animation: none !important; opacity: 1 !important; } }
+        ` }} />
+      </section>
+
+      <section className="py-16 bg-white border-t border-gray-100">
+        <div className="container-custom">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-8">
+            Other Options in <span className="text-emerald-600">{locationName}</span>
+          </h2>
+          <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
+            {[
+              { href: `/12-seater-tempo-traveller/${params.location.toLowerCase()}`, label: '12 Seater' },
+              { href: `/17-seater-tempo-traveller/${params.location.toLowerCase()}`, label: '17 Seater' },
+              { href: `/20-seater-tempo-traveller/${params.location.toLowerCase()}`, label: '20 Seater' },
+              { href: `/bus-rental/${params.location.toLowerCase()}`, label: 'All Buses' },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="inline-flex items-center gap-2 bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50 rounded-xl px-4 py-2.5 text-sm font-bold text-gray-700 hover:text-emerald-700 transition-colors"
+              >
+                <Bus className="w-4 h-4 text-emerald-600" />
+                {link.label}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">Other Options in {locationName}</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/12-seater-tempo-traveller/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">12 Seater</h3><p className="text-sm text-gray-600 mt-2">From ₹18/km</p>
-            </Link>
-            <Link href={`/17-seater-tempo-traveller/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">17 Seater</h3><p className="text-sm text-gray-600 mt-2">From ₹20/km</p>
-            </Link>
-            <Link href={`/20-seater-tempo-traveller/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">20 Seater</h3><p className="text-sm text-gray-600 mt-2">From ₹22/km</p>
-            </Link>
-            <Link href={`/bus-rental/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">All Buses</h3><p className="text-sm text-gray-600 mt-2">View all</p>
-            </Link>
-          </div>
-        </div>
-      </section>
+      <FAQSection service="26-seater-bus" location={locationName} customFaqs={pageFaqs} />
 
-      
+
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
               citySlug={params.location.toLowerCase()}
@@ -160,7 +181,7 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
+      */}
       <BikeServiceSchema
         serviceName="26 Seater Bus"
         serviceSlug="26-seater-bus"

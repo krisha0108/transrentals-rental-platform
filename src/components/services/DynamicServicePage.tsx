@@ -413,20 +413,54 @@ export function DynamicServicePage({
 
       {/* CTA Section */}
       {pageContent.ctaSection?.visible && (
-        <section className="py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+        <section className="relative overflow-hidden bg-gradient-to-br from-emerald-800 to-emerald-600 py-20 text-white">
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes cta-shine {
+              0%, 25%  { transform: translateX(-150%); }
+              65%, 100% { transform: translateX(150%); }
+            }
+            .cta-btn { position: relative; overflow: hidden; z-index: 0; }
+            .cta-shine {
+              position: absolute;
+              top: -20%;
+              left: 0;
+              width: 45%;
+              height: 140%;
+              background: linear-gradient(105deg, transparent 0%, rgba(5,150,105,.55) 50%, transparent 100%);
+              transform: translateX(-150%);
+              animation: cta-shine 2.2s ease-in-out infinite;
+              pointer-events: none;
+              z-index: 1;
+            }
+            @media (prefers-reduced-motion: reduce) {
+              .cta-shine { animation: none; display: none; }
+            }
+          ` }} />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-[0.15]"
+            style={{
+              backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)',
+              backgroundSize: '22px 22px',
+            }}
+          />
+          <div className="container mx-auto px-4 relative text-center">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] uppercase mb-5">
+              Ready When You Are
+            </span>
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4">
               {pageContent.ctaSection?.title}
             </h2>
-            <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
+            <p className="text-lg text-emerald-50/90 mb-9 max-w-2xl mx-auto">
               {pageContent.ctaSection?.subtitle}
             </p>
             <Link
               href={pageContent.ctaSection?.buttonLink || '#booking'}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition shadow-lg"
+              className="cta-btn group inline-flex items-center gap-2 px-8 py-4 bg-white text-emerald-700 font-bold rounded-full hover:bg-emerald-50 transition-colors duration-300 shadow-lg shadow-emerald-950/20"
             >
+              <span aria-hidden className="cta-shine" />
               {pageContent.ctaSection?.buttonText}
-              <ArrowRight className="w-5 h-5" />
+              <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1.5" />
             </Link>
           </div>
         </section>

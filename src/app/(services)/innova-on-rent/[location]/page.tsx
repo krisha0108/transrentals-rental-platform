@@ -1,6 +1,7 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Shield, Users, Layers, Fuel, Armchair, Bus, Car, LayoutGrid, ArrowRight } from 'lucide-react';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
@@ -116,75 +117,110 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
         selfDrivePrice="₹2,499"
       />
 
-      <section className="bg-gradient-to-br from-purple-700 to-indigo-800 text-white py-12">
+      <section className="bg-white py-10 border-b border-gray-100">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            Innova on Rent in {locationName}
-          </h1>
-          <p className="text-lg opacity-90 mb-6">
-            Self-drive Toyota Innova Crysta. Best MPV for family trips & group travel.
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Starting from</p>
-              <p className="text-xl font-bold">₹2,499/day</p>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">
+                Innova on Rent in <span className="text-emerald-600">{locationName}</span>
+              </h2>
+              <p className="text-gray-500 mt-1.5">Self-drive Toyota Innova Crysta. Best MPV for family trips &amp; group travel.</p>
             </div>
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Seating</p>
-              <p className="text-xl font-bold">7+1 Seats</p>
-            </div>
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Variants</p>
-              <p className="text-xl font-bold">5 Options</p>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Shield className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Starting</p>
+                  <p className="text-lg font-black text-gray-900">₹2,499/day</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Users className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Seating</p>
+                  <p className="text-lg font-black text-gray-900">7+1 Seats</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Layers className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Variants</p>
+                  <p className="text-lg font-black text-gray-900">5 Options</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-12">
+      <section className="py-16 bg-gradient-to-b from-white via-emerald-50/25 to-white">
         <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Innova Variants in {locationName}
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Innova Variants in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {innovaVariants.map((variant) => (
-              <div key={variant.name} className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold">{variant.name}</h3>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-purple-600">₹{variant.price}</p>
-                    <p className="text-xs text-gray-500">/day</p>
-                  </div>
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {innovaVariants.map((variant, idx) => (
+              <div
+                key={variant.name}
+                className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-emerald-100 hover:-translate-y-1 transition-all duration-300 p-6"
+                style={{ animation: `iov-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 90}ms forwards`, opacity: 0 }}
+              >
+                <div className="flex items-start gap-3 mb-4">
+                  <span className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                    <Bus className="w-5 h-5 text-emerald-600" />
+                  </span>
+                  <h3 className="text-base font-bold text-gray-900 leading-snug">{variant.name}</h3>
                 </div>
-                <p className="text-sm text-gray-600 mb-4">⛽ {variant.fuel} • 👥 {variant.seats} Seats • 🚐 MPV</p>
+                <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                  <span className="flex items-center gap-1.5"><Fuel className="w-3.5 h-3.5 text-emerald-500" /> {variant.fuel}</span>
+                  <span className="flex items-center gap-1.5"><Armchair className="w-3.5 h-3.5 text-emerald-500" /> {variant.seats} Seats</span>
+                </div>
+                <div className="pt-3 border-t border-gray-100">
+                  <p className="text-xl font-bold text-emerald-700">₹{variant.price}<span className="text-xs font-normal text-gray-400">/day</span></p>
+                </div>
               </div>
             ))}
           </div>
         </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes iov-rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) { [style*="iov-rise"] { animation: none !important; opacity: 1 !important; } }
+        ` }} />
       </section>
 
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">
-            Other Cars in {locationName}
+      <section className="relative overflow-hidden py-14 md:py-16 bg-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-[1.75rem] font-black tracking-tight text-gray-900 text-center mb-10">
+            Other Cars in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/fortuner-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold text-lg">Fortuner on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹4,999/day</p>
-            </Link>
-            <Link href={`/creta-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold text-lg">Creta on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹1,999/day</p>
-            </Link>
-            <Link href={`/self-drive-suv-rental/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold text-lg">All SUVs</h3>
-              <p className="text-sm text-gray-600 mt-2">Seltos, Scorpio, XUV700</p>
-            </Link>
-            <Link href={`/self-drive-car-rentals/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold text-lg">All Self Drive Cars</h3>
-              <p className="text-sm text-gray-600 mt-2">View all options</p>
-            </Link>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            {[
+              { href: `/fortuner-on-rent/${params.location}`, icon: Car, title: 'Fortuner on Rent', desc: 'Premium luxury SUV' },
+              { href: `/creta-on-rent/${params.location}`, icon: Car, title: 'Creta on Rent', desc: 'Premium mid-size SUV' },
+              { href: `/self-drive-suv-rental/${params.location}`, icon: LayoutGrid, title: 'All SUVs', desc: 'Seltos, Scorpio, XUV700' },
+              { href: `/self-drive-car-rentals/${params.location}`, icon: LayoutGrid, title: 'All Self Drive Cars', desc: 'View all options' },
+            ].map((opt) => (
+              <Link
+                key={opt.title}
+                href={opt.href}
+                className="group flex flex-col items-center text-center bg-white border border-gray-100 shadow-sm rounded-2xl px-6 py-8 hover:border-emerald-300 hover:shadow-md transition-all"
+              >
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4 group-hover:bg-emerald-600 transition-colors">
+                  <opt.icon className="w-6 h-6 text-emerald-600 group-hover:text-white transition-colors" />
+                </span>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-1">{opt.title}</h3>
+                <p className="text-xs text-gray-500 flex items-center gap-1">
+                  {opt.desc}
+                  <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
+                </p>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -210,6 +246,8 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="innova-on-rent" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location}

@@ -24,7 +24,11 @@ import { showConfirm, showError, showInfo, showSuccess } from '../../../../servi
 import AppEvents, { EVT_QUOTE_SENT } from '../../../../utils/AppEvents';
 import { SC as T, G, rs, cardShadow } from '../../_shared/theme';
 import { DISPLAY } from '../../_shared/typography';
-import AnimatedOrb from '../../_shared/AnimatedOrb';
+import CornerGrid from '../../_shared/CornerGrid';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const C = {
   g900: T.forestDark, g800: T.forest, g700: T.emeraldDeep, g600: T.emerald600, g500: T.emerald500, g400: T.emerald,
@@ -293,11 +297,66 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
-        <LinearGradient colors={G.hero} style={styles.loadingHeader} />
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={C.g500} />
-          <Text style={styles.loadingText}>Loading quote details...</Text>
-        </View>
+        <LinearGradient colors={G.hero} style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <View style={styles.headerCenter}>
+            <View style={styles.headerIconRow}>
+              <Ionicons name="send-outline" size={18} color={C.g400} style={{ marginRight: 7 }} />
+              <Text style={styles.headerTitle}>Send Quote</Text>
+            </View>
+            <Text style={styles.headerSubtitle}>Self Drive</Text>
+          </View>
+
+          <View style={{ width: 44 }} />
+        </LinearGradient>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20, flexGrow: 1 }}>
+          {/* Request Summary skeleton */}
+          <View style={[styles.card, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardTitleRow}>
+                <Bone w={30} h={30} r={8} />
+                <Bone w={140} h={13} r={4} style={{ marginLeft: 10 }} />
+              </View>
+            </View>
+            {[0,1,2,3].map(i => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                <Bone w={26} h={26} r={8} style={{ backgroundColor: '#FFFFFF', marginRight: 10 }} />
+                <Bone w={72} h={11} r={4} />
+                <Bone w={100} h={11} r={4} style={{ marginLeft: 12 }} />
+              </View>
+            ))}
+          </View>
+
+          {/* Template card skeleton */}
+          <View style={[styles.card, { backgroundColor: C.blueL, borderColor: '#93C5FD' }]}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardTitleRow}>
+                <Bone w={30} h={30} r={8} style={{ backgroundColor: '#DBEAFE' }} />
+                <Bone w={160} h={13} r={4} style={{ marginLeft: 10 }} />
+              </View>
+            </View>
+            <Bone w="90%" h={10} r={4} style={{ marginBottom: 6 }} />
+            <Bone w="60%" h={10} r={4} style={{ marginBottom: 12 }} />
+            <Bone w="100%" h={44} r={10} />
+          </View>
+
+          {/* Vehicle Details card skeleton */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardTitleRow}>
+                <Bone w={30} h={30} r={8} />
+                <Bone w={140} h={13} r={4} style={{ marginLeft: 10 }} />
+              </View>
+            </View>
+            <Bone w={150} h={10} r={4} style={{ marginBottom: 8 }} />
+            <Bone w="100%" h={44} r={10} style={{ marginBottom: 16 }} />
+            <Bone w={100} h={10} r={4} style={{ marginBottom: 8 }} />
+            <Bone w="100%" h={44} r={10} />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -313,8 +372,7 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
       {/* Header */}
       <LinearGradient colors={G.hero} style={styles.header}>
         {/* Decorative circles */}
-        <AnimatedOrb style={styles.decorCircle1} />
-        <AnimatedOrb style={styles.decorCircle2} delay={1200} dx={-10} dy={8} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
@@ -926,13 +984,13 @@ const summaryRowStyles = StyleSheet.create({
     elevation: 1,
   },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     color: C.sub,
     width: 72,
   },
   value: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: C.text,
     textAlign: 'right',
@@ -943,19 +1001,6 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: C.bg,
-  },
-  loadingHeader: {
-    height: 80,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 14,
-    fontSize: 14,
-    color: C.sub,
   },
 
   // Header
@@ -969,24 +1014,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: rs(20),
     borderBottomRightRadius: rs(20),
   },
-  decorCircle1: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    top: -40,
-    right: 20,
-  },
-  decorCircle2: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    bottom: -30,
-    right: 80,
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   backBtn: {
     width: 44,
     height: 44,
@@ -1011,7 +1039,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   headerSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: 'rgba(255,255,255,0.65)',
     marginTop: 2,
     fontWeight: '500',
@@ -1061,7 +1089,7 @@ const styles = StyleSheet.create({
     color: C.text,
   },
   templateDesc: {
-    fontSize: 13,
+    fontSize: 14,
     marginBottom: 14,
     lineHeight: 18,
     marginLeft: 40,
@@ -1077,7 +1105,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   countBadgeText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
     color: C.g700,
   },
@@ -1095,7 +1123,7 @@ const styles = StyleSheet.create({
     borderColor: C.g100,
   },
   editBtnText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: C.g700,
   },
@@ -1109,7 +1137,7 @@ const styles = StyleSheet.create({
 
   // Input label
   inputLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: C.sub,
     marginBottom: 7,
@@ -1187,11 +1215,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   summaryLabel: {
-    fontSize: 13,
+    fontSize: 14,
     color: C.sub,
   },
   summaryValue: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: C.text,
   },
@@ -1227,7 +1255,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
   },
 
@@ -1248,13 +1276,13 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   termNumber: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: C.g700,
   },
   termText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 14,
     color: C.sub,
     lineHeight: 19,
   },
@@ -1393,11 +1421,11 @@ const styles = StyleSheet.create({
   kmRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   kmInput: { flex: 1, marginBottom: 0 },
   unlimitedBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: C.border, backgroundColor: C.card },
-  unlimitedBtnText: { fontSize: 13, fontWeight: '600', color: C.muted },
+  unlimitedBtnText: { fontSize: 14, fontWeight: '600', color: C.muted },
   modeToggleRow: { flexDirection: 'row', borderRadius: 10, borderWidth: 1, borderColor: C.border, overflow: 'hidden', marginBottom: 10 },
   modeToggleBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: C.card },
   modeToggleBtnActive: { backgroundColor: C.g600 },
-  modeToggleBtnText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  modeToggleBtnText: { fontSize: 14, fontWeight: '600', color: C.sub },
   modeToggleBtnTextActive: { color: '#fff' },
   datePicker: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13, backgroundColor: C.card, marginBottom: 12 },
   datePickerText: { flex: 1, fontSize: 14, color: C.text },

@@ -15,6 +15,7 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { Zap, Leaf, VolumeX, Gauge, Bike as BikeIcon, CalendarClock } from 'lucide-react';
 
 interface PageProps {
   params: {
@@ -145,79 +146,75 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
         </div>
       </section>
 
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-green-600 to-emerald-700 text-white py-16">
+      {/* Quick facts */}
+      <section className="bg-white py-10 border-b border-gray-100">
         <div className="container-custom">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">
-              Electric Scooter Rental in {locationName}
-            </h1>
-            <p className="text-lg md:text-xl mb-6 opacity-90">
-              ⚡ Zero Fuel Cost • Silent Ride • Eco-Friendly
-            </p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <Link
-                href="#evs"
-                className="bg-yellow-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition"
-              >
-                View EV Models
-              </Link>
-              <Link
-                href={`/bike-on-rent/${params.location}`}
-                className="border-2 border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-green-700 transition"
-              >
-                Petrol Bikes
-              </Link>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">
+                Electric Scooter Rental in <span className="text-emerald-600">{locationName}</span>
+              </h2>
+              <p className="text-gray-500 mt-1.5">Zero fuel cost · Silent ride · Eco-friendly commute</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Zap className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Fuel Cost</p>
+                  <p className="text-lg font-black text-gray-900">₹0</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Gauge className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Range</p>
+                  <p className="text-lg font-black text-gray-900">100km+</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Quick Stats */}
-      <section className="py-8 bg-white border-b">
-        <div className="container-custom">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div className="p-4">
-              <div className="text-3xl font-bold text-green-700">₹399</div>
-              <div className="text-sm text-gray-600">Starting Price/Day</div>
-            </div>
-            <div className="p-4">
-              <div className="text-3xl font-bold text-green-700">₹0</div>
-              <div className="text-sm text-gray-600">Fuel Cost</div>
-            </div>
-            <div className="p-4">
-              <div className="text-3xl font-bold text-green-700">100km+</div>
-              <div className="text-sm text-gray-600">Range Per Charge</div>
-            </div>
-            <div className="p-4">
-              <div className="text-3xl font-bold text-green-700">4.6★</div>
-              <div className="text-sm text-gray-600">Customer Rating</div>
-            </div>
+          <div className="flex flex-wrap gap-4 mt-6">
+            <Link
+              href="#evs"
+              className="bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition"
+            >
+              View EV Models
+            </Link>
+            <Link
+              href={`/bike-on-rent/${params.location}`}
+              className="border-2 border-emerald-600 text-emerald-700 px-6 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition"
+            >
+              Petrol Bikes
+            </Link>
           </div>
         </div>
       </section>
 
       {/* EV Models */}
-      <section id="evs" className="py-16">
+      <section id="evs" className="py-16 bg-white">
         <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Electric Scooters Available in {locationName}
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Electric Scooters Available in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
             {[
               { name: 'Ola S1 Pro', price: '499', range: '135 km', highlight: 'Best Range' },
               { name: 'Ather 450X', price: '599', range: '105 km', highlight: 'Premium' },
               { name: 'TVS iQube', price: '449', range: '100 km', highlight: 'Best Value' },
               { name: 'Bajaj Chetak', price: '549', range: '90 km', highlight: 'Classic' },
             ].map((ev) => (
-              <div key={ev.name} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition border-t-4 border-green-500">
+              <div key={ev.name} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all">
                 <div className="flex justify-between items-start mb-3">
-                  <h3 className="text-lg font-bold">{ev.name}</h3>
-                  <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">{ev.highlight}</span>
+                  <h3 className="text-lg font-bold text-gray-900">{ev.name}</h3>
+                  <span className="bg-emerald-50 text-emerald-700 text-xs font-semibold px-2 py-1 rounded-full">{ev.highlight}</span>
                 </div>
-                <p className="text-2xl font-bold text-green-700 mb-1">₹{ev.price}/day</p>
-                <p className="text-sm text-gray-500 mb-3">Range: {ev.range}</p>
-                <button className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition">
+                <p className="text-2xl font-bold text-emerald-700 mb-1">₹{ev.price}/day</p>
+                <p className="text-sm text-gray-500 mb-4">Range: {ev.range}</p>
+                <button className="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-semibold hover:bg-emerald-700 transition">
                   Rent Now
                 </button>
               </div>
@@ -227,52 +224,81 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
       </section>
 
       {/* Why EV */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Why Rent EV in {locationName}?
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <h2 className="text-3xl md:text-[2.5rem] font-black tracking-tight text-gray-900 text-center mb-12">
+            Why Rent EV in <span className="text-emerald-600">{locationName}?</span>
           </h2>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-3 gap-5 md:gap-6 max-w-4xl mx-auto">
             {[
-              { icon: '💰', title: 'Save ₹3000+/Month', desc: 'Only ₹15-20 per charge vs ₹150+ petrol' },
-              { icon: '🌱', title: 'Go Green', desc: 'Zero emissions, contribute to cleaner air' },
-              { icon: '🔇', title: 'Silent Ride', desc: 'No noise pollution, peaceful commute' },
-            ].map((f) => (
-              <div key={f.title} className="bg-white p-6 rounded-lg shadow-md text-center">
-                <div className="text-4xl mb-4">{f.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{f.title}</h3>
-                <p className="text-gray-600 text-sm">{f.desc}</p>
+              { Icon: Zap, title: 'Save ₹3000+/Month', desc: 'Only ₹15-20 per charge vs ₹150+ petrol' },
+              { Icon: Leaf, title: 'Go Green', desc: 'Zero emissions, contribute to cleaner air' },
+              { Icon: VolumeX, title: 'Silent Ride', desc: 'No noise pollution, peaceful commute' },
+            ].map((item, idx) => (
+              <div
+                key={item.title}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-7 text-center overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-100"
+                style={{ animation: `evl-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 90}ms forwards`, opacity: 0 }}
+              >
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                  <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                    <item.Icon className="w-6 h-6 text-emerald-600 transition-colors duration-500 group-hover:text-white" />
+                  </span>
+                </div>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{item.title}</h3>
+                <p className="text-gray-500 text-sm">{item.desc}</p>
               </div>
+            ))}
+          </div>
+        </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes evl-rise { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) { [style*="evl-rise"] { animation: none !important; opacity: 1 !important; } }
+        ` }} />
+      </section>
+
+      {/* Related Services */}
+      <section className="py-16 bg-white">
+        <div className="container-custom">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Other Services in <span className="text-emerald-600">{locationName}</span>
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {[
+              { href: `/bike-on-rent/${params.location}`, Icon: BikeIcon, title: 'Bike Rental', desc: 'Petrol bikes from ₹299/day' },
+              { href: `/activa-on-rent/${params.location}`, Icon: Gauge, title: 'Activa Rental', desc: 'Scooters from ₹299/day' },
+              { href: `/monthly-bike-rental/${params.location}`, Icon: CalendarClock, title: 'Monthly Rental', desc: 'Long term from ₹2999/month' },
+            ].map((opt) => (
+              <Link
+                key={opt.title}
+                href={opt.href}
+                className="group flex flex-col items-center text-center bg-white border border-gray-100 shadow-sm rounded-2xl px-6 py-8 hover:border-emerald-300 hover:shadow-md transition-all"
+              >
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4 group-hover:bg-emerald-600 transition-colors">
+                  <opt.Icon className="w-6 h-6 text-emerald-600 group-hover:text-white transition-colors" />
+                </span>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-1">{opt.title}</h3>
+                <p className="text-xs text-gray-500">{opt.desc}</p>
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Related Services */}
-      <section className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Other Services in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <Link href={`/bike-on-rent/${params.location}`} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition group">
-              <div className="text-4xl mb-3">🏍️</div>
-              <h3 className="font-semibold text-lg group-hover:text-primary">Bike Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">Petrol bikes from ₹299/day</p>
-            </Link>
-            <Link href={`/activa-on-rent/${params.location}`} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition group">
-              <div className="text-4xl mb-3">🛵</div>
-              <h3 className="font-semibold text-lg group-hover:text-primary">Activa Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">Scooters from ₹299/day</p>
-            </Link>
-            <Link href={`/monthly-bike-rental/${params.location}`} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition group">
-              <div className="text-4xl mb-3">📅</div>
-              <h3 className="font-semibold text-lg group-hover:text-primary">Monthly Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">Long term from ₹2999/month</p>
-            </Link>
-          </div>
-        </div>
-      </section>
+      <FAQSection service="electric-scooter-rental" location={locationName} customFaqs={pageFaqs} />
 
       
       {/* DEPRECATED — admin block editor now manages this content

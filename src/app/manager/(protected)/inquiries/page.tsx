@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
   Loader2,
@@ -215,8 +215,9 @@ const DATE_FILTERS: { value: DateFilter; label: string }[] = [
   { value: 'all', label: 'All Bookings' },
 ];
 
-export default function ManagerInquiriesPage() {
+function ManagerInquiriesPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   // `inquiries` now holds only the current page's rows — filtering, stats,
   // and pagination all happen server-side (see fetchInquiries below) instead
   // of fetching every inquiry and slicing in the browser.
@@ -227,29 +228,56 @@ export default function ManagerInquiriesPage() {
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sourceFilter, setSourceFilter] = useState('all');
-  const [serviceFilter, setServiceFilter] = useState('all');
-  const [locationFilter, setLocationFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
-  const [actionedFilter, setActionedFilter] = useState<'all' | 'actioned' | 'notActioned'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [itemsPerPage] = useState(20);
   const [stats, setStats] = useState({ total: 0, pending: 0, quotesReceived: 0, quoteAccepted: 0, cancelled: 0 });
 
-  // Debounce the search box into `searchTerm` (which actually triggers a
-  // fetch) so typing doesn't fire a request per keystroke.
+  // Filters — read from the URL (not local state) so applying a filter,
+  // opening an inquiry's detail page, then hitting Back restores exactly
+  // what was selected instead of resetting to defaults. See updateFilter()/
+  // setPage() below for how changes get written back into the URL.
+  const searchTerm = searchParams.get('search') || '';
+  const statusFilter = searchParams.get('status') || 'all';
+  const sourceFilter = searchParams.get('source') || 'all';
+  const serviceFilter = searchParams.get('service') || 'all';
+  const locationFilter = searchParams.get('location') || 'all';
+  const dateFilter = (searchParams.get('date') || 'all') as DateFilter;
+  const actionedFilter = (searchParams.get('actioned') || 'all') as 'all' | 'actioned' | 'notActioned';
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  const itemsPerPage = 20;
+
+  // Local echo of the search box so typing feels instant; committed into the
+  // URL on a short debounce instead of on every keystroke.
+  const [searchInput, setSearchInput] = useState(searchTerm);
+  useEffect(() => { setSearchInput(searchTerm); }, [searchTerm]);
+
+  // Writes the given filter(s) into the URL query string, merged with
+  // whatever's already there, and always resets pagination back to page 1
+  // (matches the old reset-on-filter-change behavior). Pass '' to remove a
+  // param entirely rather than writing its default value into the URL.
+  const updateFilter = useCallback((updates: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([k, v]) => { if (v) params.set(k, v); else params.delete(k); });
+    params.delete('page');
+    router.push(`/manager/inquiries?${params.toString()}`);
+  }, [searchParams, router]);
+
+  const setPage = useCallback((p: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (p > 1) params.set('page', String(p)); else params.delete('page');
+    router.push(`/manager/inquiries?${params.toString()}`);
+  }, [searchParams, router]);
+
+  // Commit the search box into the URL after the manager stops typing.
   useEffect(() => {
-    const t = setTimeout(() => setSearchTerm(searchInput), 400);
+    if (searchInput === searchTerm) return;
+    const t = setTimeout(() => updateFilter({ search: searchInput }), 400);
     return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput]);
 
-  const fetchInquiries = async (page = currentPage) => {
+  const fetchInquiries = async () => {
     try {
       setError(null);
       const params = new URLSearchParams();
@@ -260,7 +288,7 @@ export default function ManagerInquiriesPage() {
       if (dateFilter !== 'all') params.set('date', dateFilter);
       if (actionedFilter !== 'all') params.set('actioned', actionedFilter);
       if (searchTerm) params.set('search', searchTerm);
-      params.set('page', String(page));
+      params.set('page', String(currentPage));
       params.set('limit', String(itemsPerPage));
 
       const response = await fetch(`/api/manager/inquiries?${params.toString()}`);
@@ -330,17 +358,12 @@ export default function ManagerInquiriesPage() {
     }
   };
 
-  // Any filter change resets to page 1 (matches the old reset-on-filter
-  // behavior); this effect then does the actual fetch for the current
-  // filters + page, re-running on every filter change and page navigation.
+  // Re-fetch whenever any URL filter param (including page) changes, since
+  // they're all read from searchParams above.
   useEffect(() => {
-    setCurrentPage(1);
-  }, [serviceFilter, statusFilter, sourceFilter, locationFilter, dateFilter, actionedFilter, searchTerm]);
-
-  useEffect(() => {
-    fetchInquiries(currentPage);
+    fetchInquiries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, serviceFilter, statusFilter, sourceFilter, locationFilter, dateFilter, actionedFilter, searchTerm]);
+  }, [searchParams.toString()]);
 
   // Clear selection whenever the page or its results change, so bulk
   // actions never silently apply to rows that are no longer visible.
@@ -422,7 +445,7 @@ export default function ManagerInquiriesPage() {
         ].map((stat) => (
           <button
             key={stat.key}
-            onClick={() => setStatusFilter(statusFilter === stat.key ? 'all' : stat.key)}
+            onClick={() => updateFilter({ status: statusFilter === stat.key ? '' : stat.key })}
             className={`p-4 rounded-xl border transition text-left ${
               statusFilter === stat.key
                 ? `bg-${stat.color}-50 border-${stat.color}-200`
@@ -462,7 +485,7 @@ export default function ManagerInquiriesPage() {
             <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             <select
               value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+              onChange={(e) => updateFilter({ date: e.target.value === 'all' ? '' : e.target.value })}
               className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
             >
               {DATE_FILTERS.map((filter) => (
@@ -477,7 +500,7 @@ export default function ManagerInquiriesPage() {
             <CheckCircle2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             <select
               value={actionedFilter}
-              onChange={(e) => setActionedFilter(e.target.value as 'all' | 'actioned' | 'notActioned')}
+              onChange={(e) => updateFilter({ actioned: e.target.value === 'all' ? '' : e.target.value })}
               className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
             >
               <option value="all">Any Action Status</option>
@@ -492,7 +515,7 @@ export default function ManagerInquiriesPage() {
             <Bike className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             <select
               value={serviceFilter}
-              onChange={(e) => setServiceFilter(e.target.value)}
+              onChange={(e) => updateFilter({ service: e.target.value === 'all' ? '' : e.target.value })}
               className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
             >
               <option value="all">All Services</option>
@@ -510,7 +533,7 @@ export default function ManagerInquiriesPage() {
             <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => updateFilter({ status: e.target.value === 'all' ? '' : e.target.value })}
               className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
             >
               <option value="all">All Requests ({stats.total})</option>
@@ -527,7 +550,7 @@ export default function ManagerInquiriesPage() {
             <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             <select
               value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
+              onChange={(e) => updateFilter({ location: e.target.value === 'all' ? '' : e.target.value })}
               className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
             >
               <option value="all">All Locations</option>
@@ -543,7 +566,7 @@ export default function ManagerInquiriesPage() {
             <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             <select
               value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value)}
+              onChange={(e) => updateFilter({ source: e.target.value === 'all' ? '' : e.target.value })}
               className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
             >
               <option value="all">All Sources</option>
@@ -764,7 +787,7 @@ export default function ManagerInquiriesPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           <button
-            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            onClick={() => setPage(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
             className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -782,7 +805,7 @@ export default function ManagerInquiriesPage() {
                 return (
                   <button
                     key={page}
-                    onClick={() => setCurrentPage(page)}
+                    onClick={() => setPage(page)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                       currentPage === page
                         ? 'bg-green-600 text-white'
@@ -804,7 +827,7 @@ export default function ManagerInquiriesPage() {
           </div>
 
           <button
-            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
             className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -813,5 +836,20 @@ export default function ManagerInquiriesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ManagerInquiriesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-green-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading inquiries...</p>
+        </div>
+      </div>
+    }>
+      <ManagerInquiriesPageInner />
+    </Suspense>
   );
 }

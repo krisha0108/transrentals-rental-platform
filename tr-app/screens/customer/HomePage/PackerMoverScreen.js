@@ -20,8 +20,8 @@ import {
   TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD,
   TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD,
 } from '../../../theme';
-import TravelAgentBookingToggle from '../../components/TravelAgentBookingToggle';
-import { isTravelAgentCustomer } from '../../utils/isTravelAgent';
+import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
+import { isTravelAgentCustomer } from '../../../utils/isTravelAgent';
 
 const HOME_TYPES = [
   { label: '1 BHK',          value: 'BHK_1',          icon: 'home-outline' },

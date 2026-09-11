@@ -25,8 +25,8 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { locationService, bookingService } from '../../services';
 import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
-import TravelAgentBookingToggle from '../../components/TravelAgentBookingToggle';
-import { isTravelAgentCustomer } from '../../utils/isTravelAgent';
+import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
+import { isTravelAgentCustomer } from '../../../utils/isTravelAgent';
 
 const { width } = Dimensions.get('window');
 const GREEN = '#09B368';

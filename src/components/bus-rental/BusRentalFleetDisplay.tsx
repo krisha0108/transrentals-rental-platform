@@ -3,7 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Bus, ChevronRight, ArrowRight, LayoutGrid, Users, Fuel, Settings } from 'lucide-react';
+import { Bus, Car, Truck, HardHat, ChevronRight, ArrowRight, LayoutGrid, Users, Fuel, Settings } from 'lucide-react';
+
+/* Icon naam se aata hai, component se nahi — server component se function
+   pass karna React allow nahi karta. */
+const FLEET_ICONS = { bus: Bus, car: Car, truck: Truck, equipment: HardHat } as const;
 
 interface Vehicle {
   id: string;
@@ -39,6 +43,15 @@ interface BusRentalFleetDisplayProps {
   limit?: number;
   showViewAll?: boolean;
   priceUnit?: string;
+  /* Neeche ke teen props isliye hain taaki yahi section doosri services
+     par bhi lag sake. Na dene par bus-rental jaisa hi rehta hai. */
+  icon?: keyof typeof FLEET_ICONS;
+  eyebrow?: string;
+  subtitle?: string;
+  viewAllLabel?: string;
+  /** Section ke upar ka banner. `null` dene par skyline ki jagah
+   *  halka gradient + dotted pattern aata hai. */
+  bannerImage?: string | null;
 }
 
 function vehicleSpecChips(vehicle: Vehicle): { icon: typeof Users; label: string }[] {
@@ -56,7 +69,13 @@ export function BusRentalFleetDisplay({
   limit = 12,
   showViewAll = true,
   priceUnit = '/day',
+  icon = 'bus',
+  eyebrow = 'Explore & Ride',
+  subtitle = 'AC & Non-AC options across every group size \u2014 from a 9-seater Tempo Traveller to a 50-seater luxury coach',
+  viewAllLabel = 'View All Buses',
+  bannerImage = '/images/sections/routes-skyline-bg.png',
 }: BusRentalFleetDisplayProps) {
+  const Icon = FLEET_ICONS[icon] ?? Bus;
   const [allFleet, setAllFleet] = useState<Vehicle[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -104,21 +123,39 @@ export function BusRentalFleetDisplay({
   return (
     <section className="relative bg-white py-16 md:py-20 overflow-hidden">
       {/* Fixed-height banner — stays the same regardless of how many rows the fleet grid grows to */}
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-cover bg-top opacity-90"
-        style={{ backgroundImage: "url('/images/sections/routes-skyline-bg.png')" }}
-      />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-gradient-to-b from-transparent via-transparent to-white" />
+      {bannerImage ? (
+        <>
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-cover bg-top opacity-90"
+            style={{ backgroundImage: `url('${bannerImage}')` }}
+          />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-gradient-to-b from-transparent via-transparent to-white" />
+        </>
+      ) : (
+        <>
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-emerald-50/60 via-white to-white" />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-[0.5]"
+            style={{
+              backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+              backgroundSize: '22px 22px',
+              WebkitMaskImage:
+                'radial-gradient(420px 320px at 5% 8%, #000 0%, transparent 72%), radial-gradient(420px 320px at 95% 30%, #000 0%, transparent 72%)',
+              maskImage:
+                'radial-gradient(420px 320px at 5% 8%, #000 0%, transparent 72%), radial-gradient(420px 320px at 95% 30%, #000 0%, transparent 72%)',
+            }}
+          />
+        </>
+      )}
       <div className="container mx-auto px-4 relative">
         <div className="text-center max-w-2xl mx-auto mb-8">
           <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full mb-4">
-            <Bus className="w-4 h-4" />
-            Explore &amp; Ride
+            <Icon className="w-4 h-4" />
+            {eyebrow}
           </span>
           <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">{title}</h2>
-          <p className="text-gray-500">
-            AC &amp; Non-AC options across every group size — from a 9-seater Tempo Traveller to a 50-seater luxury coach
-          </p>
+          <p className="text-gray-500">{subtitle}</p>
         </div>
 
         {/* Category Tabs */}
@@ -143,7 +180,7 @@ export function BusRentalFleetDisplay({
                   : 'bg-white text-gray-700 border border-gray-200 hover:border-emerald-300 hover:text-emerald-700'
                   }`}
               >
-                {category.icon ? <span>{category.icon}</span> : <Bus className="w-3.5 h-3.5" />}
+                {category.icon ? <span>{category.icon}</span> : <Icon className="w-3.5 h-3.5" />}
                 {category.name}
               </button>
             ))}
@@ -164,7 +201,7 @@ export function BusRentalFleetDisplay({
           </div>
         ) : fleet.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
-            <Bus className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <Icon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
             <p>No vehicles found in this category</p>
           </div>
         ) : (
@@ -183,7 +220,7 @@ export function BusRentalFleetDisplay({
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full">
-                      <Bus className="w-9 h-9 text-gray-200" />
+                      <Icon className="w-9 h-9 text-gray-200" />
                     </div>
                   )}
                 </div>
@@ -243,7 +280,7 @@ export function BusRentalFleetDisplay({
               href={`/${serviceSlug}#locations`}
               className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 text-gray-800 font-bold text-sm rounded-full hover:border-emerald-400 hover:text-emerald-700 transition-colors"
             >
-              View All Buses
+              {viewAllLabel}
               <ChevronRight className="w-4 h-4" />
             </Link>
           </div>

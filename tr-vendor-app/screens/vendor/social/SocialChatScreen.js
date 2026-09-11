@@ -22,7 +22,7 @@ import { getMessages, sendMessage } from '../../api/socialApi';
 import { getFullImageURL } from '../../api/client';
 import { SC as T, G, rs } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 // Same key names this screen already used everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex,
@@ -61,6 +61,10 @@ const isSameDateDay = (a, b) => {
   const da = new Date(a), db = new Date(b);
   return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 function AvatarCircle({ name, logo, size = 36 }) {
   const [imgErr, setImgErr] = useState(false);
@@ -279,8 +283,7 @@ export default function SocialChatScreen({ route, navigation }) {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         {/* Header */}
         <LinearGradient colors={G.hero} style={[styles.hero, { paddingTop: insets.top + 8 }]}>
-          <AnimatedOrb style={styles.orbA} />
-          <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+          <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <View style={styles.header}>
             <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
               <Icon name="arrow-left" size={20} color="#fff" />
@@ -303,9 +306,20 @@ export default function SocialChatScreen({ route, navigation }) {
 
         {/* Messages */}
         {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={C.violet} size="large" />
-            <Text style={styles.loadingText}>Loading messages...</Text>
+          <View style={styles.msgList}>
+            {[
+              { sent: false, w: 150 },
+              { sent: true, w: 110 },
+              { sent: false, w: 190 },
+              { sent: false, w: 90 },
+              { sent: true, w: 160 },
+              { sent: true, w: 130 },
+            ].map((b, i) => (
+              <View key={i} style={[styles.msgRow, b.sent ? styles.msgRowSent : styles.msgRowReceived]}>
+                {!b.sent && <Bone w={28} h={28} r={14} />}
+                <Bone w={b.w} h={rs(36)} r={rs(18)} />
+              </View>
+            ))}
           </View>
         ) : (
           <FlatList
@@ -365,19 +379,10 @@ export default function SocialChatScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { fontFamily: DISPLAY, color: C.muted, fontSize: rs(14), marginTop: rs(10), fontWeight: '600' },
 
   // Hero header
   hero: { borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24), overflow: 'hidden' },
-  orbA: {
-    position: 'absolute', top: -rs(50), right: -rs(34), width: rs(165), height: rs(165), borderRadius: rs(83),
-    backgroundColor: 'rgba(228,192,102,0.10)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(40), left: -rs(38), width: rs(135), height: rs(135), borderRadius: rs(68),
-    backgroundColor: 'rgba(23,166,124,0.14)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: rs(12), paddingVertical: rs(12), paddingBottom: rs(16), gap: rs(10),

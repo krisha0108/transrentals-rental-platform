@@ -1,11 +1,12 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { ShieldCheck, UserCheck, Wrench, Construction, Truck, LayoutGrid, ArrowRight } from 'lucide-react';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { EquipmentBookingHero } from '@/components/equipment-rental/EquipmentBookingHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -81,50 +82,76 @@ export default async function ExcavatorLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <ServiceHeroWithChat
+      <EquipmentBookingHero
+        city={locationName}
+        citySlug={params.location}
+        serviceType="equipment-excavator"
+        badgeLabel="Excavator Rental"
+        bookingTitle="Book Your Excavator"
         pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
-        badge={`Excavator Rental in ${locationName}`}
-        title="Excavator on Rent"
-        titleHighlight="Earthmoving Power @₹3499/day"
-        description={`Rent excavators in ${locationName} for foundation digging, road construction, mining, and demolition. Mini to large excavators available with skilled operators.`}
-        features={[
-          { icon: 'zap', text: 'Mini to Large Excavators', color: 'text-orange-600' },
-          { icon: 'shield', text: 'Skilled Operators', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="orange-50"
-        gradientTo="amber-50"
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || `Rent excavators in ${locationName} for foundation digging, road construction, mining, and demolition. Mini to large excavators available with skilled operators.`}
       />
 
-      <section className="bg-gradient-to-br from-amber-600 to-yellow-600 text-white py-12">
+      <section className="bg-white py-10 border-b border-gray-100">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Excavator on Rent in {locationName}</h1>
-          <div className="flex flex-wrap gap-4">
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <p className="text-xs opacity-75">Starting from</p>
-              <p className="text-xl font-bold">₹5,000/day</p>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">
+                Excavator on Rent in <span className="text-emerald-600">{locationName}</span>
+              </h2>
+              <p className="text-gray-500 mt-1.5">Mini to large excavators with certified operators, ready to deploy.</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <UserCheck className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Operators</p>
+                  <p className="text-lg font-black text-gray-900">Certified</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Coverage</p>
+                  <p className="text-lg font-black text-gray-900">Insured</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">Other Equipment in {locationName}</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/jcb-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">JCB</h3><p className="text-sm text-gray-600 mt-2">Starting ₹4,000</p>
-            </Link>
-            <Link href={`/crane-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">Crane</h3><p className="text-sm text-gray-600 mt-2">Starting ₹8,000</p>
-            </Link>
-            <Link href={`/hydra-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">Hydra</h3><p className="text-sm text-gray-600 mt-2">Starting ₹6,000</p>
-            </Link>
-            <Link href={`/equipment-rental/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">All Equipment</h3><p className="text-sm text-gray-600 mt-2">View all</p>
-            </Link>
+      <section className="relative overflow-hidden py-16 bg-gray-50">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-[1.75rem] font-black tracking-tight text-gray-900 text-center mb-10">
+            Other Equipment in <span className="text-emerald-600">{locationName}</span>
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            {[
+              { href: `/jcb-on-rent/${params.location.toLowerCase()}`, icon: Wrench, title: 'JCB', desc: 'Backhoe loaders' },
+              { href: `/crane-on-rent/${params.location.toLowerCase()}`, icon: Construction, title: 'Crane', desc: 'Mobile & tower cranes' },
+              { href: `/hydra-on-rent/${params.location.toLowerCase()}`, icon: Truck, title: 'Hydra', desc: 'Material lifting' },
+              { href: `/equipment-rental/${params.location.toLowerCase()}`, icon: LayoutGrid, title: 'All Equipment', desc: 'View all options' },
+            ].map((opt) => (
+              <Link
+                key={opt.title}
+                href={opt.href}
+                className="group flex flex-col items-center text-center bg-white border border-gray-100 shadow-sm rounded-2xl px-6 py-8 hover:border-emerald-300 hover:shadow-md transition-all"
+              >
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4 group-hover:bg-emerald-600 transition-colors">
+                  <opt.icon className="w-6 h-6 text-emerald-600 group-hover:text-white transition-colors" />
+                </span>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-1">{opt.title}</h3>
+                <p className="text-xs text-gray-500 flex items-center gap-1">
+                  {opt.desc}
+                  <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
+                </p>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -149,6 +176,8 @@ export default async function ExcavatorLocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="excavator-on-rent" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

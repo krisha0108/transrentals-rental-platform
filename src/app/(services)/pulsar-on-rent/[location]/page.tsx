@@ -18,6 +18,7 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { Award, Fuel, Gauge, Wallet } from 'lucide-react';
 
 interface PageProps {
   params: {
@@ -187,23 +188,25 @@ export default async function PulsarLocationPage({ params }: PageProps) {
         />
 
         {/* Available Models */}
-        <section className="py-12 bg-white">
+        <section className="py-16 bg-white">
           <div className="container-custom">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-              Pulsar Models in {locationName}
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+              Pulsar Models in <span className="text-emerald-600">{locationName}</span>
             </h2>
-            <div className="grid md:grid-cols-4 gap-6">
+            <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-5 max-w-5xl mx-auto">
               {[
                 { name: 'Pulsar 150', cc: '149cc', price: '₹499/day', mileage: '55 km/l' },
                 { name: 'Pulsar 180', cc: '178cc', price: '₹599/day', mileage: '50 km/l' },
                 { name: 'Pulsar NS200', cc: '199cc', price: '₹699/day', mileage: '40 km/l' },
                 { name: 'Pulsar RS200', cc: '199cc', price: '₹799/day', mileage: '38 km/l' },
               ].map((model) => (
-                <div key={model.name} className="bg-gradient-to-br from-blue-50 to-white p-5 rounded-lg border-2 border-blue-200">
-                  <div className="text-3xl mb-2">🏍️</div>
-                  <h3 className="font-bold mb-1">{model.name}</h3>
-                  <p className="text-sm text-gray-600 mb-1">{model.cc} • {model.mileage}</p>
-                  <p className="text-blue-600 font-bold">{model.price}</p>
+                <div key={model.name} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all">
+                  <span className="inline-flex w-11 h-11 rounded-xl bg-emerald-50 items-center justify-center mb-3">
+                    <Gauge className="w-5 h-5 text-emerald-600" />
+                  </span>
+                  <h3 className="font-bold text-gray-900 mb-1">{model.name}</h3>
+                  <p className="text-sm text-gray-500 mb-2">{model.cc} • {model.mileage}</p>
+                  <p className="text-emerald-700 font-bold">{model.price}</p>
                 </div>
               ))}
             </div>
@@ -214,6 +217,56 @@ export default async function PulsarLocationPage({ params }: PageProps) {
           vehicles={pageData.vehicles}
           title={`Available Pulsar Bikes in ${locationName}`}
         />
+
+        {/* Why Pulsar */}
+        <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-[0.5]"
+            style={{
+              backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+              backgroundSize: '22px 22px',
+              WebkitMaskImage:
+                'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+              maskImage:
+                'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            }}
+          />
+          <div className="container-custom relative">
+            <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
+              <h2 className="text-3xl md:text-[2.5rem] leading-[1.1] font-black tracking-tight text-gray-900">
+                Why Rent Pulsar in <span className="text-emerald-600">{locationName}?</span>
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-6 max-w-5xl mx-auto">
+              {[
+                { Icon: Award, title: 'Proven Reliability', desc: "India's best-selling sports bike" },
+                { Icon: Fuel, title: 'Fuel Efficient', desc: '45-55 km/litre mileage' },
+                { Icon: Gauge, title: 'Sporty Design', desc: 'Aggressive looks, smooth ride' },
+                { Icon: Wallet, title: 'Affordable', desc: 'Best value for money' },
+              ].map((item, idx) => (
+                <div
+                  key={item.title}
+                  className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-4 py-7 text-center overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-100"
+                  style={{ animation: `pls-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 90}ms forwards`, opacity: 0 }}
+                >
+                  <div className="relative w-14 h-14 mx-auto mb-4">
+                    <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                    <span className="absolute inset-[6px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                      <item.Icon className="w-5 h-5 text-emerald-600 transition-colors duration-500 group-hover:text-white" />
+                    </span>
+                  </div>
+                  <h3 className="text-[15px] font-bold text-gray-900 mb-1.5 leading-snug">{item.title}</h3>
+                  <p className="text-[13px] leading-relaxed text-gray-500">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes pls-rise { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: none; } }
+            @media (prefers-reduced-motion: reduce) { [style*="pls-rise"] { animation: none !important; opacity: 1 !important; } }
+          ` }} />
+        </section>
 
         <WhyRentHere locationName={locationName} />
 
@@ -234,6 +287,8 @@ export default async function PulsarLocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="pulsar-on-rent" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location}

@@ -2,7 +2,7 @@
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
-import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -14,6 +14,8 @@ import { RelatedServices } from '@/components/services/RelatedServices';
 import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { FAQSection } from '@/components/services/FAQSection';
+import { Wallet, Car as CarIcon, RefreshCw, UserCog, CheckCircle2, Sparkles, Route as RouteIcon, MapPinned, ArrowRight } from 'lucide-react';
 
 const COMING_SOON_SLUGS = new Set([
   'ludhiana-noida-roundtrip',
@@ -318,35 +320,44 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Booking Hero - Same as Car Rental */}
-      <CarRentalBookingHero
+      {/* Booking Hero */}
+      <SpecialtyCarBookingHero
+        service="outstation-cab"
         city={locationName}
         citySlug={params.location.toLowerCase()}
-        serviceSlug="car-rental"
-        serviceTitle="Outstation Cab"
       />
 
       {/* Why Outstation Cab */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Why Book Outstation Cab from {locationName}?
+      <section className="relative overflow-hidden py-16 bg-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Why Book Outstation Cab from <span className="text-emerald-600">{locationName}</span>?
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             {[
-              { icon: '💰', title: 'Affordable Rates', desc: 'Starting @₹12/km' },
-              { icon: '🚗', title: 'Clean AC Cars', desc: 'Well-maintained fleet' },
-              { icon: '🔄', title: 'Round Trip Option', desc: 'Economical travel' },
-              { icon: '👨‍✈️', title: 'Expert Drivers', desc: `Local ${locationName} drivers` },
-            ].map((feature) => (
-              <div key={feature.title} className="text-center">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.desc}</p>
+              { icon: Wallet, title: 'All-Inclusive Fare', desc: 'No hidden charges' },
+              { icon: CarIcon, title: 'Clean AC Cars', desc: 'Well-maintained fleet' },
+              { icon: RefreshCw, title: 'Round Trip Option', desc: 'Economical travel' },
+              { icon: UserCog, title: 'Expert Drivers', desc: `Local ${locationName} drivers` },
+            ].map((feature, idx) => (
+              <div
+                key={feature.title}
+                className="text-center bg-white border border-dashed border-emerald-200 rounded-2xl px-5 py-8 hover:border-emerald-400 hover:shadow-md transition-all"
+                style={{ animation: `oc-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 80}ms forwards`, opacity: 0 }}
+              >
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <feature.icon className="w-6 h-6 text-emerald-600" />
+                </span>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1">{feature.title}</h3>
+                <p className="text-xs text-gray-500">{feature.desc}</p>
               </div>
             ))}
           </div>
         </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes oc-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) { [style*="oc-rise"] { animation: none !important; opacity: 1 !important; } }
+        ` }} />
       </section>
 
       {/* Dynamic vehicle categories with filters */}
@@ -362,58 +373,52 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
       {/* Features */}
       <section className="py-16 bg-gray-50">
         <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Outstation Cab Features in {locationName}
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Outstation Cab Features in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-xl mb-4 text-blue-700">Included in Fare</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-700 mt-1">✓</span>
-                  <span>Experienced driver</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-700 mt-1">✓</span>
-                  <span>Fuel charges (both ways)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-700 mt-1">✓</span>
-                  <span>Driver allowance</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-700 mt-1">✓</span>
-                  <span>Toll & state taxes</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-700 mt-1">✓</span>
-                  <span>Full insurance</span>
-                </li>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-white" />
+                </span>
+                <h3 className="font-bold text-lg text-gray-900">Included in Fare</h3>
+              </div>
+              <ul className="space-y-2.5 text-gray-600 text-sm">
+                {[
+                  'Experienced driver',
+                  'Fuel charges (both ways)',
+                  'Driver allowance',
+                  'Toll & state taxes',
+                  'Full insurance',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-xl mb-4 text-cyan-900">Service Features</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-700 mt-1">✓</span>
-                  <span>Doorstep pickup in {locationName}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-700 mt-1">✓</span>
-                  <span>Clean & sanitized cars</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-700 mt-1">✓</span>
-                  <span>Flexible stop-overs</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-700 mt-1">✓</span>
-                  <span>No hidden charges</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-700 mt-1">✓</span>
-                  <span>24/7 support</span>
-                </li>
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </span>
+                <h3 className="font-bold text-lg text-gray-900">Service Features</h3>
+              </div>
+              <ul className="space-y-2.5 text-gray-600 text-sm">
+                {[
+                  `Doorstep pickup in ${locationName}`,
+                  'Clean & sanitized cars',
+                  'Flexible stop-overs',
+                  'No hidden charges',
+                  '24/7 support',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
@@ -421,21 +426,26 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
       </section>
 
       {/* Packages */}
-      <section className="py-16">
+      <section className="py-16 bg-white">
         <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Outstation Cab Packages from {locationName}
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Outstation Cab Packages from <span className="text-emerald-600">{locationName}</span>
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { type: 'Round Trip', price: '₹12-22/km', desc: 'Most economical' },
-              { type: 'One-Way', price: '₹14-25/km', desc: 'Drop only' },
-              { type: 'Multi-City', price: 'Custom', desc: 'Tour packages' },
+              { icon: RefreshCw, type: 'Round Trip', desc: 'Most economical — same driver, return included' },
+              { icon: RouteIcon, type: 'One-Way', desc: 'Drop only, no return charges' },
+              { icon: MapPinned, type: 'Multi-City', desc: 'Custom tour packages, multiple stops' },
             ].map((plan) => (
-              <div key={plan.type} className="bg-gray-50 p-6 rounded-lg text-center">
-                <h3 className="font-semibold text-lg mb-2">{plan.type}</h3>
-                <p className="text-2xl font-bold text-blue-700 mb-2">{plan.price}</p>
-                <p className="text-sm text-gray-600">{plan.desc}</p>
+              <div key={plan.type} className="group bg-white border border-gray-100 shadow-sm rounded-2xl p-6 text-center hover:border-emerald-300 hover:shadow-md transition-all">
+                <span className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-600 transition-colors">
+                  <plan.icon className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
+                </span>
+                <h3 className="font-bold text-lg text-gray-900 mb-1.5">{plan.type}</h3>
+                <p className="text-sm text-gray-500 mb-3">{plan.desc}</p>
+                <p className="text-sm font-semibold text-emerald-700 flex items-center justify-center gap-1">
+                  Get Quote <ArrowRight className="w-3.5 h-3.5" />
+                </p>
               </div>
             ))}
           </div>
@@ -444,11 +454,11 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
 
       {/* How to Book */}
       <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            How to Book Outstation Cab in {locationName}
+        <div className="container-custom max-w-5xl">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            How to Book Outstation Cab in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="space-y-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               { step: '1', title: 'Select Route', desc: `Choose destination from ${locationName}` },
               { step: '2', title: 'Choose Car Type', desc: 'Sedan, SUV or Tempo Traveller' },
@@ -456,13 +466,16 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
               { step: '4', title: 'Book Online', desc: 'Complete booking & payment' },
               { step: '5', title: 'Travel Comfortably', desc: 'Driver arrives at your doorstep' },
             ].map((item) => (
-              <div key={item.step} className="flex gap-4 bg-white p-4 rounded-lg shadow-md">
-                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
-                  {item.step}
+              <div key={item.step} className="flex gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="relative flex-shrink-0 w-10 h-10">
+                  <span className="absolute inset-0 rounded-full bg-emerald-500/40 animate-ping" />
+                  <div className="relative w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold">
+                    {item.step}
+                  </div>
                 </div>
                 <div>
-                  <h3 className="font-bold mb-1">{item.title}</h3>
-                  <p className="text-sm text-gray-600">{item.desc}</p>
+                  <h3 className="font-bold text-[15px] text-gray-900 mb-1">{item.title}</h3>
+                  <p className="text-xs text-gray-500">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -509,6 +522,8 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="outstation-cab" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

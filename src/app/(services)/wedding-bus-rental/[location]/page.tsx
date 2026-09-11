@@ -6,13 +6,15 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
-import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BusRentalBookingHero } from '@/components/bus-rental/BusRentalBookingHero';
+import { Bus, BusFront, Sparkles, UserCheck, Flower2, Snowflake, Music, Armchair, ShieldCheck, PhoneCall, Check } from 'lucide-react';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { prisma } from '@/lib/db/prisma';
+import { getBusRentalServiceId, getLocationId } from '@/lib/db/build-cache';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
@@ -75,52 +77,48 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
 
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const pageData = {
-    location: {
-      name: locationName,
-      slug: params.location,
-      state: 'State Name',
-    },
-    service: {
-      name: 'Wedding Bus Rental',
-      slug: 'wedding-bus-rental',
-    },
-    vehicles: [
-      {
-        id: 1,
-        name: '20 Seater Mini Bus',
-        brand: 'Mini Bus',
-        image: '/images/buses/mini-bus.jpg',
-        price: 3999,
-        rating: 4.8,
-      },
-      {
-        id: 2,
-        name: '35 Seater AC Bus',
-        brand: 'Standard Bus',
-        image: '/images/buses/35-seater.jpg',
-        price: 5999,
-        rating: 4.9,
-      },
-      {
-        id: 3,
-        name: '45 Seater Luxury Coach',
-        brand: 'Luxury Coach',
-        image: '/images/buses/luxury-coach.jpg',
-        price: 8999,
-        rating: 4.9,
-      },
-    ],
-    nearbyLocations: [
-      { name: 'Nearby City 1', slug: 'nearby-city-1' },
-      { name: 'Nearby City 2', slug: 'nearby-city-2' },
-    ],
-  };
-
-  const [seoData, scContent] = await Promise.all([
-    resolvePageMeta(`wedding-bus-rental:${params.location.toLowerCase()}`),
+  const [busServiceId, locationId, scContent] = await Promise.all([
+    getBusRentalServiceId(),
+    getLocationId(params.location),
     getServiceCityContent('wedding-bus-rental', params.location),
   ]);
+
+  const busModels = busServiceId ? await prisma.vehicle_models.findMany({
+    where: { serviceId: busServiceId, isActive: true },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      sideImage: true,
+      basePricePerDay: true,
+      rating: true,
+      seatingCapacity: true,
+      brands: { select: { name: true } },
+      ...(locationId ? {
+        vehicle_model_locations: {
+          where: { locationId, isActive: true },
+          select: { basePricePerDay: true },
+          take: 1,
+        },
+      } : {}),
+    },
+    orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
+  }) : [];
+
+  const busFleet = busModels.map((m) => {
+    const locationPrice = m.vehicle_model_locations?.[0]?.basePricePerDay;
+    const price = locationPrice ?? m.basePricePerDay ?? 0;
+    return {
+      id: m.id,
+      name: m.name,
+      slug: m.slug ?? undefined,
+      brand: m.brands?.name ?? undefined,
+      image: m.sideImage ?? '/images/fleet/bus-default.jpg',
+      price: Number(price),
+      rating: m.rating ?? undefined,
+      specs: m.seatingCapacity ? { seating: `${m.seatingCapacity} Seater` } : undefined,
+    };
+  });
 
   const pageFaqs = [
     { question: 'What types of buses are available for wedding rental?', answer: 'We offer AC luxury coaches (26–49 seater), decorated mini buses (17–20 seater), and Tempo Travellers (9–17 seater) for wedding functions.' },
@@ -144,75 +142,66 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
         </div>
       </div>
 
-      <ServiceHeroWithChat
-        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
-        badge={`Wedding Bus in ${locationName}`}
-        title="Wedding Bus Rental"
-        titleHighlight="Baraat Ready @₹4999/day"
-        description={`Make your ${locationName} baraat unforgettable. Decorated AC buses for wedding processions, guest transport, and multi-day functions — driver and decoration included.`}
-        features={[
-          { icon: 'star', text: 'Baraat Decoration', color: 'text-pink-500' },
-          { icon: 'shield', text: 'AC & Non-AC Options', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Professional Driver', color: 'text-rose-500' },
-        ]}
-        gradientFrom="pink-50"
-        gradientTo="fuchsia-50"
+      <BusRentalBookingHero
+        city={locationName}
+        citySlug={params.location.toLowerCase()}
+        serviceType="wedding-bus-rental"
+        badgeText={`Wedding Bus in ${locationName}`}
+        headingLine1="Bus Rental for"
+        headingLine2Plain=""
+        headingLine2Accent="Weddings & Baraats"
+        subheading={`Make your ${locationName} baraat unforgettable. Decorated AC buses for wedding processions, guest transport, and multi-day functions — driver and decoration included.`}
+        bookingTitle="Book Your Wedding Bus"
+        bookingSubtitle="Free quote • No advance payment"
       />
 
       {/* Wedding Packages */}
-      <section className="py-12 bg-white">
+      <section className="py-16 bg-white">
         <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Wedding Bus Packages in {locationName}
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Wedding Bus Packages in <span className="text-rose-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
               {
+                Icon: Bus,
                 name: 'Mini Bus',
                 seats: '20-25 Seater',
-                price: 'Starting ₹3,999',
                 features: ['AC Bus', 'Basic Decoration', 'Professional Driver'],
-                gradient: 'from-pink-500 to-rose-500',
               },
               {
+                Icon: BusFront,
                 name: 'Standard Bus',
                 seats: '30-35 Seater',
-                price: 'Starting ₹5,999',
                 features: ['Premium AC', 'Full Decoration', 'Music System', 'Water Bottles'],
-                gradient: 'from-rose-500 to-red-500',
-                popular: true,
               },
               {
+                Icon: Sparkles,
                 name: 'Luxury Coach',
                 seats: '40-50 Seater',
-                price: 'Starting ₹8,999',
                 features: ['Luxury AC Coach', 'Premium Decoration', 'Entertainment', 'Push-back Seats'],
-                gradient: 'from-red-500 to-orange-500',
               },
             ].map((pkg) => (
               <div
                 key={pkg.name}
-                className={`relative bg-gradient-to-br ${pkg.gradient} text-white rounded-xl p-6 shadow-lg`}
+                className="group bg-white border border-gray-100 shadow-sm rounded-2xl p-6 hover:border-rose-300 hover:shadow-md transition-all"
               >
-                {pkg.popular && (
-                  <div className="absolute -top-3 right-4">
-                    <span className="bg-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-                <h3 className="text-xl font-bold mb-1">{pkg.name}</h3>
-                <p className="text-white/90 mb-2">{pkg.seats}</p>
-                <p className="text-2xl font-bold mb-4">{pkg.price}</p>
-                <ul className="space-y-2">
+                <span className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center mb-4 group-hover:bg-rose-600 transition-colors">
+                  <pkg.Icon className="w-5 h-5 text-rose-600 group-hover:text-white transition-colors" />
+                </span>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">{pkg.name}</h3>
+                <p className="text-sm text-gray-500 mb-4">{pkg.seats}</p>
+                <ul className="space-y-2 mb-5">
                   {pkg.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm">
-                      <span>✓</span>
-                      <span className="text-white/90">{feature}</span>
+                    <li key={feature} className="flex items-center gap-2 text-sm text-gray-600">
+                      <span className="shrink-0 w-4 h-4 rounded-full bg-rose-50 grid place-items-center">
+                        <Check className="w-2.5 h-2.5 text-rose-600" strokeWidth={3.5} />
+                      </span>
+                      {feature}
                     </li>
                   ))}
                 </ul>
+                <p className="text-sm font-semibold text-rose-600">Get Quote</p>
               </div>
             ))}
           </div>
@@ -220,38 +209,45 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
       </section>
 
       {/* Services Included */}
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            What&apos;s Included?
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            What&apos;s <span className="text-emerald-600">Included?</span>
           </h2>
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 max-w-6xl mx-auto">
             {[
-              { icon: '🚌', title: 'Clean Buses', desc: 'Well-maintained vehicles' },
-              { icon: '👨‍✈️', title: 'Professional Driver', desc: 'Experienced & courteous' },
-              { icon: '🎀', title: 'Decoration', desc: 'Flowers & ribbons' },
-              { icon: '❄️', title: 'AC Comfort', desc: 'Climate controlled' },
-              { icon: '🎵', title: 'Music System', desc: 'Your favorite songs' },
-              { icon: '💺', title: 'Comfortable Seats', desc: 'Push-back & reclining' },
-              { icon: '🛡️', title: 'Insured', desc: 'Complete coverage' },
-              { icon: '📞', title: '24/7 Support', desc: 'Always available' },
-            ].map((item) => (
-              <div key={item.title} className="bg-white p-5 rounded-lg shadow-md text-center">
-                <div className="text-3xl mb-2">{item.icon}</div>
-                <h3 className="font-bold mb-1">{item.title}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              { Icon: Bus, title: 'Clean Buses', desc: 'Well-maintained vehicles' },
+              { Icon: UserCheck, title: 'Professional Driver', desc: 'Experienced & courteous' },
+              { Icon: Flower2, title: 'Decoration', desc: 'Flowers & ribbons' },
+              { Icon: Snowflake, title: 'AC Comfort', desc: 'Climate controlled' },
+              { Icon: Music, title: 'Music System', desc: 'Your favorite songs' },
+              { Icon: Armchair, title: 'Comfortable Seats', desc: 'Push-back & reclining' },
+              { Icon: ShieldCheck, title: 'Insured', desc: 'Complete coverage' },
+              { Icon: PhoneCall, title: '24/7 Support', desc: 'Always available' },
+            ].map(({ Icon, title, desc }) => (
+              <div key={title} className="group rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 px-4 py-5 text-center">
+                <div className="relative w-14 h-14 mx-auto mb-3.5">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[78deg] transition-transform duration-500" />
+                  <span className="absolute inset-[5px] rounded-full bg-emerald-50 flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-emerald-600" strokeWidth={1.9} />
+                  </span>
+                </div>
+                <h3 className="font-bold text-[15px] text-gray-900 leading-snug">{title}</h3>
+                <p className="mt-1 text-[12.5px] leading-snug text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <VehicleGrid
-        vehicles={pageData.vehicles}
-        title={`Wedding Buses Available in ${locationName}`}
-      />
+      {busFleet.length > 0 && (
+        <VehicleGrid
+          vehicles={busFleet}
+          title={`Wedding Buses Available in ${locationName}`}
+        />
+      )}
 
-      <WhyRentHere locationName={locationName} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location.toLowerCase()}
@@ -277,6 +273,8 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="wedding-bus-rental" location={locationName} customFaqs={pageFaqs} />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

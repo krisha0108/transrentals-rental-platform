@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, ActivityIndicator, StatusBar, Dimensions,
+  RefreshControl, StatusBar, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -12,7 +12,7 @@ import { getP2PStats, getP2PMyPostings, getP2PTransactions } from '../../api/cli
 import { useVerificationGate, VerificationBanner } from '../../../components/VerificationGate';
 import { SC as T, G, rs, shade, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 const SW = Dimensions.get('window').width;
 
@@ -30,6 +30,10 @@ const C = {
   blue: T.blue, blueBg: T.blueLight,
   purple: T.purple, purpleBg: T.tintPlum,
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const STATUS_COLORS = {
   ACTIVE:      '#10B981', PENDING:     '#F59E0B', CONFIRMED:   '#3B82F6',
@@ -80,8 +84,7 @@ export default function P2PDashboardScreen({ navigation }) {
   const HeaderBlock = () => (
     <LinearGradient colors={G.hero} style={s.header}>
       {/* Decorative orbs */}
-      <AnimatedOrb style={s.decCircleLg} />
-      <AnimatedOrb style={s.decCircleMd} delay={1200} dx={-10} dy={8} />
+      <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
       <SafeAreaView edges={['top']}>
         {/* Top nav row */}
@@ -97,41 +100,134 @@ export default function P2PDashboardScreen({ navigation }) {
             <Icon name="refresh-cw" size={16} color="rgba(255,255,255,0.7)" />
           </TouchableOpacity>
         </View>
-
-        {/* Earnings hero card */}
-        <View style={s.heroCard}>
-          <View style={s.heroIconCircle}>
-            <MCI name="cash-multiple" size={26} color={C.g400} />
-          </View>
-          <View style={s.heroContent}>
-            <Text style={s.heroLabel}>TOTAL EARNINGS</Text>
-            <Text style={s.heroAmount}>{fmtEarnings}</Text>
-            <View style={s.heroChipsRow}>
-              <View style={s.heroChip}>
-                <Text style={s.heroChipText}>Deals: {deals}</Text>
-              </View>
-              <View style={[s.heroChip, { marginLeft: 6 }]}>
-                <Text style={s.heroChipText}>Active: {posts}</Text>
-              </View>
-            </View>
-          </View>
-          <View style={s.heroRatingBadge}>
-            <MCI name="star" size={14} color={C.amber} />
-            <Text style={s.heroRatingText}>{rating}</Text>
-          </View>
-        </View>
       </SafeAreaView>
     </LinearGradient>
+  );
+
+  const EarningsCard = () => (
+    <View style={s.heroCard}>
+      <View style={s.heroIconCircle}>
+        <MCI name="cash-multiple" size={26} color={C.g700} />
+      </View>
+      <View style={s.heroContent}>
+        <Text style={s.heroLabel}>TOTAL EARNINGS</Text>
+        <Text style={s.heroAmount}>{fmtEarnings}</Text>
+        <View style={s.heroChipsRow}>
+          <View style={s.heroChip}>
+            <Text style={s.heroChipText}>Deals: {deals}</Text>
+          </View>
+          <View style={[s.heroChip, { marginLeft: 6 }]}>
+            <Text style={s.heroChipText}>Active: {posts}</Text>
+          </View>
+        </View>
+      </View>
+      <View style={s.heroRatingBadge}>
+        <MCI name="star" size={14} color={C.amber} />
+        <Text style={s.heroRatingText}>{rating}</Text>
+      </View>
+    </View>
   );
 
   if (loading) return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={C.g950} />
-      <HeaderBlock />
-      <View style={s.center}>
-        <ActivityIndicator size="large" color={C.g600} />
-        <Text style={s.loadingText}>Loading P2P data...</Text>
-      </View>
+
+      <LinearGradient colors={G.hero} style={s.header}>
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
+        <SafeAreaView edges={['top']}>
+          <View style={s.nav}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.navBtn} activeOpacity={0.7}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.navCenter}>
+              <Text style={s.navTitle}>P2P Marketplace</Text>
+              <Text style={s.navSub}>Vendor-to-Vendor Network</Text>
+            </View>
+            <View style={s.navBtn} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      <ScrollView contentContainerStyle={{ paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+        <View style={s.heroCard}>
+          <View style={s.heroIconCircle}>
+            <MCI name="cash-multiple" size={26} color={C.g700} />
+          </View>
+          <View style={s.heroContent}>
+            <Bone w={90} h={9} style={{ marginBottom: 6 }} />
+            <Bone w={120} h={26} />
+            <View style={s.heroChipsRow}>
+              <Bone w={60} h={18} r={8} />
+              <Bone w={60} h={18} r={8} style={{ marginLeft: 6 }} />
+            </View>
+          </View>
+          <Bone w={44} h={26} r={10} />
+        </View>
+
+        <View style={s.statsCard}>
+          {[0, 1, 2, 3].map((i, idx, arr) => (
+            <View key={i} style={s.statItem}>
+              <Bone w={36} h={18} style={{ marginBottom: 4 }} />
+              <Bone w={50} h={9} />
+              {idx < arr.length - 1 && <View style={s.statDivider} />}
+            </View>
+          ))}
+        </View>
+
+        <View style={s.section}>
+          <Bone w={110} h={11} style={{ marginBottom: 12 }} />
+          <View style={s.actionsGrid}>
+            {[0, 1, 2, 3].map(i => (
+              <View key={i} style={[s.actionCard, { backgroundColor: C.surface }]}>
+                <Bone w={44} h={44} r={14} style={{ marginBottom: 12 }} />
+                <Bone w={80} h={13} style={{ marginBottom: 6 }} />
+                <Bone w={100} h={10} />
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={s.section}>
+          <Bone w={80} h={11} style={{ marginBottom: 12 }} />
+          <View style={s.manageCard}>
+            {[0, 1].map(i => (
+              <View key={i} style={[s.manageRow, i === 0 && s.manageRowBorder]}>
+                <Bone w={40} h={40} r={12} />
+                <View style={{ flex: 1 }}>
+                  <Bone w={100} h={13} style={{ marginBottom: 6 }} />
+                  <Bone w={130} h={10} />
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={s.section}>
+          <Bone w={150} h={11} style={{ marginBottom: 12 }} />
+          {[0, 1].map(i => (
+            <View key={i} style={s.txCard}>
+              <View style={[s.txBar, { backgroundColor: C.border }]} />
+              <View style={s.txContent}>
+                <View style={s.txTop}>
+                  <Bone w={70} h={11} />
+                  <Bone w={70} h={18} r={8} />
+                </View>
+                <View style={s.txRouteRow}>
+                  <Bone w={7} h={7} r={4} />
+                  <Bone w={60} h={11} style={{ marginHorizontal: 6 }} />
+                  <View style={s.txRouteLine} />
+                  <Bone w={7} h={7} r={4} />
+                  <Bone w={60} h={11} style={{ marginHorizontal: 6 }} />
+                </View>
+                <View style={s.txBottom}>
+                  <Bone w={80} h={10} />
+                  <Bone w={60} h={13} />
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
     </View>
   );
 
@@ -148,6 +244,9 @@ export default function P2PDashboardScreen({ navigation }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g500]} />}
         showsVerticalScrollIndicator={false}
       >
+
+        {/* Total Earnings — moved out of the header into the body */}
+        <EarningsCard />
 
         {/* ── Stats Strip (single card, 4 items) ── */}
         <View style={s.statsCard}>
@@ -341,19 +440,9 @@ export default function P2PDashboardScreen({ navigation }) {
 }
 
 const s = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 14, color: C.muted, fontWeight: '600' },
-
   // Header
   header: { paddingBottom: 0, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
-  decCircleLg: {
-    position: 'absolute', width: 200, height: 200, borderRadius: 100,
-    backgroundColor: 'rgba(16,185,129,0.06)', top: -60, right: -60,
-  },
-  decCircleMd: {
-    position: 'absolute', width: 140, height: 140, borderRadius: 70,
-    backgroundColor: 'rgba(6,214,160,0.05)', bottom: -20, left: -20,
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
 
   // Nav
   nav: {
@@ -367,46 +456,47 @@ const s = StyleSheet.create({
   },
   navCenter: { flex: 1, marginHorizontal: 10, alignItems: 'center' },
   navTitle:  { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', color: '#fff' },
-  navSub:    { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  navSub:    { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
 
   // Earnings Hero Card
   heroCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: rs(20), padding: 20,
-    marginHorizontal: 16, marginTop: 4, marginBottom: 18,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: C.surface,
+    borderRadius: rs(16), padding: 20,
+    marginHorizontal: 16, marginTop: 14, marginBottom: 4,
+    borderWidth: 1, borderColor: C.border,
+    ...cardShadow,
   },
   heroIconCircle: {
     width: 48, height: 48, borderRadius: 24,
-    backgroundColor: 'rgba(52,211,153,0.2)',
+    backgroundColor: C.g50,
     justifyContent: 'center', alignItems: 'center',
     marginRight: 14,
   },
   heroContent: { flex: 1 },
-  heroLabel:   { fontSize: 10, color: C.g300, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
-  heroAmount:  { fontFamily: DISPLAY, fontSize: 32, fontWeight: '900', color: C.g300, marginTop: 2, letterSpacing: -0.5 },
+  heroLabel:   { fontSize: 11, color: C.muted, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
+  heroAmount:  { fontFamily: DISPLAY, fontSize: 32, fontWeight: '900', color: C.text, marginTop: 2, letterSpacing: -0.5 },
   heroChipsRow:{ flexDirection: 'row', marginTop: 6 },
   heroChip: {
-    backgroundColor: 'rgba(110,231,183,0.15)',
+    backgroundColor: C.g50,
     borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
-    borderWidth: 1, borderColor: 'rgba(110,231,183,0.25)',
+    borderWidth: 1, borderColor: C.g100,
   },
-  heroChipText: { fontSize: 10, color: C.g300, fontWeight: '700' },
+  heroChipText: { fontSize: 11, color: C.g700, fontWeight: '700' },
   heroRatingBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: 'rgba(245,158,11,0.15)',
+    backgroundColor: C.amberBg,
     borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
-    borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
+    borderWidth: 1, borderColor: '#FDE68A',
     marginLeft: 10,
   },
-  heroRatingText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: '#FCD34D', marginLeft: 2 },
+  heroRatingText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.amber, marginLeft: 2 },
 
   // Section
   section:     { paddingHorizontal: 16, marginTop: 22 },
   sectionRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle:{ fontFamily: DISPLAY, fontSize: 12, fontWeight: '800', color: C.text, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  seeAll:      { fontSize: 13, color: C.g600, fontWeight: '700' },
+  sectionTitle:{ fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.text, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  seeAll:      { fontSize: 14, color: C.g600, fontWeight: '700' },
 
   // Stats strip — single white card
   statsCard: {
@@ -418,7 +508,7 @@ const s = StyleSheet.create({
   },
   statItem:   { flex: 1, alignItems: 'center', position: 'relative' },
   statVal:    { fontFamily: DISPLAY, fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },
-  statLbl:    { fontSize: 10, color: C.muted, fontWeight: '600', marginTop: 3 },
+  statLbl:    { fontSize: 11, color: C.muted, fontWeight: '600', marginTop: 3 },
   statDivider:{ position: 'absolute', right: 0, top: '15%', width: 1, height: '70%', backgroundColor: C.border },
 
   // Quick Actions — 2x2 pastel grid
@@ -429,7 +519,7 @@ const s = StyleSheet.create({
   },
   actionIconBox:{ width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   actionLabel: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800' },
-  actionSub:   { fontSize: 11, color: C.muted, marginTop: 3, lineHeight: 15 },
+  actionSub:   { fontSize: 12, color: C.muted, marginTop: 3, lineHeight: 15 },
 
   // Manage — single white card with rows
   manageCard: {
@@ -442,7 +532,7 @@ const s = StyleSheet.create({
   manageRowBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
   manageIconBox:   { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   manageLabel:     { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text },
-  manageSub:       { fontSize: 11, color: C.muted, marginTop: 2 },
+  manageSub:       { fontSize: 12, color: C.muted, marginTop: 2 },
 
   // Transactions
   txCard: {
@@ -454,16 +544,16 @@ const s = StyleSheet.create({
   txBar:    { width: 4, alignSelf: 'stretch' },
   txContent:{ flex: 1, padding: 14 },
   txTop:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  txNum:    { fontSize: 12, fontWeight: '700', color: C.text, fontFamily: 'monospace' },
+  txNum:    { fontSize: 13, fontWeight: '700', color: C.text, fontFamily: 'monospace' },
   txBadge:  { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   txBadgeDot: { width: 6, height: 6, borderRadius: 3 },
-  txBadgeText:{ fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
+  txBadgeText:{ fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
   txRouteRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   txRouteDot:  { width: 7, height: 7, borderRadius: 4 },
-  txRouteCity: { fontSize: 12, fontWeight: '700', color: C.sub, marginHorizontal: 6, maxWidth: SW * 0.22 },
+  txRouteCity: { fontSize: 13, fontWeight: '700', color: C.sub, marginHorizontal: 6, maxWidth: SW * 0.22 },
   txRouteLine: { flex: 1, height: 1, backgroundColor: C.border },
   txBottom:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  txVehicle:   { fontSize: 11, color: C.muted },
+  txVehicle:   { fontSize: 12, color: C.muted },
   txAmt:       { fontFamily: DISPLAY, fontSize: 15, fontWeight: '900', color: C.g700 },
 
   // Active Postings
@@ -474,15 +564,15 @@ const s = StyleSheet.create({
   },
   postTop:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   postTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  postTypeText:  { fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
-  postNum:       { fontSize: 10, color: C.muted, fontFamily: 'monospace', maxWidth: SW * 0.3 },
+  postTypeText:  { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
+  postNum:       { fontSize: 11, color: C.muted, fontFamily: 'monospace', maxWidth: SW * 0.3 },
   postRouteRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   postRouteDot:  { width: 7, height: 7, borderRadius: 4 },
-  postRouteCity: { fontSize: 12, fontWeight: '700', color: C.sub, marginHorizontal: 6, maxWidth: SW * 0.2 },
+  postRouteCity: { fontSize: 13, fontWeight: '700', color: C.sub, marginHorizontal: 6, maxWidth: SW * 0.2 },
   postRouteLine: { flex: 1, height: 1, backgroundColor: C.border },
   postStatusChip:{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   postStatusDot: { width: 6, height: 6, borderRadius: 3 },
-  postStatusText:{ fontSize: 10, fontWeight: '700' },
+  postStatusText:{ fontSize: 11, fontWeight: '700' },
 
   // How It Works — open rows, no card box
   howRow: {
@@ -493,9 +583,9 @@ const s = StyleSheet.create({
     width: 32, height: 32, borderRadius: 16,
     justifyContent: 'center', alignItems: 'center',
   },
-  howNumText: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '900' },
+  howNumText: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '900' },
   howConnector: { width: 2, flex: 1, minHeight: 20, backgroundColor: C.border, marginTop: 4 },
   howIconBox:  { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
   howLabel:    { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text, marginTop: 4 },
-  howDesc:     { fontSize: 11, color: C.muted, marginTop: 3, lineHeight: 16 },
+  howDesc:     { fontSize: 12, color: C.muted, marginTop: 3, lineHeight: 16 },
 });

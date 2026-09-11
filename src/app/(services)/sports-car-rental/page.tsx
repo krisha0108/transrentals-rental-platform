@@ -1,9 +1,52 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { getCitiesByPriority } from '@/data/indian-cities';
+import {
+  Car, Zap, UserCog, Trophy, Gem, Camera, PartyPopper, Star, Target, Briefcase,
+  Cake, Heart, Video, Flag, Sparkles,
+  MessageCircleQuestion, Plus,
+} from 'lucide-react';
 import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
+import { StaticServicePopularCitiesGrid } from '@/components/services/StaticServicePopularCitiesGrid';
 import { formatPriceHighlight } from '@/lib/utils';
 import { HowToSchema } from '@/components/seo/schemas';
+
+const HERO_HIGHLIGHTS = [
+  { icon: Car, title: 'Exotic Supercars', desc: 'Ferrari, Lamborghini, McLaren' },
+  { icon: Zap, title: 'High Performance', desc: 'Ultimate driving experience' },
+  { icon: UserCog, title: 'Flexible Options', desc: 'Self-drive or chauffeur' },
+];
+
+const WHY_SPORTS_CAR = [
+  { icon: Trophy, anim: 'lift', title: 'Ultimate Experience', desc: 'Dream car driving' },
+  { icon: Gem, anim: 'pulse', title: 'Luxury & Style', desc: 'Arrive in elegance' },
+  { icon: Camera, anim: 'tick', title: 'Memorable Photos', desc: 'Instagram-worthy' },
+  { icon: PartyPopper, anim: 'grow', title: 'Special Occasions', desc: 'Weddings, parties, events' },
+  { icon: Zap, anim: 'drive', title: 'High Performance', desc: 'Thrilling power' },
+  { icon: Star, anim: 'pulse', title: 'VIP Treatment', desc: 'Feel like celebrity' },
+  { icon: Target, anim: 'wrench', title: 'Bucket List', desc: 'Fulfill your dreams' },
+  { icon: Briefcase, anim: 'drive', title: 'Corporate Events', desc: 'Impress clients' },
+];
+
+const PERFECT_OCCASIONS = [
+  { icon: Heart, anim: 'pulse', occasion: 'Weddings', desc: 'Grand entry & exit' },
+  { icon: Cake, anim: 'lift', occasion: 'Birthdays', desc: 'Memorable celebration' },
+  { icon: Sparkles, anim: 'grow', occasion: 'Proposals', desc: 'Romantic surprise' },
+  { icon: Camera, anim: 'tick', occasion: 'Photo Shoots', desc: 'Luxury backdrops' },
+  { icon: Briefcase, anim: 'drive', occasion: 'Corporate Events', desc: 'VIP transport' },
+  { icon: Video, anim: 'pulse', occasion: 'Music Videos', desc: 'Film production' },
+  { icon: Flag, anim: 'drive', occasion: 'Joy Rides', desc: 'Weekend thrill' },
+  { icon: Sparkles, anim: 'wrench', occasion: 'Bucket List', desc: 'Fulfill dreams' },
+];
+
+/* Har icon apne hisaab se hilta hai — plain Tailwind group-hover, no custom keyframes. */
+const ICON_HOVER_ANIM: Record<string, string> = {
+  drive: 'group-hover:translate-x-2',
+  pulse: 'group-hover:scale-125',
+  tick: 'group-hover:rotate-[360deg]',
+  wrench: 'group-hover:rotate-45',
+  lift: 'group-hover:-translate-y-2',
+  grow: 'group-hover:-translate-y-1.5 group-hover:scale-110',
+};
 
 export const metadata: Metadata = {
   title: 'Sports Car Rental | Supercar Hire from ₹25000 | Ferrari',
@@ -29,8 +72,6 @@ export const metadata: Metadata = {
 };
 
 export default function SportsCarRentalPage() {
-  const popularCities = getCitiesByPriority(8);
-
   return (
     <>
       <HowToSchema
@@ -58,21 +99,13 @@ export default function SportsCarRentalPage() {
               Ferrari, Lamborghini, Porsche & More | Starting @₹25,000/Day
             </p>
             <div className="grid md:grid-cols-3 gap-6 mb-8 text-left">
-              <div className="bg-white/10 backdrop-blur p-4 rounded-lg">
-                <div className="text-3xl mb-2">🏎️</div>
-                <h3 className="font-semibold mb-1">Exotic Supercars</h3>
-                <p className="text-sm opacity-90">Ferrari, Lamborghini, McLaren</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur p-4 rounded-lg">
-                <div className="text-3xl mb-2">⚡</div>
-                <h3 className="font-semibold mb-1">High Performance</h3>
-                <p className="text-sm opacity-90">Ultimate driving experience</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur p-4 rounded-lg">
-                <div className="text-3xl mb-2">👨‍✈️</div>
-                <h3 className="font-semibold mb-1">Flexible Options</h3>
-                <p className="text-sm opacity-90">Self-drive or chauffeur</p>
-              </div>
+              {HERO_HIGHLIGHTS.map((item) => (
+                <div key={item.title} className="bg-white/10 backdrop-blur p-4 rounded-lg">
+                  <item.icon className="w-7 h-7 mb-2 text-white" strokeWidth={1.7} />
+                  <h3 className="font-semibold mb-1">{item.title}</h3>
+                  <p className="text-sm opacity-90">{item.desc}</p>
+                </div>
+              ))}
             </div>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link
@@ -93,76 +126,76 @@ export default function SportsCarRentalPage() {
       </section>
 
       {/* Why Sports Car */}
-      <section className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Why Rent a Sports Car?
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              { icon: '🏆', title: 'Ultimate Experience', desc: 'Dream car driving' },
-              { icon: '💎', title: 'Luxury & Style', desc: 'Arrive in elegance' },
-              { icon: '📸', title: 'Memorable Photos', desc: 'Instagram-worthy' },
-              { icon: '🎉', title: 'Special Occasions', desc: 'Weddings, parties, events' },
-              { icon: '⚡', title: 'High Performance', desc: 'Thrilling power' },
-              { icon: '🌟', title: 'VIP Treatment', desc: 'Feel like celebrity' },
-              { icon: '🎯', title: 'Bucket List', desc: 'Fulfill your dreams' },
-              { icon: '💼', title: 'Corporate Events', desc: 'Impress clients' },
-            ].map((feature) => (
-              <div key={feature.title} className="text-center">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.desc}</p>
+      <section className="relative overflow-hidden py-16 md:py-24 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
+            <h2 className="text-3xl md:text-[2.75rem] leading-[1.1] font-black tracking-tight text-gray-900">
+              Why Rent a <span className="text-emerald-600">Sports Car?</span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            {WHY_SPORTS_CAR.map((item, idx) => (
+              <div
+                key={item.title}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-7 text-center overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-100"
+                style={{ animation: `spc-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 80}ms forwards`, opacity: 0 }}
+              >
+                <div className="relative w-14 h-14 mx-auto mb-4">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                  <span className="absolute inset-[5px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                    <item.icon
+                      className={`w-5 h-5 text-emerald-600 transition-transform duration-500 group-hover:text-white ${ICON_HOVER_ANIM[item.anim]}`}
+                    />
+                  </span>
+                </div>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-1.5 leading-snug">{item.title}</h3>
+                <p className="text-[13px] leading-relaxed text-gray-500">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes spc-rise { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) { [style*="spc-rise"] { animation: none !important; opacity: 1 !important; } }
+        ` }} />
       </section>
 
-      {/* Popular Cities Grid */}
-      <section id="locations" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Sports Car Rental in Popular Cities
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {popularCities.map((city) => (
-              <Link
-                key={city.slug}
-                href={`/sports-car-rental/${city.slug}`}
-                className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition group"
-              >
-                <h3 className="font-semibold text-lg group-hover:text-red-800 transition">
-                  {city.name}
-                </h3>
-                <p className="text-sm text-gray-600">{city.state}</p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+      <StaticServicePopularCitiesGrid serviceSlug="sports-car-rental" title="Sports Car Rental in Available Cities" />
 
       {/* Perfect Occasions */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Perfect for Special Occasions
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { occasion: 'Weddings', icon: '💒', desc: 'Grand entry & exit' },
-              { occasion: 'Birthdays', icon: '🎂', desc: 'Memorable celebration' },
-              { occasion: 'Proposals', icon: '💍', desc: 'Romantic surprise' },
-              { occasion: 'Photo Shoots', icon: '📸', desc: 'Luxury backdrops' },
-              { occasion: 'Corporate Events', icon: '💼', desc: 'VIP transport' },
-              { occasion: 'Music Videos', icon: '🎬', desc: 'Film production' },
-              { occasion: 'Joy Rides', icon: '🏁', desc: 'Weekend thrill' },
-              { occasion: 'Bucket List', icon: '✨', desc: 'Fulfill dreams' },
-            ].map((item) => (
-              <div key={item.occasion} className="bg-white p-6 rounded-lg shadow-md text-center">
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{item.occasion}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-gray-50/70 to-white">
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <h2 className="text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Perfect for <span className="text-emerald-600">Special Occasions</span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            {PERFECT_OCCASIONS.map((item, idx) => (
+              <div
+                key={item.occasion}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm p-5 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                style={{ animation: `spc-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 80}ms forwards`, opacity: 0 }}
+              >
+                <span className="inline-flex w-12 h-12 rounded-xl bg-emerald-50 items-center justify-center mb-4 transition-colors duration-300 group-hover:bg-emerald-600">
+                  <item.icon
+                    className={`w-6 h-6 text-emerald-600 transition-transform duration-500 group-hover:text-white ${ICON_HOVER_ANIM[item.anim]}`}
+                  />
+                </span>
+                <h3 className="text-[15px] font-bold text-gray-900 leading-snug mb-1.5">{item.occasion}</h3>
+                <p className="text-[13px] leading-relaxed text-gray-500">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -239,12 +272,31 @@ export default function SportsCarRentalPage() {
       </section>
 
       {/* FAQs */}
-      <section className="py-16">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-6">
+      <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(380px 300px at 3% 12%, #000 0%, transparent 70%), radial-gradient(380px 300px at 97% 88%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom max-w-5xl relative">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] text-emerald-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              GOOD TO KNOW
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            </span>
+            <h2 className="mt-4 text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Sports Car Rental <span className="text-emerald-600">FAQs</span>
+            </h2>
+          </div>
+          <div className="space-y-3">
             {[
               {
                 q: 'How much does sports car rental cost in India?',
@@ -271,10 +323,22 @@ export default function SportsCarRentalPage() {
                 a: 'Yes! Sports cars are very popular for weddings - groom entry, couple exit, photo shoots. We provide professional chauffeur and maintain pristine condition.',
               },
             ].map((faq, idx) => (
-              <div key={idx} className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
+              <details
+                key={idx}
+                open={idx === 0}
+                className="group rounded-2xl bg-white border border-gray-100 shadow-sm open:border-emerald-200 open:shadow-md transition-all"
+              >
+                <summary className="flex items-center gap-4 px-4 sm:px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span className="shrink-0 w-9 h-9 rounded-full bg-emerald-50 grid place-items-center">
+                    <MessageCircleQuestion className="w-[18px] h-[18px] text-emerald-600" />
+                  </span>
+                  <h3 className="flex-1 font-bold text-[15px] leading-snug text-gray-900">{faq.q}</h3>
+                  <span className="shrink-0 w-8 h-8 rounded-lg bg-gray-50 text-gray-500 grid place-items-center transition-all duration-200 group-open:rotate-45 group-open:bg-emerald-600 group-open:text-white">
+                    <Plus className="w-4 h-4" />
+                  </span>
+                </summary>
+                <p className="px-4 sm:px-5 pb-5 sm:pl-[4.25rem] text-[14px] leading-relaxed text-gray-500">{faq.a}</p>
+              </details>
             ))}
           </div>
         </div>

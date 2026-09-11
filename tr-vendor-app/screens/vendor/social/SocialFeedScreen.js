@@ -46,7 +46,7 @@ import {
 import { getFullImageURL } from '../../api/client';
 import { SC as T, G, rs, cardShadow, SHEET_RADIUS } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -256,6 +256,31 @@ function PostImageThumb({ url, style }) {
     return () => { alive = false; };
   }, [url]);
   return <Image source={uri ? { uri } : undefined} style={style} resizeMode="cover" />;
+}
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
+
+function SkeletonPost() {
+  return (
+    <View style={styles.postCard}>
+      <Bone w={rs(34)} h={rs(34)} r={rs(17)} style={styles.postAvatar} />
+      <View style={styles.postBody}>
+        <View style={styles.postLine1}>
+          <Bone w={rs(110)} h={rs(13)} />
+          <Bone w={rs(70)} h={rs(11)} style={{ marginLeft: rs(8) }} />
+        </View>
+        <Bone w="90%" h={rs(13)} style={{ marginTop: rs(8) }} />
+        <Bone w="60%" h={rs(13)} style={{ marginTop: rs(6), marginBottom: rs(9) }} />
+        <View style={styles.actionBar}>
+          {[0, 1, 2, 3].map((i) => (
+            <Bone key={i} w={rs(24)} h={rs(14)} />
+          ))}
+        </View>
+      </View>
+    </View>
+  );
 }
 
 function PostImages({ images }) {
@@ -861,8 +886,7 @@ export default function SocialFeedScreen({ navigation }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g950} translucent={false} />
       {/* Header */}
       <LG colors={G.hero} style={[styles.header, { paddingTop: insets.top + rs(10) }]}>
-        <AnimatedOrb style={styles.orbA} />
-        <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
             <View style={styles.headerIconWrap}>
@@ -954,9 +978,7 @@ export default function SocialFeedScreen({ navigation }) {
           </>
         }
         ListFooterComponent={
-          loading ? (
-            <ActivityIndicator color={C.violet} style={{ margin: rs(24) }} />
-          ) : hasMore && tab === 'feed' ? (
+          loading ? null : hasMore && tab === 'feed' ? (
             <TouchableOpacity style={styles.loadMoreBtn} onPress={onLoadMore} disabled={loadingMore} activeOpacity={0.85}>
               {loadingMore
                 ? <ActivityIndicator color={C.violet} size="small" />
@@ -965,7 +987,14 @@ export default function SocialFeedScreen({ navigation }) {
           ) : null
         }
         ListEmptyComponent={
-          !loading ? (
+          loading ? (
+            <>
+              <SkeletonPost />
+              <SkeletonPost />
+              <SkeletonPost />
+              <SkeletonPost />
+            </>
+          ) : (
             <View style={styles.emptyWrap}>
               <View style={styles.emptyIconWrap}>
                 <Icon name={tab === 'saved' ? 'bookmark' : 'rss'} size={rs(40)} color={C.violet} />
@@ -975,7 +1004,7 @@ export default function SocialFeedScreen({ navigation }) {
                 {tab === 'saved' ? 'Bookmark posts to see them here.' : 'Be the first to post something!'}
               </Text>
             </View>
-          ) : null
+          )
         }
       />
 
@@ -1222,7 +1251,17 @@ export default function SocialFeedScreen({ navigation }) {
             )}
 
             {shareConvLoading ? (
-              <ActivityIndicator color={C.violet} style={{ margin: rs(24) }} />
+              <View style={styles.commentsList}>
+                {[0, 1, 2].map((i) => (
+                  <View key={i} style={styles.shareChatConvItem}>
+                    <Bone w={rs(40)} h={rs(40)} r={rs(20)} />
+                    <View style={{ flex: 1 }}>
+                      <Bone w={rs(110)} h={rs(13)} style={{ marginBottom: rs(6) }} />
+                      <Bone w={rs(80)} h={rs(11)} />
+                    </View>
+                  </View>
+                ))}
+              </View>
             ) : shareConversations.length === 0 ? (
               <View style={styles.commentEmpty}>
                 <Icon name="message-circle" size={rs(36)} color={C.border} />
@@ -1279,7 +1318,18 @@ export default function SocialFeedScreen({ navigation }) {
             </View>
 
             {commentsLoading ? (
-              <ActivityIndicator color={C.violet} style={{ margin: rs(24) }} />
+              <View style={styles.commentsList}>
+                {[0, 1, 2].map((i) => (
+                  <View key={i} style={styles.commentItem}>
+                    <Bone w={rs(32)} h={rs(32)} r={rs(16)} />
+                    <View style={styles.commentBody}>
+                      <Bone w={rs(90)} h={rs(12)} style={{ marginBottom: rs(6) }} />
+                      <Bone w="80%" h={rs(12)} style={{ marginBottom: rs(6) }} />
+                      <Bone w={rs(50)} h={rs(10)} />
+                    </View>
+                  </View>
+                ))}
+              </View>
             ) : comments.length === 0 ? (
               <View style={styles.commentEmpty}>
                 <Icon name="message-circle" size={rs(36)} color={C.border} />
@@ -1337,14 +1387,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: rs(26), borderBottomRightRadius: rs(26),
     overflow: 'hidden',
   },
-  orbA: {
-    position: 'absolute', top: -rs(44), right: -rs(30), width: rs(170), height: rs(170), borderRadius: rs(85),
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -rs(36), left: -rs(34), width: rs(140), height: rs(140), borderRadius: rs(70),
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },

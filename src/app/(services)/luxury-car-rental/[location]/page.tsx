@@ -17,6 +17,8 @@ import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections, hasSectionsContent } from '@/components/seo/ServiceCitySections';
 import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
 import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
+import { FAQSection } from '@/components/services/FAQSection';
+import { Heart, Briefcase, Plane, Camera } from 'lucide-react';
 
 const COMING_SOON_SLUGS = new Set([
   'vadodara',
@@ -178,24 +180,24 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
       />
 
       {/* Why Choose Luxury Cars in This City */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Why Rent Luxury Cars in {locationName}?
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-emerald-50/25 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Why Rent Luxury Cars in <span className="text-emerald-600">{locationName}</span>?
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
             {[
-              { icon: Crown, title: 'Premium Fleet', desc: `Latest luxury models available in ${locationName}`, color: 'text-amber-500 bg-amber-50' },
-              { icon: Star, title: 'Expert Chauffeurs', desc: 'Trained, professional drivers who know the city', color: 'text-purple-500 bg-purple-50' },
-              { icon: Clock, title: 'Flexible Timing', desc: 'Book by hour, day, or week as per your need', color: 'text-blue-500 bg-blue-50' },
-              { icon: Shield, title: 'Fully Insured', desc: 'Complete peace of mind with comprehensive coverage', color: 'text-green-500 bg-green-50' },
-            ].map((feature) => (
-              <div key={feature.title} className="text-center p-6 rounded-xl hover:shadow-lg transition-shadow">
-                <div className={`w-14 h-14 mx-auto mb-4 rounded-xl ${feature.color} flex items-center justify-center`}>
-                  <feature.icon className={`w-7 h-7 ${feature.color.split(' ')[0]}`} />
-                </div>
-                <h3 className="font-semibold text-lg mb-2 text-gray-900">{feature.title}</h3>
-                <p className="text-gray-600 text-sm">{feature.desc}</p>
+              { Icon: Crown, title: 'Premium Fleet', desc: `Latest luxury models available in ${locationName}` },
+              { Icon: Star, title: 'Expert Chauffeurs', desc: 'Trained, professional drivers who know the city' },
+              { Icon: Clock, title: 'Flexible Timing', desc: 'Book by hour, day, or week as per your need' },
+              { Icon: Shield, title: 'Fully Insured', desc: 'Complete peace of mind with comprehensive coverage' },
+            ].map(({ Icon, title, desc }) => (
+              <div key={title} className="text-center bg-white border border-dashed border-emerald-200 rounded-2xl px-5 py-8 hover:border-emerald-400 hover:shadow-md transition-all">
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <Icon className="w-6 h-6 text-emerald-600" />
+                </span>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1">{title}</h3>
+                <p className="text-xs text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
@@ -203,22 +205,24 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
       </section>
 
       {/* Perfect Occasions */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Perfect for Events in {locationName}
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-gray-50/70 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+            Perfect for Events in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
             {[
-              { occasion: 'Weddings', icon: '💒', desc: `Grand arrivals at ${locationName} weddings` },
-              { occasion: 'Corporate Events', icon: '💼', desc: 'Impress clients and partners' },
-              { occasion: 'Airport Transfers', icon: '✈️', desc: `VIP service to ${locationName} airport` },
-              { occasion: 'Photoshoots', icon: '📸', desc: 'Perfect backdrop for your shoot' },
-            ].map((item) => (
-              <div key={item.occasion} className="bg-white p-6 rounded-xl text-center hover:shadow-lg transition-shadow">
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-semibold text-lg mb-2 text-gray-900">{item.occasion}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              { Icon: Heart, occasion: 'Weddings', desc: `Grand arrivals at ${locationName} weddings` },
+              { Icon: Briefcase, occasion: 'Corporate Events', desc: 'Impress clients and partners' },
+              { Icon: Plane, occasion: 'Airport Transfers', desc: `VIP service to ${locationName} airport` },
+              { Icon: Camera, occasion: 'Photoshoots', desc: 'Perfect backdrop for your shoot' },
+            ].map(({ Icon, occasion, desc }) => (
+              <div key={occasion} className="text-center bg-white border border-dashed border-emerald-200 rounded-2xl px-5 py-8 hover:border-emerald-400 hover:shadow-md transition-all">
+                <span className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <Icon className="w-6 h-6 text-emerald-600" />
+                </span>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1">{occasion}</h3>
+                <p className="text-xs text-gray-500">{desc}</p>
               </div>
             ))}
           </div>
@@ -329,22 +333,11 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
         </section>
       )}
 
-      {/* FAQs */}
-      <section className="py-16 bg-white">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            FAQs - Luxury Car Rental in {locationName}
-          </h2>
-          <div className="space-y-4">
-            {luxuryFaqs.map((faq, idx) => (
-              <div key={idx} className="bg-gray-50 p-6 rounded-xl">
-                <h3 className="font-semibold text-lg text-gray-900 mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <FAQSection
+        service="luxury-car-rental"
+        location={locationName}
+        customFaqs={luxuryFaqs.map((faq) => ({ question: faq.q, answer: faq.a }))}
+      />
 
       {/* CTA Section */}
       <section className="py-16 bg-gradient-to-br from-purple-900 via-purple-800 to-gray-900 text-white">

@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Image, StatusBar, Linking, Share, Platform,
+  ScrollView, Image, StatusBar, Linking, Share, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -19,7 +19,7 @@ import { getBookingLinkQR } from '../../api/client';
 import { showError, showSuccess } from '../../../services/alertService';
 import { SC as T, G, rs, cardShadow } from '../_shared/theme';
 import { DISPLAY } from '../_shared/typography';
-import AnimatedOrb from '../_shared/AnimatedOrb';
+import CornerGrid from '../_shared/CornerGrid';
 
 let RNShare = null;
 let RNFS = null;
@@ -36,6 +36,10 @@ const C = {
   bg: T.bg, card: T.card, border: T.border,
   text: T.ink, muted: T.subText,
 };
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 export default function BookingLinkQRScreen({ navigation, route }) {
   const { link } = route.params || {};
@@ -111,8 +115,7 @@ export default function BookingLinkQRScreen({ navigation, route }) {
 
       {/* ===== Gradient header ===== */}
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.headerGrad}>
-        <AnimatedOrb style={s.orbA} delay={0} dx={14} dy={12} />
-        <AnimatedOrb style={s.orbB} delay={900} dx={-12} dy={10} />
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']} style={{ paddingHorizontal: 12, paddingBottom: 26 }}>
           <View style={s.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.iconBtn}>
@@ -153,13 +156,13 @@ export default function BookingLinkQRScreen({ navigation, route }) {
         <View style={s.card}>
           <View style={s.qrFrame}>
             {qrLoading ? (
-              <ActivityIndicator size="large" color={C.g600} />
+              <Bone w={196} h={196} r={12} />
             ) : qrDataUrl ? (
               <Image source={{ uri: qrDataUrl }} style={s.qrImage} resizeMode="contain" />
             ) : (
               <View style={{ alignItems: 'center', gap: 8 }}>
                 <Icon name="alert-circle" size={28} color={C.muted} />
-                <Text style={{ color: C.muted, fontSize: 13 }}>Failed to load QR</Text>
+                <Text style={{ color: C.muted, fontSize: 14 }}>Failed to load QR</Text>
               </View>
             )}
           </View>
@@ -230,18 +233,11 @@ function SectionLabel({ icon, color, label }) {
 const s = StyleSheet.create({
   // Header
   headerGrad: { borderBottomLeftRadius: rs(20), borderBottomRightRadius: rs(20), overflow: 'hidden', position: 'relative' },
-  orbA: {
-    position: 'absolute', top: -44, right: -28, width: 150, height: 150,
-    borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  orbB: {
-    position: 'absolute', bottom: -36, left: -32, width: 128, height: 128,
-    borderRadius: 64, backgroundColor: 'rgba(255,255,255,0.045)',
-  },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   headerRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 12 },
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontFamily: DISPLAY, fontSize: 18, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 11.5, color: 'rgba(255,255,255,0.75)', fontWeight: '700', marginTop: 2 },
+  headerSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.75)', fontWeight: '700', marginTop: 2 },
 
   scroll: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14 },
 
@@ -253,13 +249,13 @@ const s = StyleSheet.create({
     marginBottom: 14,
   },
   introIconWrap: { width: 36, height: 36, borderRadius: 12, backgroundColor: C.g600, alignItems: 'center', justifyContent: 'center' },
-  introTitle: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', color: C.g700, marginBottom: 3 },
-  introBody: { fontSize: 12, color: C.text, lineHeight: 17, fontWeight: '500' },
+  introTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.g700, marginBottom: 3 },
+  introBody: { fontSize: 13, color: C.text, lineHeight: 17, fontWeight: '500' },
 
   // Section label
   sectionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, marginBottom: 8 },
   sectionLabelIcon: { width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  sectionLabelText: { fontFamily: DISPLAY, fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
+  sectionLabelText: { fontFamily: DISPLAY, fontSize: 13, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
 
   // Card
   card: { backgroundColor: C.card, borderRadius: rs(14), padding: 14, borderWidth: 1, borderColor: C.border, marginBottom: 14, alignItems: 'center' },
@@ -275,13 +271,13 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.g50, borderRadius: 12,
     paddingHorizontal: 12, paddingVertical: 10, width: '100%', borderWidth: 1, borderColor: C.g100,
   },
-  urlPillTxt: { flex: 1, fontSize: 11, fontFamily: 'monospace', color: C.muted },
+  urlPillTxt: { flex: 1, fontSize: 12, fontFamily: 'monospace', color: C.muted },
   urlPillCopy: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: C.g100 },
-  urlPillCopyTxt: { fontSize: 11, fontWeight: '700', color: C.g700 },
+  urlPillCopyTxt: { fontSize: 12, fontWeight: '700', color: C.g700 },
 
   secRow: { flexDirection: 'row', gap: 10, width: '100%' },
   secBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, borderRadius: rs(12), borderWidth: 1.5 },
-  secTxt: { fontSize: 13, fontWeight: '700' },
+  secTxt: { fontSize: 14, fontWeight: '700' },
 
   // Bottom bar
   bottomBar: {

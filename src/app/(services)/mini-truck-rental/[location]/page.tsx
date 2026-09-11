@@ -7,7 +7,7 @@ import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { MiniTruckBookingHero } from '@/components/mini-truck-rental/MiniTruckBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
@@ -20,6 +20,7 @@ import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 import { CITY_SEO } from '@/data/city-seo-content';
+import { Package, Home as HomeIcon, Store, ShoppingCart, Construction, UtensilsCrossed, Armchair, Recycle } from 'lucide-react';
 
 interface PageProps {
   params: {
@@ -154,47 +155,51 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
         </div>
       </div>
 
-      <ServiceHeroWithChat
+      <MiniTruckBookingHero
+        city={locationName}
+        citySlug={params.location}
         pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
         pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
-        badge={`Mini Truck Rental in ${locationName}`}
-        title="Mini Truck Rental"
-        titleHighlight="Driver Included | All India"
-        description={`Fast, affordable goods transport in ${locationName}. Tata Ace, Mahindra Pickup available — house shifting, shop deliveries, market runs. Driver included.`}
-        features={[
-          { icon: 'zap', text: '750kg Load Capacity', color: 'text-red-600' },
-          { icon: 'shield', text: 'GPS Tracked', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="red-50"
-        gradientTo="orange-50"
       />
 
       {/* Use Cases */}
-      <section className="py-12 bg-white">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Mini Truck Services in {locationName}
+      <section className="relative overflow-hidden py-16 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <div className="container-custom relative">
+          <h2 className="text-2xl md:text-[2.5rem] font-black tracking-tight text-gray-900 text-center mb-10">
+            Mini Truck Services in <span className="text-emerald-600">{locationName}</span>
           </h2>
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 max-w-6xl mx-auto">
             {[
-              { icon: '📦', title: 'Local Deliveries', desc: 'Last-mile delivery' },
-              { icon: '🏠', title: 'House Shifting', desc: 'Small households' },
-              { icon: '🏪', title: 'Business Transport', desc: 'Inventory movement' },
-              { icon: '🛒', title: 'E-commerce', desc: 'Order fulfillment' },
-              { icon: '🏗️', title: 'Construction', desc: 'Material transport' },
-              { icon: '🍕', title: 'Food & Catering', desc: 'Bulk food delivery' },
-              { icon: '📚', title: 'Furniture', desc: 'Small furniture' },
-              { icon: '♻️', title: 'Waste Disposal', desc: 'Junk removal' },
-            ].map((use) => (
-              <div key={use.title} className="bg-gradient-to-br from-orange-50 to-white p-5 rounded-lg border-2 border-orange-200 text-center">
-                <div className="text-3xl mb-2">{use.icon}</div>
-                <h3 className="font-bold mb-1">{use.title}</h3>
-                <p className="text-sm text-gray-600">{use.desc}</p>
+              { Icon: Package, title: 'Local Deliveries', desc: 'Last-mile delivery' },
+              { Icon: HomeIcon, title: 'House Shifting', desc: 'Small households' },
+              { Icon: Store, title: 'Business Transport', desc: 'Inventory movement' },
+              { Icon: ShoppingCart, title: 'E-commerce', desc: 'Order fulfillment' },
+              { Icon: Construction, title: 'Construction', desc: 'Material transport' },
+              { Icon: UtensilsCrossed, title: 'Food & Catering', desc: 'Bulk food delivery' },
+              { Icon: Armchair, title: 'Furniture', desc: 'Small furniture' },
+              { Icon: Recycle, title: 'Waste Disposal', desc: 'Junk removal' },
+            ].map((use, idx) => (
+              <div
+                key={use.title}
+                className="group relative rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-7 text-center overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-100"
+                style={{ animation: `mtc-rise .6s cubic-bezier(.22,1,.36,1) ${idx * 80}ms forwards`, opacity: 0 }}
+              >
+                <div className="relative w-14 h-14 mx-auto mb-4">
+                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[198deg] transition-transform duration-700" />
+                  <span className="absolute inset-[5px] rounded-full bg-emerald-50 flex items-center justify-center transition-colors duration-300 group-hover:bg-emerald-600">
+                    <use.Icon className="w-5 h-5 text-emerald-600 transition-colors duration-300 group-hover:text-white" />
+                  </span>
+                </div>
+                <h3 className="font-bold text-[15px] text-gray-900 mb-1">{use.title}</h3>
+                <p className="text-xs text-gray-500">{use.desc}</p>
               </div>
             ))}
           </div>
         </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes mtc-rise { from { opacity: 0; transform: translateY(20px) scale(.97); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) { [style*="mtc-rise"] { animation: none !important; opacity: 1 !important; } }
+        ` }} />
       </section>
 
 
