@@ -8,6 +8,9 @@
 
 # Next.js
 /.next/
+# Builds run with a custom distDir (e.g. .next-verify) would otherwise show up
+# as thousands of untracked files.
+/.next-*/
 /out/
 
 # Production
