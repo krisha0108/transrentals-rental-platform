@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import {
-  CheckCircle2, GraduationCap, Star, Map, MessageSquare, ShieldCheck, Smartphone, Shirt,
+  CheckCircle2, GraduationCap, Star, Map as MapIcon, MessageSquare, ShieldCheck, Smartphone, Shirt,
   Briefcase, Heart, PartyPopper, Plane, Stethoscope, Users, Clock,
   MessageCircleQuestion, Plus,
 } from 'lucide-react';
@@ -15,7 +15,7 @@ const WHY_CHAUFFEUR = [
   { icon: CheckCircle2, anim: 'pulse', title: 'Verified Drivers', desc: 'Police verification done' },
   { icon: GraduationCap, anim: 'lift', title: 'Trained & Licensed', desc: 'Professional training' },
   { icon: Star, anim: 'tick', title: 'Experienced', desc: '5+ years experience' },
-  { icon: Map, anim: 'drive', title: 'Know All Routes', desc: 'Local & highway expert' },
+  { icon: MapIcon, anim: 'drive', title: 'Know All Routes', desc: 'Local & highway expert' },
   { icon: Shirt, anim: 'pulse', title: 'Professional Attire', desc: 'Well-groomed drivers' },
   { icon: MessageSquare, anim: 'wrench', title: 'Good Communication', desc: 'Hindi, English speaking' },
   { icon: ShieldCheck, anim: 'pulse', title: 'Fully Insured', desc: 'Covered for safety' },
@@ -24,7 +24,7 @@ const WHY_CHAUFFEUR = [
 
 const PERFECT_OCCASIONS = [
   { icon: Briefcase, anim: 'drive', occasion: 'Daily Commute', desc: 'Office, business trips' },
-  { icon: Map, anim: 'drive', occasion: 'Outstation Tours', desc: 'Hill stations, pilgrimages' },
+  { icon: MapIcon, anim: 'drive', occasion: 'Outstation Tours', desc: 'Hill stations, pilgrimages' },
   { icon: Heart, anim: 'pulse', occasion: 'Weddings', desc: 'Wedding car driver' },
   { icon: PartyPopper, anim: 'grow', occasion: 'Events', desc: 'Parties, celebrations' },
   { icon: Plane, anim: 'drive', occasion: 'Airport Transfers', desc: 'Pickup & drop service' },
