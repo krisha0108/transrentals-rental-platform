@@ -218,7 +218,10 @@ const DATE_FILTERS: { value: DateFilter; label: string }[] = [
 
 function ManagerInquiriesPageInner() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  // useSearchParams() is typed as nullable; fall back to an empty set so every
+  // read below is total.
+  const rawSearchParams = useSearchParams();
+  const searchParams = rawSearchParams ?? new URLSearchParams();
   // `inquiries` now holds only the current page's rows — filtering, stats,
   // and pagination all happen server-side (see fetchInquiries below) instead
   // of fetching every inquiry and slicing in the browser.
@@ -232,11 +235,6 @@ function ManagerInquiriesPageInner() {
   // Filters read from the URL rather than local state, so applying a filter,
   // opening an inquiry, then hitting Back restores exactly what was selected
   // instead of resetting everything. Same approach as /manager/vendors.
-  // useSearchParams() is typed as nullable; fall back to an empty set so every
-  // read below is total.
-  const rawSearchParams = useSearchParams();
-  const searchParams = rawSearchParams ?? new URLSearchParams();
-
   const csv = (name: string): string[] => {
     const raw = (searchParams.get(name) || '').trim();
     return !raw || raw === 'all' ? [] : raw.split(',').map((v) => v.trim()).filter(Boolean);
@@ -261,12 +259,10 @@ function ManagerInquiriesPageInner() {
   const [totalCount, setTotalCount] = useState(0);
   const [stats, setStats] = useState({ total: 0, pending: 0, quotesReceived: 0, quoteAccepted: 0, cancelled: 0 });
 
-  // Debounce the search box into `searchTerm` (which actually triggers a
-  // fetch) so typing doesn't fire a request per keystroke.
-  // Writes filter changes into the URL, merged with what is already there, and
-  // resets pagination — passing '' removes a param instead of writing a default.
   const itemsPerPage = 20;
 
+  // Writes filter changes into the URL, merged with what is already there, and
+  // resets pagination — passing '' removes a param instead of writing a default.
   const updateFilter = useCallback((updates: Record<string, string>) => {
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(updates).forEach(([k, v]) => { if (v) params.set(k, v); else params.delete(k); });
