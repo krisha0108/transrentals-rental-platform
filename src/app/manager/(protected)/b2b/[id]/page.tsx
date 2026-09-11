@@ -11,6 +11,7 @@ import {
   Building2, IndianRupee, Users, Route, AlertCircle, PartyPopper,
   Sparkles, StickyNote, Bus, Truck as TruckIcon, Bike, Wrench, Package,
 } from 'lucide-react';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   OPEN_FOR_QUOTES: { label: 'Open for Quotes', color: 'bg-blue-100 text-blue-700' },
@@ -149,10 +150,29 @@ export default function ManagerB2BDetailPage() {
     alert(`${booking.trips.length} trip links copied!`);
   }
 
+  // Identity, status and Back go into the shared sticky bar, which was otherwise
+  // rendering empty while this page drew its own header row underneath.
+  const hdrStatus = booking
+    ? (STATUS_CONFIG[booking.status] || { label: booking.status, color: 'bg-gray-100 text-gray-700' })
+    : null;
+  useManagerPageHeader(
+    booking ? `${booking.bookingNumber} — ${booking.companyName}` : 'B2B Booking',
+    undefined,
+    hdrStatus ? (
+      <span className={`px-3 py-1 rounded-full text-xs font-medium ${hdrStatus.color}`}>{hdrStatus.label}</span>
+    ) : undefined,
+    <Link
+      href="/manager/b2b"
+      title="Back to B2B bookings"
+      className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0 text-gray-600"
+    >
+      <ArrowLeft className="w-5 h-5" />
+    </Link>,
+  );
+
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>;
   if (!booking) return <div className="text-center py-20 text-gray-500">Booking not found</div>;
 
-  const statusConfig = STATUS_CONFIG[booking.status] || { label: booking.status, color: 'bg-gray-100 text-gray-700' };
   const isBulk = booking.serviceType === 'CUSTOM_BULK';
   // Day-wise plan lives in bulkBreakdown as a JSON string (LongText column).
   // Failing to parse just hides the section — the rest of the page still works.
@@ -175,15 +195,10 @@ export default function ManagerB2BDetailPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-5">
-      {/* Header */}
+      {/* Identity, status and Back now live in the shared sticky bar. */}
       <div className="flex items-center gap-3">
-        <Link href="/manager/b2b" className="p-2 hover:bg-gray-100 rounded-lg"><ArrowLeft className="w-5 h-5" /></Link>
         <div className="flex-1">
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            {booking.bookingNumber} — {booking.companyName}
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>{statusConfig.label}</span>
-          </h1>
-          <p className="text-sm text-gray-500 flex items-center gap-3 mt-0.5 flex-wrap">
+          <p className="text-sm text-gray-500 flex items-center gap-3 flex-wrap">
             <span className="capitalize flex items-center gap-1">
               {isBulk && <PartyPopper className="w-4 h-4 text-purple-500" />}
               {isBulk ? 'Multi-Day Event' : (booking.serviceType === 'self-drive' ? 'Self Drive' : `${booking.serviceType} rental`)}

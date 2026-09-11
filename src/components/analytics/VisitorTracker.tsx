@@ -123,7 +123,11 @@ const WEB_VITALS_THRESHOLDS = {
 };
 
 function VisitorTrackerInner() {
-  const pathname = usePathname();
+  // usePathname() is typed as nullable. An unguarded `pathname.startsWith(...)` would
+  // throw and take the whole tracker down with it — and this component is the only
+  // source of page_views, click_events and web_vitals, so a crash here silently empties
+  // every analytics page. Normalise to '' and let the effects below bail out.
+  const pathname = usePathname() ?? '';
   const searchParams = useSearchParams();
   const startTimeRef = useRef<number>(Date.now());
   const lastPathRef = useRef<string>('');
@@ -419,7 +423,7 @@ function VisitorTrackerInner() {
   // Main effect for page tracking
   useEffect(() => {
     // Skip tracking for admin pages
-    if (pathname.startsWith('/admin')) return;
+    if (!pathname || pathname.startsWith('/admin')) return;
 
     const trackPrevDuration = async () => {
       if (lastPathRef.current && lastPathRef.current !== pathname) {
@@ -481,7 +485,7 @@ function VisitorTrackerInner() {
 
   // Click tracking effect
   useEffect(() => {
-    if (pathname.startsWith('/admin')) return;
+    if (!pathname || pathname.startsWith('/admin')) return;
 
     document.addEventListener('click', trackClick, { capture: true });
 
@@ -492,7 +496,7 @@ function VisitorTrackerInner() {
 
   // Scroll tracking effect
   useEffect(() => {
-    if (pathname.startsWith('/admin')) return;
+    if (!pathname || pathname.startsWith('/admin')) return;
 
     let ticking = false;
     const handleScroll = () => {

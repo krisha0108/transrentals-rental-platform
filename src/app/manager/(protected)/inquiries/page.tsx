@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
+import FilterMultiSelect from '@/components/manager/FilterMultiSelect';
+import Pagination from '@/components/manager/Pagination';
 import {
   Loader2,
   Search,
@@ -19,7 +21,6 @@ import {
   Bike,
   CheckCircle2,
   IndianRupee,
-  ChevronLeft,
   Globe,
   Smartphone,
   PhoneCall,
@@ -205,7 +206,7 @@ const DATE_FILTERS: { value: DateFilter; label: string }[] = [
   { value: 'all', label: 'All Bookings' },
 ];
 
-export default function ManagerInquiriesPage() {
+function ManagerInquiriesPageInner() {
   const router = useRouter();
   // `inquiries` now holds only the current page's rows — filtering, stats,
   // and pagination all happen server-side (see fetchInquiries below) instead
@@ -217,16 +218,34 @@ export default function ManagerInquiriesPage() {
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sourceFilter, setSourceFilter] = useState('all');
-  const [serviceFilter, setServiceFilter] = useState('all');
-  const [locationFilter, setLocationFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
-  const [actionedFilter, setActionedFilter] = useState<'all' | 'actioned' | 'notActioned'>('all');
+  // Filters read from the URL rather than local state, so applying a filter,
+  // opening an inquiry, then hitting Back restores exactly what was selected
+  // instead of resetting everything. Same approach as /manager/vendors.
+  // useSearchParams() is typed as nullable; fall back to an empty set so every
+  // read below is total.
+  const rawSearchParams = useSearchParams();
+  const searchParams = rawSearchParams ?? new URLSearchParams();
+
+  const csv = (name: string): string[] => {
+    const raw = (searchParams.get(name) || '').trim();
+    return !raw || raw === 'all' ? [] : raw.split(',').map((v) => v.trim()).filter(Boolean);
+  };
+
+  const searchTerm = searchParams.get('search') || '';
+  const statusFilters = csv('status');
+  const serviceFilters = csv('service');
+  const locationFilters = csv('location');
+  const sourceFilter = searchParams.get('source') || 'all';
+  const dateFilter = (searchParams.get('date') || 'all') as DateFilter;
+  const actionedFilter = (searchParams.get('actioned') || 'all') as 'all' | 'actioned' | 'notActioned';
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
+
+  // Local echo of the search box so typing stays instant; committed to the URL
+  // on a debounce rather than on every keystroke.
+  const [searchInput, setSearchInput] = useState(searchTerm);
+  useEffect(() => { setSearchInput(searchTerm); }, [searchTerm]);
+
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [itemsPerPage] = useState(10);
@@ -234,19 +253,50 @@ export default function ManagerInquiriesPage() {
 
   // Debounce the search box into `searchTerm` (which actually triggers a
   // fetch) so typing doesn't fire a request per keystroke.
+  // Writes filter changes into the URL, merged with what is already there, and
+  // resets pagination — passing '' removes a param instead of writing a default.
+  const updateFilter = useCallback((updates: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([k, v]) => { if (v) params.set(k, v); else params.delete(k); });
+    params.delete('page');
+    const qs = params.toString();
+    router.push(qs ? `/manager/inquiries?${qs}` : '/manager/inquiries', { scroll: false });
+  }, [searchParams, router]);
+
+  // Drives the Clear all button — every filter this page puts in the URL.
+  const activeFilterCount =
+    (searchTerm ? 1 : 0) +
+    (dateFilter !== 'all' ? 1 : 0) +
+    (actionedFilter !== 'all' ? 1 : 0) +
+    (sourceFilter !== 'all' ? 1 : 0) +
+    serviceFilters.length + statusFilters.length + locationFilters.length;
+
+  const clearFilters = useCallback(() => {
+    setSearchInput('');
+    router.push('/manager/inquiries', { scroll: false });
+  }, [router]);
+
+  const setCurrentPage = useCallback((p: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (p > 1) params.set('page', String(p)); else params.delete('page');
+    const qs = params.toString();
+    router.push(qs ? `/manager/inquiries?${qs}` : '/manager/inquiries', { scroll: false });
+  }, [searchParams, router]);
+
   useEffect(() => {
-    const t = setTimeout(() => setSearchTerm(searchInput), 400);
+    if (searchInput === searchTerm) return;
+    const t = setTimeout(() => updateFilter({ search: searchInput }), 400);
     return () => clearTimeout(t);
-  }, [searchInput]);
+  }, [searchInput, searchTerm, updateFilter]);
 
   const fetchInquiries = async (page = currentPage) => {
     try {
       setError(null);
       const params = new URLSearchParams();
-      if (serviceFilter !== 'all') params.set('service', serviceFilter);
-      if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (serviceFilters.length) params.set('service', serviceFilters.join(','));
+      if (statusFilters.length) params.set('status', statusFilters.join(','));
       if (sourceFilter !== 'all') params.set('source', sourceFilter);
-      if (locationFilter !== 'all') params.set('location', locationFilter);
+      if (locationFilters.length) params.set('location', locationFilters.join(','));
       if (dateFilter !== 'all') params.set('date', dateFilter);
       if (actionedFilter !== 'all') params.set('actioned', actionedFilter);
       if (searchTerm) params.set('search', searchTerm);
@@ -320,17 +370,12 @@ export default function ManagerInquiriesPage() {
     }
   };
 
-  // Any filter change resets to page 1 (matches the old reset-on-filter
-  // behavior); this effect then does the actual fetch for the current
-  // filters + page, re-running on every filter change and page navigation.
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [serviceFilter, statusFilter, sourceFilter, locationFilter, dateFilter, actionedFilter, searchTerm]);
-
+  // updateFilter already drops `page` on every change, so the URL is the single
+  // source of truth and this effect just refetches whenever it moves.
   useEffect(() => {
     fetchInquiries(currentPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, serviceFilter, statusFilter, sourceFilter, locationFilter, dateFilter, actionedFilter, searchTerm]);
+  }, [searchParams]);
 
   // Clear selection whenever the page or its results change, so bulk
   // actions never silently apply to rows that are no longer visible.
@@ -412,9 +457,11 @@ export default function ManagerInquiriesPage() {
         ].map((stat) => (
           <button
             key={stat.key}
-            onClick={() => setStatusFilter(statusFilter === stat.key ? 'all' : stat.key)}
+            onClick={() => updateFilter({
+              status: statusFilters.length === 1 && statusFilters[0] === stat.key ? '' : stat.key,
+            })}
             className={`p-4 rounded-xl border transition text-left ${
-              statusFilter === stat.key
+              statusFilters.length === 1 && statusFilters[0] === stat.key
                 ? `bg-${stat.color}-50 border-${stat.color}-200`
                 : 'bg-white border-gray-100 hover:border-gray-200'
             }`}
@@ -452,7 +499,7 @@ export default function ManagerInquiriesPage() {
             <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             <select
               value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+              onChange={(e) => updateFilter({ date: e.target.value === 'all' ? '' : e.target.value })}
               className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
             >
               {DATE_FILTERS.map((filter) => (
@@ -467,7 +514,7 @@ export default function ManagerInquiriesPage() {
             <CheckCircle2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             <select
               value={actionedFilter}
-              onChange={(e) => setActionedFilter(e.target.value as 'all' | 'actioned' | 'notActioned')}
+              onChange={(e) => updateFilter({ actioned: e.target.value === 'all' ? '' : e.target.value })}
               className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
             >
               <option value="all">Any Action Status</option>
@@ -477,63 +524,47 @@ export default function ManagerInquiriesPage() {
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
           </div>
 
-          {/* Service Filter */}
-          <div className="relative">
-            <Bike className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-            <select
-              value={serviceFilter}
-              onChange={(e) => setServiceFilter(e.target.value)}
-              className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
-            >
-              <option value="all">All Services</option>
-              {services.map((service) => (
-                <option key={service.id} value={service.slug}>
-                  {service.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-          </div>
+          {/* Service — multi-select */}
+          <FilterMultiSelect
+            label="Services"
+            allLabel="All Services"
+            icon={Bike}
+            options={services.map((sv) => ({ value: sv.slug, label: sv.name }))}
+            values={serviceFilters}
+            onChange={(v) => updateFilter({ service: v.join(',') })}
+          />
 
-          {/* Status Filter */}
-          <div className="relative">
-            <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
-            >
-              <option value="all">All Requests ({stats.total})</option>
-              <option value="PENDING">Pending ({stats.pending})</option>
-              <option value="QUOTED">Quoted ({stats.quoted})</option>
-              <option value="ACCEPTED">Accepted ({stats.accepted})</option>
-              <option value="REJECTED">Rejected ({stats.rejected})</option>
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-          </div>
+          {/* Request status — multi-select */}
+          <FilterMultiSelect
+            label="Requests"
+            allLabel={`All Requests (${stats.total})`}
+            icon={Filter}
+            options={[
+              { value: 'PENDING',  label: `Pending (${stats.pending})` },
+              { value: 'QUOTED',   label: `Quoted (${stats.quoted})` },
+              { value: 'ACCEPTED', label: `Accepted (${stats.accepted})` },
+              { value: 'REJECTED', label: `Rejected (${stats.rejected})` },
+            ]}
+            values={statusFilters}
+            onChange={(v) => updateFilter({ status: v.join(',') })}
+          />
 
-          {/* Location Filter */}
-          <div className="relative">
-            <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-            <select
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
-            >
-              <option value="all">All Locations</option>
-              {uniqueLocations.map((loc) => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-          </div>
+          {/* Location — searchable multi-select, same styling as /manager/vendors */}
+          <FilterMultiSelect
+            label="Locations"
+            allLabel="All Locations"
+            icon={MapPin}
+            options={uniqueLocations.map((loc) => ({ value: loc, label: loc }))}
+            values={locationFilters}
+            onChange={(v) => updateFilter({ location: v.join(',') })}
+          />
 
           {/* Source Filter */}
           <div className="relative">
             <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             <select
               value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value)}
+              onChange={(e) => updateFilter({ source: e.target.value === 'all' ? '' : e.target.value })}
               className="pl-7 pr-6 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
             >
               <option value="all">All Sources</option>
@@ -542,6 +573,18 @@ export default function ManagerInquiriesPage() {
             </select>
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
           </div>
+
+          {/* Clear all — only shown once something is actually filtered. */}
+          {activeFilterCount > 0 && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="flex items-center gap-1 px-2.5 py-2 text-sm text-gray-500 hover:text-red-500 transition"
+            >
+              <X className="w-3.5 h-3.5" />
+              Clear all ({activeFilterCount})
+            </button>
+          )}
         </div>
       </div>
 
@@ -605,7 +648,7 @@ export default function ManagerInquiriesPage() {
             <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No inquiries found</h3>
             <p className="text-gray-500">
-              {searchTerm || statusFilter !== 'all' || dateFilter !== 'all' || actionedFilter !== 'all'
+              {searchTerm || statusFilters.length > 0 || dateFilter !== 'all' || actionedFilter !== 'all'
                 ? 'Try adjusting your search or filters'
                 : 'All caught up! No pending inquiries at the moment.'}
             </p>
@@ -751,57 +794,22 @@ export default function ManagerInquiriesPage() {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button
-            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-
-          <div className="flex items-center gap-1">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-              // Show first page, last page, current page, and pages around current
-              if (
-                page === 1 ||
-                page === totalPages ||
-                (page >= currentPage - 1 && page <= currentPage + 1)
-              ) {
-                return (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                      currentPage === page
-                        ? 'bg-green-600 text-white'
-                        : 'border border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                );
-              } else if (page === currentPage - 2 || page === currentPage + 2) {
-                return (
-                  <span key={page} className="px-2 text-gray-400">
-                    ...
-                  </span>
-                );
-              }
-              return null;
-            })}
-          </div>
-
-          <button
-            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-            disabled={currentPage === totalPages}
-            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      )}
+      <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
     </div>
+  );
+}
+
+// useSearchParams requires a Suspense boundary during prerendering.
+export default function ManagerInquiriesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        </div>
+      }
+    >
+      <ManagerInquiriesPageInner />
+    </Suspense>
   );
 }

@@ -6,29 +6,40 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
 import {
-  Users, Eye, TrendingUp, FormInput, MessageCircle, MousePointer,
+  Users, Eye, FileText, Search, FormInput, MessageCircle, MousePointer,
   Zap, Activity, RefreshCw, Loader2, ArrowUp, ArrowDown, Minus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { AnalyticsError } from './_components/AnalyticsError';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
+// The API returns Web Vitals health as an enum; render it as a short human label so it
+// fits inside the narrow stat card instead of overflowing.
+const HEALTH_LABELS: Record<string, string> = {
+  HEALTHY: 'Healthy',
+  NEEDS_IMPROVEMENT: 'Needs Work',
+  POOR: 'Poor',
+  UNKNOWN: 'No Data',
+};
 
 export default function AnalyticsOverviewPage() {
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [range, setRange] = useState('7d');
 
   const fetchAnalytics = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const res = await fetch(`/api/admin/analytics?range=${range}`);
-      if (res.ok) {
-        const result = await res.json();
-        setData(result);
-      }
-    } catch (error) {
-      // Error fetching analytics
+      if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+      setData(await res.json());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setData(null);
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +60,7 @@ export default function AnalyticsOverviewPage() {
   }
 
   if (!data) {
-    return <div className="text-center text-gray-500">Failed to load analytics</div>;
+    return <AnalyticsError subject="the analytics overview" message={error} onRetry={fetchAnalytics} />;
   }
 
   const deviceData = [
@@ -73,7 +84,7 @@ export default function AnalyticsOverviewPage() {
           <h1 className="text-2xl font-bold text-gray-900">Analytics Overview</h1>
           <p className="text-gray-500">Comprehensive insights into your website performance</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
             <span className="text-sm font-medium text-green-700">
@@ -97,27 +108,25 @@ export default function AnalyticsOverviewPage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <QuickStatCard
           title="Total Views"
           value={data.summary?.totalViews || 0}
-          change={12}
+          change={data.summary?.changes?.totalViews}
           icon={<Eye className="w-5 h-5" />}
           color="blue"
-          href="/admin/analytics/traffic"
         />
         <QuickStatCard
           title="Visitors"
           value={data.summary?.uniqueVisitors || 0}
-          change={8}
+          change={data.summary?.changes?.uniqueVisitors}
           icon={<Users className="w-5 h-5" />}
           color="green"
-          href="/admin/analytics/traffic"
         />
         <QuickStatCard
           title="Forms"
           value={data.forms?.stats?.submitted || 0}
-          change={-3}
+          change={data.summary?.changes?.formsSubmitted}
           icon={<FormInput className="w-5 h-5" />}
           color="purple"
           href="/admin/analytics/forms"
@@ -125,7 +134,7 @@ export default function AnalyticsOverviewPage() {
         <QuickStatCard
           title="Chat Bookings"
           value={data.chat?.stats?.bookingsCompleted || 0}
-          change={15}
+          change={data.summary?.changes?.chatBookings}
           icon={<MessageCircle className="w-5 h-5" />}
           color="amber"
           href="/admin/analytics/chat"
@@ -133,17 +142,15 @@ export default function AnalyticsOverviewPage() {
         <QuickStatCard
           title="CTA Clicks"
           value={data.clicks?.stats?.ctaClicks || 0}
-          change={5}
+          change={data.summary?.changes?.ctaClicks}
           icon={<MousePointer className="w-5 h-5" />}
           color="pink"
-          href="/admin/analytics/clicks"
         />
         <QuickStatCard
           title="Performance"
-          value={data.performance?.vitals?.overallHealth || 'N/A'}
+          value={HEALTH_LABELS[data.performance?.vitals?.overallHealth] || 'No Data'}
           icon={<Zap className="w-5 h-5" />}
           color="cyan"
-          href="/admin/analytics/performance"
           isText
         />
       </div>
@@ -152,9 +159,6 @@ export default function AnalyticsOverviewPage() {
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900">Traffic Overview</h3>
-          <Link href="/admin/analytics/traffic" className="text-sm text-blue-600 hover:text-blue-700">
-            View Details →
-          </Link>
         </div>
         <div className="h-80" style={{ minHeight: '320px', minWidth: '200px' }}>
           {data.traffic?.chartData?.length > 0 ? (
@@ -277,9 +281,6 @@ export default function AnalyticsOverviewPage() {
         <div className="bg-white rounded-xl shadow-sm border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Top Pages</h3>
-            <Link href="/admin/analytics/pages" className="text-sm text-blue-600 hover:text-blue-700">
-              View All →
-            </Link>
           </div>
           <div className="space-y-3">
             {(data.traffic?.topPages || []).slice(0, 5).map((page: any, idx: number) => (
@@ -325,12 +326,9 @@ export default function AnalyticsOverviewPage() {
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <QuickLinkCard href="/admin/analytics/traffic" icon={<Users className="w-6 h-6" />} title="Traffic" description="Visitors & sources" />
+      <div className="grid grid-cols-2 gap-4">
         <QuickLinkCard href="/admin/analytics/forms" icon={<FormInput className="w-6 h-6" />} title="Forms" description="Submissions & rates" />
         <QuickLinkCard href="/admin/analytics/chat" icon={<MessageCircle className="w-6 h-6" />} title="Chat" description="Shivi analytics" />
-        <QuickLinkCard href="/admin/analytics/seo" icon={<TrendingUp className="w-6 h-6" />} title="SEO" description="Page audits" />
-        <QuickLinkCard href="/admin/analytics/rankings" icon={<TrendingUp className="w-6 h-6" />} title="Rankings" description="Keyword positions" />
       </div>
     </div>
   );
@@ -346,22 +344,41 @@ function QuickStatCard({ title, value, change, icon, color, href, isText }: any)
     cyan: 'bg-cyan-50 text-cyan-600 border-cyan-100',
   };
 
+  // Some of these metrics no longer have a dashboard of their own. The figure is
+  // still real, so the card renders without a link rather than pointing at a 404.
+  const Wrapper: any = href ? Link : 'div';
+  const wrapperProps = href ? { href } : {};
+
   return (
-    <Link href={href} className={`${colorClasses[color]} rounded-xl p-4 border hover:shadow-md transition`}>
-      <div className="flex items-center justify-between mb-2">
-        {icon}
+    <Wrapper
+      {...wrapperProps}
+      className={`${colorClasses[color]} min-w-0 rounded-xl p-4 border transition${href ? ' hover:shadow-md' : ''}`}
+    >
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="shrink-0">{icon}</span>
         {change !== undefined && (
-          <div className={`flex items-center text-xs ${change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-400'}`}>
-            {change > 0 ? <ArrowUp className="w-3 h-3" /> : change < 0 ? <ArrowDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
-            {Math.abs(change)}%
-          </div>
+          change === null ? (
+            // No comparable previous period (nothing happened then) — say so instead of showing 0%.
+            <span className="shrink-0 text-xs text-gray-400" title="No data for the previous period">—</span>
+          ) : (
+            <div
+              className={`flex shrink-0 items-center text-xs ${change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-400'}`}
+              title={`${change > 0 ? '+' : ''}${change}% vs previous period`}
+            >
+              {change > 0 ? <ArrowUp className="w-3 h-3" /> : change < 0 ? <ArrowDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+              {Math.abs(change)}%
+            </div>
+          )
         )}
       </div>
-      <p className="text-2xl font-bold text-gray-900">
+      <p
+        className={`font-bold text-gray-900 break-words leading-tight ${isText ? 'text-lg' : 'text-2xl'}`}
+        title={String(value)}
+      >
         {isText ? value : typeof value === 'number' ? value.toLocaleString() : value}
       </p>
       <p className="text-xs text-gray-500 mt-1">{title}</p>
-    </Link>
+    </Wrapper>
   );
 }
 

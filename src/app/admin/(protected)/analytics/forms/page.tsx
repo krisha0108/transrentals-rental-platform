@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { AnalyticsError } from '../_components/AnalyticsError';
 import {
   FormInput,
   CheckCircle,
@@ -9,8 +10,6 @@ import {
   TrendingUp,
   RefreshCw,
   Download,
-  Phone,
-  Mail,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -51,18 +50,12 @@ interface FormData {
     conversionRate: number;
     avgTime: number;
   }>;
-  fieldDropoff: Array<{
-    field: string;
-    started: number;
-    completed: number;
-    dropoffRate: number;
-  }>;
   recentSubmissions: Array<{
     id: string;
     formType: string;
     name: string;
-    phone: string;
-    email: string;
+    serviceType: string | null;
+    source: string;
     page: string;
     status: string;
     timestamp: string;
@@ -85,6 +78,7 @@ const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'
 export default function FormsAnalyticsPage() {
   const [data, setData] = useState<FormData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState('7d');
   const [selectedFormType, setSelectedFormType] = useState('all');
 
@@ -94,69 +88,19 @@ export default function FormsAnalyticsPage() {
 
   const fetchFormData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch(`/api/admin/analytics/forms?range=${dateRange}&type=${selectedFormType}`);
-      if (response.ok) {
-        const result = await response.json();
-        setData(result);
-      }
-    } catch (error) {
-      // Failed to fetch - using mock data
-      setData(getMockData());
+      if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+      setData(await response.json());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setData(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const getMockData = (): FormData => ({
-    overview: {
-      totalSubmissions: 1234,
-      successfulSubmissions: 987,
-      failedSubmissions: 47,
-      avgCompletionTime: 125,
-      conversionRate: 8.5,
-      abandonmentRate: 23.4,
-    },
-    trends: Array.from({ length: 7 }, (_, i) => ({
-      date: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { weekday: 'short' }),
-      submissions: Math.floor(Math.random() * 150) + 50,
-      completions: Math.floor(Math.random() * 120) + 40,
-      abandonments: Math.floor(Math.random() * 30) + 10,
-    })),
-    formTypes: [
-      { type: 'Booking Form', submissions: 456, conversionRate: 12.3, avgTime: 180 },
-      { type: 'Contact Form', submissions: 345, conversionRate: 8.7, avgTime: 90 },
-      { type: 'Quick Enquiry', submissions: 234, conversionRate: 15.2, avgTime: 45 },
-      { type: 'Callback Request', submissions: 123, conversionRate: 22.5, avgTime: 30 },
-      { type: 'Newsletter', submissions: 76, conversionRate: 5.1, avgTime: 15 },
-    ],
-    fieldDropoff: [
-      { field: 'Name', started: 1000, completed: 980, dropoffRate: 2.0 },
-      { field: 'Phone', started: 980, completed: 920, dropoffRate: 6.1 },
-      { field: 'Email', started: 920, completed: 870, dropoffRate: 5.4 },
-      { field: 'Date Selection', started: 870, completed: 780, dropoffRate: 10.3 },
-      { field: 'Vehicle Selection', started: 780, completed: 720, dropoffRate: 7.7 },
-      { field: 'Submit', started: 720, completed: 650, dropoffRate: 9.7 },
-    ],
-    recentSubmissions: [
-      { id: '1', formType: 'Booking', name: 'Rahul Sharma', phone: '+91 9737965551', email: 'rahul@email.com', page: '/activa-on-rent', status: 'completed', timestamp: '2 mins ago', completionTime: 145 },
-      { id: '2', formType: 'Contact', name: 'Priya Patel', phone: '+91 97379 65551', email: 'priya@email.com', page: '/contact', status: 'completed', timestamp: '15 mins ago', completionTime: 78 },
-      { id: '3', formType: 'Quick Enquiry', name: 'Amit Singh', phone: '+91 97379 65551', email: 'amit@email.com', page: '/self-drive-cars', status: 'pending', timestamp: '32 mins ago', completionTime: 52 },
-      { id: '4', formType: 'Booking', name: 'Neha Gupta', phone: '+91 97379 65551', email: 'neha@email.com', page: '/activa-on-rent/mumbai', status: 'completed', timestamp: '1 hour ago', completionTime: 203 },
-      { id: '5', formType: 'Callback', name: 'Vikram Joshi', phone: '+91 97379 65551', email: 'vikram@email.com', page: '/', status: 'contacted', timestamp: '2 hours ago', completionTime: 28 },
-    ],
-    hourlySubmissions: Array.from({ length: 24 }, (_, i) => ({
-      hour: `${i}:00`,
-      submissions: Math.floor(Math.random() * 50) + 5,
-    })),
-    conversionBySource: [
-      { source: 'Organic Search', submissions: 456, conversions: 52, rate: 11.4 },
-      { source: 'Direct', submissions: 312, conversions: 28, rate: 9.0 },
-      { source: 'Social Media', submissions: 187, conversions: 15, rate: 8.0 },
-      { source: 'Referral', submissions: 143, conversions: 18, rate: 12.6 },
-      { source: 'Paid Ads', submissions: 98, conversions: 14, rate: 14.3 },
-    ],
-  });
 
   const formatTime = (seconds: number) => {
     if (seconds < 60) return `${seconds}s`;
@@ -173,7 +117,9 @@ export default function FormsAnalyticsPage() {
     );
   }
 
-  if (!data) return null;
+  if (error || !data) {
+    return <AnalyticsError subject="form analytics" message={error} onRetry={fetchFormData} />;
+  }
 
   const statusData = [
     { name: 'Successful', value: data.overview.successfulSubmissions, color: '#10B981' },
@@ -189,7 +135,7 @@ export default function FormsAnalyticsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Form Analytics</h1>
           <p className="text-gray-600">Track form submissions and conversion metrics</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <select
             value={selectedFormType}
             onChange={(e) => setSelectedFormType(e.target.value)}
@@ -208,6 +154,7 @@ export default function FormsAnalyticsPage() {
             <option value="1d">Today</option>
             <option value="7d">Last 7 days</option>
             <option value="30d">Last 30 days</option>
+            <option value="90d">Last 90 days</option>
           </select>
           <button
             onClick={fetchFormData}
@@ -386,37 +333,6 @@ export default function FormsAnalyticsPage() {
         </div>
       </div>
 
-      {/* Field Drop-off Funnel */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold mb-4">Form Field Drop-off Analysis</h3>
-        <div className="space-y-4">
-          {data.fieldDropoff.map((field) => {
-            const widthPercent = (field.completed / data.fieldDropoff[0].started) * 100;
-            return (
-              <div key={field.field}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-700">{field.field}</span>
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm text-gray-500">{field.completed.toLocaleString()} completed</span>
-                    <span className={`text-sm ${field.dropoffRate > 8 ? 'text-red-500' : 'text-gray-500'}`}>
-                      -{field.dropoffRate}% dropoff
-                    </span>
-                  </div>
-                </div>
-                <div className="h-8 bg-gray-100 rounded-lg overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
-                    style={{ width: `${widthPercent}%` }}
-                  >
-                    <span className="text-xs text-white font-medium">{widthPercent.toFixed(0)}%</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Hourly Submissions & Conversion by Source */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Hourly Pattern */}
@@ -451,30 +367,36 @@ export default function FormsAnalyticsPage() {
         {/* Conversion by Source */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold mb-4">Conversion by Traffic Source</h3>
-          <div className="space-y-4">
-            {data.conversionBySource.map((source, index) => (
-              <div key={source.source} className="flex items-center gap-4">
-                <div className="w-28 text-sm text-gray-600 truncate">{source.source}</div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${(source.submissions / data.conversionBySource[0].submissions) * 100}%`,
-                          backgroundColor: COLORS[index % COLORS.length],
-                        }}
-                      />
+          {data.conversionBySource.length === 0 ? (
+            <p className="py-10 text-center text-sm text-gray-500">
+              No submissions in this period.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {data.conversionBySource.map((source, index) => (
+                <div key={source.source} className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-24 shrink-0 truncate text-sm text-gray-600 sm:w-28">{source.source}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${(source.submissions / Math.max(data.conversionBySource[0].submissions, 1)) * 100}%`,
+                            backgroundColor: COLORS[index % COLORS.length],
+                          }}
+                        />
+                      </div>
+                      <span className="w-10 shrink-0 text-right text-xs text-gray-500">{source.submissions}</span>
                     </div>
-                    <span className="text-xs text-gray-500 w-12">{source.submissions}</span>
+                  </div>
+                  <div className="w-14 shrink-0 text-right">
+                    <span className="text-sm font-medium text-green-600">{source.rate}%</span>
                   </div>
                 </div>
-                <div className="w-16 text-right">
-                  <span className="text-sm font-medium text-green-600">{source.rate}%</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -493,7 +415,8 @@ export default function FormsAnalyticsPage() {
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Form Type</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Name</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Contact</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Service</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Source</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Page</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Status</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Time</th>
@@ -508,18 +431,8 @@ export default function FormsAnalyticsPage() {
                     </span>
                   </td>
                   <td className="py-3 px-4 text-sm font-medium">{submission.name}</td>
-                  <td className="py-3 px-4">
-                    <div className="text-sm">
-                      <div className="flex items-center gap-1 text-gray-600">
-                        <Phone className="w-3 h-3" />
-                        {submission.phone}
-                      </div>
-                      <div className="flex items-center gap-1 text-gray-500 text-xs">
-                        <Mail className="w-3 h-3" />
-                        {submission.email}
-                      </div>
-                    </div>
-                  </td>
+                  <td className="py-3 px-4 text-sm text-gray-600">{submission.serviceType || '—'}</td>
+                  <td className="py-3 px-4 text-sm text-gray-600">{submission.source}</td>
                   <td className="py-3 px-4">
                     <span className="text-sm text-blue-600">{submission.page}</span>
                   </td>

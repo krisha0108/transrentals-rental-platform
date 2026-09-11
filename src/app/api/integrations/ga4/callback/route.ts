@@ -30,13 +30,13 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('GA4 OAuth Error:', error);
       return NextResponse.redirect(
-        new URL('/admin/analytics/integrations?ga4_error=' + encodeURIComponent(error), request.url)
+        new URL('/admin/analytics?ga4_error=' + encodeURIComponent(error), request.url)
       );
     }
 
     if (!code) {
       return NextResponse.redirect(
-        new URL('/admin/analytics/integrations?ga4_error=no_code', request.url)
+        new URL('/admin/analytics?ga4_error=no_code', request.url)
       );
     }
 
@@ -50,12 +50,12 @@ export async function GET(request: NextRequest) {
 
     // Redirect to integrations page with success message
     return NextResponse.redirect(
-      new URL('/admin/analytics/integrations?ga4_success=true', request.url)
+      new URL('/admin/analytics?ga4_success=true', request.url)
     );
   } catch (error) {
     console.error('GA4 Callback Error:', error);
     return NextResponse.redirect(
-      new URL('/admin/analytics/integrations?ga4_error=callback_failed', request.url)
+      new URL('/admin/analytics?ga4_error=callback_failed', request.url)
     );
   }
 }

@@ -1,5 +1,7 @@
 'use client';
 
+import Pagination from '@/components/manager/Pagination';
+
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -70,7 +72,7 @@ interface Stats {
   todayCount: number;
 }
 
-interface Pagination {
+interface PaginationState {
   page: number;
   limit: number;
   total: number;
@@ -102,20 +104,6 @@ const DATE_RANGE_PRESETS: Record<string, () => { from: string; to: string }> = {
   },
 };
 
-const buildPaginationRange = (current: number, total: number, window = 5) => {
-  const half = Math.floor(window / 2);
-  let start = Math.max(1, current - half);
-  const end = Math.min(total, start + window - 1);
-  if (end - start < window - 1) {
-    start = Math.max(1, end - window + 1);
-  }
-  const pages = [];
-  for (let page = start; page <= end; page += 1) {
-    pages.push(page);
-  }
-  return pages;
-};
-
 function ManagerHelpdeskPageInner() {
   useManagerPageHeader('Helpdesk', 'Manage support tickets and contact inquiries in one place.');
   const router = useRouter();
@@ -129,7 +117,7 @@ function ManagerHelpdeskPageInner() {
     resolvedTickets: 0,
     todayCount: 0,
   });
-  const [pagination, setPagination] = useState<Pagination>({
+  const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
     limit: ITEMS_PER_PAGE,
     total: 0,
@@ -231,7 +219,6 @@ function ManagerHelpdeskPageInner() {
     setCurrentPage(1);
   };
 
-  const paginationPages = buildPaginationRange(pagination.page, pagination.totalPages);
   const skip = (pagination.page - 1) * ITEMS_PER_PAGE;
 
   const statCards = [
@@ -496,45 +483,14 @@ function ManagerHelpdeskPageInner() {
 
           {/* Pagination */}
           {pagination.total > 0 && (
-            <nav className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 text-xs font-semibold text-slate-600 shadow-sm">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className={`rounded-full border px-3 py-1 transition ${
-                  currentPage === 1
-                    ? 'cursor-not-allowed border-slate-200 text-slate-400'
-                    : 'border-slate-300 text-slate-700 hover:border-slate-400'
-                }`}
-              >
-                Previous
-              </button>
-              <div className="flex items-center gap-2">
-                {paginationPages.map((target) => (
-                  <button
-                    key={target}
-                    onClick={() => setCurrentPage(target)}
-                    className={`rounded-full px-3 py-1 transition ${
-                      target === currentPage
-                        ? 'border border-indigo-500 bg-indigo-500 text-white'
-                        : 'border border-slate-200 text-slate-700 hover:border-slate-400'
-                    }`}
-                  >
-                    {target}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
-                disabled={currentPage === pagination.totalPages}
-                className={`rounded-full border px-3 py-1 transition ${
-                  currentPage === pagination.totalPages
-                    ? 'cursor-not-allowed border-slate-200 text-slate-400'
-                    : 'border-slate-300 text-slate-700 hover:border-slate-400'
-                }`}
-              >
-                Next
-              </button>
-            </nav>
+            <div className="rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-sm">
+              <Pagination
+                className="flex-wrap"
+                currentPage={currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
           )}
       </section>
     </div>

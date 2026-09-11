@@ -9,12 +9,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  PhoneCall, Plus, Loader2, Search, ChevronDown, Pencil, Trash2,
+  PhoneCall, Plus, Loader2, Search, ChevronDown, Pencil,
   CheckCircle2, ThumbsUp, Clock, ThumbsDown, PhoneOff, PhoneForwarded,
   XCircle, Award, Download, Store, RefreshCw, MapPin, Layers,
   Eye, X, User, Building2, Phone, Home, Calendar, MessageSquare, Bell, UserPlus, Mail, Briefcase,
+  Upload, AlertTriangle,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { SearchableSelect, type SelectOption } from './_components/SearchableSelect';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 type CallReportStatus =
   | 'VENDOR_CREATED' | 'TRAVEL_AGENT_CREATED' | 'INTERESTED' | 'FOLLOW_UP' | 'NOT_INTERESTED'
@@ -88,11 +91,26 @@ export default function ManagerCallReportsPage() {
   const [serviceFilter, setServiceFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
 
+  // Drives the Clear all button — every filter this page applies.
+  const activeFilterCount =
+    (status !== 'all' ? 1 : 0) + (from ? 1 : 0) + (to ? 1 : 0) +
+    (cityFilter ? 1 : 0) + (serviceFilter ? 1 : 0) + (locationFilter ? 1 : 0) +
+    (query.trim() ? 1 : 0);
+
+  const clearFilters = () => {
+    setStatus('all');
+    setFrom('');
+    setTo('');
+    setCityFilter('');
+    setServiceFilter('');
+    setLocationFilter('');
+    setQuery('');
+  };
+
   const [cityOptions, setCityOptions] = useState<SelectOption[]>([]);
   const [serviceOptions, setServiceOptions] = useState<SelectOption[]>([]);
   const [locationOptions, setLocationOptions] = useState<SelectOption[]>([]);
 
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [viewingReport, setViewingReport] = useState<CallReport | null>(null);
 
   const reqRef = useRef(0);
@@ -176,22 +194,83 @@ export default function ManagerCallReportsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    setDeletingId(id);
+  // ── Bulk import ─────────────────────────────────────────────────────────────
+  // The column names below match what exportSheet() writes, so a sheet exported
+  // from this page can be edited and imported straight back.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    created: number; failed: number; total: number; errors: { row: number; message: string }[];
+  } | null>(null);
+
+  const COLUMN_ALIASES: Record<string, string> = {
+    'date': 'callDate',
+    'call date': 'callDate',
+    'contact type': 'contactType',
+    'vendor name': 'vendorName',
+    'company name': 'companyName',
+    'company details': 'companyDetails',
+    'phone': 'phone',
+    'email': 'email',
+    'address': 'address',
+    'city': 'city',
+    'service': 'services',
+    'services': 'services',
+    'location': 'locations',
+    'locations': 'locations',
+    'status': 'status',
+    'notes': 'notes',
+    'next follow up date': 'nextFollowUpDate',
+    'next follow-up date': 'nextFollowUpDate',
+    'next follow up time': 'nextFollowUpTime',
+    'next action': 'nextAction',
+  };
+
+  const handleImportFile = async (file: File) => {
+    setImporting(true);
+    setImportResult(null);
+    setError('');
     try {
-      const res = await fetch(`/api/manager/call-reports/${id}`, { method: 'DELETE' });
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      if (!sheet) throw new Error('That file has no sheets in it.');
+
+      const raw = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
+      if (raw.length === 0) throw new Error('That sheet has no data rows.');
+
+      // Map whatever the header row says onto the API's field names. Unknown
+      // columns are ignored rather than rejected, so extra notes columns are fine.
+      const rows = raw.map((r) => {
+        const out: Record<string, any> = {};
+        Object.entries(r).forEach(([key, value]) => {
+          const field = COLUMN_ALIASES[String(key).trim().toLowerCase()];
+          if (field) out[field] = value;
+        });
+        return out;
+      });
+
+      const res = await fetch('/api/manager/call-reports/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows }),
+      });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data?.error || 'Failed to delete');
-      setItems((prev) => prev.filter((i) => i.id !== id));
-      load();
+      if (!res.ok || !data.success) throw new Error(data?.error || 'Import failed');
+
+      setImportResult({
+        created: data.created, failed: data.failed, total: data.total, errors: data.errors || [],
+      });
+      if (data.created > 0) load();
     } catch (e: any) {
-      setError(e?.message || 'Failed to delete call report');
+      setError(e?.message || 'Could not read that file');
     } finally {
-      setDeletingId(null);
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  const exportCsv = () => {
+  const exportSheet = () => {
     const header = [
       'Date', 'Contact Type', 'Vendor Name', 'Company Name', 'Company Details', 'Phone', 'Email', 'Address', 'City',
       'Service', 'Location', 'Status', 'Notes', 'Added By',
@@ -212,16 +291,16 @@ export default function ManagerCallReportsPage() {
       (r.notes || '').replace(/\n/g, ' '),
       r.managerName || '',
     ]);
-    const csv = [header, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `call-reports-${todayStr()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // A real workbook rather than a .csv, so it opens in Excel with proper columns
+    // instead of everything crammed into column A — and so the file round-trips
+    // back through Import Excel.
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws['!cols'] = header.map((h, i) => ({
+      wch: Math.min(40, Math.max(h.length + 2, ...rows.map((r) => String(r[i] ?? '').length + 2))),
+    }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Call Reports');
+    XLSX.writeFile(wb, `call-reports-${todayStr()}.xlsx`);
   };
 
   const statTiles = useMemo(() => ([
@@ -231,37 +310,54 @@ export default function ManagerCallReportsPage() {
     { label: 'Total in View', value: counts.total, icon: PhoneCall, color: 'text-gray-600 bg-gray-100' },
   ]), [todayCount, counts]);
 
+  // Title and the action buttons all go into the shared sticky bar (the row with the
+  // bell), which was otherwise sitting empty above a second header row.
+  useManagerPageHeader(
+    'Vendor Call Reports',
+    'Log outbound vendor calls and track follow-up status — shared across the team.',
+    <div key="actions" className="flex flex-wrap items-center gap-2">
+      <button
+        onClick={() => { setLoading(true); load(); }}
+        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition"
+      >
+        <RefreshCw className="w-3.5 h-3.5" /> Refresh
+      </button>
+      <button
+        onClick={exportSheet}
+        disabled={items.length === 0}
+        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition disabled:opacity-40"
+      >
+        <Download className="w-3.5 h-3.5" /> Export as Sheet
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImportFile(f); }}
+      />
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        disabled={importing}
+        title="Bulk-add call reports from an Excel sheet"
+        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition disabled:opacity-40"
+      >
+        {importing
+          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          : <Upload className="w-3.5 h-3.5" />}
+        {importing ? 'Importing…' : 'Import Excel'}
+      </button>
+      <Link
+        href="/manager/call-reports/new"
+        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition"
+      >
+        <Plus className="w-4 h-4" /> Add Call Report
+      </Link>
+    </div>,
+  );
+
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-          <PhoneCall className="w-5 h-5 text-emerald-600" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">Vendor Call Reports</h1>
-          <p className="text-sm text-gray-500">Log outbound vendor calls and track follow-up status — shared across the team.</p>
-        </div>
-        <button
-          onClick={() => { setLoading(true); load(); }}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition"
-        >
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh
-        </button>
-        <button
-          onClick={exportCsv}
-          disabled={items.length === 0}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition disabled:opacity-40"
-        >
-          <Download className="w-3.5 h-3.5" /> Export CSV
-        </button>
-        <Link
-          href="/manager/call-reports/new"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition"
-        >
-          <Plus className="w-4 h-4" /> Add Call Report
-        </Link>
-      </div>
 
       {/* Stat tiles */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -349,10 +445,62 @@ export default function ManagerCallReportsPage() {
             className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition"
           />
         </div>
+
+        {/* Clear all — only shown once something is actually filtered. */}
+        {activeFilterCount > 0 && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="inline-flex items-center gap-1 px-2.5 py-2 text-sm text-gray-500 hover:text-red-500 transition shrink-0"
+          >
+            <X className="w-4 h-4" />
+            Clear all ({activeFilterCount})
+          </button>
+        )}
       </div>
 
       {error && (
         <div className="rounded-lg bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">{error}</div>
+      )}
+
+      {/* Import outcome — says exactly which rows did not go in, rather than a
+          bare "done" that hides skipped rows. */}
+      {importResult && (
+        <div
+          className={`rounded-lg border px-4 py-3 text-sm ${
+            importResult.failed > 0
+              ? 'bg-amber-50 border-amber-200 text-amber-800'
+              : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+          }`}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-semibold flex items-center gap-1.5">
+                {importResult.failed > 0
+                  ? <AlertTriangle className="w-4 h-4 shrink-0" />
+                  : <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                Imported {importResult.created} of {importResult.total} rows
+                {importResult.failed > 0 && ` — ${importResult.failed} skipped`}
+              </p>
+              {importResult.errors.length > 0 && (
+                <ul className="mt-2 space-y-0.5 max-h-40 overflow-y-auto">
+                  {importResult.errors.map((er) => (
+                    <li key={er.row} className="text-xs">
+                      Row {er.row}: {er.message}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <button
+              onClick={() => setImportResult(null)}
+              className="p-1 rounded hover:bg-black/5 shrink-0"
+              title="Dismiss"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Sheet */}
@@ -455,23 +603,13 @@ export default function ManagerCallReportsPage() {
                             <Eye className="w-3.5 h-3.5" />
                           </button>
                           {r.canEdit && (
-                            <>
-                              <Link
-                                href={`/manager/call-reports/${r.id}/edit`}
-                                className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition"
-                                title="Edit"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </Link>
-                              <button
-                                onClick={() => handleDelete(r.id)}
-                                disabled={deletingId === r.id}
-                                className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition disabled:opacity-40"
-                                title="Delete"
-                              >
-                                {deletingId === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                              </button>
-                            </>
+                            <Link
+                              href={`/manager/call-reports/${r.id}/edit`}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition"
+                              title="Edit"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Link>
                           )}
                         </div>
                       </td>

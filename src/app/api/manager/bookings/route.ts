@@ -52,10 +52,18 @@ export async function GET(request: NextRequest) {
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
-    const serviceFilter = searchParams.get('service') || 'all';
-    const statusFilter = searchParams.get('status') || 'all';
+    // service / status / location accept a comma-separated list so the UI can offer
+    // multi-select. An absent param, or the literal 'all', means "no restriction".
+    const multi = (name: string): string[] => {
+      const raw = (searchParams.get(name) || '').trim();
+      if (!raw || raw === 'all') return [];
+      return raw.split(',').map((v) => v.trim()).filter(Boolean);
+    };
+
+    const serviceFilters = multi('service');
+    const statusFilters = multi('status');
+    const locationFilters = multi('location');
     const sourceFilter = searchParams.get('source') || 'all';
-    const locationFilter = searchParams.get('location') || 'all';
     const dateFilter = searchParams.get('date') || 'all';
     const search = (searchParams.get('search') || '').trim().toLowerCase();
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
@@ -72,18 +80,20 @@ export async function GET(request: NextRequest) {
 
     // Helper to check if should fetch this service
     const shouldFetchService = (serviceSlug: string): boolean => {
-      if (serviceFilter === 'all') return isServiceAssigned(serviceSlug);
-      return isServiceAssigned(serviceSlug) && (
-        serviceFilter === serviceSlug ||
-        serviceFilter.includes(serviceSlug) ||
-        serviceSlug.includes(serviceFilter)
+      if (!isServiceAssigned(serviceSlug)) return false;
+      if (serviceFilters.length === 0) return true;
+      return serviceFilters.some((f) =>
+        f === serviceSlug || f.includes(serviceSlug) || serviceSlug.includes(f),
       );
     };
 
     // Build filters with optional status filter
     const buildFilter = (baseFilter: any) => {
-      if (statusFilter !== 'all') {
-        return { ...baseFilter, status: statusFilter };
+      if (statusFilters.length === 1) {
+        return { ...baseFilter, status: statusFilters[0] };
+      }
+      if (statusFilters.length > 1) {
+        return { ...baseFilter, status: { in: statusFilters } };
       }
       return baseFilter;
     };
@@ -581,8 +591,8 @@ export async function GET(request: NextRequest) {
     if (sourceFilter !== 'all') {
       filtered = filtered.filter((b) => (b.source || 'web') === sourceFilter);
     }
-    if (locationFilter !== 'all') {
-      filtered = filtered.filter((b) => (b.locationName || b.deliveryCity || '') === locationFilter);
+    if (locationFilters.length > 0) {
+      filtered = filtered.filter((b) => locationFilters.includes(b.locationName || b.deliveryCity || ''));
     }
     if (search) {
       filtered = filtered.filter(

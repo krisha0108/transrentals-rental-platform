@@ -60,10 +60,18 @@ export async function GET(request: NextRequest) {
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
-    const serviceFilter = searchParams.get('service') || 'all';
-    const statusFilter = searchParams.get('status') || 'all';
+    // service / status / location accept a comma-separated list so the UI can offer
+    // multi-select. An absent param, or the literal 'all', means "no restriction".
+    const multi = (name: string): string[] => {
+      const raw = (searchParams.get(name) || '').trim();
+      if (!raw || raw === 'all') return [];
+      return raw.split(',').map((v) => v.trim()).filter(Boolean);
+    };
+
+    const serviceFilters = multi('service');
+    const statusFilters = multi('status');
+    const locationFilters = multi('location');
     const sourceFilter = searchParams.get('source') || 'all';
-    const locationFilter = searchParams.get('location') || 'all';
     const dateFilter = searchParams.get('date') || 'all';
     const actionedFilter = searchParams.get('actioned') || 'all';
     const search = (searchParams.get('search') || '').trim().toLowerCase();
@@ -80,8 +88,8 @@ export async function GET(request: NextRequest) {
     const shouldFetchService = (...serviceSlugs: string[]): boolean => {
       const assigned = serviceSlugs.some(s => isServiceAssigned(s));
       if (!assigned) return false;
-      if (serviceFilter === 'all') return true;
-      return serviceSlugs.includes(serviceFilter);
+      if (serviceFilters.length === 0) return true;
+      return serviceSlugs.some((slug) => serviceFilters.includes(slug));
     };
 
     // Build filters for quote_requests tables
@@ -419,14 +427,14 @@ export async function GET(request: NextRequest) {
 
     let filtered = allInquiries.filter(matchesDateFilter);
 
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((i) => i.status === statusFilter);
+    if (statusFilters.length > 0) {
+      filtered = filtered.filter((i) => statusFilters.includes(i.status));
     }
     if (sourceFilter !== 'all') {
       filtered = filtered.filter((i) => (i.source || 'web') === sourceFilter);
     }
-    if (locationFilter !== 'all') {
-      filtered = filtered.filter((i) => i.locationName === locationFilter);
+    if (locationFilters.length > 0) {
+      filtered = filtered.filter((i) => locationFilters.includes(i.locationName));
     }
     if (actionedFilter !== 'all') {
       filtered = filtered.filter((i) =>

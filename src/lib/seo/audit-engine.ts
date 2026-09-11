@@ -60,7 +60,7 @@ function toIso(value: Date | string): string {
 
 /**
  * Reshapes a flat `seo_audits` DB row (audit-engine's storage shape) into
- * the nested shape the /admin/analytics/seo dashboard renders. The DB row
+ * the nested shape API consumers expect. The DB row
  * has no `url` or nested metric groups, so this fills those in rather than
  * having the frontend guess at flat field names.
  */

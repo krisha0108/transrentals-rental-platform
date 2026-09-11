@@ -26,13 +26,13 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('GSC Auth Error:', error);
       return NextResponse.redirect(
-        new URL('/admin/analytics/integrations?error=access_denied', request.url)
+        new URL('/admin/analytics?error=access_denied', request.url)
       );
     }
 
     if (!code) {
       return NextResponse.redirect(
-        new URL('/admin/analytics/integrations?error=missing_code', request.url)
+        new URL('/admin/analytics?error=missing_code', request.url)
       );
     }
 
@@ -46,12 +46,12 @@ export async function GET(request: NextRequest) {
 
     // Redirect to integrations page with success message
     return NextResponse.redirect(
-      new URL('/admin/analytics/integrations?success=gsc_connected', request.url)
+      new URL('/admin/analytics?success=gsc_connected', request.url)
     );
   } catch (error) {
     console.error('GSC Callback Error:', error);
     return NextResponse.redirect(
-      new URL('/admin/analytics/integrations?error=callback_failed', request.url)
+      new URL('/admin/analytics?error=callback_failed', request.url)
     );
   }
 }
