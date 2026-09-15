@@ -361,7 +361,9 @@ export default function VehicleViewPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Summary</h2>
             <div className="space-y-3 text-sm">
               {[
-                ['Slug', <span className="font-mono bg-gray-100 px-2 py-0.5 rounded">{vehicle.slug}</span>],
+                // The key is only here to satisfy react/jsx-key: this element is a
+                // tuple value, not a list child, so React never needs it.
+                ['Slug', <span key="slug" className="font-mono bg-gray-100 px-2 py-0.5 rounded">{vehicle.slug}</span>],
                 ['Brand', vehicle.brands?.name || '—'],
                 ['Service', vehicle.services_vehicle_models_serviceIdToservices?.name || '—'],
                 ['Category', vehicle.services_vehicle_models_subServiceIdToservices?.name || vehicle.chauffeur_vehicle_categories?.name || '—'],

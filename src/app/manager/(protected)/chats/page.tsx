@@ -18,6 +18,7 @@ import {
   Bike,
   Car,
   Eye,
+  X,
 } from 'lucide-react';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
@@ -84,6 +85,14 @@ export default function ManagerChatsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Drives the Clear all button — every filter this page applies.
+  const activeFilterCount = (searchTerm.trim() ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0);
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+  };
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchConversations = async () => {
@@ -239,6 +248,18 @@ export default function ManagerChatsPage() {
               <option value="closed">Closed</option>
             </select>
           </div>
+
+          {/* Clear all — only shown once something is actually filtered. */}
+          {activeFilterCount > 0 && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="inline-flex items-center gap-1 px-2.5 py-2.5 text-sm text-gray-500 hover:text-red-500 transition shrink-0"
+            >
+              <X className="w-4 h-4" />
+              Clear all ({activeFilterCount})
+            </button>
+          )}
         </div>
       </div>
 

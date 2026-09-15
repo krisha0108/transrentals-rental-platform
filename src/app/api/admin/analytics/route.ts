@@ -18,8 +18,12 @@ export async function GET(request: NextRequest) {
     const cacheKey = buildCacheKey('analytics', { range, section });
 
     const responseData = await getOrCompute(cacheKey, async () => {
-    // Kill runaway queries after 25 s (MariaDB max_statement_time, in seconds)
-    try { await prisma.$executeRaw`SET SESSION max_statement_time = 25`; } catch { /* non-fatal */ }
+    // Kill runaway SELECTs after 25s (MySQL max_execution_time, in milliseconds)
+    try {
+      await prisma.$executeRaw`SET SESSION max_execution_time = 25000`;
+    } catch (err) {
+      console.warn('[analytics] Failed to set max_execution_time guard:', err);
+    }
 
     const now = new Date();
     const startDate = new Date();
@@ -51,7 +55,7 @@ export async function GET(request: NextRequest) {
       prisma.page_views.groupBy({ by: ['path'], where: dateFilter, _count: { id: true }, orderBy: { _count: { id: 'desc' } }, take: 15 }),
       prisma.page_views.groupBy({ by: ['referrer'], where: dateFilter, _count: { id: true }, orderBy: { _count: { id: 'desc' } }, take: 100 }),
       prisma.page_views.findMany({ where: dateFilter, orderBy: { createdAt: 'desc' }, take: 20, select: { id: true, path: true, device: true, browser: true, country: true, referrer: true, createdAt: true } }),
-      prisma.$queryRaw<Array<{ date: string; views: bigint }>>`SELECT DATE(createdAt) as date, COUNT(*) as views FROM page_views WHERE createdAt >= ${startDate} AND createdAt <= ${now} GROUP BY DATE(createdAt) ORDER BY date ASC`,
+      prisma.$queryRaw<Array<{ date: string; views: bigint; visitors: bigint }>>`SELECT DATE(createdAt) as date, COUNT(*) as views, COUNT(DISTINCT COALESCE(sessionId, ipAddress, 'unknown')) as visitors FROM page_views WHERE createdAt >= ${startDate} AND createdAt <= ${now} GROUP BY DATE(createdAt) ORDER BY date ASC`,
       prisma.$queryRaw<[{ cnt: bigint }]>`SELECT COUNT(DISTINCT COALESCE(sessionId, ipAddress, 'unknown')) as cnt FROM page_views WHERE createdAt >= ${startDate} AND createdAt <= ${now}`,
       prisma.$queryRaw<[{ views: bigint; visitors: bigint }]>`SELECT COUNT(*) as views, COUNT(DISTINCT COALESCE(sessionId, ipAddress, 'unknown')) as visitors FROM page_views WHERE createdAt >= ${today} AND createdAt <= ${now}`,
     ]);
@@ -80,7 +84,7 @@ export async function GET(request: NextRequest) {
     });
     const topReferrers = Object.entries(referrerDomains).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([domain, count]) => ({ domain, count }));
 
-    const chartData = pvDailyRaw.map((row) => ({ date: String(row.date), views: Number(row.views), visitors: Number(row.views) }));
+    const chartData = pvDailyRaw.map((row) => ({ date: String(row.date), views: Number(row.views), visitors: Number(row.visitors) }));
 
     const trafficSources = { direct: 0, organic: 0, referral: 0, social: 0 };
     pvReferrerGroups.forEach((g) => {
@@ -157,7 +161,9 @@ export async function GET(request: NextRequest) {
         prisma.click_events.aggregate({ where: { ...dateFilter, eventType: 'SCROLL_DEPTH', scrollDepth: { gt: 0 } }, _avg: { scrollDepth: true } }),
       ]);
       clickTypeGroups.forEach((g) => {
-        clickStats.total += g._count.id;
+        // SCROLL_DEPTH is passive scroll telemetry, not a click. Counting it here made
+        // the overview's total disagree with the Clicks dashboard by roughly a quarter.
+        if (g.eventType !== 'SCROLL_DEPTH') clickStats.total += g._count.id;
         clickStats.byType[g.eventType] = g._count.id;
         if (g.eventType === 'CTA_CLICK') clickStats.ctaClicks = g._count.id;
         else if (g.eventType === 'PHONE_CLICK') clickStats.phoneClicks = g._count.id;
@@ -208,10 +214,21 @@ export async function GET(request: NextRequest) {
         else if (g.clsRating === 'NEEDS_IMPROVEMENT') vitalsStats.clsNeedsImprovement = g._count.id;
         else if (g.clsRating === 'POOR') vitalsStats.clsPoor = g._count.id;
       });
-      const totalRatings = vitalsStats.lcpGood + vitalsStats.lcpNeedsImprovement + vitalsStats.lcpPoor;
-      if (totalRatings > 0) {
-        const goodPct = (vitalsStats.lcpGood + vitalsStats.fidGood + vitalsStats.clsGood) / (totalRatings * 3);
-        const poorPct = (vitalsStats.lcpPoor + vitalsStats.fidPoor + vitalsStats.clsPoor) / (totalRatings * 3);
+      // Each vital is reported by a different number of visits — CLS and INP are
+      // missing from far more rows than LCP — so each one is scored against its own
+      // denominator and the rates are then averaged. The old formula divided all three
+      // by the LCP row count, which made the health verdict arithmetic nonsense.
+      const metricRates = [
+        { good: vitalsStats.lcpGood, needs: vitalsStats.lcpNeedsImprovement, poor: vitalsStats.lcpPoor },
+        { good: vitalsStats.fidGood, needs: vitalsStats.fidNeedsImprovement, poor: vitalsStats.fidPoor },
+        { good: vitalsStats.clsGood, needs: vitalsStats.clsNeedsImprovement, poor: vitalsStats.clsPoor },
+      ]
+        .map((m) => ({ ...m, total: m.good + m.needs + m.poor }))
+        .filter((m) => m.total > 0);
+
+      if (metricRates.length > 0) {
+        const goodPct = metricRates.reduce((sum, m) => sum + m.good / m.total, 0) / metricRates.length;
+        const poorPct = metricRates.reduce((sum, m) => sum + m.poor / m.total, 0) / metricRates.length;
         vitalsStats.overallHealth = poorPct > 0.25 ? 'POOR' : goodPct > 0.75 ? 'HEALTHY' : 'NEEDS_IMPROVEMENT';
       }
       pagesWithIssues = pagePerf
@@ -229,8 +246,37 @@ export async function GET(request: NextRequest) {
       sessions: activeSessions.map((s) => ({ currentPage: s.currentPage, device: s.device, browser: s.browser, country: s.country, pageCount: s.pageCount, hasInteracted: s.hasInteracted, hasChatted: s.hasChatted, hasSubmittedForm: s.hasSubmittedForm, startTime: s.startTime, lastActivity: s.lastActivity })),
     };
 
+    // ===== PREVIOUS PERIOD — for real period-over-period deltas on the overview cards =====
+    // The window immediately before the selected one, of the same length.
+    const prevEnd = startDate;
+    const prevStart = new Date(startDate.getTime() - (now.getTime() - startDate.getTime()));
+    const prevFilter = { createdAt: { gte: prevStart, lt: prevEnd } };
+
+    const [prevViews, prevUniqueRaw, prevForms, prevChatBookings, prevCtaClicks] = await Promise.all([
+      prisma.page_views.count({ where: prevFilter }),
+      prisma.$queryRaw<[{ cnt: bigint }]>`SELECT COUNT(DISTINCT COALESCE(sessionId, ipAddress, 'unknown')) as cnt FROM page_views WHERE createdAt >= ${prevStart} AND createdAt < ${prevEnd}`,
+      prisma.form_submissions.count({ where: { ...prevFilter, status: 'SUBMITTED' } }),
+      prisma.chat_interactions.count({ where: { ...prevFilter, interactionType: 'BOOKING_COMPLETED' } }),
+      prisma.click_events.count({ where: { ...prevFilter, eventType: 'CTA_CLICK' } }),
+    ]);
+
+    // Percent change vs the previous window. `null` means "no baseline to compare against",
+    // which the UI renders as a dash rather than inventing a number.
+    const pctChange = (current: number, previous: number): number | null => {
+      if (previous <= 0) return current > 0 ? null : 0;
+      return Math.round(((current - previous) / previous) * 100);
+    };
+
+    const changes = {
+      totalViews: pctChange(totalViews, prevViews),
+      uniqueVisitors: pctChange(uniqueVisitors, Number(prevUniqueRaw[0]?.cnt || 0)),
+      formsSubmitted: pctChange(formStats.submitted, prevForms),
+      chatBookings: pctChange(chatStats.bookingsCompleted, prevChatBookings),
+      ctaClicks: pctChange(clickStats.ctaClicks, prevCtaClicks),
+    };
+
     return {
-      summary: { totalViews, uniqueVisitors, todayViews, todayVisitors, avgViewsPerDay: Math.round(totalViews / Math.max(chartData.length, 1)), activeVisitors: realTimeStats.activeVisitors },
+      summary: { totalViews, uniqueVisitors, todayViews, todayVisitors, avgViewsPerDay: Math.round(totalViews / Math.max(chartData.length, 1)), activeVisitors: realTimeStats.activeVisitors, changes },
       traffic: { deviceBreakdown, browserBreakdown, trafficSources, topPages, topReferrers, chartData },
       forms: { stats: formStats, topPages: topFormPages, recent: recentForms },
       chat: { stats: chatStats, topPages: topChatPages, recent: recentChats },

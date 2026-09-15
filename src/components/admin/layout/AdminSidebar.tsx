@@ -51,8 +51,6 @@ import {
   Briefcase,
   CreditCard,
   Headphones,
-  Link2,
-  MousePointer,
   MessageSquare,
   FileBarChart,
   TrendingUp,
@@ -449,21 +447,10 @@ const adminItems: NavItem[] = [
     href: '/admin/analytics',
     icon: BarChart3,
     children: [
+      // Short enough now that the section headers would be noise.
       { name: 'Overview', href: '/admin/analytics', icon: Activity },
-      { name: 'Real-Time', href: '/admin/analytics/realtime', icon: Activity },
-      { name: 'Traffic', href: '/admin/analytics/traffic', icon: Users },
-      { name: 'Performance', href: '/admin/analytics/performance', icon: Gauge },
-      { name: 'Pages', href: '/admin/analytics/pages', icon: FileBarChart },
-      { name: 'SEO Audits', href: '/admin/analytics/seo', icon: TrendingUp },
-      { name: 'Site Audit', href: '/admin/analytics/site-audit', icon: Search },
-      { name: 'Rankings', href: '/admin/analytics/rankings', icon: BarChart3 },
-      { name: 'Clicks', href: '/admin/analytics/clicks', icon: MousePointer },
-      { name: 'Backlinks', href: '/admin/analytics/backlinks', icon: Link2 },
       { name: 'Forms', href: '/admin/analytics/forms', icon: FileText },
       { name: 'Chat', href: '/admin/analytics/chat', icon: MessageSquare },
-      { name: 'Reports', href: '/admin/analytics/reports', icon: FileText },
-      { name: 'Integrations', href: '/admin/analytics/integrations', icon: Link2 },
-      { name: 'AI Analysis', href: '/admin/analytics/ai-analysis', icon: Sparkles },
     ],
   },
 ];
@@ -562,13 +549,28 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     );
   };
 
+  const matchesHref = (href: string) =>
+    !!pathname && (pathname === href || pathname.startsWith(href + '/'));
+
+  // A child whose href is a prefix of a sibling's (e.g. "Overview" at /admin/analytics next to
+  // /admin/analytics/forms) must only light up on an exact match, otherwise it stays highlighted
+  // on every sub-page of the section.
+  const isChildActive = (child: NavItem, siblings: NavItem[]): boolean => {
+    if (!matchesHref(child.href)) return false;
+    return !siblings.some(
+      (sibling) =>
+        !sibling.isHeader &&
+        sibling.href !== child.href &&
+        sibling.href.length > child.href.length &&
+        matchesHref(sibling.href)
+    );
+  };
+
   const isItemActive = (item: NavItem): boolean => {
     if (item.children) {
-      return item.children.some(
-        (child) => pathname === child.href || pathname.startsWith(child.href + '/')
-      );
+      return item.children.some((child) => !child.isHeader && matchesHref(child.href));
     }
-    return pathname === item.href || pathname.startsWith(item.href + '/');
+    return matchesHref(item.href);
   };
 
   const renderNavItem = (item: NavItem, isMissionControl: boolean = false) => {
@@ -608,16 +610,23 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               {item.children!.map((child) => {
                 const ChildIcon = child.icon;
 
-                // Render section header (non-clickable)
+                // Render section header (non-clickable). A hairline rule separates each group
+                // from the one above it; the first header in a list needs neither rule nor gap.
                 if (child.isHeader) {
                   return (
-                    <div key={child.name} className="px-3 pt-3 pb-1">
-                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">{child.name}</p>
+                    <div
+                      key={child.name}
+                      role="presentation"
+                      className="px-3 pt-3 pb-1 mt-2 border-t border-gray-700/60 first:mt-0 first:pt-1 first:border-t-0"
+                    >
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider truncate">
+                        {child.name}
+                      </p>
                     </div>
                   );
                 }
 
-                const isChildActive = pathname === child.href || pathname.startsWith(child.href + '/');
+                const childActive = isChildActive(child, item.children!);
 
                 return (
                   <Link
@@ -626,19 +635,19 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                     onClick={onClose}
                     className={cn(
                       'flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm',
-                      isChildActive
+                      childActive
                         ? 'bg-blue-600/30 text-white'
                         : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                     )}
                   >
-                    <ChildIcon className="w-4 h-4" />
-                    <span className="flex-1">{child.name}</span>
+                    <ChildIcon className="w-4 h-4 shrink-0" />
+                    <span className="flex-1 min-w-0 truncate">{child.name}</span>
                     {child.href === '/admin/vendors/contact-requests' && contactChangeCount > 0 ? (
-                      <span className="ml-auto px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full leading-none min-w-[18px] text-center">
+                      <span className="ml-auto shrink-0 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full leading-none min-w-[18px] text-center">
                         {contactChangeCount}
                       </span>
                     ) : child.badge ? (
-                      <span className="ml-auto px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full leading-none">
+                      <span className="ml-auto shrink-0 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full leading-none">
                         {child.badge}
                       </span>
                     ) : null}

@@ -33,8 +33,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'all';
     const search = searchParams.get('search') || '';
-    const locationFilter = searchParams.get('location') || 'all';
-    const serviceFilter = searchParams.get('service') || 'all';
+    // Location and Service are multi-select on the page, so they arrive as a
+    // comma-separated list. 'all' / empty means no filter.
+    const multi = (name: string): string[] => {
+      const raw = (searchParams.get(name) || '').trim();
+      if (!raw || raw === 'all') return [];
+      return raw.split(',').map((v) => v.trim()).filter(Boolean);
+    };
+    const locationFilters = multi('location');
+    const serviceFilters = multi('service');
     const tagFilter = searchParams.get('tag') || 'all';
     const requestFilter = searchParams.get('request') || 'all';
     const joinedFilter = searchParams.get('joined') || 'all';
@@ -92,12 +99,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    if (locationFilter !== 'all') {
-      andConditions.push({ vendor_approved_locations: { some: { locations: { name: locationFilter } } } });
+    // A vendor matches if it covers ANY of the selected locations / services.
+    if (locationFilters.length > 0) {
+      andConditions.push({ vendor_approved_locations: { some: { locations: { name: { in: locationFilters } } } } });
     }
 
-    if (serviceFilter !== 'all') {
-      andConditions.push({ vendor_approved_services: { some: { services: { name: serviceFilter } } } });
+    if (serviceFilters.length > 0) {
+      andConditions.push({ vendor_approved_services: { some: { services: { name: { in: serviceFilters } } } } });
     }
 
     if (requestFilter !== 'all') {

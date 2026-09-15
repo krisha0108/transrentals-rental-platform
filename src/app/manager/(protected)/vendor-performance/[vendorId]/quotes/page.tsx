@@ -3,11 +3,14 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  ArrowLeft, RefreshCw, Search, Filter, Layers, ChevronLeft, ChevronRight,
+  ArrowLeft, RefreshCw, Search, Filter, Layers,
   ChevronDown, ChevronUp, User, Phone, IndianRupee, Calendar, MapPin,
   FileText, CheckCircle, XCircle, Clock, Eye, AlertCircle, Loader2, Car,
   Bike, Bus, Truck, Package,
+  X,
 } from 'lucide-react';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
+import Pagination from '@/components/manager/Pagination';
 
 interface Quote {
   id: string;
@@ -77,6 +80,16 @@ export default function VendorQuotesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
+
+  // Drives the Clear all button — every filter this page applies.
+  const activeFilterCount =
+    (searchTerm.trim() ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0) + (serviceFilter !== 'all' ? 1 : 0);
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setServiceFilter('all');
+  };
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -132,19 +145,28 @@ export default function VendorQuotesPage() {
   const formatCurrency = (n: number) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      if (currentPage > 3) pages.push('...');
-      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
-      if (currentPage < totalPages - 2) pages.push('...');
-      pages.push(totalPages);
-    }
-    return pages;
-  };
+  // Title, Back and Refresh go into the shared sticky bar, which was otherwise
+  // rendering empty above this page's own header row.
+  useManagerPageHeader(
+    `${vendorName || 'Vendor'} — Quotation History`,
+    'All quotes submitted by this vendor to customers',
+    <button
+      onClick={() => { setIsRefreshing(true); fetchQuotes(); }}
+      disabled={isRefreshing}
+      className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm font-semibold"
+    >
+      <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+      Refresh
+    </button>,
+    <button
+      type="button"
+      onClick={() => router.back()}
+      title="Back"
+      className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0 text-gray-600"
+    >
+      <ArrowLeft className="w-5 h-5" />
+    </button>,
+  );
 
   if (isLoading) {
     return (
@@ -159,27 +181,6 @@ export default function VendorQuotesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-lg transition">
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{vendorName || 'Vendor'} — Quotation History</h1>
-            <p className="text-gray-500 mt-1">All quotes submitted by this vendor to customers</p>
-          </div>
-        </div>
-        <button
-          onClick={() => { setIsRefreshing(true); fetchQuotes(); }}
-          disabled={isRefreshing}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
-
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -245,6 +246,18 @@ export default function VendorQuotesPage() {
               ))}
             </select>
           </div>
+
+          {/* Clear all — only shown once something is actually filtered. */}
+          {activeFilterCount > 0 && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="inline-flex items-center gap-1 px-2.5 py-2.5 text-sm text-gray-500 hover:text-red-500 transition shrink-0"
+            >
+              <X className="w-4 h-4" />
+              Clear all ({activeFilterCount})
+            </button>
+          )}
         </div>
       </div>
 
@@ -408,40 +421,12 @@ export default function VendorQuotesPage() {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 pb-8">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          {getPageNumbers().map((page, i) => (
-            <React.Fragment key={i}>
-              {page === '...' ? (
-                <span className="px-3 py-2 text-gray-400">...</span>
-              ) : (
-                <button
-                  onClick={() => setCurrentPage(page as number)}
-                  className={`px-4 py-2 rounded-lg font-medium transition ${
-                    currentPage === page ? 'bg-green-600 text-white' : 'border border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  {page}
-                </button>
-              )}
-            </React.Fragment>
-          ))}
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      )}
+      <Pagination
+        className="pb-8"
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

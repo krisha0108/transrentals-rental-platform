@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { AnalyticsError } from '../_components/AnalyticsError';
 import {
   MessageCircle,
   Bot,
@@ -9,6 +10,7 @@ import {
   ThumbsUp,
   RefreshCw,
   ArrowUpRight,
+  ArrowDownRight,
   Target,
   MessageSquare,
   Zap,
@@ -43,9 +45,16 @@ interface ChatData {
     avgResponseTime: number;
     resolutionRate: number;
     avgConversationLength: number;
-    satisfactionScore: number;
+    // Nothing in the chat widget collects a rating, so the API reports null here.
+    satisfactionScore: number | null;
     bookingsFromChat: number;
     kbQueriesAnswered: number;
+  };
+  changes: {
+    totalConversations: number | null;
+    totalMessages: number | null;
+    resolutionRate: number | null;
+    bookingsFromChat: number | null;
   };
   trends: Array<{
     date: string;
@@ -90,9 +99,33 @@ interface ChatData {
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6'];
 
+
+/**
+ * Period-over-period delta for a stat card. `null` means there was no comparable
+ * previous window, which reads as a dash rather than an invented percentage.
+ */
+function DeltaBadge({ change }: { change: number | null | undefined }) {
+  if (change === null || change === undefined) {
+    return (
+      <span className="text-sm text-gray-400" title="No data for the previous period">
+        &mdash;
+      </span>
+    );
+  }
+  const tone = change === 0 ? 'text-gray-400' : change > 0 ? 'text-green-500' : 'text-red-500';
+  const Icon = change < 0 ? ArrowDownRight : ArrowUpRight;
+  return (
+    <span className={`flex items-center text-sm ${tone}`} title="vs previous period">
+      {change !== 0 && <Icon className="w-4 h-4" />}
+      {Math.abs(change)}%
+    </span>
+  );
+}
+
 export default function ChatAnalyticsPage() {
   const [data, setData] = useState<ChatData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState('7d');
 
   useEffect(() => {
@@ -101,87 +134,23 @@ export default function ChatAnalyticsPage() {
 
   const fetchChatData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch(`/api/admin/analytics/chat?range=${dateRange}`);
-      if (response.ok) {
-        const result = await response.json();
-        // Validate the data has required structure, otherwise use mock data
-        if (result && result.overview && typeof result.overview.totalConversations === 'number') {
-          setData(result);
-        } else {
-          setData(getMockData());
-        }
-      } else {
-        setData(getMockData());
+      if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+      const result = await response.json();
+      if (!result?.overview || typeof result.overview.totalConversations !== 'number') {
+        throw new Error('Response did not contain chat overview data');
       }
-    } catch (error) {
-      // Failed to fetch - using mock data
-      setData(getMockData());
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setData(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const getMockData = (): ChatData => ({
-    overview: {
-      totalConversations: 2847,
-      totalMessages: 15234,
-      avgResponseTime: 1.2,
-      resolutionRate: 78.5,
-      avgConversationLength: 5.3,
-      satisfactionScore: 4.2,
-      bookingsFromChat: 234,
-      kbQueriesAnswered: 1876,
-    },
-    trends: Array.from({ length: 7 }, (_, i) => ({
-      date: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { weekday: 'short' }),
-      conversations: Math.floor(Math.random() * 400) + 200,
-      messages: Math.floor(Math.random() * 2000) + 1000,
-      resolutions: Math.floor(Math.random() * 300) + 150,
-    })),
-    hourlyActivity: Array.from({ length: 24 }, (_, i) => ({
-      hour: `${i}:00`,
-      conversations: Math.floor(Math.random() * 100) + 10,
-    })),
-    intentAnalysis: [
-      { intent: 'Pricing Inquiry', count: 876, percentage: 30.8 },
-      { intent: 'Booking Request', count: 654, percentage: 23.0 },
-      { intent: 'Vehicle Availability', count: 432, percentage: 15.2 },
-      { intent: 'Location Query', count: 345, percentage: 12.1 },
-      { intent: 'Support/Help', count: 298, percentage: 10.5 },
-      { intent: 'General Info', count: 242, percentage: 8.4 },
-    ],
-    outcomeDistribution: [
-      { outcome: 'Resolved', count: 1876, color: '#10B981' },
-      { outcome: 'Booking Started', count: 456, color: '#3B82F6' },
-      { outcome: 'Booking Completed', count: 234, color: '#8B5CF6' },
-      { outcome: 'Escalated', count: 156, color: '#F59E0B' },
-      { outcome: 'Abandoned', count: 125, color: '#EF4444' },
-    ],
-    topQuestions: [
-      { question: 'What is the price of Activa on rent?', count: 234, resolution: 'KB' },
-      { question: 'Do you have self-drive cars?', count: 187, resolution: 'KB' },
-      { question: 'What documents are required?', count: 165, resolution: 'KB' },
-      { question: 'Is there a security deposit?', count: 143, resolution: 'KB' },
-      { question: 'Can I book for outstation?', count: 121, resolution: 'Agent' },
-      { question: 'What are the pickup locations?', count: 98, resolution: 'KB' },
-    ],
-    recentConversations: [
-      { id: '1', sessionId: 'sess_abc123', messages: 8, duration: '4m 32s', intent: 'Booking', outcome: 'Completed', timestamp: '5 mins ago' },
-      { id: '2', sessionId: 'sess_def456', messages: 5, duration: '2m 15s', intent: 'Pricing', outcome: 'Resolved', timestamp: '12 mins ago' },
-      { id: '3', sessionId: 'sess_ghi789', messages: 12, duration: '8m 45s', intent: 'Support', outcome: 'Escalated', timestamp: '25 mins ago' },
-      { id: '4', sessionId: 'sess_jkl012', messages: 3, duration: '1m 20s', intent: 'Availability', outcome: 'Resolved', timestamp: '38 mins ago' },
-      { id: '5', sessionId: 'sess_mno345', messages: 6, duration: '3m 50s', intent: 'Location', outcome: 'Booking Started', timestamp: '1 hour ago' },
-    ],
-    performanceMetrics: [
-      { metric: 'Response Speed', value: 92, fullMark: 100 },
-      { metric: 'Resolution Rate', value: 78, fullMark: 100 },
-      { metric: 'User Satisfaction', value: 84, fullMark: 100 },
-      { metric: 'KB Accuracy', value: 89, fullMark: 100 },
-      { metric: 'Engagement', value: 75, fullMark: 100 },
-      { metric: 'Conversion', value: 65, fullMark: 100 },
-    ],
-  });
 
   if (loading) {
     return (
@@ -191,7 +160,9 @@ export default function ChatAnalyticsPage() {
     );
   }
 
-  if (!data) return null;
+  if (error || !data) {
+    return <AnalyticsError subject="chat analytics" message={error} onRetry={fetchChatData} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -210,6 +181,7 @@ export default function ChatAnalyticsPage() {
             <option value="1d">Today</option>
             <option value="7d">Last 7 days</option>
             <option value="30d">Last 30 days</option>
+            <option value="90d">Last 90 days</option>
           </select>
           <button
             onClick={fetchChatData}
@@ -227,9 +199,7 @@ export default function ChatAnalyticsPage() {
             <div className="p-2 bg-blue-100 rounded-lg">
               <MessageCircle className="w-5 h-5 text-blue-600" />
             </div>
-            <span className="flex items-center text-green-500 text-sm">
-              <ArrowUpRight className="w-4 h-4" /> 15.2%
-            </span>
+            <DeltaBadge change={data.changes?.totalConversations} />
           </div>
           <p className="mt-3 text-2xl font-bold">{data.overview.totalConversations.toLocaleString()}</p>
           <p className="text-gray-500 text-sm">Total Conversations</p>
@@ -240,9 +210,7 @@ export default function ChatAnalyticsPage() {
             <div className="p-2 bg-green-100 rounded-lg">
               <CheckCircle className="w-5 h-5 text-green-600" />
             </div>
-            <span className="flex items-center text-green-500 text-sm">
-              <ArrowUpRight className="w-4 h-4" /> 3.4%
-            </span>
+            <DeltaBadge change={data.changes?.resolutionRate} />
           </div>
           <p className="mt-3 text-2xl font-bold">{data.overview.resolutionRate}%</p>
           <p className="text-gray-500 text-sm">Resolution Rate</p>
@@ -253,9 +221,7 @@ export default function ChatAnalyticsPage() {
             <div className="p-2 bg-purple-100 rounded-lg">
               <Target className="w-5 h-5 text-purple-600" />
             </div>
-            <span className="flex items-center text-green-500 text-sm">
-              <ArrowUpRight className="w-4 h-4" /> 8.7%
-            </span>
+            <DeltaBadge change={data.changes?.bookingsFromChat} />
           </div>
           <p className="mt-3 text-2xl font-bold">{data.overview.bookingsFromChat}</p>
           <p className="text-gray-500 text-sm">Bookings from Chat</p>
@@ -294,8 +260,12 @@ export default function ChatAnalyticsPage() {
 
         <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-5 text-white">
           <ThumbsUp className="w-6 h-6 opacity-80" />
-          <p className="mt-3 text-3xl font-bold">{data.overview.satisfactionScore}/5</p>
-          <p className="text-amber-100 text-sm">Satisfaction Score</p>
+          <p className="mt-3 text-3xl font-bold">
+            {data.overview.satisfactionScore === null ? 'N/A' : `${data.overview.satisfactionScore}/5`}
+          </p>
+          <p className="text-amber-100 text-sm">
+            {data.overview.satisfactionScore === null ? 'Satisfaction — not collected' : 'Satisfaction Score'}
+          </p>
         </div>
       </div>
 

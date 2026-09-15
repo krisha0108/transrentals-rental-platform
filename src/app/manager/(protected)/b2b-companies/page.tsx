@@ -1,6 +1,8 @@
 // @ts-nocheck
 'use client';
 
+import Pagination from '@/components/manager/Pagination';
+
 import React, { useState, useEffect } from 'react';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import {
@@ -41,6 +43,15 @@ export default function B2BCompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+
+  // Drives the Clear all button — every filter this page applies.
+  const activeFilterCount = (search.trim() ? 1 : 0) + (filter !== 'all' ? 1 : 0);
+
+  const clearFilters = () => {
+    setSearch('');
+    setFilter('all');
+    setPagination(p => ({ ...p, page: 1 }));
+  };
   const [pendingCount, setPendingCount] = useState(0);
   const [pagination, setPagination] = useState({ page: 1, total: 0, totalPages: 0 });
 
@@ -183,6 +194,18 @@ export default function B2BCompaniesPage() {
             className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
           />
         </div>
+
+        {/* Clear all — only shown once something is actually filtered. */}
+        {activeFilterCount > 0 && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="inline-flex items-center gap-1 px-2.5 py-2.5 text-sm text-gray-500 hover:text-red-500 transition shrink-0"
+          >
+            <X className="w-4 h-4" />
+            Clear all ({activeFilterCount})
+          </button>
+        )}
         <div className="flex gap-2">
           {['all', 'pending', 'approved', 'rejected'].map(f => (
             <button
@@ -312,26 +335,16 @@ export default function B2BCompaniesPage() {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between px-5 py-3 border-t bg-gray-50">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3 border-t bg-gray-50">
               <p className="text-sm text-gray-500">
                 Page {pagination.page} of {pagination.totalPages} ({pagination.total} companies)
               </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))}
-                  disabled={pagination.page === 1}
-                  className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-50 hover:bg-white"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
-                  disabled={pagination.page === pagination.totalPages}
-                  className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-50 hover:bg-white"
-                >
-                  Next
-                </button>
-              </div>
+              <Pagination
+                className="flex-wrap"
+                currentPage={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={(page) => setPagination(p => ({ ...p, page }))}
+              />
             </div>
           )}
         </div>

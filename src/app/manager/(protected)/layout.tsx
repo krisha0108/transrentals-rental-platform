@@ -542,6 +542,7 @@ function ManagerTopBar({
         >
           <Menu className="w-6 h-6 text-gray-700" />
         </button>
+        {header?.leading}
         {header && (
           <div className="min-w-0">
             <h1 className="text-base font-bold text-gray-900 leading-tight truncate">{header.title}</h1>

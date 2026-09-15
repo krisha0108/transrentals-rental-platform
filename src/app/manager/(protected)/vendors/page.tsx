@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
+import FilterMultiSelect from '@/components/manager/FilterMultiSelect';
+import Pagination from '@/components/manager/Pagination';
 import {
   Loader2, Search, Store, Phone, Mail, MapPin, Layers,
   ChevronRight, ChevronDown, RefreshCw, AlertCircle, CheckCircle, Clock,
@@ -188,96 +189,6 @@ const SORT_OPTIONS = [
   { value: 'fleet_asc',    label: 'Small Fleet',     icon: Car },
 ];
 
-// Searchable dropdown for the Location/Service filters — plain <select> options
-// aren't searchable in most browsers once the list gets long (100+ locations).
-function FilterSearchSelect({
-  label, options, allLabel, value, onChange,
-}: {
-  label: string;
-  options: string[];
-  allLabel: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-        setQuery('');
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const filtered = query.trim()
-    ? options.filter(o => o.toLowerCase().includes(query.trim().toLowerCase()))
-    : options;
-
-  const selectOption = (v: string) => { onChange(v); setOpen(false); setQuery(''); };
-
-  return (
-    <div ref={ref} className="relative">
-      <label className="text-xs text-gray-500 font-medium mb-1 block">{label}</label>
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between gap-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white text-left"
-      >
-        <span className={`truncate ${value === 'all' ? 'text-gray-500' : 'text-gray-900 font-medium'}`}>
-          {value === 'all' ? allLabel : value}
-        </span>
-        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      {open && (
-        <div className="absolute z-20 mt-1 w-full min-w-[220px] bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
-          <div className="p-2 border-b border-gray-100">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-              <input
-                autoFocus
-                type="text"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder={`Search ${label.toLowerCase()}...`}
-                className="w-full pl-8 pr-2 py-1.5 border border-gray-200 rounded-md text-xs focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              />
-            </div>
-          </div>
-          <div className="max-h-56 overflow-y-auto">
-            <button
-              type="button"
-              onClick={() => selectOption('all')}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-green-50 transition-colors ${value === 'all' ? 'bg-green-50 text-green-700 font-semibold' : 'text-gray-700'}`}
-            >
-              {allLabel}
-            </button>
-            {filtered.length === 0 ? (
-              <p className="px-3 py-3 text-xs text-gray-400 text-center">No matches</p>
-            ) : (
-              filtered.map(opt => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => selectOption(opt)}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-green-50 truncate transition-colors ${value === opt ? 'bg-green-50 text-green-700 font-semibold' : 'text-gray-700'}`}
-                >
-                  {opt}
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ManagerVendorsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -292,8 +203,14 @@ function ManagerVendorsPageInner() {
   // was selected instead of resetting to defaults. See clearFilters()/
   // updateFilter() below for how changes get written back into the URL.
   const search = searchParams.get('search') || '';
-  const locationFilter = searchParams.get('location') || 'all';
-  const serviceFilter = searchParams.get('service') || 'all';
+  // Location and Service are multi-select: the URL carries a comma-separated
+  // list, so the selection survives the browser Back button like the rest.
+  const csv = (name: string): string[] => {
+    const raw = (searchParams.get(name) || '').trim();
+    return !raw || raw === 'all' ? [] : raw.split(',').map((v) => v.trim()).filter(Boolean);
+  };
+  const locationFilters = csv('location');
+  const serviceFilters = csv('service');
   const statusFilter = searchParams.get('status') || 'all';
   const tagFilter = searchParams.get('tag') || 'all';
   const requestFilter = searchParams.get('request') || 'all';
@@ -379,8 +296,8 @@ function ManagerVendorsPageInner() {
       setError(null);
       const params = new URLSearchParams();
       if (search) params.set('search', search);
-      if (locationFilter !== 'all') params.set('location', locationFilter);
-      if (serviceFilter !== 'all') params.set('service', serviceFilter);
+      if (locationFilters.length) params.set('location', locationFilters.join(','));
+      if (serviceFilters.length) params.set('service', serviceFilters.join(','));
       if (statusFilter !== 'all') params.set('status', statusFilter);
       if (tagFilter !== 'all') params.set('tag', tagFilter);
       if (requestFilter !== 'all') params.set('request', requestFilter);
@@ -422,7 +339,7 @@ function ManagerVendorsPageInner() {
   const paginatedVendors = allVendors;
 
   const activeFilterCount = [
-    search, locationFilter !== 'all' ? locationFilter : '', serviceFilter !== 'all' ? serviceFilter : '',
+    search, locationFilters.length ? 'location' : '', serviceFilters.length ? 'service' : '',
     statusFilter !== 'all' ? statusFilter : '', tagFilter !== 'all' ? tagFilter : '',
     requestFilter !== 'all' ? requestFilter : '',
     dateFilter !== 'all' ? dateFilter : '',
@@ -515,13 +432,6 @@ function ManagerVendorsPageInner() {
             </div>
           ))}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Link href="/manager/vendors/create"
-            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium shadow-sm">
-            <Plus className="w-4 h-4" />
-            Create Vendor
-          </Link>
-        </div>
       </div>
 
       {/* Filters */}
@@ -541,22 +451,24 @@ function ManagerVendorsPageInner() {
 
         {/* Row 2: Dropdowns */}
         <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
-          {/* Location */}
-          <FilterSearchSelect
+          {/* Location — multi-select */}
+          <FilterMultiSelect
+            variant="labeled"
             label="Location"
             allLabel="All Locations"
-            options={uniqueLocations}
-            value={locationFilter}
-            onChange={(v) => updateFilter({ location: v })}
+            options={uniqueLocations.map((l) => ({ value: l, label: l }))}
+            values={locationFilters}
+            onChange={(v) => updateFilter({ location: v.join(',') })}
           />
 
-          {/* Service */}
-          <FilterSearchSelect
+          {/* Service — multi-select */}
+          <FilterMultiSelect
+            variant="labeled"
             label="Service"
             allLabel="All Services"
-            options={uniqueServices}
-            value={serviceFilter}
-            onChange={(v) => updateFilter({ service: v })}
+            options={uniqueServices.map((sv) => ({ value: sv, label: sv }))}
+            values={serviceFilters}
+            onChange={(v) => updateFilter({ service: v.join(',') })}
           />
 
           {/* Status */}
@@ -640,18 +552,18 @@ function ManagerVendorsPageInner() {
                 <button onClick={() => { setSearchInput(''); updateFilter({ search: '' }); }}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
             )}
-            {locationFilter !== 'all' && (
-              <span className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-200">
-                <MapPin className="w-3 h-3" /> {locationFilter}
-                <button onClick={() => updateFilter({ location: '' })}><X className="w-3 h-3 ml-0.5" /></button>
+            {locationFilters.map((loc) => (
+              <span key={`loc-${loc}`} className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-200">
+                <MapPin className="w-3 h-3" /> {loc}
+                <button onClick={() => updateFilter({ location: locationFilters.filter((l) => l !== loc).join(',') })}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
-            )}
-            {serviceFilter !== 'all' && (
-              <span className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200">
-                <Layers className="w-3 h-3" /> {serviceFilter}
-                <button onClick={() => updateFilter({ service: '' })}><X className="w-3 h-3 ml-0.5" /></button>
+            ))}
+            {serviceFilters.map((svc) => (
+              <span key={`svc-${svc}`} className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200">
+                <Layers className="w-3 h-3" /> {svc}
+                <button onClick={() => updateFilter({ service: serviceFilters.filter((x) => x !== svc).join(',') })}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
-            )}
+            ))}
             {statusFilter !== 'all' && (
               <span className="flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium border border-gray-200">
                 {statusFilter}
@@ -836,7 +748,7 @@ function ManagerVendorsPageInner() {
                       {/* Location & Service chips */}
                       <div className="mt-2.5 flex flex-wrap gap-1.5">
                         {vendor.locationNames.slice(0, 3).map((loc, i) => (
-                          <span key={i} className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${locationFilter === loc ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700'}`}>
+                          <span key={i} className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${locationFilters.includes(loc) ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700'}`}>
                             <MapPin className="w-3 h-3" />{loc}
                           </span>
                         ))}
@@ -844,7 +756,7 @@ function ManagerVendorsPageInner() {
                           <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">+{vendor.locationNames.length - 3}</span>
                         )}
                         {vendor.serviceNames.slice(0, 2).map((svc, i) => (
-                          <span key={i} className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${serviceFilter === svc ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700'}`}>
+                          <span key={i} className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${serviceFilters.includes(svc) ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700'}`}>
                             <Layers className="w-3 h-3" />{svc}
                           </span>
                         ))}
@@ -956,65 +868,12 @@ function ManagerVendorsPageInner() {
               <span className="text-sm text-gray-500">per page</span>
             </div>
           </div>
-          {totalPages > 1 && (
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setPage(1)}
-              disabled={currentPage === 1}
-              className="px-2 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              «
-            </button>
-            <button
-              onClick={() => setPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              Prev
-            </button>
-
-            {/* Page number buttons — show up to 5 around current */}
-            {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
-              .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
-                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis');
-                acc.push(p);
-                return acc;
-              }, [])
-              .map((item, idx) =>
-                item === 'ellipsis' ? (
-                  <span key={`e${idx}`} className="px-2 py-1.5 text-xs text-gray-400">…</span>
-                ) : (
-                  <button
-                    key={item}
-                    onClick={() => setPage(item as number)}
-                    className={`px-3 py-1.5 text-xs rounded-lg border transition ${
-                      currentPage === item
-                        ? 'bg-green-600 text-white border-green-600 font-semibold'
-                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    {item}
-                  </button>
-                )
-              )}
-
-            <button
-              onClick={() => setPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              Next
-            </button>
-            <button
-              onClick={() => setPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="px-2 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              »
-            </button>
-          </div>
-          )}
+          <Pagination
+            className="flex-wrap"
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         </div>
       )}
     </div>

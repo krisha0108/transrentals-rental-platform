@@ -13,6 +13,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, Legend, AreaChart, Area,
 } from 'recharts';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 // ── Shared types ────────────────────────────────────────────────────────────
 
@@ -372,6 +373,32 @@ export default function VendorPerformanceDetailPage() {
             });
     }, [bookings]);
 
+    // Title, vendor id, Back and Refresh go into the shared sticky bar, which was
+    // otherwise rendering empty above this page's own header row.
+    useManagerPageHeader(
+        `${vendorName || 'Vendor'} Performance`,
+        `Vendor ID: ${vendorId}`,
+        <button
+            onClick={() => {
+                if (activeTab === 'bookings') { setBookingsRefreshing(true); fetchBookings(); }
+                else { setQuotesRefreshing(true); fetchQuotes(); }
+            }}
+            disabled={bookingsRefreshing || quotesRefreshing}
+            className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm font-semibold"
+        >
+            <RefreshCw className={`w-4 h-4 ${(bookingsRefreshing || quotesRefreshing) ? 'animate-spin' : ''}`} />
+            Refresh
+        </button>,
+        <button
+            type="button"
+            onClick={() => router.back()}
+            title="Back"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0 text-gray-600"
+        >
+            <ArrowLeft className="w-5 h-5" />
+        </button>,
+    );
+
     // ── Loading state ──
     if (bookingsLoading) {
         return (
@@ -410,30 +437,6 @@ export default function VendorPerformanceDetailPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-lg transition">
-                        <ArrowLeft className="w-5 h-5 text-gray-600" />
-                    </button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">{vendorName || 'Vendor'} Performance</h1>
-                        <p className="text-gray-500 mt-1">Vendor ID: {vendorId}</p>
-                    </div>
-                </div>
-                <button
-                    onClick={() => {
-                        if (activeTab === 'bookings') { setBookingsRefreshing(true); fetchBookings(); }
-                        else { setQuotesRefreshing(true); fetchQuotes(); }
-                    }}
-                    disabled={bookingsRefreshing || quotesRefreshing}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
-                >
-                    <RefreshCw className={`w-4 h-4 ${(bookingsRefreshing || quotesRefreshing) ? 'animate-spin' : ''}`} />
-                    Refresh
-                </button>
-            </div>
-
             {/* Today's Activity — idle/active time + live presence, tracked
                 silently while the vendor's dashboard tab is open */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">

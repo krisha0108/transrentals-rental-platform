@@ -149,8 +149,10 @@ interface ServiceData {
 
 export default function ServiceFleetPage() {
   const params = useParams();
-  if (!params) return null;
-  const slug = params.slug as string;
+  // Every hook below has to run on every render, so this cannot early-return on
+  // a missing params object - read the slug null-safely instead. The effects
+  // already skip their fetches when `slug` is empty.
+  const slug = (params?.slug as string) || '';
   const [service, setService] = useState<ServiceData | null>(null);
   const [serviceLoading, setServiceLoading] = useState(true);
   const [fleet, setFleet] = useState<FleetItem[]>([]);
@@ -261,6 +263,7 @@ export default function ServiceFleetPage() {
   // Fetch service from database
   useEffect(() => {
     const fetchService = async () => {
+      if (!slug) { setServiceLoading(false); return; }
       try {
         const res = await fetch(`/api/admin/services?slug=${slug}`);
         if (res.ok) {
@@ -320,6 +323,7 @@ export default function ServiceFleetPage() {
   useEffect(() => {
     if (!showModal || serviceLocationsForPricing.length > 0) return;
     const fetchServiceLocations = async () => {
+      if (!slug) return;
       setLoadingServiceLocations(true);
       try {
         const res = await fetch(`/api/admin/services/${slug}/locations`);

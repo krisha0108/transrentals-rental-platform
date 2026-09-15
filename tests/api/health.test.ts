@@ -32,7 +32,8 @@ describe('Public API Endpoints', () => {
     const response = await fetch(`${API_BASE_URL}/api/services`);
     expect(response.status).toBe(200);
     const data = await response.json();
-    expect(Array.isArray(data)).toBe(true);
+    expect(data.success).toBe(true);
+    expect(Array.isArray(data.services)).toBe(true);
   });
 
   // Locations endpoint
@@ -40,14 +41,15 @@ describe('Public API Endpoints', () => {
     const response = await fetch(`${API_BASE_URL}/api/locations`);
     expect(response.status).toBe(200);
     const data = await response.json();
-    expect(Array.isArray(data)).toBe(true);
+    expect(data.success).toBe(true);
+    expect(Array.isArray(data.locations)).toBe(true);
   });
 });
 
 describe('Authentication Endpoints', () => {
   // Customer auth endpoint exists
-  it('POST /api/customer/auth/login should exist', async () => {
-    const response = await fetch(`${API_BASE_URL}/api/customer/auth/login`, {
+  it('POST /api/customer/auth should exist', async () => {
+    const response = await fetch(`${API_BASE_URL}/api/customer/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone: '9999999999' })
