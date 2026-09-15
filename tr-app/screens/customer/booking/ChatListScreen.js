@@ -106,9 +106,9 @@ export default function ChatListScreen() {
       const interval = setInterval(fetchBookings, 10000);
       return () => {
         clearInterval(interval);
-        StatusBar.setBarStyle('light-content', true);
+        StatusBar.setBarStyle('dark-content', true);
         if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#0A6B3F', true);
+          StatusBar.setBackgroundColor('#FFFFFF', true);
         }
       };
     }, [])

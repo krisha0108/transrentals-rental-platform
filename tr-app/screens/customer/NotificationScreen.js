@@ -28,10 +28,38 @@ import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SEC
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+const FILTER_TABS = [
+  { key: 'all', label: 'All' },
+  { key: 'bookings', label: 'Bookings' },
+  { key: 'chats', label: 'Chats' },
+  { key: 'offers', label: 'Offers' },
+];
+
+// Buckets a notification into one of the filter tabs above, reusing the
+// same type/title signals handlePress already relies on for navigation.
+const getNotifCategory = (item) => {
+  const title = (item.title || '').toLowerCase();
+  const body = (item.body || '').toLowerCase();
+  const notifType = (item.type || '').toUpperCase();
+
+  if (notifType === 'CHAT' || notifType === 'GROUP_CHAT' || title.includes('message')) {
+    return 'chats';
+  }
+  if (
+    notifType === 'PROMO' || notifType === 'OFFER' || notifType === 'MARKETING' ||
+    title.includes('offer') || title.includes('discount') || title.includes('% off') ||
+    body.includes('offer') || body.includes('discount') || body.includes('% off')
+  ) {
+    return 'offers';
+  }
+  return 'bookings';
+};
+
 const NotificationScreen = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('all');
   const navigation = useNavigation();
 
   // animations (common for list)
@@ -373,7 +401,8 @@ const handlePress = async () => {
       <TouchableOpacity activeOpacity={0.8} onPress={handlePress}>
         <Animated.View
           style={[
-            styles.notificationCard,
+            styles.notifRow,
+            !item.is_read && styles.notifRowUnread,
             {
               opacity: fadeAnim,
               transform: [
@@ -388,59 +417,39 @@ const handlePress = async () => {
             },
           ]}
         >
-          {/* Left accent bar for unread */}
-          {!item.is_read && <View style={styles.cardAccent} />}
+          <View style={[styles.notifIconCircle, !item.is_read && styles.notifIconCircleUnread]}>
+            <MaterialIcons
+              name={item.is_read ? 'notifications-none' : 'notifications-active'}
+              size={wp('4.2%')}
+              color={!item.is_read ? '#FFF' : TEAL_MID}
+            />
+          </View>
 
-          <View style={styles.cardInner}>
-            {/* Card Header */}
-            <View style={[styles.cardHeader, !item.is_read && styles.unreadCardHeader]}>
-              <View style={styles.headerLeft}>
-                <View style={[styles.iconCircle, !item.is_read && styles.unreadIconCircle]}>
-                  <MaterialIcons
-                    name={item.is_read ? 'notifications-none' : 'notifications-active'}
-                    size={wp('4.5%')}
-                    color={!item.is_read ? '#FFF' : TEAL_MID}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.notificationTitle, !item.is_read && styles.unreadTitle]} numberOfLines={2}>
-                    {item.title}
-                  </Text>
-                </View>
+          <View style={styles.notifRowBody}>
+            <Text style={[styles.notifRowTitle, !item.is_read && styles.notifRowTitleUnread]} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={styles.notifRowText} numberOfLines={1}>{item.body}</Text>
+
+            {item.image && (
+              <View style={styles.imageContainer}>
+                <Image source={{ uri: item.image }} style={styles.notificationImage} resizeMode="cover" />
               </View>
-              {/* Unread indicator dot */}
-              {!item.is_read && (
-                <View style={styles.unreadDot} />
-              )}
-            </View>
+            )}
+          </View>
 
-            {/* Card Content */}
-            <View style={styles.cardContent}>
-              <Text style={[styles.notificationBody, item.is_read && styles.readBody]}>{item.body}</Text>
-
-              {item.image && (
-                <View style={styles.imageContainer}>
-                  <Image source={{ uri: item.image }} style={styles.notificationImage} resizeMode="cover" />
-                </View>
-              )}
-            </View>
-
-            {/* Footer with Time */}
-            <View style={styles.cardFooter}>
-              <View style={styles.timeContainer}>
-                <MaterialIcons name="access-time" size={wp('3.2%')} color={TEXT_MUTED} />
-                <Text style={styles.timeText}>{item.relative_time}</Text>
-              </View>
-              <View style={styles.tapHint}>
-                <Text style={styles.tapHintText}>Tap to view</Text>
-                <Ionicons name="chevron-forward" size={wp('3%')} color={TEAL} />
-              </View>
-            </View>
+          <View style={styles.notifRowTrailing}>
+            <Text style={styles.notifRowTime}>{item.relative_time}</Text>
+            {!item.is_read && <View style={styles.notifUnreadDot} />}
           </View>
         </Animated.View>
       </TouchableOpacity>
     );
   };
+
+  const filteredNotifications = activeFilter === 'all'
+    ? notifications
+    : notifications.filter(n => getNotifCategory(n) === activeFilter);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -449,17 +458,22 @@ const handlePress = async () => {
       {/* Header */}
       <Header />
 
-      {/* Unread summary pill */}
-      {notifications.filter(n => !n.is_read).length > 0 && (
-        <View style={styles.unreadSummaryRow}>
-          <View style={styles.unreadSummaryPill}>
-            <View style={styles.unreadSummaryDot} />
-            <Text style={styles.unreadSummaryText}>
-              {notifications.filter(n => !n.is_read).length} unread notification{notifications.filter(n => !n.is_read).length !== 1 ? 's' : ''}
-            </Text>
-          </View>
-        </View>
-      )}
+      {/* Filter Tabs */}
+      <View style={styles.filterTabsRow}>
+        {FILTER_TABS.map((tab) => {
+          const active = activeFilter === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              onPress={() => setActiveFilter(tab.key)}
+              style={[styles.filterTab, active && styles.filterTabActive]}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.filterTabText, active && styles.filterTabTextActive]}>{tab.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       {/* Notifications List */}
       <ScrollView
@@ -476,7 +490,7 @@ const handlePress = async () => {
         contentContainerStyle={{ paddingBottom: hp('12%') }}
       >
         <View style={styles.notificationContainer}>
-          {notifications.length === 0 ? (
+          {filteredNotifications.length === 0 ? (
             <View style={styles.emptyState}>
               <LinearGradient
                 colors={[TEAL_LIGHT, '#A7F3D0']}
@@ -486,14 +500,16 @@ const handlePress = async () => {
                   <Ionicons name="notifications-off-outline" size={wp('10%')} color={TEAL} />
                 </View>
               </LinearGradient>
-              <Text style={styles.emptyTitle}>No notifications yet</Text>
+              <Text style={styles.emptyTitle}>
+                {activeFilter === 'all' ? 'No notifications yet' : `No ${FILTER_TABS.find(t => t.key === activeFilter)?.label.toLowerCase()} yet`}
+              </Text>
               <Text style={styles.emptySubtitle}>
                 You're all caught up!{'\n'}
                 We'll notify you when something new arrives.
               </Text>
             </View>
           ) : (
-            notifications.map((item, index) => (
+            filteredNotifications.map((item, index) => (
               <NotificationItem key={item.id} item={item} index={index} />
             ))
           )}
@@ -560,32 +576,33 @@ const styles = StyleSheet.create({
     height: wp('10%'),
   },
 
-  /* -- Unread Summary Pill -- */
-  unreadSummaryRow: {
+  /* -- Filter Tabs -- */
+  filterTabsRow: {
+    flexDirection: 'row',
+    gap: wp('2%'),
     paddingHorizontal: wp('4%'),
     paddingTop: hp('1.5%'),
-    paddingBottom: hp('0.5%'),
+    paddingBottom: hp('1%'),
   },
-  unreadSummaryPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: TEAL_LIGHT,
+  filterTab: {
     paddingHorizontal: wp('3.5%'),
-    paddingVertical: hp('0.8%'),
+    paddingVertical: hp('0.7%'),
     borderRadius: wp('5%'),
-    alignSelf: 'flex-start',
-    gap: wp('2%'),
+    backgroundColor: BG,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  unreadSummaryDot: {
-    width: wp('2%'),
-    height: wp('2%'),
-    borderRadius: wp('1%'),
+  filterTabActive: {
     backgroundColor: TEAL,
+    borderColor: TEAL,
   },
-  unreadSummaryText: {
-    fontSize: wp('3%'),
-    fontWeight: '600',
-    color: TEAL_DEEP,
+  filterTabText: {
+    fontSize: wp('3.1%'),
+    fontWeight: '700',
+    color: TEXT_SECONDARY,
+  },
+  filterTabTextActive: {
+    color: '#FFF',
   },
 
   /* -- ScrollView & Container -- */
@@ -595,149 +612,79 @@ const styles = StyleSheet.create({
   },
   notificationContainer: {
     paddingHorizontal: wp('4%'),
-    paddingTop: hp('1%'),
+    paddingTop: hp('0.5%'),
   },
 
-  /* -- Notification Card -- */
-  notificationCard: {
+  /* -- Notification Row (compact list, no card chrome) -- */
+  notifRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: CARD,
-    borderRadius: wp('4%'),
-    marginBottom: hp('1.5%'),
-    overflow: 'hidden',
-    ...SHADOW_SM,
+    borderRadius: wp('3.5%'),
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1.2%'),
+    marginBottom: hp('1%'),
+    gap: wp('3%'),
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
-  cardAccent: {
-    width: wp('1.2%'),
-    backgroundColor: TEAL,
-    borderTopLeftRadius: wp('4%'),
-    borderBottomLeftRadius: wp('4%'),
+  notifRowUnread: {
+    borderLeftWidth: wp('1%'),
+    borderLeftColor: TEAL,
   },
-  cardInner: {
-    flex: 1,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: wp('3.5%'),
-    paddingTop: hp('1.5%'),
-    paddingBottom: hp('1.2%'),
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  unreadCardHeader: {
-    backgroundColor: '#ECFDF5',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: wp('2.5%'),
-  },
-  iconCircle: {
-    width: wp('9.5%'),
-    height: wp('9.5%'),
-    borderRadius: wp('4.75%'),
+  notifIconCircle: {
+    width: wp('8.5%'),
+    height: wp('8.5%'),
+    borderRadius: wp('4.25%'),
     backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
   },
-  unreadIconCircle: {
+  notifIconCircleUnread: {
     backgroundColor: TEAL,
-    ...Platform.select({
-      ios: {
-        shadowColor: TEAL,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-      },
-      android: { elevation: 4 },
-    }),
   },
-  notificationTitle: {
-    fontSize: wp('3.5%'),
+  notifRowBody: {
+    flex: 1,
+  },
+  notifRowTitle: {
+    fontSize: wp('3.4%'),
     fontWeight: '600',
     color: TEXT_PRIMARY,
-    lineHeight: wp('5%'),
   },
-  unreadTitle: {
+  notifRowTitleUnread: {
     fontWeight: '700',
     color: TEAL_DEEP,
   },
-  unreadDot: {
-    width: wp('2.5%'),
-    height: wp('2.5%'),
-    borderRadius: wp('1.25%'),
-    backgroundColor: TEAL,
-    marginLeft: wp('2%'),
-    ...Platform.select({
-      ios: {
-        shadowColor: TEAL,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.5,
-        shadowRadius: 4,
-      },
-      android: { elevation: 3 },
-    }),
+  notifRowText: {
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.15%'),
   },
-
-  /* -- Card Content -- */
-  cardContent: {
-    paddingHorizontal: wp('3.5%'),
-    paddingTop: hp('1.2%'),
-    paddingBottom: hp('0.5%'),
+  notifRowTrailing: {
+    alignItems: 'flex-end',
+    gap: hp('0.5%'),
+    flexShrink: 0,
   },
-  notificationBody: {
-    fontSize: wp('3.2%'),
-    color: TEXT_SECONDARY,
-    lineHeight: wp('5%'),
-    fontWeight: '500',
-    marginBottom: hp('0.8%'),
-  },
-  readBody: {
+  notifRowTime: {
+    fontSize: wp('2.6%'),
     color: TEXT_MUTED,
   },
+  notifUnreadDot: {
+    width: wp('2%'),
+    height: wp('2%'),
+    borderRadius: wp('1%'),
+    backgroundColor: TEAL,
+  },
   imageContainer: {
-    borderRadius: wp('3%'),
+    borderRadius: wp('2.5%'),
     overflow: 'hidden',
-    marginTop: hp('0.8%'),
+    marginTop: hp('0.7%'),
   },
   notificationImage: {
     width: '100%',
-    height: hp('18%'),
-    borderRadius: wp('3%'),
-  },
-
-  /* -- Card Footer -- */
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: wp('3.5%'),
-    paddingVertical: hp('1%'),
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  timeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: wp('1.2%'),
-  },
-  timeText: {
-    fontSize: wp('2.8%'),
-    color: TEXT_MUTED,
-    fontWeight: '500',
-  },
-  tapHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: wp('0.8%'),
-  },
-  tapHintText: {
-    fontSize: wp('2.8%'),
-    color: TEAL,
-    fontWeight: '600',
+    height: hp('9%'),
+    borderRadius: wp('2.5%'),
   },
 
   /* -- Empty State -- */
