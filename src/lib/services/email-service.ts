@@ -34,7 +34,15 @@ const transporter = nodemailer.createTransport({
     pass: process.env.SMTP_PASSWORD,
   },
   tls: {
-    rejectUnauthorized: false, // allow self-signed certs in dev
+    // Certificate validation stays on in production. Without it, anyone able to
+    // intercept the SMTP connection could present their own certificate and walk
+    // away with SMTP_USER / SMTP_PASSWORD. Only relaxed in dev, where local mail
+    // catchers (Mailtrap, MailHog) commonly serve self-signed certs. Set
+    // SMTP_TLS_INSECURE=1 to opt out deliberately if a provider ever needs it.
+    rejectUnauthorized:
+      process.env.SMTP_TLS_INSECURE === '1'
+        ? false
+        : process.env.NODE_ENV === 'production',
   },
 });
 

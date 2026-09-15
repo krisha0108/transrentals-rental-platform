@@ -16,6 +16,7 @@ import {
 import { LocationStatePicker, type LocationOption } from './LocationStatePicker';
 import { ServiceMultiSelect, type ServiceOption } from './ServiceMultiSelect';
 import { SearchableSelect } from './SearchableSelect';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 type CallReportStatus =
   | 'VENDOR_CREATED' | 'TRAVEL_AGENT_CREATED' | 'INTERESTED' | 'FOLLOW_UP' | 'NOT_INTERESTED'
@@ -319,6 +320,64 @@ export function CallReportForm({ reportId }: { reportId?: string }) {
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [locations]);
 
+  // Title and Back go into the shared sticky bar (the row with the bell), which was
+  // otherwise rendering empty above this page's own header.
+  useManagerPageHeader(
+    isEdit ? 'Edit Call Report' : 'Add Call Report',
+    'Log vendor interaction & onboarding details',
+    <div key="actions" className="flex flex-wrap items-center gap-2">
+      {linkedVendor ? (
+        <Link
+          href={`/manager/vendors/${linkedVendor.id}`}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-sky-600 text-sky-700 text-sm font-semibold hover:bg-sky-50 transition"
+        >
+          <Store className="w-4 h-4" /> View Vendor
+        </Link>
+      ) : linkedTravelAgent ? (
+        <Link
+          href={`/manager/travel-agents/${linkedTravelAgent.id}`}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-indigo-600 text-indigo-700 text-sm font-semibold hover:bg-indigo-50 transition"
+        >
+          <Briefcase className="w-4 h-4" /> View Travel Agent
+        </Link>
+      ) : form.contactType === 'VENDOR' ? (
+        <button
+          onClick={() => handleReadyToBecomeVendor()}
+          disabled={saving || convertingToVendor || checkingDuplicate}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-sky-600 text-sky-700 text-sm font-semibold hover:bg-sky-50 disabled:opacity-50 transition"
+        >
+          {convertingToVendor ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+          Ready to Become Vendor
+        </button>
+      ) : (
+        <button
+          onClick={() => handleReadyToBecomeTravelAgent()}
+          disabled={saving || convertingToTravelAgent || checkingDuplicate}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-indigo-600 text-indigo-700 text-sm font-semibold hover:bg-indigo-50 disabled:opacity-50 transition"
+        >
+          {convertingToTravelAgent ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+          Ready to Become Travel Agent
+        </button>
+      )}
+      <button
+        onClick={() => handleSave()}
+        disabled={saving || checkingDuplicate}
+        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-emerald-600 text-emerald-700 text-sm font-semibold hover:bg-emerald-50 disabled:opacity-50 transition"
+      >
+        {(saving || checkingDuplicate) ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+        Save Call Report
+      </button>
+    </div>,
+    <Link
+      key="back"
+      href="/manager/call-reports"
+      title="Back to call reports"
+      className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0 text-gray-600"
+    >
+      <ArrowLeft className="w-5 h-5" />
+    </Link>,
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -331,61 +390,6 @@ export function CallReportForm({ reportId }: { reportId?: string }) {
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-5 pb-24">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Link href="/manager/call-reports" className="text-gray-400 hover:text-gray-600 transition flex-shrink-0">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{isEdit ? 'Edit Call Report' : 'Add Call Report'}</h1>
-            <p className="text-xs sm:text-sm text-gray-500">Log vendor interaction & onboarding details</p>
-          </div>
-        </div>
-        <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-          {linkedVendor ? (
-            <Link
-              href={`/manager/vendors/${linkedVendor.id}`}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-sky-600 text-sky-700 text-sm font-semibold hover:bg-sky-50 transition"
-            >
-              <Store className="w-4 h-4" /> View Vendor
-            </Link>
-          ) : linkedTravelAgent ? (
-            <Link
-              href={`/manager/travel-agents/${linkedTravelAgent.id}`}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-indigo-600 text-indigo-700 text-sm font-semibold hover:bg-indigo-50 transition"
-            >
-              <Briefcase className="w-4 h-4" /> View Travel Agent
-            </Link>
-          ) : form.contactType === 'VENDOR' ? (
-            <button
-              onClick={() => handleReadyToBecomeVendor()}
-              disabled={saving || convertingToVendor || checkingDuplicate}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-sky-600 text-sky-700 text-sm font-semibold hover:bg-sky-50 disabled:opacity-50 transition"
-            >
-              {convertingToVendor ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              Ready to Become Vendor
-            </button>
-          ) : (
-            <button
-              onClick={() => handleReadyToBecomeTravelAgent()}
-              disabled={saving || convertingToTravelAgent || checkingDuplicate}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-indigo-600 text-indigo-700 text-sm font-semibold hover:bg-indigo-50 disabled:opacity-50 transition"
-            >
-              {convertingToTravelAgent ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              Ready to Become Travel Agent
-            </button>
-          )}
-          <button
-            onClick={() => handleSave()}
-            disabled={saving || checkingDuplicate}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-emerald-600 text-emerald-700 text-sm font-semibold hover:bg-emerald-50 disabled:opacity-50 transition"
-          >
-            {(saving || checkingDuplicate) ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            Save Call Report
-          </button>
-        </div>
-      </div>
 
       {error && (
         <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium">

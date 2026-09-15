@@ -24,6 +24,7 @@ import {
   IndianRupee,
   Calendar,
 } from 'lucide-react';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 interface Message {
   id: string;
@@ -230,6 +231,29 @@ export default function ManagerChatDetailPage() {
     }
   };
 
+  // Title, status and Back go into the shared sticky bar, which was otherwise
+  // rendering empty while this page drew its own header row underneath.
+  const hdrStatus = conversation ? (STATUS_CONFIG[conversation.status] || STATUS_CONFIG.ACTIVE) : null;
+  useManagerPageHeader(
+    'Chat Conversation',
+    conversation
+      ? `${SERVICE_LABELS[conversation.bookingType] || conversation.bookingType} • ${conversation.messageCount} messages`
+      : undefined,
+    hdrStatus ? (
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${hdrStatus.bg} ${hdrStatus.text}`}>
+        {hdrStatus.label}
+      </span>
+    ) : undefined,
+    <button
+      type="button"
+      onClick={() => router.back()}
+      title="Back"
+      className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0 text-gray-600"
+    >
+      <ArrowLeft className="w-5 h-5" />
+    </button>,
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -277,33 +301,11 @@ export default function ManagerChatDetailPage() {
     );
   }
 
-  const statusConfig = STATUS_CONFIG[conversation.status] || STATUS_CONFIG.ACTIVE;
   const ServiceIcon = SERVICE_ICONS[conversation.bookingType] || MessageSquare;
   const messageGroups = groupMessagesByDate(conversation.messages);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => router.back()}
-          className="p-2 hover:bg-gray-100 rounded-lg transition"
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-600" />
-        </button>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-gray-900">Chat Conversation</h1>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusConfig.bg} ${statusConfig.text}`}>
-              {statusConfig.label}
-            </span>
-          </div>
-          <p className="text-sm text-gray-500">
-            {SERVICE_LABELS[conversation.bookingType] || conversation.bookingType} • {conversation.messageCount} messages
-          </p>
-        </div>
-      </div>
-
       {/* Read-only Banner */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
         <Eye className="w-5 h-5 text-blue-500 flex-shrink-0" />

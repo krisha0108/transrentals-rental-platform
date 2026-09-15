@@ -8,6 +8,7 @@ import {
   Loader2, Search, Building2, Truck, Calendar, MapPin, ChevronRight,
   Clock, CheckCircle, FileText, IndianRupee, AlertCircle, ExternalLink,
   Eye, CreditCard, Car, Users, Filter, Download, PartyPopper, Sparkles,
+  X,
 } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -52,6 +53,18 @@ export default function ManagerB2BPage() {
   const [invoiceStatus, setInvoiceStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [serviceFilter, setServiceFilter] = useState('all');
+
+  // Drives the Clear all button — every filter this page applies.
+  const activeFilterCount =
+    (searchQuery.trim() ? 1 : 0) + (serviceFilter !== 'all' ? 1 : 0) +
+    (bookingStatus !== 'all' ? 1 : 0) + (invoiceStatus !== 'all' ? 1 : 0);
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setServiceFilter('all');
+    setBookingStatus('all');
+    setInvoiceStatus('all');
+  };
 
   useEffect(() => { fetchBookings(); }, [bookingStatus]);
   useEffect(() => { fetchInvoices(); }, []);
@@ -201,15 +214,29 @@ export default function ManagerB2BPage() {
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={activeTab === 'invoices' ? 'Search by invoice number, company or booking...' : 'Search by booking number, company or location...'}
-          className="w-full pl-10 pr-4 py-2.5 bg-white border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={activeTab === 'invoices' ? 'Search by invoice number, company or booking...' : 'Search by booking number, company or location...'}
+            className="w-full pl-10 pr-4 py-2.5 bg-white border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+
+        {/* Clear all — only shown once something is actually filtered. */}
+        {activeFilterCount > 0 && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="inline-flex items-center gap-1 px-2.5 py-2 text-sm text-gray-500 hover:text-red-500 transition shrink-0"
+          >
+            <X className="w-4 h-4" />
+            Clear all ({activeFilterCount})
+          </button>
+        )}
       </div>
 
       {/* ============ BOOKINGS / BULK BOOKINGS TABS ============ */}

@@ -7,6 +7,7 @@ import {
   MapPin, AlertCircle, ArrowLeft, CheckCircle2, XCircle, Phone, Mail, Store, Calendar,
   Bike, Key, Bus, Truck, Gem, Package, Wrench, Filter, X,
 } from 'lucide-react';
+import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 interface VendorRow {
   id: string;
@@ -99,6 +100,21 @@ export default function ManagerVendorsAtLocationPage() {
     requestAnimationFrame(() => vendorListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
 
+  // Location name and Back go into the shared sticky bar; the hero card below
+  // keeps its type label and stats but no longer repeats the title.
+  useManagerPageHeader(
+    location?.name || (isLoading ? 'Loading…' : 'Location'),
+    'Vendors available to serve this location',
+    undefined,
+    <Link
+      href="/manager/vendors/by-location"
+      title="Back to locations"
+      className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0 text-gray-600"
+    >
+      <ArrowLeft className="w-5 h-5" />
+    </Link>,
+  );
+
   return (
     <div className="space-y-6 pb-10">
       {error && (
@@ -115,17 +131,10 @@ export default function ManagerVendorsAtLocationPage() {
 
         <div className="relative px-6 sm:px-8 py-7 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
-            <Link
-              href="/manager/vendors/by-location"
-              className="inline-flex items-center gap-1 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/15 transition-colors mb-3 px-2.5 py-1.5 rounded-lg"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back
-            </Link>
             <div className="flex items-center gap-2 mb-2">
               <MapPin className="w-5 h-5 text-emerald-400" />
               <span className="text-slate-400 text-xs font-semibold tracking-widest uppercase">{location?.type || (isLoading ? 'Loading…' : '')}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold mb-1">{location?.name || (isLoading ? '—' : 'Location')}</h1>
             <p className="text-slate-400 text-sm">Vendors available to serve this location</p>
           </div>
 
