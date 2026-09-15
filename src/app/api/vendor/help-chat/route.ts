@@ -81,7 +81,7 @@ Revenue/payout overview across all services: [Financials](/vendor/financials).
 [Notifications](/vendor/notifications) and [Notification Settings](/vendor/notification-settings).
 
 ## Profile & payouts
-[Business Profile](/vendor/profile), [Documents](/vendor/documents), [Bank Details](/vendor/bank-details), and a public [Share Profile](/vendor/share-profile) page you can send to customers.
+[Business Profile](/vendor/profile), [Documents](/vendor/documents), and [Bank Details](/vendor/bank-details). The Business Profile page also has a "Share on WhatsApp" button that sends your public partner page to customers.
 
 ## Getting more help
 - Help & Support (FAQs, contact TransRentals): [Help & Support](/vendor/support).
