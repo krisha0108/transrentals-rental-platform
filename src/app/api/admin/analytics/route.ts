@@ -18,8 +18,12 @@ export async function GET(request: NextRequest) {
     const cacheKey = buildCacheKey('analytics', { range, section });
 
     const responseData = await getOrCompute(cacheKey, async () => {
-    // Kill runaway queries after 25 s (MariaDB max_statement_time, in seconds)
-    try { await prisma.$executeRaw`SET SESSION max_statement_time = 25`; } catch { /* non-fatal */ }
+    // Kill runaway SELECTs after 25s (MySQL max_execution_time, in milliseconds)
+    try {
+      await prisma.$executeRaw`SET SESSION max_execution_time = 25000`;
+    } catch (err) {
+      console.warn('[analytics] Failed to set max_execution_time guard:', err);
+    }
 
     const now = new Date();
     const startDate = new Date();

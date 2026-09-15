@@ -1,12 +1,20 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { unstable_cache } from 'next/cache';
 import { CarFleetGridMultiVendor } from '@/components/car';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { prisma } from '@/lib/db/prisma';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { getCachedSelfDriveService } from '@/lib/services/cached-service-lookups';
+
+// This page's data (locations, vehicle models, brands, categories, vendor fleet
+// counts) changes on the order of minutes-to-hours, not per-request, so it's cached
+// for 5 minutes per location. Combined with the N+1 query fix above, this is what
+// keeps repeat hits on the same location from re-running the full query set.
+const CARS_PAGE_REVALIDATE_SECONDS = 300;
+const CARS_PAGE_CACHE_TAGS = ['vehicle-models', 'vendor-fleets', 'locations'];
 
 function parseJsonField<T>(value: unknown, defaultValue: T): T {
   if (value === null || value === undefined) return defaultValue;
@@ -91,7 +99,8 @@ interface AggregatedCar {
 }
 
 // Fetch location details
-async function getLocationBySlug(locationSlug: string) {
+const getLocationBySlug = unstable_cache(
+  async (locationSlug: string) => {
   try {
     let location = await prisma.locations.findFirst({
       where: { slug: locationSlug },
@@ -113,10 +122,14 @@ async function getLocationBySlug(locationSlug: string) {
     console.error('Error fetching location:', error);
     return null;
   }
-}
+  },
+  ['cars-page-location-by-slug'],
+  { revalidate: CARS_PAGE_REVALIDATE_SECONDS, tags: CARS_PAGE_CACHE_TAGS }
+);
 
 // Fetch self-drive cars from ADMIN vehicle models (not vendor fleets)
-async function getCarsForLocation(locationSlug: string): Promise<AggregatedCar[]> {
+const getCarsForLocation = unstable_cache(
+  async (locationSlug: string): Promise<AggregatedCar[]> => {
   try {
     // Find the location
     let location = await prisma.locations.findFirst({
@@ -225,6 +238,43 @@ async function getCarsForLocation(locationSlug: string): Promise<AggregatedCar[]
 
     console.log(`[getCarsForLocation] Found ${vehicleModels.length} vehicle models for this service`);
 
+    // Count how many vendors have added each vehicle model at this location, in a single
+    // grouped query instead of one query per model (was causing N+1: 44-61 sequential
+    // COUNT queries per page request, which saturated MySQL and blocked the event loop).
+    const modelIds = vehicleModels.map((model) => model.id);
+    const vendorFleetCounts = modelIds.length
+      ? await prisma.vendor_fleets.groupBy({
+          by: ['vehicleModelId'],
+          where: {
+            vehicleModelId: { in: modelIds },
+            isActive: true,
+            isAvailable: true,
+            vendors: {
+              status: 'APPROVED', // Only count approved vendors
+            },
+            OR: [
+              {
+                vendor_fleet_locations: {
+                  some: {
+                    locationId: location.id,
+                    isActive: true,
+                  },
+                },
+              },
+              {
+                vendor_fleet_locations: {
+                  none: {}, // Vendor available everywhere
+                },
+              },
+            ],
+          },
+          _count: { _all: true },
+        })
+      : [];
+    const vendorFleetCountByModelId = new Map(
+      vendorFleetCounts.map((row) => [row.vehicleModelId, row._count._all])
+    );
+
     // Build aggregated cars array from admin vehicle models
     const aggregatedCars: AggregatedCar[] = [];
 
@@ -238,33 +288,7 @@ async function getCarsForLocation(locationSlug: string): Promise<AggregatedCar[]
         continue;
       }
 
-      // Count how many vendors have added this vehicle model at this location
-      // (Only count, don't fetch pricing - we only show admin price)
-      const vendorFleetCount = await prisma.vendor_fleets.count({
-        where: {
-          vehicleModelId: model.id,
-          isActive: true,
-          isAvailable: true,
-          vendors: {
-            status: 'APPROVED', // Only count approved vendors
-          },
-          OR: [
-            {
-              vendor_fleet_locations: {
-                some: {
-                  locationId: location.id,
-                  isActive: true,
-                },
-              },
-            },
-            {
-              vendor_fleet_locations: {
-                none: {}, // Vendor available everywhere
-              },
-            },
-          ],
-        },
-      });
+      const vendorFleetCount = vendorFleetCountByModelId.get(model.id) ?? 0;
 
       // Display vendor count: Minimum 1 (even if 0 vendors added)
       // If 0 vendors added → show 1
@@ -330,10 +354,14 @@ async function getCarsForLocation(locationSlug: string): Promise<AggregatedCar[]
     console.error('Error fetching cars:', error);
     return [];
   }
-}
+  },
+  ['cars-page-cars-for-location'],
+  { revalidate: CARS_PAGE_REVALIDATE_SECONDS, tags: CARS_PAGE_CACHE_TAGS }
+);
 
 // Fetch brands for filters
-async function getCarBrands() {
+const getCarBrands = unstable_cache(
+  async () => {
   try {
     const carService = await getCachedSelfDriveService();
 
@@ -351,10 +379,14 @@ async function getCarBrands() {
     console.error('Error fetching brands:', error);
     return [];
   }
-}
+  },
+  ['cars-page-brands'],
+  { revalidate: CARS_PAGE_REVALIDATE_SECONDS, tags: CARS_PAGE_CACHE_TAGS }
+);
 
 // Fetch categories for filters
-async function getCarCategories() {
+const getCarCategories = unstable_cache(
+  async () => {
   try {
     const carService = await getCachedSelfDriveService();
 
@@ -374,7 +406,10 @@ async function getCarCategories() {
     console.error('Error fetching categories:', error);
     return [];
   }
-}
+  },
+  ['cars-page-categories'],
+  { revalidate: CARS_PAGE_REVALIDATE_SECONDS, tags: CARS_PAGE_CACHE_TAGS }
+);
 
 export default async function CarsSearchPage({ params, searchParams }: PageProps) {
   // Validate search params
