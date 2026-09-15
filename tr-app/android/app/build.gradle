@@ -22,8 +22,8 @@ android {
         applicationId "com.transrentals.customer"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 37
-        versionName "3.14"
+        versionCode 39
+        versionName "3.16"
     }
 
     signingConfigs {
