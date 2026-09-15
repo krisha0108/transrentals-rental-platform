@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Plus, Edit, Trash2, User, MapPin, Briefcase, Eye, EyeOff, Check, X, Shield, Activity, TrendingUp, Mail, Phone as PhoneIcon, Search } from 'lucide-react';
+import { LocationStatePicker, type LocationOption } from '@/components/location/LocationStatePicker';
 
 type PresenceStatus = 'active' | 'idle' | 'offline';
 
@@ -34,6 +35,11 @@ interface Location {
   name: string;
   slug: string;
   type: string;
+  // Immediate parent (e.g. a city's state). /api/admin/locations?flat=true runs its
+  // rows through transformPrismaResponse, which renames Prisma's `locations` relation
+  // field to `parent` (see src/lib/utils/api-transform.ts) — so it's `parent` here,
+  // not `locations` like the raw-Prisma-shaped /api/locations endpoint uses elsewhere.
+  parent?: { id: string; name: string; type: string } | null;
 }
 
 interface Service {
@@ -58,7 +64,6 @@ export default function ManagersPage() {
   const [managers, setManagers] = useState<Manager[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-  const [locationSearch, setLocationSearch] = useState('');
   const [serviceSearch, setServiceSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -235,18 +240,19 @@ export default function ManagersPage() {
       serviceIds: [],
     });
     setShowPassword(false);
-    setLocationSearch('');
     setServiceSearch('');
   };
 
-  const toggleLocation = (locationId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      locationIds: prev.locationIds.includes(locationId)
-        ? prev.locationIds.filter((id) => id !== locationId)
-        : [...prev.locationIds, locationId],
-    }));
-  };
+  // Group by state so a whole state can be assigned/removed in one click
+  // instead of ticking 1000+ cities individually. A city's state is nested
+  // as `parent` (its parent row) by /api/admin/locations?flat=true; a
+  // union territory has no state above it, so it groups under its own name.
+  const locationOptions: LocationOption[] = useMemo(() => locations.map((loc) => ({
+    id: loc.id,
+    name: loc.name,
+    slug: loc.slug,
+    state: loc.type === 'UNION_TERRITORY' ? loc.name : (loc.parent?.name || 'Other'),
+  })), [locations]);
 
   const toggleService = (serviceId: string) => {
     setFormData((prev) => ({
@@ -257,9 +263,6 @@ export default function ManagersPage() {
     }));
   };
 
-  const filteredLocations = locations.filter((loc) =>
-    !locationSearch.trim() || loc.name.toLowerCase().includes(locationSearch.trim().toLowerCase())
-  );
   const filteredServices = services.filter((svc) =>
     !serviceSearch.trim() || svc.name.toLowerCase().includes(serviceSearch.trim().toLowerCase())
   );
@@ -267,12 +270,6 @@ export default function ManagersPage() {
   // "Select all" adds every currently-filtered item to the existing
   // selection (so searching then selecting doesn't wipe out picks made
   // before the search); "Clear all" resets the whole selection outright.
-  const selectAllLocations = () => {
-    setFormData((prev) => ({
-      ...prev,
-      locationIds: Array.from(new Set([...prev.locationIds, ...filteredLocations.map((l) => l.id)])),
-    }));
-  };
   const selectAllServices = () => {
     setFormData((prev) => ({
       ...prev,
@@ -621,64 +618,21 @@ export default function ManagersPage() {
                     <MapPin size={18} />
                     Assign Locations
                   </h3>
-                  <div className="flex items-center gap-3">
-                    {formData.locationIds.length > 0 && (
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                        {formData.locationIds.length} selected
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={selectAllLocations}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      Select All{locationSearch.trim() ? ' (shown)' : ''}
-                    </button>
-                    {formData.locationIds.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setFormData((prev) => ({ ...prev, locationIds: [] }))}
-                        className="text-xs text-gray-400 hover:text-red-500 hover:underline"
-                      >
-                        Clear All
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="relative mb-2">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={locationSearch}
-                    onChange={(e) => setLocationSearch(e.target.value)}
-                    placeholder="Search locations..."
-                    className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3">
-                  {locations.length === 0 ? (
-                    <p className="text-sm text-gray-500 col-span-3">No locations available</p>
-                  ) : filteredLocations.length === 0 ? (
-                    <p className="text-sm text-gray-400 col-span-3">No locations match "{locationSearch}"</p>
-                  ) : (
-                    filteredLocations.map((loc) => (
-                      <label
-                        key={loc.id}
-                        className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-50 ${formData.locationIds.includes(loc.id) ? 'bg-blue-50' : ''
-                          }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.locationIds.includes(loc.id)}
-                          onChange={() => toggleLocation(loc.id)}
-                          className="rounded border-gray-300"
-                        />
-                        <span className="text-sm">{loc.name}</span>
-                        <span className="text-xs text-gray-400">({loc.type})</span>
-                      </label>
-                    ))
+                  {formData.locationIds.length > 0 && (
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                      {formData.locationIds.length} selected
+                    </span>
                   )}
                 </div>
+                {locations.length === 0 ? (
+                  <p className="text-sm text-gray-500">No locations available</p>
+                ) : (
+                  <LocationStatePicker
+                    options={locationOptions}
+                    value={formData.locationIds}
+                    onChange={(ids) => setFormData((prev) => ({ ...prev, locationIds: ids }))}
+                  />
+                )}
               </div>
 
               <div className="border-t pt-4">

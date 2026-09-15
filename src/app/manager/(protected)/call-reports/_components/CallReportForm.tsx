@@ -13,7 +13,7 @@ import {
   PhoneOff, PhoneForwarded, Award, Store, Bell, Lightbulb, StickyNote, UserPlus,
   Mail, AlertTriangle, Briefcase,
 } from 'lucide-react';
-import { LocationStatePicker, type LocationOption } from './LocationStatePicker';
+import { LocationStatePicker, type LocationOption } from '@/components/location/LocationStatePicker';
 import { ServiceMultiSelect, type ServiceOption } from './ServiceMultiSelect';
 import { SearchableSelect } from './SearchableSelect';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
