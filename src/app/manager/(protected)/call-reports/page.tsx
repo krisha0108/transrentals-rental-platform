@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { SearchableSelect, type SelectOption } from './_components/SearchableSelect';
+import { MultiSelect } from './_components/MultiSelect';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 type CallReportStatus =
@@ -61,7 +62,7 @@ interface ImportSheetPreview {
 }
 interface ImportPreview {
   fileName: string;
-  locationId: string;
+  locationIds: string[];
   sheets: ImportSheetPreview[];
 }
 
@@ -304,7 +305,7 @@ export default function ManagerCallReportsPage() {
         throw new Error('No sheet in that file has any rows with a vendor or company name.');
       }
 
-      setImportPreview({ fileName: file.name, locationId: '', sheets });
+      setImportPreview({ fileName: file.name, locationIds: [], sheets });
     } catch (e: any) {
       setError(e?.message || 'Could not read that file');
     } finally {
@@ -314,7 +315,10 @@ export default function ManagerCallReportsPage() {
 
   const confirmImport = async () => {
     if (!importPreview) return;
-    const locationName = locationOptions.find((o) => o.id === importPreview.locationId)?.label;
+    const locationName = locationOptions
+      .filter((o) => importPreview.locationIds.includes(o.id))
+      .map((o) => o.label)
+      .join('; ');
 
     const rows = importPreview.sheets
       .filter((s) => s.include && s.rows.length > 0)
@@ -988,14 +992,15 @@ function ImportPreviewModal({
             <label className="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">
               Location for this whole file
             </label>
-            <SearchableSelect
+            <MultiSelect
               options={locationOptions}
-              value={preview.locationId}
-              onChange={(id) => onChange({ ...preview, locationId: id })}
-              placeholder="Select a location (optional)"
+              value={preview.locationIds}
+              onChange={(ids) => onChange({ ...preview, locationIds: ids })}
+              placeholder="Select location(s) (optional)"
+              searchPlaceholder="Search locations..."
               icon={MapPin}
             />
-            <p className="text-xs text-gray-400 mt-1">Applied to every row imported below.</p>
+            <p className="text-xs text-gray-400 mt-1">Applied to every row imported below — e.g. Chandigarh covers more than one location, so pick all that apply.</p>
           </div>
 
           <div className="space-y-3">
