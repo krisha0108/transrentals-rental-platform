@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 import FilterMultiSelect from '@/components/manager/FilterMultiSelect';
 import Pagination from '@/components/manager/Pagination';
@@ -432,13 +431,6 @@ function ManagerVendorsPageInner() {
               </div>
             </div>
           ))}
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Link href="/manager/vendors/create"
-            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium shadow-sm">
-            <Plus className="w-4 h-4" />
-            Create Vendor
-          </Link>
         </div>
       </div>
 
