@@ -5,7 +5,7 @@
 // but not tied to the service shape, so it also works for e.g. locations.
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Search, X } from 'lucide-react';
 import type { SelectOption } from './SearchableSelect';
 
 export function MultiSelect({
@@ -40,7 +40,7 @@ export function MultiSelect({
   };
   const toggleAll = () => onChange(allSelected ? [] : options.map((o) => o.id));
 
-  const selectedLabels = options.filter((o) => value.includes(o.id)).map((o) => o.label);
+  const selectedOptions = options.filter((o) => value.includes(o.id));
 
   return (
     <div className="relative" ref={ref}>
@@ -59,8 +59,17 @@ export function MultiSelect({
 
       {value.length > 0 && !isOpen && (
         <div className="mt-1.5 flex flex-wrap gap-1">
-          {selectedLabels.map((n) => (
-            <span key={n} className="inline-flex items-center rounded-full bg-sky-50 text-sky-700 px-2 py-0.5 text-[11px] font-medium">{n}</span>
+          {selectedOptions.map((o) => (
+            <span key={o.id} className="inline-flex items-center gap-1 rounded-full bg-sky-50 text-sky-700 pl-2 pr-1 py-0.5 text-[11px] font-medium">
+              {o.label}
+              <button
+                type="button"
+                onClick={() => toggle(o.id)}
+                className="hover:text-sky-900"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
           ))}
         </div>
       )}
