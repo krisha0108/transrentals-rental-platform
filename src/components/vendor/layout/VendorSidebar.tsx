@@ -33,7 +33,6 @@ import {
   Bus,
   FileSpreadsheet,
   Send,
-  Share2,
   Truck,
   Wrench,
   Cog,
@@ -913,70 +912,70 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-800">
-            <div className="flex items-center gap-3">
+          {/* Header — the status now rides under the wordmark as a compact chip
+              instead of taking a full-width band of its own below the header. */}
+          <div className="flex items-start justify-between p-6 border-b border-gray-800">
+            <div className="flex items-center gap-3 min-w-0">
               <NextImage
                 src="/assets/Logo-favicon.png"
                 alt="TransRentals"
                 width={40}
                 height={40}
-                className="rounded-lg"
+                className="rounded-lg flex-shrink-0"
               />
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-col gap-1 min-w-0">
                 <NextImage
                   src="/assets/logo-white.png"
                   alt="TransRentals"
                   width={130}
                   height={32}
                 />
+                {vendorStatus && (
+                  <span className={cn(
+                    'self-start whitespace-nowrap rounded-lg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide leading-tight',
+                    vendorStatus === 'APPROVED' && 'bg-green-900/50 text-green-400',
+                    vendorStatus === 'PENDING' && 'bg-yellow-900/50 text-yellow-400',
+                    vendorStatus === 'DOCUMENTS_PENDING' && 'bg-orange-900/50 text-orange-400',
+                    vendorStatus === 'UNDER_REVIEW' && 'bg-blue-900/50 text-blue-400',
+                    vendorStatus === 'REJECTED' && 'bg-red-900/50 text-red-400',
+                    vendorStatus === 'SUSPENDED' && 'bg-red-900/50 text-red-400',
+                  )}>
+                    {vendorStatus.replace(/_/g, ' ')}
+                  </span>
+                )}
               </div>
             </div>
             <button
               onClick={onClose}
-              className="lg:hidden p-2 hover:bg-gray-800 rounded-lg transition"
+              className="lg:hidden p-2 -mr-2 hover:bg-gray-800 rounded-lg transition flex-shrink-0"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-
-          {/* Status Badge */}
-          {vendorStatus && (
-            <div className="px-4 py-3 border-b border-gray-800">
-              <div className={cn(
-                'px-3 py-2 rounded-lg text-center text-sm font-medium',
-                vendorStatus === 'APPROVED' && 'bg-green-900/50 text-green-400',
-                vendorStatus === 'PENDING' && 'bg-yellow-900/50 text-yellow-400',
-                vendorStatus === 'DOCUMENTS_PENDING' && 'bg-orange-900/50 text-orange-400',
-                vendorStatus === 'UNDER_REVIEW' && 'bg-blue-900/50 text-blue-400',
-                vendorStatus === 'REJECTED' && 'bg-red-900/50 text-red-400',
-                vendorStatus === 'SUSPENDED' && 'bg-red-900/50 text-red-400',
-              )}>
-                Status: {vendorStatus.replace(/_/g, ' ')}
-              </div>
-            </div>
-          )}
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto sidebar-scroll">
             {navigationItems.map((item) => renderNavItem(item))}
           </nav>
 
-          {/* Footer Section with Profile and Sign Out */}
-          <div className="border-t border-gray-800">
+          {/* Footer Section — the fixed profile block, with Sign Out inside its
+              dropdown. Deliberately styled away from the scrollable nav above
+              (that one is blue/purple): a teal-washed panel in the TransRentals
+              palette, so it reads as its own module rather than another nav row. */}
+          <div className="border-t border-emerald-800/40 bg-gradient-to-b from-emerald-950/60 via-gray-900 to-gray-950">
             {/* Profile Section */}
             <div className="p-4">
               <button
                 onClick={() => setProfileExpanded(!profileExpanded)}
                 className={cn(
-                  'flex items-center justify-between w-full px-4 py-3 rounded-lg transition-colors',
-                  isProfileActive()
-                    ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  'flex items-center justify-between w-full px-4 py-3 rounded-xl ring-1 transition-all',
+                  isProfileActive() || profileExpanded
+                    ? 'bg-gradient-to-r from-emerald-500/25 to-teal-400/15 text-white ring-emerald-400/40 shadow-lg shadow-emerald-950/50'
+                    : 'text-emerald-50/85 ring-transparent hover:bg-emerald-500/10 hover:text-white hover:ring-emerald-500/20'
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-emerald-400/40">
                     {vendorLogo ? (
                       <img
                         src={vendorLogo}
@@ -985,26 +984,26 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
                         onError={() => setVendorLogo(null)}
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                      <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center">
                         <User className="w-4 h-4 text-white" />
                       </div>
                     )}
                   </div>
                   <div className="text-left">
                     <p className="font-medium text-sm truncate max-w-[120px]">{vendorName}</p>
-                    <p className="text-xs text-gray-400">Profile & Settings</p>
+                    <p className="text-xs text-emerald-300/70">Profile & Settings</p>
                   </div>
                 </div>
                 {profileExpanded ? (
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className="w-4 h-4 text-emerald-300/80" />
                 ) : (
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-4 h-4 text-emerald-300/80" />
                 )}
               </button>
 
               {/* Profile Dropdown */}
               {profileExpanded && (
-                <div className="mt-2 ml-4 pl-4 border-l border-gray-700 space-y-1">
+                <div className="mt-2 ml-4 pl-4 border-l border-emerald-700/40 space-y-1">
                   {profileItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
@@ -1017,8 +1016,8 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
                         className={cn(
                           'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm',
                           isActive
-                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                            ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-900/50'
+                            : 'text-emerald-100/60 hover:bg-emerald-500/10 hover:text-white'
                         )}
                       >
                         <Icon className="w-4 h-4" />
@@ -1026,36 +1025,19 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
                       </Link>
                     );
                   })}
+
+                  {/* Sign Out lives in this dropdown too, so the sidebar
+                      footer stays a single row. Rose on hover — it's the one
+                      destructive item in the list. */}
+                  <button
+                    onClick={handleSignOut}
+                    className="flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-colors text-sm text-emerald-100/60 hover:bg-rose-500/10 hover:text-rose-200"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out</span>
+                  </button>
                 </div>
               )}
-            </div>
-
-            {/* Share Profile — always-visible at the bottom */}
-            <div className="px-4 pb-1">
-              <Link
-                href="/vendor/share-profile"
-                onClick={onClose}
-                className={cn(
-                  'flex items-center gap-3 w-full px-4 py-3 rounded-lg transition',
-                  pathname === '/vendor/share-profile' || pathname?.startsWith('/vendor/share-profile/')
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                )}
-              >
-                <Share2 className="w-5 h-5" />
-                <span className="font-medium">Share Profile</span>
-              </Link>
-            </div>
-
-            {/* Sign Out Button */}
-            <div className="p-4 pt-0">
-              <button
-                onClick={handleSignOut}
-                className="flex items-center gap-3 w-full px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition"
-              >
-                <LogOut className="w-5 h-5" />
-                <span className="font-medium">Sign Out</span>
-              </button>
             </div>
           </div>
         </div>

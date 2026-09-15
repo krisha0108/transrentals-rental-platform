@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { SearchableSelect, type SelectOption } from './_components/SearchableSelect';
+import { MultiSelect } from './_components/MultiSelect';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 type CallReportStatus =
@@ -49,6 +50,20 @@ interface CallReport {
   managerId: string;
   managerName: string | null;
   canEdit: boolean;
+}
+
+// One sheet from an uploaded workbook, already parsed and mapped onto the
+// API's field names, pending the manager's review in ImportPreviewModal.
+interface ImportSheetPreview {
+  name: string;
+  rows: Record<string, any>[];
+  include: boolean;
+  serviceId: string;
+}
+interface ImportPreview {
+  fileName: string;
+  locationIds: string[];
+  sheets: ImportSheetPreview[];
 }
 
 const STATUS_META: Record<CallReportStatus, { label: string; pill: string; icon: any }> = {
@@ -211,7 +226,13 @@ export default function ManagerCallReportsPage() {
     'company name': 'companyName',
     'company details': 'companyDetails',
     'phone': 'phone',
+    // Raw vendor-list scrapes (e.g. a Google Maps export) use "Contact Number"
+    // rather than "Phone", and misspell it "Contect Number" often enough to
+    // alias both.
+    'contact number': 'phone',
+    'contect number': 'phone',
     'email': 'email',
+    'email / website': 'email',
     'address': 'address',
     'city': 'city',
     'service': 'services',
@@ -226,30 +247,104 @@ export default function ManagerCallReportsPage() {
     'next action': 'nextAction',
   };
 
-  const handleImportFile = async (file: File) => {
-    setImporting(true);
-    setImportResult(null);
+  // A sheet's name hints at which service it's a list for (e.g. a scraped
+  // vendor-list workbook with one sheet per vehicle type). Only a starting
+  // point — the manager confirms or changes it per sheet before importing.
+  const guessServiceIdForSheet = (sheetName: string, options: SelectOption[]): string => {
+    const s = sheetName.toLowerCase();
+    let keywords: string[] = [];
+    if (s.includes('bike')) keywords = ['bike'];
+    else if (s.includes('self drive') || s.includes('self-drive')) keywords = ['self drive'];
+    else if (s.includes('bus') || s.includes('tempo')) keywords = ['bus'];
+    else if (s.includes('truck') || s.includes('track')) keywords = ['truck'];
+    else if (s.includes('driver')) keywords = ['car rental'];
+    else if (s.includes('equipment')) keywords = ['equipment'];
+    else if (s.includes('luxury')) keywords = ['luxury'];
+    else if (s.includes('packer') || s.includes('mover')) keywords = ['packers'];
+    if (!keywords.length) return '';
+    return options.find((o) => keywords.some((k) => o.label.toLowerCase().includes(k)))?.id || '';
+  };
+
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+
+  // Reads every sheet in the workbook (not just the first) and maps each
+  // row's headers onto the API's field names, so a multi-sheet, one-sheet-
+  // per-vehicle-type file (e.g. a scraped vendor list) can be reviewed
+  // before anything is imported — see ImportPreviewModal below.
+  const handleFileSelected = async (file: File) => {
     setError('');
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: 'array' });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      if (!sheet) throw new Error('That file has no sheets in it.');
+      if (wb.SheetNames.length === 0) throw new Error('That file has no sheets in it.');
 
-      const raw = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
-      if (raw.length === 0) throw new Error('That sheet has no data rows.');
+      const sheets: ImportSheetPreview[] = wb.SheetNames.map((name) => {
+        const sheet = wb.Sheets[name];
+        const raw = sheet ? XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' }) : [];
 
-      // Map whatever the header row says onto the API's field names. Unknown
-      // columns are ignored rather than rejected, so extra notes columns are fine.
-      const rows = raw.map((r) => {
-        const out: Record<string, any> = {};
-        Object.entries(r).forEach(([key, value]) => {
-          const field = COLUMN_ALIASES[String(key).trim().toLowerCase()];
-          if (field) out[field] = value;
-        });
-        return out;
+        // Map whatever the header row says onto the API's field names. Unknown
+        // columns are ignored rather than rejected, so extra notes columns are fine.
+        const mapped = raw.map((r) => {
+          const out: Record<string, any> = {};
+          Object.entries(r).forEach(([key, value]) => {
+            const field = COLUMN_ALIASES[String(key).trim().toLowerCase()];
+            if (field) out[field] = value;
+          });
+          return out;
+        }).filter((r) => String(r.vendorName ?? r.companyName ?? '').trim());
+
+        return {
+          name: name.trim(),
+          rows: mapped,
+          include: mapped.length > 0,
+          serviceId: guessServiceIdForSheet(name, serviceOptions),
+        };
       });
 
+      if (sheets.every((s) => s.rows.length === 0)) {
+        throw new Error('No sheet in that file has any rows with a vendor or company name.');
+      }
+
+      setImportPreview({ fileName: file.name, locationIds: [], sheets });
+    } catch (e: any) {
+      setError(e?.message || 'Could not read that file');
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const confirmImport = async () => {
+    if (!importPreview) return;
+    const locationName = locationOptions
+      .filter((o) => importPreview.locationIds.includes(o.id))
+      .map((o) => o.label)
+      .join('; ');
+
+    const rows = importPreview.sheets
+      .filter((s) => s.include && s.rows.length > 0)
+      .flatMap((s) => {
+        const serviceName = serviceOptions.find((o) => o.id === s.serviceId)?.label;
+        return s.rows.map((r) => ({
+          ...r,
+          // The API requires vendorName specifically; a sheet whose header is
+          // "Company Name" rather than "Vendor Name" (e.g. the with-driver /
+          // bus / truck templates) would otherwise fail as "Vendor name is
+          // empty" even though it clearly names a business.
+          vendorName: String(r.vendorName ?? '').trim() || String(r.companyName ?? '').trim(),
+          ...(serviceName ? { services: serviceName } : {}),
+          ...(locationName ? { locations: locationName } : {}),
+        }));
+      });
+
+    if (rows.length === 0) {
+      setError('Pick at least one sheet with rows to import.');
+      return;
+    }
+
+    setImporting(true);
+    setImportResult(null);
+    setError('');
+    try {
       const res = await fetch('/api/manager/call-reports/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -261,12 +356,12 @@ export default function ManagerCallReportsPage() {
       setImportResult({
         created: data.created, failed: data.failed, total: data.total, errors: data.errors || [],
       });
+      setImportPreview(null);
       if (data.created > 0) load();
     } catch (e: any) {
-      setError(e?.message || 'Could not read that file');
+      setError(e?.message || 'Import failed');
     } finally {
       setImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -334,7 +429,7 @@ export default function ManagerCallReportsPage() {
         type="file"
         accept=".xlsx,.xls,.csv"
         className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImportFile(f); }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelected(f); }}
       />
       <button
         onClick={() => fileInputRef.current?.click()}
@@ -625,6 +720,18 @@ export default function ManagerCallReportsPage() {
       {viewingReport && (
         <ViewReportModal report={viewingReport} onClose={() => setViewingReport(null)} />
       )}
+
+      {importPreview && (
+        <ImportPreviewModal
+          preview={importPreview}
+          onChange={setImportPreview}
+          serviceOptions={serviceOptions}
+          locationOptions={locationOptions}
+          importing={importing}
+          onCancel={() => setImportPreview(null)}
+          onConfirm={confirmImport}
+        />
+      )}
     </div>
   );
 }
@@ -828,6 +935,142 @@ function ViewReportModal({ report: r, onClose }: { report: CallReport; onClose: 
               <p className="text-xs text-purple-900 whitespace-pre-wrap">{r.notes}</p>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// A raw vendor-list workbook (e.g. scraped from Google Maps) usually has one
+// sheet per vehicle type and no per-row service/location columns at all — the
+// sheet name and file name carry that instead. This lets the manager assign a
+// service per sheet and one location for the whole file before anything is
+// imported, rather than requiring 1000 rows to spell it out themselves.
+function ImportPreviewModal({
+  preview, onChange, serviceOptions, locationOptions, importing, onCancel, onConfirm,
+}: {
+  preview: ImportPreview;
+  onChange: (p: ImportPreview) => void;
+  serviceOptions: SelectOption[];
+  locationOptions: SelectOption[];
+  importing: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const setSheet = (i: number, patch: Partial<ImportSheetPreview>) => {
+    const sheets = preview.sheets.map((s, idx) => (idx === i ? { ...s, ...patch } : s));
+    onChange({ ...preview, sheets });
+  };
+
+  const includedCount = preview.sheets.filter((s) => s.include).length;
+  const totalRows = preview.sheets.filter((s) => s.include).reduce((n, s) => n + s.rows.length, 0);
+  const missingService = preview.sheets.some((s) => s.include && s.rows.length > 0 && !s.serviceId);
+  const canImport = includedCount > 0 && totalRows > 0 && !missingService && !importing;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={importing ? undefined : onCancel}>
+      <div
+        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3 px-6 py-5 border-b border-gray-100">
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-gray-900">Import Excel</h2>
+            <p className="text-sm text-gray-400 truncate">{preview.fileName}</p>
+          </div>
+          <button
+            onClick={onCancel}
+            disabled={importing}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition flex-shrink-0 disabled:opacity-40"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5 text-sm">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">
+              Location for this whole file
+            </label>
+            <MultiSelect
+              options={locationOptions}
+              value={preview.locationIds}
+              onChange={(ids) => onChange({ ...preview, locationIds: ids })}
+              placeholder="Select location(s) (optional)"
+              searchPlaceholder="Search locations..."
+              icon={MapPin}
+            />
+            <p className="text-xs text-gray-400 mt-1">Applied to every row imported below — e.g. Chandigarh covers more than one location, so pick all that apply.</p>
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-xs font-bold uppercase tracking-wide text-gray-500">
+              Sheets found in this file
+            </label>
+            {preview.sheets.map((s, i) => (
+              <div
+                key={s.name}
+                className={`rounded-xl border p-3 ${s.rows.length === 0 ? 'border-gray-100 bg-gray-50' : 'border-gray-200 bg-white'}`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={s.include}
+                    disabled={s.rows.length === 0}
+                    onChange={(e) => setSheet(i, { include: e.target.checked })}
+                    className="rounded border-gray-300 disabled:opacity-30"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-gray-800 truncate">{s.name}</p>
+                    <p className="text-xs text-gray-400">
+                      {s.rows.length === 0 ? 'No rows with a vendor or company name' : `${s.rows.length} row${s.rows.length === 1 ? '' : 's'}`}
+                    </p>
+                  </div>
+                </div>
+                {s.include && s.rows.length > 0 && (
+                  <div className="mt-2.5 pl-6">
+                    <SearchableSelect
+                      options={serviceOptions}
+                      value={s.serviceId}
+                      onChange={(id) => setSheet(i, { serviceId: id })}
+                      placeholder="Which service is this sheet for?"
+                      dense
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {missingService && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+              Pick a service for every included sheet before importing.
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+          <p className="text-xs text-gray-500">
+            {totalRows} row{totalRows === 1 ? '' : 's'} from {includedCount} sheet{includedCount === 1 ? '' : 's'} will be imported
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onCancel}
+              disabled={importing}
+              className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-100 transition disabled:opacity-40"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={!canImport}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition disabled:opacity-40"
+            >
+              {importing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {importing ? 'Importing…' : `Import ${totalRows} row${totalRows === 1 ? '' : 's'}`}
+            </button>
+          </div>
         </div>
       </div>
     </div>

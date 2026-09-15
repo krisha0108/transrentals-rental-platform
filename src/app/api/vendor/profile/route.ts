@@ -12,6 +12,18 @@ export const dynamic = 'force-dynamic';
 const inFlightProfiles = new Map<string, Promise<any>>();
 
 async function fetchVendorFromDB(vendorId: string) {
+  // Latest partnership-agreement signature — drives the "Verified" badge next
+  // to the business name in the vendor sidebar. Kicked off alongside the
+  // profile query, and best-effort: if it fails the profile still loads and
+  // the badge simply doesn't show.
+  const agreementPromise = (prisma as any).vendor_partnership_agreements
+    .findFirst({
+      where: { vendorId },
+      orderBy: { acceptedAt: 'desc' },
+      select: { reviewStatus: true },
+    })
+    .catch(() => null);
+
   const vendor = await prisma.vendors.findUnique({
     where: { id: vendorId },
     select: {
@@ -88,6 +100,8 @@ async function fetchVendorFromDB(vendorId: string) {
 
   if (!vendor) return null;
 
+  const latestAgreement = await agreementPromise;
+
   const approvedServiceIds = vendor.vendor_approved_services.map((as) => {
     return as.services.services?.id || as.services.id;
   });
@@ -112,6 +126,8 @@ async function fetchVendorFromDB(vendorId: string) {
     approvedServiceSlugs: uniqueServiceSlugs,
     approvedLocationIds,
     approvedLocationSlugs: vendor.vendor_approved_locations.map((al) => al.locations.slug),
+    // A manager has accepted the signed partnership agreement.
+    agreementVerified: latestAgreement?.reviewStatus === 'ACCEPTED',
   };
 }
 
