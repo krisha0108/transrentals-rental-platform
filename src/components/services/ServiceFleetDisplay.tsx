@@ -40,6 +40,9 @@ interface ServiceFleetDisplayProps {
   showViewAll?: boolean;
   priceUnit?: string;
   locationSlug?: string;
+  /** Opt-in: render the cards without any rate. Off by default, so every
+   *  other service page keeps showing prices exactly as before. */
+  hidePrices?: boolean;
 }
 
 export function ServiceFleetDisplay({
@@ -50,6 +53,7 @@ export function ServiceFleetDisplay({
   showViewAll = true,
   priceUnit = '/day',
   locationSlug = '',
+  hidePrices = false,
 }: ServiceFleetDisplayProps) {
   const [allFleet, setAllFleet] = useState<Vehicle[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -235,7 +239,7 @@ export function ServiceFleetDisplay({
 
               {/* Price + Book Now */}
               <div className="mt-auto flex items-center justify-between gap-2 pt-3 border-t border-gray-100">
-                {vehicle.basePricePerDay ? (
+                {!hidePrices && vehicle.basePricePerDay ? (
                   <span className="text-lg font-black text-gray-900">
                     ₹{vehicle.basePricePerDay.toLocaleString()}
                     <span className="text-xs font-medium text-gray-400">{priceUnit}</span>

@@ -32,6 +32,7 @@ import { useSocket } from '@/hooks/useSocket';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import { BikeBookingChat } from '@/components/bike/BikeBookingChat';
 import { quoteDisplay } from '@/lib/quote-font';
+import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
 
 type BikeBookingStatus =
   | 'PENDING'
@@ -1037,6 +1038,8 @@ export default function BikeBookingDetailPage() {
               </div>
             </div>
           )}
+
+          {booking.vendorName && <BookingPaymentSafetyNotice />}
 
           {/* ── Booking Info ── */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

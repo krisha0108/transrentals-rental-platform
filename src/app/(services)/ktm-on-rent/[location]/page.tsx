@@ -1,7 +1,10 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
-import { VehicleGrid } from '@/components/location/VehicleGrid';
-import { WhyRentHere } from '@/components/location/WhyRentHere';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
@@ -18,7 +21,7 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
-import { Gauge, Target, Zap, ShieldCheck } from 'lucide-react';
+import { Gauge, Target, Zap, ShieldCheck, Headphones } from 'lucide-react';
 
 interface PageProps {
   params: {
@@ -47,8 +50,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('ktm-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `KTM on Rent in ${locationName} | @₹999/Day`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent KTM bikes in ${locationName}. Duke 200, Duke 390, RC 200, RC 390 available. High performance sports bikes. Book your KTM rental now!`,
+    // No rate is quoted for this page — see the note in the page body.
+    title: stripPricesFromText(scContent?.metaTitle || _seoDb?.metaTitle || `KTM on Rent in ${locationName} | TransRentals`),
+    description: stripPricesFromText(scContent?.metaDescription || _seoDb?.metaDescription || `Rent KTM bikes in ${locationName}. Duke 200, Duke 390, RC 200, RC 390 available. High performance sports bikes. Book your KTM rental now!`),
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `ktm on rent in ${locationName}`,
       `ktm duke rental ${locationName}`,
@@ -57,8 +61,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `duke 390 on rent ${locationName}`,
     ],
     openGraph: {
-      title: `KTM on Rent in ${locationName} @₹999/Day | TransRentals`,
-      description: `Rent KTM Duke & RC bikes in ${locationName} starting @₹999/day. High performance.`,
+      title: `KTM on Rent in ${locationName} | TransRentals`,
+      description: `Rent KTM Duke & RC bikes in ${locationName} from verified partners.`,
       type: 'website',
       url: `https://transrentals.in/ktm-on-rent/${locationSlug}`,
       images: [
@@ -73,7 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image',
       title: `KTM on Rent in ${locationName} | TransRentals`,
-      description: `Rent KTM bikes in ${locationName} starting @₹999/day.`,
+      description: `Rent KTM bikes in ${locationName} from verified partners.`,
       images: ['https://transrentals.in/images/og/ktm-rental.jpg'],
     },
     alternates: {
@@ -88,62 +92,65 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 const schemaFaqs = [
   { question: 'Which KTM models are available for rent?', answer: 'We have KTM Duke 200, Duke 390, RC 200, and RC 390 available for rent.' },
-  { question: 'What is the security deposit for KTM rental?', answer: 'Security deposit ranges from ₹10,000 to ₹20,000 depending on the model. This is fully refundable upon return.' },
+  { question: 'What is the security deposit for KTM rental?', answer: 'A refundable security deposit is collected at pickup, and returned in full when you bring the bike back.' },
   { question: 'Do I need a specific license for KTM bikes?', answer: 'You need a valid motorcycle license. For Duke 390/RC 390, we recommend experienced riders due to high performance.' },
   { question: 'Is fuel included in KTM rental?', answer: 'Fuel is not included. KTM bikes give approximately 25-35 km/litre depending on riding style.' },
 ];
 
-const schemaVehicles = [
-  { name: 'KTM Duke 200', brand: 'KTM', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent KTM Duke 200 — entry-level naked sports bike with 199.5cc liquid-cooled single-cylinder engine producing 25 PS power and 19.3 Nm torque. 0-100 kmph in 8.7 seconds, slipper clutch, and race-tuned WP suspension. Sharp city handling with 30+ kmpl mileage. Rental includes helmet and insurance from ₹999/day.' },
-  { name: 'KTM Duke 390', brand: 'KTM', price: 1499, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent KTM Duke 390 — flagship naked sports bike with 373cc liquid-cooled engine, 43 PS power, TFT color display, cornering ABS, traction control, and ride modes. 0-100 kmph in 5.8 seconds with 174 kmph top speed. The most feature-rich sporty city bike available for rental. Book at ₹1499/day with helmet.' },
-  { name: 'KTM RC 200', brand: 'KTM', price: 1099, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent KTM RC 200 — full-fairing supersport with 199.5cc liquid-cooled engine, 25 PS power, clip-on handlebars, and track-focused aerodynamics. Aggressive riding position with sharp braking and suspension tuned for performance riding. Ideal for sporty commutes and track day enthusiasts. Available from ₹1099/day.' },
-  { name: 'KTM RC 390', brand: 'KTM', price: 1599, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent KTM RC 390 — track-ready supersport with 373cc engine, 43 PS power, lean-angle sensitive ABS, up/down quickshifter, cornering lights, and TFT display. Capable of 179 kmph top speed with race-bred chassis. The ultimate performance bike rental experience. Book at ₹1599/day with helmet and insurance.' },
-];
-
 export default async function KTMLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('ktm-on-rent', params.location);
+  // Availability follows Bike Rental: there is no services row under
+  // "ktm-on-rent" (an unknown slug used to read as "available everywhere"),
+  // and a KTM is a bike — wherever bike rental is live, so is this.
+  // One admin screen controls all of these pages.
+  const pageContext = await resolveServicePage('ktm-on-rent', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'bike-on-rent',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="ktm-on-rent" serviceName="KTM on Rent" />;
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the
+  // nearest city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/ktm-on-rent" className="hover:text-primary">KTM on Rent</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="KTM rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="ktm-on-rent"
+            serviceName="KTM on Rent"
+          />
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} selectionDesc="Duke 200, Duke 390, RC 200, RC 390 — the full KTM line-up." />
+        <FAQSection service="ktm-on-rent" location={cityName} customFaqs={schemaFaqs} />
+      </>
+    );
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-
-  const pageData = {
-    vehicles: [
-      {
-        id: 1,
-        name: 'KTM Duke 200',
-        image: '/images/bikes/ktm-duke-200.jpg',
-        price: 999,
-        rating: 4.9,
-      },
-      {
-        id: 2,
-        name: 'KTM Duke 390',
-        image: '/images/bikes/ktm-duke-390.jpg',
-        price: 1499,
-        rating: 4.9,
-      },
-      {
-        id: 3,
-        name: 'KTM RC 200',
-        image: '/images/bikes/ktm-rc-200.jpg',
-        price: 1099,
-        rating: 4.8,
-      },
-      {
-        id: 4,
-        name: 'KTM RC 390',
-        image: '/images/bikes/ktm-rc-390.jpg',
-        price: 1599,
-        rating: 4.9,
-      },
-    ],
-  };
 
   const [seoData, scContent] = await Promise.all([
     resolvePageMeta(`ktm-on-rent:${params.location}`),
     getServiceCityContent('ktm-on-rent', params.location),
   ]);
+
+  // No rate is quoted anywhere on this page — the real price depends on the
+  // partner and the dates, so a number in the copy would only mislead.
+  const heroDescription = stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined;
 
   const pageFaqs = [
     { question: 'Which KTM bikes are available on rent?', answer: 'We offer KTM Duke 200, Duke 390, RC 200, and RC 390 — all premium performance bikes with regular servicing.' },
@@ -157,12 +164,10 @@ export default async function KTMLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName={`KTM on Rent in ${locationName}`}
         serviceSlug="ktm-on-rent"
-        description={`Rent KTM bikes in ${locationName}. Duke 200, Duke 390, RC 200, RC 390 available. Starting @₹999/day.`}
+        description={`Rent KTM bikes in ${locationName}. Duke 200, Duke 390, RC 200, RC 390 available, all from verified partners.`}
         city={locationName}
         citySlug={params.location}
         faqs={schemaFaqs}
-        vehicles={schemaVehicles}
-        priceRange={{ min: 999, max: 1599 }}
         rating={4.9}
         reviewCount={347}
       />
@@ -184,12 +189,7 @@ export default async function KTMLocationPage({ params }: PageProps) {
           city={locationName}
           citySlug={params.location}
           pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-          pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
-        />
-
-        <VehicleGrid
-          vehicles={pageData.vehicles}
-          title={`Available KTM Bikes in ${locationName}`}
+          pageDescription={heroDescription}
         />
 
         {/* Why KTM */}
@@ -208,16 +208,21 @@ export default async function KTMLocationPage({ params }: PageProps) {
           />
           <div className="container-custom relative">
             <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
-              <h2 className="text-3xl md:text-[2.5rem] leading-[1.1] font-black tracking-tight text-gray-900">
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">
                 Why Rent KTM in <span className="text-emerald-600">{locationName}?</span>
               </h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-6 max-w-5xl mx-auto">
+            {/* The generic "Why Rent Here" block used to sit below this one
+                and asked the same question again — its two points are folded
+                in here so the page makes the case once. */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-6 max-w-5xl mx-auto">
               {[
                 { Icon: Gauge, title: 'High Performance', desc: 'Up to 43 HP power output' },
                 { Icon: Target, title: 'Aggressive Styling', desc: 'Head-turning street presence' },
                 { Icon: Zap, title: 'Quick Acceleration', desc: '0-100 in under 6 seconds' },
                 { Icon: ShieldCheck, title: 'Premium Build', desc: 'European engineering quality' },
+                { Icon: ShieldCheck, title: 'Verified Partners', desc: 'Every vendor is background-checked' },
+                { Icon: Headphones, title: '24/7 Support', desc: 'Round-the-clock roadside assistance' },
               ].map((item, idx) => (
                 <div
                   key={item.title}
@@ -242,7 +247,17 @@ export default async function KTMLocationPage({ params }: PageProps) {
           ` }} />
         </section>
 
-        <WhyRentHere locationName={locationName} />
+        {/* Available bikes — purely whatever the admin has published for this
+            city. Nothing hardcoded, and the section renders nothing at all
+            when the city has no published fleet. */}
+        <LazyServiceFleetDisplay
+          serviceSlug="ktm-on-rent"
+          locationSlug={params.location}
+          title={`Available KTM Bikes in ${locationName}`}
+          showCategories={true}
+          limit={12}
+          hidePrices
+        />
 
         <NearbyLocations
           locationSlug={params.location}
@@ -259,7 +274,7 @@ export default async function KTMLocationPage({ params }: PageProps) {
       */}
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="ktm-on-rent" location={locationName} customFaqs={pageFaqs} />
 
@@ -271,7 +286,6 @@ export default async function KTMLocationPage({ params }: PageProps) {
         siblings={[
           { slug: 'activa-on-rent', name: 'Activa on Rent' },
           { slug: 'royal-enfield-on-rent', name: 'Royal Enfield' },
-          { slug: 'ktm-on-rent', name: 'KTM on Rent' },
           { slug: 'pulsar-on-rent', name: 'Pulsar on Rent' },
           { slug: 'apache-on-rent', name: 'Apache on Rent' },
           { slug: 'splendor-on-rent', name: 'Splendor on Rent' },

@@ -29,6 +29,7 @@ import { BookingPayment } from '@/components/payment/BookingPayment';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { quoteDisplay } from '@/lib/quote-font';
+import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
 
 interface BookingDetails {
   id: string;
@@ -624,6 +625,8 @@ export default function CarRentalBookingDetailPage() {
               </div>
             </div>
           )}
+
+          {booking.vendor && !booking.acceptedDriverId && !booking.acceptedStaffId && <BookingPaymentSafetyNotice />}
 
           {/* ── Service Provider — independent driver OR vendor's staff driver ── */}
           {(booking.acceptedDriverId || booking.acceptedStaffId) && (

@@ -17,6 +17,10 @@ import {
     Clock,
     Filter,
   X,
+    CalendarDays,
+    MapPin,
+    FileCheck2,
+    Wifi,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
@@ -28,6 +32,88 @@ interface VendorPerformance {
     totalQuotes: number;
     acceptedQuotes: number;
     acceptanceRate: number;
+    /** Newest quote inside the selected window, null when they raised none. */
+    lastQuoteAt: string | null;
+    lastLoginAt: string | null;
+    locations: { id: string; name: string }[];
+}
+
+interface LocationOption { id: string; name: string }
+
+/**
+ * Date presets, resolved against the browser's day so "Today" means the
+ * manager's today. Values are plain YYYY-MM-DD — the API widens `to` to the
+ * end of that day itself.
+ */
+const DATE_PRESETS = [
+    { key: 'all', label: 'All time' },
+    { key: 'today', label: 'Today' },
+    { key: 'yesterday', label: 'Yesterday' },
+    { key: 'last7', label: 'Last 7 days' },
+    { key: 'custom', label: 'Custom range' },
+] as const;
+type DatePreset = (typeof DATE_PRESETS)[number]['key'];
+
+const ymd = (d: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+function presetRange(preset: DatePreset): { from: string; to: string } {
+    const today = new Date();
+    switch (preset) {
+        case 'today':
+            return { from: ymd(today), to: ymd(today) };
+        case 'yesterday': {
+            const y = new Date(today);
+            y.setDate(y.getDate() - 1);
+            return { from: ymd(y), to: ymd(y) };
+        }
+        case 'last7': {
+            const start = new Date(today);
+            start.setDate(start.getDate() - 6); // inclusive of today = 7 days
+            return { from: ymd(start), to: ymd(today) };
+        }
+        default:
+            return { from: '', to: '' };
+    }
+}
+
+const QUOTE_FILTERS = [
+    { key: 'all', label: 'Quotes: any' },
+    { key: 'yes', label: 'Quote submitted' },
+    { key: 'no', label: 'No quote submitted' },
+    { key: 'accepted', label: 'Has accepted quote' },
+] as const;
+type QuoteFilter = (typeof QUOTE_FILTERS)[number]['key'];
+
+const PRESENCE_FILTERS = [
+    { key: 'all', label: 'Presence: any' },
+    { key: 'active', label: 'Online' },
+    { key: 'idle', label: 'Idle' },
+    { key: 'offline', label: 'Offline' },
+    { key: 'never', label: 'Never logged in' },
+] as const;
+type PresenceFilter = (typeof PRESENCE_FILTERS)[number]['key'];
+
+const SEEN_FILTERS = [
+    { key: 'all', label: 'Last seen: any' },
+    { key: '24h', label: 'Seen in last 24h' },
+    { key: '7d', label: 'Seen in last 7 days' },
+    { key: '30d', label: 'Seen in last 30 days' },
+    { key: 'older', label: 'Not seen in 30+ days' },
+] as const;
+type SeenFilter = (typeof SEEN_FILTERS)[number]['key'];
+
+const SEEN_WINDOW_MS: Record<string, number> = {
+    '24h': 24 * 60 * 60 * 1000,
+    '7d': 7 * 24 * 60 * 60 * 1000,
+    '30d': 30 * 24 * 60 * 60 * 1000,
+};
+
+function shortDate(iso: string | null): string {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
 }
 
 type PresenceStatus = 'active' | 'idle' | 'offline';
@@ -111,13 +197,42 @@ export default function VendorPerformancePage() {
     const [sortBy, setSortBy] = useState<SortKey>('rate_desc');
     const [statusFilter, setStatusFilter] = useState('ALL');
 
+    // Quote numbers are scoped to this window server-side; everything else
+    // filters client-side off the rows that come back.
+    const [datePreset, setDatePreset] = useState<DatePreset>('all');
+    const [customFrom, setCustomFrom] = useState('');
+    const [customTo, setCustomTo] = useState('');
+    const [locationFilter, setLocationFilter] = useState('ALL');
+    const [locations, setLocations] = useState<LocationOption[]>([]);
+    const [quoteFilter, setQuoteFilter] = useState<QuoteFilter>('all');
+    const [presenceFilter, setPresenceFilter] = useState<PresenceFilter>('all');
+    const [seenFilter, setSeenFilter] = useState<SeenFilter>('all');
+
+    const activeRange = useMemo(() => {
+        if (datePreset === 'custom') return { from: customFrom, to: customTo };
+        return presetRange(datePreset);
+    }, [datePreset, customFrom, customTo]);
+
     // Drives the Clear all button — every filter this page applies.
     const activeFilterCount =
-        (searchQuery.trim() ? 1 : 0) + (statusFilter !== 'ALL' ? 1 : 0);
+        (searchQuery.trim() ? 1 : 0) +
+        (statusFilter !== 'ALL' ? 1 : 0) +
+        (datePreset !== 'all' ? 1 : 0) +
+        (locationFilter !== 'ALL' ? 1 : 0) +
+        (quoteFilter !== 'all' ? 1 : 0) +
+        (presenceFilter !== 'all' ? 1 : 0) +
+        (seenFilter !== 'all' ? 1 : 0);
 
     const clearFilters = () => {
         setSearchQuery('');
         setStatusFilter('ALL');
+        setDatePreset('all');
+        setCustomFrom('');
+        setCustomTo('');
+        setLocationFilter('ALL');
+        setQuoteFilter('all');
+        setPresenceFilter('all');
+        setSeenFilter('all');
     };
     const [presence, setPresence] = useState<Record<string, PresenceInfo>>({});
     const [todayActivity, setTodayActivity] = useState<Record<string, TodayActivityInfo>>({});
@@ -127,11 +242,16 @@ export default function VendorPerformancePage() {
     const fetchPerformance = async () => {
         try {
             setRefreshing(true);
-            const response = await fetch('/api/manager/vendor-performance');
+            const qs = new URLSearchParams();
+            if (activeRange.from) qs.set('from', activeRange.from);
+            if (activeRange.to) qs.set('to', activeRange.to);
+            if (locationFilter !== 'ALL') qs.set('locationId', locationFilter);
+            const response = await fetch(`/api/manager/vendor-performance?${qs.toString()}`);
             const result = await response.json();
 
             if (result.data) {
                 setData(result.data);
+                if (result.locations) setLocations(result.locations);
             } else if (result.error) {
                 showToast({
                     type: 'error',
@@ -187,7 +307,6 @@ export default function VendorPerformancePage() {
     };
 
     useEffect(() => {
-        fetchPerformance();
         fetchPresence();
         fetchTodayActivity();
         const interval = setInterval(() => {
@@ -196,6 +315,15 @@ export default function VendorPerformancePage() {
         }, 30000);
         return () => clearInterval(interval);
     }, []);
+
+    // Date and location are answered by the API, so changing either refetches.
+    // A half-filled custom range is ignored until both ends are set, otherwise
+    // the list would jump around while the manager is still picking dates.
+    useEffect(() => {
+        if (datePreset === 'custom' && !(customFrom && customTo)) return;
+        fetchPerformance();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [datePreset, customFrom, customTo, locationFilter]);
 
     const sortedData = useMemo(() => {
         const list = [...data];
@@ -217,10 +345,60 @@ export default function VendorPerformancePage() {
         [data]
     );
 
-    const filteredData = sortedData.filter(v =>
-        v.businessName.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        (statusFilter === 'ALL' || v.status === statusFilter)
-    );
+    const filteredData = useMemo(() => {
+        const now = Date.now();
+        return sortedData.filter((v) => {
+            if (!v.businessName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+            if (statusFilter !== 'ALL' && v.status !== statusFilter) return false;
+
+            if (quoteFilter === 'yes' && v.totalQuotes === 0) return false;
+            if (quoteFilter === 'no' && v.totalQuotes > 0) return false;
+            if (quoteFilter === 'accepted' && v.acceptedQuotes === 0) return false;
+
+            // "Never logged in" is a property of the vendor, not of presence —
+            // a vendor with no login has no presence row at all.
+            const p = presence[v.id];
+            if (presenceFilter === 'never') {
+                if (v.lastLoginAt) return false;
+            } else if (presenceFilter !== 'all') {
+                if ((p?.status ?? 'offline') !== presenceFilter) return false;
+            }
+
+            if (seenFilter !== 'all') {
+                const seenIso = p?.lastSeenAt ?? v.lastLoginAt;
+                const seenAt = seenIso ? new Date(seenIso).getTime() : null;
+                if (seenFilter === 'older') {
+                    // Never seen counts as "not seen in 30+ days" — that is
+                    // exactly the list a manager chasing dormant vendors wants.
+                    if (seenAt !== null && now - seenAt <= SEEN_WINDOW_MS['30d']) return false;
+                } else {
+                    if (seenAt === null) return false;
+                    if (now - seenAt > SEEN_WINDOW_MS[seenFilter]) return false;
+                }
+            }
+
+            return true;
+        });
+    }, [sortedData, searchQuery, statusFilter, quoteFilter, presenceFilter, seenFilter, presence]);
+
+    // Summary for the rows currently on screen — the "what did my calls do?"
+    // answer, recomputed for whatever window and filters are applied.
+    const summary = useMemo(() => {
+        const vendorsWithQuotes = filteredData.filter((v) => v.totalQuotes > 0).length;
+        const totalQuotes = filteredData.reduce((acc, v) => acc + v.totalQuotes, 0);
+        const acceptedQuotes = filteredData.reduce((acc, v) => acc + v.acceptedQuotes, 0);
+        const activeVendors = filteredData.filter((v) => {
+            const seen = presence[v.id]?.lastSeenAt ?? v.lastLoginAt;
+            return !!seen && Date.now() - new Date(seen).getTime() <= SEEN_WINDOW_MS['24h'];
+        }).length;
+        return {
+            shown: filteredData.length,
+            vendorsWithQuotes,
+            totalQuotes,
+            acceptedQuotes,
+            activeVendors,
+        };
+    }, [filteredData, presence]);
 
     const stats = useMemo(() => {
         const rankedByRate = [...data].sort((a, b) => b.acceptanceRate - a.acceptanceRate);
@@ -331,56 +509,156 @@ export default function VendorPerformancePage() {
                 </div>
             )}
 
-            {/* Filters & Search */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="Search vendor by name..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-green-500/20 transition outline-none"
-                    />
-                </div>
-                <div className="relative">
-                    <Filter className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="appearance-none pl-9 pr-8 py-2 bg-gray-50 border-none rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-green-500/20 transition outline-none cursor-pointer"
-                    >
-                        <option value="ALL">All Statuses</option>
-                        {statusOptions.map((s) => (
-                            <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="relative">
-                    <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value as SortKey)}
-                        className="appearance-none pl-9 pr-8 py-2 bg-gray-50 border-none rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-green-500/20 transition outline-none cursor-pointer"
-                    >
-                        {SORT_OPTIONS.map((opt) => (
-                            <option key={opt.key} value={opt.key}>{opt.label}</option>
-                        ))}
-                    </select>
+            {/* Summary for the current window + filters — the daily
+                "what did my calls actually do?" line. */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                {[
+                    { label: 'Vendors shown', value: summary.shown, Icon: BarChart3, tint: 'text-gray-400 bg-gray-50' },
+                    { label: 'Active in 24h', value: summary.activeVendors, Icon: Radio, tint: 'text-emerald-600 bg-emerald-50' },
+                    { label: 'Submitted a quote', value: summary.vendorsWithQuotes, Icon: FileCheck2, tint: 'text-blue-600 bg-blue-50' },
+                    { label: 'Quotes submitted', value: summary.totalQuotes, Icon: TrendingUp, tint: 'text-indigo-600 bg-indigo-50' },
+                    { label: 'Quotes accepted', value: summary.acceptedQuotes, Icon: Award, tint: 'text-amber-600 bg-amber-50' },
+                ].map((card) => (
+                    <div key={card.label} className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3.5">
+                        <span className={`shrink-0 w-9 h-9 rounded-lg grid place-items-center ${card.tint}`}>
+                            <card.Icon className="w-4 h-4" />
+                        </span>
+                        <div className="min-w-0">
+                            <p className="text-xl font-black text-gray-900 leading-none">{card.value}</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mt-1 truncate">{card.label}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Filters — search and period lead, because that is the question
+                being asked ("who did I reach, and when?"); the narrowing
+                dropdowns sit under them as one labelled, even-width row so
+                nothing floats in dead space. */}
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-100">
+
+                {/* Search + clear */}
+                <div className="flex items-center gap-3 p-4">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search vendor by name..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-transparent rounded-lg text-sm focus:bg-white focus:border-green-500/30 focus:ring-2 focus:ring-green-500/10 transition outline-none"
+                        />
+                    </div>
+                    {activeFilterCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={clearFilters}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0"
+                        >
+                            <X className="w-4 h-4" />
+                            Clear
+                            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-gray-200 text-gray-700 text-[11px] font-bold">
+                                {activeFilterCount}
+                            </span>
+                        </button>
+                    )}
                 </div>
 
-                {/* Clear all — only shown once something is actually filtered. */}
-                {activeFilterCount > 0 && (
-                    <button
-                        type="button"
-                        onClick={clearFilters}
-                        className="inline-flex items-center gap-1 px-2.5 py-2 text-sm text-gray-500 hover:text-red-500 transition shrink-0"
-                    >
-                        <X className="w-4 h-4" />
-                        Clear all ({activeFilterCount})
-                    </button>
-                )}
+                {/* Period — the primary axis of the daily workflow, so it gets
+                    pills rather than being buried in a dropdown. */}
+                <div className="flex flex-wrap items-center gap-2 p-4">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-400 mr-1">
+                        <CalendarDays className="w-3.5 h-3.5" />
+                        Period
+                    </span>
+                    {DATE_PRESETS.map((d) => (
+                        <button
+                            key={d.key}
+                            type="button"
+                            onClick={() => setDatePreset(d.key)}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                                datePreset === d.key
+                                    ? 'bg-green-600 text-white shadow-sm'
+                                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                            {d.label}
+                        </button>
+                    ))}
+
+                    {datePreset === 'custom' && (
+                        <div className="flex items-center gap-2 ml-1">
+                            <input
+                                type="date"
+                                value={customFrom}
+                                max={customTo || undefined}
+                                onChange={(e) => setCustomFrom(e.target.value)}
+                                className="px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-sm text-gray-700 focus:bg-white focus:border-green-500/30 focus:ring-2 focus:ring-green-500/10 outline-none"
+                            />
+                            <span className="text-gray-400 text-sm">to</span>
+                            <input
+                                type="date"
+                                value={customTo}
+                                min={customFrom || undefined}
+                                onChange={(e) => setCustomTo(e.target.value)}
+                                className="px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-sm text-gray-700 focus:bg-white focus:border-green-500/30 focus:ring-2 focus:ring-green-500/10 outline-none"
+                            />
+                        </div>
+                    )}
+
+                    {datePreset !== 'all' && (
+                        <span className="text-xs text-gray-400 ml-auto">
+                            Quote numbers are for this period only
+                        </span>
+                    )}
+                </div>
+
+                {/* Narrowing filters — one grid, equal widths, each labelled so
+                    "All time" vs "All Statuses" is never a guessing game. */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 p-4">
+                    {([
+                        { label: 'Location', Icon: MapPin, value: locationFilter, onChange: (v: string) => setLocationFilter(v),
+                          options: [{ value: 'ALL', label: 'All locations' }, ...locations.map((l) => ({ value: l.id, label: l.name }))] },
+                        { label: 'Status', Icon: Filter, value: statusFilter, onChange: (v: string) => setStatusFilter(v),
+                          options: [{ value: 'ALL', label: 'All statuses' }, ...statusOptions.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))] },
+                        { label: 'Quotes', Icon: FileCheck2, value: quoteFilter, onChange: (v: string) => setQuoteFilter(v as QuoteFilter),
+                          options: QUOTE_FILTERS.map((q) => ({ value: q.key, label: q.label.replace(/^Quotes: /, '') })) },
+                        { label: 'Presence', Icon: Wifi, value: presenceFilter, onChange: (v: string) => setPresenceFilter(v as PresenceFilter),
+                          options: PRESENCE_FILTERS.map((p) => ({ value: p.key, label: p.label.replace(/^Presence: /, '') })) },
+                        { label: 'Last seen', Icon: Clock, value: seenFilter, onChange: (v: string) => setSeenFilter(v as SeenFilter),
+                          options: SEEN_FILTERS.map((p) => ({ value: p.key, label: p.label.replace(/^Last seen: /, '') })) },
+                        { label: 'Sort by', Icon: ArrowUpDown, value: sortBy, onChange: (v: string) => setSortBy(v as SortKey),
+                          options: SORT_OPTIONS.map((o) => ({ value: o.key, label: o.label })) },
+                    ]).map((field) => {
+                        const isSet = field.label !== 'Sort by' && field.value !== 'ALL' && field.value !== 'all';
+                        return (
+                            <div key={field.label} className="min-w-0">
+                                <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">
+                                    <field.Icon className="w-3 h-3" />
+                                    {field.label}
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        value={field.value}
+                                        onChange={(e) => field.onChange(e.target.value)}
+                                        className={`w-full appearance-none pl-3 pr-8 py-2 rounded-lg text-sm font-medium truncate transition outline-none cursor-pointer border focus:ring-2 focus:ring-green-500/10 ${
+                                            isSet
+                                                ? 'bg-green-50 border-green-200 text-green-800'
+                                                : 'bg-gray-50 border-transparent text-gray-700 focus:bg-white focus:border-green-500/30'
+                                        }`}
+                                    >
+                                        {field.options.map((o) => (
+                                            <option key={o.value} value={o.value}>{o.label}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronRight className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rotate-90 text-gray-400" />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
+
 
             {/* Performance Table */}
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
@@ -399,6 +677,7 @@ export default function VendorPerformancePage() {
                                 <th className="px-6 py-4 text-sm font-semibold text-gray-700 uppercase tracking-wider text-center">Submitted</th>
                                 <th className="px-6 py-4 text-sm font-semibold text-gray-700 uppercase tracking-wider text-center">Accepted</th>
                                 <th className="px-6 py-4 text-sm font-semibold text-gray-700 uppercase tracking-wider">Acceptance Rate</th>
+                                <th className="px-6 py-4 text-sm font-semibold text-gray-700 uppercase tracking-wider">Last Quote</th>
                                 <th className="px-6 py-4 text-sm font-semibold text-gray-700 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4"></th>
                             </tr>
@@ -476,6 +755,13 @@ export default function VendorPerformancePage() {
                                                         </div>
                                                         <span className={`text-sm font-bold min-w-[40px] ${rateStyle.text}`}>{vendor.acceptanceRate}%</span>
                                                     </div>
+                                                </Link>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <Link href={`/manager/vendor-performance/${vendor.id}`} className="block">
+                                                    <span className={`text-sm ${vendor.lastQuoteAt ? 'text-gray-700 font-medium' : 'text-gray-300'}`}>
+                                                        {shortDate(vendor.lastQuoteAt)}
+                                                    </span>
                                                 </Link>
                                             </td>
                                             <td className="px-6 py-4">

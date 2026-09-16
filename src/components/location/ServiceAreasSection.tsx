@@ -1,14 +1,18 @@
 import Link from 'next/link';
 import { CITY_SUBLOCATIONS } from '@/data/city-sublocations';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 
 interface ServiceAreasSectionProps {
   serviceSlug: string;
   citySlug: string;
   cityName: string;
   serviceName: string;
+  /** Opt-in: drop rate-quoting sentences from the area blurbs. Off by
+   *  default so other service pages keep their copy as authored. */
+  hidePrices?: boolean;
 }
 
-export function ServiceAreasSection({ serviceSlug, citySlug, cityName, serviceName }: ServiceAreasSectionProps) {
+export function ServiceAreasSection({ serviceSlug, citySlug, cityName, serviceName, hidePrices = false }: ServiceAreasSectionProps) {
   const areas = CITY_SUBLOCATIONS[serviceSlug]?.[citySlug];
   if (!areas || areas.length === 0) return null;
 
@@ -34,7 +38,7 @@ export function ServiceAreasSection({ serviceSlug, citySlug, cityName, serviceNa
                 </h3>
                 <span className="text-xs text-gray-400 capitalize bg-gray-50 px-2 py-0.5 rounded-full">{area.type}</span>
               </div>
-              <p className="text-sm text-gray-600 line-clamp-2">{area.description}</p>
+              <p className="text-sm text-gray-600 line-clamp-2">{hidePrices ? stripPricesFromText(area.description) : area.description}</p>
               {area.pickupAddress && (
                 <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
                   <span>📍</span> {area.pickupAddress}

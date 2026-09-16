@@ -6,6 +6,44 @@ import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Quotes live in one table per service, all with the same three columns this
+ * route cares about: vendorId, status and createdAt. Listing the delegates
+ * once keeps the seven services from turning into seven copies of the same
+ * three queries.
+ */
+const QUOTE_MODELS = [
+  'bike_quotes',
+  'bus_quotes',
+  'self_drive_quotes',
+  'equipment_quotes',
+  'luxury_quotes',
+  'packers_quotes',
+  'truck_quotes',
+] as const;
+
+type QuoteAgg = { totalQuotes: number; acceptedQuotes: number; lastQuoteAt: Date | null };
+
+/**
+ * Resolve the ?from/?to window.
+ *
+ * Dates arrive as plain YYYY-MM-DD from the picker and mean whole days in the
+ * manager's day, so `to` is pushed to the end of that day — otherwise a
+ * same-day range would silently exclude everything after midnight.
+ */
+function parseRange(searchParams: URLSearchParams): { from?: Date; to?: Date } {
+  const rawFrom = searchParams.get('from');
+  const rawTo = searchParams.get('to');
+
+  const from = rawFrom ? new Date(`${rawFrom}T00:00:00`) : undefined;
+  const to = rawTo ? new Date(`${rawTo}T23:59:59.999`) : undefined;
+
+  return {
+    from: from && !Number.isNaN(from.getTime()) ? from : undefined,
+    to: to && !Number.isNaN(to.getTime()) ? to : undefined,
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -13,7 +51,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get current user and verify they are a manager
     const manager = await prisma.admin_users.findUnique({
       where: { id: session.user.id },
       include: {
@@ -26,176 +63,129 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const { from, to } = parseRange(searchParams);
+    const locationId = searchParams.get('locationId') || '';
+
     const assignedLocationIds = manager.manager_locations.map((ml) => ml.locationId);
 
-    // Get vendors in manager's assigned locations
+    // A manager may only ever filter down to their own locations, never past
+    // them — an unrecognised locationId falls back to the full assigned set
+    // rather than widening the query.
+    const scopedLocationIds =
+      locationId && assignedLocationIds.includes(locationId)
+        ? [locationId]
+        : assignedLocationIds;
+
     const vendors = await prisma.vendors.findMany({
       where: {
         vendor_approved_locations: {
-          some: {
-            locationId: { in: assignedLocationIds },
-          },
+          some: { locationId: { in: scopedLocationIds } },
         },
       },
       select: {
         id: true,
         businessName: true,
         status: true,
+        lastLoginAt: true,
+        vendor_approved_locations: {
+          where: { locationId: { in: assignedLocationIds } },
+          select: { locations: { select: { id: true, name: true } } },
+        },
       },
     });
 
-    const vendorIds = vendors.map(v => v.id);
+    const vendorIds = vendors.map((v) => v.id);
 
-    // Quote tables to query
-    const quoteTables = [
-      'bike_quotes',
-      'bus_quotes',
-      'self_drive_quotes',
-      'equipment_quotes',
-      'luxury_quotes',
-      'packers_quotes',
-      'truck_quotes'
-    ];
-
-    // Aggregated data map
-    const performanceData: Record<string, { totalQuotes: number; acceptedQuotes: number }> = {};
-    vendorIds.forEach(id => {
-      performanceData[id] = { totalQuotes: 0, acceptedQuotes: 0 };
+    const perf: Record<string, QuoteAgg> = {};
+    vendorIds.forEach((id) => {
+      perf[id] = { totalQuotes: 0, acceptedQuotes: 0, lastQuoteAt: null };
     });
 
-    // Query each quote table
-    // Note: We use raw queries or multiple prisma calls. 
-    // Since prisma doesn't support generic table names easily, we'll do it manually for each.
-    
-    const results = await Promise.all([
-      // Bike
-      prisma.bike_quotes.groupBy({
-        by: ['vendorId'],
-        where: { vendorId: { in: vendorIds } },
-        _count: { id: true }
-      }),
-      prisma.bike_quotes.groupBy({
-        by: ['vendorId'],
-        where: { vendorId: { in: vendorIds }, status: 'ACCEPTED' },
-        _count: { id: true }
-      }),
-      
-      // Bus
-      prisma.bus_quotes.groupBy({
-        by: ['vendorId'],
-        where: { vendorId: { in: vendorIds } },
-        _count: { id: true }
-      }),
-      prisma.bus_quotes.groupBy({
-        by: ['vendorId'],
-        where: { vendorId: { in: vendorIds }, status: 'ACCEPTED' },
-        _count: { id: true }
-      }),
+    // Only quotes raised inside the selected window count. With no window the
+    // numbers are all-time, which is what the page showed before filters.
+    const createdAt = from || to ? { ...(from && { gte: from }), ...(to && { lte: to }) } : undefined;
+    const baseWhere = { vendorId: { in: vendorIds }, ...(createdAt && { createdAt }) };
 
-      // Self Drive (Car)
-      prisma.self_drive_quotes.groupBy({
-        by: ['vendorId'],
-        where: { vendorId: { in: vendorIds } },
-        _count: { id: true }
-      }),
-      prisma.self_drive_quotes.groupBy({
-        by: ['vendorId'],
-        where: { vendorId: { in: vendorIds }, status: 'ACCEPTED' },
-        _count: { id: true }
-      }),
+    if (vendorIds.length > 0) {
+      await Promise.all(
+        QUOTE_MODELS.map(async (model) => {
+          const delegate = (prisma as any)[model];
+          if (!delegate) return;
 
-      // Equipment
-      prisma.equipment_quotes.groupBy({
-        by: ['vendorId'],
-        where: { vendorId: { in: vendorIds } },
-        _count: { id: true }
-      }),
-      prisma.equipment_quotes.groupBy({
-        by: ['vendorId'],
-        where: { vendorId: { in: vendorIds }, status: 'ACCEPTED' },
-        _count: { id: true }
-      }),
+          const [totals, accepted] = await Promise.all([
+            // _max(createdAt) rides along with the count so "last quote" costs
+            // no extra query.
+            delegate.groupBy({
+              by: ['vendorId'],
+              where: baseWhere,
+              _count: { id: true },
+              _max: { createdAt: true },
+            }),
+            delegate.groupBy({
+              by: ['vendorId'],
+              where: { ...baseWhere, status: 'ACCEPTED' },
+              _count: { id: true },
+            }),
+          ]);
 
-      // Luxury
-      prisma.luxury_quotes.groupBy({
-        by: ['vendorId'],
-        where: { vendorId: { in: vendorIds } },
-        _count: { id: true }
-      }),
-      prisma.luxury_quotes.groupBy({
-        by: ['vendorId'],
-        where: { vendorId: { in: vendorIds }, status: 'ACCEPTED' },
-        _count: { id: true }
-      }),
-
-      // Packers
-      prisma.packers_quotes.groupBy({
-        by: ['vendorId'],
-        where: { vendorId: { in: vendorIds } },
-        _count: { id: true }
-      }),
-      prisma.packers_quotes.groupBy({
-        by: ['vendorId'],
-        where: { vendorId: { in: vendorIds }, status: 'ACCEPTED' },
-        _count: { id: true }
-      }),
-
-      // Truck
-      prisma.truck_quotes.groupBy({
-        by: ['vendorId'],
-        where: { vendorId: { in: vendorIds } },
-        _count: { id: true }
-      }),
-      prisma.truck_quotes.groupBy({
-        by: ['vendorId'],
-        where: { vendorId: { in: vendorIds }, status: 'ACCEPTED' },
-        _count: { id: true }
-      }),
-    ]);
-
-    // Merge results
-    // Results is an array of pairs (Total, Accepted) for each service
-    for (let i = 0; i < results.length; i++) {
-        const isAcceptedCount = i % 2 === 1;
-        const serviceResults = results[i];
-        
-        serviceResults.forEach((res: any) => {
-            if (performanceData[res.vendorId]) {
-                if (isAcceptedCount) {
-                    performanceData[res.vendorId].acceptedQuotes += res._count.id;
-                } else {
-                    performanceData[res.vendorId].totalQuotes += res._count.id;
-                }
+          for (const row of totals as any[]) {
+            const bucket = perf[row.vendorId];
+            if (!bucket) continue;
+            bucket.totalQuotes += row._count.id;
+            const last = row._max?.createdAt ? new Date(row._max.createdAt) : null;
+            if (last && (!bucket.lastQuoteAt || last > bucket.lastQuoteAt)) {
+              bucket.lastQuoteAt = last;
             }
-        });
+          }
+          for (const row of accepted as any[]) {
+            const bucket = perf[row.vendorId];
+            if (bucket) bucket.acceptedQuotes += row._count.id;
+          }
+        })
+      );
     }
 
-    // Format response
-    const data = vendors.map(v => {
-      const perf = performanceData[v.id] || { totalQuotes: 0, acceptedQuotes: 0 };
-      const acceptanceRate = perf.totalQuotes > 0 
-        ? Math.round((perf.acceptedQuotes / perf.totalQuotes) * 100) 
-        : 0;
-
+    const data = vendors.map((v) => {
+      const p = perf[v.id] || { totalQuotes: 0, acceptedQuotes: 0, lastQuoteAt: null };
       return {
         id: v.id,
         businessName: v.businessName,
         status: v.status,
-        totalQuotes: perf.totalQuotes,
-        acceptedQuotes: perf.acceptedQuotes,
-        acceptanceRate: acceptanceRate
+        totalQuotes: p.totalQuotes,
+        acceptedQuotes: p.acceptedQuotes,
+        acceptanceRate: p.totalQuotes > 0 ? Math.round((p.acceptedQuotes / p.totalQuotes) * 100) : 0,
+        lastQuoteAt: p.lastQuoteAt ? p.lastQuoteAt.toISOString() : null,
+        lastLoginAt: v.lastLoginAt ? v.lastLoginAt.toISOString() : null,
+        locations: v.vendor_approved_locations
+          .map((al) => al.locations)
+          .filter((l): l is { id: string; name: string } => !!l),
       };
     });
 
-    // Sort by performance (acceptance rate desc, then total quotes desc)
-    data.sort((a, b) => {
-        if (b.acceptanceRate !== a.acceptanceRate) {
-            return b.acceptanceRate - a.acceptanceRate;
-        }
-        return b.totalQuotes - a.totalQuotes;
+    data.sort((a, b) =>
+      b.acceptanceRate !== a.acceptanceRate
+        ? b.acceptanceRate - a.acceptanceRate
+        : b.totalQuotes - a.totalQuotes
+    );
+
+    // The location dropdown is built from what the manager is assigned, not
+    // from the rows on screen — otherwise filtering to one location would
+    // wipe out the options needed to switch back.
+    const locations = await prisma.locations.findMany({
+      where: { id: { in: assignedLocationIds } },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
     });
 
-    return NextResponse.json({ data });
+    return NextResponse.json({
+      data,
+      locations,
+      range: {
+        from: from ? from.toISOString() : null,
+        to: to ? to.toISOString() : null,
+      },
+    });
   } catch (error: any) {
     logger.error('Error fetching vendor performance:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });

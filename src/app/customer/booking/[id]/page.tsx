@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import InlineBookingChat from '@/components/customer/InlineBookingChat';
 import { quoteDisplay } from '@/lib/quote-font';
+import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
 
 interface Vendor {
   id: number;
@@ -1217,6 +1218,11 @@ export default function BookingDetailsPage() {
                               </>
                             )}
                           </div>
+                          {quote.vendor && (
+                            <div className="mt-4">
+                              <BookingPaymentSafetyNotice />
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

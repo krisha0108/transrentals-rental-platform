@@ -41,6 +41,7 @@ import { BookingPayment } from '@/components/payment/BookingPayment';
 import InlineBookingChat from '@/components/customer/InlineBookingChat';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { quoteDisplay } from '@/lib/quote-font';
+import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
 
 // Car booking status type
 type CarBookingStatus =
@@ -826,6 +827,8 @@ export default function CarBookingDetailPage() {
             )}
           </div>
         )}
+
+        {booking.vendorName && <BookingPaymentSafetyNotice />}
 
         {/* Payment Summary */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
