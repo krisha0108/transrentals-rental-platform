@@ -22,6 +22,8 @@ interface LazyServiceFleetDisplayProps {
   showViewAll?: boolean;
   priceUnit?: string;
   locationSlug?: string;
+  /** Forwarded to ServiceFleetDisplay — see the note there. */
+  hidePrices?: boolean;
 }
 
 function FleetSkeleton() {

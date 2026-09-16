@@ -202,12 +202,18 @@ export async function getActiveLocationsInStateForService(
  *
  * @param options.comingSoonIfUnavailable - If true, returns 'coming-soon' instead of 'redirect'
  *   when city is known but service is not yet active there.
+ * @param options.availabilityServiceSlug - Decide availability from a different
+ *   service than the one the page is for. A sub-service page (Activa, Royal
+ *   Enfield, …) has no city list of its own, so it follows its parent's:
+ *   wherever bike rental is live, so is Activa. URLs and redirects still use
+ *   `serviceSlug` — only the "is it switched on here?" lookup changes.
  */
 export async function resolveServicePage(
   serviceSlug: string,
   locationSlug: string,
-  options?: { comingSoonIfUnavailable?: boolean }
+  options?: { comingSoonIfUnavailable?: boolean; availabilityServiceSlug?: string }
 ): Promise<ServicePageContext> {
+  const availabilitySlug = options?.availabilityServiceSlug || serviceSlug;
   // Step 1: Is it a known city in static data?
   let city = getCityBySlug(locationSlug);
 
@@ -232,7 +238,7 @@ export async function resolveServicePage(
   }
 
   if (city) {
-    const isAvailable = await isServiceAvailableInLocation(serviceSlug, locationSlug);
+    const isAvailable = await isServiceAvailableInLocation(availabilitySlug, locationSlug);
     if (!isAvailable) {
       if (options?.comingSoonIfUnavailable) return { type: 'coming-soon', city };
       return { type: 'redirect', to: `/${serviceSlug}` };
@@ -243,7 +249,7 @@ export async function resolveServicePage(
   // Step 2: Is it a known state?
   const state = getStateBySlug(locationSlug);
   if (state) {
-    const activeCities = await getActiveLocationsInStateForService(serviceSlug, state.code);
+    const activeCities = await getActiveLocationsInStateForService(availabilitySlug, state.code);
     if (activeCities.length === 0) {
       if (options?.comingSoonIfUnavailable) {
         // Treat the state/UT as a "city" for the coming-soon page display

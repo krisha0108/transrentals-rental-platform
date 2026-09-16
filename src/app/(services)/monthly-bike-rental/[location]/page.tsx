@@ -9,6 +9,11 @@ import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
@@ -49,8 +54,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('monthly-bike-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Monthly Bike Rental in ${locationName} | @₹2999/Month`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent bike or scooty on monthly basis in ${locationName}. Activa, Splendor, Pulsar, Royal Enfield available from ₹2999/month. Zero maintenance, doorstep delivery. Book now!`,
+    // No rate is quoted for this page — see the note in the page body.
+    title: stripPricesFromText(scContent?.metaTitle || _seoDb?.metaTitle || `Monthly Bike Rental in ${locationName} | TransRentals`),
+    description: stripPricesFromText(scContent?.metaDescription || _seoDb?.metaDescription || `Rent bike or scooty on monthly basis in ${locationName}. Activa, Splendor, Pulsar, Royal Enfield available from ₹2999/month. Zero maintenance, doorstep delivery. Book now!`),
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `monthly bike rental ${locationName}`,
       `monthly bike rental in ${locationName}`,
@@ -62,7 +68,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `monthly two wheeler ${locationName}`,
     ],
     openGraph: {
-      title: `Monthly Bike Rental in ${locationName} @₹2999/Month | TransRentals`,
+      title: `Monthly Bike Rental in ${locationName} | TransRentals`,
       description: `Rent bikes & scooters monthly in ${locationName}. Activa, Splendor, Pulsar available. Zero maintenance, flexible plans.`,
       type: 'website',
       url: `https://transrentals.in/monthly-bike-rental/${locationSlug}`,
@@ -78,7 +84,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image',
       title: `Monthly Bike Rental in ${locationName} | TransRentals`,
-      description: `Rent bikes & scooters monthly in ${locationName}. Starting @₹2999/month.`,
+      description: `Rent bikes & scooters monthly in ${locationName} from verified partners.`,
       images: ['https://transrentals.in/images/og/monthly-bike-rental.jpg'],
     },
     alternates: {
@@ -91,34 +97,75 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+const launchFaqs = [
+  { question: 'What documents do I need to rent?', answer: 'A valid two-wheeler driving licence and one government photo ID (Aadhaar, passport or voter card).' },
+  { question: 'Is a helmet included?', answer: 'Yes, a helmet is included with every rental.' },
+  { question: 'Is roadside assistance available?', answer: 'Yes, our partners provide 24/7 roadside assistance for the length of your rental.' },
+];
+
 export default async function MonthlyBikeRentalLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('monthly-bike-rental', params.location);
+  // Availability follows Bike Rental: there is no services row under
+  // "monthly-bike-rental" (an unknown slug used to read as "available everywhere"),
+  // so this page could never be switched off for a city. One admin screen
+  // now controls every bike page, this one included.
+  const pageContext = await resolveServicePage('monthly-bike-rental', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'bike-on-rent',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="monthly-bike-rental" serviceName="Monthly Bike Rental" />;
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the
+  // nearest city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/monthly-bike-rental" className="hover:text-primary">Monthly Bike Rental</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="monthly bike rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="monthly-bike-rental"
+            serviceName="Monthly Bike Rental"
+          />
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} selectionDesc="Scooters, commuters, sports and premium bikes — all on monthly plans." />
+        <FAQSection service="monthly-bike-rental" location={cityName} customFaqs={launchFaqs} />
+      </>
+    );
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   // Schema data
   const schemaFaqs = [
-    { question: `How much does monthly bike rental cost in ${locationName}?`, answer: `Monthly bike rental in ${locationName} starts from ₹2,999/month for scooters like Activa. Commuter bikes cost ₹3,999-4,999/month, and Royal Enfield costs ₹9,999-14,999/month.` },
     { question: `What bikes are available for monthly rent in ${locationName}?`, answer: `We have Honda Activa, TVS Jupiter, Hero Splendor, Bajaj Pulsar, Yamaha FZ, and Royal Enfield available for monthly rental in ${locationName}.` },
     { question: `Is there home delivery for monthly bike rental in ${locationName}?`, answer: `Yes, we provide doorstep delivery across ${locationName}. Bikes are delivered within 24 hours of booking confirmation.` },
-    { question: `What documents are needed for monthly bike rental in ${locationName}?`, answer: 'You need a valid driving license (minimum 6 months old), Aadhar card, and a refundable security deposit (₹3,000-10,000 depending on bike type).' },
+    { question: `What documents are needed for monthly bike rental in ${locationName}?`, answer: 'You need a valid driving license (minimum 6 months old), Aadhar card, and a refundable security deposit that varies with the bike type.' },
     { question: `Can I extend my monthly bike rental in ${locationName}?`, answer: 'Yes, you can extend month by month. Long-term rentals (3+ months) get discounted rates up to 15% off.' },
   ];
 
-  const schemaVehicles = [
-    { name: 'Honda Activa 6G', brand: 'Honda', price: 2999, image: 'https://transrentals.in/images/fleet/honda-activa-6g.jpg', description: `Rent Honda Activa 6G on monthly basis in ${locationName} — India's most popular scooter with 109cc engine, 50 kmpl mileage, LED headlight, and 21-litre storage. Monthly plan includes zero maintenance, free servicing, insurance, and doorstep delivery. Best scooter for daily commuting in ${locationName}. From ₹2999/month.` },
-    { name: 'TVS Jupiter', brand: 'TVS', price: 3499, image: 'https://transrentals.in/images/scooters/jupiter.jpg', description: `Rent TVS Jupiter on monthly basis in ${locationName} — spacious family scooter with 110cc engine, 50+ kmpl mileage, 22-litre underseat storage, and extra-wide seat. Monthly rental with zero maintenance and free helmet. Ideal for families and working professionals in ${locationName}. Starting from ₹3499/month.` },
-    { name: 'Hero Splendor Plus', brand: 'Hero', price: 3999, image: 'https://transrentals.in/images/fleet/hero-splendor-plus.jpg', description: `Rent Hero Splendor Plus on monthly basis in ${locationName} — India's highest-selling commuter bike with 97.2cc engine and 65+ kmpl mileage. Monthly subscription includes free maintenance, servicing, and doorstep delivery in ${locationName}. Most fuel-efficient commuter bike. Plans from ₹3999/month.` },
-    { name: 'Bajaj Pulsar 150', brand: 'Bajaj', price: 4999, image: 'https://transrentals.in/images/fleet/bajaj-pulsar-150.jpg', description: `Rent Bajaj Pulsar 150 on monthly basis in ${locationName} — sporty commuter with 149.5cc twin-spark engine, 14 PS power, disc brake, and 50+ kmpl mileage. Monthly plan with zero maintenance cost, insurance, and helmet included. Perfect for sporty daily commuting in ${locationName}. From ₹4999/month.` },
-    { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 9999, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: `Rent Royal Enfield Classic 350 on monthly basis in ${locationName} — iconic 349cc heritage cruiser with 35+ kmpl mileage, dual-channel ABS, and timeless styling. Premium monthly rental with full insurance, maintenance, and doorstep delivery in ${locationName}. For long-term biking enthusiasts. From ₹9999/month.` },
-  ];
 
   const [seoData, scContent] = await Promise.all([
     resolvePageMeta(`monthly-bike-rental:${params.location}`),
     getServiceCityContent('monthly-bike-rental', params.location),
   ]);
+
+  // No rate is quoted anywhere on this page — the real price depends on the
+  // partner and the dates, so a number in the copy would only mislead.
+  const heroDescription = stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined;
 
   const pageFaqs = [
     { question: 'What is included in the monthly bike rental plan?', answer: 'Monthly plans include the bike, helmet, insurance, and free maintenance. You only pay for fuel — no hidden charges.' },
@@ -143,12 +190,10 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
       <BikeServiceSchema
         serviceName={`Monthly Bike Rental in ${locationName}`}
         serviceSlug="monthly-bike-rental"
-        description={`Rent bikes and scooters on monthly basis in ${locationName}. Activa, Splendor, Pulsar, Royal Enfield available. Starting @₹2999/month.`}
+        description={`Rent bikes and scooters on monthly basis in ${locationName}. Activa, Splendor, Pulsar, Royal Enfield available, all from verified partners.`}
         city={locationName}
         citySlug={params.location}
         faqs={schemaFaqs}
-        vehicles={schemaVehicles}
-        priceRange={{ min: 2999, max: 14999 }}
         rating={4.7}
         reviewCount={412}
       />
@@ -157,7 +202,7 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
         city={locationName}
         citySlug={params.location}
         pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
+        pageDescription={heroDescription}
       />
 
       {/* Quick facts */}
@@ -168,7 +213,7 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
               <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">
                 Monthly Bike Rental in <span className="text-emerald-600">{locationName}</span>
               </h2>
-              <p className="text-gray-500 mt-1.5">Long term bike &amp; scooty subscription, starting @₹2,999/month.</p>
+              <p className="text-gray-500 mt-1.5">Long term bike &amp; scooty subscription from verified partners.</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
@@ -222,36 +267,28 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
               {
                 category: 'Scooter',
                 bikes: 'Activa, Jupiter, Access, Dio',
-                price: '2,999',
                 km: '1500 km/month',
-                deposit: '₹3,000',
                 features: ['Automatic transmission', 'Easy to ride', 'Fuel efficient', 'Storage space'],
                 popular: true,
               },
               {
                 category: 'Commuter Bike',
                 bikes: 'Splendor, Shine, Pulsar 125',
-                price: '3,999',
                 km: '2000 km/month',
-                deposit: '₹4,000',
                 features: ['Manual transmission', 'High mileage', 'Reliable', 'Low maintenance'],
                 popular: false,
               },
               {
                 category: 'Sports Bike',
                 bikes: 'FZ, Duke 200, Apache, Pulsar',
-                price: '5,999',
                 km: '1500 km/month',
-                deposit: '₹7,000',
                 features: ['Powerful engine', 'Sporty design', 'Good performance', 'Thrilling ride'],
                 popular: false,
               },
               {
                 category: 'Royal Enfield',
                 bikes: 'Classic 350, Meteor, Hunter',
-                price: '9,999',
                 km: '2000 km/month',
-                deposit: '₹10,000',
                 features: ['Iconic brand', 'Touring ready', 'Premium feel', 'Road presence'],
                 popular: false,
               },
@@ -267,8 +304,7 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
                 )}
                 <h3 className="text-xl font-bold mb-2">{plan.category}</h3>
                 <p className="text-sm text-gray-600 mb-3">{plan.bikes}</p>
-                <p className="text-3xl font-bold text-emerald-700">₹{plan.price}</p>
-                <p className="text-sm text-gray-500 mb-4">/month</p>
+                <p className="text-sm font-semibold text-emerald-700 mb-4">Monthly plan</p>
                 <ul className="space-y-2 mb-4 text-sm">
                   {plan.features.map((f, i) => (
                     <li key={i} className="flex items-center gap-2">
@@ -278,7 +314,7 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
                 </ul>
                 <div className="border-t pt-3 space-y-1 text-sm text-gray-600">
                   <p>KM Limit: {plan.km}</p>
-                  <p>Deposit: {plan.deposit} (refundable)</p>
+                  <p>Deposit: refundable, confirmed at pickup</p>
                 </div>
                 <button className="w-full mt-4 bg-emerald-600 text-white py-2 rounded hover:bg-emerald-700 transition">
                   Book Now
@@ -411,9 +447,9 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
           </h2>
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {[
-              { href: `/bike-on-rent/${params.location}`, Icon: BikeIcon, title: 'Daily Bike Rental', desc: 'Rent by day or week. From ₹299/day' },
-              { href: `/activa-on-rent/${params.location}`, Icon: Zap, title: 'Activa on Rent', desc: 'Scooters for easy city rides. From ₹299/day' },
-              { href: `/royal-enfield-on-rent/${params.location}`, Icon: BikeIcon, title: 'Royal Enfield Rental', desc: 'Bullet, Classic 350, Himalayan. From ₹599/day' },
+              { href: `/bike-on-rent/${params.location}`, Icon: BikeIcon, title: 'Daily Bike Rental', desc: 'Rent by day or week. From by the day' },
+              { href: `/activa-on-rent/${params.location}`, Icon: Zap, title: 'Activa on Rent', desc: 'Scooters for easy city rides. From city runs' },
+              { href: `/royal-enfield-on-rent/${params.location}`, Icon: BikeIcon, title: 'Royal Enfield Rental', desc: 'Bullet, Classic 350, Himalayan. From road trips' },
             ].map((opt) => (
               <Link
                 key={opt.title}
@@ -432,7 +468,7 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
       </section>
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <RelatedServices
         locationSlug={params.location}
@@ -447,7 +483,6 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
           { slug: 'apache-on-rent', name: 'Apache on Rent' },
           { slug: 'splendor-on-rent', name: 'Splendor on Rent' },
           { slug: 'himalayan-on-rent', name: 'Himalayan on Rent' },
-          { slug: 'monthly-bike-rental', name: 'Monthly Bike Rental' },
           { slug: 'electric-scooter-rental', name: 'Electric Scooter' },
         ]}
       />
