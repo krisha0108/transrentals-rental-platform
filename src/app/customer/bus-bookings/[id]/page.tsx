@@ -26,6 +26,7 @@ import {
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { quoteDisplay } from '@/lib/quote-font';
+import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
 
 interface Customer {
   id: string;
@@ -951,6 +952,8 @@ export default function CustomerBusBookingDetailPage() {
               </div>
             </div>
           )}
+
+          {booking.vendor && <BookingPaymentSafetyNotice />}
 
           {/* Booking Info */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

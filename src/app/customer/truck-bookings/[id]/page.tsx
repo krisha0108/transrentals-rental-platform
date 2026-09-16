@@ -25,6 +25,7 @@ import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import TruckRequestDetails from '@/components/truck/TruckRequestDetails';
 import { quoteDisplay } from '@/lib/quote-font';
+import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
 
 interface Customer {
   id: string;
@@ -886,6 +887,8 @@ export default function CustomerTruckBookingDetailPage() {
             </div>
           </div>
         )}
+
+        {booking.vendor && <BookingPaymentSafetyNotice />}
 
         {/* Actions */}
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
