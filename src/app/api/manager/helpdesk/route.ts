@@ -103,6 +103,18 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Inquiry not found' }, { status: 404 });
       }
 
+      // Is this inquiry's contact info tied to a registered customer account?
+      // Matched on email or phone since a visitor may not have given both.
+      const customerOr: any[] = [];
+      if (inquiry.email) customerOr.push({ email: inquiry.email });
+      if (inquiry.phone) customerOr.push({ phone: inquiry.phone });
+      const customer = customerOr.length
+        ? await prisma.customers.findFirst({
+            where: { OR: customerOr },
+            select: { id: true, totalBookings: true },
+          })
+        : null;
+
       return NextResponse.json({
         success: true,
         inquiry: {
@@ -116,6 +128,8 @@ export async function GET(request: NextRequest) {
           resolution: inquiry.resolution,
           resolved_at: inquiry.resolvedAt?.toISOString() || null,
           created_at: inquiry.createdAt.toISOString(),
+          customerId: customer?.id || null,
+          customerTotalBookings: customer?.totalBookings ?? 0,
         },
       });
     }
