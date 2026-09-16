@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, Image, StatusBar,
+  RefreshControl, Image, StatusBar, Linking, Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorProfile, getBaseURL } from '../../api/client';
 import { SC as T, G, rs, shade, cardShadow, SHEET_RADIUS } from '../_shared/theme';
@@ -77,6 +78,22 @@ export default function BusinessProfileScreen({ navigation }) {
 
   const logoUrl = getFullImageURL(profile?.logo);
   const initials = (profile?.businessName || 'B').charAt(0).toUpperCase();
+
+  // Public partner page + its WhatsApp share — mirrors the button the web
+  // vendor portal now carries on this same screen.
+  const shareUrl = profile && baseURL ? `${baseURL}/partner/${profile.slug || profile.id}` : '';
+  const shareText = `Check out ${profile?.businessName || 'our rentals'} on TransRentals`;
+
+  const shareOnWhatsApp = async () => {
+    if (!shareUrl) return;
+    const msg = `${shareText} ${shareUrl}`;
+    try {
+      await Linking.openURL(`whatsapp://send?text=${encodeURIComponent(msg)}`);
+    } catch (e) {
+      // WhatsApp isn't installed — fall back to the OS share sheet.
+      try { await Share.share({ message: msg }); } catch (_) { /* dismissed */ }
+    }
+  };
 
   // ── Info Card Row ──
   const InfoRow = ({ icon, label, value, color = C.g700, bg = C.g50, last = false }) => {
@@ -196,6 +213,16 @@ export default function BusinessProfileScreen({ navigation }) {
                 <Text style={st.gstTxt}>GST: {profile.gstNumber}</Text>
               )}
             </View>
+
+            {/* Only once a manager has accepted the partnership agreement —
+                same rule as the web vendor portal. */}
+            {profile?.agreementVerified && (
+              <Image
+                source={require('../../../assets/verified-badge.png')}
+                style={st.verifiedBadge}
+                resizeMode="contain"
+              />
+            )}
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -305,6 +332,20 @@ export default function BusinessProfileScreen({ navigation }) {
 
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      {/* ── STICKY ACTION BAR — the WhatsApp share the web portal keeps
+          alongside Save Changes on its Business Profile page ── */}
+      <SafeAreaView edges={['bottom']} style={st.actionBar}>
+        <TouchableOpacity
+          onPress={shareOnWhatsApp}
+          disabled={!shareUrl}
+          activeOpacity={0.85}
+          style={[st.waBtn, !shareUrl && st.waBtnDisabled]}
+        >
+          <Ionicons name="logo-whatsapp" size={19} color="#fff" />
+          <Text style={st.waBtnTxt}>Share on WhatsApp</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
     </View>
   );
 }
@@ -367,6 +408,22 @@ const st = StyleSheet.create({
   },
   typeChipTxt:     { fontSize: 12, fontWeight: '600', color: C.g400 },
   gstTxt:          { fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: '500' },
+  verifiedBadge:   { width: 48, height: 48, flexShrink: 0 },
+
+  /* ── Sticky WhatsApp share bar ── */
+  actionBar: {
+    position: 'absolute', left: 0, right: 0, bottom: 0,
+    backgroundColor: C.card,
+    borderTopWidth: 1, borderTopColor: C.border,
+    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12,
+  },
+  waBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#25D366', borderRadius: rs(14), paddingVertical: 14,
+    ...cardShadow,
+  },
+  waBtnDisabled: { backgroundColor: '#C7CFD9' },
+  waBtnTxt: { fontFamily: DISPLAY, fontSize: 15, fontWeight: '700', color: '#fff' },
 
   /* ── Sections ── */
   section: {
