@@ -119,9 +119,7 @@ const schemaFaqs = [
 const schemaVehicles = [
   { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 599, image: 'https://transrentals.in/images/bikes/classic-350.jpg' },
   { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 699, image: 'https://transrentals.in/images/bikes/himalayan.jpg' },
-  { name: 'Honda Activa 6G', brand: 'Honda', price: 299, image: 'https://transrentals.in/images/bikes/activa-6g.jpg' },
   { name: 'KTM Duke 390', brand: 'KTM', price: 799, image: 'https://transrentals.in/images/bikes/duke-390.jpg' },
-  { name: 'TVS Jupiter', brand: 'TVS', price: 299, image: 'https://transrentals.in/images/bikes/jupiter.jpg' },
 ];
 
 export default function BikeRentalPage() {

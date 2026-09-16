@@ -9,6 +9,11 @@ import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { Mountain, ShieldCheck, Briefcase, Fuel, Route as RouteIcon, Clock, ArrowRight, Compass, Bike } from 'lucide-react';
 import { resolveServicePage } from '@/lib/services/service-availability';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
@@ -38,21 +43,67 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('himalayan-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Himalayan on Rent in ${locationName} | @₹1499/Day`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Royal Enfield Himalayan in ${locationName}. Adventure touring bike for mountain trips.`,
+    // No rate is quoted for this page — see the note in the page body.
+    title: stripPricesFromText(scContent?.metaTitle || _seoDb?.metaTitle || `Himalayan on Rent in ${locationName} | TransRentals`),
+    description: stripPricesFromText(scContent?.metaDescription || _seoDb?.metaDescription || `Rent Royal Enfield Himalayan in ${locationName}. Adventure touring bike for mountain trips.`),
     alternates: { canonical: `https://transrentals.in/himalayan-on-rent/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Royal Enfield Himalayan on Rent in ${locationName} | TransRentals`,
-      description: `Rent Royal Enfield Himalayan in ${locationName} starting @₹1499/day. Adventure touring bike for mountain trips.`,
+      description: `Rent Royal Enfield Himalayan in ${locationName} from verified partners.`,
     },
   };
 }
 
+const launchFaqs = [
+  { question: 'What documents do I need to rent?', answer: 'A valid two-wheeler driving licence and one government photo ID (Aadhaar, passport or voter card).' },
+  { question: 'Is a helmet included?', answer: 'Yes, a helmet is included with every rental.' },
+  { question: 'Is roadside assistance available?', answer: 'Yes, our partners provide 24/7 roadside assistance for the length of your rental.' },
+];
+
 export default async function HimalayanLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('himalayan-on-rent', params.location);
+  // Availability follows Bike Rental: there is no services row under
+  // "himalayan-on-rent" (an unknown slug used to read as "available everywhere"),
+  // so this page could never be switched off for a city. One admin screen
+  // now controls every bike page, this one included.
+  const pageContext = await resolveServicePage('himalayan-on-rent', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'bike-on-rent',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="himalayan-on-rent" serviceName="Himalayan on Rent" />;
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the
+  // nearest city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/himalayan-on-rent" className="hover:text-primary">Himalayan on Rent</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="Himalayan rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="himalayan-on-rent"
+            serviceName="Himalayan on Rent"
+          />
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} selectionDesc="Royal Enfield Himalayan 411 and Himalayan 450 — built for the long road." />
+        <FAQSection service="himalayan-on-rent" location={cityName} customFaqs={launchFaqs} />
+      </>
+    );
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
@@ -61,11 +112,14 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
     getServiceCityContent('himalayan-on-rent', params.location),
   ]);
 
+  // No rate is quoted anywhere on this page — the real price depends on the
+  // partner and the dates, so a number in the copy would only mislead.
+  const heroDescription = stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined;
+
   const pageFaqs = [
     { question: 'Is the Royal Enfield Himalayan good for mountain trips?', answer: 'Yes — the Himalayan 411 is built for adventure touring with long-travel suspension, 21-inch front wheel, and fuel range of 400+ km.' },
     { question: 'What documents do I need to rent a Himalayan?', answer: 'A valid gear motorcycle licence (MCWG), one government ID (Aadhaar/passport), and a refundable security deposit are required.' },
     { question: 'Can I ride the Himalayan on unpaved or off-road trails?', answer: 'Light off-road use on gravel and forest tracks is permitted. Extreme off-roading voids the damage waiver — contact us for specific route approval.' },
-    { question: 'How much does Himalayan rental cost per day?', answer: 'Royal Enfield Himalayan rental starts at ₹1499/day including helmet and insurance. Weekly packages offer up to 20% savings.' },
   ];
 
   return (
@@ -86,7 +140,7 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
         city={locationName}
         citySlug={params.location.toLowerCase()}
         pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
+        pageDescription={heroDescription}
       />
 
       <section className="bg-white py-10 border-b border-gray-100">
@@ -158,36 +212,17 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
         ` }} />
       </section>
 
-      {/* Himalayan Options */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
-            Himalayan Options in <span className="text-emerald-600">{locationName}</span>
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
-            {[
-              { name: 'Himalayan 411cc', price: 1499 },
-              { name: 'Himalayan 450', price: 1799 },
-            ].map((v) => (
-              <div key={v.name} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
-                <span className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
-                  <Bike className="w-6 h-6 text-emerald-600" />
-                </span>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">{v.name}</h3>
-                <p className="text-2xl font-black text-emerald-700 mb-4">₹{v.price}<span className="text-sm font-medium text-gray-400">/day</span></p>
-                <ul className="text-sm text-gray-600 space-y-2 text-left max-w-[180px] mx-auto">
-                  {['Helmet included', 'Insurance covered', 'Panniers available'].map((f) => (
-                    <li key={f} className="flex items-center gap-2">
-                      <span className="shrink-0 w-4 h-4 rounded-full bg-emerald-50 grid place-items-center text-emerald-600 text-[10px]">✓</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Available bikes — purely whatever the admin has published for this
+          city. Nothing hardcoded, and the section renders nothing at all when
+          the city has no published fleet. */}
+      <LazyServiceFleetDisplay
+        serviceSlug="himalayan-on-rent"
+        locationSlug={params.location}
+        title={`Himalayan Options in ${locationName}`}
+        showCategories={true}
+        limit={12}
+        hidePrices
+      />
 
       {/* Popular Routes */}
       <section className="relative py-16 bg-gradient-to-b from-gray-50 via-white to-gray-50 overflow-hidden">
@@ -276,7 +311,7 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="himalayan-on-rent" location={locationName} customFaqs={pageFaqs} />
 
@@ -292,7 +327,6 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
           { slug: 'pulsar-on-rent', name: 'Pulsar on Rent' },
           { slug: 'apache-on-rent', name: 'Apache on Rent' },
           { slug: 'splendor-on-rent', name: 'Splendor on Rent' },
-          { slug: 'himalayan-on-rent', name: 'Himalayan on Rent' },
           { slug: 'monthly-bike-rental', name: 'Monthly Bike Rental' },
           { slug: 'electric-scooter-rental', name: 'Electric Scooter' },
         ]}
