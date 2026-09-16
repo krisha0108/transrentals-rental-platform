@@ -441,11 +441,11 @@ export default function ManagerTicketDetailPage() {
                       View Customer Bookings
                     </Link>
                     <Link
-                      href={`/manager/helpdesk?search=${encodeURIComponent(ticket.customer.email)}`}
+                      href={`/manager/inquiries?search=${encodeURIComponent(ticket.customer.email)}`}
                       className="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium rounded-xl hover:bg-indigo-100 transition"
                     >
                       <Inbox className="w-4 h-4" />
-                      View Customer Tickets & Inquiries
+                      View Customer Quote Requests
                     </Link>
                   </div>
                 </div>
