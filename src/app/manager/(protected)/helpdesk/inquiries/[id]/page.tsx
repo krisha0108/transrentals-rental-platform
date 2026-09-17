@@ -16,6 +16,9 @@ import {
   XCircle,
   Loader2,
   Save,
+  Calendar,
+  BadgeCheck,
+  Inbox,
 } from 'lucide-react';
 
 interface Inquiry {
@@ -29,6 +32,8 @@ interface Inquiry {
   resolution: string | null;
   resolved_at: string | null;
   created_at: string;
+  customerId: string | null;
+  customerTotalBookings: number;
 }
 
 const STATUS_OPTIONS = [
@@ -306,7 +311,15 @@ export default function ManagerInquiryDetailPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="font-semibold text-slate-900 truncate">{inquiry.name}</p>
-                  <p className="text-sm text-slate-500">Website Visitor</p>
+                  {inquiry.customerId ? (
+                    <p className="text-sm text-emerald-600 font-medium flex items-center gap-1">
+                      <BadgeCheck className="w-3.5 h-3.5" />
+                      Registered Customer
+                      {inquiry.customerTotalBookings > 0 && ` · ${inquiry.customerTotalBookings} booking${inquiry.customerTotalBookings === 1 ? '' : 's'}`}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-slate-500">Website Visitor</p>
+                  )}
                 </div>
               </div>
 
@@ -343,6 +356,24 @@ export default function ManagerInquiryDetailPage() {
                     <Phone className="w-4 h-4" />
                     Call Customer
                   </a>
+                )}
+                {inquiry.customerId && (
+                  <>
+                    <Link
+                      href={`/manager/bookings?search=${encodeURIComponent(inquiry.email)}`}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-xl hover:bg-emerald-100 transition"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      View Customer Bookings
+                    </Link>
+                    <Link
+                      href={`/manager/inquiries?search=${encodeURIComponent(inquiry.email)}`}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium rounded-xl hover:bg-indigo-100 transition"
+                    >
+                      <Inbox className="w-4 h-4" />
+                      View Customer Quote Requests
+                    </Link>
+                  </>
                 )}
               </div>
             </div>

@@ -28,6 +28,7 @@ import {
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { quoteDisplay } from '@/lib/quote-font';
+import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
 
 interface Customer {
   id: string;
@@ -802,6 +803,8 @@ export default function CustomerEquipmentBookingDetailPage() {
               </div>
             </div>
           )}
+
+          {booking.vendor && <BookingPaymentSafetyNotice />}
 
           <div className={CARD}>
             <div className={CARD_HEAD}><p className={CARD_LABEL}>Need a hand</p></div>
