@@ -20,6 +20,19 @@ import { BackrTokenSection } from '@/components/home/BackrTokenSection';
 import { AppDownloadSection } from '@/components/home/AppDownloadSection';
 import { useLocations, type Location } from '@/components/booking/useLocations';
 import { useCustomerAuth } from '@/hooks/useCustomer';
+import { Fraunces } from 'next/font/google';
+
+// Same premium serif used on /wander — loaded here and scoped to the
+// homepage only (via the --font-heading override on the page's outer div
+// below), so every existing `font-heading` class on this page picks it up
+// without touching each of their classNames individually.
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '900'],
+  style: ['normal', 'italic'],
+  variable: '--font-display-home',
+  display: 'swap',
+});
 
 // Shape returned by the real /api/airports endpoint (src/app/api/airports/route.ts)
 // — same data the real CarRentalBookingHero's Airport tab searches.
@@ -445,7 +458,10 @@ export default function MarketplacePage() {
   const { locations } = useLocations();
 
   return (
-    <div className="bg-white">
+    <div
+      className={`bg-white ${fraunces.variable}`}
+      style={{ '--font-heading': 'var(--font-display-home)' } as React.CSSProperties}
+    >
       {/* ══════════════════════════════ HERO ══════════════════════════════ */}
       {/* Temporarily hidden while the 3rd section (TransportSearchHero) is being reviewed. */}
       {false && (
