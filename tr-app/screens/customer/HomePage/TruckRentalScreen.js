@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-  Modal, Platform, Dimensions, Animated, ActivityIndicator, Pressable, StatusBar,
+  Modal, Platform, Dimensions, Animated, ActivityIndicator, Pressable,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Icon from 'react-native-vector-icons/Feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -123,11 +125,9 @@ export default function TruckRentalScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') StatusBar.setBackgroundColor(TEAL_DEEP);
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content');
-        if (Platform.OS === 'android') StatusBar.setBackgroundColor('#FFFFFF');
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -278,6 +278,7 @@ export default function TruckRentalScreen() {
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <LinearGradient colors={[TEAL_MID, TEAL]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.headerGradient}>
         <View style={styles.decorCircle1} /><View style={styles.decorCircle2} /><View style={styles.decorCircle3} />
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerTopRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Icon name="arrow-left" size={wp('5%')} color="#FFFFFF" />
@@ -307,9 +308,10 @@ export default function TruckRentalScreen() {
             <Text style={styles.trustChipText}>No Booking Fee</Text>
           </View>
         </View>
+        </SafeAreaView>
       </LinearGradient>
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} keyboardDismissMode="on-drag" contentContainerStyle={{ paddingBottom: hp('2%') }}>
+      <KeyboardAwareScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp('2%') }} bottomOffset={20}>
         <View style={styles.formCard}>
           <View style={styles.formHeaderRow}>
             <View style={{ flex: 1 }}>
@@ -639,7 +641,7 @@ export default function TruckRentalScreen() {
             );
           })}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <Modal visible={isPhoneModal} transparent animationType="fade" onRequestClose={() => setIsPhoneModal(false)}>
         <View style={styles.modalOverlay}>
@@ -689,7 +691,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
   container: { backgroundColor: 'transparent' },
 
-  headerGradient: { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0, paddingBottom: hp('1.8%'), paddingHorizontal: wp('4%'), borderBottomLeftRadius: wp('7%'), borderBottomRightRadius: wp('7%'), overflow: 'hidden' },
+  headerGradient: { paddingBottom: hp('1.8%'), paddingHorizontal: wp('4%'), borderBottomLeftRadius: wp('7%'), borderBottomRightRadius: wp('7%'), overflow: 'hidden' },
   decorCircle1: { position: 'absolute', width: wp('35%'), height: wp('35%'), borderRadius: wp('17.5%'), backgroundColor: 'rgba(255,255,255,0.06)', top: -wp('10%'), right: -wp('8%') },
   decorCircle2: { position: 'absolute', width: wp('25%'), height: wp('25%'), borderRadius: wp('12.5%'), backgroundColor: 'rgba(255,255,255,0.04)', bottom: -wp('5%'), left: -wp('5%') },
   decorCircle3: { position: 'absolute', width: wp('15%'), height: wp('15%'), borderRadius: wp('7.5%'), backgroundColor: 'rgba(255,255,255,0.05)', top: hp('2%'), left: wp('30%') },

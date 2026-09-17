@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Clipboard } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -783,9 +784,11 @@ const linking = {
 // Main App wrapper
 export default function App() {
   return (
-    <NavigationContainer linking={linking}>
-      <AppWithNotifications />
-    </NavigationContainer>
+    <KeyboardProvider>
+      <NavigationContainer linking={linking}>
+        <AppWithNotifications />
+      </NavigationContainer>
+    </KeyboardProvider>
   );
 }
 

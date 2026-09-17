@@ -7,17 +7,18 @@
 //   2. Day-wise plan (per-day services + vehicles)
 //   3. Customer info + submit
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-  Image, Platform, ActivityIndicator, Alert, Modal, Pressable, KeyboardAvoidingView,
-  findNodeHandle, UIManager,
-} from 'react-native';
+  Image, Platform, ActivityIndicator, Alert, Modal, Pressable,
+  findNodeHandle, UIManager,} from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Icon from 'react-native-vector-icons/Feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { fleetService, locationService } from '../../services';
 import api from '../../api';
 // Phase 7 — TA Personal/Company toggle (self-gated).
@@ -575,6 +576,17 @@ const makeEmptyDay = (date) => ({ date, services: [makeEmptyService()], copiedFr
 
 export default function CustomBookingScreen() {
   const navigation = useNavigation();
+
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   const scrollRef = useRef(null);
   const scrollFocusedInputIntoView = (event) => {
     const inputHandle = findNodeHandle(event.target);

@@ -8,8 +8,8 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
-  StatusBar,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -36,15 +36,9 @@ export default function MyEquipmentBookingsScreen() {
   /* ── StatusBar management ─────────────── */
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content');
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF');
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -126,6 +120,7 @@ export default function MyEquipmentBookingsScreen() {
     >
       <View style={[styles.decoCircle, { top: -30, right: -20, width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
       <View style={[styles.decoCircle, { bottom: -15, left: -15, width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
+      <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
@@ -135,6 +130,7 @@ export default function MyEquipmentBookingsScreen() {
           <Ionicons name="refresh" size={wp('4.5%')} color="#FFF" />
         </TouchableOpacity>
       </View>
+      </SafeAreaView>
     </LinearGradient>
   );
 
@@ -358,13 +354,13 @@ export default function MyEquipmentBookingsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
-        <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
         <LinearGradient
           colors={[TEAL_DEEP, TEAL_MID, '#047857']}
           style={styles.headerGrad}
         >
           <View style={[styles.decoCircle, { top: -30, right: -20, width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
           <View style={[styles.decoCircle, { bottom: -15, left: -15, width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
@@ -372,6 +368,7 @@ export default function MyEquipmentBookingsScreen() {
             <Text style={styles.headerTitle}>My Equipment Rentals</Text>
             <View style={styles.headerIconBtn} />
           </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={TEAL} />
@@ -384,7 +381,6 @@ export default function MyEquipmentBookingsScreen() {
   /* ── Main Render ──────────────────────── */
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
 
       {renderHeader()}
 
@@ -458,7 +454,7 @@ const styles = StyleSheet.create({
 
   /* ── Header Gradient ─────────────────── */
   headerGrad: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('1%') : hp('1%'),
+    paddingTop: hp('1%'),
     paddingBottom: hp('2.5%'),
     paddingHorizontal: wp('4%'),
     borderBottomLeftRadius: wp('6%'),

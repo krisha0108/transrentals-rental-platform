@@ -6,13 +6,13 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Alert,
   ScrollView,
-  StatusBar,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -91,15 +91,9 @@ export default function BookingChatScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content', true);
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP, true);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content', true);
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#0A6B3F', true);
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -317,8 +311,9 @@ export default function BookingChatScreen() {
   // ── Loading State ─────────────────────────────────────────
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.header}>
+          <SafeAreaView edges={['top']} style={{ flexDirection: 'row', alignItems: 'center', flex: 1, backgroundColor: 'transparent' }}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={wp(5.5)} color="#FFFFFF" />
           </TouchableOpacity>
@@ -333,6 +328,7 @@ export default function BookingChatScreen() {
           <TouchableOpacity onPress={navigateToBookingDetail} style={styles.phoneBtn}>
             <Ionicons name="document-text-outline" size={wp(5)} color="#FFFFFF" />
           </TouchableOpacity>
+          </SafeAreaView>
         </LinearGradient>
         {renderBookingSwitcher()}
         <View style={styles.loadingContainer}>
@@ -344,9 +340,10 @@ export default function BookingChatScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* ── Header ─────────────────────────────────────────── */}
       <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.header}>
+        <SafeAreaView edges={['top']} style={{ flexDirection: 'row', alignItems: 'center', flex: 1, backgroundColor: 'transparent' }}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={wp(5.5)} color="#FFFFFF" />
         </TouchableOpacity>
@@ -361,6 +358,7 @@ export default function BookingChatScreen() {
         <TouchableOpacity onPress={navigateToBookingDetail} style={styles.bookingViewBtn}>
           <Ionicons name="document-text-outline" size={wp(5)} color="#FFFFFF" />
         </TouchableOpacity>
+        </SafeAreaView>
       </LinearGradient>
 
       {/* ── Booking Switcher ────────────────────────────────── */}

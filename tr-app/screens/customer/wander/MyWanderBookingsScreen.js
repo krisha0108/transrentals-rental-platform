@@ -13,7 +13,9 @@ import {
   RefreshControl,
   Linking,
   Alert,
+  Platform,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -177,6 +179,17 @@ function BookingCard({ item, onPress }) {
 // ─── Main Screen ───────────────────────────────────────────────────────────
 export default function MyWanderBookingsScreen() {
   const navigation = useNavigation();
+
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   const [activeTab, setActiveTab] = useState('quotes');
   const [quotes, setQuotes] = useState([]);
   const [bookings, setBookings] = useState([]);

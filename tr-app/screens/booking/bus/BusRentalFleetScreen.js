@@ -6,15 +6,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  SafeAreaView,
   Alert,
   ActivityIndicator,
   BackHandler,
   Modal,
-  StatusBar,
   Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -178,11 +178,9 @@ export default function BusRentalFleetScreen() {
   // StatusBar management
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      StatusBar.setBackgroundColor(TEAL_DEEP);
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content');
-        StatusBar.setBackgroundColor('#FFFFFF');
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -1307,8 +1305,7 @@ export default function BusRentalFleetScreen() {
 
   // ========== MAIN RETURN ==========
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+    <SafeAreaView style={styles.container} edges={['bottom']}>
 
       {/* Premium Header */}
       <LinearGradient
@@ -1318,24 +1315,26 @@ export default function BusRentalFleetScreen() {
         style={styles.header}
       >
         {renderDecoCircles()}
-        <TouchableOpacity onPress={handleBackPress} style={styles.backBtn} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={wp('5.5%')} color="#fff" />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Bus Rental</Text>
-          {step < 8 && (
-            <Text style={styles.headerSubtitle}>
-              Step {step} of {totalSteps}
-            </Text>
-          )}
-        </View>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('MyBusBookings')}
-          style={styles.myBookingsBtn}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="document-text-outline" size={wp('5%')} color="#fff" />
-        </TouchableOpacity>
+        <SafeAreaView edges={['top']} style={{ flexDirection: 'row', alignItems: 'center', flex: 1, backgroundColor: 'transparent' }}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backBtn} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={wp('5.5%')} color="#fff" />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>Bus Rental</Text>
+            {step < 8 && (
+              <Text style={styles.headerSubtitle}>
+                Step {step} of {totalSteps}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MyBusBookings')}
+            style={styles.myBookingsBtn}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="document-text-outline" size={wp('5%')} color="#fff" />
+          </TouchableOpacity>
+        </SafeAreaView>
       </LinearGradient>
 
       {/* Step Indicator */}
@@ -1343,10 +1342,11 @@ export default function BusRentalFleetScreen() {
 
       {/* Content */}
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        bottomOffset={20}
       >
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
@@ -1356,7 +1356,7 @@ export default function BusRentalFleetScreen() {
         {step === 6 && renderStep6()}
         {step === 7 && renderStep7()}
         {step === 8 && renderStep8()}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Next Button */}
       {step < 8 && (
@@ -1510,7 +1510,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: wp('4%'),
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('0.5%') : hp('1%'),
+    paddingTop: Platform.OS === 'android' ? hp('0.5%') : hp('1%'),
     paddingBottom: hp('1.5%'),
     borderBottomLeftRadius: wp('6%'),
     borderBottomRightRadius: wp('6%'),

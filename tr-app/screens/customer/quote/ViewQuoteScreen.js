@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,8 +15,11 @@ import {
   Alert,
   Animated,
   ScrollView,
+  Platform,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import QRCode from 'react-native-qrcode-svg';
@@ -870,6 +873,16 @@ const PaymentModal = ({
 
 export default function QuoteDetailScreen({ route, navigation }) {
   const quoteId = route?.params?.quoteId;
+
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
 
   const [quote, setQuote] = useState(null);
   const [quotes, setQuotes] = useState([]);

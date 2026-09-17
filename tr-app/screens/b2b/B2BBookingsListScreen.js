@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, FlatList,
-  ActivityIndicator, RefreshControl, Dimensions, Platform, StatusBar,
-} from 'react-native';
+  ActivityIndicator, RefreshControl, Dimensions, Platform,} from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import { b2bService } from '../services';
 
@@ -36,6 +37,16 @@ const STATUS_COLORS = {
 };
 
 export default function B2BBookingsListScreen({ navigation, route }) {
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bookings, setBookings] = useState([]);

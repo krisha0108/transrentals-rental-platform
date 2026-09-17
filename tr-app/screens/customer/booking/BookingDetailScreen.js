@@ -14,13 +14,13 @@ import {
   TouchableOpacity,
   Platform,
   Pressable,
-  SafeAreaView,
   Share,
   ActivityIndicator,
   Linking,
   Alert,
-  StatusBar,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -131,15 +131,9 @@ const BookingDetails = () => {
   // StatusBar management
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content', true);
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP, true);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content', true);
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF', true);
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -540,17 +534,19 @@ const BookingDetails = () => {
   // ---------- LOADING / EMPTY STATE ----------
   if (loading && !booking) {
     return (
-      <SafeAreaView style={redesignStyles.container}>
+      <SafeAreaView style={redesignStyles.container} edges={['bottom']}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={redesignStyles.headerGrad}>
           <View style={[redesignStyles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} />
           <View style={[redesignStyles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} />
-          <View style={redesignStyles.headerRow}>
-            <TouchableOpacity onPress={handleBackPress} style={redesignStyles.backBtn}>
-              <Ionicons name="chevron-back" size={22} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={redesignStyles.headerTitle}>Loading...</Text>
-            <View style={{ width: wp('9%') }} />
-          </View>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={redesignStyles.headerRow}>
+              <TouchableOpacity onPress={handleBackPress} style={redesignStyles.backBtn}>
+                <Ionicons name="chevron-back" size={22} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={redesignStyles.headerTitle}>Loading...</Text>
+              <View style={{ width: wp('9%') }} />
+            </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG }}>
           <ActivityIndicator size="large" color={TEAL} />
@@ -562,17 +558,19 @@ const BookingDetails = () => {
 
   if (!booking && !loading) {
     return (
-      <SafeAreaView style={redesignStyles.container}>
+      <SafeAreaView style={redesignStyles.container} edges={['bottom']}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={redesignStyles.headerGrad}>
           <View style={[redesignStyles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} />
           <View style={[redesignStyles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} />
-          <View style={redesignStyles.headerRow}>
-            <TouchableOpacity onPress={handleBackPress} style={redesignStyles.backBtn}>
-              <Ionicons name="chevron-back" size={22} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={redesignStyles.headerTitle}>Booking Details</Text>
-            <View style={{ width: wp('9%') }} />
-          </View>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={redesignStyles.headerRow}>
+              <TouchableOpacity onPress={handleBackPress} style={redesignStyles.backBtn}>
+                <Ionicons name="chevron-back" size={22} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={redesignStyles.headerTitle}>Booking Details</Text>
+              <View style={{ width: wp('9%') }} />
+            </View>
+          </SafeAreaView>
         </LinearGradient>
 
         <ScrollView
@@ -616,7 +614,7 @@ const BookingDetails = () => {
 
   // ---------- MAIN RENDER ----------
   return (
-    <SafeAreaView style={redesignStyles.container}>
+    <SafeAreaView style={redesignStyles.container} edges={['bottom']}>
       <ScrollView
         style={redesignStyles.scroll}
         showsVerticalScrollIndicator={false}
@@ -630,6 +628,7 @@ const BookingDetails = () => {
           <View style={[redesignStyles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} />
           <View style={[redesignStyles.decoCircle, { top: hp('3%'), left: wp('25%'), width: 40, height: 40 }]} />
 
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
           {/* Header row */}
           <View style={redesignStyles.headerRow}>
             <TouchableOpacity onPress={handleBackPress} style={redesignStyles.backBtn}>
@@ -778,6 +777,7 @@ const BookingDetails = () => {
               </View>
             </View>
           </View>
+          </SafeAreaView>
         </LinearGradient>
 
         {/* Drop Reason Banner */}
@@ -1489,7 +1489,7 @@ const redesignStyles = StyleSheet.create({
   // Gradient Header
   headerGrad: {
     paddingHorizontal: wp('4%'),
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp('1%') : hp('1%'),
+    paddingTop: Platform.OS === 'android' ? hp('1%') : hp('1%'),
     paddingBottom: wp('5%'),
     overflow: 'hidden',
   },

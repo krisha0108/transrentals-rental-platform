@@ -1,10 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, Animated, Easing, ScrollView,
-  KeyboardAvoidingView, Platform, Dimensions, Image, Modal, FlatList, StatusBar,
-} from 'react-native';
+  Platform, Dimensions, Image, Modal, FlatList,} from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import messaging from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,6 +23,16 @@ const BUSINESS_TYPES = [
 ];
 
 export default function B2BRegisterScreen({ navigation }) {
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   const [step, setStep] = useState(1); // 1 = personal, 2 = company
   const [loading, setLoading] = useState(false);
   const [showBusinessPicker, setShowBusinessPicker] = useState(false);
@@ -282,8 +294,7 @@ export default function B2BRegisterScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bottomOffset={20}>
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -307,8 +318,7 @@ export default function B2BRegisterScreen({ navigation }) {
               </Text>
             </View>
           </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
 
       {/* Business Type Picker Modal */}
       <Modal visible={showBusinessPicker} transparent animationType="slide">
@@ -370,7 +380,7 @@ const styles = StyleSheet.create({
   scrollContainer: { flexGrow: 1 },
   header: {
     backgroundColor: '#22C55E',
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + scale(16) : scale(60),
+    paddingTop: Platform.OS === 'android' ? scale(16) : scale(60),
     paddingBottom: scale(40),
     paddingHorizontal: scale(20),
     borderBottomLeftRadius: scale(30),

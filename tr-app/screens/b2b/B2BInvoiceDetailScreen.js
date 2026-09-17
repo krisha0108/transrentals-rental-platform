@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   ActivityIndicator, RefreshControl, Dimensions, Platform,
-  NativeModules, Modal,
-} from 'react-native';
+  NativeModules, Modal,} from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import RazorpayCheckout from 'react-native-razorpay';
 import { b2bService } from '../services';
@@ -14,6 +15,16 @@ const { width } = Dimensions.get('window');
 const scale = (size) => (size * width) / 375;
 
 export default function B2BInvoiceDetailScreen({ navigation, route }) {
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   const { invoiceId } = route.params;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

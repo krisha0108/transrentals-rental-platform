@@ -10,7 +10,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   Image,
   TextInput,
@@ -20,14 +19,15 @@ import {
   Dimensions,
   Alert,
   Platform,
-  StatusBar,
   useWindowDimensions,
   PermissionsAndroid,
   Linking,
   RefreshControl,
-  BackHandler,
-  KeyboardAvoidingView
+  BackHandler
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -574,6 +574,16 @@ export default function CustomerDashboard() {
     }, [])
   );
 
+  // ────── STATUS BAR — re-assert on every focus, not just first mount ──────
+  useFocusEffect(
+    React.useCallback(() => {
+      SystemBars.setStyle('light');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   // ────── PREVENT BACK NAVIGATION FROM CUSTOMER DASHBOARD ──────
   useFocusEffect(
     React.useCallback(() => {
@@ -966,66 +976,65 @@ export default function CustomerDashboard() {
   const showSkeleton = isLoading || isRefreshing;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* SPIN AND WIN FAB - COMMENTED OUT */}
       {/* <AnimatedSpinFab onPress={() => setSpinOpen(true)} /> */}
-
-
-      <StatusBar barStyle="light-content" backgroundColor="#0A0A0B" />
 
       {/* HEADER — in normal flow, not absolute */}
       <View style={styles.fixedHeader}>
         <LinearGradient colors={['#0A0A0B', '#0F1F19', '#123B2C']} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.headerGradientBg}>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
 
-          {/* Top Row - Profile & Actions */}
-          <View style={styles.headerTopRow}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('SettingScreen')}
-              style={styles.profileSection}
-              activeOpacity={0.8}
-            >
-              {customerImage ? (
-                <Image source={{ uri: customerImage }} style={styles.profileAvatar} />
-              ) : (
-                <View style={styles.profileAvatarPlaceholder}>
-                  <Icon name="user" size={18} color="#FFFFFF" />
-                </View>
-              )}
-              <View style={styles.profileInfo}>
-                <Text style={styles.greetingLabel}>Welcome back</Text>
-                <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">
-                  {userName}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.notificationBtn}
-              onPress={() => navigation.navigate('Notifications')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.notificationIconWrapper}>
-                <Icon name="bell" size={19} color="#FFFFFF" />
-                {unreadCount > 0 && (
-                  <View style={styles.notificationBadge}>
-                    <Text style={styles.notificationBadgeText}>
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </Text>
+            {/* Top Row - Profile & Actions */}
+            <View style={styles.headerTopRow}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('SettingScreen')}
+                style={styles.profileSection}
+                activeOpacity={0.8}
+              >
+                {customerImage ? (
+                  <Image source={{ uri: customerImage }} style={styles.profileAvatar} />
+                ) : (
+                  <View style={styles.profileAvatarPlaceholder}>
+                    <Icon name="user" size={18} color="#FFFFFF" />
                   </View>
                 )}
-              </View>
-            </TouchableOpacity>
-          </View>
+                <View style={styles.profileInfo}>
+                  <Text style={styles.greetingLabel}>Welcome back</Text>
+                  <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">
+                    {userName}
+                  </Text>
+                </View>
+              </TouchableOpacity>
 
-          {/* Location Row */}
-          {locationPermissionGranted && location && location !== 'Detecting...' && location !== 'Unknown' && (
-            <View style={styles.locationRow}>
-              <Icon name="map-pin" size={13} color="#FFFFFF" />
-              <Text style={styles.locationLabel} numberOfLines={1}>
-                {location}
-              </Text>
+              <TouchableOpacity
+                style={styles.notificationBtn}
+                onPress={() => navigation.navigate('Notifications')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.notificationIconWrapper}>
+                  <Icon name="bell" size={19} color="#FFFFFF" />
+                  {unreadCount > 0 && (
+                    <View style={styles.notificationBadge}>
+                      <Text style={styles.notificationBadgeText}>
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
             </View>
-          )}
+
+            {/* Location Row */}
+            {locationPermissionGranted && location && location !== 'Detecting...' && location !== 'Unknown' && (
+              <View style={styles.locationRow}>
+                <Icon name="map-pin" size={13} color="#FFFFFF" />
+                <Text style={styles.locationLabel} numberOfLines={1}>
+                  {location}
+                </Text>
+              </View>
+            )}
+          </SafeAreaView>
         </LinearGradient>
       </View>
       {showSkeleton ? (
@@ -1388,7 +1397,7 @@ export default function CustomerDashboard() {
               <TouchableOpacity onPress={closeModal}><Icon name="x" size={wp('7%')} color="#999" /></TouchableOpacity>
             </View>
 
-            <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ paddingBottom: hp('3%') }}>
+            <KeyboardAwareScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ paddingBottom: hp('3%') }} bottomOffset={20}>
               {/* Service Picker */}
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Service Type</Text>
@@ -1436,7 +1445,7 @@ export default function CustomerDashboard() {
                   }}
                 />
               )}
-            </ScrollView>
+            </KeyboardAwareScrollView>
 
             <TouchableOpacity onPress={postRequirement} style={styles.postBtnWrap}>
               <LinearGradient colors={[GREEN_GRADIENT_START, GREEN_GRADIENT_END]} style={styles.postBtn}>
@@ -1577,7 +1586,7 @@ const styles = StyleSheet.create({
   headerGradientBg: {
     paddingTop: Platform.select({
       ios: hp('4.2%'),
-      android: (StatusBar.currentHeight ?? 0) + hp('1%')
+      android: hp('1%')
     }),
     paddingHorizontal: wp('4.5%'),
     paddingBottom: hp('1.6%'),
@@ -2413,11 +2422,11 @@ const styles = StyleSheet.create({
 
   // Story Modal
   storyOverlay: { flex: 1, backgroundColor: '#000', justifyContent: 'center' },
-  progressContainer: { flexDirection: 'row', position: 'absolute', top: Platform.select({ ios: hp('7%'), android: (StatusBar.currentHeight ?? 0) + hp('2%') }), left: wp('4%'), right: wp('4%') },
+  progressContainer: { flexDirection: 'row', position: 'absolute', top: Platform.select({ ios: hp('7%'), android: hp('5%') }), left: wp('4%'), right: wp('4%') },
   progressBar: { flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.3)', marginHorizontal: 2, borderRadius: 2, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: '#fff' },
   filled: { backgroundColor: '#fff' },
-  storyTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', position: 'absolute', top: Platform.select({ ios: hp('7%'), android: (StatusBar.currentHeight ?? 0) + hp('2%') }), left: wp('4%'), right: wp('4%') },
+  storyTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', position: 'absolute', top: Platform.select({ ios: hp('7%'), android: hp('5%') }), left: wp('4%'), right: wp('4%') },
   storyUserRow: { flexDirection: 'row', alignItems: 'center' },
   storyAvatar: { width: wp('8%'), height: wp('8%'), borderRadius: wp('4%'), marginRight: wp('2%') },
   storyUser: { color: '#fff', fontWeight: 'bold', fontSize: wp('3.8%') },

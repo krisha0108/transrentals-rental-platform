@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  FlatList, ActivityIndicator, Dimensions, KeyboardAvoidingView, Platform, StatusBar,
+  FlatList, ActivityIndicator, Dimensions, Platform,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import { b2bService } from '../services';
 
@@ -11,6 +14,16 @@ const { width } = Dimensions.get('window');
 const scale = (size) => (size * width) / 375;
 
 export default function B2BChatScreen({ navigation, route }) {
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   const { bookingId } = route.params;
   const [loading, setLoading] = useState(true);
   const [vendors, setVendors] = useState([]);
@@ -218,7 +231,6 @@ const styles = StyleSheet.create({
   headerBar: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: scale(16), paddingVertical: scale(14),
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + scale(10) : scale(14),
     backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
   },
   headerTitle: { fontSize: scale(17), fontWeight: '700', color: '#1A1A1A' },

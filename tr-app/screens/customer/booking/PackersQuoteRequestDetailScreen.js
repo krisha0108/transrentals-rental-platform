@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl,
-  ActivityIndicator, Alert, Modal, StatusBar, Platform,
+  ActivityIndicator, Alert, Modal, Platform,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -49,11 +50,9 @@ export default function PackersQuoteRequestDetailScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content', true);
-      if (Platform.OS === 'android') StatusBar.setBackgroundColor(TEAL_DEEP, true);
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content', true);
-        if (Platform.OS === 'android') StatusBar.setBackgroundColor('#FFFFFF', true);
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -270,6 +269,7 @@ export default function PackersQuoteRequestDetailScreen() {
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
           <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
           <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <Ionicons name="chevron-back" size={22} color="#FFF" />
@@ -279,6 +279,7 @@ export default function PackersQuoteRequestDetailScreen() {
             </View>
             <View style={{ width: wp('10%') }} />
           </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={TEAL} />
@@ -294,6 +295,7 @@ export default function PackersQuoteRequestDetailScreen() {
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
           <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
           <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <Ionicons name="chevron-back" size={22} color="#FFF" />
@@ -303,6 +305,7 @@ export default function PackersQuoteRequestDetailScreen() {
             </View>
             <View style={{ width: wp('10%') }} />
           </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={styles.errorContainer}>
           <View style={styles.errorIconCircle}>
@@ -334,6 +337,7 @@ export default function PackersQuoteRequestDetailScreen() {
         <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
         <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
         <View style={[styles.decoCircle, { top: hp('3%'), left: wp('25%'), width: 40, height: 40 }]} pointerEvents="none" />
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={22} color="#FFF" />
@@ -346,6 +350,7 @@ export default function PackersQuoteRequestDetailScreen() {
             <Ionicons name="refresh" size={18} color="#FFF" />
           </TouchableOpacity>
         </View>
+        </SafeAreaView>
         <View style={styles.glassCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flex: 1 }}>
@@ -1292,7 +1297,7 @@ const styles = StyleSheet.create({
 
   /* ── Gradient Header ── */
   headerGrad: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('1%') : hp('1%'),
+    paddingTop: hp('1%'),
     paddingBottom: hp('2%'),
     paddingHorizontal: wp('4%'),
     overflow: 'hidden',
@@ -1995,7 +2000,7 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
   },
   detailsHeaderGrad: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('1%') : hp('1%'),
+    paddingTop: hp('1%'),
     paddingBottom: hp('1.5%'),
     paddingHorizontal: wp('4%'),
     overflow: 'hidden',

@@ -1,5 +1,5 @@
 // BusRentalScreen.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,10 +16,12 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Icon from 'react-native-vector-icons/Feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { locationService, bookingService } from '../../services';
@@ -100,6 +102,16 @@ const quoteData = [
 
 export default function BusRentalScreen() {
   const navigation = useNavigation();
+
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
 
   const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [expandedIndex, setExpandedIndex] = useState(null);
@@ -545,7 +557,7 @@ export default function BusRentalScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} keyboardDismissMode="on-drag" contentContainerStyle={{ paddingBottom: 20 }}>
+      <KeyboardAwareScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }} bottomOffset={20}>
         {/* form card */}
         <View style={styles.formCard}>
           <View style={styles.formHeaderRow}>
@@ -940,7 +952,7 @@ export default function BusRentalScreen() {
             );
           })}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* PHONE MODAL */}
       <Modal

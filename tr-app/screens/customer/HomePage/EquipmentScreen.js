@@ -12,10 +12,11 @@ import {
   TextInput,
   ActivityIndicator,
   Platform,
-  StatusBar,
   Alert,
   Animated,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -126,15 +127,9 @@ export default function EquipmentScreen() {
   /* ── StatusBar management ── */
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content');
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF');
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -401,6 +396,7 @@ export default function EquipmentScreen() {
         <View style={styles.decoCircle2} pointerEvents="none" />
         <View style={styles.decoCircle3} pointerEvents="none" />
 
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -418,13 +414,14 @@ export default function EquipmentScreen() {
             <Ionicons name="document-text-outline" size={wp('5%')} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
+        </SafeAreaView>
       </LinearGradient>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+        bottomOffset={20}
         onScrollBeginDrag={() => {
           if (!dropdownTouching.current) setShowSuggestions(false);
         }}
@@ -826,7 +823,7 @@ export default function EquipmentScreen() {
             );
           })}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* PHONE MISSING MODAL */}
       <Modal
@@ -921,7 +918,7 @@ const styles = StyleSheet.create({
 
   /* ── HEADER ── */
   headerGradient: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
+    paddingTop: 8,
     paddingBottom: hp('2.5%'),
     paddingHorizontal: wp('4%'),
     borderBottomLeftRadius: wp('6%'),
@@ -991,7 +988,7 @@ const styles = StyleSheet.create({
     borderRadius: wp('5%'),
     paddingVertical: hp('1.5%'),
     paddingHorizontal: wp('4%'),
-    marginTop: -hp('0.5%'),
+    marginTop: hp('1.5%'),
     ...SHADOW_MD,
   },
   formHeaderRow: {

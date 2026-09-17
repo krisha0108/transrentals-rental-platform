@@ -4,16 +4,16 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
   Linking,
   RefreshControl,
   Modal,
-  StatusBar,
   Platform,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -55,15 +55,9 @@ export default function TruckBookingDetailScreen() {
   // ── StatusBar management ──
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content');
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF');
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -181,17 +175,19 @@ export default function TruckBookingDetailScreen() {
   // ── Loading State ──
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
           <View style={[styles.decoCircle, { top: -hp('3%'), right: -wp('5%'), width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
           <View style={[styles.decoCircle, { bottom: -hp('1.5%'), left: -wp('3.5%'), width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Loading...</Text>
-            <View style={{ width: wp('9%') }} />
-          </View>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Loading...</Text>
+              <View style={{ width: wp('9%') }} />
+            </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={styles.loadingBody}>
           <ActivityIndicator size="large" color={TEAL} />
@@ -204,17 +200,19 @@ export default function TruckBookingDetailScreen() {
   // ── Empty / Not Found State ──
   if (!booking) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
           <View style={[styles.decoCircle, { top: -hp('3%'), right: -wp('5%'), width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
           <View style={[styles.decoCircle, { bottom: -hp('1.5%'), left: -wp('3.5%'), width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Truck Booking</Text>
-            <View style={{ width: wp('9%') }} />
-          </View>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Truck Booking</Text>
+              <View style={{ width: wp('9%') }} />
+            </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={styles.loadingBody}>
           <Text style={styles.errorText}>Booking not found</Text>
@@ -226,7 +224,7 @@ export default function TruckBookingDetailScreen() {
   const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING_PAYMENT;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* ── Gradient Header ── */}
       <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
         {/* Decorative circles */}
@@ -234,6 +232,7 @@ export default function TruckBookingDetailScreen() {
         <View style={[styles.decoCircle, { bottom: -hp('1.5%'), left: -wp('3.5%'), width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
         <View style={[styles.decoCircle, { top: hp('2%'), left: wp('30%'), width: wp('10%'), height: wp('10%') }]} pointerEvents="none" />
 
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
@@ -260,6 +259,7 @@ export default function TruckBookingDetailScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView
@@ -745,18 +745,20 @@ export default function TruckBookingDetailScreen() {
           animationType="slide"
           onRequestClose={() => setQuoteDetailsVisible(false)}
         >
-          <SafeAreaView style={styles.quoteModalContainer}>
+          <SafeAreaView style={styles.quoteModalContainer} edges={['bottom']}>
             {/* Modal Header */}
             <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.quoteModalHeaderGrad}>
               <View style={[styles.decoCircle, { top: -hp('2%'), right: -wp('3.5%'), width: wp('18%'), height: wp('18%') }]} pointerEvents="none" />
               <View style={[styles.decoCircle, { bottom: -hp('1%'), left: -wp('2.5%'), width: wp('12%'), height: wp('12%') }]} pointerEvents="none" />
-              <View style={styles.quoteModalHeaderRow}>
-                <TouchableOpacity onPress={() => setQuoteDetailsVisible(false)} style={styles.backBtn}>
-                  <Ionicons name="close" size={wp('6%')} color="#FFF" />
-                </TouchableOpacity>
-                <Text style={styles.quoteModalTitle}>Quote Details</Text>
-                <View style={{ width: wp('10%') }} />
-              </View>
+              <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+                <View style={styles.quoteModalHeaderRow}>
+                  <TouchableOpacity onPress={() => setQuoteDetailsVisible(false)} style={styles.backBtn}>
+                    <Ionicons name="close" size={wp('6%')} color="#FFF" />
+                  </TouchableOpacity>
+                  <Text style={styles.quoteModalTitle}>Quote Details</Text>
+                  <View style={{ width: wp('10%') }} />
+                </View>
+              </SafeAreaView>
             </LinearGradient>
 
             <ScrollView style={styles.quoteModalContent} showsVerticalScrollIndicator={false}>
@@ -1128,7 +1130,7 @@ const styles = StyleSheet.create({
 
   // ── Gradient Header ──
   headerGrad: {
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || hp('4%')) + hp('1%') : hp('0.5%'),
+    paddingTop: Platform.OS === 'android' ? hp('1%') : hp('0.5%'),
     paddingBottom: hp('2%'),
     paddingHorizontal: wp('4%'),
     overflow: 'hidden',
@@ -1576,7 +1578,7 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
   },
   quoteModalHeaderGrad: {
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || hp('4%')) + hp('1%') : hp('0.5%'),
+    paddingTop: Platform.OS === 'android' ? hp('1%') : hp('0.5%'),
     paddingBottom: hp('2%'),
     paddingHorizontal: wp('4%'),
     overflow: 'hidden',

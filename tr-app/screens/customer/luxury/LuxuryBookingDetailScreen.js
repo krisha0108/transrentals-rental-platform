@@ -10,9 +10,9 @@ import {
   Linking,
   RefreshControl,
   Modal,
-  StatusBar,
   Platform,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -113,15 +113,9 @@ export default function LuxuryBookingDetailScreen() {
   // StatusBar management
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content', true);
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP, true);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content', true);
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF', true);
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -1130,7 +1124,7 @@ const styles = StyleSheet.create({
   // Gradient Header
   headerGrad: {
     paddingHorizontal: wp('4%'),
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp('1%') : hp('1%'),
+    paddingTop: Platform.OS === 'android' ? hp('1%') : hp('1%'),
     paddingBottom: hp('2%'),
     overflow: 'hidden',
   },
@@ -1740,7 +1734,7 @@ const styles = StyleSheet.create({
   },
   quoteModalHeaderGrad: {
     paddingHorizontal: wp('4%'),
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp('1%') : hp('1%'),
+    paddingTop: Platform.OS === 'android' ? hp('1%') : hp('1%'),
     paddingBottom: hp('2%'),
     overflow: 'hidden',
   },

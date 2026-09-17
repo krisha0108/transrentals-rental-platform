@@ -12,9 +12,9 @@ import {
   Modal,
   Dimensions,
   Animated,
-  StatusBar,
   Platform,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -70,15 +70,9 @@ export default function LuxuryQuoteDetailScreen() {
   // StatusBar management
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content', true);
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP, true);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content', true);
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF', true);
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -329,10 +323,11 @@ export default function LuxuryQuoteDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
           <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
           <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <Ionicons name="chevron-back" size={22} color="#FFF" />
@@ -340,6 +335,7 @@ export default function LuxuryQuoteDetailScreen() {
             <Text style={styles.headerTitle}>Loading...</Text>
             <View style={{ width: wp('9%') }} />
           </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG }}>
           <ActivityIndicator size="large" color={TEAL} />
@@ -353,10 +349,11 @@ export default function LuxuryQuoteDetailScreen() {
 
   if (!quoteRequest) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
           <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
           <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <Ionicons name="chevron-back" size={22} color="#FFF" />
@@ -364,6 +361,7 @@ export default function LuxuryQuoteDetailScreen() {
             <Text style={styles.headerTitle}>Quote Request</Text>
             <View style={{ width: wp('9%') }} />
           </View>
+          </SafeAreaView>
         </LinearGradient>
         <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />}>
@@ -394,12 +392,13 @@ export default function LuxuryQuoteDetailScreen() {
   const statusConfig = STATUS_CONFIG[quoteRequest.status] || STATUS_CONFIG.PENDING;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Header */}
       <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
         <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
         <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
         <View style={[styles.decoCircle, { top: hp('3%'), left: wp('25%'), width: 40, height: 40 }]} pointerEvents="none" />
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={22} color="#FFF" />
@@ -438,6 +437,7 @@ export default function LuxuryQuoteDetailScreen() {
             )}
           </View>
         </View>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView
@@ -1262,9 +1262,10 @@ export default function LuxuryQuoteDetailScreen() {
         animationType="slide"
         onRequestClose={handleCloseQuoteDetails}
       >
-        <SafeAreaView style={styles.qdModalContainer} edges={['top']}>
+        <SafeAreaView style={styles.qdModalContainer} edges={['bottom']}>
           <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.qdModalHeader}>
             <View style={[styles.decoCircle, { top: -20, right: -10, width: 80, height: 80 }]} pointerEvents="none" />
+            <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
             <View style={styles.qdModalHeaderRow}>
               <TouchableOpacity onPress={handleCloseQuoteDetails} style={styles.backBtn}>
                 <Ionicons name="close" size={22} color="#FFF" />
@@ -1272,6 +1273,7 @@ export default function LuxuryQuoteDetailScreen() {
               <Text style={styles.headerTitle}>Quote Details</Text>
               <View style={{ width: wp('9%') }} />
             </View>
+            </SafeAreaView>
           </LinearGradient>
 
           {viewingQuote && (
@@ -1563,7 +1565,7 @@ const styles = StyleSheet.create({
   // Gradient Header
   headerGrad: {
     paddingHorizontal: wp('4%'),
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp('1%') : hp('1%'),
+    paddingTop: hp('1%'),
     paddingBottom: hp('2%'),
     overflow: 'hidden',
   },
@@ -2526,6 +2528,7 @@ const styles = StyleSheet.create({
   },
   qdModalHeader: {
     paddingHorizontal: wp('4%'),
+    paddingTop: hp('1.5%'),
     paddingBottom: hp('1.5%'),
     overflow: 'hidden',
   },

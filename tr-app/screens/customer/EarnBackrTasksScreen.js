@@ -1,5 +1,6 @@
 import React ,{useState,useEffect}from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Image,Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import SpinAndWinModal from './SpinAndWinModal';

@@ -9,6 +9,7 @@
 //   KeyboardAvoidingView,
 //   Platform,
 // } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 // import axios from 'axios';
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 // import { Pusher } from '@pusher/pusher-websocket-react-native';
@@ -267,12 +268,11 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
   Platform,
-  StatusBar,
   Animated, Easing,
   Keyboard,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Pusher } from '@pusher/pusher-websocket-react-native';
@@ -324,16 +324,9 @@ export default function ChatScreen({ route, navigation }) {
   /* ── StatusBar management ──────────────── */
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP);
-        StatusBar.setTranslucent(false);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content');
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#0A6B3F');
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );

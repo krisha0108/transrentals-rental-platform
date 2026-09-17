@@ -14,10 +14,12 @@ import {
   Dimensions,
   Linking,
   BackHandler,
-  KeyboardAvoidingView,
   Keyboard,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -54,6 +56,16 @@ const AIRPORT_DIRECTIONS = [
 ];
 
 export default function CarRentalFleetScreen({ navigation, route }) {
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   // Trip selection - use route params if provided, default to 'local'
   const initialTripType = route?.params?.tripType || 'local';
   const [showBookingAlert, setShowBookingAlert] = useState(false);
@@ -992,7 +1004,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   };
 
   const renderStep1 = () => (
-    <ScrollView style={styles.stepContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} nestedScrollEnabled keyboardDismissMode="on-drag">
+    <KeyboardAwareScrollView style={styles.stepContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} nestedScrollEnabled bottomOffset={20}>
       {/* Trip type — small tabs instead of a colour hero + icon grid */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsRow} contentContainerStyle={{ paddingRight: 16 }}>
         {TRIP_TYPES.map((type) => {
@@ -1142,7 +1154,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       )}
 
       <View style={{ height: 120 }} />
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 
   const getRouteDisplay = () => {
@@ -1214,7 +1226,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   );
 
   const renderStep3 = () => (
-    <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
+    <KeyboardAwareScrollView style={styles.stepContent} showsVerticalScrollIndicator={false} bottomOffset={20}>
       <View style={styles.summaryCard}>
         <View style={styles.summaryHeader}>
           <View style={[styles.vehicleImageWrap, { width: 60, height: 40, marginRight: 12 }]}>
@@ -1361,7 +1373,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       )}
 
       <View style={{ height: 120 }} />
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 
 

@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform,
-  Dimensions, Modal, FlatList, StatusBar,
+  Alert, ActivityIndicator, ScrollView, Platform,
+  Dimensions, Modal, FlatList,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -30,6 +33,16 @@ const TRIP_TYPES = [
 const VEHICLE_CATEGORIES = ['Sedan', 'SUV', 'Hatchback', 'Tempo Traveller', 'Mini Bus', 'Luxury', 'Other'];
 
 export default function B2BCreateBookingScreen({ navigation }) {
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState(null);
@@ -158,8 +171,7 @@ export default function B2BCreateBookingScreen({ navigation }) {
         <View style={{ width: scale(22) }} />
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" bottomOffset={20}>
 
           {/* Service Type */}
           <Text style={styles.label}>Service Type *</Text>
@@ -332,8 +344,7 @@ export default function B2BCreateBookingScreen({ navigation }) {
               </>
             )}
           </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
 
       {/* Date/Time Pickers */}
       {showDatePicker && (
@@ -372,7 +383,7 @@ const styles = StyleSheet.create({
   headerBar: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: scale(16), paddingVertical: scale(14),
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + scale(10) : scale(14),
+    paddingTop: Platform.OS === 'android' ? scale(10) : scale(14),
     backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
   },
   headerTitle: { fontSize: scale(18), fontWeight: '700', color: '#1A1A1A' },

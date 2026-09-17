@@ -10,9 +10,10 @@ import {
   Linking,
   Image,
   Modal,
-  StatusBar,
   Platform,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -61,11 +62,9 @@ export default function PaymentScreen() {
   // ── StatusBar ──
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') StatusBar.setBackgroundColor(TEAL_DEEP);
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content');
-        if (Platform.OS === 'android') StatusBar.setBackgroundColor('#ffffff');
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -264,7 +263,7 @@ export default function PaymentScreen() {
   // ── Loading State ──
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.loadingHeader}>
           <View style={styles.decorCircle1} />
           <View style={styles.decorCircle2} />
@@ -276,36 +275,38 @@ export default function PaymentScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* ── Gradient Header ── */}
       <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.header}>
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={wp('5.5%')} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Pay Advance</Text>
-          <View style={{ width: wp('10%') }} />
-        </View>
-
-        {/* Amount Display in Header */}
-        <View style={styles.amountSection}>
-          <View style={styles.amountIconWrap}>
-            <Ionicons name="shield-checkmark" size={wp('7%')} color="rgba(255,255,255,0.9)" />
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="arrow-back" size={wp('5.5%')} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Pay Advance</Text>
+            <View style={{ width: wp('10%') }} />
           </View>
-          <Text style={styles.amountLabel}>Advance Payment</Text>
-          <Text style={styles.amountValue}>₹{paymentAmount.toLocaleString()}</Text>
-          {booking?.bookingNumber && (
-            <View style={styles.bookingRefPill}>
-              <Ionicons name="receipt-outline" size={wp('3%')} color="rgba(255,255,255,0.8)" />
-              <Text style={styles.bookingRef}>#{booking.bookingNumber}</Text>
+
+          {/* Amount Display in Header */}
+          <View style={styles.amountSection}>
+            <View style={styles.amountIconWrap}>
+              <Ionicons name="shield-checkmark" size={wp('7%')} color="rgba(255,255,255,0.9)" />
             </View>
-          )}
-        </View>
+            <Text style={styles.amountLabel}>Advance Payment</Text>
+            <Text style={styles.amountValue}>₹{paymentAmount.toLocaleString()}</Text>
+            {booking?.bookingNumber && (
+              <View style={styles.bookingRefPill}>
+                <Ionicons name="receipt-outline" size={wp('3%')} color="rgba(255,255,255,0.8)" />
+                <Text style={styles.bookingRef}>#{booking.bookingNumber}</Text>
+              </View>
+            )}
+          </View>
+        </SafeAreaView>
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp('5%') }}>
+      <KeyboardAwareScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp('5%') }} bottomOffset={20}>
 
         {/* ── Razorpay Primary Card ── */}
         <View style={styles.primaryCard}>
@@ -549,7 +550,7 @@ export default function PaymentScreen() {
           </View>
           <Text style={styles.helpText}>Need help? Call {SUPPORT_PHONE}</Text>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* ── Custom Alert Modal ── */}
       <Modal visible={alertModal.visible} transparent animationType="fade">
@@ -672,7 +673,6 @@ const styles = StyleSheet.create({
 
   // ── Header ──
   header: {
-    paddingTop: hp('1%'),
     paddingBottom: hp('3%'),
     paddingHorizontal: wp('5%'),
     overflow: 'hidden',

@@ -1,10 +1,11 @@
 // BackrTokensScreen.js
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, SafeAreaView, ScrollView, RefreshControl,
+  View, Text, StyleSheet, ScrollView, RefreshControl,
   Animated, Easing, Image, TouchableOpacity, Alert, ActivityIndicator,
-  Platform, StatusBar,
-} from 'react-native';
+  Platform,} from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -13,7 +14,7 @@ import {
 } from 'react-native-responsive-screen';
 import api from '../api';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED } from '../../theme';
 
 const BACKR_COIN_IMG = require('../../assets/backr-coin.png');
@@ -197,6 +198,16 @@ export default function BackrTokensScreen() {
   const [transactions, setTransactions] = useState([]);
   const navigation = useNavigation();
 
+  /* -- StatusBar management (dark hero, needs light icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('light');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   // Hero entrance animations
   const heroScale = useRef(new Animated.Value(0.8)).current;
   const heroOpacity = useRef(new Animated.Value(0)).current;
@@ -255,14 +266,15 @@ export default function BackrTokensScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <StatusBar barStyle="light-content" backgroundColor={EMERALD_DEEP} />
+      <SafeAreaView style={styles.safe} edges={['bottom']}>
         <LinearGradient colors={[EMERALD_DEEP, EMERALD_DARK]} style={styles.headerGrad}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="chevron-back" size={22} color="#FFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Backr Tokens</Text>
-          <View style={{ width: 30 }} />
+          <SafeAreaView edges={['top']} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1, backgroundColor: 'transparent' }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Icon name="chevron-back" size={22} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Backr Tokens</Text>
+            <View style={{ width: 30 }} />
+          </SafeAreaView>
         </LinearGradient>
         <SkeletonLoader />
       </SafeAreaView>
@@ -297,16 +309,17 @@ export default function BackrTokensScreen() {
   const bookingsCount = transactions.filter(t => t.type === 'CREDIT').length;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={EMERALD_DEEP} />
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
 
       {/* ── Header ── */}
       <LinearGradient colors={[EMERALD_DEEP, EMERALD_DARK]} style={styles.headerGrad}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="chevron-back" size={22} color="#FFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Backr Tokens</Text>
-        <View style={{ width: 30 }} />
+        <SafeAreaView edges={['top']} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1, backgroundColor: 'transparent' }}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Icon name="chevron-back" size={22} color="#FFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Backr Tokens</Text>
+          <View style={{ width: 30 }} />
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView
@@ -439,7 +452,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: wp('4%'),
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
+    paddingTop: Platform.OS === 'android' ? 8 : 8,
     paddingBottom: 14,
   },
   backBtn: {

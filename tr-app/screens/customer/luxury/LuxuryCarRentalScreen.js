@@ -14,8 +14,9 @@ import {
   Platform,
   Modal,
   FlatList,
-  StatusBar,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -102,15 +103,9 @@ export default function LuxuryCarRentalScreen() {
   // StatusBar management
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content', true);
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP, true);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content', true);
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF', true);
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -416,7 +411,7 @@ export default function LuxuryCarRentalScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Static header — always visible, doesn't scroll away or fade in. */}
       <View style={styles.hero}>
         <LinearGradient
@@ -425,33 +420,35 @@ export default function LuxuryCarRentalScreen() {
           end={{ x: 1, y: 0 }}
           style={styles.heroGradient}
         >
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.heroIconBtn}>
-            <Ionicons name="chevron-back" size={20} color="#FFF" />
-          </TouchableOpacity>
+          <SafeAreaView edges={['top']} style={{ flexDirection: 'row', alignItems: 'center', flex: 1, backgroundColor: 'transparent' }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.heroIconBtn}>
+              <Ionicons name="chevron-back" size={20} color="#FFF" />
+            </TouchableOpacity>
 
-          <View style={styles.crownBadge}>
-            <MaterialCommunityIcons name="crown-outline" size={wp('4.6%')} color="#F0D998" />
-          </View>
-          <View style={styles.heroTextCol}>
-            <Text style={styles.heroTitle} numberOfLines={1}>Luxury, chauffeur‑driven</Text>
-            <View style={styles.heroDivider} />
-            <Text style={styles.heroSubtitle} numberOfLines={1}>BMW · Mercedes · Audi · Ferrari</Text>
-          </View>
+            <View style={styles.crownBadge}>
+              <MaterialCommunityIcons name="crown-outline" size={wp('4.6%')} color="#F0D998" />
+            </View>
+            <View style={styles.heroTextCol}>
+              <Text style={styles.heroTitle} numberOfLines={1}>Luxury, chauffeur‑driven</Text>
+              <View style={styles.heroDivider} />
+              <Text style={styles.heroSubtitle} numberOfLines={1}>BMW · Mercedes · Audi · Ferrari</Text>
+            </View>
 
-          <TouchableOpacity
-            onPress={() => navigation.navigate('MyLuxuryBookings')}
-            style={styles.heroIconBtn}
-          >
-            <Ionicons name="document-text-outline" size={18} color="#FFF" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('MyLuxuryBookings')}
+              style={styles.heroIconBtn}
+            >
+              <Ionicons name="document-text-outline" size={18} color="#FFF" />
+            </TouchableOpacity>
+          </SafeAreaView>
         </LinearGradient>
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        keyboardDismissMode="on-drag"
+        bottomOffset={20}
       >
         {/* Featured Fleet Preview */}
         {!fleetLoading && luxuryFleet.length > 0 && (
@@ -1006,7 +1003,7 @@ export default function LuxuryCarRentalScreen() {
         </TouchableOpacity>
 
         <View style={{ height: hp('5%') }} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Location Picker Modal */}
       <Modal

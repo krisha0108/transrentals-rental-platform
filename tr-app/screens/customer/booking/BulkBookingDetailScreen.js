@@ -8,13 +8,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
-  RefreshControl, Linking, Pressable, Modal, Image, Dimensions, Share, ToastAndroid, Platform,
-} from 'react-native';
+  RefreshControl, Linking, Pressable, Modal, Image, Dimensions, Share, ToastAndroid, Platform,} from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import api from '../../api';
 
 const ACCENT = '#7C3AED';
@@ -302,6 +302,16 @@ export default function BulkBookingDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const bookingId = route.params?.bookingId;
+
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
 
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);

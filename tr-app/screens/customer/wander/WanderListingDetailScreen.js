@@ -2,17 +2,18 @@
  * WanderListingDetailScreen.js
  * Tour detail + Quote Request — matches TransRentals app design language
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, Image, ActivityIndicator, Dimensions,
-  Alert, Modal, Platform, Linking, KeyboardAvoidingView,
-} from 'react-native';
+  Alert, Modal, Platform, Linking,} from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import wanderService from '../../services/wanderService';
@@ -99,6 +100,16 @@ export default function WanderListingDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { listingId, experienceSlug, listingTitle } = route.params || {};
+
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
 
   const [listing, setListing]           = useState(null);
   const [isLoading, setIsLoading]       = useState(true);
@@ -568,8 +579,7 @@ export default function WanderListingDetailScreen() {
             <View style={{ width: 40 }} />
           </View>
 
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+          <KeyboardAwareScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false} bottomOffset={20}>
 
             {/* Tour name pill */}
             <View style={styles.tourPill}>
@@ -667,8 +677,7 @@ export default function WanderListingDetailScreen() {
             </TouchableOpacity>
 
             <View style={{ height: 40 }} />
-          </ScrollView>
-          </KeyboardAvoidingView>
+          </KeyboardAwareScrollView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>

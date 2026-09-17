@@ -4,16 +4,16 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
   Linking,
   RefreshControl,
   Modal,
-  StatusBar,
   Platform,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -57,15 +57,9 @@ export default function PackersBookingDetailScreen() {
   // StatusBar management
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content', true);
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP, true);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content', true);
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF', true);
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -183,17 +177,19 @@ export default function PackersBookingDetailScreen() {
   // ── Loading State ──
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
           <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
           <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="chevron-back" size={22} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Loading...</Text>
-            <View style={{ width: wp('9%') }} />
-          </View>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="chevron-back" size={22} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Loading...</Text>
+              <View style={{ width: wp('9%') }} />
+            </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG }}>
           <ActivityIndicator size="large" color={TEAL} />
@@ -208,17 +204,19 @@ export default function PackersBookingDetailScreen() {
   // ── Not Found State ──
   if (!booking) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
           <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
           <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="chevron-back" size={22} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Packers Booking</Text>
-            <View style={{ width: wp('9%') }} />
-          </View>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="chevron-back" size={22} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Packers Booking</Text>
+              <View style={{ width: wp('9%') }} />
+            </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG }}>
           <View style={styles.emptyIconWrap}>
@@ -239,7 +237,7 @@ export default function PackersBookingDetailScreen() {
 
   // ── Main Render ──
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Gradient Header */}
       <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
         {/* Decorative circles */}
@@ -247,6 +245,7 @@ export default function PackersBookingDetailScreen() {
         <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
         <View style={[styles.decoCircle, { top: hp('3%'), left: wp('25%'), width: 40, height: 40 }]} pointerEvents="none" />
 
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
         {/* Header Row */}
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -272,6 +271,7 @@ export default function PackersBookingDetailScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView
@@ -850,18 +850,20 @@ export default function PackersBookingDetailScreen() {
           animationType="slide"
           onRequestClose={() => setQuoteDetailsVisible(false)}
         >
-          <SafeAreaView style={styles.quoteModalContainer}>
+          <SafeAreaView style={styles.quoteModalContainer} edges={['bottom']}>
             {/* Header */}
             <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.quoteModalHeaderGrad}>
               <View style={[styles.decoCircle, { top: -20, right: -15, width: 80, height: 80 }]} pointerEvents="none" />
               <View style={[styles.decoCircle, { bottom: -10, left: -10, width: 50, height: 50 }]} pointerEvents="none" />
-              <View style={styles.quoteModalHeaderRow}>
-                <TouchableOpacity onPress={() => setQuoteDetailsVisible(false)} style={styles.backBtn}>
-                  <Ionicons name="close" size={22} color="#FFF" />
-                </TouchableOpacity>
-                <Text style={styles.quoteModalTitle}>Quote Details</Text>
-                <View style={{ width: wp('9%') }} />
-              </View>
+              <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+                <View style={styles.quoteModalHeaderRow}>
+                  <TouchableOpacity onPress={() => setQuoteDetailsVisible(false)} style={styles.backBtn}>
+                    <Ionicons name="close" size={22} color="#FFF" />
+                  </TouchableOpacity>
+                  <Text style={styles.quoteModalTitle}>Quote Details</Text>
+                  <View style={{ width: wp('9%') }} />
+                </View>
+              </SafeAreaView>
             </LinearGradient>
 
             <ScrollView style={styles.quoteModalContent} showsVerticalScrollIndicator={false}>
@@ -1128,7 +1130,7 @@ const styles = StyleSheet.create({
   // ── Gradient Header ──
   headerGrad: {
     paddingHorizontal: wp('4%'),
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp('1%') : hp('1%'),
+    paddingTop: Platform.OS === 'android' ? hp('1%') : hp('1%'),
     paddingBottom: wp('5%'),
     overflow: 'hidden',
   },
@@ -1583,7 +1585,7 @@ const styles = StyleSheet.create({
   },
   quoteModalHeaderGrad: {
     paddingHorizontal: wp('4%'),
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp('1%') : hp('1%'),
+    paddingTop: Platform.OS === 'android' ? hp('1%') : hp('1%'),
     paddingBottom: wp('4%'),
     overflow: 'hidden',
   },

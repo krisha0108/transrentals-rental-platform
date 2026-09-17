@@ -6,8 +6,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Share, FlatList,
-  Modal, RefreshControl, Platform, Image, KeyboardAvoidingView,
-} from 'react-native';
+  Modal, RefreshControl, Platform, Image,} from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { launchImageLibrary } from 'react-native-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -38,6 +39,16 @@ export default function WanderGroupScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { listingId, listingTitle } = route.params || {};
+
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
 
   const [customer, setCustomer] = useState(null);
   const [myGroups, setMyGroups] = useState([]);
@@ -276,8 +287,7 @@ export default function WanderGroupScreen() {
             <View style={{ width: 40 }} />
           </View>
 
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <ScrollView contentContainerStyle={{ padding: 20 }}>
+          <KeyboardAwareScrollView contentContainerStyle={{ padding: 20 }} bottomOffset={20}>
             {/* Tour context */}
             {listingTitle && (
               <View style={styles.tourPill}>
@@ -414,8 +424,7 @@ export default function WanderGroupScreen() {
                 : <><Ionicons name="people-outline" size={17} color="#fff" /><Text style={styles.submitBtnText}>Create Group</Text></>
               }
             </TouchableOpacity>
-          </ScrollView>
-          </KeyboardAvoidingView>
+          </KeyboardAwareScrollView>
         </SafeAreaView>
       </Modal>
 

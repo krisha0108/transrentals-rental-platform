@@ -8,15 +8,15 @@ import {
   ScrollView,
   FlatList,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   Modal,
   RefreshControl,
-  StatusBar,
   Platform,
   Alert,
-  KeyboardAvoidingView,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
@@ -65,15 +65,9 @@ const BikeFleetScreen = () => {
   // StatusBar management
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content');
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF');
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -821,7 +815,7 @@ const BikeFleetScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.bookingContent} showsVerticalScrollIndicator={false}>
+          <KeyboardAwareScrollView style={styles.bookingContent} showsVerticalScrollIndicator={false} bottomOffset={20}>
             {/* Bike Image */}
             <View style={styles.bookingBikeImage}>
               {selectedBike?.sideImage ? (
@@ -949,7 +943,7 @@ const BikeFleetScreen = () => {
                 <Text style={styles.stepText}>Pay advance & confirm your booking</Text>
               </View>
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
 
           {isB2BCustomer && (
             <View style={{ marginHorizontal: wp('4%'), marginBottom: hp('1.5%'), backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FDBA74', borderRadius: wp('3%'), padding: wp('3.5%'), flexDirection: 'row', alignItems: 'flex-start', gap: wp('2.5%') }}>
@@ -996,8 +990,7 @@ const BikeFleetScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+    <SafeAreaView style={styles.container} edges={['bottom']}>
 
       {/* Header with Dark Teal Gradient */}
       <LinearGradient
@@ -1010,6 +1003,7 @@ const BikeFleetScreen = () => {
         <View style={[styles.decoCircle, { top: -wp('8%'), right: -wp('5%'), width: wp('26%'), height: wp('26%') }]} pointerEvents="none" />
         <View style={[styles.decoCircle, { bottom: -wp('4%'), left: -wp('4%'), width: wp('16%'), height: wp('16%') }]} pointerEvents="none" />
 
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerInner}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
@@ -1027,6 +1021,7 @@ const BikeFleetScreen = () => {
             <Ionicons name="options-outline" size={wp('5%')} color="#FFF" />
           </TouchableOpacity>
         </View>
+        </SafeAreaView>
       </LinearGradient>
 
       {/* Search Section */}
@@ -1220,7 +1215,7 @@ const styles = StyleSheet.create({
 
   /* -- Header -- */
   header: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('1%') : hp('1%'),
+    paddingTop: Platform.OS === 'android' ? hp('1%') : hp('1%'),
     paddingBottom: hp('2.5%'),
     paddingHorizontal: wp('4%'),
     borderBottomLeftRadius: wp('6%'),

@@ -1,9 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Alert, ActivityIndicator, Dimensions, KeyboardAvoidingView, Platform, StatusBar,
-} from 'react-native';
+  Alert, ActivityIndicator, Dimensions, Platform,} from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import { b2bService } from '../services';
 
@@ -11,6 +13,16 @@ const { width } = Dimensions.get('window');
 const scale = (size) => (size * width) / 375;
 
 export default function B2BOtpVerifyScreen({ navigation, route }) {
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   const { tripCode, booking } = route.params;
   const [otp, setOtp] = useState(['', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -133,7 +145,7 @@ const styles = StyleSheet.create({
   headerBar: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: scale(16), paddingVertical: scale(14),
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + scale(10) : scale(14),
+    paddingTop: Platform.OS === 'android' ? scale(10) : scale(14),
     backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
   },
   headerTitle: { fontSize: scale(18), fontWeight: '700', color: '#1A1A1A' },

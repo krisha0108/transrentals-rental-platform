@@ -6,8 +6,9 @@ import React, { useState, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   ActivityIndicator, Alert, Linking, Image, Modal,
-  Dimensions, TextInput, FlatList,
-} from 'react-native';
+  Dimensions, TextInput, FlatList, Platform,} from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -881,6 +882,16 @@ export default function WanderQuoteDetailScreen() {
   const route      = useRoute();
   const { requestId, requestTitle } = route.params || {};
 
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   const [data, setData]           = useState(null);
   const [isLoading, setLoading]   = useState(true);
   const [isAccepting, setAccepting] = useState(false);
@@ -1032,7 +1043,7 @@ export default function WanderQuoteDetailScreen() {
     <SafeAreaView style={styles.safe}>
       <TopBar title={`Request ${data.requestId || ''}`} onBack={() => navigation.goBack()} />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScrollView showsVerticalScrollIndicator={false} bottomOffset={20}>
 
         {/* IMAGE CAROUSEL */}
         <ImageCarousel images={images} />
@@ -1154,7 +1165,7 @@ export default function WanderQuoteDetailScreen() {
         )}
 
         <View style={{ height: 36 }} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* CONFIRM MODAL */}
       <ConfirmModal

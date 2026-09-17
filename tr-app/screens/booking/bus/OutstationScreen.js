@@ -7,12 +7,12 @@ import {
   Image,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   Platform,
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -265,7 +265,7 @@ const openReturnDateTimePicker = () => {
       switch (step) {
         case 0:
           return (
-                    <ScrollView>
+                    <KeyboardAwareScrollView bottomOffset={20}>
             <View style={styles.stepContainer}>
               <Text style={styles.label}>Your PickUp Location</Text>
               <View style={{ position: 'relative' }}>
@@ -325,11 +325,11 @@ const openReturnDateTimePicker = () => {
                 <Text style={styles.nextBtnText}>Next</Text>
               </TouchableOpacity>
             </View>
-                    </ScrollView>
+                    </KeyboardAwareScrollView>
           );
         case 1:
           return (
-            <View style={styles.stepContainer}>
+            <KeyboardAwareScrollView contentContainerStyle={styles.stepContainer} bottomOffset={20}>
               <Text style={styles.label}>Your Destination Location</Text>
               <TextInput
                 style={styles.input}
@@ -354,12 +354,12 @@ const openReturnDateTimePicker = () => {
                   <Text style={styles.nextBtnText}>Next</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </KeyboardAwareScrollView>
           );
-  
+
           case 2:
             return (
-              <View style={styles.stepContainer}>
+              <ScrollView contentContainerStyle={styles.stepContainer}>
                 <Text style={styles.label}>Start Date & Time</Text>
                 <TouchableOpacity
                   onPress={openStartDateTimePicker}
@@ -375,11 +375,11 @@ const openReturnDateTimePicker = () => {
                     <Text style={styles.nextBtnText}>Next</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </ScrollView>
             );
           case 3:
             return (
-              <View style={styles.stepContainer}>
+              <ScrollView contentContainerStyle={styles.stepContainer}>
                 <Text style={styles.label}>Return Date & Time</Text>
                 <TouchableOpacity
                   onPress={openReturnDateTimePicker}
@@ -395,11 +395,11 @@ const openReturnDateTimePicker = () => {
                     <Text style={styles.nextBtnText}>Next</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </ScrollView>
             );
           case 4:
             return  (
-                  <View style={styles.stepContainer}>
+                  <KeyboardAwareScrollView contentContainerStyle={styles.stepContainer} bottomOffset={20}>
                     <Text style={styles.label}>Total Passengers</Text>
                     <View>
                       <TextInput
@@ -418,11 +418,11 @@ const openReturnDateTimePicker = () => {
                       <Text style={styles.nextBtnText}>Next</Text>
                       </TouchableOpacity>
                     </View>
-                  </View>
+                  </KeyboardAwareScrollView>
             );
         case 5:
           return (
-            <View style={styles.stepContainer}>
+            <KeyboardAwareScrollView contentContainerStyle={styles.stepContainer} bottomOffset={20}>
               <Text style={styles.label}>Any Other Details</Text>
               <TextInput
                 style={[styles.input, { height: 120 }]}
@@ -456,7 +456,7 @@ const openReturnDateTimePicker = () => {
                   )}
                 </TouchableOpacity>
               </View>
-            </View>
+            </KeyboardAwareScrollView>
           );
         default:
           return null;

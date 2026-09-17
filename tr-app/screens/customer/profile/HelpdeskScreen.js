@@ -12,10 +12,10 @@ import {
   RefreshControl,
   Animated,
   Dimensions,
-  StatusBar,
   Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import {launchImageLibrary} from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
@@ -66,15 +66,9 @@ const HelpDeskScreen = () => {
   /* -- StatusBar management -- */
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content');
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF');
-        }
+        SystemBars.setStyle('dark');
       };
     }, []),
   );
@@ -397,7 +391,6 @@ const HelpDeskScreen = () => {
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.safe}>
-        <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
         {/* Gradient Header */}
         <View style={styles.headerClip}>
           <LinearGradient
@@ -495,7 +488,6 @@ const HelpDeskScreen = () => {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
 
       {/* Gradient Header */}
       <View style={styles.headerClip}>
@@ -688,9 +680,10 @@ const HelpDeskScreen = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView
+            <KeyboardAwareScrollView
               style={styles.modalContent}
-              showsVerticalScrollIndicator={false}>
+              showsVerticalScrollIndicator={false}
+              bottomOffset={20}>
               <Text style={styles.fieldLabel}>Ticket Title</Text>
               <View style={styles.inputField}>
                 <Ionicons
@@ -811,7 +804,7 @@ const HelpDeskScreen = () => {
                   </View>
                 )}
               </TouchableOpacity>
-            </ScrollView>
+            </KeyboardAwareScrollView>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
@@ -917,8 +910,7 @@ const styles = StyleSheet.create({
     ...SHADOW_MD,
   },
   headerGrad: {
-    paddingTop:
-      Platform.OS === 'android' ? StatusBar.currentHeight + hp('1%') : hp('1%'),
+    paddingTop: hp('1%'),
     paddingBottom: hp('2.5%'),
     paddingHorizontal: wp('4%'),
   },

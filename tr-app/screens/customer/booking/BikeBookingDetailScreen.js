@@ -11,9 +11,9 @@ import {
   Linking,
   Alert,
   Modal,
-  StatusBar,
   Platform,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -42,11 +42,9 @@ const BikeBookingDetailScreen = () => {
   /* ── StatusBar management ────────────────── */
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') StatusBar.setBackgroundColor(TEAL_DEEP);
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content');
-        if (Platform.OS === 'android') StatusBar.setBackgroundColor('#ffffff');
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -294,6 +292,7 @@ const BikeBookingDetailScreen = () => {
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.header}>
           <View style={styles.decorCircle1} />
           <View style={styles.decorCircle2} />
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <Ionicons name="arrow-back" size={wp('5.5%')} color="#fff" />
@@ -303,6 +302,7 @@ const BikeBookingDetailScreen = () => {
             </View>
             <View style={{ width: wp('10%') }} />
           </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={styles.errorContainer}>
           <View style={styles.errorIconCircle}>
@@ -331,6 +331,7 @@ const BikeBookingDetailScreen = () => {
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
 
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={wp('5.5%')} color="#fff" />
@@ -355,6 +356,7 @@ const BikeBookingDetailScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
+        </SafeAreaView>
 
         {/* Status Badge inside header */}
         <View style={styles.statusRow}>
@@ -1143,7 +1145,7 @@ const styles = StyleSheet.create({
 
   /* ── Header ───────────────────────────────── */
   header: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || hp('4%') : hp('1%'),
+    paddingTop: Platform.OS === 'android' ? hp('1%') : hp('1%'),
     paddingBottom: hp('2%'),
     paddingHorizontal: wp('4%'),
     overflow: 'hidden',
@@ -1765,7 +1767,7 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
   },
   quoteModalHeader: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || hp('4%') : hp('1%'),
+    paddingTop: Platform.OS === 'android' ? hp('1%') : hp('1%'),
     paddingBottom: hp('2%'),
     paddingHorizontal: wp('4%'),
     overflow: 'hidden',

@@ -2,8 +2,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Modal,
-  Platform, ActivityIndicator, StatusBar, Alert,
+  Platform, ActivityIndicator, Alert,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -138,11 +140,9 @@ export default function PackerMoverScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') StatusBar.setBackgroundColor(TEAL_DEEP);
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content');
-        if (Platform.OS === 'android') StatusBar.setBackgroundColor('#FFFFFF');
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -347,6 +347,7 @@ export default function PackerMoverScreen() {
         <View style={styles.decoCircle1} pointerEvents="none" />
         <View style={styles.decoCircle2} pointerEvents="none" />
         <View style={styles.decoCircle3} pointerEvents="none" />
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Icon name="arrow-left" size={wp('5%')} color="#FFFFFF" />
@@ -356,11 +357,12 @@ export default function PackerMoverScreen() {
             <Ionicons name="document-text-outline" size={wp('5%')} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
+        </SafeAreaView>
       </LinearGradient>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false} nestedScrollEnabled keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+        bottomOffset={20}
         onScrollBeginDrag={() => { if (!dropdownTouching.current) setShowSuggestions(false); }}
         contentContainerStyle={{ paddingBottom: hp('4%') }}
       >
@@ -866,7 +868,7 @@ export default function PackerMoverScreen() {
             );
           })}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Phone modal */}
       <Modal visible={isPhoneModal} transparent animationType="fade" onRequestClose={() => setIsPhoneModal(false)}>
@@ -896,7 +898,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
 
   headerGradient: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
+    paddingTop: 8,
     paddingBottom: hp('2.5%'), paddingHorizontal: wp('4%'),
     borderBottomLeftRadius: wp('6%'), borderBottomRightRadius: wp('6%'), overflow: 'hidden',
   },
@@ -908,7 +910,7 @@ const styles = StyleSheet.create({
   topTitle: { fontSize: wp('4.6%'), fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.3 },
   myBookingsBtn: { width: wp('10%'), height: wp('10%'), borderRadius: wp('5%'), backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
 
-  formCard: { backgroundColor: CARD, marginHorizontal: wp('3.5%'), borderRadius: wp('5.5%'), paddingVertical: hp('1.5%'), paddingHorizontal: wp('4%'), marginTop: hp('-0.5%'), ...SHADOW_MD },
+  formCard: { backgroundColor: CARD, marginHorizontal: wp('3.5%'), borderRadius: wp('5.5%'), paddingVertical: hp('1.5%'), paddingHorizontal: wp('4%'), marginTop: hp('1.5%'), ...SHADOW_MD },
   formHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: hp('1.5%') },
   formTitle: { fontSize: wp('4.8%'), fontWeight: '700', color: TEXT_PRIMARY },
   formDesc: { fontSize: wp('3.1%'), color: TEXT_MUTED, marginTop: hp('0.3%') },

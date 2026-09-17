@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,11 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -24,6 +26,16 @@ const RATING_LABELS = ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
 
 export default function ReviewScreen({ navigation, route }) {
   const { booking, bookingType } = route.params;
+
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
 
   const [overallRating, setOverallRating] = useState(0);
   const [driverRating, setDriverRating] = useState(0);
@@ -122,7 +134,7 @@ export default function ReviewScreen({ navigation, route }) {
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView style={styles.content}>
+      <KeyboardAwareScrollView style={styles.content} bottomOffset={20}>
         {/* Booking Info Card */}
         <View style={styles.bookingCard}>
           <View style={styles.bookingIconWrap}>
@@ -229,7 +241,7 @@ export default function ReviewScreen({ navigation, route }) {
         </View>
 
         <View style={{ height: 100 }} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Submit Button */}
       <View style={styles.bottomBar}>

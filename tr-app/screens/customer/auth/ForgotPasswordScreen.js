@@ -9,13 +9,13 @@ import {
   ScrollView,
   Animated,
   Easing,
-  KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ImageBackground,
   Dimensions,
   ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Icon from 'react-native-vector-icons/Feather';
 import { authService } from '../../services';
 
@@ -157,16 +157,13 @@ export default function ForgotPasswordScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.keyboardAvoid}
+      <KeyboardAwareScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={20}
       >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
           {/* ✅ Background Image - Scrollable */}
           <ImageBackground
             source={require("../../../assets/trlogin.png")}
@@ -352,8 +349,7 @@ export default function ForgotPasswordScreen({ navigation }) {
             {/* ✅ Bottom Space - Scrolling ke liye space */}
             <View style={styles.bottomSpace} />
           </ImageBackground>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

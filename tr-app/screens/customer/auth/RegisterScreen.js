@@ -4,18 +4,18 @@ import {
   Text, 
   TextInput, 
   TouchableOpacity, 
-  StyleSheet, 
-  SafeAreaView, 
-  Alert, 
-  Image, 
+  StyleSheet,
+  Alert,
+  Image,
   ActivityIndicator,
   Animated,
   Easing,
   Dimensions,
   ScrollView,
-  KeyboardAvoidingView,
   Platform
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import messaging from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -281,16 +281,13 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.keyboardAvoid}
+      <KeyboardAwareScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={20}
       >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
           {/* ✅ Background Image - Scrollable */}
           <Image
             source={require("../../../assets/trlogin.png")}
@@ -662,8 +659,7 @@ export default function RegisterScreen({ navigation }) {
               </Animated.View>
             </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

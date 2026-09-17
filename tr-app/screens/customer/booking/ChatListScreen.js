@@ -9,9 +9,9 @@ import {
   RefreshControl,
   Alert,
   TextInput,
-  StatusBar,
   Platform,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -96,20 +96,14 @@ export default function ChatListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content', true);
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP, true);
-      }
+      SystemBars.setStyle('light');
 
       fetchBookings();
 
       const interval = setInterval(fetchBookings, 10000);
       return () => {
         clearInterval(interval);
-        StatusBar.setBarStyle('dark-content', true);
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF', true);
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -471,12 +465,14 @@ export default function ChatListScreen() {
         >
           <View style={styles.headerDecoCircle1} />
           <View style={styles.headerDecoCircle2} />
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
           <View style={styles.headerInner}>
             <View style={styles.headerLeft}>
               <Text style={styles.headerTitle}>Chats</Text>
               <Text style={styles.headerSubtitle}>Your conversations</Text>
             </View>
           </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={styles.loadingContainer}>
           <View style={styles.loadingSpinnerWrap}>
@@ -502,6 +498,7 @@ export default function ChatListScreen() {
       >
         <View style={styles.headerDecoCircle1} />
         <View style={styles.headerDecoCircle2} />
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerInner}>
           <View style={styles.headerLeft}>
             <Text style={styles.headerTitle}>Chats</Text>
@@ -513,6 +510,7 @@ export default function ChatListScreen() {
             </View>
           )}
         </View>
+        </SafeAreaView>
       </LinearGradient>
 
       {/* Search Bar */}
@@ -608,7 +606,7 @@ const styles = StyleSheet.create({
 
   // --- Header ---
   header: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || hp('4%') : hp('5.5%'),
+    paddingTop: hp('1.5%'),
     paddingBottom: hp('2%'),
     paddingHorizontal: wp('5%'),
     borderBottomLeftRadius: wp('6%'),

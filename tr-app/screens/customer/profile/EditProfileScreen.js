@@ -9,11 +9,11 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
-  StatusBar,
-  KeyboardAvoidingView,
   Modal,
   Animated,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -78,15 +78,9 @@ const EditProfileScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content', true);
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP, true);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content', true);
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF', true);
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -192,7 +186,6 @@ const EditProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
 
       {/* ── Gradient Header + Avatar ── */}
       <LinearGradient
@@ -238,16 +231,13 @@ const EditProfileScreen = () => {
       </LinearGradient>
 
       {/* ── Form ── */}
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <KeyboardAwareScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={20}
       >
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
           <View style={styles.formCard}>
             {/* Name */}
             <FormField label="Full Name" icon="person-outline">
@@ -312,8 +302,7 @@ const EditProfileScreen = () => {
           </TouchableOpacity>
 
           <View style={{ height: hp('4%') }} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
 
       {/* Custom Alert Modal */}
       <Modal visible={alertVisible} transparent animationType="fade" statusBarTranslucent onRequestClose={hideCustomAlert}>
@@ -362,7 +351,7 @@ const styles = StyleSheet.create({
   /* Header */
   headerGrad: {
     paddingHorizontal: wp('4%'),
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
+    paddingTop: Platform.OS === 'android' ? 8 : 8,
     paddingBottom: wp('5%'),
     overflow: 'hidden',
   },

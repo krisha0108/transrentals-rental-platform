@@ -4,16 +4,16 @@ import {
   Text,
   StyleSheet,
   RefreshControl,
-  SafeAreaView,
   FlatList,
   Image,
   TouchableOpacity,
   TextInput,
   Platform,
-  StatusBar,
   Animated,
   Easing,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ShimmerPlaceHolder from 'react-native-shimmer-placeholder';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -200,16 +200,10 @@ export default function ExpensesScreen() {
   // StatusBar sirf is screen pe indigo, leave karne pe green restore
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content', true);
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(INDIGO_DEEP, true);
-      }
+      SystemBars.setStyle('light');
       // Cleanup: jab screen se bahar jaayein toh green wapas karo
       return () => {
-        StatusBar.setBarStyle('light-content', true);
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#0A6B3F', true);
-        }
+        SystemBars.setStyle('light');
       };
     }, [])
   );
@@ -317,14 +311,14 @@ export default function ExpensesScreen() {
 
   /* ── Render ───────────────────────── */
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={INDIGO_DEEP} />
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
 
       {/* ── Gradient Header ── */}
       <LinearGradient
         colors={[INDIGO_DEEP, INDIGO_MID, INDIGO]}
         style={styles.headerGrad}
       >
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={22} color="#FFF" />
@@ -362,6 +356,7 @@ export default function ExpensesScreen() {
             </View>
           </View>
         )}
+        </SafeAreaView>
       </LinearGradient>
 
       <View style={styles.body}>
@@ -475,7 +470,7 @@ const styles = StyleSheet.create({
   /* Header */
   headerGrad: {
     paddingHorizontal: wp('4%'),
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
+    paddingTop: Platform.OS === 'android' ? 8 : 8,
     paddingBottom: wp('5%'),
   },
   headerRow: {

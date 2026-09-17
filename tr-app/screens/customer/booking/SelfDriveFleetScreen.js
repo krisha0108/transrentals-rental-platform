@@ -8,15 +8,15 @@ import {
   ScrollView,
   FlatList,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   Modal,
   RefreshControl,
   Alert,
-  StatusBar,
   Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -63,15 +63,9 @@ const SelfDriveFleetScreen = () => {
   // StatusBar management
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content');
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF');
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -970,7 +964,7 @@ const SelfDriveFleetScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.bookingContent} showsVerticalScrollIndicator={false}>
+          <KeyboardAwareScrollView style={styles.bookingContent} showsVerticalScrollIndicator={false} bottomOffset={20}>
             {/* Car Image */}
             <View style={styles.bookingCarImage}>
               {selectedCar?.sideImage ? (
@@ -1234,7 +1228,7 @@ const SelfDriveFleetScreen = () => {
                 <Text style={styles.stepText}>{bookingType === 'company' ? 'Accept quote & get vehicles assigned' : 'Pay advance & confirm your booking'}</Text>
               </View>
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
 
           <View style={styles.bookingActions}>
             <TouchableOpacity
@@ -1271,8 +1265,7 @@ const SelfDriveFleetScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+    <SafeAreaView style={styles.container} edges={['bottom']}>
 
       {/* Header with Dark Teal Gradient */}
       <LinearGradient
@@ -1285,6 +1278,7 @@ const SelfDriveFleetScreen = () => {
         <View style={[styles.decoCircle, { top: -wp('8%'), right: -wp('5%'), width: wp('26%'), height: wp('26%') }]} pointerEvents="none" />
         <View style={[styles.decoCircle, { bottom: -wp('4%'), left: -wp('4%'), width: wp('16%'), height: wp('16%') }]} pointerEvents="none" />
 
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerInner}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
@@ -1307,6 +1301,7 @@ const SelfDriveFleetScreen = () => {
             )}
           </TouchableOpacity>
         </View>
+        </SafeAreaView>
       </LinearGradient>
 
       {/* Date Summary — Tap to change */}
@@ -1462,7 +1457,7 @@ const styles = StyleSheet.create({
 
   /* ── Header ── */
   header: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('1%') : hp('1%'),
+    paddingTop: Platform.OS === 'android' ? hp('1%') : hp('1%'),
     paddingBottom: hp('2.5%'),
     paddingHorizontal: wp('4%'),
     borderBottomLeftRadius: wp('6%'),

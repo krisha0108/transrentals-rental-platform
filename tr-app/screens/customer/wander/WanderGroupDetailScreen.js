@@ -8,8 +8,9 @@ import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, RefreshControl,
-  Modal, FlatList, KeyboardAvoidingView, Platform, Linking, Image, Share,
-} from 'react-native';
+  Modal, FlatList, Platform, Linking, Image, Share,} from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -199,7 +200,7 @@ function SubmitQuoteModal({ visible, trip, myMemberId, groupCode, onClose, onSuc
       <View style={styles.modalOverlay}>
         <View style={[styles.modalSheet, { maxHeight: '85%' }]}>
           <View style={styles.modalHandle} />
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <KeyboardAwareScrollView showsVerticalScrollIndicator={false} bottomOffset={20}>
             <Text style={styles.modalTitle}>Submit Group Quote</Text>
             <Text style={styles.modalSub}>{trip?.listing?.title || 'Trip'} · {goingCount} members going</Text>
 
@@ -262,7 +263,7 @@ function SubmitQuoteModal({ visible, trip, myMemberId, groupCode, onClose, onSuc
                 }
               </TouchableOpacity>
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </View>
       </View>
     </Modal>
@@ -859,6 +860,16 @@ export default function WanderGroupDetailScreen() {
   const route = useRoute();
   const { groupCode, initialTab } = route.params || {};
 
+  /* -- StatusBar management (dark screen, needs light icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('light');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   const [group, setGroup]     = useState(null);
   const [myMember, setMyMember] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -1264,10 +1275,11 @@ export default function WanderGroupDetailScreen() {
 
       {/* ── TRIPS TAB ── */}
       {activeTab === 'trips' && (
-        <ScrollView style={{ flex: 1, backgroundColor: BG }}
+        <KeyboardAwareScrollView style={{ flex: 1, backgroundColor: BG }}
           contentContainerStyle={{ paddingBottom: 24 }}
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); loadGroup(); }} tintColor={GREEN} />}
-          showsVerticalScrollIndicator={false}>
+          showsVerticalScrollIndicator={false}
+          bottomOffset={20}>
 
           {/* ── Join Card (non-members only) ── */}
           {!myMember && (
@@ -1392,7 +1404,7 @@ export default function WanderGroupDetailScreen() {
               <Text style={styles.leaveBtnText}>{isAdmin ? 'Delete Group' : 'Leave Group'}</Text>
             </TouchableOpacity>
           )}
-        </ScrollView>
+        </KeyboardAwareScrollView>
       )}
 
       {/* ── CHAT TAB ── */}

@@ -7,12 +7,12 @@ import {
   Image,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   Platform,
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -285,7 +285,7 @@ const handleBookingSubmit = async () => {
     switch (step) {
       case 0:
         return (
-                  <ScrollView>
+                  <KeyboardAwareScrollView bottomOffset={20}>
           <View style={styles.stepContainer}>
             <Text style={styles.label}>Your PickUp Location</Text>
             <View style={{ position: 'relative' }}>
@@ -336,11 +336,11 @@ const handleBookingSubmit = async () => {
               <Text style={styles.nextBtnText}>Next</Text>
             </TouchableOpacity>
           </View>
-                  </ScrollView>
+                  </KeyboardAwareScrollView>
         );
       case 1:
         return (
-          <ScrollView contentContainerStyle={styles.stepContainer}>
+          <KeyboardAwareScrollView contentContainerStyle={styles.stepContainer} bottomOffset={20}>
             <Text style={styles.label}>Your Destination Location</Text>
             <TextInput
               style={styles.input}
@@ -356,7 +356,7 @@ const handleBookingSubmit = async () => {
                 <Text style={styles.nextBtnText}>Next</Text>
               </TouchableOpacity>
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
         );
 
         case 2:
@@ -439,7 +439,7 @@ const handleBookingSubmit = async () => {
 
       case 4:
         return (
-          <ScrollView contentContainerStyle={styles.stepContainer}>
+          <KeyboardAwareScrollView contentContainerStyle={styles.stepContainer} bottomOffset={20}>
             <Text style={styles.label}>Any Other Details</Text>
             <TextInput
               style={[styles.input, { height: 120 }]}
@@ -473,7 +473,7 @@ const handleBookingSubmit = async () => {
                 )}
               </TouchableOpacity>
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
         );
 
       default:

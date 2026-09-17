@@ -7,12 +7,12 @@ import {
   Image,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   Platform,
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -259,7 +259,7 @@ const handleBookingSubmit = async () => {
     switch (step) {
       case 0:
         return (
-          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <KeyboardAwareScrollView contentContainerStyle={{ flexGrow: 1 }} bottomOffset={20}>
           <View style={styles.stepContainer}>
             <Text style={styles.label}>Your PickUp Location</Text>
             <View style={{ position: 'relative' }}>
@@ -319,13 +319,13 @@ const handleBookingSubmit = async () => {
               <Text style={styles.nextBtnText}>Next</Text>
             </TouchableOpacity>
           </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
         );
 
 
         case 1:
           return (
-            <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+            <KeyboardAwareScrollView contentContainerStyle={{ flexGrow: 1 }} bottomOffset={20}>
             <View style={styles.stepContainer}>
               <Text style={styles.label}>Your Destination Location</Text>
               <TextInput
@@ -352,7 +352,7 @@ const handleBookingSubmit = async () => {
                 </TouchableOpacity>
               </View>
             </View>
-            </ScrollView>
+            </KeyboardAwareScrollView>
           );
   
           case 2:
@@ -401,7 +401,7 @@ const handleBookingSubmit = async () => {
               );
           case 4:
             return  (
-              <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+              <KeyboardAwareScrollView contentContainerStyle={{ flexGrow: 1 }} bottomOffset={20}>
                   <View style={styles.stepContainer}>
                     <Text style={styles.label}>Total Passengers</Text>
                     <View>
@@ -422,11 +422,11 @@ const handleBookingSubmit = async () => {
                       </TouchableOpacity>
                     </View>
                   </View>
-                  </ScrollView>
+                  </KeyboardAwareScrollView>
             );
         case 5:
           return (
-            <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+            <KeyboardAwareScrollView contentContainerStyle={{ flexGrow: 1 }} bottomOffset={20}>
             <View style={styles.stepContainer}>
               <Text style={styles.label}>Any Other Details</Text>
               <TextInput
@@ -462,7 +462,7 @@ const handleBookingSubmit = async () => {
                 </TouchableOpacity>
               </View>
             </View>
-            </ScrollView>
+            </KeyboardAwareScrollView>
           );
         default:
           return null;

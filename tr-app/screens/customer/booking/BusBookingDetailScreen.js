@@ -4,16 +4,16 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
   Linking,
   RefreshControl,
   Modal,
-  StatusBar,
   Platform,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -49,11 +49,9 @@ export default function BusBookingDetailScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') StatusBar.setBackgroundColor(TEAL_DEEP);
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content');
-        if (Platform.OS === 'android') StatusBar.setBackgroundColor('#ffffff');
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -192,31 +190,33 @@ export default function BusBookingDetailScreen() {
   const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING_PAYMENT;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Header */}
       <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.header}>
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={wp('5.5%')} color="#FFFFFF" />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Bus Booking</Text>
-          <Text style={styles.headerSub}>{booking.bookingNumber}</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.chatBtn}
-          onPress={() => navigation.navigate('BookingChat', {
-            bookingId: booking.id,
-            bookingNumber: booking.bookingNumber,
-            vendorName: booking.vendor?.businessName || booking.vendorName || 'Vendor'
-          })}
-        >
-          <Ionicons name="chatbubble-outline" size={wp('5%')} color="#FFFFFF" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.refreshBtn} onPress={onRefresh}>
-          <Ionicons name="refresh" size={wp('4.5%')} color="#FFFFFF" />
-        </TouchableOpacity>
+        <SafeAreaView edges={['top']} style={{ flexDirection: 'row', alignItems: 'center', flex: 1, backgroundColor: 'transparent' }}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={wp('5.5%')} color="#FFFFFF" />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>Bus Booking</Text>
+            <Text style={styles.headerSub}>{booking.bookingNumber}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.chatBtn}
+            onPress={() => navigation.navigate('BookingChat', {
+              bookingId: booking.id,
+              bookingNumber: booking.bookingNumber,
+              vendorName: booking.vendor?.businessName || booking.vendorName || 'Vendor'
+            })}
+          >
+            <Ionicons name="chatbubble-outline" size={wp('5%')} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.refreshBtn} onPress={onRefresh}>
+            <Ionicons name="refresh" size={wp('4.5%')} color="#FFFFFF" />
+          </TouchableOpacity>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView
@@ -691,16 +691,18 @@ export default function BusBookingDetailScreen() {
           animationType="slide"
           onRequestClose={() => setQuoteDetailsVisible(false)}
         >
-          <SafeAreaView style={styles.quoteModalContainer}>
+          <SafeAreaView style={styles.quoteModalContainer} edges={['bottom']}>
             {/* Header */}
             <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.quoteModalHeader}>
               <View style={styles.decorCircle1} />
               <View style={styles.decorCircle2} />
-              <TouchableOpacity onPress={() => setQuoteDetailsVisible(false)} style={styles.quoteCloseBtn}>
-                <Ionicons name="close" size={wp('6.5%')} color="#FFFFFF" />
-              </TouchableOpacity>
-              <Text style={styles.quoteModalTitle}>Quote Details</Text>
-              <View style={{ width: wp('10%') }} />
+              <SafeAreaView edges={['top']} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1, backgroundColor: 'transparent' }}>
+                <TouchableOpacity onPress={() => setQuoteDetailsVisible(false)} style={styles.quoteCloseBtn}>
+                  <Ionicons name="close" size={wp('6.5%')} color="#FFFFFF" />
+                </TouchableOpacity>
+                <Text style={styles.quoteModalTitle}>Quote Details</Text>
+                <View style={{ width: wp('10%') }} />
+              </SafeAreaView>
             </LinearGradient>
 
             <ScrollView style={styles.quoteModalContent} showsVerticalScrollIndicator={false}>
@@ -1176,7 +1178,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: wp('4%'),
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('0.5%') : hp('1%'),
+    paddingTop: Platform.OS === 'android' ? hp('0.5%') : hp('1%'),
     paddingBottom: hp('1.5%'),
     overflow: 'hidden',
   },
@@ -1623,7 +1625,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: wp('4%'),
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('0.5%') : hp('1%'),
+    paddingTop: Platform.OS === 'android' ? hp('0.5%') : hp('1%'),
     paddingBottom: hp('1.5%'),
     overflow: 'hidden',
   },

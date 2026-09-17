@@ -6,15 +6,15 @@ import {
   Image,
   StyleSheet,
   Linking,
-  SafeAreaView,
   ScrollView,
   RefreshControl,
   Platform,
-  StatusBar,
   Animated,
   Easing,
   Share,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -112,15 +112,9 @@ const SettingScreen = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content', true);
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP, true);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content', true);
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF', true);
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -211,8 +205,7 @@ Download now and make your next ride hassle-free!
     : null;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
 
       {/* ── Gradient Header ── */}
       <LinearGradient
@@ -223,13 +216,15 @@ Download now and make your next ride hassle-free!
         <View style={[styles.decoCircle, { top: -40, right: -30, width: 120, height: 120 }]} pointerEvents="none" />
         <View style={[styles.decoCircle, { bottom: -20, left: -20, width: 80, height: 80 }]} pointerEvents="none" />
 
-        <View style={styles.headerRow}>
-          <View style={{ width: 34 }} />
-          <Text style={styles.headerTitle}>My Account</Text>
-          <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-            <Ionicons name="close" size={20} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={styles.headerRow}>
+            <View style={{ width: 34 }} />
+            <Text style={styles.headerTitle}>My Account</Text>
+            <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
+              <Ionicons name="close" size={20} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
 
         {/* ── Profile Card (Glass) ── */}
         <Animated.View style={{ opacity: profileFade, transform: [{ translateY: profileSlide }] }}>
@@ -467,7 +462,7 @@ const styles = StyleSheet.create({
   /* Header */
   headerGrad: {
     paddingHorizontal: wp('4%'),
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
+    paddingTop: Platform.OS === 'android' ? 8 : 8,
     paddingBottom: wp('5%'),
     overflow: 'hidden',
   },

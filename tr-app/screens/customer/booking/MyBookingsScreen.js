@@ -9,11 +9,11 @@ import {
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
-  StatusBar,
   Platform,
   Modal,
   Image,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
@@ -117,11 +117,9 @@ const MyBookingsScreen = ({route}) => {
   // StatusBar management
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content', true);
-      if (Platform.OS === 'android') StatusBar.setBackgroundColor(TEAL_DEEP, true);
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content', true);
-        if (Platform.OS === 'android') StatusBar.setBackgroundColor('#FFFFFF', true);
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -579,7 +577,7 @@ const MyBookingsScreen = ({route}) => {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Header */}
       <LinearGradient
         colors={[TEAL_DEEP, TEAL_MID, '#047857']}
@@ -590,6 +588,7 @@ const MyBookingsScreen = ({route}) => {
         {/* Decorative circles */}
         <View style={[styles.decoCircle, { width: wp('35%'), height: wp('35%'), top: -wp('10%'), right: -wp('5%') }]} pointerEvents="none" />
         <View style={[styles.decoCircle, { width: wp('25%'), height: wp('25%'), bottom: -wp('8%'), left: -wp('8%') }]} pointerEvents="none" />
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.headerTitle}>My Bookings</Text>
@@ -656,6 +655,7 @@ const MyBookingsScreen = ({route}) => {
             </View>
           </View>
         )}
+        </SafeAreaView>
       </LinearGradient>
 
       {/* Search Bar */}

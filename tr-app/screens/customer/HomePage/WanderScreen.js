@@ -15,12 +15,15 @@ import {
   Dimensions,
   RefreshControl,
   ImageBackground,
+  Platform,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import wanderService from '../../services/wanderService';
 import { BASE_URL } from '../../api';
@@ -234,6 +237,16 @@ function TourCard({ item, onPress, saved, onSave }) {
 export default function WanderScreen() {
   const navigation = useNavigation();
 
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   const [categories, setCategories]     = useState(FALLBACK_CATS);
   const [experiences, setExperiences]   = useState([]);
   const [listings, setListings]         = useState([]);
@@ -386,9 +399,10 @@ export default function WanderScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
+        bottomOffset={20}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={GREEN} />}
         onMomentumScrollEnd={(e) => {
           const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
@@ -684,7 +698,7 @@ export default function WanderScreen() {
         </View>
 
         <View style={{ height: 32 }} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

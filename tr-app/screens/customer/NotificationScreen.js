@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   Image,
   TouchableOpacity,
   RefreshControl,
@@ -13,8 +12,9 @@ import {
   Dimensions,
   Platform,
   Pressable,
-  StatusBar,
 } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -69,15 +69,9 @@ const NotificationScreen = () => {
   /* -- StatusBar management -- */
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP);
-      }
+      SystemBars.setStyle('light');
       return () => {
-        StatusBar.setBarStyle('dark-content');
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF');
-        }
+        SystemBars.setStyle('dark');
       };
     }, [])
   );
@@ -155,20 +149,22 @@ const NotificationScreen = () => {
           <View style={[styles.decoCircle, { bottom: -hp('2%'), left: -wp('4%'), width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
           <View style={[styles.decoCircle, { top: hp('1%'), left: wp('30%'), width: wp('10%'), height: wp('10%'), opacity: 0.04 }]} pointerEvents="none" />
 
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Notifications</Text>
-            {/* Mark all read button in header */}
-            {unreadCount > 0 && !loading ? (
-              <TouchableOpacity onPress={handleMarkAllRead} style={styles.headerActionBtn}>
-                <Ionicons name="checkmark-done" size={wp('4.5%')} color="#FFF" />
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
               </TouchableOpacity>
-            ) : (
-              <View style={styles.headerActionPlaceholder} />
-            )}
-          </View>
+              <Text style={styles.headerTitle}>Notifications</Text>
+              {/* Mark all read button in header */}
+              {unreadCount > 0 && !loading ? (
+                <TouchableOpacity onPress={handleMarkAllRead} style={styles.headerActionBtn}>
+                  <Ionicons name="checkmark-done" size={wp('4.5%')} color="#FFF" />
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.headerActionPlaceholder} />
+              )}
+            </View>
+          </SafeAreaView>
         </LinearGradient>
       </View>
     );
@@ -176,8 +172,7 @@ const NotificationScreen = () => {
 
   /* -- Skeleton Loading -- */
   const SimpleSkeleton = () => (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <View style={styles.headerWrapper}>
         <LinearGradient
           colors={[TEAL_DEEP, TEAL_MID, '#047857']}
@@ -185,13 +180,15 @@ const NotificationScreen = () => {
         >
           <View style={[styles.decoCircle, { top: -hp('3%'), right: -wp('5%'), width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
           <View style={[styles.decoCircle, { bottom: -hp('2%'), left: -wp('4%'), width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Notifications</Text>
-            <View style={styles.headerActionPlaceholder} />
-          </View>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Notifications</Text>
+              <View style={styles.headerActionPlaceholder} />
+            </View>
+          </SafeAreaView>
         </LinearGradient>
       </View>
 
@@ -452,8 +449,7 @@ const handlePress = async () => {
     : notifications.filter(n => getNotifCategory(n) === activeFilter);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+    <SafeAreaView style={styles.container} edges={['bottom']}>
 
       {/* Header */}
       <Header />
@@ -534,7 +530,7 @@ const styles = StyleSheet.create({
     ...SHADOW_MD,
   },
   headerGrad: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('1%') : hp('1%'),
+    paddingTop: Platform.OS === 'android' ? hp('1%') : hp('1%'),
     paddingBottom: hp('2.5%'),
     paddingHorizontal: wp('4%'),
   },

@@ -2,9 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   ActivityIndicator, RefreshControl, Dimensions, Modal, TextInput, Image, FlatList,
-  Share, Linking, Clipboard, Platform, StatusBar, KeyboardAvoidingView,
-} from 'react-native';
+  Share, Linking, Clipboard, Platform,} from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import { b2bService } from '../services';
 import { BASE_URL } from '../api';
@@ -289,6 +291,16 @@ const getTimelineStep = (status) => {
 };
 
 export default function B2BBookingDetailScreen({ navigation, route }) {
+  /* -- StatusBar management (light top bar, needs dark icons) -- */
+  useFocusEffect(
+    useCallback(() => {
+      SystemBars.setStyle('dark');
+      return () => {
+        SystemBars.setStyle('dark');
+      };
+    }, [])
+  );
+
   const { bookingId } = route.params;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
