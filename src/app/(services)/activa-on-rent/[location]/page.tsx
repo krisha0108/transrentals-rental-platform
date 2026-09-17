@@ -180,6 +180,7 @@ export default async function ActivaLocationPage({ params }: PageProps) {
         faqs={schemaFaqs}
         rating={4.7}
         reviewCount={423}
+        hidePrices
       />
       <div className="flex flex-col">
       {/* Breadcrumbs */}

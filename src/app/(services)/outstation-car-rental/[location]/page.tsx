@@ -1,4 +1,5 @@
 ﻿import React from 'react';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import type { Metadata } from 'next';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { prisma } from '@/lib/db/prisma';
@@ -13,11 +14,13 @@ import { getServiceLocations, getAllCityLocations } from '@/lib/services/service
 import { OutstationBookingHero } from '@/components/outstation-car-rental/OutstationBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { BikeServiceSchema } from '@/components/seo/schemas';
-import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 import {
@@ -55,8 +58,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('outstation-car-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Outstation Car Rental in ${locationName} | ₹10/Km Intercity`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent cars for outstation trips from ${locationName}. Round trips, one-way drops, multi-city tours. Professional drivers, all India permits. Book now!`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Outstation Car Rental in ${locationName} Intercity`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Rent cars for outstation trips from ${locationName}. Round trips, one-way drops, multi-city tours. Professional drivers, all India permits. Book now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `outstation car rental in ${locationName}`,
       `intercity car hire ${locationName}`,
@@ -66,49 +69,76 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ],
     openGraph: {
       title: `Outstation Car Rental from ${locationName} - TransRentals`,
-      description: `Rent cars for outstation trips from ${locationName} starting @₹10/km.`,
+      description: ``,
     },
     alternates: { canonical: `https://transrentals.in/outstation-car-rental/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Outstation Car Rental in ${locationName} | TransRentals`,
-      description: `Rent cars for outstation trips from ${locationName} starting @₹10/km with professional drivers.`,
+      description: ``,
     },
   };
 }
 
+const EXPANDING_FAQS = [
+  { question: 'What is included in an outstation car rental?', answer: 'The car, a highway-experienced driver, and a confirmed kilometre allowance. Tolls, permits and night halt are set out in the quote.' },
+  { question: 'When will outstation car rental open in my city?', answer: 'We onboard operators city by city and a city goes live as soon as verified operators are ready there. Until then you can book in the nearby cities listed above.' },
+  { question: 'Can I book for multiple days?', answer: 'Yes. Multi-day outstation trips are supported, with the driver staying with you for the whole journey.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet: no booking form and no
+ * quoted rate, just the nearest cities that are bookable today.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/outstation-car-rental" className="hover:text-primary">Outstation Car Rental</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="outstation car rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="outstation-car-rental"
+          serviceName="Outstation Car Rental"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="car"
+        selectionDesc="Sedans, SUVs and MUVs for multi-day intercity journeys."
+      />
+      <FAQSection service="outstation-car-rental" location={cityName} customFaqs={EXPANDING_FAQS} />
+    </>
+  );
+}
+
 export default async function OutstationCarLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('outstation-car-rental', params.location);
+  const pageContext = await resolveServicePage('outstation-car-rental', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'car-rental',
+  });
   if (pageContext.type === 'redirect') {
     if (COMING_SOON_SLUGS.has(params.location)) {
       const cityName = getCityBySlug(params.location)?.name ??
         params.location.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      return (
-        <>
-          <div className="bg-gray-50 border-b border-gray-200">
-            <div className="container-custom py-3">
-              <nav className="text-sm text-gray-600">
-                <a href="/" className="hover:text-primary">Home</a>
-                <span className="mx-2">/</span>
-                <a href="/outstation-car-rental" className="hover:text-primary">Outstation Car Rental</a>
-                <span className="mx-2">/</span>
-                <span className="text-gray-900 font-medium">{cityName}</span>
-              </nav>
-            </div>
-          </div>
-          <ComingSoonHero
-            city={cityName}
-            citySlug={params.location.toLowerCase()}
-            serviceSlug="outstation-car-rental"
-            serviceName="Outstation Car Rental"
-            themeColor="blue"
-          />
-        </>
-      );
+      return <ExpandingCityPage cityName={cityName} citySlug={params.location.toLowerCase()} />;
     }
     permanentRedirect(pageContext.to);
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="outstation-car-rental" serviceName="Outstation Car Rental" />;
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   const city = pageContext.city;
 
   const locationName = capitalize(params.location.replace(/-/g, ' '));
@@ -116,7 +146,7 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
   const pageFaqs = [
     { question: 'How is outstation car rental pricing calculated?', answer: 'Outstation car rental is priced per km with a minimum km guarantee. Round trips include return journey; one-way trips charge only actual distance.' },
     { question: 'What vehicles are available for outstation travel?', answer: 'We offer Sedan (Dzire, City), SUV (Ertiga, Innova), and Luxury (Fortuner, Crysta) for all outstation routes with experienced drivers.' },
-    { question: 'Are night halt charges applicable for outstation trips?', answer: 'Yes, ₹300–₹500 driver night halt is charged per night for multi-day trips. This is separate from the per-km vehicle charge.' },
+    { question: 'Are night halt charges applicable for outstation trips?', answer: 'Yes, a driver night halt is charged per night on multi-day trips, separate from the per-km vehicle charge. The amount is confirmed in your quote.' },
     { question: 'Can I modify or cancel my outstation car rental booking?', answer: 'Free cancellation up to 6 hours before the trip. Modifications allowed up to 2 hours before start subject to availability.' },
   ];
 
@@ -334,7 +364,7 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName="Outstation Car Rental"
         serviceSlug="outstation-car-rental"
-        description={`Rent cars for outstation trips from ${locationName} starting @₹10/km with professional drivers.`}
+        description={`Rent cars for outstation trips from ${locationName} with professional drivers.`}
         city={locationName}
         citySlug={params.location.toLowerCase()}
         faqs={[]}
@@ -343,7 +373,7 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

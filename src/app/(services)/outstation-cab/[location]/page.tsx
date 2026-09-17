@@ -1,4 +1,5 @@
 ﻿import { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
@@ -6,6 +7,9 @@ import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBoo
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
@@ -226,8 +230,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('outstation-cab', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Outstation Cab from ${locationName} | @₹12/Km Round Trip`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book outstation cab from ${locationName}. Intercity taxi, round trip & one-way cabs. Sedan, SUV available. Station taxi @₹12/km.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Outstation Cab from ${locationName} Round Trip`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Book outstation cab from ${locationName}. Intercity taxi, round trip & one-way cabs. Sedan, SUV available.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `outstation cab ${locationName.toLowerCase()}`,
       `outstation taxi ${locationName.toLowerCase()}`,
@@ -240,7 +244,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ...(city?.keywords || []).map(k => `outstation cab ${k}`),
     ],
     openGraph: {
-      title: `Outstation Cab from ${locationName} - Intercity Taxi @₹12/Km`,
+      title: `Outstation Cab from ${locationName} - Intercity Taxi`,
       description: `Book outstation cabs from ${locationName}. Round trip & one-way options available.`,
       url: `https://transrentals.in/outstation-cab/${params.location.toLowerCase()}`,
     },
@@ -250,13 +254,58 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image' as const,
       title: `Outstation Cab in ${locationName} | TransRentals`,
-      description: `Book outstation cab from ${locationName}. Intercity taxi, round trip & one-way cabs @₹12/km.`,
+      description: `Book outstation cab from ${locationName}.`,
     },
   };
 }
 
+const EXPANDING_FAQS = [
+  { question: 'What outstation trips can I book?', answer: 'One-way drops and round trips to any city, in sedans, SUVs and MUVs with an experienced highway driver.' },
+  { question: 'When will outstation cabs open in my city?', answer: 'We onboard operators city by city and a city goes live as soon as verified operators are ready there. Until then you can book in the nearby cities listed above.' },
+  { question: 'Is toll and driver allowance included?', answer: 'Tolls, state permits and driver allowance are confirmed in the quote before you book, so there is no surprise at the end of the trip.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet: no booking form and no
+ * quoted rate, just the nearest cities that are bookable today.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/outstation-cab" className="hover:text-primary">Outstation Cab</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="outstation cabs" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="outstation-cab"
+          serviceName="Outstation Cab"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="cab"
+        selectionDesc="Sedans, SUVs and MUVs for one-way and round-trip intercity travel."
+      />
+      <FAQSection service="outstation-cab" location={cityName} customFaqs={EXPANDING_FAQS} />
+    </>
+  );
+}
+
 export default async function OutstationCabLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('outstation-cab', params.location);
+  const pageContext = await resolveServicePage('outstation-cab', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'car-rental',
+  });
   if (pageContext.type === 'redirect') {
     if (COMING_SOON_SLUGS.has(params.location)) {
       return (
@@ -271,6 +320,9 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
     permanentRedirect(pageContext.to);
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="outstation-cab" serviceName="Outstation Cab" />;
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   const city = pageContext.city;
   // Fallback: getAllCities().find(c => c.slug === params.location);
 
@@ -300,7 +352,7 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
 
   const pageFaqs = [
     { question: 'What is an outstation cab and how to book it?', answer: 'An outstation cab is a car-with-driver service for intercity travel. Book online, select your route, vehicle, and date — driver picks you up at the scheduled time.' },
-    { question: 'Is the outstation cab rate per km or fixed?', answer: 'We offer both per-km pricing (one-way trips) and fixed round-trip packages. One-way starts from ₹12/km; round trips have all-inclusive fixed pricing.' },
+    { question: 'Is the outstation cab rate per km or fixed?', answer: 'Both are offered — one-way trips are charged per kilometre, and round trips come as an all-inclusive fixed package. The operator confirms which applies in your quote.' },
     { question: 'Are toll, parking, and state taxes included in the outstation cab fare?', answer: 'Toll and state taxes are extra and paid by the customer. Parking is also extra. Driver bata is included in the quoted price.' },
     { question: 'Can I book an outstation cab for multiple days?', answer: 'Yes, multi-day outstation trips are available with a fixed daily rate. Driver accommodation is arranged separately by the driver.' },
   ];
@@ -521,7 +573,7 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="outstation-cab" location={locationName} customFaqs={pageFaqs} />
 

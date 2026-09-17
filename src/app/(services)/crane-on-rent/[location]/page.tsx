@@ -1,4 +1,5 @@
 ﻿import React from 'react';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ShieldCheck, UserCheck, MoveVertical, Wrench, Construction, LayoutGrid, ArrowRight } from 'lucide-react';
@@ -10,6 +11,9 @@ import { EquipmentBookingHero } from '@/components/equipment-rental/EquipmentBoo
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
@@ -38,21 +42,69 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('crane-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Crane on Rent in ${locationName} | @₹8000/Day`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire crane in ${locationName} for construction & industrial projects. Mobile, tower, hydra cranes available.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Crane on Rent in ${locationName}`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Hire crane in ${locationName} for construction & industrial projects. Mobile, tower, hydra cranes available.`,
     alternates: { canonical: `https://transrentals.in/crane-on-rent/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Crane on Rent in ${locationName} | TransRentals`,
-      description: `Hire crane in ${locationName} starting @₹4999/day. Mobile, tower, hydra cranes with operators.`,
+      description: `Mobile, tower, hydra cranes with operators.`,
     },
   };
 }
 
+const EXPANDING_FAQS = [
+  { question: 'Which cranes can I hire?', answer: 'Mobile cranes, tower cranes and hydra cranes, across a range of lifting capacities, each with an operator and rigging crew.' },
+  { question: 'When will crane rental open in my city?', answer: 'We onboard operators city by city and a city goes live as soon as verified operators are ready there. Until then you can book in the nearby cities listed above.' },
+  { question: 'Is an operator included?', answer: 'Yes. Every crane comes with a certified operator, and rigging support where the lift needs it.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet: no booking form and no
+ * quoted rate, just the nearest cities that are bookable today.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/crane-on-rent" className="hover:text-primary">Crane on Rent</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="crane rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="crane-on-rent"
+          serviceName="Crane on Rent"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="crane"
+        selectionDesc="Mobile, tower and hydra cranes with certified operators and riggers."
+      />
+      <FAQSection service="crane-on-rent" location={cityName} customFaqs={EXPANDING_FAQS} />
+    </>
+  );
+}
+
 export default async function CraneLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('crane-on-rent', params.location);
+  const pageContext = await resolveServicePage('crane-on-rent', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'equipment-rental',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="crane-on-rent" serviceName="Crane on Rent" />;
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
@@ -64,7 +116,7 @@ export default async function CraneLocationPage({ params }: PageProps) {
   const pageFaqs = [
     { question: 'What types of cranes are available on rent?', answer: 'We offer Hydra (12T), Mobile Crane (20T–50T), Pick-and-Carry Crane, and Tower Crane for construction and industrial projects.' },
     { question: 'Is an operator included with crane rental?', answer: 'Yes, a certified crane operator with HMV licence and safety training is mandatory and included in all crane rental packages.' },
-    { question: 'What is the daily rental rate for a mobile crane?', answer: 'Mobile crane (20T) starts from ₹12,000/day; 50-ton crane from ₹25,000/day. Hydra crane (12T) starts from ₹8,000/day.' },
+    { question: 'How is crane rental charged?', answer: 'Cranes are quoted per day or per lift, by capacity and boom reach, with an operator and rigging crew. Mobilisation to site is quoted separately.' },
     { question: 'Can I rent a crane for a single day?', answer: 'Yes, minimum 1-day (8 hours) rental is available. For weekend or holiday work, advance booking of at least 48 hours is required.' },
   ];
 
@@ -168,14 +220,14 @@ export default async function CraneLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName="Crane on Rent"
         serviceSlug="crane-on-rent"
-        description={`Hire crane in ${locationName} starting @₹4999/day. Mobile, tower, hydra cranes with operators.`}
+        description={`Hire crane in ${locationName}. Mobile, tower, hydra cranes with operators.`}
         city={locationName}
         citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="crane-on-rent" location={locationName} customFaqs={pageFaqs} />
 

@@ -1,5 +1,6 @@
 ﻿import { Metadata } from 'next';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { getCityBySlug } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
@@ -16,17 +17,19 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { CITY_SEO } from '@/data/city-seo-content';
 
 const TEMPO_FALLBACK_FAQS = [
-  { q: 'What is the cost of Tempo Traveller rental per km?', a: 'Tempo Traveller rental starts from ₹18/km for a 12-seater non-AC vehicle. AC 12-seater starts from ₹22/km. 17-seater AC starts from ₹28/km. Local city packages (8 hrs/80 km) start from ₹2,500. Rates vary by city — get a free quote on TransRentals for exact pricing.' },
+  { q: 'How is Tempo Traveller rental charged?', a: 'Outstation trips are charged per km and local trips run on hourly packages (typically 8 hrs / 80 km). What you pay depends on seating capacity, AC or non-AC, and your route. Share your trip on TransRentals and verified operators in your city send you their quotes.' },
   { q: 'What is the seating capacity of a Tempo Traveller?', a: 'Tempo Travellers are available in 9-seater, 12-seater, 14-seater, 17-seater, and 20-seater configurations. For comfortable travel with luggage, plan for 1–2 fewer passengers than the stated capacity — a 17-seater comfortably carries 14–15 passengers on long trips.' },
-  { q: 'What is included in the Tempo Traveller booking price?', a: 'Standard inclusions: vehicle + driver + driver\'s basic allowance. Extra charges typically apply for: toll charges, state permits for interstate travel, night halt charges (₹250–₹500/night), and fuel if crossing the included km limit. Confirm all inclusions with the vendor before booking.' },
-  { q: 'Is driver included in Tempo Traveller rental?', a: 'Yes, all Tempo Traveller rentals on TransRentals include a professional driver. For outstation trips, driver allowance (₹300–₹500/day) may be charged separately. Drivers are verified and experienced on the relevant routes.' },
+  { q: 'What is included in the Tempo Traveller booking price?', a: 'Standard inclusions: vehicle + driver + driver\'s basic allowance. Extra charges typically apply for: toll charges, state permits for interstate travel, night halt charges, and fuel if crossing the included km limit. Confirm all inclusions with the vendor before booking.' },
+  { q: 'Is driver included in Tempo Traveller rental?', a: 'Yes, all Tempo Traveller rentals on TransRentals include a professional driver. For outstation trips, driver allowance may be charged separately and the operator confirms it in the quote. Drivers are verified and experienced on the relevant routes.' },
   { q: 'How far in advance should I book a Tempo Traveller?', a: 'For regular trips, 48–72 hours notice is sufficient. During peak seasons — Navratri, Diwali, long weekends, and Char Dham season (May–June) — book at least 1–2 weeks in advance. For pilgrimages, book 3–4 weeks ahead for best availability.' },
 ];
 import { TempoFleetSection } from '@/components/tempo-traveller/TempoFleetSection';
 import { RelatedServices } from '@/components/services/RelatedServices';
-import { ComingSoonHero } from '@/components/services/ComingSoonHero';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionMatching } from '@/components/seo/ServiceCitySections';
 
 const COMING_SOON_SLUGS = new Set([
   'rohtak',
@@ -71,8 +74,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('tempo-traveller', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Tempo Traveller in ${locationName} | Starting ₹18/km | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC/Non-AC available for pilgrimages, family trips, and corporate events. Verified drivers.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Tempo Traveller in ${locationName} | 12-20 Seater AC Hire | TransRentals`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC/Non-AC available for pilgrimages, family trips, and corporate events. Verified drivers.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `tempo traveller ${locationName.toLowerCase()}`,
       `12 seater tempo ${locationName.toLowerCase()}`,
@@ -118,43 +121,73 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+/**
+ * The page a city gets while no operator is live there yet. No booking form and
+ * no quoted rate — there is nothing to book and nobody to honour a number — so
+ * it points at the nearest cities that are bookable today instead.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/tempo-traveller" className="hover:text-primary">Tempo Traveller</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="Tempo Traveller rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="tempo-traveller"
+          serviceName="Tempo Traveller"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="Tempo Traveller"
+        selectionDesc="9, 12, 14, 17 and 20-seater Tempo Travellers — AC and non-AC."
+      />
+      <FAQSection
+        service="tempo-traveller"
+        location={cityName}
+        customFaqs={TEMPO_FALLBACK_FAQS.map((faq) => ({ question: faq.q, answer: faq.a }))}
+      />
+    </>
+  );
+}
+
 export default async function TempoTravellerLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('tempo-traveller', params.location);
+  const pageContext = await resolveServicePage('tempo-traveller', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'bus-rental',
+  });
   if (pageContext.type === 'redirect') {
     if (COMING_SOON_SLUGS.has(params.location)) {
       const cityName = getCityBySlug(params.location)?.name ??
         params.location.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      return (
-        <>
-          <div className="bg-gray-50 border-b border-gray-200">
-            <div className="container-custom py-3">
-              <nav className="text-sm text-gray-600">
-                <a href="/" className="hover:text-primary">Home</a>
-                <span className="mx-2">/</span>
-                <a href="/tempo-traveller" className="hover:text-primary">Tempo Traveller</a>
-                <span className="mx-2">/</span>
-                <span className="text-gray-900 font-medium">{cityName}</span>
-              </nav>
-            </div>
-          </div>
-          <ComingSoonHero
-            city={cityName}
-            citySlug={params.location.toLowerCase()}
-            serviceSlug="tempo-traveller"
-            serviceName="Tempo Traveller"
-            themeColor="blue"
-          />
-        </>
-      );
+      return <ExpandingCityPage cityName={cityName} citySlug={params.location.toLowerCase()} />;
     }
     permanentRedirect(pageContext.to);
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="tempo-traveller" serviceName="Tempo Traveller" />;
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   const city = pageContext.city;
   const locationName = city.name;
 
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['tempo-traveller'] || [];
-  const displayFAQs = cityFAQs.length > 0 ? cityFAQs : TEMPO_FALLBACK_FAQS;
+  const displayFAQs = cityFAQs.length > 0
+    ? cityFAQs
+        .map((faq) => ({ q: faq.q, a: stripPricesFromText(faq.a) }))
+        .filter((faq) => faq.a)
+    : TEMPO_FALLBACK_FAQS;
 
   const [seoData, tempoFleet, scContent] = await Promise.all([
     resolvePageMeta(`tempo-traveller:${params.location.toLowerCase()}`),
@@ -184,11 +217,18 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
   ]);
 
 
+  // The admin block editor renders its own Why Us / Other Services / FAQ
+  // blocks. Where the city has one, the hardcoded section below is skipped
+  // so the page doesn't say the same thing twice.
+  const adminCoversWhyUs = hasSectionMatching(scContent?.sectionsConfig, /why[-\s_]?(choose|rent|us)/i);
+  const adminCoversOtherServices = hasSectionMatching(scContent?.sectionsConfig, /services?[-\s_]?(offered|available)|other[-\s_]?services/i);
+  const adminCoversFaqs = hasSectionMatching(scContent?.sectionsConfig, /faq/i);
+
   return (
     <>
       <ServiceHeroWithChat
-        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
+        pageHeading={stripPricesFromText(scContent?.pageHeading || seoData?.pageHeading) || undefined}
+        pageDescription={stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined}
         badge={`Tempo Traveller in ${locationName}`}
         title="Tempo Traveller Rental"
         titleHighlight="12-20 Seater | AC & Non-AC"
@@ -205,7 +245,7 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
         backgroundImage="/images/sections/tempo-traveller-hero-bg.webp"
         bookingVariant="tempo"
         heroStats={[
-          { icon: 'tag', value: '₹18/km', label: 'Starting rate' },
+          { icon: 'tag', value: '9-20', label: 'Seater options' },
           { icon: 'shield', value: '500+', label: 'Verified operators' },
           { icon: 'map', value: '150+', label: 'Cities served' },
           { icon: 'headphones', value: '24/7', label: 'Customer support' },
@@ -213,32 +253,34 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
       />
 
       {/* Why Tempo Traveller in This City */}
-      <section className="relative overflow-hidden py-16 bg-white">
-        <div className="container-custom relative">
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
-            Why Choose Tempo Traveller in <span className="text-emerald-600">{locationName}</span>?
-          </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 max-w-5xl mx-auto">
-            {[
-              { Icon: Users, title: 'Group Travel', desc: `Perfect for ${locationName} tours` },
-              { Icon: Snowflake, title: 'AC Comfort', desc: 'Fully air-conditioned' },
-              { Icon: Armchair, title: 'Comfortable Seats', desc: 'Push-back seating' },
-              { Icon: Map, title: 'Outstation Ready', desc: 'Multi-city trips allowed' },
-            ].map(({ Icon, title, desc }) => (
-              <div key={title} className="group rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 px-4 py-5 text-center">
-                <div className="relative w-14 h-14 mx-auto mb-3.5">
-                  <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[78deg] transition-transform duration-500" />
-                  <span className="absolute inset-[5px] rounded-full bg-emerald-50 flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-emerald-600" strokeWidth={1.9} />
-                  </span>
+      {!adminCoversWhyUs && (
+        <section className="relative overflow-hidden py-16 bg-white">
+          <div className="container-custom relative">
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
+              Why Choose Tempo Traveller in <span className="text-emerald-600">{locationName}</span>?
+            </h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 max-w-5xl mx-auto">
+              {[
+                { Icon: Users, title: 'Group Travel', desc: `Perfect for ${locationName} tours` },
+                { Icon: Snowflake, title: 'AC Comfort', desc: 'Fully air-conditioned' },
+                { Icon: Armchair, title: 'Comfortable Seats', desc: 'Push-back seating' },
+                { Icon: Map, title: 'Outstation Ready', desc: 'Multi-city trips allowed' },
+              ].map(({ Icon, title, desc }) => (
+                <div key={title} className="group rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 px-4 py-5 text-center">
+                  <div className="relative w-14 h-14 mx-auto mb-3.5">
+                    <span className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200 rotate-[18deg] group-hover:rotate-[78deg] transition-transform duration-500" />
+                    <span className="absolute inset-[5px] rounded-full bg-emerald-50 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-emerald-600" strokeWidth={1.9} />
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-[15px] text-gray-900 leading-snug">{title}</h3>
+                  <p className="mt-1 text-[12.5px] leading-snug text-gray-500">{desc}</p>
                 </div>
-                <h3 className="font-bold text-[15px] text-gray-900 leading-snug">{title}</h3>
-                <p className="mt-1 text-[12.5px] leading-snug text-gray-500">{desc}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Available Tempo Travellers — dynamic from vehicle_models */}
       <TempoFleetSection vehicles={tempoFleet} locationName={locationName} />
@@ -334,16 +376,16 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { Icon: RefreshCw, duration: 'Local (8 hrs)', price: '2500-4000', desc: '80 km' },
-              { Icon: RouteIcon, duration: 'Outstation', price: '18-35/km', desc: 'Per km rate' },
-              { Icon: MapPinned, duration: 'Multi-Day', price: '3000-5500/day', desc: '250-300 km/day' },
+              { Icon: RefreshCw, duration: 'Local (8 hrs)', inclusion: '80 km included', desc: 'City sightseeing and errands' },
+              { Icon: RouteIcon, duration: 'Outstation', inclusion: 'Charged per km', desc: 'One-way and round trips' },
+              { Icon: MapPinned, duration: 'Multi-Day', inclusion: '250-300 km/day', desc: 'Tours and pilgrimages' },
             ].map((plan) => (
               <div key={plan.duration} className="group bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-white hover:shadow-md rounded-2xl p-6 text-center transition-all">
                 <span className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-600 transition-colors">
                   <plan.Icon className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
                 </span>
                 <h3 className="font-bold text-lg text-gray-900 mb-1.5">{plan.duration}</h3>
-                <p className="text-2xl font-black text-emerald-700 mb-1">₹{plan.price}</p>
+                <p className="text-sm font-bold text-emerald-700 mb-1">{plan.inclusion}</p>
                 <p className="text-sm text-gray-500">{plan.desc}</p>
               </div>
             ))}
@@ -395,18 +437,18 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
       {/* SEO Content Section */}
       <section className="py-16 bg-gray-50">
         <div className="container-custom">
-          <div className="max-w-4xl mx-auto prose prose-lg">
+          <div className="max-w-4xl mx-auto prose">
             <h2 className="text-3xl font-bold text-gray-900 mb-6">
               Tempo Traveller Rental in {locationName}
             </h2>
             {CITY_SEO[params.location]?.serviceIntros?.['tempo-traveller'] ? (
-              <p className="text-gray-600">{CITY_SEO[params.location].serviceIntros['tempo-traveller']}</p>
+              <p className="text-gray-600">{stripPricesFromText(CITY_SEO[params.location].serviceIntros?.['tempo-traveller'])}</p>
             ) : (
               <p className="text-gray-600">
                 TransRentals offers the best Tempo Traveller rental services in {locationName}. Whether you need
                 a 12-seater for a family outing, a 17-seater for a corporate event, or a 20-seater for a
                 pilgrimage group, our verified vendors in {locationName} provide comfortable AC Tempo Travellers
-                with professional drivers at the best prices.
+                with professional drivers.
               </p>
             )}
             <h3 className="text-2xl font-bold text-gray-900 mt-8 mb-4">
@@ -415,7 +457,7 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
             <ul className="text-gray-600 space-y-2">
               <li><strong>Multiple Seating Options:</strong> 9, 12, 14, 17, and 20-seater available</li>
               <li><strong>AC & Non-AC:</strong> Both air-conditioned and non-AC variants for every budget</li>
-              <li><strong>Best Rates:</strong> Local packages from ₹2,500 and outstation from ₹18/km</li>
+              <li><strong>Transparent Quotes:</strong> Compare local and outstation offers from operators side by side</li>
               <li><strong>Expert Drivers:</strong> Verified drivers experienced on {locationName} routes</li>
               <li><strong>Outstation Trips:</strong> Multi-day and multi-city packages available</li>
               <li><strong>24/7 Support:</strong> Round-the-clock assistance throughout your trip</li>
@@ -456,13 +498,15 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
-      <FAQSection
-        service="tempo-traveller"
-        location={locationName}
-        customFaqs={displayFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))}
-      />
+      {!adminCoversFaqs && (
+        <FAQSection
+          service="tempo-traveller"
+          location={locationName}
+          customFaqs={displayFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))}
+        />
+      )}
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

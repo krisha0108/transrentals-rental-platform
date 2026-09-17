@@ -177,6 +177,7 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
         faqs={schemaFaqs}
         rating={4.8}
         reviewCount={612}
+        hidePrices
       />
       <div className="flex flex-col">
       <BikeSearchHero

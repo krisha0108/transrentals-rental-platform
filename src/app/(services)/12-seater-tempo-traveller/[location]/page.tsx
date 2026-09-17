@@ -1,5 +1,6 @@
 ﻿import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import Link from 'next/link';
 import { Armchair, Bus, ArrowRight } from 'lucide-react';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
@@ -15,7 +16,10 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionMatching } from '@/components/seo/ServiceCitySections';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 
 interface PageProps {
   params: { location: string };
@@ -41,11 +45,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('12-seater-tempo-traveller', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `12 Seater Tempo Traveller in ${locationName} | Hire @₹18/km | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book 12 seater tempo traveller on rent in ${locationName}. AC/Non-AC options with driver. Perfect for family trips, weddings, pilgrimages.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `12 Seater Tempo Traveller in ${locationName} | AC & Non-AC Hire | TransRentals`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Book 12 seater tempo traveller on rent in ${locationName}. AC/Non-AC options with driver. Perfect for family trips, weddings, pilgrimages.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [`12 seater tempo traveller ${locationName}`, `tempo traveller hire ${locationName}`, `12 seater van rental ${locationName}`],
     openGraph: {
-      title: `12 Seater Tempo Traveller in ${locationName} @₹18/km`,
+      title: `12 Seater Tempo Traveller in ${locationName}`,
       description: `Hire 12 seater tempo traveller with driver in ${locationName}.`,
       url: `https://transrentals.in/12-seater-tempo-traveller/${params.location.toLowerCase()}`,
     },
@@ -53,21 +57,71 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image' as const,
       title: `12 Seater Tempo Traveller in ${locationName} | TransRentals`,
-      description: `Book 12 seater tempo traveller in ${locationName} starting @₹18/km with driver.`,
+      description: `Book a 12 seater tempo traveller in ${locationName} with a professional driver.`,
     },
   };
 }
 
 const variants = [
-  { name: '12 Seater Non-AC', price: 18 },
-  { name: '12 Seater AC', price: 22 },
-  { name: '12 Seater Deluxe', price: 26 },
-  { name: '12 Seater Maharaja', price: 32 },
+  { name: '12 Seater Non-AC', note: 'Fan-cooled, budget pick' },
+  { name: '12 Seater AC', note: 'Air-conditioned cabin' },
+  { name: '12 Seater Deluxe', note: 'Push-back seats, extra legroom' },
+  { name: '12 Seater Maharaja', note: 'Premium seats and interior' },
 ];
 
+const PAGE_FAQS = [
+  { question: 'How many people can travel in a 12-seater tempo traveller?', answer: 'A 12-seater tempo traveller comfortably seats 11–12 adults with small luggage. It\'s ideal for family picnics, pilgrimages, and corporate offsites.' },
+  { question: 'Is a 12-seater available with push-back seats and AC?', answer: 'Yes, AC 12-seater with push-back seats, music system, and curtains is available for both local and outstation trips.' },
+  { question: 'How is a 12-seater tempo traveller charged?', answer: 'Outstation trips are charged per km and local trips run on hourly packages. Driver bata and toll charges are additional. Operators in your city quote the exact amount once you share the route.' },
+  { question: 'Can I book a 12-seater tempo traveller for a one-day local trip?', answer: 'Yes, half-day (4 hours) and full-day (8 hours, 80 km) local packages are available in addition to outstation per-km pricing.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet. No booking form and no
+ * quoted rate: there is nothing to book and no partner to honour a number, so
+ * the page points at the nearest cities that are bookable today instead.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <section className="bg-gray-100 py-3">
+        <div className="container-custom">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-emerald-700">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/12-seater-tempo-traveller" className="hover:text-emerald-700">12 Seater Tempo Traveller</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900">{cityName}</span>
+          </nav>
+        </div>
+      </section>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="12-seater Tempo Traveller rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="12-seater-tempo-traveller"
+          serviceName="12 Seater Tempo Traveller"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="Tempo Traveller"
+        selectionDesc="AC and non-AC 12-seaters with push-back seats."
+      />
+      <FAQSection service="12-seater-tempo-traveller" location={cityName} customFaqs={PAGE_FAQS} />
+    </>
+  );
+}
+
 export default async function TwelveSeaterLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('12-seater-tempo-traveller', params.location);
+  const pageContext = await resolveServicePage('12-seater-tempo-traveller', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'bus-rental',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="12-seater-tempo-traveller" serviceName="12 Seater Tempo Traveller" />;
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
@@ -77,12 +131,13 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
     getServiceCityContent('12-seater-tempo-traveller', params.location),
   ]);
 
-  const pageFaqs = [
-    { question: 'How many people can travel in a 12-seater tempo traveller?', answer: 'A 12-seater tempo traveller comfortably seats 11–12 adults with small luggage. It\'s ideal for family picnics, pilgrimages, and corporate offsites.' },
-    { question: 'Is a 12-seater available with push-back seats and AC?', answer: 'Yes, AC 12-seater with push-back seats, music system, and curtains is available for both local and outstation trips.' },
-    { question: 'What is the per-km rate for a 12-seater tempo traveller?', answer: '12-seater non-AC starts from ₹18/km; AC starts from ₹22/km. Driver bata and toll charges are additional.' },
-    { question: 'Can I book a 12-seater tempo traveller for a one-day local trip?', answer: 'Yes, half-day (4 hours) and full-day (8 hours, 80 km) local packages are available in addition to outstation per-km pricing.' },
-  ];
+
+  // The admin block editor renders its own Why Us / Other Services / FAQ
+  // blocks. Where the city has one, the hardcoded section below is skipped
+  // so the page doesn't say the same thing twice.
+  const adminCoversWhyUs = hasSectionMatching(scContent?.sectionsConfig, /why[-\s_]?(choose|rent|us)/i);
+  const adminCoversOtherServices = hasSectionMatching(scContent?.sectionsConfig, /services?[-\s_]?(offered|available)|other[-\s_]?services/i);
+  const adminCoversFaqs = hasSectionMatching(scContent?.sectionsConfig, /faq/i);
 
   return (
     <>
@@ -99,11 +154,11 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
-        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
+        pageHeading={stripPricesFromText(scContent?.pageHeading || seoData?.pageHeading) || undefined}
+        pageDescription={stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined}
         badge={`12 Seater Tempo in ${locationName}`}
         title="12 Seater Tempo Traveller"
-        titleHighlight="Small Groups @₹18/km"
+        titleHighlight="AC & Non-AC for Small Groups"
         description={`The perfect 12-seater for small group trips from ${locationName}. Family outings, pilgrimage tours, corporate offsites — AC Force Tempo Traveller with push-back seats.`}
         features={[
           { icon: 'zap', text: 'Push-Back Seats', color: 'text-orange-600' },
@@ -117,7 +172,7 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
         backgroundImage="/images/sections/tempo-traveller-hero-bg.webp"
         bookingVariant="tempo"
         heroStats={[
-          { icon: 'tag', value: '₹18/km', label: 'Starting rate' },
+          { icon: 'tag', value: '11-12', label: 'Seats with luggage' },
           { icon: 'shield', value: '500+', label: 'Verified operators' },
           { icon: 'map', value: '150+', label: 'Cities served' },
           { icon: 'headphones', value: '24/7', label: 'Customer support' },
@@ -173,10 +228,7 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
                   <Bus className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
                 </span>
                 <h3 className="text-lg font-bold text-gray-900 mb-1">{variant.name}</h3>
-                <div className="mb-4">
-                  <span className="text-2xl font-black text-emerald-700">₹{variant.price}</span>
-                  <span className="text-gray-500 text-sm">/km</span>
-                </div>
+                <p className="mb-4 text-sm font-semibold text-emerald-700">{variant.note}</p>
                 <ul className="space-y-1.5 mb-5">
                   {['Professional driver', 'Fuel included', 'All permits'].map((f) => (
                     <li key={f} className="text-sm text-gray-600 flex items-center gap-2">
@@ -223,7 +275,9 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <FAQSection service="12-seater-tempo-traveller" location={locationName} customFaqs={pageFaqs} />
+      {!adminCoversFaqs && (
+        <FAQSection service="12-seater-tempo-traveller" location={locationName} customFaqs={PAGE_FAQS} />
+      )}
 
 
       {/* DEPRECATED — admin block editor now manages this content
@@ -235,16 +289,17 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
             />
       */}
       <BikeServiceSchema
+        hidePrices
         serviceName="12 Seater Tempo Traveller"
         serviceSlug="12-seater-tempo-traveller"
-        description={`Book 12 seater tempo traveller in ${locationName} starting @₹18/km with driver.`}
+        description={`Book a 12 seater tempo traveller in ${locationName} with a professional driver.`}
         city={locationName}
         citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

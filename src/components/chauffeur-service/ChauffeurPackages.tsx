@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Image from 'next/image';
@@ -48,13 +48,17 @@ interface Props {
   hourGroups: HourGroup[];
   outstationPricing: OutstationPricing[];
   locationName: string;
+  /** Opt-in: show what each package includes but never the rate. Pages that
+   *  quote no price on screen use this; off by default so other callers keep
+   *  the pricing they render today. */
+  hidePrices?: boolean;
 }
 
 type Tab = 'local' | 'outstation';
 
 const LOCAL_LIMIT = 3;
 
-export function ChauffeurPackages({ hourGroups, outstationPricing, locationName }: Props) {
+export function ChauffeurPackages({ hourGroups, outstationPricing, locationName, hidePrices = false }: Props) {
   const hasLocal = hourGroups.length > 0;
   const hasOutstation = outstationPricing.length > 0;
 
@@ -159,11 +163,20 @@ export function ChauffeurPackages({ hourGroups, outstationPricing, locationName 
                           <span className="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full font-medium">{activeGroup.kms}km incl.</span>
                         </div>
                         <div className="text-center">
-                          <p className="text-xs text-gray-400 mb-0.5">Starting from</p>
-                          <p className="text-3xl font-bold text-indigo-700">₹{pkg.basePrice.toLocaleString('en-IN')}</p>
-                          <p className="text-xs text-gray-400">All inclusive · driver + fuel</p>
-                          {pkg.extraKmCharge > 0 && (
-                            <p className="text-xs text-gray-400 mt-0.5">+₹{pkg.extraKmCharge}/km beyond {activeGroup.kms}km</p>
+                          {hidePrices ? (
+                            <>
+                              <p className="text-base font-bold text-indigo-700">Free quote</p>
+                              <p className="text-xs text-gray-400">All inclusive · driver + fuel</p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-xs text-gray-400 mb-0.5">Starting from</p>
+                              <p className="text-3xl font-bold text-indigo-700">₹{pkg.basePrice.toLocaleString('en-IN')}</p>
+                              <p className="text-xs text-gray-400">All inclusive · driver + fuel</p>
+                              {pkg.extraKmCharge > 0 && (
+                                <p className="text-xs text-gray-400 mt-0.5">+₹{pkg.extraKmCharge}/km beyond {activeGroup.kms}km</p>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -225,15 +238,21 @@ export function ChauffeurPackages({ hourGroups, outstationPricing, locationName 
                         {examples.length > 0 && <p className="text-xs text-gray-400 mt-0.5">{examples.slice(0, 2).join(', ')}</p>}
                       </div>
                       <div className="text-center mb-3">
-                        <p className="text-xs text-gray-400 mb-0.5">Starting from</p>
-                        <div className="flex items-baseline justify-center gap-1">
-                          <span className="text-3xl font-bold text-indigo-700">₹{p.baseKmRate}</span>
-                          <span className="text-sm text-gray-500">/km</span>
-                        </div>
+                        {hidePrices ? (
+                          <p className="text-base font-bold text-indigo-700">Free quote</p>
+                        ) : (
+                          <>
+                            <p className="text-xs text-gray-400 mb-0.5">Starting from</p>
+                            <div className="flex items-baseline justify-center gap-1">
+                              <span className="text-3xl font-bold text-indigo-700">₹{p.baseKmRate}</span>
+                              <span className="text-sm text-gray-500">/km</span>
+                            </div>
+                          </>
+                        )}
                         <p className="text-xs text-gray-400">Min {p.minKmPerDay} km/day</p>
                       </div>
                       <div className="space-y-1 text-sm text-gray-600 mt-auto">
-                        <p className="flex items-center gap-2"><span className="text-indigo-500">✓</span>Driver allowance ₹{p.driverDayAllowance}/day</p>
+                        <p className="flex items-center gap-2"><span className="text-indigo-500">✓</span>{hidePrices ? 'Driver allowance included' : `Driver allowance ₹${p.driverDayAllowance}/day`}</p>
                         <p className="flex items-center gap-2"><span className="text-indigo-500">✓</span>Professional driver</p>
                         <p className="flex items-center gap-2"><span className="text-indigo-500">✓</span>All India permit</p>
                       </div>
@@ -243,7 +262,9 @@ export function ChauffeurPackages({ hourGroups, outstationPricing, locationName 
               })}
             </div>
             <p className="text-center text-xs text-gray-400 mt-8">
-              * Rates are per km. Final price includes driver allowance + GST (5%). Toll & parking extra.
+              {hidePrices
+                ? '* Charged per km. The quote covers driver allowance + GST (5%); toll & parking extra.'
+                : '* Rates are per km. Final price includes driver allowance + GST (5%). Toll & parking extra.'}
             </p>
           </>
         )}

@@ -1,4 +1,5 @@
 ﻿import React from 'react';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ShieldCheck, UserCheck, Wrench, Construction, Truck, LayoutGrid, ArrowRight } from 'lucide-react';
@@ -10,6 +11,9 @@ import { EquipmentBookingHero } from '@/components/equipment-rental/EquipmentBoo
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
@@ -38,21 +42,69 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('excavator-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Excavator on Rent in ${locationName} | @₹5000/Day`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire excavator in ${locationName} for digging, trenching, construction. Mini to large excavators.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Excavator on Rent in ${locationName}`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Hire excavator in ${locationName} for digging, trenching, construction. Mini to large excavators.`,
     alternates: { canonical: `https://transrentals.in/excavator-on-rent/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Excavator on Rent in ${locationName} | TransRentals`,
-      description: `Hire excavator in ${locationName} starting @₹3499/day. Mini to large excavators with operators.`,
+      description: `Mini to large excavators with operators.`,
     },
   };
 }
 
+const EXPANDING_FAQS = [
+  { question: 'Which excavator sizes are available?', answer: 'Mini excavators for tight sites, 11-tonne machines for general earthwork, and 20-tonne class machines for bulk excavation.' },
+  { question: 'When will excavator rental open in my city?', answer: 'We onboard operators city by city and a city goes live as soon as verified operators are ready there. Until then you can book in the nearby cities listed above.' },
+  { question: 'Is an operator included?', answer: 'Yes. Every excavator comes with a trained, certified operator.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet: no booking form and no
+ * quoted rate, just the nearest cities that are bookable today.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/excavator-on-rent" className="hover:text-primary">Excavator on Rent</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="excavator rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="excavator-on-rent"
+          serviceName="Excavator on Rent"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="excavator"
+        selectionDesc="Mini, 11-tonne and 20-tonne excavators with certified operators."
+      />
+      <FAQSection service="excavator-on-rent" location={cityName} customFaqs={EXPANDING_FAQS} />
+    </>
+  );
+}
+
 export default async function ExcavatorLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('excavator-on-rent', params.location);
+  const pageContext = await resolveServicePage('excavator-on-rent', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'equipment-rental',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="excavator-on-rent" serviceName="Excavator on Rent" />;
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
@@ -63,7 +115,7 @@ export default async function ExcavatorLocationPage({ params }: PageProps) {
 
   const pageFaqs = [
     { question: 'What excavator sizes are available on rent?', answer: 'We offer Mini Excavator (3T), standard excavator (11T JCB 110), and large excavator (20T JCB 200) for all excavation needs.' },
-    { question: 'What is the daily rate for renting an excavator?', answer: 'Mini excavator from ₹5,000/day; standard 11T excavator from ₹9,000/day; 20T excavator from ₹12,000/day — operator included.' },
+    { question: 'How is excavator rental charged?', answer: 'Excavators are quoted per day or per shift by machine class — mini, 11-tonne or 20-tonne — with an operator included. Verified operators quote once you share the site and duration.' },
     { question: 'Is the excavator operator trained and certified?', answer: 'Yes, all our excavator operators hold valid HMV licences and have minimum 3 years of experience on construction and mining sites.' },
     { question: 'Can the excavator be transported to a remote project site?', answer: 'Yes, we arrange trailer transport of excavators to your site. Transportation cost depends on site distance and road conditions.' },
   ];
@@ -168,14 +220,14 @@ export default async function ExcavatorLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName="Excavator on Rent"
         serviceSlug="excavator-on-rent"
-        description={`Hire excavator in ${locationName} starting @₹3499/day. Mini to large excavators with operators.`}
+        description={`Hire excavator in ${locationName}. Mini to large excavators with operators.`}
         city={locationName}
         citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="excavator-on-rent" location={locationName} customFaqs={pageFaqs} />
 

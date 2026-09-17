@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { KeyRound, User, ChevronRight } from 'lucide-react';
+import { KeyRound, User, ChevronRight, ShieldCheck, Headphones, MapPin } from 'lucide-react';
 import { CarSearchHero } from '@/components/car/CarSearchHero';
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 import { useLocation } from '@/contexts/LocationContext';
@@ -12,6 +12,8 @@ interface SwiftRentalTypeHeroProps {
   city?: string;
   citySlug?: string;
   vehicleName?: string;
+  /** Omit to show no rate at all — the self-drive pages quote none, because
+   *  the real price depends on the partner and the dates. */
   selfDrivePrice?: string;
 }
 
@@ -19,7 +21,7 @@ export function SwiftRentalTypeHero({
   city: cityProp,
   citySlug: citySlugProp,
   vehicleName = 'Maruti Swift',
-  selfDrivePrice = '₹899',
+  selfDrivePrice,
 }: SwiftRentalTypeHeroProps) {
   const { currentCity } = useLocation();
   const city = cityProp || currentCity?.name || 'India';
@@ -62,59 +64,91 @@ export function SwiftRentalTypeHero({
   }
 
   return (
-    <section className="relative bg-gradient-to-br from-slate-800 to-slate-900 text-white overflow-hidden">
-      <div className="absolute inset-0 opacity-5 pointer-events-none">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-white rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-      </div>
+    <section className="relative overflow-hidden bg-slate-950 text-white">
+      {/* A real photograph behind the chooser — the flat slate panel gave the
+          two options nothing to sit on. It sits at low opacity over a solid
+          dark base rather than under a translucent overlay, so the copy stays
+          readable no matter how bright the photo is. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-cover bg-center opacity-[0.22]"
+        style={{ backgroundImage: "url('/images/hero/fleet-lineup-night.png')" }}
+      />
+      <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-950/30 to-emerald-950/70" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.15]"
+        style={{ backgroundImage: 'radial-gradient(#6EE7B7 1px, transparent 1px)', backgroundSize: '26px 26px' }}
+      />
+      <div aria-hidden className="pointer-events-none absolute -top-28 -right-24 h-80 w-80 rounded-full bg-emerald-400/10 blur-3xl" />
 
       <div className="relative container-custom py-14 md:py-20">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-5">
-            <span className="text-sm font-medium">{vehicleName} on Rent — {city}</span>
-          </div>
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3">
-            {vehicleName} on Rent in {city}
+        <div className="text-center mb-9 md:mb-11">
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-300">
+            <MapPin className="h-3.5 w-3.5" />
+            {vehicleName} on Rent — {city}
+          </span>
+          <h1 className="mx-auto mt-5 max-w-3xl text-3xl md:text-[2.75rem] md:leading-[1.1] font-black tracking-tight">
+            {vehicleName} on Rent in <span className="text-emerald-300">{city}</span>
           </h1>
-          <p className="text-white/70 text-lg">
+          <p className="mt-3 text-sm md:text-[15px] text-white/70">
             How would you like to rent the {vehicleName.split(' ').pop()}?
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-5 max-w-2xl mx-auto">
-          {/* Self Drive */}
+        {/* Same two choices, same actions — just given the weight of a real
+            decision instead of two flat boxes. */}
+        <div className="grid md:grid-cols-2 gap-4 md:gap-5 max-w-3xl mx-auto">
           <button
             type="button"
             onClick={() => setSelected('self-drive')}
-            className="group bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 hover:border-white/40 rounded-2xl p-7 text-left transition-all duration-200 hover:scale-[1.02]"
+            className="group relative overflow-hidden rounded-2xl border border-white/15 bg-white/[0.07] p-6 md:p-7 text-left backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-sky-300/50 hover:bg-white/[0.12] hover:shadow-2xl hover:shadow-sky-900/30"
           >
-            <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-500/30 transition">
-              <KeyRound className="w-6 h-6 text-blue-300" />
-            </div>
-            <h2 className="text-xl font-bold mb-1">Self Drive</h2>
-            <p className="text-white/60 text-sm mb-4">Drive yourself, no driver needed. Pay per day.</p>
-            <div className="flex items-center gap-1.5 text-blue-300 text-sm font-medium">
-              <span>From {selfDrivePrice}</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </div>
+            <span aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-sky-400 to-blue-500 opacity-70 transition-opacity group-hover:opacity-100" />
+            <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-sky-500/20 ring-1 ring-sky-400/30 transition-colors group-hover:bg-sky-500/30">
+              <KeyRound className="h-6 w-6 text-sky-300" />
+            </span>
+            <h2 className="mt-4 text-lg md:text-xl font-bold">Self Drive</h2>
+            <p className="mt-1 text-sm leading-relaxed text-white/60">
+              Drive yourself, no driver needed. Pay per day.
+            </p>
+            <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-sky-300">
+              {selfDrivePrice ? `From ${selfDrivePrice}` : 'Book self drive'}
+              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </span>
           </button>
 
-          {/* With Driver */}
           <button
             type="button"
             onClick={() => setSelected('with-driver')}
-            className="group bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 hover:border-white/40 rounded-2xl p-7 text-left transition-all duration-200 hover:scale-[1.02]"
+            className="group relative overflow-hidden rounded-2xl border border-white/15 bg-white/[0.07] p-6 md:p-7 text-left backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-emerald-300/50 hover:bg-white/[0.12] hover:shadow-2xl hover:shadow-emerald-900/30"
           >
-            <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-emerald-500/30 transition">
-              <User className="w-6 h-6 text-emerald-300" />
-            </div>
-            <h2 className="text-xl font-bold mb-1">With Driver</h2>
-            <p className="text-white/60 text-sm mb-4">Sit back & relax, our driver takes you there.</p>
-            <div className="flex items-center gap-1.5 text-emerald-300 text-sm font-medium">
-              <span>Local, Outstation & Airport</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </div>
+            <span aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-emerald-400 to-teal-500 opacity-70 transition-opacity group-hover:opacity-100" />
+            <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20 ring-1 ring-emerald-400/30 transition-colors group-hover:bg-emerald-500/30">
+              <User className="h-6 w-6 text-emerald-300" />
+            </span>
+            <h2 className="mt-4 text-lg md:text-xl font-bold">With Driver</h2>
+            <p className="mt-1 text-sm leading-relaxed text-white/60">
+              Sit back &amp; relax, our driver takes you there.
+            </p>
+            <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-300">
+              Local, Outstation &amp; Airport
+              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </span>
           </button>
+        </div>
+
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] text-white/55">
+          {[
+            { Icon: ShieldCheck, text: 'Verified partners' },
+            { Icon: Headphones, text: '24/7 support' },
+            { Icon: MapPin, text: 'Doorstep delivery' },
+          ].map((item) => (
+            <span key={item.text} className="inline-flex items-center gap-1.5">
+              <item.Icon className="h-3.5 w-3.5 text-emerald-400/80" />
+              {item.text}
+            </span>
+          ))}
         </div>
       </div>
     </section>

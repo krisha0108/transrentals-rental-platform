@@ -1,5 +1,6 @@
 ﻿import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import Link from 'next/link';
 import { Armchair, Bus, ArrowRight } from 'lucide-react';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
@@ -15,7 +16,10 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionMatching } from '@/components/seo/ServiceCitySections';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 
 interface PageProps {
   params: { location: string };
@@ -41,32 +45,82 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('17-seater-tempo-traveller', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `17 Seater Tempo Traveller in ${locationName} | Hire @₹20/km | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book 17 seater tempo traveller on rent in ${locationName}. AC/Non-AC options with driver. For large groups, weddings, corporate events.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `17 Seater Tempo Traveller in ${locationName} | AC & Non-AC Hire | TransRentals`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Book 17 seater tempo traveller on rent in ${locationName}. AC/Non-AC options with driver. For large groups, weddings, corporate events.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [`17 seater tempo traveller ${locationName}`, `tempo traveller hire ${locationName}`],
     openGraph: {
-      title: `17 Seater Tempo Traveller in ${locationName} @₹20/km`,
+      title: `17 Seater Tempo Traveller in ${locationName}`,
       url: `https://transrentals.in/17-seater-tempo-traveller/${params.location.toLowerCase()}`,
     },
     alternates: { canonical: `https://transrentals.in/17-seater-tempo-traveller/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `17 Seater Tempo Traveller in ${locationName} | TransRentals`,
-      description: `Book 17 seater tempo traveller in ${locationName} starting @₹20/km with driver.`,
+      description: `Book a 17 seater tempo traveller in ${locationName} with a professional driver.`,
     },
   };
 }
 
 const variants = [
-  { name: '17 Seater Non-AC', price: 20 },
-  { name: '17 Seater AC', price: 25 },
-  { name: '17 Seater Deluxe', price: 30 },
-  { name: '17 Seater Maharaja', price: 38 },
+  { name: '17 Seater Non-AC', note: 'Fan-cooled, budget pick' },
+  { name: '17 Seater AC', note: 'Air-conditioned cabin' },
+  { name: '17 Seater Deluxe', note: 'Push-back seats, extra legroom' },
+  { name: '17 Seater Maharaja', note: 'Premium seats and interior' },
 ];
 
+const PAGE_FAQS = [
+  { question: 'What is the seating capacity of a 17-seater tempo traveller?', answer: 'A 17-seater seats 16–17 adults comfortably with push-back seats, overhead luggage, and rear boot space for bags.' },
+  { question: 'Is a 17-seater tempo traveller suitable for a wedding group?', answer: 'Yes, 17-seater AC Deluxe with LED lighting and music system is ideal for wedding parties, baraat, and family functions.' },
+  { question: 'How is a 17-seater tempo traveller charged?', answer: 'Outstation trips are charged per km and local trips run on hourly packages, with non-AC, AC and Maharaja variants quoted differently. Driver bata is included; the operator confirms the exact amount in the quote.' },
+  { question: 'Can a 17-seater tempo traveller travel interstate?', answer: 'Yes, our tempo travellers have all-India permits and valid interstate registration. Long-distance outstation trips are fully supported.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet. No booking form and no
+ * quoted rate: there is nothing to book and no partner to honour a number, so
+ * the page points at the nearest cities that are bookable today instead.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <section className="bg-gray-100 py-3">
+        <div className="container-custom">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-emerald-700">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/17-seater-tempo-traveller" className="hover:text-emerald-700">17 Seater Tempo Traveller</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900">{cityName}</span>
+          </nav>
+        </div>
+      </section>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="17-seater Tempo Traveller rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="17-seater-tempo-traveller"
+          serviceName="17 Seater Tempo Traveller"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="Tempo Traveller"
+        selectionDesc="AC, non-AC and Maharaja 17-seaters for medium groups."
+      />
+      <FAQSection service="17-seater-tempo-traveller" location={cityName} customFaqs={PAGE_FAQS} />
+    </>
+  );
+}
+
 export default async function SeventeenSeaterLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('17-seater-tempo-traveller', params.location);
+  const pageContext = await resolveServicePage('17-seater-tempo-traveller', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'bus-rental',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="17-seater-tempo-traveller" serviceName="17 Seater Tempo Traveller" />;
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
@@ -76,12 +130,13 @@ export default async function SeventeenSeaterLocationPage({ params }: PageProps)
     getServiceCityContent('17-seater-tempo-traveller', params.location),
   ]);
 
-  const pageFaqs = [
-    { question: 'What is the seating capacity of a 17-seater tempo traveller?', answer: 'A 17-seater seats 16–17 adults comfortably with push-back seats, overhead luggage, and rear boot space for bags.' },
-    { question: 'Is a 17-seater tempo traveller suitable for a wedding group?', answer: 'Yes, 17-seater AC Deluxe with LED lighting and music system is ideal for wedding parties, baraat, and family functions.' },
-    { question: 'What is the rental rate for a 17-seater tempo traveller?', answer: '17-seater non-AC starts from ₹20/km; AC starts from ₹25/km; Maharaja variant from ₹38/km. Driver bata included.' },
-    { question: 'Can a 17-seater tempo traveller travel interstate?', answer: 'Yes, our tempo travellers have all-India permits and valid interstate registration. Long-distance outstation trips are fully supported.' },
-  ];
+
+  // The admin block editor renders its own Why Us / Other Services / FAQ
+  // blocks. Where the city has one, the hardcoded section below is skipped
+  // so the page doesn't say the same thing twice.
+  const adminCoversWhyUs = hasSectionMatching(scContent?.sectionsConfig, /why[-\s_]?(choose|rent|us)/i);
+  const adminCoversOtherServices = hasSectionMatching(scContent?.sectionsConfig, /services?[-\s_]?(offered|available)|other[-\s_]?services/i);
+  const adminCoversFaqs = hasSectionMatching(scContent?.sectionsConfig, /faq/i);
 
   return (
     <>
@@ -98,11 +153,11 @@ export default async function SeventeenSeaterLocationPage({ params }: PageProps)
       </section>
 
       <ServiceHeroWithChat
-        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
+        pageHeading={stripPricesFromText(scContent?.pageHeading || seoData?.pageHeading) || undefined}
+        pageDescription={stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined}
         badge={`17 Seater Tempo in ${locationName}`}
         title="17 Seater Tempo Traveller"
-        titleHighlight="Medium Groups @₹20/km"
+        titleHighlight="AC & Non-AC for Medium Groups"
         description={`The most popular group size — 17-seater AC Tempo Traveller for ${locationName} trips. Extended legroom, luggage space, perfect for wedding parties and tour groups.`}
         features={[
           { icon: 'zap', text: 'Extended Legroom', color: 'text-orange-600' },
@@ -116,7 +171,7 @@ export default async function SeventeenSeaterLocationPage({ params }: PageProps)
         backgroundImage="/images/sections/tempo-traveller-hero-bg.webp"
         bookingVariant="tempo"
         heroStats={[
-          { icon: 'tag', value: '₹20/km', label: 'Starting rate' },
+          { icon: 'tag', value: '14-15', label: 'Seats with luggage' },
           { icon: 'shield', value: '500+', label: 'Verified operators' },
           { icon: 'map', value: '150+', label: 'Cities served' },
           { icon: 'headphones', value: '24/7', label: 'Customer support' },
@@ -172,10 +227,7 @@ export default async function SeventeenSeaterLocationPage({ params }: PageProps)
                   <Bus className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
                 </span>
                 <h3 className="text-lg font-bold text-gray-900 mb-1">{variant.name}</h3>
-                <div className="mb-4">
-                  <span className="text-2xl font-black text-emerald-700">₹{variant.price}</span>
-                  <span className="text-gray-500 text-sm">/km</span>
-                </div>
+                <p className="mb-4 text-sm font-semibold text-emerald-700">{variant.note}</p>
                 <ul className="space-y-1.5 mb-5">
                   {['Professional driver', 'Fuel included', 'All permits'].map((f) => (
                     <li key={f} className="text-sm text-gray-600 flex items-center gap-2">
@@ -220,7 +272,9 @@ export default async function SeventeenSeaterLocationPage({ params }: PageProps)
         </div>
       </section>
 
-      <FAQSection service="17-seater-tempo-traveller" location={locationName} customFaqs={pageFaqs} />
+      {!adminCoversFaqs && (
+        <FAQSection service="17-seater-tempo-traveller" location={locationName} customFaqs={PAGE_FAQS} />
+      )}
 
 
       {/* DEPRECATED — admin block editor now manages this content
@@ -232,16 +286,17 @@ export default async function SeventeenSeaterLocationPage({ params }: PageProps)
             />
       */}
       <BikeServiceSchema
+        hidePrices
         serviceName="17 Seater Tempo Traveller"
         serviceSlug="17-seater-tempo-traveller"
-        description={`Book 17 seater tempo traveller in ${locationName} starting @₹20/km with driver.`}
+        description={`Book a 17 seater tempo traveller in ${locationName} with a professional driver.`}
         city={locationName}
         citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

@@ -7,6 +7,11 @@ import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { resolveServicePage } from '@/lib/services/service-availability';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
@@ -39,21 +44,66 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('xuv700-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || formatPriceHighlight(`XUV700 on Rent in ${locationName} | @₹2999/Day | TransRentals`),
+    title: scContent?.metaTitle || _seoDb?.metaTitle || formatPriceHighlight(`XUV700 on Rent in ${locationName} | TransRentals`),
     description: scContent?.metaDescription || _seoDb?.metaDescription || formatPriceHighlight(`Rent Mahindra XUV700 without driver in ${locationName}. India's safest SUV with ADAS.`),
     alternates: { canonical: `https://transrentals.in/xuv700-on-rent/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `XUV700 on Rent in ${locationName} | TransRentals`,
-      description: `Rent Mahindra XUV700 without driver in ${locationName} starting @₹1999/day.`,
+      description: `Rent Mahindra XUV700 without driver in ${locationName} from verified partners.`,
     },
   };
 }
 
+const launchFaqs = [
+  { question: 'What documents do I need to rent?', answer: 'A valid driving licence and one government photo ID (Aadhaar, passport or voter card).' },
+  { question: 'Is a security deposit required?', answer: 'Yes, a refundable deposit is collected at pickup and returned when you bring the car back.' },
+  { question: 'Is roadside assistance available?', answer: 'Yes, our partners provide 24/7 roadside assistance for the length of your rental.' },
+];
+
 export default async function XUV700LocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('xuv700-on-rent', params.location);
+  // Availability follows self-drive-car-rentals: there is no services row under
+  // "xuv700-on-rent", and an unknown slug used to read as "available
+  // everywhere", so this page could never be switched off for a city.
+  // One admin screen now governs the whole self drive group.
+  const pageContext = await resolveServicePage('xuv700-on-rent', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'self-drive-car-rentals',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="xuv700-on-rent" serviceName="XUV700 on Rent" />;
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the
+  // nearest city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/xuv700-on-rent" className="hover:text-primary">XUV700 on Rent</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="XUV700 rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="xuv700-on-rent"
+            serviceName="XUV700 on Rent"
+          />
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} vehicleNoun="car" selectionDesc="Mahindra XUV700, in the trims our partners keep on the road." />
+        <FAQSection service="xuv700-on-rent" location={cityName} customFaqs={launchFaqs} />
+      </>
+    );
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
@@ -64,7 +114,6 @@ export default async function XUV700LocationPage({ params }: PageProps) {
 
   const pageFaqs = [
     { question: 'Is Mahindra XUV700 available for self-drive without a chauffeur?', answer: 'Yes, Mahindra XUV700 AX5 and AX7 are available for self-drive with ADAS features and panoramic sunroof.' },
-    { question: 'What is the daily rent for XUV700 self-drive?', answer: 'XUV700 self-drive rental starts from ₹1999/day for petrol and ₹2299/day for diesel, including insurance and 250 km limit.' },
     { question: 'Does the XUV700 rental include ADAS features?', answer: 'Yes, the rental XUV700 includes ADAS (auto emergency braking, lane keep assist) — all systems are active and tested before delivery.' },
     { question: 'Can I rent XUV700 for a 7-seater family trip?', answer: 'Absolutely — XUV700 is a true 7-seater SUV with 3 rows. Ideal for family vacations and long-distance road trips.' },
   ];
@@ -87,7 +136,6 @@ export default async function XUV700LocationPage({ params }: PageProps) {
         city={locationName}
         citySlug={params.location.toLowerCase()}
         vehicleName="Mahindra XUV700"
-        selfDrivePrice="₹2,999"
       />
 
       <section className="bg-white py-10 border-b border-gray-100">
@@ -100,15 +148,6 @@ export default async function XUV700LocationPage({ params }: PageProps) {
               <p className="text-gray-500 mt-1.5">Self-drive Mahindra XUV700. India&apos;s safest SUV with ADAS.</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
-                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
-                  <Shield className="w-5 h-5 text-white" />
-                </span>
-                <div>
-                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Starting</p>
-                  <p className="text-lg font-black text-gray-900">₹2,999</p>
-                </div>
-              </div>
               <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
                 <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-5 h-5 text-white" />
@@ -166,14 +205,27 @@ export default async function XUV700LocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName="XUV700 on Rent"
         serviceSlug="xuv700-on-rent"
-        description={`Rent Mahindra XUV700 without driver in ${locationName} starting @₹1999/day.`}
+        description={`Rent Mahindra XUV700 without driver in ${locationName}, all from verified partners.`}
         city={locationName}
         citySlug={params.location.toLowerCase()}
         faqs={[]}
+        hidePrices
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      {/* Available cars — purely whatever the admin has published for
+          this city. Nothing hardcoded, and the section renders nothing
+          at all when the city has no published fleet. */}
+      <LazyServiceFleetDisplay
+        serviceSlug="xuv700-on-rent"
+        locationSlug={params.location}
+        title={`XUV700 Cars Available in ${locationName}`}
+        showCategories={true}
+        limit={12}
+        hidePrices
+      />
+
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="xuv700-on-rent" location={locationName} customFaqs={pageFaqs} />
 
@@ -192,7 +244,6 @@ export default async function XUV700LocationPage({ params }: PageProps) {
           { slug: 'innova-on-rent', name: 'Innova on Rent' },
           { slug: 'fortuner-on-rent', name: 'Fortuner on Rent' },
           { slug: 'seltos-on-rent', name: 'Seltos on Rent' },
-          { slug: 'xuv700-on-rent', name: 'XUV700 on Rent' },
           { slug: 'scorpio-on-rent', name: 'Scorpio on Rent' },
         ]}
       />

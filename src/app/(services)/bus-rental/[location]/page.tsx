@@ -1,5 +1,6 @@
 ﻿import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
@@ -12,8 +13,9 @@ import { getCityBySlug } from '@/data/indian-cities';
 import { BusRentalBookingHero } from '@/components/bus-rental/BusRentalBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { prisma } from '@/lib/db/prisma';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { getCachedServiceBySlug } from '@/lib/services/cached-service-lookups';
@@ -21,15 +23,15 @@ import { getServiceLocations, getAllCityLocations } from '@/lib/services/service
 import { CITY_SEO } from '@/data/city-seo-content';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections, hasSectionsContent } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionsContent, hasSectionMatching } from '@/components/seo/ServiceCitySections';
 import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
 import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 import { MapPin, Calendar, Star, CheckCircle } from 'lucide-react';
 
 const BUS_RENTAL_FALLBACK_FAQS = [
-  { question: 'What is the cost of bus rental per km in India?', answer: 'Bus rental rates depend on bus size and type. Tempo Traveller (12-seater) starts from ₹18/km. Mini bus (20-seater) starts from ₹25/km. Luxury coach (40-50 seater) starts from ₹40/km. Local packages (8 hrs/80 km) are also available. Get a free quote on TransRentals for your specific route and group size.' },
+  { question: 'How is bus rental charged in India?', answer: 'Bus rental is quoted per trip or per km, and the quote depends on bus size and type, route distance, and whether you need AC. Local packages (8 hrs/80 km) are also available. Share your route and group size on TransRentals and verified operators send you their quotes directly.' },
   { question: 'What bus sizes are available for rent?', answer: 'TransRentals offers Tempo Travellers (9, 12, 14, 17, 20-seater), mini buses (20–32 seater), standard buses (35–45 seater), and luxury coaches (45–55 seater). Both AC and non-AC options are available. Choose based on your group size — for comfortable travel with luggage, plan for 1–2 fewer passengers than stated capacity.' },
-  { question: 'Is driver included in bus rental?', answer: 'Yes, all bus rentals on TransRentals include a professional driver. For outstation trips, driver allowance (₹300–₹500/day) is typically charged separately. Drivers are verified, licensed, and experienced on the relevant routes.' },
+  { question: 'Is driver included in bus rental?', answer: 'Yes, all bus rentals on TransRentals include a professional driver. For outstation trips, driver allowance is typically charged separately — the operator confirms it in the quote. Drivers are verified, licensed, and experienced on the relevant routes.' },
   { question: 'What are buses typically hired for?', answer: 'Common use cases: weddings (baraat and guest transport), corporate team outings, school and college excursions, pilgrimages (Shirdi, Tirupati, Char Dham), airport group transfers, sports events, and political/social rallies. Both single-day and multi-day packages are available.' },
   { question: 'How far in advance should I book a bus for a wedding or event?', answer: 'For weddings, book at least 3–4 weeks in advance — premium dates (wedding season Nov–Feb, May) fill up quickly. For corporate outings and pilgrimages, 1 week in advance is sufficient for regular demand. During Navratri, Dussehra, and long weekends, book 2 weeks ahead minimum.' },
 ];
@@ -73,8 +75,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('bus-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Bus Rental in ${locationName} | Starting ₹18/km | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire buses and tempo travellers in ${locationName}. Mini buses, luxury coaches, and AC Tempo Travellers for pilgrimages, weddings, corporate events. Verified operators.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Bus Rental in ${locationName} | Hire Buses & Tempo Travellers | TransRentals`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Hire buses and tempo travellers in ${locationName}. Mini buses, luxury coaches, and AC Tempo Travellers for pilgrimages, weddings, corporate events. Verified operators.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `bus rental in ${locationName}`,
       `bus on rent ${locationName}`,
@@ -111,67 +113,57 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+/**
+ * The page a city gets while it has no bus operators onboarded yet: no search
+ * box and no quoted rate, because there is nothing here to book and no partner
+ * to honour a number. It leads with the nearest cities that are bookable today.
+ * Shared by both routes that land here so the two never drift apart.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/bus-rental" className="hover:text-primary">Bus Rental</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="bus rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="bus-rental"
+          serviceName="Bus Rental"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="bus"
+        selectionDesc="Tempo Travellers, mini buses, and full-size coaches — AC and non-AC."
+      />
+      <FAQSection service="bus-rental" location={cityName} customFaqs={BUS_RENTAL_FALLBACK_FAQS} />
+    </>
+  );
+}
+
 export default async function BusLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('bus-rental', params.location, { comingSoonIfUnavailable: true });
   if (pageContext.type === 'redirect') {
     if (COMING_SOON_SLUGS.has(params.location)) {
       const cityName = getCityBySlug(params.location)?.name ??
         params.location.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      return (
-        <>
-          <div className="bg-gray-50 border-b border-gray-200">
-            <div className="container-custom py-3">
-              <nav className="text-sm text-gray-600">
-                <a href="/" className="hover:text-primary">Home</a>
-                <span className="mx-2">/</span>
-                <a href="/bus-rental" className="hover:text-primary">Bus Rental</a>
-                <span className="mx-2">/</span>
-                <span className="text-gray-900 font-medium">{cityName}</span>
-              </nav>
-            </div>
-          </div>
-          <ComingSoonHero
-            city={cityName}
-            citySlug={params.location.toLowerCase()}
-            serviceSlug="bus-rental"
-            serviceName="Bus Rental"
-            themeColor="blue"
-          />
-        </>
-      );
+      return <ExpandingCityPage cityName={cityName} citySlug={params.location.toLowerCase()} />;
     }
     permanentRedirect(pageContext.to);
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="bus-rental" serviceName="Bus Rental" />;
   if (pageContext.type === 'coming-soon') {
-    const cityName = pageContext.city.name;
-    return (
-      <>
-        <div className="bg-gray-50 border-b border-gray-200">
-          <div className="container-custom py-3">
-            <nav className="text-sm text-gray-600">
-              <a href="/" className="hover:text-primary">Home</a>
-              <span className="mx-2">/</span>
-              <a href="/bus-rental" className="hover:text-primary">Bus Rental</a>
-              <span className="mx-2">/</span>
-              <span className="text-gray-900 font-medium">{cityName}</span>
-            </nav>
-          </div>
-        </div>
-        <ComingSoonHero
-          city={cityName}
-          citySlug={params.location.toLowerCase()}
-          serviceSlug="bus-rental"
-          serviceName="Bus Rental"
-          themeColor="orange"
-        />
-        <NearbyActiveCities
-          currentCitySlug={params.location.toLowerCase()}
-          serviceSlug="bus-rental"
-          serviceName="Bus Rental"
-        />
-      </>
-    );
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
   }
   const city = pageContext.city;
 
@@ -275,8 +267,17 @@ export default async function BusLocationPage({ params }: PageProps) {
   ]);
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['bus-rental'] || [];
   const displayFAQs = cityFAQs.length > 0
-    ? cityFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))
+    ? cityFAQs
+        .map((faq) => ({ question: faq.q, answer: stripPricesFromText(faq.a) }))
+        .filter((faq) => faq.answer)
     : BUS_RENTAL_FALLBACK_FAQS;
+
+  // The admin block editor renders its own Why Us / Other Services / FAQ
+  // blocks. Where the city has one, the hardcoded section below is skipped
+  // so the page doesn't say the same thing twice.
+  const adminCoversWhyUs = hasSectionMatching(scContent?.sectionsConfig, /why[-\s_]?(choose|rent|us)/i);
+  const adminCoversOtherServices = hasSectionMatching(scContent?.sectionsConfig, /services?[-\s_]?(offered|available)|other[-\s_]?services/i);
+  const adminCoversFaqs = hasSectionMatching(scContent?.sectionsConfig, /faq/i);
 
   return (
     <div className="flex flex-col">
@@ -302,6 +303,8 @@ export default async function BusLocationPage({ params }: PageProps) {
         citySlug={params.location.toLowerCase()}
       />
 
+      {/* Admin-managed fleet only. No models for this city means no section —
+          an empty "Available Buses in X" heading is worse than none. */}
       <div id="bus-fleet">
         <VehicleGrid
           vehicles={vehicles}
@@ -309,6 +312,7 @@ export default async function BusLocationPage({ params }: PageProps) {
           location={locationName}
           locationSlug={params.location.toLowerCase()}
           serviceSlug="bus-rental"
+          hideWhenEmpty
         />
       </div>
 
@@ -359,7 +363,9 @@ export default async function BusLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <WhyRentHere locationName={locationName} />
+      {!adminCoversWhyUs && (
+        <WhyRentHere locationName={locationName} />
+      )}
 
       <NearbyLocations
         locationSlug={params.location.toLowerCase()}
@@ -367,17 +373,20 @@ export default async function BusLocationPage({ params }: PageProps) {
       />
 
       <ServiceAreasSection
+        hidePrices
         serviceSlug="bus-rental"
         citySlug={params.location.toLowerCase()}
         cityName={locationName}
         serviceName="Bus Rental"
       />
 
-      <CrossServiceLinks
-        citySlug={params.location.toLowerCase()}
-        cityName={locationName}
-        currentServiceSlug="bus-rental"
-      />
+      {!adminCoversOtherServices && (
+        <CrossServiceLinks
+          citySlug={params.location.toLowerCase()}
+          cityName={locationName}
+          currentServiceSlug="bus-rental"
+        />
+      )}
 
       {/* TravelAgency / BusService Schema */}
       <script
@@ -421,9 +430,11 @@ export default async function BusLocationPage({ params }: PageProps) {
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
-      <FAQSection service="bus-rental" location={locationName} customFaqs={displayFAQs} />
+      {!adminCoversFaqs && (
+        <FAQSection service="bus-rental" location={locationName} customFaqs={displayFAQs} />
+      )}
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

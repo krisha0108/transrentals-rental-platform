@@ -1,5 +1,6 @@
 ﻿import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { FAQSection } from '@/components/services/FAQSection';
@@ -18,7 +19,10 @@ import { getBusRentalServiceId, getLocationId } from '@/lib/db/build-cache';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionMatching } from '@/components/seo/ServiceCitySections';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 
 interface PageProps {
   params: {
@@ -47,8 +51,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('corporate-bus-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Corporate Bus Rental in ${locationName} | Employee Transport @₹4999 | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Corporate bus rental in ${locationName} for employee transportation, office events & team outings. Daily, monthly & annual contracts available. Book now!`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Corporate Bus Rental in ${locationName} | Employee Transport | TransRentals`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Corporate bus rental in ${locationName} for employee transportation, office events & team outings. Daily, monthly & annual contracts available. Book now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `corporate bus rental in ${locationName}`,
       `employee transport bus ${locationName}`,
@@ -58,31 +62,75 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ],
     openGraph: {
       title: `Corporate Bus Rental in ${locationName} - TransRentals`,
-      description: `Professional corporate bus rental in ${locationName} starting @₹4999/day.`,
+      description: `Professional corporate bus rental in ${locationName} for staff shuttles and events.`,
     },
     alternates: { canonical: `https://transrentals.in/corporate-bus-rental/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Corporate Bus Rental in ${locationName} | TransRentals`,
-      description: `Corporate bus rental in ${locationName} starting @₹4999/day for employee transport & events.`,
+      description: `Corporate bus rental in ${locationName} for employee transport & events.`,
     },
   };
 }
 
+const PAGE_FAQS = [
+  { question: 'What is corporate bus rental and what does it cover?', answer: 'Corporate bus rental covers daily employee pick-up/drop, office event transportation, team outings, and airport transfers for groups.' },
+  { question: 'Can I get a fixed monthly contract for corporate bus rental?', answer: 'Yes, monthly fixed contracts with dedicated routes, fixed timings, and dedicated driver are available for corporate clients.' },
+  { question: 'Is GST invoice provided for corporate bus rental?', answer: 'Yes, GST-compliant invoices with SAC code are provided for all corporate bookings. Monthly consolidated billing is available.' },
+  { question: 'What bus sizes are available for corporate hire?', answer: 'We offer 17, 20, 26, 32, and 49-seater buses for corporate use — AC and non-AC — based on employee count and route requirements.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet. No booking form and no
+ * quoted rate: there is nothing to book and no partner to honour a number, so
+ * the page points at the nearest cities that are bookable today instead.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <section className="bg-gray-100 py-3">
+        <div className="container-custom">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-emerald-700">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/corporate-bus-rental" className="hover:text-emerald-700">Corporate Bus Rental</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900">{cityName}</span>
+          </nav>
+        </div>
+      </section>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="corporate bus rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="corporate-bus-rental"
+          serviceName="Corporate Bus Rental"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="bus"
+        selectionDesc="Staff shuttles and AC coaches, 20-50 seater, for daily transport or events."
+      />
+      <FAQSection service="corporate-bus-rental" location={cityName} customFaqs={PAGE_FAQS} />
+    </>
+  );
+}
+
 export default async function CorporateBusLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('corporate-bus-rental', params.location);
+  const pageContext = await resolveServicePage('corporate-bus-rental', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'bus-rental',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="corporate-bus-rental" serviceName="Corporate Bus Rental" />;
   const city = pageContext.city;
 
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const pageFaqs = [
-    { question: 'What is corporate bus rental and what does it cover?', answer: 'Corporate bus rental covers daily employee pick-up/drop, office event transportation, team outings, and airport transfers for groups.' },
-    { question: 'Can I get a fixed monthly contract for corporate bus rental?', answer: 'Yes, monthly fixed contracts with dedicated routes, fixed timings, and dedicated driver are available for corporate clients.' },
-    { question: 'Is GST invoice provided for corporate bus rental?', answer: 'Yes, GST-compliant invoices with SAC code are provided for all corporate bookings. Monthly consolidated billing is available.' },
-    { question: 'What bus sizes are available for corporate hire?', answer: 'We offer 17, 20, 26, 32, and 49-seater buses for corporate use — AC and non-AC — based on employee count and route requirements.' },
-  ];
 
   const [busServiceId, locationId, scContent] = await Promise.all([
     getBusRentalServiceId(),
@@ -127,6 +175,13 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
     };
   });
 
+
+  // The admin block editor renders its own Why Us / Other Services / FAQ
+  // blocks. Where the city has one, the hardcoded section below is skipped
+  // so the page doesn't say the same thing twice.
+  const adminCoversWhyUs = hasSectionMatching(scContent?.sectionsConfig, /why[-\s_]?(choose|rent|us)/i);
+  const adminCoversOtherServices = hasSectionMatching(scContent?.sectionsConfig, /services?[-\s_]?(offered|available)|other[-\s_]?services/i);
+  const adminCoversFaqs = hasSectionMatching(scContent?.sectionsConfig, /faq/i);
 
   return (
     <div className="flex flex-col">
@@ -216,7 +271,9 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
         />
       )}
 
-      <WhyRentHere locationName={locationName} />
+      {!adminCoversWhyUs && (
+        <WhyRentHere locationName={locationName} />
+      )}
 
       <NearbyLocations
         locationSlug={params.location.toLowerCase()}
@@ -232,18 +289,21 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
             />
       */}
       <BikeServiceSchema
+        hidePrices
         serviceName="Corporate Bus Rental"
         serviceSlug="corporate-bus-rental"
-        description={`Corporate bus rental in ${locationName} starting @₹4999/day for employee transport & events.`}
+        description={`Corporate bus rental in ${locationName} for employee transport & events.`}
         city={locationName}
         citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
-      <FAQSection service="corporate-bus-rental" location={locationName} customFaqs={pageFaqs} />
+      {!adminCoversFaqs && (
+        <FAQSection service="corporate-bus-rental" location={locationName} customFaqs={PAGE_FAQS} />
+      )}
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

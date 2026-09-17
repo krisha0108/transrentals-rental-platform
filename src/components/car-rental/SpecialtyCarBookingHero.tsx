@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Heart, Zap, Clock, Shield, Star, Sparkles, Camera, Briefcase, BarChart2, FileText, Car, Navigation } from 'lucide-react';
 import { CarRentalBookingHero } from './CarRentalBookingHero';
@@ -141,7 +141,7 @@ const SERVICE_CONFIG: Record<
   'round-trip': {
     serviceTitle: 'Round Trip Cab Service',
     headingLine1: 'Book Round Trip Cabs',
-    headingLine2: 'Starting @₹10/km',
+    headingLine2: 'With Driver & Permits',
     subheading:
       'Go and return with same driver. Save 20-30% on outstation travel. All charges included — no hidden fees.',
     gradient: 'from-purple-900 via-indigo-900 to-violet-900',
@@ -197,7 +197,7 @@ const SERVICE_CONFIG: Record<
     headingLine1: 'Book Cars for',
     headingLine2: 'Outstation & Intercity Trips',
     subheading:
-      'Round trips, one-way drops & multi-city tours. Professional drivers, all India permits. Starting @₹10/km.',
+      'Round trips, one-way drops & multi-city tours. Professional drivers, all India permits.',
     gradient: 'from-sky-900 via-blue-900 to-indigo-900',
     accent: 'sky-400',
     trustBadges: [

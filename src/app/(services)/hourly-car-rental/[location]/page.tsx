@@ -7,6 +7,11 @@ import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
@@ -40,13 +45,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image' as const,
       title: `Hourly Car Rental in ${locationName} | TransRentals`,
-      description: `Book hourly cab in ${locationName} with driver. Packages starting from ₹149/hr.`,
+      description: `Book hourly cab in ${locationName} with driver.`,
     },
   };
 }
 
+const launchFaqs = [
+  { question: 'What documents do I need to rent?', answer: 'A valid driving licence and one government photo ID (Aadhaar, passport or voter card).' },
+  { question: 'Is a security deposit required?', answer: 'Yes, a refundable deposit is collected at pickup and returned when you bring the car back.' },
+  { question: 'Is roadside assistance available?', answer: 'Yes, our partners provide 24/7 roadside assistance for the length of your rental.' },
+];
+
 export default async function HourlyCarLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('hourly-car-rental', params.location);
+  // Availability follows self-drive-car-rentals: there is no services row under
+  // "hourly-car-rental", and an unknown slug used to read as "available
+  // everywhere", so this page could never be switched off for a city.
+  // One admin screen now governs the whole self drive group.
+  const pageContext = await resolveServicePage('hourly-car-rental', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'self-drive-car-rentals',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return (
     <StateServicePage
@@ -56,6 +74,38 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
       serviceName="Hourly Car Rental"
     />
   );
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the
+  // nearest city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/hourly-car-rental" className="hover:text-primary">Hourly Car Rental</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="hourly car rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="hourly-car-rental"
+            serviceName="Hourly Car Rental"
+          />
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} vehicleNoun="car" selectionDesc="Hatchbacks, sedans and SUVs, booked by the hour." />
+        <FAQSection service="hourly-car-rental" location={cityName} customFaqs={launchFaqs} />
+      </>
+    );
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
@@ -65,7 +115,7 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
   ]);
 
   const pageFaqs = [
-    { question: 'What is the minimum hourly booking for a car with driver?', answer: 'The minimum booking is 2 hours, covering up to 20 km. Additional km are charged at ₹12–₹18/km depending on the car category.' },
+    { question: 'What is the minimum hourly booking for a car with driver?', answer: 'The minimum booking is 2 hours, covering up to 20 km.' },
     { question: 'Is the driver included in the hourly car rental rate?', answer: 'Yes, a professional driver is always included. The rate covers driver charges, fuel, and tolls within city limits.' },
     { question: 'Can I extend my hourly car rental booking mid-trip?', answer: 'Yes, you can extend by calling our support. Extension charges apply per hour at the same rate as the original booking.' },
     { question: 'Which cars are available for hourly rental?', answer: 'We offer Dzire, Etios (Sedan), Swift (Hatchback), Ertiga (MUV), and Innova (SUV) for hourly city packages.' },
@@ -87,7 +137,7 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
       </section>
 
       {/* Hero with live packages from admin */}
-      <HourlyCarBookingHero cityName={locationName} citySlug={params.location.toLowerCase()} />
+      <HourlyCarBookingHero cityName={locationName} citySlug={params.location.toLowerCase()} hidePrices />
 
       {/* Other options */}
       <section className="relative overflow-hidden py-14 md:py-16 bg-gradient-to-b from-white via-gray-50/70 to-white">
@@ -97,9 +147,8 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
             {[
-              { href: `/self-drive-car-rentals/${params.location.toLowerCase()}`, icon: Car, title: 'Daily Self-Drive', desc: 'From ₹799/day' },
-              { href: '/airport-transfer', icon: Plane, title: 'Airport Transfer', desc: 'From ₹499' },
-              { href: `/outstation-car-rental/${params.location.toLowerCase()}`, icon: RouteIcon, title: 'Outstation', desc: 'From ₹12/km' },
+
+
               { href: '/one-way-cab', icon: RouteIcon, title: 'One Way Cab', desc: 'Fixed fare' },
             ].map((opt) => (
               <Link
@@ -132,16 +181,29 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName="Hourly Car Rental"
         serviceSlug="hourly-car-rental"
-        description={`Book hourly cab in ${locationName} with driver. Packages starting from ₹149/hr.`}
+        description={`Book hourly cab in ${locationName} with driver.`}
         city={locationName}
         citySlug={params.location.toLowerCase()}
         faqs={[]}
         rating={4.6}
         reviewCount={1124}
+        hidePrices
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      {/* Available cars — purely whatever the admin has published for
+          this city. Nothing hardcoded, and the section renders nothing
+          at all when the city has no published fleet. */}
+      <LazyServiceFleetDisplay
+        serviceSlug="hourly-car-rental"
+        locationSlug={params.location}
+        title={`Cars Available by the Hour in ${locationName}`}
+        showCategories={true}
+        limit={12}
+        hidePrices
+      />
+
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="hourly-car-rental" location={locationName} customFaqs={pageFaqs} />
 
@@ -151,7 +213,6 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
         parentName="Self Drive Car Rental"
         currentSlug="hourly-car-rental"
         siblings={[
-          { slug: 'hourly-car-rental', name: 'Hourly Car Rental' },
           { slug: 'self-drive-suv-rental', name: 'Self Drive SUV' },
           { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
           { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },

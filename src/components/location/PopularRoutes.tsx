@@ -74,7 +74,7 @@ export async function PopularRoutes({ location, locationSlug, serviceSlug = 'bik
                   <div className="flex items-start gap-3 mb-3">
                     <span className="text-2xl">🗺️</span>
                     <div>
-                      <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                      <h3 className="text-[15px] leading-snug font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
                         {dest.name}
                       </h3>
                     </div>
@@ -109,7 +109,7 @@ export async function PopularRoutes({ location, locationSlug, serviceSlug = 'bik
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{getDestinationIcon(route.type)}</span>
                     <div>
-                      <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                      <h3 className="text-[15px] leading-snug font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
                         {route.name}
                       </h3>
                       <span className="inline-block text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full capitalize mt-1">

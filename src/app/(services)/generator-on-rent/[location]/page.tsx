@@ -1,4 +1,5 @@
 ﻿import React from 'react';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ShieldCheck, UserCheck, Wrench, Construction, Mountain, LayoutGrid, ArrowRight } from 'lucide-react';
@@ -10,6 +11,9 @@ import { EquipmentBookingHero } from '@/components/equipment-rental/EquipmentBoo
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
@@ -38,21 +42,69 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('generator-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Generator on Rent in ${locationName} | DG Set @₹1500/Day`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire generator in ${locationName} for events, construction, industrial backup. 5KVA to 500KVA.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Generator on Rent in ${locationName} | DG Set`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Hire generator in ${locationName} for events, construction, industrial backup. 5KVA to 500KVA.`,
     alternates: { canonical: `https://transrentals.in/generator-on-rent/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Generator on Rent in ${locationName} | TransRentals`,
-      description: `Hire generator in ${locationName} starting @₹999/day. Silent DG sets for events & construction.`,
+      description: `Silent DG sets for events & construction.`,
     },
   };
 }
 
+const EXPANDING_FAQS = [
+  { question: 'What generator sizes are available?', answer: 'Silent DG sets across a wide capacity range, for events, shoots, offices and construction sites.' },
+  { question: 'When will generator rental open in my city?', answer: 'We onboard operators city by city and a city goes live as soon as verified operators are ready there. Until then you can book in the nearby cities listed above.' },
+  { question: 'Is fuel and an operator included?', answer: 'Delivery, installation and an attending technician are standard. Fuel is usually billed separately — the operator confirms this in the quote.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet: no booking form and no
+ * quoted rate, just the nearest cities that are bookable today.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/generator-on-rent" className="hover:text-primary">Generator on Rent</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="generator rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="generator-on-rent"
+          serviceName="Generator on Rent"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="generator"
+        selectionDesc="Silent DG sets from small event units to high-capacity site power."
+      />
+      <FAQSection service="generator-on-rent" location={cityName} customFaqs={EXPANDING_FAQS} />
+    </>
+  );
+}
+
 export default async function GeneratorLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('generator-on-rent', params.location);
+  const pageContext = await resolveServicePage('generator-on-rent', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'equipment-rental',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="generator-on-rent" serviceName="Generator on Rent" />;
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
@@ -65,7 +117,7 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
     { question: 'What KVA generator sizes are available on rent?', answer: 'We offer 15 KVA, 25 KVA, 62.5 KVA, 125 KVA, and 250 KVA silent diesel generators for events, construction, and office backup.' },
     { question: 'Is the generator rental inclusive of fuel?', answer: 'Fuel is charged separately at actuals. We deliver with a full tank and bill fuel consumption on return or daily based on contract type.' },
     { question: 'Can I rent a generator for a wedding or outdoor event?', answer: 'Yes, silent DG sets are perfect for weddings and outdoor events. We provide delivery, installation, and a technician on-site for the event duration.' },
-    { question: 'What is the daily rental rate for a generator?', answer: '15 KVA generator starts from ₹3,000/day; 62.5 KVA from ₹7,000/day; 125 KVA from ₹12,000/day. Monthly rates available with 20% discount.' },
+    { question: 'How is generator rental charged?', answer: 'DG sets are quoted per day by capacity, with delivery, installation and an attending technician. Fuel is usually billed separately and the operator confirms this in the quote.' },
   ];
 
   return (
@@ -168,14 +220,14 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName="Generator on Rent"
         serviceSlug="generator-on-rent"
-        description={`Hire generator in ${locationName} starting @₹999/day. Silent DG sets for events & construction.`}
+        description={`Hire generator in ${locationName}. Silent DG sets for events & construction.`}
         city={locationName}
         citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="generator-on-rent" location={locationName} customFaqs={pageFaqs} />
 

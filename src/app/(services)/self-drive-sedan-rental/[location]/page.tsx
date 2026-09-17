@@ -6,6 +6,11 @@ import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { resolveServicePage } from '@/lib/services/service-availability';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
@@ -44,8 +49,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('self-drive-sedan-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Self Drive Sedan Rental in ${locationName} | Rent Sedan @₹1299/Day | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent sedan without driver in ${locationName}. Honda City, Verna, Ciaz, Dzire available. Self-drive sedan for business & outstation travel.`,
+    // No rate is quoted for this page — see the note in the page body.
+    title: stripPricesFromText(scContent?.metaTitle || _seoDb?.metaTitle || `Self Drive Sedan Rental in ${locationName} | Rent Sedan | TransRentals | TransRentals`),
+    description: stripPricesFromText(scContent?.metaDescription || _seoDb?.metaDescription || `Rent sedan without driver in ${locationName}. Honda City, Verna, Ciaz, Dzire available. Self-drive sedan for business & outstation travel.`),
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `self drive sedan rental ${locationName}`,
       `sedan on rent ${locationName}`,
@@ -53,7 +59,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `honda city on rent ${locationName}`,
     ],
     openGraph: {
-      title: `Self Drive Sedan Rental in ${locationName} @₹1299/Day | TransRentals`,
+      title: `Self Drive Sedan Rental in ${locationName} | TransRentals`,
       description: `Rent sedans without driver in ${locationName}. City, Verna, Ciaz available.`,
       type: 'website',
       url: `https://transrentals.in/self-drive-sedan-rental/${locationSlug}`,
@@ -64,16 +70,61 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image' as const,
       title: `Self Drive Sedan Rental in ${locationName} | TransRentals`,
-      description: `Rent sedan without driver in ${locationName} starting @₹999/day. Honda City, Verna, Ciaz available.`,
+      description: `Rent sedan without driver in ${locationName} from verified partners.`,
     },
   };
 }
 
 
+const launchFaqs = [
+  { question: 'What documents do I need to rent?', answer: 'A valid driving licence and one government photo ID (Aadhaar, passport or voter card).' },
+  { question: 'Is a security deposit required?', answer: 'Yes, a refundable deposit is collected at pickup and returned when you bring the car back.' },
+  { question: 'Is roadside assistance available?', answer: 'Yes, our partners provide 24/7 roadside assistance for the length of your rental.' },
+];
+
 export default async function SedanRentalLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('self-drive-sedan-rental', params.location);
+  // Availability follows self-drive-car-rentals: there is no services row under
+  // "self-drive-sedan-rental", and an unknown slug used to read as "available
+  // everywhere", so this page could never be switched off for a city.
+  // One admin screen now governs the whole self drive group.
+  const pageContext = await resolveServicePage('self-drive-sedan-rental', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'self-drive-car-rentals',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="self-drive-sedan-rental" serviceName="Self Drive Sedan Rental" />;
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the
+  // nearest city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/self-drive-sedan-rental" className="hover:text-primary">Self Drive Sedan Rental</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="self drive sedan rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="self-drive-sedan-rental"
+            serviceName="Self Drive Sedan Rental"
+          />
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} vehicleNoun="car" selectionDesc="City, Verna, Ciaz and more — the full sedan range." />
+        <FAQSection service="self-drive-sedan-rental" location={cityName} customFaqs={launchFaqs} />
+      </>
+    );
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
@@ -84,7 +135,6 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
 
   const pageFaqs = [
     { question: 'Which sedan models are available for self-drive rental?', answer: 'We offer Honda City, Hyundai Verna, Maruti Ciaz, Skoda Slavia — comfortable sedans perfect for business and family travel.' },
-    { question: 'What is the daily rate for a self-drive sedan?', answer: 'Self-drive sedan rental starts at ₹999/day for Maruti Dzire and goes up to ₹1899/day for premium sedans like Skoda Slavia.' },
     { question: 'Is fuel included in the self-drive sedan package?', answer: 'Fuel is not included. You receive the car with a full tank and must return it with the same fuel level to avoid surcharges.' },
     { question: 'Can I take the self-drive sedan for an outstation trip?', answer: 'Yes, outstation travel is permitted. Inform us of your plan at booking time to ensure correct permit and insurance coverage.' },
   ];
@@ -107,7 +157,6 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
         city={locationName}
         citySlug={params.location}
         vehicleName="Self Drive Sedan"
-        selfDrivePrice="₹1,299"
       />
 
       <section className="bg-white py-10 border-b border-gray-100">
@@ -120,15 +169,6 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
               <p className="text-gray-500 mt-1.5">Comfortable, stylish sedans for business and leisure travel.</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
-                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
-                  <Wallet className="w-5 h-5 text-white" />
-                </span>
-                <div>
-                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Starting from</p>
-                  <p className="text-lg font-black text-gray-900">₹1,299</p>
-                </div>
-              </div>
               <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
                 <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
                   <Car className="w-5 h-5 text-white" />
@@ -150,8 +190,7 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
           </h2>
           <div className="grid sm:grid-cols-3 gap-5 max-w-4xl mx-auto">
             {[
-              { href: `/self-drive-suv-rental/${params.location}`, icon: Truck, title: 'SUV Rental', desc: 'From ₹1,999/day' },
-              { href: `/self-drive-hatchback-rental/${params.location}`, icon: Car, title: 'Hatchback Rental', desc: 'From ₹899/day' },
+
               { href: `/self-drive-car-rentals/${params.location}`, icon: LayoutGrid, title: 'All Self Drive Cars', desc: 'View all options' },
             ].map((opt) => (
               <Link
@@ -186,14 +225,27 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName="Self Drive Sedan Rental"
         serviceSlug="self-drive-sedan-rental"
-        description={`Rent sedan without driver in ${locationName} starting @₹999/day. Honda City, Verna, Ciaz available.`}
+        description={`Honda City, Verna, Ciaz available.`}
         city={locationName}
         citySlug={params.location}
         faqs={[]}
+        hidePrices
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      {/* Available cars — purely whatever the admin has published for
+          this city. Nothing hardcoded, and the section renders nothing
+          at all when the city has no published fleet. */}
+      <LazyServiceFleetDisplay
+        serviceSlug="self-drive-sedan-rental"
+        locationSlug={params.location}
+        title={`Self Drive Sedans Available in ${locationName}`}
+        showCategories={true}
+        limit={12}
+        hidePrices
+      />
+
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="self-drive-sedan-rental" location={locationName} customFaqs={pageFaqs} />
 
@@ -205,7 +257,6 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
         siblings={[
           { slug: 'hourly-car-rental', name: 'Hourly Car Rental' },
           { slug: 'self-drive-suv-rental', name: 'Self Drive SUV' },
-          { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
           { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
           { slug: 'swift-on-rent', name: 'Swift on Rent' },
           { slug: 'creta-on-rent', name: 'Creta on Rent' },

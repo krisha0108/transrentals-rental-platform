@@ -33,7 +33,9 @@ export function ServiceAreasSection({ serviceSlug, citySlug, cityName, serviceNa
               className="bg-white rounded-xl p-5 border border-gray-100 hover:border-primary hover:shadow-md transition-all group"
             >
               <div className="flex items-start justify-between mb-2">
-                <h3 className="font-semibold text-gray-900 group-hover:text-primary transition-colors">
+                {/* Explicit size: the global stylesheet sizes a bare h3 up to
+                    text-4xl, which is three times what a card title wants. */}
+                <h3 className="text-[15px] leading-snug font-semibold text-gray-900 group-hover:text-primary transition-colors">
                   {serviceName} in {area.name}
                 </h3>
                 <span className="text-xs text-gray-400 capitalize bg-gray-50 px-2 py-0.5 rounded-full">{area.type}</span>

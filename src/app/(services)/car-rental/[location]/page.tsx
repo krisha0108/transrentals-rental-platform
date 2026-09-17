@@ -1,4 +1,5 @@
 ﻿import { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
@@ -14,8 +15,9 @@ import { getCachedServiceBySlug } from '@/lib/services/cached-service-lookups';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';
 import { getServiceLocationRating } from '@/lib/services/cached-service-lookups';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { CITY_SEO } from '@/data/city-seo-content';
 import { RelatedServices } from '@/components/services/RelatedServices';
@@ -23,10 +25,10 @@ import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
 import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 import { AutoRentalSchema } from '@/components/seo/schemas';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections, hasSectionsContent } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionMatching } from '@/components/seo/ServiceCitySections';
 
 const CAR_RENTAL_FALLBACK_FAQS = [
-  { question: 'What is the cost of car rental per day?', answer: 'Self-drive hatchback rentals start from ₹999/day. Chauffeur-driven sedans start from ₹1,500/day. SUVs start from ₹2,500/day. Outstation trips are charged per km (₹12–18/km). Rates vary by vehicle type and city — get a free quote on TransRentals for exact pricing.' },
+  { question: 'How is car rental priced?', answer: 'Self-drive is quoted per day, chauffeur-driven per day or per package, and outstation trips per kilometre. What you pay depends on the vehicle type, city and duration — share your trip on TransRentals and verified vendors send you their quotes.' },
   { question: 'What documents are required to rent a car?', answer: 'For self-drive: valid driving licence (minimum 1 year old), Aadhaar Card or Passport, and a refundable security deposit. For chauffeur-driven: any valid government ID — no DL required from the passenger. International tourists need an IDP (International Driving Permit).' },
   { question: 'Is self-drive or chauffeur-driven better for outstation trips?', answer: 'Chauffeur-driven is better for outstation trips — the driver handles toll collection, navigation, and fatigue, especially on long routes. Self-drive is ideal if you want maximum flexibility and privacy. Both options are available on TransRentals.' },
   { question: 'Can I cancel or modify my car rental booking?', answer: 'Yes, free cancellation is available up to 24 hours before the scheduled pickup time. For modifications (date/time changes), contact the vendor directly via TransRentals. Cancellations within 24 hours may attract a partial charge depending on the vendor\'s policy.' },
@@ -76,8 +78,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('car-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Car Rental in ${locationName} | With Driver Starting ₹999/Day | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire a car with driver in ${locationName} starting ₹999/day. Swift, Innova, Creta, Ertiga & more. Local, outstation & airport transfers available. Chauffeur-driven cars with doorstep pickup. Book car rental in ${locationName} now!`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Car Rental in ${locationName} | Chauffeur-Driven Cars | TransRentals`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Hire a car with driver in ${locationName}. Swift, Innova, Creta, Ertiga & more. Local, outstation & airport transfers available. Chauffeur-driven cars with doorstep pickup. Book car rental in ${locationName} now!`,
     keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `car rental ${locationName.toLowerCase()}`,
       `car rental in ${locationName.toLowerCase()}`,
@@ -94,8 +96,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ...(city?.keywords || []).map(k => `car rental ${k}`),
     ],
     openGraph: {
-      title: `Car Rental in ${locationName} - With Driver | Starting ₹999/Day | TransRentals`,
-      description: `Hire cars with driver in ${locationName} starting ₹999/day. Swift, Innova, Creta, Ertiga & more. Local, outstation & airport transfers. Best prices guaranteed.`,
+      title: `Car Rental in ${locationName} - With Driver | TransRentals`,
+      description: `Hire cars with driver in ${locationName}. Swift, Innova, Creta, Ertiga & more. Local, outstation & airport transfers. Best prices guaranteed.`,
       type: 'website',
       url: `https://transrentals.in/car-rental/${params.location.toLowerCase()}`,
       images: [
@@ -112,7 +114,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image',
       title: `Car Rental in ${locationName} - TransRentals`,
-      description: `Rent cars in ${locationName} starting ₹999/day. Swift, Innova, Creta & more. Best prices guaranteed.`,
+      description: `Rent cars in ${locationName}. Swift, Innova, Creta & more. Best prices guaranteed.`,
       images: ['https://transrentals.in/images/og/car-rental.jpg'],
     },
     alternates: {
@@ -226,67 +228,61 @@ async function getPackagesForLocation(locationSlug: string) {
   }
 }
 
+const EXPANDING_FAQS = [
+  { question: 'What kind of cars can I book?', answer: 'Hatchbacks, sedans, SUVs and MUVs â Swift, Dzire, Innova, Creta, Ertiga and more, with a verified chauffeur.' },
+  { question: 'When will car rental open in my city?', answer: 'We onboard operators city by city and a city goes live as soon as verified operators are ready there. Until then you can book in the nearby cities listed above.' },
+  { question: 'Is a driver included?', answer: 'Yes. Every chauffeur-driven booking on TransRentals comes with a background-checked professional driver.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet: no booking form and no
+ * quoted rate, just the nearest cities that are bookable today.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/car-rental" className="hover:text-primary">Car Rental</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="car rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="car-rental"
+          serviceName="Car Rental"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="car"
+        selectionDesc="Hatchbacks, sedans, SUVs and MUVs â with a verified chauffeur."
+      />
+      <FAQSection service="car-rental" location={cityName} customFaqs={EXPANDING_FAQS} />
+    </>
+  );
+}
+
 export default async function CarRentalLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('car-rental', params.location, { comingSoonIfUnavailable: true });
   if (pageContext.type === 'redirect') {
     if (COMING_SOON_SLUGS.has(params.location)) {
       const cityName = getCityBySlug(params.location)?.name ??
         params.location.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      return (
-        <>
-          <div className="bg-gray-50 border-b border-gray-200">
-            <div className="container-custom py-3">
-              <nav className="text-sm text-gray-600">
-                <a href="/" className="hover:text-primary">Home</a>
-                <span className="mx-2">/</span>
-                <a href="/car-rental" className="hover:text-primary">Car Rental</a>
-                <span className="mx-2">/</span>
-                <span className="text-gray-900 font-medium">{cityName}</span>
-              </nav>
-            </div>
-          </div>
-          <ComingSoonHero
-            city={cityName}
-            citySlug={params.location.toLowerCase()}
-            serviceSlug="car-rental"
-            serviceName="Car Rental"
-            themeColor="blue"
-          />
-        </>
-      );
+      return <ExpandingCityPage cityName={cityName} citySlug={params.location.toLowerCase()} />;
     }
     permanentRedirect(pageContext.to);
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="car-rental" serviceName="Car Rental" />;
   if (pageContext.type === 'coming-soon') {
-    const cityName = pageContext.city.name;
-    return (
-      <>
-        <div className="bg-gray-50 border-b border-gray-200">
-          <div className="container-custom py-3">
-            <nav className="text-sm text-gray-600">
-              <a href="/" className="hover:text-primary">Home</a>
-              <span className="mx-2">/</span>
-              <a href="/car-rental" className="hover:text-primary">Car Rental</a>
-              <span className="mx-2">/</span>
-              <span className="text-gray-900 font-medium">{cityName}</span>
-            </nav>
-          </div>
-        </div>
-        <ComingSoonHero
-          city={cityName}
-          citySlug={params.location.toLowerCase()}
-          serviceSlug="car-rental"
-          serviceName="Car Rental"
-          themeColor="emerald"
-        />
-        <NearbyActiveCities
-          currentCitySlug={params.location.toLowerCase()}
-          serviceSlug="car-rental"
-          serviceName="Car Rental"
-        />
-      </>
-    );
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
   }
   const city = pageContext.city;
   const locationName = city.name;
@@ -301,8 +297,17 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
   const cityFAQs = scContent?.faqs.length
     ? scContent.faqs
     : (CITY_SEO[params.location]?.serviceFAQs?.['car-rental'] || []);
+  // The admin block editor renders its own Why Us / Other Services / FAQ
+  // blocks. Where the city has one, the hardcoded section below is skipped
+  // so the page doesn't say the same thing twice.
+  const adminCoversWhyUs = hasSectionMatching(scContent?.sectionsConfig, /why[-\s_]?(choose|rent|us)/i);
+  const adminCoversOtherServices = hasSectionMatching(scContent?.sectionsConfig, /services?[-\s_]?(offered|available)|other[-\s_]?services/i);
+  const adminCoversFaqs = hasSectionMatching(scContent?.sectionsConfig, /faq/i);
+
   const displayFAQs = cityFAQs.length > 0
-    ? cityFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))
+    ? cityFAQs
+        .map((faq) => ({ question: faq.q, answer: stripPricesFromText(faq.a) }))
+        .filter((faq) => faq.answer)
     : CAR_RENTAL_FALLBACK_FAQS;
 
   return (
@@ -325,7 +330,7 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
         citySlug={params.location.toLowerCase()}
         serviceSlug="car-rental"
         serviceTitle="Car Rental"
-        h1Text={scContent?.h1Heading || undefined}
+        h1Text={stripPricesFromText(scContent?.h1Heading) || undefined}
         headingLine1="Car Rental in"
         headingLine2={locationName}
         heroVariant="aurora"
@@ -334,6 +339,7 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
 
       {/* Packages Grid - Fetched from Database */}
       <PackagesGrid
+        hidePrices
         categories={categories}
         title={`Car Rental Packages in ${locationName}`}
         locationName={locationName}
@@ -341,7 +347,9 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
         serviceSlug="car-rental"
       />
 
-      <WhyRentHere locationName={locationName} />
+      {!adminCoversWhyUs && (
+        <WhyRentHere locationName={locationName} />
+      )}
 
       <NearbyLocations
         locationSlug={params.location.toLowerCase()}
@@ -349,20 +357,23 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
       />
 
       <ServiceAreasSection
+        hidePrices
         serviceSlug="car-rental"
         citySlug={params.location.toLowerCase()}
         cityName={locationName}
         serviceName="Car Rental"
       />
 
-      <CrossServiceLinks
-        citySlug={params.location.toLowerCase()}
-        cityName={locationName}
-        currentServiceSlug="car-rental"
-      />
+      {!adminCoversOtherServices && (
+        <CrossServiceLinks
+          citySlug={params.location.toLowerCase()}
+          cityName={locationName}
+          currentServiceSlug="car-rental"
+        />
+      )}
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}
@@ -379,6 +390,7 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
 
       {/* AutoRental Schema — schema.org/AutoRental subtype; no Indian competitor uses this */}
       <AutoRentalSchema
+        hidePrices
         name={`Car Rental in ${locationName} — TransRentals`}
         description={`Rent cars in ${locationName}. Self-drive and chauffeur-driven options for local, outstation, and corporate travel.`}
         city={locationName}
@@ -387,7 +399,9 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
         rating={liveRating?.ratingValue}
         reviewCount={liveRating?.reviewCount}
       />
-      <FAQSection service="car-rental" location={locationName} customFaqs={displayFAQs} />
+      {!adminCoversFaqs && (
+        <FAQSection service="car-rental" location={locationName} customFaqs={displayFAQs} />
+      )}
 
       <script
         type="application/ld+json"
