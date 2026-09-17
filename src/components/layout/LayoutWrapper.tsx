@@ -6,6 +6,7 @@ import { Footer } from '@/components/layout/Footer';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { SmartShivi } from '@/components/chatbot/SmartShivi';
 import { StickyCallBar } from '@/components/common/StickyCallBar';
+import { PaymentSafetyFloatingAlert } from '@/components/common/PaymentSafetyFloatingAlert';
 import { useCustomerWebNotifications } from '@/hooks/useCustomerWebNotifications';
 
 // Routes that should NOT show the default header/footer
@@ -52,6 +53,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
       <div className="flex flex-col min-h-screen">
         <main className="flex-1">{children}</main>
         {showShivi && <SmartShivi />}
+        {showShivi && <PaymentSafetyFloatingAlert />}
       </div>
     );
   }
@@ -65,6 +67,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
       <MobileBottomNav />
       <StickyCallBar />
       <SmartShivi />
+      <PaymentSafetyFloatingAlert />
     </div>
   );
 }

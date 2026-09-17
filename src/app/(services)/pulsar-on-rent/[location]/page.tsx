@@ -1,7 +1,10 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
-import { VehicleGrid } from '@/components/location/VehicleGrid';
-import { WhyRentHere } from '@/components/location/WhyRentHere';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
@@ -18,7 +21,7 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
-import { Award, Fuel, Gauge, Wallet } from 'lucide-react';
+import { Award, Fuel, Gauge, Wallet, ShieldCheck, Headphones } from 'lucide-react';
 
 interface PageProps {
   params: {
@@ -47,8 +50,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('pulsar-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Pulsar on Rent in ${locationName} | @₹499/Day`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Bajaj Pulsar bikes in ${locationName}. Pulsar 150, 180, NS200, RS200 available. Reliable sports bikes. Book your Pulsar rental now!`,
+    // No rate is quoted for this page — see the note in the page body.
+    title: stripPricesFromText(scContent?.metaTitle || _seoDb?.metaTitle || `Pulsar on Rent in ${locationName} | TransRentals`),
+    description: stripPricesFromText(scContent?.metaDescription || _seoDb?.metaDescription || `Rent Bajaj Pulsar bikes in ${locationName}. Pulsar 150, 180, NS200, RS200 available. Reliable sports bikes. Book your Pulsar rental now!`),
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `pulsar on rent in ${locationName}`,
       `bajaj pulsar rental ${locationName}`,
@@ -57,8 +61,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `pulsar 150 on rent ${locationName}`,
     ],
     openGraph: {
-      title: `Pulsar on Rent in ${locationName} @₹499/Day | TransRentals`,
-      description: `Rent Bajaj Pulsar bikes in ${locationName} starting @₹499/day. Reliable & fuel efficient.`,
+      title: `Pulsar on Rent in ${locationName} | TransRentals`,
+      description: `Rent Bajaj Pulsar bikes in ${locationName} from verified partners.`,
       type: 'website',
       url: `https://transrentals.in/pulsar-on-rent/${locationSlug}`,
       images: [
@@ -73,7 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image',
       title: `Pulsar on Rent in ${locationName} | TransRentals`,
-      description: `Rent Pulsar bikes in ${locationName} starting @₹499/day.`,
+      description: `Rent Pulsar bikes in ${locationName} from verified partners.`,
       images: ['https://transrentals.in/images/og/pulsar-rental.jpg'],
     },
     alternates: {
@@ -88,66 +92,68 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 const schemaFaqs = [
   { question: 'Which Pulsar models are available for rent?', answer: 'We have Pulsar 150, Pulsar 180, Pulsar NS200, and Pulsar RS200 available for rent.' },
-  { question: 'What is the security deposit for Pulsar rental?', answer: 'Security deposit ranges from ₹3,000 to ₹8,000 depending on the model. This is fully refundable upon return.' },
+  { question: 'What is the security deposit for Pulsar rental?', answer: 'A refundable security deposit is collected at pickup, and returned in full when you bring the bike back.' },
   { question: 'What is the mileage of Pulsar bikes?', answer: 'Pulsar bikes give approximately 45-55 km/litre depending on the model and riding conditions.' },
-  { question: 'Can I rent Pulsar for monthly basis?', answer: 'Yes, we offer monthly Pulsar rental plans starting from ₹5,999/month with free maintenance.' },
-];
-
-const schemaVehicles = [
-  { name: 'Bajaj Pulsar 150', brand: 'Bajaj', price: 499, image: 'https://transrentals.in/images/fleet/bajaj-pulsar-150.jpg', description: "Rent Bajaj Pulsar 150 — India's favourite sporty commuter with 149.5cc twin-spark engine, 14 PS power, 50+ kmpl mileage, disc brake, and digital console. Bold design with alloy wheels, tubeless tires, and rear mono-shock suspension. Reliable performance for city commuting and short highway rides. From ₹499/day." },
-  { name: 'Bajaj Pulsar 180', brand: 'Bajaj', price: 599, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent Bajaj Pulsar 180 — powerful commuter-sport with 178.6cc DTS-i engine, 17.02 PS power, 50+ kmpl mileage, alloy wheels, and front disc brake. Sporty instrumentation with digital-analog combo, underbelly exhaust, and 105 kmph top speed. Perfect balance of performance and efficiency. Available from ₹599/day.' },
-  { name: 'Bajaj Pulsar NS200', brand: 'Bajaj', price: 699, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent Bajaj Pulsar NS200 — naked street fighter with 199.5cc liquid-cooled triple-spark engine, 24.5 PS power, slipper clutch, perimeter frame, and aggressive streetfighter styling. 138 kmph top speed with sharp handling. Ideal for riders wanting sporty mid-size performance. Book NS200 rental from ₹699/day.' },
-  { name: 'Bajaj Pulsar RS200', brand: 'Bajaj', price: 799, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent Bajaj Pulsar RS200 — fully-faired sports bike with 199.5cc liquid-cooled engine, 24.5 PS power, cornering ABS, race-inspired aerodynamic fairing, and LED projector headlamp. 142 kmph top speed with sporty clip-on handlebars. Best fully-faired performance bike at this price range. Book from ₹799/day.' },
+  { question: 'Can I rent Pulsar for monthly basis?', answer: 'Yes, we offer monthly rental plans with free maintenance.' },
 ];
 
 export default async function PulsarLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('pulsar-on-rent', params.location);
+  // Availability follows Bike Rental: there is no services row under
+  // "pulsar-on-rent" (an unknown slug used to read as "available everywhere"),
+  // and a Pulsar is a bike — wherever bike rental is live, so is this.
+  // One admin screen controls all of these pages.
+  const pageContext = await resolveServicePage('pulsar-on-rent', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'bike-on-rent',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="pulsar-on-rent" serviceName="Pulsar on Rent" />;
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the
+  // nearest city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/pulsar-on-rent" className="hover:text-primary">Pulsar on Rent</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="Pulsar rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="pulsar-on-rent"
+            serviceName="Pulsar on Rent"
+          />
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} selectionDesc="Pulsar 150, 180, NS200, RS200 — the full Bajaj Pulsar range." />
+        <FAQSection service="pulsar-on-rent" location={cityName} customFaqs={schemaFaqs} />
+      </>
+    );
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-
-  const pageData = {
-    vehicles: [
-      {
-        id: 1,
-        name: 'Bajaj Pulsar 150',
-        image: '/images/bikes/pulsar-150.jpg',
-        price: 499,
-        rating: 4.8,
-      },
-      {
-        id: 2,
-        name: 'Bajaj Pulsar 180',
-        image: '/images/bikes/pulsar-180.jpg',
-        price: 599,
-        rating: 4.7,
-      },
-      {
-        id: 3,
-        name: 'Bajaj Pulsar NS200',
-        image: '/images/bikes/pulsar-ns200.jpg',
-        price: 699,
-        rating: 4.8,
-      },
-      {
-        id: 4,
-        name: 'Bajaj Pulsar RS200',
-        image: '/images/bikes/pulsar-rs200.jpg',
-        price: 799,
-        rating: 4.8,
-      },
-    ],
-  };
 
   const [seoData, scContent] = await Promise.all([
     resolvePageMeta(`pulsar-on-rent:${params.location}`),
     getServiceCityContent('pulsar-on-rent', params.location),
   ]);
 
+  // No rate is quoted anywhere on this page — the real price depends on the
+  // partner and the dates, so a number in the copy would only mislead.
+  const heroDescription = stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined;
+
   const pageFaqs = [
     { question: 'Which Pulsar models are available for rent?', answer: 'We offer Bajaj Pulsar 150, Pulsar 180, Pulsar NS200, and Pulsar RS200 — well-maintained bikes for daily and weekend rides.' },
-    { question: 'What is the daily rent for a Pulsar bike?', answer: 'Pulsar rental starts at ₹499/day for Pulsar 150 and goes up to ₹799/day for Pulsar RS200, including fuel for the first tank.' },
     { question: 'Is insurance covered during the Pulsar rental period?', answer: 'Yes, all our Pulsar bikes carry valid third-party insurance. Comprehensive coverage is optional at an additional fee.' },
     { question: 'Can I extend my Pulsar rental period mid-trip?', answer: 'Yes, rental extensions are allowed subject to availability. Contact our support team at least 4 hours before your current booking expires.' },
   ];
@@ -157,12 +163,10 @@ export default async function PulsarLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName={`Pulsar on Rent in ${locationName}`}
         serviceSlug="pulsar-on-rent"
-        description={`Rent Bajaj Pulsar bikes in ${locationName}. Pulsar 150, 180, NS200, RS200 available. Starting @₹499/day.`}
+        description={`Rent Bajaj Pulsar bikes in ${locationName}. Pulsar 150, 180, NS200, RS200 available, all from verified partners.`}
         city={locationName}
         citySlug={params.location}
         faqs={schemaFaqs}
-        vehicles={schemaVehicles}
-        priceRange={{ min: 499, max: 799 }}
         rating={4.8}
         reviewCount={756}
       />
@@ -184,38 +188,7 @@ export default async function PulsarLocationPage({ params }: PageProps) {
           city={locationName}
           citySlug={params.location}
           pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-          pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
-        />
-
-        {/* Available Models */}
-        <section className="py-16 bg-white">
-          <div className="container-custom">
-            <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
-              Pulsar Models in <span className="text-emerald-600">{locationName}</span>
-            </h2>
-            <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-5 max-w-5xl mx-auto">
-              {[
-                { name: 'Pulsar 150', cc: '149cc', price: '₹499/day', mileage: '55 km/l' },
-                { name: 'Pulsar 180', cc: '178cc', price: '₹599/day', mileage: '50 km/l' },
-                { name: 'Pulsar NS200', cc: '199cc', price: '₹699/day', mileage: '40 km/l' },
-                { name: 'Pulsar RS200', cc: '199cc', price: '₹799/day', mileage: '38 km/l' },
-              ].map((model) => (
-                <div key={model.name} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all">
-                  <span className="inline-flex w-11 h-11 rounded-xl bg-emerald-50 items-center justify-center mb-3">
-                    <Gauge className="w-5 h-5 text-emerald-600" />
-                  </span>
-                  <h3 className="font-bold text-gray-900 mb-1">{model.name}</h3>
-                  <p className="text-sm text-gray-500 mb-2">{model.cc} • {model.mileage}</p>
-                  <p className="text-emerald-700 font-bold">{model.price}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <VehicleGrid
-          vehicles={pageData.vehicles}
-          title={`Available Pulsar Bikes in ${locationName}`}
+          pageDescription={heroDescription}
         />
 
         {/* Why Pulsar */}
@@ -234,16 +207,21 @@ export default async function PulsarLocationPage({ params }: PageProps) {
           />
           <div className="container-custom relative">
             <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
-              <h2 className="text-3xl md:text-[2.5rem] leading-[1.1] font-black tracking-tight text-gray-900">
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">
                 Why Rent Pulsar in <span className="text-emerald-600">{locationName}?</span>
               </h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-6 max-w-5xl mx-auto">
+            {/* The generic "Why Rent Here" block used to sit below this one
+                and asked the same question again — its two points are folded
+                in here so the page makes the case once. */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-6 max-w-5xl mx-auto">
               {[
                 { Icon: Award, title: 'Proven Reliability', desc: "India's best-selling sports bike" },
                 { Icon: Fuel, title: 'Fuel Efficient', desc: '45-55 km/litre mileage' },
                 { Icon: Gauge, title: 'Sporty Design', desc: 'Aggressive looks, smooth ride' },
                 { Icon: Wallet, title: 'Affordable', desc: 'Best value for money' },
+                { Icon: ShieldCheck, title: 'Verified Partners', desc: 'Every vendor is background-checked' },
+                { Icon: Headphones, title: '24/7 Support', desc: 'Round-the-clock roadside assistance' },
               ].map((item, idx) => (
                 <div
                   key={item.title}
@@ -268,7 +246,17 @@ export default async function PulsarLocationPage({ params }: PageProps) {
           ` }} />
         </section>
 
-        <WhyRentHere locationName={locationName} />
+        {/* Available bikes — purely whatever the admin has published for this
+            city. Nothing hardcoded, and the section renders nothing at all
+            when the city has no published fleet. */}
+        <LazyServiceFleetDisplay
+          serviceSlug="pulsar-on-rent"
+          locationSlug={params.location}
+          title={`Available Pulsar Bikes in ${locationName}`}
+          showCategories={true}
+          limit={12}
+          hidePrices
+        />
 
 
         <NearbyLocations
@@ -286,7 +274,7 @@ export default async function PulsarLocationPage({ params }: PageProps) {
       */}
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="pulsar-on-rent" location={locationName} customFaqs={pageFaqs} />
 
@@ -299,7 +287,6 @@ export default async function PulsarLocationPage({ params }: PageProps) {
           { slug: 'activa-on-rent', name: 'Activa on Rent' },
           { slug: 'royal-enfield-on-rent', name: 'Royal Enfield' },
           { slug: 'ktm-on-rent', name: 'KTM on Rent' },
-          { slug: 'pulsar-on-rent', name: 'Pulsar on Rent' },
           { slug: 'apache-on-rent', name: 'Apache on Rent' },
           { slug: 'splendor-on-rent', name: 'Splendor on Rent' },
           { slug: 'himalayan-on-rent', name: 'Himalayan on Rent' },

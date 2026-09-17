@@ -35,6 +35,7 @@ import {
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { quoteDisplay } from '@/lib/quote-font';
+import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
 
 interface BookingDetail {
   id: string;
@@ -834,6 +835,8 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
             </div>
           </div>
         )}
+
+        {booking.vendor && <BookingPaymentSafetyNotice />}
 
         {/* Cancellation Details */}
         {booking.status === 'CANCELLED' && booking.cancelledAt && (

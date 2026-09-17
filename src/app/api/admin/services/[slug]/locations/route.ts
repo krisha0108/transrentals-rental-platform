@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { revalidateTag } from 'next/cache';
+import { revalidateTag, revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
@@ -383,6 +383,26 @@ export async function POST(
     // Bust the public /api/locations cache (used by the homepage's per-service
     // city autocompletes) so newly enabled/disabled cities take effect right away.
     revalidateTag('locations');
+    // …and the service-availability lookups, which decide whether a city's
+    // service page shows the booking hero or the "we're expanding" page.
+    // Without this the page keeps serving the old answer for up to an hour,
+    // so switching a city off in this screen looks like it did nothing.
+    revalidateTag('service-locations');
+    revalidateTag('services');
+
+    // The city pages themselves are ISR'd for an hour, so busting the data
+    // cache alone still leaves stale HTML on disk. Rebuild just the cities
+    // that actually changed — usually a handful, not all 500.
+    const changedIds = [...toAdd, ...toRemove];
+    if (changedIds.length > 0) {
+      const changed = await prisma.locations.findMany({
+        where: { id: { in: changedIds } },
+        select: { slug: true },
+      });
+      for (const { slug: citySlug } of changed) {
+        revalidatePath(`/${slug}/${citySlug}`);
+      }
+    }
 
     return NextResponse.json({
       success: true,

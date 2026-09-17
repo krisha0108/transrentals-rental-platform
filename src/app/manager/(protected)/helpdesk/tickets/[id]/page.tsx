@@ -16,6 +16,8 @@ import {
   Send,
   Image as ImageIcon,
   ExternalLink,
+  Calendar,
+  Inbox,
 } from 'lucide-react';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
@@ -428,6 +430,23 @@ export default function ManagerTicketDetailPage() {
                         {ticket.customer.email}
                       </a>
                     </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 pt-4 border-t border-slate-100">
+                    <Link
+                      href={`/manager/bookings?search=${encodeURIComponent(ticket.customer.email)}`}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-xl hover:bg-emerald-100 transition"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      View Customer Bookings
+                    </Link>
+                    <Link
+                      href={`/manager/inquiries?search=${encodeURIComponent(ticket.customer.email)}`}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium rounded-xl hover:bg-indigo-100 transition"
+                    >
+                      <Inbox className="w-4 h-4" />
+                      View Customer Quote Requests
+                    </Link>
                   </div>
                 </div>
               ) : (

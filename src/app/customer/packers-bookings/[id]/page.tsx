@@ -49,6 +49,7 @@ import {
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { quoteDisplay } from '@/lib/quote-font';
+import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
 import {
   formatShiftingScope,
   formatPropertyTypeAndSize,
@@ -1513,6 +1514,8 @@ export default function CustomerPackersBookingDetailPage() {
               </button>
             </Card>
           )}
+
+          {booking.vendor && <BookingPaymentSafetyNotice />}
 
           {/* ── Need a hand ── */}
           <Card title="Need a hand">

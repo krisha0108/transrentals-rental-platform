@@ -1,4 +1,5 @@
-import { ShieldAlert, CheckCircle2, XCircle } from 'lucide-react';
+import Link from 'next/link';
+import { ShieldAlert, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 
 // Fraud-prevention notice shown on quote-request detail pages, both while
 // waiting for quotes and after they arrive — payment safety applies at
@@ -22,24 +23,65 @@ export default function QuotePaymentSafetyNotice() {
             <ShieldAlert className="w-5 h-5 text-red-600" />
           </div>
         </div>
-        <div className="min-w-0">
-          <h3 className="text-base font-semibold text-red-800">Pay Only Through TransRentals</h3>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-semibold text-red-800">
+            Please Keep Every Payment and Conversation on TransRentals
+          </h3>
           <p className="text-sm text-gray-700 mt-1">
-            Before accepting any quote or making a payment, make sure you're on the official
-            TransRentals platform. Never pay a vendor directly outside TransRentals — not for
-            booking confirmation, not for the quotation, and not at any point until your trip is
-            complete.
+            For your own protection, we request that every payment be made only on the
+            TransRentals platform. For self-drive rentals and certain other services a vendor
+            may ask for an advance where applicable, and that too must be paid here. Until the
+            vehicle or service has been formally handed over to you, kindly do not make any
+            further or direct payment outside TransRentals, under any circumstances.
           </p>
+
           <div className="mt-3 space-y-1.5">
             <div className="flex items-start gap-2 text-sm text-gray-700">
               <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 shrink-0 animate-pulse" />
-              <span>Accept quotes and pay only through the TransRentals platform</span>
+              <span>Please accept quotes and complete all payments only on the official TransRentals platform</span>
+            </div>
+            <div className="flex items-start gap-2 text-sm text-gray-700">
+              <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 shrink-0 animate-pulse" />
+              <span>
+                Kindly keep every conversation with a vendor inside TransRentals Chat. We request
+                that you do not continue the discussion or settle payment over WhatsApp, personal
+                phone numbers, SMS, or any other external channel
+              </span>
             </div>
             <div className="flex items-start gap-2 text-sm text-gray-700">
               <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0 animate-pulse" />
-              <span>If you pay a vendor directly, TransRentals cannot help with any issues, refunds, or disputes for that booking</span>
+              <span>
+                If anyone claiming to be a TransRentals vendor contacts you on WhatsApp or by
+                phone and asks for a direct payment, please decline and ask them to communicate
+                through the TransRentals platform instead
+              </span>
+            </div>
+            <div className="flex items-start gap-2 text-sm text-gray-700">
+              <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0 animate-pulse" />
+              <span>
+                Please do not share payment details or an OTP with anyone, and do not send a bank
+                transfer or UPI payment to a vendor on the basis of an outside call or message
+              </span>
             </div>
           </div>
+
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-100/60 px-3 py-2">
+            <AlertTriangle className="w-4 h-4 text-red-700 mt-0.5 shrink-0" />
+            <p className="text-xs sm:text-sm font-medium text-red-900">
+              Please note: where a payment is made outside the TransRentals platform, TransRentals
+              will not be able to take responsibility for any resulting fraud, loss, refund,
+              cancellation, or dispute.
+            </p>
+          </div>
+
+          <p className="text-sm text-gray-700 mt-3">
+            Should a vendor insist on a direct payment, or ask you to move the conversation
+            outside TransRentals,{' '}
+            <Link href="/customer/helpdesk" className="font-semibold text-red-700 underline underline-offset-2 hover:text-red-800">
+              please report it to TransRentals right away
+            </Link>
+            .
+          </p>
         </div>
       </div>
     </div>

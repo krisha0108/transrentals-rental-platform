@@ -153,6 +153,7 @@ export function Footer() {
   ];
 
   const policies = [
+    { name: 'Safety & Security', href: '/safety-security' },
     { name: 'Privacy Policy', href: '/privacy-policy' },
     { name: 'Terms & Conditions', href: '/terms-conditions' },
     { name: 'Cancellation Policy', href: '/cancellation-policy' },

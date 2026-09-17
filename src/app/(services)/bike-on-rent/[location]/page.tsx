@@ -4,11 +4,13 @@ import { CalendarCheck, Bike as BikeIcon, CreditCard, PartyPopper } from 'lucide
 import { BikeSearchHero } from '@/components/bike';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { FAQSection } from '@/components/services/FAQSection';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { CityContentSection } from '@/components/location/CityContentSection';
-import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
+import { containsPrice, stripPricesFromText } from '@/lib/content/strip-prices';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { prisma } from '@/lib/db/prisma';
@@ -22,23 +24,7 @@ import { RelatedServices } from '@/components/services/RelatedServices';
 import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
 import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections, hasSectionsContent } from '@/components/seo/ServiceCitySections';
-
-const COMING_SOON_SLUGS = new Set([
-  'chidambaram',
-  'hosur',
-  'loni',
-  'havelock-island',
-  'ramoji-film-city',
-  'baratang-island',
-  'hubli-dharwad',
-  'rohtang-pass',
-  'sultanpur-majra',
-  'wayanad',
-  'yanam',
-  'yamaha-fz',
-  'yercaud',
-]);
+import { ServiceCitySections, hasSectionMatching } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -46,9 +32,9 @@ interface PageProps {
   };
 }
 
-// Generate static params from DB locations table
-// Pages for DB-enabled cities → booking form hero
-// Pages for non-enabled cities → coming soon hero
+// Generate static params from DB locations table — every active city gets the
+// same page; the fleet section is the only part that depends on the service
+// actually being enabled there.
 export async function generateStaticParams() {
   if (process.env.SKIP_DATABASE_CALLS === '1') return [];
   try {
@@ -79,8 +65,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('bike-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Bike on Rent in ${locationName} | Starting @₹299/Day | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent bikes in ${locationName} with TransRentals. Choose from Royal Enfield, KTM, Activa, Honda & more. Best prices guaranteed. Doorstep delivery available. Book your bike rental in ${locationName} now!`,
+    // Same rule as the page body: no rate is quoted. "@₹299/Day" in a search
+    // result is a promise this page can no longer keep.
+    title: stripPricesFromText(scContent?.metaTitle || _seoDb?.metaTitle || `Bike on Rent in ${locationName} | TransRentals`),
+    description: stripPricesFromText(scContent?.metaDescription || _seoDb?.metaDescription || `Rent bikes in ${locationName} with TransRentals. Choose from Royal Enfield, KTM, Activa, Honda & more. Verified partners and doorstep delivery available. Book your bike rental in ${locationName} now!`),
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `bike on rent in ${locationName}`,
       `bike rental ${locationName}`,
@@ -93,8 +81,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `two wheeler rental ${locationName}`,
     ],
     openGraph: {
-      title: `Bike on Rent in ${locationName} - Starting @₹299/Day | TransRentals`,
-      description: `Rent bikes in ${locationName} starting @₹299/day. Royal Enfield, KTM, Activa & more. Best prices guaranteed.`,
+      title: `Bike on Rent in ${locationName} | TransRentals`,
+      description: `Rent bikes in ${locationName} from verified partners. Royal Enfield, KTM, Activa & more.`,
       type: 'website',
       url: `https://transrentals.in/bike-on-rent/${locationSlug}`,
       images: [
@@ -111,7 +99,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image',
       title: `Bike on Rent in ${locationName} - TransRentals`,
-      description: `Rent bikes in ${locationName} starting @₹299/day. Best prices guaranteed.`,
+      description: `Rent bikes in ${locationName} from verified partners. Royal Enfield, KTM, Activa & more.`,
       images: [`https://transrentals.in/api/og?service=bike-on-rent&location=${encodeURIComponent(locationName)}`],
     },
     alternates: {
@@ -131,14 +119,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-// Popular bikes data (for display below hero)
-const POPULAR_BIKES = [
-  { name: 'Honda Activa 6G', type: 'Scooter', price: 299, image: '/images/fleet/activa-6g.jpg' },
-  { name: 'Royal Enfield Classic 350', type: 'Cruiser', price: 799, image: '/images/fleet/royal-enfield-classic-350.jpg' },
-  { name: 'TVS Jupiter', type: 'Scooter', price: 349, image: '/images/fleet/tvs-jupiter.jpg' },
-  { name: 'KTM Duke 200', type: 'Sports', price: 999, image: '/images/fleet/ktm-duke-200.jpg' },
-];
-
 // Location-specific FAQs for schema
 const getLocationFaqs = (locationName: string) => [
   { question: `What documents are required for bike rental in ${locationName}?`, answer: `You need a valid driving license (with MCWG endorsement for bikes above 50cc), government ID proof (Aadhaar/Passport), and a security deposit to rent a bike in ${locationName}.` },
@@ -148,70 +128,20 @@ const getLocationFaqs = (locationName: string) => [
   { question: `What if the bike breaks down in ${locationName}?`, answer: `We provide 24/7 roadside assistance in ${locationName}. Contact our support and we'll arrange for help or a replacement bike immediately.` },
 ];
 
-// Schema vehicles data
-const schemaVehicles = [
-  { name: 'Honda Activa 6G', brand: 'Honda', price: 299, image: 'https://transrentals.in/images/fleet/honda-activa-6g.jpg', description: "Rent Honda Activa 6G scooter — India's most popular two-wheeler with 109cc OBD2-compliant engine, 50 kmpl mileage, LED headlight, silent start, and 21-litre underseat storage. Ideal for hassle-free city commuting with automatic transmission. Rental includes helmet and insurance. Book at TransRentals from ₹299/day." },
-  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 799, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: "Rent Royal Enfield Classic 350 — iconic heritage cruiser with 349cc twin-spark J-series engine, 20.2 PS power, dual-channel ABS, and timeless design. Smooth highway cruiser with 35+ kmpl mileage and relaxed touring ergonomics. Perfect for road trips and weekend getaways. Rental from ₹799/day with helmet." },
-  { name: 'TVS Jupiter', brand: 'TVS', price: 349, image: 'https://transrentals.in/images/scooters/jupiter.jpg', description: "Rent TVS Jupiter scooter — family-favourite 110cc automatic scooter with 50+ kmpl mileage, extra-large 22-litre underseat storage, external fuel cap, and wide two-person seat. Best for family outings, grocery runs, and comfortable daily commuting. Available from ₹349/day with doorstep delivery." },
-  { name: 'KTM Duke 200', brand: 'KTM', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent KTM Duke 200 — aggressive naked sports bike with 199.5cc liquid-cooled engine, 25 PS power, slipper clutch, and WP suspension. 0-100 kmph in 8.7 seconds with sharp handling and 136 kmph top speed. Perfect for sporty city riding and spirited weekend rides. Rental from ₹999/day with helmet.' },
-  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent Royal Enfield Himalayan — purpose-built adventure tourer with 411cc single-cylinder engine, 24.3 PS power, long-travel suspension, and Tripper navigation. Handles mountain roads, highway touring, and off-road terrain with ease. Ideal for Ladakh and adventure road trips. Available from ₹899/day.' },
-];
-
 export default async function BikeLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('bike-on-rent', params.location, { comingSoonIfUnavailable: true });
-  if (pageContext.type === 'redirect') {
-    if (COMING_SOON_SLUGS.has(params.location)) {
-      const cityName = params.location.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      return (
-        <>
-          <div className="bg-gray-50 border-b border-gray-200">
-            <div className="container-custom py-3">
-              <nav className="text-sm text-gray-600">
-                <a href="/" className="hover:text-primary">Home</a>
-                <span className="mx-2">/</span>
-                <a href="/bike-on-rent" className="hover:text-primary">Bike Rental</a>
-                <span className="mx-2">/</span>
-                <span className="text-gray-900 font-medium">{cityName}</span>
-              </nav>
-            </div>
-          </div>
-          <ComingSoonHero
-            city={cityName}
-            citySlug={params.location}
-            serviceSlug="bike-on-rent"
-            serviceName="Bike Rental"
-            themeColor="emerald"
-          />
-        </>
-      );
-    }
-    permanentRedirect(pageContext.to);
-  }
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="bike-on-rent" serviceName="Bike on Rent" />;
 
-  // Coming soon — city exists but service not yet enabled
+  // No partners onboarded here yet. The booking hero is deliberately left out —
+  // there is nothing to search, so a search box would only lead to a dead end.
+  // The page still earns its place: it says where we're at, and sends the
+  // visitor to the nearest city they can actually book in today.
   if (pageContext.type === 'coming-soon') {
-    const comingSoonCity = pageContext.city;
-    const cityName = comingSoonCity.name;
+    const cityName = pageContext.city.name;
     const cityFaqs = getLocationFaqs(cityName);
     return (
       <>
-        {/* Schema Markup */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'Service',
-              name: `Bike on Rent in ${cityName}`,
-              description: `Bike rental service coming soon to ${cityName}. Rent Royal Enfield, KTM, Activa & more starting @₹299/day.`,
-              provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
-              areaServed: { '@type': 'City', name: cityName },
-              serviceType: 'Bike Rental',
-            }),
-          }}
-        />
-
         {/* Breadcrumbs */}
         <div className="bg-gray-50 border-b border-gray-200">
           <div className="container-custom py-3">
@@ -225,95 +155,20 @@ export default async function BikeLocationPage({ params }: PageProps) {
           </div>
         </div>
 
-        <ComingSoonHero
-          city={cityName}
-          citySlug={params.location}
-          serviceSlug="bike-on-rent"
-          serviceName="Bike on Rent"
-          themeColor="emerald"
-        />
+        {/* No search box here on purpose — see ServiceExpandingHero. */}
+        <ServiceExpandingHero cityName={cityName} serviceLabel="bike rentals" />
 
-        <NearbyActiveCities
-          currentCitySlug={params.location}
-          serviceSlug="bike-on-rent"
-          serviceName="Bike on Rent"
-        />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="bike-on-rent"
+            serviceName="Bike on Rent"
+          />
+        </div>
 
-        {/* Why TransRentals */}
-        <section className="py-16 bg-gray-50">
-          <div className="container-custom">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3 text-center">
-              Why Choose TransRentals for Bike Rental in {cityName}?
-            </h2>
-            <p className="text-gray-600 text-center mb-10 max-w-2xl mx-auto">
-              We&apos;re bringing the best bike rental experience to {cityName} soon
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                { icon: '✅', title: 'Verified Vendors', desc: `All bike rental vendors in ${cityName} are background-checked and verified for quality` },
-                { icon: '💰', title: 'Best Prices', desc: `Starting from just ₹299/day — cheapest bike rentals in ${cityName} guaranteed` },
-                { icon: '🛵', title: 'Wide Selection', desc: `Scooters, cruisers, sports bikes — every type of two-wheeler available in ${cityName}` },
-                { icon: '🚪', title: 'Doorstep Delivery', desc: `Get your bike delivered right to your address in ${cityName} for free` },
-                { icon: '📞', title: '24/7 Support', desc: `Round the clock roadside assistance and customer support in ${cityName}` },
-                { icon: '📄', title: 'Easy Booking', desc: 'Book online in minutes — no long paperwork or advance deposits' },
-              ].map((item) => (
-                <div key={item.title} className="bg-white p-6 rounded-xl shadow-sm">
-                  <div className="text-3xl mb-3">{item.icon}</div>
-                  <h3 className="font-bold text-gray-900 mb-2">{item.title}</h3>
-                  <p className="text-gray-600 text-sm">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ServiceLaunchBenefits cityName={cityName} />
 
-        {/* FAQs */}
-        <section className="py-16 bg-white">
-          <div className="container-custom max-w-3xl">
-            <h2 className="text-3xl font-bold text-gray-900 mb-10 text-center">
-              Frequently Asked Questions — Bike Rental in {cityName}
-            </h2>
-            <div className="space-y-6">
-              {cityFaqs.map((faq) => (
-                <div key={faq.question} className="bg-gray-50 p-6 rounded-xl">
-                  <h3 className="font-semibold text-gray-900 mb-2">{faq.question}</h3>
-                  <p className="text-gray-600">{faq.answer}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* SEO Text */}
-        <section className="py-16 bg-gray-50">
-          <div className="container-custom max-w-4xl">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">
-              Bike Rental Services in {cityName}
-            </h2>
-            <div className="prose prose-lg text-gray-600 space-y-4">
-              <p>
-                TransRentals is expanding its bike rental services to {cityName}. We are working to onboard
-                verified bike rental vendors in {cityName} so you can rent two-wheelers at the best prices.
-                Our platform offers Royal Enfield, KTM, Honda Activa, TVS Jupiter, Bajaj Pulsar, and many
-                more bikes for daily, weekly, and monthly rentals.
-              </p>
-              <p>
-                Once we launch in {cityName}, you will be able to book bikes online with doorstep delivery,
-                flexible rental durations, and 24/7 roadside assistance. Till then, explore bike rentals
-                in nearby cities listed above where you can book instantly.
-              </p>
-              <h3 className="text-xl font-bold text-gray-900 mt-6">
-                Types of Bikes Available for Rent in {cityName}
-              </h3>
-              <ul className="list-disc pl-6 space-y-1">
-                <li>Scooters — Honda Activa, TVS Jupiter, Suzuki Access (₹299–₹499/day)</li>
-                <li>Commuter Bikes — Bajaj Pulsar, Hero Splendor, TVS Apache (₹399–₹599/day)</li>
-                <li>Cruisers — Royal Enfield Classic 350, Bullet 350, Thunderbird (₹799–₹999/day)</li>
-                <li>Adventure Bikes — Royal Enfield Himalayan, KTM Duke 390 (₹899–₹1299/day)</li>
-              </ul>
-            </div>
-          </div>
-        </section>
+        <FAQSection service="bike-on-rent" location={cityName} customFaqs={cityFaqs} />
       </>
     );
   }
@@ -325,7 +180,22 @@ export default async function BikeLocationPage({ params }: PageProps) {
     resolvePageMeta(`bike-on-rent:${params.location}`),
     getServiceCityContent('bike-on-rent', params.location),
   ]);
-  const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['bike-on-rent'] || [];
+  // City FAQs feed the FAQPage JSON-LD. Same no-rate rule as everything else:
+  // a question that exists only to quote one goes, and answers keep every
+  // sentence except the one carrying a number.
+  const cityFAQs = (CITY_SEO[params.location]?.serviceFAQs?.['bike-on-rent'] || [])
+    .filter((faq) => !containsPrice(faq.q))
+    .map((faq) => ({ q: faq.q, a: stripPricesFromText(faq.a) }))
+    .filter((faq) => faq.a.length > 0);
+  // No rate is quoted anywhere on this page — the real price depends on the
+  // partner and the dates, so a number in the copy would only mislead. The
+  // hero blurb is authored in the admin, so it gets scrubbed here.
+  const heroDescription = stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined;
+  // Nothing gets said twice on one page. Where the admin has written the
+  // city's own version of a pitch, the generic component below is dropped;
+  // where they haven't, the component is still the fallback.
+  const adminCoversWhyUs = hasSectionMatching(scContent?.sectionsConfig, /why[-\s_]?(choose|rent|us)/i);
+  const adminCoversOtherServices = hasSectionMatching(scContent?.sectionsConfig, /services?[-\s_]?(offered|available)|other[-\s_]?services/i);
 
   return (
     <>
@@ -333,12 +203,10 @@ export default async function BikeLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName="Bike on Rent"
         serviceSlug="bike-on-rent"
-        description={`Rent bikes in ${locationName} with TransRentals. Choose from Royal Enfield, KTM, Activa & more. Best prices starting @₹299/day.`}
+        description={`Rent bikes in ${locationName} with TransRentals. Choose from Royal Enfield, KTM, Activa & more, all from verified partners.`}
         city={locationName}
         citySlug={params.location}
         faqs={locationFaqs}
-        vehicles={schemaVehicles}
-        priceRange={{ min: 299, max: 1499 }}
         rating={4.5}
         reviewCount={487}
       />
@@ -358,9 +226,11 @@ export default async function BikeLocationPage({ params }: PageProps) {
         </div>
 
       {/* Hero with Search */}
-      <BikeSearchHero city={locationName} citySlug={params.location} pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined} pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined} />
+      <BikeSearchHero city={locationName} citySlug={params.location} pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined} pageDescription={heroDescription} />
 
-      {/* Available Bikes - Dynamic from Database */}
+      {/* Available bikes — purely whatever the admin has published for this
+          city. Nothing is hardcoded here, and ServiceFleetDisplay renders
+          nothing at all when the city has no published fleet. */}
       <div id="bikes-fleet">
         <LazyServiceFleetDisplay
           serviceSlug="bike-on-rent"
@@ -368,12 +238,13 @@ export default async function BikeLocationPage({ params }: PageProps) {
           title={`Bikes Available for Rent in ${locationName}`}
           showCategories={true}
           limit={12}
-          priceUnit="/day"
+          hidePrices
         />
       </div>
 
-      {/* Why Rent Here */}
-      <WhyRentHere locationName={locationName} />
+      {/* Why Rent Here — skipped when the admin has already written the
+          city's own "why choose us" block further down the page. */}
+      {!adminCoversWhyUs && <WhyRentHere locationName={locationName} />}
 
       {/* How It Works */}
       <section
@@ -387,7 +258,7 @@ export default async function BikeLocationPage({ params }: PageProps) {
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 <span className="w-10 h-px border-t-2 border-dashed border-emerald-300" />
               </span>
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900">
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">
                 How to Rent a Bike in <span className="text-emerald-600">{locationName}</span>
               </h2>
               <span className="hidden sm:flex items-center gap-1">
@@ -433,13 +304,17 @@ export default async function BikeLocationPage({ params }: PageProps) {
         citySlug={params.location}
         cityName={locationName}
         serviceName="Bike Rental"
+        hidePrices
       />
 
-      <CrossServiceLinks
-        citySlug={params.location}
-        cityName={locationName}
-        currentServiceSlug="bike-on-rent"
-      />
+      {/* Same idea: the admin's "Services Offered" block says this already. */}
+      {!adminCoversOtherServices && (
+        <CrossServiceLinks
+          citySlug={params.location}
+          cityName={locationName}
+          currentServiceSlug="bike-on-rent"
+        />
+      )}
 
       {cityFAQs.length > 0 && (
         <script
@@ -459,7 +334,7 @@ export default async function BikeLocationPage({ params }: PageProps) {
       )}
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <RelatedServices
         locationSlug={params.location}
