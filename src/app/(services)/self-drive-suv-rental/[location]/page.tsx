@@ -6,6 +6,11 @@ import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { resolveServicePage } from '@/lib/services/service-availability';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
@@ -44,8 +49,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('self-drive-suv-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Self Drive SUV Rental in ${locationName} | Rent SUV @₹1999/Day | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent SUV without driver in ${locationName}. Creta, Seltos, Scorpio, XUV700, Fortuner available. Self-drive SUV for road trips & family travel.`,
+    // No rate is quoted for this page — see the note in the page body.
+    title: stripPricesFromText(scContent?.metaTitle || _seoDb?.metaTitle || `Self Drive SUV Rental in ${locationName} | Rent SUV | TransRentals | TransRentals`),
+    description: stripPricesFromText(scContent?.metaDescription || _seoDb?.metaDescription || `Rent SUV without driver in ${locationName}. Creta, Seltos, Scorpio, XUV700, Fortuner available. Self-drive SUV for road trips & family travel.`),
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `self drive suv rental ${locationName}`,
       `suv on rent ${locationName}`,
@@ -54,7 +60,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `suv rental ${locationName}`,
     ],
     openGraph: {
-      title: `Self Drive SUV Rental in ${locationName} @₹1999/Day | TransRentals`,
+      title: `Self Drive SUV Rental in ${locationName} | TransRentals`,
       description: `Rent SUVs without driver in ${locationName}. Creta, Seltos, Fortuner available.`,
       type: 'website',
       url: `https://transrentals.in/self-drive-suv-rental/${locationSlug}`,
@@ -65,16 +71,61 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image' as const,
       title: `Self Drive SUV Rental in ${locationName} | TransRentals`,
-      description: `Rent SUV without driver in ${locationName} starting @₹1499/day. Creta, Seltos, Fortuner available.`,
+      description: `Rent SUV without driver in ${locationName} from verified partners.`,
     },
   };
 }
 
 
+const launchFaqs = [
+  { question: 'What documents do I need to rent?', answer: 'A valid driving licence and one government photo ID (Aadhaar, passport or voter card).' },
+  { question: 'Is a security deposit required?', answer: 'Yes, a refundable deposit is collected at pickup and returned when you bring the car back.' },
+  { question: 'Is roadside assistance available?', answer: 'Yes, our partners provide 24/7 roadside assistance for the length of your rental.' },
+];
+
 export default async function SUVRentalLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('self-drive-suv-rental', params.location);
+  // Availability follows self-drive-car-rentals: there is no services row under
+  // "self-drive-suv-rental", and an unknown slug used to read as "available
+  // everywhere", so this page could never be switched off for a city.
+  // One admin screen now governs the whole self drive group.
+  const pageContext = await resolveServicePage('self-drive-suv-rental', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'self-drive-car-rentals',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="self-drive-suv-rental" serviceName="Self Drive SUV Rental" />;
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the
+  // nearest city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/self-drive-suv-rental" className="hover:text-primary">Self Drive SUV Rental</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="self drive SUV rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="self-drive-suv-rental"
+            serviceName="Self Drive SUV Rental"
+          />
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} vehicleNoun="car" selectionDesc="Creta, Seltos, XUV700, Scorpio and more — the full SUV range." />
+        <FAQSection service="self-drive-suv-rental" location={cityName} customFaqs={launchFaqs} />
+      </>
+    );
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
@@ -86,7 +137,7 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
   const pageFaqs = [
     { question: 'Which SUVs are available for self-drive rental?', answer: 'We offer Hyundai Creta, Kia Seltos, MG Hector, XUV700, and Fortuner — top SUVs with automatic and manual transmission options.' },
     { question: 'Do I need a special licence to drive a self-drive SUV?', answer: 'A standard LMV car licence is sufficient for all SUVs except commercial-category vehicles. Minimum 1 year of licence validity required.' },
-    { question: 'Is unlimited km allowed in self-drive SUV rental?', answer: 'We offer both limited and unlimited km packages. Unlimited km packages start from ₹2499/day for a 3-day minimum booking.' },
+    { question: 'Is unlimited km allowed in self-drive SUV rental?', answer: 'We offer both limited and unlimited km packages.' },
     { question: 'What happens if the SUV meets with an accident?', answer: 'All SUVs are insured. Comprehensive damage waiver is available as an add-on. A damage liability applies without the waiver.' },
   ];
 
@@ -109,7 +160,6 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
         city={locationName}
         citySlug={params.location}
         vehicleName="Self Drive SUV"
-        selfDrivePrice="₹1,999"
       />
 
       {/* Hero */}
@@ -123,15 +173,6 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
               <p className="text-gray-500 mt-1.5">Drive yourself in a powerful SUV. Perfect for {locationName} roads and beyond.</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
-                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
-                  <Wallet className="w-5 h-5 text-white" />
-                </span>
-                <div>
-                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Starting from</p>
-                  <p className="text-lg font-black text-gray-900">₹1,999</p>
-                </div>
-              </div>
               <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
                 <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
                   <Car className="w-5 h-5 text-white" />
@@ -188,8 +229,7 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
           </h2>
           <div className="grid sm:grid-cols-3 gap-5 max-w-4xl mx-auto">
             {[
-              { href: `/self-drive-sedan-rental/${params.location}`, icon: Car, title: 'Sedan Rental', desc: 'From ₹1,299/day' },
-              { href: `/self-drive-hatchback-rental/${params.location}`, icon: Car, title: 'Hatchback Rental', desc: 'From ₹899/day' },
+
               { href: `/self-drive-car-rentals/${params.location}`, icon: LayoutGrid, title: 'All Self Drive Cars', desc: 'View all options' },
             ].map((opt) => (
               <Link
@@ -224,14 +264,27 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName="Self Drive SUV Rental"
         serviceSlug="self-drive-suv-rental"
-        description={`Rent SUV without driver in ${locationName} starting @₹1499/day. Creta, Seltos, Fortuner available.`}
+        description={`Creta, Seltos, Fortuner available.`}
         city={locationName}
         citySlug={params.location}
         faqs={[]}
+        hidePrices
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      {/* Available cars — purely whatever the admin has published for
+          this city. Nothing hardcoded, and the section renders nothing
+          at all when the city has no published fleet. */}
+      <LazyServiceFleetDisplay
+        serviceSlug="self-drive-suv-rental"
+        locationSlug={params.location}
+        title={`Self Drive SUVs Available in ${locationName}`}
+        showCategories={true}
+        limit={12}
+        hidePrices
+      />
+
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="self-drive-suv-rental" location={locationName} customFaqs={pageFaqs} />
 
@@ -242,7 +295,6 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
         currentSlug="self-drive-suv-rental"
         siblings={[
           { slug: 'hourly-car-rental', name: 'Hourly Car Rental' },
-          { slug: 'self-drive-suv-rental', name: 'Self Drive SUV' },
           { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
           { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
           { slug: 'swift-on-rent', name: 'Swift on Rent' },

@@ -171,6 +171,7 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
         faqs={schemaFaqs}
         rating={4.6}
         reviewCount={234}
+        hidePrices
       />
 
       <BikeSearchHero

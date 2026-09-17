@@ -83,3 +83,30 @@ export function stripPricesFromText(text: string | null | undefined): string {
   if (!text) return '';
   return stripPriceSentences(text);
 }
+
+/**
+ * Scrub a rate out of a meta title or description without destroying it.
+ *
+ * Titles are one sentence, so {@link stripPriceSentences} would delete the
+ * whole thing — it has cost us a batch of blank titles once already. Here only
+ * the rate phrase is cut ("Bus Rental in Mumbai from ₹10,000/day" becomes
+ * "Bus Rental in Mumbai"), and if a number still survives the caller gets ''
+ * back so it falls through to its own hardcoded default.
+ */
+export function stripPriceFromTitle(title: string | null | undefined): string {
+  if (!title) return '';
+  if (!containsPrice(title)) return title;
+
+  const cleaned = title
+    // "| Starting ₹18/km", "- from ₹4,500/day", "@₹5999/day", "(₹300–₹500)"
+    .replace(/\s*[|\-–—]\s*(?:starting(?:\s+(?:from|at))?|from|only|just|@)?\s*(?:₹|\bRs\.?\s?|\bINR\s)\s?\d[\d,.]*(?:\s*[-–—]\s*(?:₹|\bRs\.?\s?)?\d[\d,.]*)?\s*(?:\/\s*(?:day|hr|hour|km|month|night|trip|seat))?/gi, '')
+    .replace(/\s*\(?\s*(?:starting(?:\s+(?:from|at))?|from|only|just|@)\s*(?:₹|\bRs\.?\s?|\bINR\s)\s?\d[\d,.]*(?:\s*[-–—]\s*(?:₹|\bRs\.?\s?)?\d[\d,.]*)?\s*(?:\/\s*(?:day|hr|hour|km|month|night|trip|seat))?\s*\)?/gi, '')
+    .replace(/\s*[|\-–—,]\s*$/, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  // Anything still carrying a number is not safe to publish — let the caller
+  // fall back to its own default rather than ship a half-scrubbed title.
+  if (!cleaned || containsPrice(cleaned)) return '';
+  return cleaned;
+}

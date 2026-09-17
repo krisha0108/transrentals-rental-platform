@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import Image from 'next/image';
@@ -36,6 +36,10 @@ interface PackagesGridProps {
   locationName?: string;
   locationSlug?: string;
   serviceSlug?: string;
+  /** Opt-in: show what the package includes but never the rate. Pages that
+   *  quote no price on screen use this; off by default so other callers keep
+   *  the pricing they render today. */
+  hidePrices?: boolean;
 }
 
 export function PackagesGrid({
@@ -44,6 +48,7 @@ export function PackagesGrid({
   locationName,
   locationSlug,
   serviceSlug = 'car-rental',
+  hidePrices = false,
 }: PackagesGridProps) {
   const displayTitle = title || `Car Rental Packages${locationName ? ` in ${locationName}` : ''}`;
 
@@ -195,10 +200,16 @@ export function PackagesGrid({
                           <MapPin className="w-3.5 h-3.5 text-green-500" />
                           {selectedPkg.kms} Km included
                         </span>
-                        <span className="text-slate-500">+₹{selectedPkg.extraKmCharge}/extra km</span>
-                        <span className="text-slate-500">+₹{selectedPkg.extraHourCharge}/extra hr</span>
-                        {selectedPkg.nightChargesApply && selectedPkg.nightChargeAmount && (
-                          <span className="text-slate-500">Night ₹{selectedPkg.nightChargeAmount}</span>
+                        {hidePrices ? (
+                          <span className="text-slate-500">Extra km &amp; hours charged as quoted</span>
+                        ) : (
+                          <>
+                            <span className="text-slate-500">+₹{selectedPkg.extraKmCharge}/extra km</span>
+                            <span className="text-slate-500">+₹{selectedPkg.extraHourCharge}/extra hr</span>
+                            {selectedPkg.nightChargesApply && selectedPkg.nightChargeAmount && (
+                              <span className="text-slate-500">Night ₹{selectedPkg.nightChargeAmount}</span>
+                            )}
+                          </>
                         )}
                         <span className="text-amber-700 font-medium">Toll/Parking extra</span>
                       </div>
@@ -211,8 +222,8 @@ export function PackagesGrid({
                       <>
                         <div className="text-center">
                           <p className="text-xs text-slate-500 mb-1">All inclusive</p>
-                          <p className="text-3xl font-bold text-slate-900">
-                            ₹{selectedPkg.basePrice.toLocaleString('en-IN')}
+                          <p className={hidePrices ? 'text-xl font-bold text-slate-900' : 'text-3xl font-bold text-slate-900'}>
+                            {hidePrices ? 'Free quote' : `₹${selectedPkg.basePrice.toLocaleString('en-IN')}`}
                           </p>
                           <p className="text-xs text-slate-500 mt-1">
                             {selectedPkg.hours}hr / {selectedPkg.kms}km

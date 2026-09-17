@@ -169,6 +169,7 @@ export default async function ApacheLocationPage({ params }: PageProps) {
         faqs={schemaFaqs}
         rating={4.8}
         reviewCount={384}
+        hidePrices
       />
       <div className="flex flex-col">
         {/* Breadcrumbs */}

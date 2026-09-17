@@ -1,5 +1,6 @@
 ﻿import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
@@ -11,17 +12,18 @@ import { TransporterBookingHero } from '@/components/transporter/TransporterBook
 import { getAllIndiaFleet } from '@/lib/fleet-utils';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ComingSoonHero } from '@/components/services/ComingSoonHero';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { prisma } from '@/lib/db/prisma';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { CITY_SEO } from '@/data/city-seo-content';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections, hasSectionsContent } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionsContent, hasSectionMatching } from '@/components/seo/ServiceCitySections';
 
 const TRANSPORTER_FALLBACK_FAQS = [
-  { question: 'What is the cost of truck rental per day?', answer: 'Mini truck (Tata Ace, 1T) starts from ₹2,500/day for local trips. Tata 407 (5T) starts from ₹6,000/day. Container trucks (20–32 ft) are quoted per trip based on route and load. Outstation rates are charged per km. Get a free quote on TransRentals for your specific load and route requirements.' },
+  { question: 'How is truck rental charged?', answer: 'Local trips are usually quoted per day, container trucks per trip based on route and load, and outstation runs per km. What you pay depends on truck size, distance and load. Share your requirement on TransRentals and verified transporters send you their quotes.' },
   { question: 'What types of trucks are available for rent?', answer: 'TransRentals offers mini trucks (Tata Ace, Mahindra Jeeto — 1T), light commercial vehicles (Tata 407, Bolero Pickup — 1.5–5T), medium trucks (Eicher 14/17/19 ft — 3–7T), container trucks (20 ft, 24 ft, 32 ft — 10–25T), and full trailers (40-ft flatbed/container — 25–40T).' },
   { question: 'What is the difference between full-load (FTL) and part-load (LTL)?', answer: 'Full-truck-load (FTL) means you hire the entire truck exclusively for your goods — faster transit, better for large or fragile shipments. Part-load (LTL) means your goods share space with others — cheaper but slower transit. TransRentals offers both options.' },
   { question: 'Can I book a truck for a one-way intercity trip?', answer: 'Yes, one-way intercity truck bookings are available. Major routes: Delhi–Mumbai, Mumbai–Pune, Bangalore–Chennai, Delhi–Kolkata. One-way rates include driver allowance. Contact TransRentals for freight quotes on specific routes.' },
@@ -68,8 +70,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('transporter', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Truck Rental in ${locationName} | Starting from ₹3,999/Day | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book trucks and goods vehicles in ${locationName}. Mini trucks to 32-ton containers with GPS tracking and verified drivers. Full-load and part-load options.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Truck Rental in ${locationName} | Mini Trucks, Tempos & Containers | TransRentals`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Book trucks and goods vehicles in ${locationName}. Mini trucks to 32-ton containers with GPS tracking and verified drivers. Full-load and part-load options.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `truck rental in ${locationName}`,
       `transporter in ${locationName}`,
@@ -84,67 +86,57 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+/**
+ * What a city sees while no transporter is onboarded there yet. No booking
+ * form and no quoted rate — there is nothing to book and nobody to honour a
+ * number — so it leads to the nearest cities that are bookable today.
+ * Shared by both routes that land here so the two cannot drift apart.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/transporter" className="hover:text-primary">Truck &amp; Tempo Rental</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="truck and tempo rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="transporter"
+          serviceName="Truck & Tempo Rental"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="truck"
+        selectionDesc="Mini trucks, tempos, open-body and container trucks — 1T to 32 ft."
+      />
+      <FAQSection service="transporter" location={cityName} customFaqs={TRANSPORTER_FALLBACK_FAQS} />
+    </>
+  );
+}
+
 export default async function TransporterLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('transporter', params.location, { comingSoonIfUnavailable: true });
   if (pageContext.type === 'redirect') {
     if (COMING_SOON_SLUGS.has(params.location)) {
       const cityName = params.location.replace('logistics-company-in-', '')
         .split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      return (
-        <>
-          <div className="bg-gray-50 border-b border-gray-200">
-            <div className="container-custom py-3">
-              <nav className="text-sm text-gray-600">
-                <a href="/" className="hover:text-primary">Home</a>
-                <span className="mx-2">/</span>
-                <a href="/transporter" className="hover:text-primary">Truck & Tempo Rental</a>
-                <span className="mx-2">/</span>
-                <span className="text-gray-900 font-medium">{cityName}</span>
-              </nav>
-            </div>
-          </div>
-          <ComingSoonHero
-            city={cityName}
-            citySlug={params.location}
-            serviceSlug="transporter"
-            serviceName="Truck & Tempo Rental"
-            themeColor="red"
-          />
-        </>
-      );
+      return <ExpandingCityPage cityName={cityName} citySlug={params.location} />;
     }
     permanentRedirect(pageContext.to);
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="transporter" serviceName="Transporter" />;
   if (pageContext.type === 'coming-soon') {
-    const cityName = pageContext.city.name;
-    return (
-      <>
-        <div className="bg-gray-50 border-b border-gray-200">
-          <div className="container-custom py-3">
-            <nav className="text-sm text-gray-600">
-              <a href="/" className="hover:text-primary">Home</a>
-              <span className="mx-2">/</span>
-              <a href="/transporter" className="hover:text-primary">Truck & Tempo Rental</a>
-              <span className="mx-2">/</span>
-              <span className="text-gray-900 font-medium">{cityName}</span>
-            </nav>
-          </div>
-        </div>
-        <ComingSoonHero
-          city={cityName}
-          citySlug={params.location}
-          serviceSlug="transporter"
-          serviceName="Truck & Tempo Rental"
-          themeColor="red"
-        />
-        <NearbyActiveCities
-          currentCitySlug={params.location}
-          serviceSlug="transporter"
-          serviceName="Truck & Tempo Rental"
-        />
-      </>
-    );
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location} />;
   }
   const city = pageContext.city;
 
@@ -249,8 +241,17 @@ export default async function TransporterLocationPage({ params }: PageProps) {
   ]);
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['transporter'] || [];
   const displayFAQs = cityFAQs.length > 0
-    ? cityFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))
+    ? cityFAQs
+        .map((faq) => ({ question: faq.q, answer: stripPricesFromText(faq.a) }))
+        .filter((faq) => faq.answer)
     : TRANSPORTER_FALLBACK_FAQS;
+
+  // The admin block editor renders its own Why Us / Other Services / FAQ
+  // blocks. Where the city has one, the hardcoded section below is skipped
+  // so the page doesn't say the same thing twice.
+  const adminCoversWhyUs = hasSectionMatching(scContent?.sectionsConfig, /why[-\s_]?(choose|rent|us)/i);
+  const adminCoversOtherServices = hasSectionMatching(scContent?.sectionsConfig, /services?[-\s_]?(offered|available)|other[-\s_]?services/i);
+  const adminCoversFaqs = hasSectionMatching(scContent?.sectionsConfig, /faq/i);
 
   return (
     <div className="flex flex-col">
@@ -274,18 +275,22 @@ export default async function TransporterLocationPage({ params }: PageProps) {
       <TransporterBookingHero
         city={locationName}
         citySlug={params.location.toLowerCase()}
-        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
+        pageHeading={stripPricesFromText(scContent?.pageHeading || seoData?.pageHeading) || undefined}
+        pageDescription={stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined}
       />
 
+      {/* Admin-managed fleet only — no models for this city, no section. */}
       <VehicleGrid
         vehicles={vehicles}
         title={`Available Trucks in ${locationName}`}
         locationSlug={params.location}
         serviceSlug="transporter"
+        hideWhenEmpty
       />
 
-      <WhyRentHere locationName={locationName} />
+      {!adminCoversWhyUs && (
+        <WhyRentHere locationName={locationName} />
+      )}
 
       <NearbyLocations
         locationSlug={params.location}
@@ -339,9 +344,11 @@ export default async function TransporterLocationPage({ params }: PageProps) {
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
-      <FAQSection service="transporter" location={locationName} customFaqs={displayFAQs} />
+      {!adminCoversFaqs && (
+        <FAQSection service="transporter" location={locationName} customFaqs={displayFAQs} />
+      )}
     </div>
   );
 }

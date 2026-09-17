@@ -8,6 +8,11 @@ import { getServiceLocations, getAllCityLocations } from '@/lib/services/service
 import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
@@ -44,8 +49,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('creta-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Creta on Rent in ${locationName} | Rent Creta @₹1999/Day | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Hyundai Creta without driver in ${locationName}. Self-drive Creta rental for family trips & outstation. Creta E, S, SX, SX(O) AT available.`,
+    // No rate is quoted for this page — see the note in the page body.
+    title: stripPricesFromText(scContent?.metaTitle || _seoDb?.metaTitle || `Creta on Rent in ${locationName} | Rent Creta | TransRentals | TransRentals`),
+    description: stripPricesFromText(scContent?.metaDescription || _seoDb?.metaDescription || `Rent Hyundai Creta without driver in ${locationName}. Self-drive Creta rental for family trips & outstation. Creta E, S, SX, SX(O) AT available.`),
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `creta on rent ${locationName}`,
       `hyundai creta rental ${locationName}`,
@@ -53,7 +59,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `creta self drive ${locationName}`,
     ],
     openGraph: {
-      title: `Creta on Rent in ${locationName} @₹1999/Day | TransRentals`,
+      title: `Creta on Rent in ${locationName} | TransRentals`,
       description: `Self-drive Hyundai Creta rental in ${locationName}. Best rates guaranteed.`,
       type: 'website',
       url: `https://transrentals.in/creta-on-rent/${locationSlug}`,
@@ -64,16 +70,61 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image' as const,
       title: `Creta on Rent in ${locationName} | TransRentals`,
-      description: `Rent Hyundai Creta without driver in ${locationName} starting @₹1499/day.`,
+      description: `Rent Hyundai Creta without driver in ${locationName} from verified partners.`,
     },
   };
 }
 
 
+const launchFaqs = [
+  { question: 'What documents do I need to rent?', answer: 'A valid driving licence and one government photo ID (Aadhaar, passport or voter card).' },
+  { question: 'Is a security deposit required?', answer: 'Yes, a refundable deposit is collected at pickup and returned when you bring the car back.' },
+  { question: 'Is roadside assistance available?', answer: 'Yes, our partners provide 24/7 roadside assistance for the length of your rental.' },
+];
+
 export default async function CretaOnRentLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('creta-on-rent', params.location);
+  // Availability follows self-drive-car-rentals: there is no services row under
+  // "creta-on-rent", and an unknown slug used to read as "available
+  // everywhere", so this page could never be switched off for a city.
+  // One admin screen now governs the whole self drive group.
+  const pageContext = await resolveServicePage('creta-on-rent', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'self-drive-car-rentals',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="creta-on-rent" serviceName="Creta on Rent" />;
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the
+  // nearest city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/creta-on-rent" className="hover:text-primary">Creta on Rent</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="Creta rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="creta-on-rent"
+            serviceName="Creta on Rent"
+          />
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} vehicleNoun="car" selectionDesc="Hyundai Creta, in the trims our partners keep on the road." />
+        <FAQSection service="creta-on-rent" location={cityName} customFaqs={launchFaqs} />
+      </>
+    );
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
@@ -84,8 +135,7 @@ export default async function CretaOnRentLocationPage({ params }: PageProps) {
 
   const pageFaqs = [
     { question: 'Is Hyundai Creta available in automatic transmission for self-drive?', answer: 'Yes, Creta is available in both 6-speed manual and DCT automatic. Automatic is recommended for city driving.' },
-    { question: 'What is the daily rental price for Hyundai Creta?', answer: 'Hyundai Creta self-drive rental starts from ₹1499/day for manual and ₹1799/day for automatic, including insurance.' },
-    { question: 'What is the km limit per day for Creta rental?', answer: 'Standard packages include 250 km/day. Unlimited km packages are available for ₹400 extra per day.' },
+    { question: 'What is the km limit per day for Creta rental?', answer: 'Standard packages include 250 km/day.' },
     { question: 'Is the Creta suitable for a family road trip of 5 people?', answer: 'Yes, Creta comfortably seats 5 adults with ample boot space. Ideal for weekend getaways and 3–5 day road trips.' },
   ];
 
@@ -195,14 +245,27 @@ export default async function CretaOnRentLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName="Creta on Rent"
         serviceSlug="creta-on-rent"
-        description={`Rent Hyundai Creta without driver in ${locationName} starting @₹1499/day.`}
+        description={`Rent Hyundai Creta without driver in ${locationName}, all from verified partners.`}
         city={locationName}
         citySlug={params.location}
         faqs={[]}
+        hidePrices
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      {/* Available cars — purely whatever the admin has published for
+          this city. Nothing hardcoded, and the section renders nothing
+          at all when the city has no published fleet. */}
+      <LazyServiceFleetDisplay
+        serviceSlug="creta-on-rent"
+        locationSlug={params.location}
+        title={`Creta Cars Available in ${locationName}`}
+        showCategories={true}
+        limit={12}
+        hidePrices
+      />
+
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="creta-on-rent" location={locationName} customFaqs={pageFaqs} />
 
@@ -217,7 +280,6 @@ export default async function CretaOnRentLocationPage({ params }: PageProps) {
           { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
           { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
           { slug: 'swift-on-rent', name: 'Swift on Rent' },
-          { slug: 'creta-on-rent', name: 'Creta on Rent' },
           { slug: 'innova-on-rent', name: 'Innova on Rent' },
           { slug: 'fortuner-on-rent', name: 'Fortuner on Rent' },
           { slug: 'seltos-on-rent', name: 'Seltos on Rent' },

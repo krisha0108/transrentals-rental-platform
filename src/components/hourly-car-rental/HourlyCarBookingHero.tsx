@@ -64,9 +64,13 @@ interface HourlyPackage {
 interface HourlyCarBookingHeroProps {
   cityName: string;
   citySlug: string;
+  /** Opt-in: show the packages without their fares. The page this hero sits
+   *  on quotes no rate anywhere, so the hero must not either. Off by default,
+   *  so nothing else that mounts this component changes. */
+  hidePrices?: boolean;
 }
 
-export function HourlyCarBookingHero({ cityName, citySlug }: HourlyCarBookingHeroProps) {
+export function HourlyCarBookingHero({ cityName, citySlug, hidePrices = false }: HourlyCarBookingHeroProps) {
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('10:00');
   const [packages, setPackages] = useState<HourlyPackage[]>([]);
@@ -245,7 +249,7 @@ export function HourlyCarBookingHero({ cityName, citySlug }: HourlyCarBookingHer
               </motion.p>
 
               {/* Min price */}
-              {minPrice > 0 && (
+              {!hidePrices && minPrice > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -456,7 +460,9 @@ export function HourlyCarBookingHero({ cityName, citySlug }: HourlyCarBookingHer
                                   </div>
                                 </div>
                                 <div className="text-right shrink-0">
-                                  <p className="text-xl font-bold text-gray-900">₹{pkg.basePrice.toLocaleString('en-IN')}</p>
+                                  {!hidePrices && (
+                                    <p className="text-xl font-bold text-gray-900">₹{pkg.basePrice.toLocaleString('en-IN')}</p>
+                                  )}
                                   <p className="text-xs text-gray-500">All inclusive</p>
                                 </div>
                               </div>
@@ -469,18 +475,22 @@ export function HourlyCarBookingHero({ cityName, citySlug }: HourlyCarBookingHer
                                   className="mt-4 pt-4 border-t border-blue-200"
                                 >
                                   <div className="text-xs space-y-1.5 text-gray-600 mb-4">
-                                    <div className="flex justify-between font-medium text-gray-800">
-                                      <span>Base fare ({pkg.hours}hr/{pkg.kms}km)</span>
-                                      <span>₹{pkg.basePrice.toLocaleString('en-IN')}</span>
-                                    </div>
-                                    <div className="flex justify-between text-gray-400">
-                                      <span>Extra km charge</span>
-                                      <span>₹{pkg.extraKmCharge}/km</span>
-                                    </div>
-                                    <div className="flex justify-between text-gray-400">
-                                      <span>Extra hour charge</span>
-                                      <span>₹{pkg.extraHourCharge}/hr</span>
-                                    </div>
+                                    {!hidePrices && (
+                                      <>
+                                        <div className="flex justify-between font-medium text-gray-800">
+                                          <span>Base fare ({pkg.hours}hr/{pkg.kms}km)</span>
+                                          <span>₹{pkg.basePrice.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        <div className="flex justify-between text-gray-400">
+                                          <span>Extra km charge</span>
+                                          <span>₹{pkg.extraKmCharge}/km</span>
+                                        </div>
+                                        <div className="flex justify-between text-gray-400">
+                                          <span>Extra hour charge</span>
+                                          <span>₹{pkg.extraHourCharge}/hr</span>
+                                        </div>
+                                      </>
+                                    )}
                                     <div className="flex justify-between text-amber-600">
                                       <span>Toll/Parking</span>
                                       <span>Extra (as applicable)</span>
@@ -603,9 +613,11 @@ export function HourlyCarBookingHero({ cityName, citySlug }: HourlyCarBookingHer
                       {/* Price */}
                       <div className={`mt-auto ${isSingle ? 'flex items-end gap-6' : ''}`}>
                         <div className={isSingle ? 'shrink-0' : ''}>
-                          <div className="flex items-baseline gap-1 mb-0.5">
-                            <span className="text-3xl font-bold text-gray-900">₹{pkg.basePrice.toLocaleString('en-IN')}</span>
-                          </div>
+                          {!hidePrices && (
+                            <div className="flex items-baseline gap-1 mb-0.5">
+                              <span className="text-3xl font-bold text-gray-900">₹{pkg.basePrice.toLocaleString('en-IN')}</span>
+                            </div>
+                          )}
                           <p className="text-xs text-gray-400 mb-4">All inclusive · driver + fuel</p>
                         </div>
 
@@ -628,18 +640,22 @@ export function HourlyCarBookingHero({ cityName, citySlug }: HourlyCarBookingHer
                                 className="overflow-hidden"
                               >
                                 <div className="bg-gray-50 rounded-xl p-3 text-xs space-y-2 mb-4">
-                                  <div className="flex justify-between font-semibold text-gray-800">
-                                    <span>Base fare ({pkg.hours}hr / {pkg.kms}km)</span>
-                                    <span>₹{pkg.basePrice.toLocaleString('en-IN')}</span>
-                                  </div>
-                                  <div className="flex justify-between text-gray-500">
-                                    <span>Extra km charge</span>
-                                    <span>₹{pkg.extraKmCharge}/km</span>
-                                  </div>
-                                  <div className="flex justify-between text-gray-500">
-                                    <span>Extra hour charge</span>
-                                    <span>₹{pkg.extraHourCharge}/hr</span>
-                                  </div>
+                                  {!hidePrices && (
+                                    <>
+                                      <div className="flex justify-between font-semibold text-gray-800">
+                                        <span>Base fare ({pkg.hours}hr / {pkg.kms}km)</span>
+                                        <span>₹{pkg.basePrice.toLocaleString('en-IN')}</span>
+                                      </div>
+                                      <div className="flex justify-between text-gray-500">
+                                        <span>Extra km charge</span>
+                                        <span>₹{pkg.extraKmCharge}/km</span>
+                                      </div>
+                                      <div className="flex justify-between text-gray-500">
+                                        <span>Extra hour charge</span>
+                                        <span>₹{pkg.extraHourCharge}/hr</span>
+                                      </div>
+                                    </>
+                                  )}
                                   <div className="flex justify-between text-amber-600 pt-1 border-t border-gray-200">
                                     <span>Toll / Parking</span>
                                     <span>Extra (as applicable)</span>

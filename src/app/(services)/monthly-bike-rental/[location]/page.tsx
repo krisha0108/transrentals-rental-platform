@@ -196,6 +196,7 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
         faqs={schemaFaqs}
         rating={4.7}
         reviewCount={412}
+        hidePrices
       />
 
       <BikeSearchHero

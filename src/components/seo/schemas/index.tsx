@@ -610,6 +610,10 @@ interface BikeServiceSchemaProps {
   priceRange?: { min: number; max: number };
   rating?: number;
   reviewCount?: number;
+  /** Opt-in: emit no AggregateOffer and no per-vehicle price. Pages that quote
+   *  no rate on screen must not quote one to Google either. Off by default, so
+   *  every other service keeps the schema it has today. */
+  hidePrices?: boolean;
 }
 
 export function BikeServiceSchema({
@@ -623,7 +627,14 @@ export function BikeServiceSchema({
   priceRange = { min: 299, max: 1499 },
   rating,
   reviewCount,
+  hidePrices = false,
 }: BikeServiceSchemaProps) {
+  // Strip the numbers rather than the vehicles: the models still belong in
+  // the schema, their rates do not.
+  const schemaVehicles = hidePrices
+    ? vehicles.map(({ price: _price, ...rest }) => ({ ...rest, price: 0 }))
+    : vehicles;
+  const schemaPriceRange = hidePrices ? undefined : priceRange;
   const baseUrl = 'https://transrentals.in';
 
   const breadcrumbs = [
@@ -645,8 +656,8 @@ export function BikeServiceSchema({
         description={description}
         city={city}
         serviceSlug={serviceSlug}
-        vehicles={vehicles}
-        priceRange={priceRange}
+        vehicles={schemaVehicles}
+        priceRange={schemaPriceRange}
         rating={rating}
         reviewCount={reviewCount}
       />
@@ -754,6 +765,10 @@ interface AutoRentalSchemaProps {
   priceRange?: string;
   rating?: number;
   reviewCount?: number;
+  /** Opt-in: emit no AggregateOffer. A page that quotes no rate on screen
+   *  must not quote one to Google either. Off by default, so car-rental
+   *  keeps the schema it has today. */
+  hidePrices?: boolean;
 }
 
 export function AutoRentalSchema({
@@ -766,6 +781,7 @@ export function AutoRentalSchema({
   priceRange = '₹₹',
   rating,
   reviewCount,
+  hidePrices = false,
 }: AutoRentalSchemaProps) {
   const offerLowPrice = serviceSlug === 'self-drive-car-rentals' ? 899 : 999;
 
@@ -778,13 +794,15 @@ export function AutoRentalSchema({
     priceRange,
     areaServed: { '@type': 'City', name: city, addressCountry: 'IN' },
     provider: ORGANIZATION,
-    offers: {
-      '@type': 'AggregateOffer',
-      priceCurrency: 'INR',
-      lowPrice: offerLowPrice,
-      highPrice: 9999,
-      offerCount: vehicleTypes.length * 10,
-    },
+    ...(hidePrices ? {} : {
+      offers: {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'INR',
+        lowPrice: offerLowPrice,
+        highPrice: 9999,
+        offerCount: vehicleTypes.length * 10,
+      },
+    }),
     ...(rating && reviewCount && {
       aggregateRating: {
         '@type': 'AggregateRating',

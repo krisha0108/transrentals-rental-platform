@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, Search } from 'lucide-react';
 
 export interface FilterOption {
@@ -40,6 +40,7 @@ export default function FilterMultiSelect({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const ref = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -52,9 +53,51 @@ export default function FilterMultiSelect({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filtered = query.trim()
-    ? options.filter((o) => o.label.toLowerCase().includes(query.trim().toLowerCase()))
-    : options;
+  /**
+   * De-duplicate by value. The location list arrives with repeats (two
+   * "Udaipur" rows, three "Una"), and duplicate React keys let the list keep
+   * stale rows when it re-renders — which read as the search not filtering.
+   */
+  const uniqueOptions = useMemo(() => {
+    const seen = new Set<string>();
+    return options.filter((o) => {
+      if (seen.has(o.value)) return false;
+      seen.add(o.value);
+      return true;
+    });
+  }, [options]);
+
+  /**
+   * Rank matches rather than just filtering them: an exact hit first, then
+   * names starting with what was typed, then anything merely containing it.
+   * Typing "ahmedabad" should land on Ahmedabad, not leave it below the fold.
+   */
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      // Nothing typed: keep what's already ticked at the top, so a selection
+      // made 400 rows down doesn't disappear from view.
+      const picked = uniqueOptions.filter((o) => values.includes(o.value));
+      const rest = uniqueOptions.filter((o) => !values.includes(o.value));
+      return [...picked, ...rest];
+    }
+    const rank = (label: string) => {
+      const l = label.toLowerCase();
+      if (l === q) return 0;
+      if (l.startsWith(q)) return 1;
+      return 2;
+    };
+    return uniqueOptions
+      .filter((o) => o.label.toLowerCase().includes(q))
+      .sort((a, b) => rank(a.label) - rank(b.label) || a.label.localeCompare(b.label));
+  }, [uniqueOptions, query, values]);
+
+  // A filtered list has to start at the top. Without this the container keeps
+  // the scroll offset from before the search, so the first match sits above
+  // the visible area and the search looks broken.
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = 0;
+  }, [query, open]);
 
   const toggle = (v: string) => {
     onChange(values.includes(v) ? values.filter((x) => x !== v) : [...values, v]);
@@ -64,7 +107,7 @@ export default function FilterMultiSelect({
     values.length === 0
       ? allLabel
       : values.length === 1
-        ? options.find((o) => o.value === values[0])?.label ?? values[0]
+        ? uniqueOptions.find((o) => o.value === values[0])?.label ?? values[0]
         : `${values.length} selected`;
 
   const labeled = variant === 'labeled';
@@ -112,9 +155,14 @@ export default function FilterMultiSelect({
                 className="w-full pl-8 pr-2 py-1.5 border border-gray-200 rounded-md text-xs focus:ring-2 focus:ring-green-500 focus:border-green-500"
               />
             </div>
+            {query.trim() && (
+              <p className="mt-1.5 px-0.5 text-[11px] text-gray-400">
+                {filtered.length} {filtered.length === 1 ? 'match' : 'matches'}
+              </p>
+            )}
           </div>
 
-          <div className="max-h-56 overflow-y-auto">
+          <div ref={listRef} className="max-h-56 overflow-y-auto">
             <button
               type="button"
               onClick={() => {
@@ -129,7 +177,9 @@ export default function FilterMultiSelect({
             </button>
 
             {filtered.length === 0 ? (
-              <p className="px-3 py-3 text-xs text-gray-400 text-center">No matches</p>
+              <p className="px-3 py-3 text-xs text-gray-400 text-center">
+                No matches for &ldquo;{query.trim()}&rdquo;
+              </p>
             ) : (
               filtered.map((opt) => {
                 const checked = values.includes(opt.value);

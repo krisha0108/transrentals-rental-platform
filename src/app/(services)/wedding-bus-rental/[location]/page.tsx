@@ -1,5 +1,6 @@
 ﻿import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { FAQSection } from '@/components/services/FAQSection';
@@ -18,7 +19,10 @@ import { getBusRentalServiceId, getLocationId } from '@/lib/db/build-cache';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionMatching } from '@/components/seo/ServiceCitySections';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 
 interface PageProps {
   params: {
@@ -47,8 +51,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('wedding-bus-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Wedding Bus Rental in ${locationName} | Luxury Buses for Marriage @₹5999 | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book luxury AC buses for weddings in ${locationName}. Guest transportation, baraat buses, decorated buses available. 20-50 seater options. Book now!`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Wedding Bus Rental in ${locationName} | Luxury Buses for Marriage | TransRentals`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Book luxury AC buses for weddings in ${locationName}. Guest transportation, baraat buses, decorated buses available. 20-50 seater options. Book now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `wedding bus rental in ${locationName}`,
       `marriage bus ${locationName}`,
@@ -58,20 +62,70 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ],
     openGraph: {
       title: `Wedding Bus Rental in ${locationName} - TransRentals`,
-      description: `Luxury AC buses for weddings in ${locationName} starting @₹5999/day.`,
+      description: `Luxury AC buses for weddings in ${locationName} — baraat, guest transport and decorated buses.`,
     },
     alternates: { canonical: `https://transrentals.in/wedding-bus-rental/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Wedding Bus Rental in ${locationName} | TransRentals`,
-      description: `Book luxury AC buses for weddings in ${locationName} starting @₹4999/day.`,
+      description: `Book luxury AC buses for weddings in ${locationName} from verified operators.`,
     },
   };
 }
 
+const PAGE_FAQS = [
+  { question: 'What types of buses are available for wedding rental?', answer: 'We offer AC luxury coaches (26–49 seater), decorated mini buses (17–20 seater), and Tempo Travellers (9–17 seater) for wedding functions.' },
+  { question: 'Is wedding decoration included in the bus rental?', answer: 'Yes, basic floral decoration is included for wedding packages. Premium decoration with lights and custom themes is available at extra cost.' },
+  { question: 'How early should I book a wedding bus rental?', answer: 'We recommend booking at least 2–4 weeks in advance, especially for peak wedding season (Nov–Feb). Last-minute bookings are possible but subject to availability.' },
+  { question: 'Can the wedding bus be used for baraat procession and multiple wedding events?', answer: 'Yes, our wedding bus packages cover multiple functions — baraat, reception, and return drop. Full-day packages are available for all wedding needs.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet. No booking form and no
+ * quoted rate: there is nothing to book and no partner to honour a number, so
+ * the page points at the nearest cities that are bookable today instead.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <section className="bg-gray-100 py-3">
+        <div className="container-custom">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-emerald-700">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/wedding-bus-rental" className="hover:text-emerald-700">Wedding Bus Rental</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900">{cityName}</span>
+          </nav>
+        </div>
+      </section>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="wedding bus rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="wedding-bus-rental"
+          serviceName="Wedding Bus Rental"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="wedding bus"
+        selectionDesc="Decorated baraat buses and AC coaches, 20-50 seater."
+      />
+      <FAQSection service="wedding-bus-rental" location={cityName} customFaqs={PAGE_FAQS} />
+    </>
+  );
+}
+
 export default async function WeddingBusLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('wedding-bus-rental', params.location);
+  const pageContext = await resolveServicePage('wedding-bus-rental', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'bus-rental',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="wedding-bus-rental" serviceName="Wedding Bus Rental" />;
   const city = pageContext.city;
 
@@ -120,12 +174,13 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
     };
   });
 
-  const pageFaqs = [
-    { question: 'What types of buses are available for wedding rental?', answer: 'We offer AC luxury coaches (26–49 seater), decorated mini buses (17–20 seater), and Tempo Travellers (9–17 seater) for wedding functions.' },
-    { question: 'Is wedding decoration included in the bus rental?', answer: 'Yes, basic floral decoration is included for wedding packages. Premium decoration with lights and custom themes is available at extra cost.' },
-    { question: 'How early should I book a wedding bus rental?', answer: 'We recommend booking at least 2–4 weeks in advance, especially for peak wedding season (Nov–Feb). Last-minute bookings are possible but subject to availability.' },
-    { question: 'Can the wedding bus be used for baraat procession and multiple wedding events?', answer: 'Yes, our wedding bus packages cover multiple functions — baraat, reception, and return drop. Full-day packages are available for all wedding needs.' },
-  ];
+
+  // The admin block editor renders its own Why Us / Other Services / FAQ
+  // blocks. Where the city has one, the hardcoded section below is skipped
+  // so the page doesn't say the same thing twice.
+  const adminCoversWhyUs = hasSectionMatching(scContent?.sectionsConfig, /why[-\s_]?(choose|rent|us)/i);
+  const adminCoversOtherServices = hasSectionMatching(scContent?.sectionsConfig, /services?[-\s_]?(offered|available)|other[-\s_]?services/i);
+  const adminCoversFaqs = hasSectionMatching(scContent?.sectionsConfig, /faq/i);
 
   return (
     <div className="flex flex-col">
@@ -247,7 +302,9 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
         />
       )}
 
-      <WhyRentHere locationName={locationName} />
+      {!adminCoversWhyUs && (
+        <WhyRentHere locationName={locationName} />
+      )}
 
       <NearbyLocations
         locationSlug={params.location.toLowerCase()}
@@ -263,18 +320,21 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
             />
       */}
       <BikeServiceSchema
+        hidePrices
         serviceName="Wedding Bus Rental"
         serviceSlug="wedding-bus-rental"
-        description={`Book luxury AC buses for weddings in ${locationName} starting @₹4999/day.`}
+        description={`Book luxury AC buses for weddings in ${locationName} from verified operators.`}
         city={locationName}
         citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
-      <FAQSection service="wedding-bus-rental" location={locationName} customFaqs={pageFaqs} />
+      {!adminCoversFaqs && (
+        <FAQSection service="wedding-bus-rental" location={locationName} customFaqs={PAGE_FAQS} />
+      )}
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

@@ -170,6 +170,7 @@ export default async function KTMLocationPage({ params }: PageProps) {
         faqs={schemaFaqs}
         rating={4.9}
         reviewCount={347}
+        hidePrices
       />
       <div className="flex flex-col">
         {/* Breadcrumbs */}

@@ -308,6 +308,7 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
         city={locationName}
         citySlug={params.location.toLowerCase()}
         faqs={[]}
+        hidePrices
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
