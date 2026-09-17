@@ -377,6 +377,7 @@ const adminItems: NavItem[] = [
     icon: Store,
     children: [
       { name: 'All Vendors', href: '/admin/vendors', icon: Store },
+      { name: 'Fleet Management', href: '/admin/vendors/fleet', icon: Car },
       { name: 'Pending Approval', href: '/admin/vendors/pending', icon: Clock },
       { name: 'Service Requests', href: '/admin/vendors/service-requests', icon: Layers },
       { name: 'Location Requests', href: '/admin/vendors/location-requests', icon: MapPin },

@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
@@ -12,13 +13,14 @@ import { getServiceLocations, getAllCityLocations } from '@/lib/services/service
 import { PackersMoversServiceHero } from '@/components/services/PackersMoversServiceHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { CITY_SEO } from '@/data/city-seo-content';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections, hasSectionsContent } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionMatching } from '@/components/seo/ServiceCitySections';
 import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
 import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 import {
@@ -83,8 +85,8 @@ const COMING_SOON_SLUGS = new Set([
 
 const PACKERS_FALLBACK_FAQS = [
   {
-    question: 'What is the cost of packers and movers in India?',
-    answer: 'Packers and movers costs depend on home size, distance, and goods volume. Local shifts (1BHK) start from ₹3,999 and 2BHK intercity moves from ₹8,000–₹15,000. Get free quotes from verified movers on TransRentals to compare prices for your specific shift.',
+    question: 'How is packers and movers cost calculated?',
+    answer: 'Movers quote on home size, distance, goods volume, and the floor/lift access at both ends. Packing material and any transit insurance are added on top. Share your shift details on TransRentals and verified movers send you their quotes to compare.',
   },
   {
     question: 'How long does it take to shift a 2BHK house?',
@@ -131,8 +133,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('packers-and-movers', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Packers and Movers in ${locationName} | Starting from ₹3,999 | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Verified packers and movers in ${locationName}. Local & intercity home shifting, office relocation. IBA-approved, insured moving teams. Get free quotes and book online.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Packers and Movers in ${locationName} | Home & Office Shifting | TransRentals`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Verified packers and movers in ${locationName}. Local & intercity home shifting, office relocation. IBA-approved, insured moving teams. Get free quotes and book online.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `packers and movers in ${locationName}`,
       `movers and packers ${locationName}`,
@@ -164,67 +166,61 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+const EXPANDING_FAQS = [
+  { question: 'What does a packers and movers booking include?', answer: 'Packing materials, furniture dismantling and reassembly, loading, insured transport, and unloading with placement in your rooms. Unpacking and transit insurance are available on request.' },
+  { question: 'When will packers and movers open in my city?', answer: 'We onboard movers city by city and a city goes live as soon as verified movers are ready there. Until then you can book in the nearby cities listed above.' },
+  { question: 'Are the moving teams verified?', answer: 'Yes. Every mover listed on TransRentals is GST-registered, holds a valid moving licence, and their teams are background-checked before deployment.' },
+];
+
+/**
+ * What a city sees while no mover is live there yet: no quote form and no
+ * quoted rate, just the nearest cities that are bookable today.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/packers-and-movers" className="hover:text-primary">Packers &amp; Movers</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="packers and movers" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="packers-and-movers"
+          serviceName="Packers & Movers"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="moving truck"
+        selectionDesc="Home shifting, office relocation, intercity moves and vehicle transport."
+      />
+      <FAQSection service="packers-and-movers" location={cityName} customFaqs={EXPANDING_FAQS} />
+    </>
+  );
+}
+
 export default async function PackersMoversLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('packers-and-movers', params.location, { comingSoonIfUnavailable: true });
   if (pageContext.type === 'redirect') {
     if (COMING_SOON_SLUGS.has(params.location)) {
       const cityName = getCityBySlug(params.location)?.name ??
         params.location.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      return (
-        <>
-          <div className="bg-gray-50 border-b border-gray-200">
-            <div className="container-custom py-3">
-              <nav className="text-sm text-gray-600">
-                <a href="/" className="hover:text-primary">Home</a>
-                <span className="mx-2">/</span>
-                <a href="/packers-and-movers" className="hover:text-primary">Packers & Movers</a>
-                <span className="mx-2">/</span>
-                <span className="text-gray-900 font-medium">{cityName}</span>
-              </nav>
-            </div>
-          </div>
-          <ComingSoonHero
-            city={cityName}
-            citySlug={params.location.toLowerCase()}
-            serviceSlug="packers-and-movers"
-            serviceName="Packers & Movers"
-            themeColor="blue"
-          />
-        </>
-      );
+      return <ExpandingCityPage cityName={cityName} citySlug={params.location.toLowerCase()} />;
     }
     permanentRedirect(pageContext.to);
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="packers-and-movers" serviceName="Packers and Movers" />;
   if (pageContext.type === 'coming-soon') {
-    const cityName = pageContext.city.name;
-    return (
-      <>
-        <div className="bg-gray-50 border-b border-gray-200">
-          <div className="container-custom py-3">
-            <nav className="text-sm text-gray-600">
-              <a href="/" className="hover:text-primary">Home</a>
-              <span className="mx-2">/</span>
-              <a href="/packers-and-movers" className="hover:text-primary">Packers & Movers</a>
-              <span className="mx-2">/</span>
-              <span className="text-gray-900 font-medium">{cityName}</span>
-            </nav>
-          </div>
-        </div>
-        <ComingSoonHero
-          city={cityName}
-          citySlug={params.location.toLowerCase()}
-          serviceSlug="packers-and-movers"
-          serviceName="Packers & Movers"
-          themeColor="pink"
-        />
-        <NearbyActiveCities
-          currentCitySlug={params.location.toLowerCase()}
-          serviceSlug="packers-and-movers"
-          serviceName="Packers & Movers"
-        />
-      </>
-    );
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
   }
   const city = pageContext.city;
 
@@ -236,6 +232,18 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
     getServiceCityContent('packers-and-movers', params.location),
   ]);
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['packers-and-movers'] || [];
+  const displayFAQs = cityFAQs.length > 0
+    ? cityFAQs
+        .map((faq) => ({ question: faq.q, answer: stripPricesFromText(faq.a) }))
+        .filter((faq) => faq.answer)
+    : PACKERS_FALLBACK_FAQS;
+
+  // The admin block editor renders its own Why Us / Other Services / FAQ
+  // blocks. Where the city has one, the hardcoded section below is skipped
+  // so the page doesn't say the same thing twice.
+  const adminCoversWhyUs = hasSectionMatching(scContent?.sectionsConfig, /why[-\s_]?(choose|rent|us)/i);
+  const adminCoversOtherServices = hasSectionMatching(scContent?.sectionsConfig, /services?[-\s_]?(offered|available)|other[-\s_]?services/i);
+  const adminCoversFaqs = hasSectionMatching(scContent?.sectionsConfig, /faq/i);
 
   return (
     <div className="flex flex-col">
@@ -410,7 +418,9 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <WhyRentHere locationName={locationName} />
+      {!adminCoversWhyUs && (
+        <WhyRentHere locationName={locationName} />
+      )}
 
       <NearbyLocations
         locationSlug={params.location.toLowerCase()}
@@ -418,30 +428,31 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
       />
 
       <ServiceAreasSection
+        hidePrices
         serviceSlug="packers-and-movers"
         citySlug={params.location.toLowerCase()}
         cityName={locationName}
         serviceName="Packers and Movers"
       />
 
-      <CrossServiceLinks
-        citySlug={params.location.toLowerCase()}
-        cityName={locationName}
-        currentServiceSlug="packers-and-movers"
-      />
+      {!adminCoversOtherServices && (
+        <CrossServiceLinks
+          citySlug={params.location.toLowerCase()}
+          cityName={locationName}
+          currentServiceSlug="packers-and-movers"
+        />
+      )}
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
-      <FAQSection
-        service="packers-and-movers"
-        location={locationName}
-        customFaqs={
-          cityFAQs.length > 0
-            ? cityFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))
-            : PACKERS_FALLBACK_FAQS
-        }
-      />
+      {!adminCoversFaqs && (
+        <FAQSection
+          service="packers-and-movers"
+          location={locationName}
+          customFaqs={displayFAQs}
+        />
+      )}
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}
@@ -487,17 +498,11 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'FAQPage',
-            mainEntity: cityFAQs.length > 0
-              ? cityFAQs.map((faq) => ({
-                  '@type': 'Question',
-                  name: faq.q,
-                  acceptedAnswer: { '@type': 'Answer', text: faq.a },
-                }))
-              : PACKERS_FALLBACK_FAQS.map((faq) => ({
-                  '@type': 'Question',
-                  name: faq.question,
-                  acceptedAnswer: { '@type': 'Answer', text: faq.answer },
-                })),
+            mainEntity: displayFAQs.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
           }),
         }}
       />

@@ -9,6 +9,11 @@ import { getServiceLocations, getAllCityLocations } from '@/lib/services/service
 import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
@@ -44,8 +49,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('fortuner-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Fortuner on Rent in ${locationName} | Rent Fortuner @₹4999/Day | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Toyota Fortuner without driver in ${locationName}. Self-drive Fortuner rental for VIP travel, weddings. 4x2, 4x4, Legender variants available.`,
+    // No rate is quoted for this page — see the note in the page body.
+    title: stripPricesFromText(scContent?.metaTitle || _seoDb?.metaTitle || `Fortuner on Rent in ${locationName} | Rent Fortuner | TransRentals | TransRentals`),
+    description: stripPricesFromText(scContent?.metaDescription || _seoDb?.metaDescription || `Rent Toyota Fortuner without driver in ${locationName}. Self-drive Fortuner rental for VIP travel, weddings. 4x2, 4x4, Legender variants available.`),
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `fortuner on rent ${locationName}`,
       `toyota fortuner rental ${locationName}`,
@@ -53,7 +59,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `luxury suv rental ${locationName}`,
     ],
     openGraph: {
-      title: `Fortuner on Rent in ${locationName} @₹4999/Day | TransRentals`,
+      title: `Fortuner on Rent in ${locationName} | TransRentals`,
       description: `Self-drive Toyota Fortuner rental in ${locationName}. Premium luxury SUV.`,
       type: 'website',
       url: `https://transrentals.in/fortuner-on-rent/${locationSlug}`,
@@ -64,16 +70,61 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image' as const,
       title: `Fortuner on Rent in ${locationName} | TransRentals`,
-      description: `Rent Toyota Fortuner without driver in ${locationName} starting @₹3499/day.`,
+      description: `Rent Toyota Fortuner without driver in ${locationName} from verified partners.`,
     },
   };
 }
 
 
+const launchFaqs = [
+  { question: 'What documents do I need to rent?', answer: 'A valid driving licence and one government photo ID (Aadhaar, passport or voter card).' },
+  { question: 'Is a security deposit required?', answer: 'Yes, a refundable deposit is collected at pickup and returned when you bring the car back.' },
+  { question: 'Is roadside assistance available?', answer: 'Yes, our partners provide 24/7 roadside assistance for the length of your rental.' },
+];
+
 export default async function FortunerOnRentLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('fortuner-on-rent', params.location);
+  // Availability follows self-drive-car-rentals: there is no services row under
+  // "fortuner-on-rent", and an unknown slug used to read as "available
+  // everywhere", so this page could never be switched off for a city.
+  // One admin screen now governs the whole self drive group.
+  const pageContext = await resolveServicePage('fortuner-on-rent', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'self-drive-car-rentals',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="fortuner-on-rent" serviceName="Fortuner on Rent" />;
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the
+  // nearest city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/fortuner-on-rent" className="hover:text-primary">Fortuner on Rent</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="Fortuner rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="fortuner-on-rent"
+            serviceName="Fortuner on Rent"
+          />
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} vehicleNoun="car" selectionDesc="Toyota Fortuner, in the trims our partners keep on the road." />
+        <FAQSection service="fortuner-on-rent" location={cityName} customFaqs={launchFaqs} />
+      </>
+    );
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
@@ -84,9 +135,8 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
 
   const pageFaqs = [
     { question: 'Is Toyota Fortuner available for self-drive without a driver?', answer: 'Yes, Toyota Fortuner (4x2 and 4x4) is available for self-drive. A valid LMV licence with minimum 2 years of driving experience is required.' },
-    { question: 'What is the daily rent for a Fortuner self-drive?', answer: 'Toyota Fortuner self-drive rental starts from ₹3499/day for 2WD manual and ₹4299/day for 4WD automatic, including insurance.' },
     { question: 'Can I drive the Fortuner to hill stations or off-road?', answer: 'Yes, Fortuner 4x4 is cleared for hill stations and moderate off-road trails. Notify us at booking for route-specific insurance clearance.' },
-    { question: 'What is the security deposit for renting a Fortuner?', answer: 'A refundable security deposit of ₹10,000–₹15,000 is collected at pickup and returned within 48 hours of damage-free return.' },
+    { question: 'What is the security deposit for renting a Fortuner?', answer: 'A refundable security deposit is collected at pickup and returned within 48 hours of damage-free return.' },
   ];
 
   return (
@@ -107,7 +157,6 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
         city={locationName}
         citySlug={params.location}
         vehicleName="Toyota Fortuner"
-        selfDrivePrice="₹4,999"
       />
 
       <section className="bg-white py-10 border-b border-gray-100">
@@ -120,15 +169,6 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
               <p className="text-gray-500 mt-1.5">Self-drive Toyota Fortuner. Premium luxury SUV for VIP travel &amp; special occasions.</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
-                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
-                  <Shield className="w-5 h-5 text-white" />
-                </span>
-                <div>
-                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Starting</p>
-                  <p className="text-lg font-black text-gray-900">₹4,999</p>
-                </div>
-              </div>
               <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
                 <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
                   <Users className="w-5 h-5 text-white" />
@@ -196,14 +236,27 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
       <BikeServiceSchema
         serviceName="Fortuner on Rent"
         serviceSlug="fortuner-on-rent"
-        description={`Rent Toyota Fortuner without driver in ${locationName} starting @₹3499/day.`}
+        description={`Rent Toyota Fortuner without driver in ${locationName}, all from verified partners.`}
         city={locationName}
         citySlug={params.location}
         faqs={[]}
+        hidePrices
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      {/* Available cars — purely whatever the admin has published for
+          this city. Nothing hardcoded, and the section renders nothing
+          at all when the city has no published fleet. */}
+      <LazyServiceFleetDisplay
+        serviceSlug="fortuner-on-rent"
+        locationSlug={params.location}
+        title={`Fortuner Cars Available in ${locationName}`}
+        showCategories={true}
+        limit={12}
+        hidePrices
+      />
+
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="fortuner-on-rent" location={locationName} customFaqs={pageFaqs} />
 
@@ -220,7 +273,6 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
           { slug: 'swift-on-rent', name: 'Swift on Rent' },
           { slug: 'creta-on-rent', name: 'Creta on Rent' },
           { slug: 'innova-on-rent', name: 'Innova on Rent' },
-          { slug: 'fortuner-on-rent', name: 'Fortuner on Rent' },
           { slug: 'seltos-on-rent', name: 'Seltos on Rent' },
           { slug: 'xuv700-on-rent', name: 'XUV700 on Rent' },
           { slug: 'scorpio-on-rent', name: 'Scorpio on Rent' },

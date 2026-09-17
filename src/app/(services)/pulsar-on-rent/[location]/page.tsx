@@ -169,6 +169,7 @@ export default async function PulsarLocationPage({ params }: PageProps) {
         faqs={schemaFaqs}
         rating={4.8}
         reviewCount={756}
+        hidePrices
       />
       <div className="flex flex-col">
         {/* Breadcrumbs */}

@@ -209,6 +209,7 @@ export default async function BikeLocationPage({ params }: PageProps) {
         faqs={locationFaqs}
         rating={4.5}
         reviewCount={487}
+        hidePrices
       />
 
       <div className="flex flex-col">

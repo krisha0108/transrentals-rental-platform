@@ -7,6 +7,11 @@ import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { resolveServicePage } from '@/lib/services/service-availability';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CarSearchHero } from '@/components/car';
 import { FAQSection } from '@/components/services/FAQSection';
@@ -44,8 +49,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('self-drive-hatchback-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Self Drive Hatchback Rental in ${locationName} | Rent @₹899/Day | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent hatchback without driver in ${locationName}. Swift, i20, Baleno, Tiago available. Most affordable self-drive option.`,
+    // No rate is quoted for this page — see the note in the page body.
+    title: stripPricesFromText(scContent?.metaTitle || _seoDb?.metaTitle || `Self Drive Hatchback Rental in ${locationName} | Rent | TransRentals | TransRentals`),
+    description: stripPricesFromText(scContent?.metaDescription || _seoDb?.metaDescription || `Rent hatchback without driver in ${locationName}. Swift, i20, Baleno, Tiago available. Most affordable self-drive option.`),
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `self drive hatchback rental ${locationName}`,
       `hatchback on rent ${locationName}`,
@@ -53,7 +59,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `i20 rental ${locationName}`,
     ],
     openGraph: {
-      title: `Self Drive Hatchback Rental in ${locationName} @₹899/Day | TransRentals`,
+      title: `Self Drive Hatchback Rental in ${locationName} | TransRentals`,
       description: `Rent hatchbacks without driver in ${locationName}. Swift, i20, Baleno available.`,
       type: 'website',
       url: `https://transrentals.in/self-drive-hatchback-rental/${locationSlug}`,
@@ -64,16 +70,61 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image' as const,
       title: `Self Drive Hatchback Rental in ${locationName} | TransRentals`,
-      description: `Rent hatchback without driver in ${locationName} starting @₹699/day. Swift, i20, Baleno available.`,
+      description: `Rent hatchback without driver in ${locationName} from verified partners.`,
     },
   };
 }
 
 
+const launchFaqs = [
+  { question: 'What documents do I need to rent?', answer: 'A valid driving licence and one government photo ID (Aadhaar, passport or voter card).' },
+  { question: 'Is a security deposit required?', answer: 'Yes, a refundable deposit is collected at pickup and returned when you bring the car back.' },
+  { question: 'Is roadside assistance available?', answer: 'Yes, our partners provide 24/7 roadside assistance for the length of your rental.' },
+];
+
 export default async function HatchbackRentalLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('self-drive-hatchback-rental', params.location);
+  // Availability follows self-drive-car-rentals: there is no services row under
+  // "self-drive-hatchback-rental", and an unknown slug used to read as "available
+  // everywhere", so this page could never be switched off for a city.
+  // One admin screen now governs the whole self drive group.
+  const pageContext = await resolveServicePage('self-drive-hatchback-rental', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'self-drive-car-rentals',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="self-drive-hatchback-rental" serviceName="Self Drive Hatchback Rental" />;
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the
+  // nearest city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/self-drive-hatchback-rental" className="hover:text-primary">Self Drive Hatchback Rental</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="self drive hatchback rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="self-drive-hatchback-rental"
+            serviceName="Self Drive Hatchback Rental"
+          />
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} vehicleNoun="car" selectionDesc="Swift, i20, Baleno and more — the full hatchback range." />
+        <FAQSection service="self-drive-hatchback-rental" location={cityName} customFaqs={launchFaqs} />
+      </>
+    );
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
@@ -82,9 +133,12 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
     getServiceCityContent('self-drive-hatchback-rental', params.location),
   ]);
 
+  // No rate is quoted anywhere on this page — the real price depends on
+  // the partner and the dates, so a number in the copy would mislead.
+  const heroDescription = stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined;
+
   const pageFaqs = [
     { question: 'Which hatchback cars are available for self-drive?', answer: 'We offer Maruti Swift, Hyundai i20, Maruti Baleno, Honda Jazz, and Tata Tiago — affordable and fuel-efficient hatchbacks.' },
-    { question: 'What is the cheapest self-drive hatchback rental option?', answer: 'Maruti Alto and WagonR start from ₹699/day. Baleno and i20 start from ₹899/day including comprehensive insurance.' },
     { question: 'Is a hatchback suitable for a 4–5 person family trip?', answer: 'Hatchbacks comfortably seat 4 adults. For 5 people with luggage, we recommend upgrading to a sedan or MUV for better comfort.' },
     { question: 'How do I return the self-drive hatchback?', answer: 'Return at any of our city drop points or we can arrange doorstep pickup. Ensure the car is clean, damage-free, and with the same fuel level.' },
   ];
@@ -107,7 +161,7 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
         city={locationName}
         citySlug={params.location}
         pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
+        pageDescription={heroDescription ?? 'Drive yourself without a driver. Swift, i20, Baleno and more from verified partners.'}
       />
 
       <section className="bg-white py-10 border-b border-gray-100">
@@ -187,14 +241,27 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
       <BikeServiceSchema
         serviceName="Self Drive Hatchback Rental"
         serviceSlug="self-drive-hatchback-rental"
-        description={`Rent hatchback without driver in ${locationName} starting @₹699/day. Swift, i20, Baleno available.`}
+        description={`Swift, i20, Baleno available.`}
         city={locationName}
         citySlug={params.location}
         faqs={[]}
+        hidePrices
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      {/* Available cars — purely whatever the admin has published for
+          this city. Nothing hardcoded, and the section renders nothing
+          at all when the city has no published fleet. */}
+      <LazyServiceFleetDisplay
+        serviceSlug="self-drive-hatchback-rental"
+        locationSlug={params.location}
+        title={`Self Drive Hatchbacks Available in ${locationName}`}
+        showCategories={true}
+        limit={12}
+        hidePrices
+      />
+
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="self-drive-hatchback-rental" location={locationName} customFaqs={pageFaqs} />
 
@@ -207,7 +274,6 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
           { slug: 'hourly-car-rental', name: 'Hourly Car Rental' },
           { slug: 'self-drive-suv-rental', name: 'Self Drive SUV' },
           { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
-          { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
           { slug: 'swift-on-rent', name: 'Swift on Rent' },
           { slug: 'creta-on-rent', name: 'Creta on Rent' },
           { slug: 'innova-on-rent', name: 'Innova on Rent' },

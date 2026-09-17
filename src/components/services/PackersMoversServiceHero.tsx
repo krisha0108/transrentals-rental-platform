@@ -841,7 +841,7 @@ export function PackersMoversServiceHero({ cityName = '' }: { cityName?: string 
                 {cityName ? `Packers & Movers in ${cityName}` : 'Packers & Movers'}
               </div>
               <div className="inline-flex items-center gap-1 bg-amber-400/15 border border-amber-400/25 text-amber-300 px-3 py-1.5 rounded-full text-xs font-bold">
-                ₹ 1 BHK from ₹3,999
+                Free quote • No advance payment
               </div>
             </div>
 

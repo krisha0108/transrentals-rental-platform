@@ -1,10 +1,14 @@
 ﻿import { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
@@ -47,8 +51,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('chauffeur-service', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Chauffeur Service ${locationName} | Driver on Hire @₹599 | Car Driver`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire professional chauffeur in ${locationName}. Driver on hire for daily use, outstation. Verified car drivers @₹599/day.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Chauffeur Service ${locationName} | Driver on Hire | Car Driver`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Hire professional chauffeur in ${locationName}. Driver on hire for daily use, outstation.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `chauffeur service ${locationName.toLowerCase()}`,
       `driver on hire ${locationName.toLowerCase()}`,
@@ -60,7 +64,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ...(city?.keywords || []).map(k => `chauffeur service ${k}`),
     ],
     openGraph: {
-      title: `Chauffeur Service in ${locationName} - Driver on Hire @₹599`,
+      title: `Chauffeur Service in ${locationName} - Driver on Hire`,
       description: `Book professional chauffeur in ${locationName}. Verified drivers for daily & outstation.`,
       url: `https://transrentals.in/chauffeur-service/${params.location.toLowerCase()}`,
     },
@@ -70,15 +74,63 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image' as const,
       title: `Chauffeur Service in ${locationName} | TransRentals`,
-      description: `Hire professional chauffeur in ${locationName}. Verified drivers for daily & outstation use @₹599/day.`,
+      description: `Hire professional chauffeur in ${locationName}.`,
     },
   };
 }
 
+const EXPANDING_FAQS = [
+  { question: 'What does a chauffeur booking include?', answer: 'A verified professional driver for your car or ours, for daily commutes, full-day duty or outstation trips.' },
+  { question: 'When will chauffeur service open in my city?', answer: 'We onboard drivers city by city and a city goes live as soon as verified drivers are ready there. Until then you can book in the nearby cities listed above.' },
+  { question: 'Are the drivers verified?', answer: 'Yes. Every chauffeur is police-verified, licence-checked and rated by previous customers before being listed.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet: no booking form and no
+ * quoted rate, just the nearest cities that are bookable today.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/chauffeur-service" className="hover:text-primary">Chauffeur Service</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="chauffeur services" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="chauffeur-service"
+          serviceName="Chauffeur Service"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="car"
+        selectionDesc="Verified, background-checked drivers for daily, weekly and outstation use."
+      />
+      <FAQSection service="chauffeur-service" location={cityName} customFaqs={EXPANDING_FAQS} />
+    </>
+  );
+}
+
 export default async function ChauffeurServiceLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('chauffeur-service', params.location);
+  const pageContext = await resolveServicePage('chauffeur-service', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'car-rental',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="chauffeur-service" serviceName="Chauffeur Service" />;
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   const city = pageContext.city;
   // Fallback: getAllCities().find(c => c.slug === params.location);
 
@@ -191,6 +243,7 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
 
       {/* Chauffeur Packages — dynamic */}
       <ChauffeurPackages
+        hidePrices
         hourGroups={hourGroups}
         outstationPricing={outstationPricing}
         locationName={locationName}
@@ -345,7 +398,7 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="chauffeur-service" location={locationName} customFaqs={pageFaqs} />
 

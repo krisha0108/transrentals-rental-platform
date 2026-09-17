@@ -170,6 +170,7 @@ export default async function SplendorLocationPage({ params }: PageProps) {
         faqs={schemaFaqs}
         rating={4.7}
         reviewCount={843}
+        hidePrices
       />
       <div className="flex flex-col">
         {/* Breadcrumbs */}

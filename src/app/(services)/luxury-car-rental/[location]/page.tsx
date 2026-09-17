@@ -1,4 +1,5 @@
 ﻿import { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
 import { ALL_CITIES, getCityBySlug } from '@/data/indian-cities';
@@ -6,7 +7,8 @@ import { Crown, Star, Shield, Clock, Phone } from 'lucide-react';
 import { LuxuryBookingHero } from '@/components/luxury';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ComingSoonHero } from '@/components/services/ComingSoonHero';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { prisma } from '@/lib/db/prisma';
 import { CityContentSection } from '@/components/location/CityContentSection';
@@ -14,7 +16,7 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections, hasSectionsContent } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionMatching } from '@/components/seo/ServiceCitySections';
 import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
 import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 import { FAQSection } from '@/components/services/FAQSection';
@@ -58,8 +60,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('luxury-car-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Luxury Car Rental in ${locationName} | BMW, Mercedes, Audi, Ferrari | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent luxury & exotic cars in ${locationName}. BMW, Mercedes, Audi, Jaguar, Range Rover, Ferrari, Lamborghini. Premium car hire with professional chauffeur. Wedding, corporate events.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Luxury Car Rental in ${locationName} | BMW, Mercedes, Audi, Ferrari | TransRentals`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Rent luxury & exotic cars in ${locationName}. BMW, Mercedes, Audi, Jaguar, Range Rover, Ferrari, Lamborghini. Premium car hire with professional chauffeur. Wedding, corporate events.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `luxury car rental ${locationName.toLowerCase()}`,
       `exotic car hire ${locationName.toLowerCase()}`,
@@ -92,71 +94,71 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 
+const EXPANDING_FAQS = [
+  { question: 'Which luxury cars can I book?', answer: 'Mercedes-Benz, BMW, Audi, Jaguar and Range Rover, available self-drive or with a uniformed chauffeur.' },
+  { question: 'When will luxury car rental open in my city?', answer: 'We onboard operators city by city and a city goes live as soon as verified operators are ready there. Until then you can book in the nearby cities listed above.' },
+  { question: 'Is a security deposit required?', answer: 'Yes. Luxury bookings carry a refundable security deposit, confirmed by the operator before pickup.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet: no booking form and no
+ * quoted rate, just the nearest cities that are bookable today.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/luxury-car-rental" className="hover:text-primary">Luxury Car Rental</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="luxury car rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="luxury-car-rental"
+          serviceName="Luxury Car Rental"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="luxury car"
+        selectionDesc="Mercedes, BMW, Audi and Jaguar, self-drive or with a chauffeur."
+      />
+      <FAQSection service="luxury-car-rental" location={cityName} customFaqs={EXPANDING_FAQS} />
+    </>
+  );
+}
+
 export default async function LuxuryCarRentalLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('luxury-car-rental', params.location, { comingSoonIfUnavailable: true });
   if (pageContext.type === 'redirect') {
     if (COMING_SOON_SLUGS.has(params.location)) {
       const cityName = getCityBySlug(params.location)?.name ??
         params.location.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      return (
-        <>
-          <div className="bg-gray-50 border-b border-gray-200">
-            <div className="container-custom py-3">
-              <nav className="text-sm text-gray-600">
-                <a href="/" className="hover:text-primary">Home</a>
-                <span className="mx-2">/</span>
-                <a href="/luxury-car-rental" className="hover:text-primary">Luxury Car Rental</a>
-                <span className="mx-2">/</span>
-                <span className="text-gray-900 font-medium">{cityName}</span>
-              </nav>
-            </div>
-          </div>
-          <ComingSoonHero
-            city={cityName}
-            citySlug={params.location.toLowerCase()}
-            serviceSlug="luxury-car-rental"
-            serviceName="Luxury Car Rental"
-            themeColor="amber"
-          />
-        </>
-      );
+      return <ExpandingCityPage cityName={cityName} citySlug={params.location.toLowerCase()} />;
     }
     permanentRedirect(pageContext.to);
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="luxury-car-rental" serviceName="Luxury Car Rental" />;
   if (pageContext.type === 'coming-soon') {
-    const cityName = pageContext.city.name;
-    return (
-      <>
-        <div className="bg-gray-50 border-b border-gray-200">
-          <div className="container-custom py-3">
-            <nav className="text-sm text-gray-600">
-              <a href="/" className="hover:text-primary">Home</a>
-              <span className="mx-2">/</span>
-              <a href="/luxury-car-rental" className="hover:text-primary">Luxury Car Rental</a>
-              <span className="mx-2">/</span>
-              <span className="text-gray-900 font-medium">{cityName}</span>
-            </nav>
-          </div>
-        </div>
-        <ComingSoonHero
-          city={cityName}
-          citySlug={params.location.toLowerCase()}
-          serviceSlug="luxury-car-rental"
-          serviceName="Luxury Car Rental"
-          themeColor="amber"
-        />
-        <NearbyActiveCities
-          currentCitySlug={params.location.toLowerCase()}
-          serviceSlug="luxury-car-rental"
-          serviceName="Luxury Car Rental"
-        />
-      </>
-    );
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
   }
   const city = pageContext.city;
   const locationName = city.name;
   const scContent = await getServiceCityContent('luxury-car-rental', params.location);
+
+  // The admin block editor renders its own FAQ block. Where the city has one,
+  // the hardcoded section below is skipped so the page doesn't say the same
+  // thing twice.
+  const adminCoversFaqs = hasSectionMatching(scContent?.sectionsConfig, /faq/i);
+
 
   // Get nearby cities for internal linking
   const nearbyCities = ALL_CITIES
@@ -300,7 +302,7 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
                 <div className="w-14 h-14 mx-auto mb-4 bg-purple-900 text-white rounded-full flex items-center justify-center">
                   <item.icon className="w-6 h-6" />
                 </div>
-                <h3 className="font-bold mb-1">{item.title}</h3>
+                <h3 className="text-[15px] leading-snug font-bold mb-1">{item.title}</h3>
                 <p className="text-sm text-gray-600">{item.desc}</p>
               </div>
             ))}
@@ -322,7 +324,7 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
                   href={`/luxury-car-rental/${nearbyCity.slug}`}
                   className="bg-white p-4 rounded-xl text-center hover:shadow-lg transition-all duration-300 hover:border-purple-200 border border-transparent"
                 >
-                  <h3 className="font-semibold text-gray-900 hover:text-purple-900 transition-colors">
+                  <h3 className="text-[15px] leading-snug font-semibold text-gray-900 hover:text-purple-900 transition-colors">
                     {nearbyCity.name}
                   </h3>
                   <p className="text-xs text-gray-500 mt-1">Premium Luxury Cars</p>
@@ -333,11 +335,13 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
         </section>
       )}
 
-      <FAQSection
-        service="luxury-car-rental"
-        location={locationName}
-        customFaqs={luxuryFaqs.map((faq) => ({ question: faq.q, answer: faq.a }))}
-      />
+      {!adminCoversFaqs && (
+        <FAQSection
+          service="luxury-car-rental"
+          location={locationName}
+          customFaqs={luxuryFaqs.map((faq) => ({ question: faq.q, answer: stripPricesFromText(faq.a) }))}
+        />
+      )}
 
       {/* CTA Section */}
       <section className="py-16 bg-gradient-to-br from-purple-900 via-purple-800 to-gray-900 text-white">
@@ -362,6 +366,7 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
       </section>
 
       <ServiceAreasSection
+        hidePrices
         serviceSlug="luxury-car-rental"
         citySlug={params.location.toLowerCase()}
         cityName={locationName}
@@ -375,7 +380,7 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}
