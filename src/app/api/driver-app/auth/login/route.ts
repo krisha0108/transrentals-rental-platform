@@ -11,7 +11,16 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // A request that arrives with no body at all — a cut connection, a probe,
+    // a proxy that dropped it — used to throw a JSON SyntaxError and surface
+    // as a 500, which reads like the server is broken. It is a bad request.
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { success: false, error: 'Email and password are required' },
+        { status: 400 }
+      );
+    }
     const { identifier: rawIdentifier, email: rawEmail, password, fcmToken } = body;
     const raw = rawIdentifier || rawEmail;
 

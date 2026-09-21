@@ -1,13 +1,14 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Animated, Alert,
+  ActivityIndicator, RefreshControl, Animated,
 } from 'react-native';
+import { Alert } from '../../components/ui/AppAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { getEarnings, getBookingById } from '../api/client';
+import { getEarnings, getBookingById, describeApiError } from '../api/client';
 import moment from 'moment';
 
 const C = {
@@ -181,10 +182,12 @@ export default function EarningsScreen({ navigation }) {
       if (res.data?.booking) {
         navigation.navigate('BookingDetail', { booking: res.data.booking });
       } else {
-        Alert.alert('Not found', 'Could not load booking details.');
+        Alert.alert('Trip Not Found', 'This booking is no longer available. It may have been removed.');
       }
-    } catch {
-      Alert.alert('Error', 'Failed to load booking details.');
+    } catch (err) {
+      // Say what actually went wrong — a timeout, no signal and a deleted
+      // booking each need a different response from the driver.
+      Alert.alert('Could Not Open Trip', describeApiError(err, 'Failed to load booking details.'));
     }
     setOpening(null);
   }

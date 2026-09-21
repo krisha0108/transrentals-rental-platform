@@ -1,8 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, Animated, Image, Modal, Easing,
+  Animated, Image, Modal, Easing,
 } from 'react-native';
+import { Alert } from '../../components/ui/AppAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';

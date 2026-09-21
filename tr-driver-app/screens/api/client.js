@@ -1,20 +1,71 @@
 import axios from 'axios';
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DEFAULT_PROD = 'https://transrentals.in';
-const DEFAULT_DEV = 'http://localhost:3000';
 
-function inferLocalBase() {
-  return Platform.OS === 'android' ? DEFAULT_DEV : DEFAULT_DEV;
+// The port `npm run dev` serves the site on.
+const DEV_PORT = 3001;
+
+/**
+ * Every address the dev backend might answer on, best guess first.
+ *
+ * Reusing Metro's own host is the best guess: the device already reached
+ * this machine that way. But it is not always the right one. Metro is
+ * usually tunnelled with `adb reverse tcp:8081`, so its host comes back as
+ * `localhost` — and unless port 3001 was tunnelled too, nothing is listening
+ * there. Equally, a LAN address works only while the phone is on the same
+ * Wi-Fi and the host firewall lets the connection in. Either guess alone
+ * leaves the app silently unable to reach its own backend, which shows up as
+ * every screen failing to load, so we keep all of them and probe.
+ */
+function devCandidates() {
+  const scriptURL = NativeModules?.SourceCode?.scriptURL || '';
+  const metroHost = scriptURL.match(/^[a-z]+:\/\/([^/:]+)/i)?.[1];
+  const hosts = [
+    metroHost,
+    'localhost',
+    // Android emulators reach the host machine through this alias.
+    Platform.OS === 'android' ? '10.0.2.2' : null,
+  ].filter(Boolean);
+  return [...new Set(hosts)].map(h => `http://${h}:${DEV_PORT}`);
+}
+
+/** Does a backend actually answer here? Cheap, unauthenticated, quick to fail. */
+async function reachable(base) {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2500);
+    const res = await fetch(`${base}/api/driver-app/app-version`, { signal: controller.signal });
+    clearTimeout(timer);
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 let cachedBaseURL = null;
+// Screens fire several requests at once on mount; without this they would
+// each start their own probe before the first one finished.
+let baseURLProbe = null;
 
 export async function getBaseURL() {
   if (cachedBaseURL) return cachedBaseURL;
   if (__DEV__) {
-    cachedBaseURL = inferLocalBase();
+    if (!baseURLProbe) {
+      baseURLProbe = (async () => {
+        const candidates = devCandidates();
+        for (const base of candidates) {
+          if (await reachable(base)) return base;
+        }
+        // Nothing answered. Keep the best guess anyway, so the error the
+        // driver sees names a concrete address instead of nothing at all.
+        console.warn(`[api] No dev backend answered on ${candidates.join(', ')}. ` +
+          `Start it on port ${DEV_PORT}, and over adb run: adb reverse tcp:${DEV_PORT} tcp:${DEV_PORT}`);
+        return candidates[0] || `http://localhost:${DEV_PORT}`;
+      })();
+    }
+    cachedBaseURL = await baseURLProbe;
     return cachedBaseURL;
   }
   const saved = await AsyncStorage.getItem('driver_api_base_url');
@@ -129,7 +180,31 @@ export async function getMyBookings(filter = 'active') {
 
 export async function getBookingById(bookingId, source = 'chauffeur') {
   const c = await getClient();
-  return c.get(`${BASE}/bookings/${bookingId}?source=${source}`);
+  // Opening a trip is a foreground tap the driver is waiting on, and the
+  // server may have to look through several booking tables to find it, so it
+  // gets more room than the 15s default before we call it a failure.
+  return c.get(`${BASE}/bookings/${bookingId}?source=${source || 'chauffeur'}`, { timeout: 25000 });
+}
+
+/**
+ * Turn an axios failure into something worth showing a driver.
+ *
+ * "Failed to load booking details" told nobody anything — not the driver
+ * standing in a basement with no signal, and not us when they reported it.
+ * These messages name the actual problem instead.
+ */
+export function describeApiError(err, fallback = 'Something went wrong. Please try again.') {
+  if (!err) return fallback;
+  if (err.code === 'ECONNABORTED') return 'The server took too long to respond. Check your connection and try again.';
+  if (!err.response) return 'No internet connection. Check your network and try again.';
+
+  const status = err.response.status;
+  const serverMsg = err.response.data?.error || err.response.data?.message;
+  if (status === 401) return 'Your session has expired. Please sign in again.';
+  if (status === 403) return 'You do not have access to this.';
+  if (status === 404) return serverMsg || 'This record could not be found. It may have been removed.';
+  if (status >= 500) return serverMsg || 'The server had a problem. Please try again in a moment.';
+  return serverMsg || fallback;
 }
 
 export async function acceptBooking(bookingId) {
