@@ -6,8 +6,9 @@
 // manager_call_report_locations / manager_call_report_services join tables.
 //
 //   GET  ?status=<call_report_status|all>&from=<yyyy-mm-dd>&to=<yyyy-mm-dd>
-//        &q=<search>&mine=true&city=<name>&serviceId=<id>&locationId=<id>&limit=<n>
-//        → { items, counts: { total, byStatus }, todayCount }
+//        &q=<search>&mine=true&city=<name>&serviceId=<id>&locationId=<id>
+//        &flagged=<true|false>&limit=<n>
+//        → { items, counts: { total, byStatus, flagged }, todayCount }
 //   POST body: { vendorName, companyName?, companyDetails?, phone?, email?, address?,
 //        city?, contactType?: 'VENDOR'|'TRAVEL_AGENT', serviceIds?: string[],
 //        locationIds?: string[], status?, notes?, vendorId?, callDate? }
@@ -18,6 +19,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
+import { logCallReportAction } from '@/lib/manager-call-report-log';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +59,9 @@ export async function GET(request: NextRequest) {
     const city = (searchParams.get('city') || '').trim();
     const serviceId = (searchParams.get('serviceId') || '').trim();
     const locationId = (searchParams.get('locationId') || '').trim();
+    // Absent means "don't care" — only an explicit true/false narrows the list,
+    // so the default sheet still shows flagged rows alongside everything else.
+    const flaggedParam = searchParams.get('flagged');
     const limitRaw = Number(searchParams.get('limit'));
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(500, Math.floor(limitRaw)) : 200;
 
@@ -81,6 +86,8 @@ export async function GET(request: NextRequest) {
     if (city) where.city = city;
     if (serviceId) where.manager_call_report_services = { some: { serviceId } };
     if (locationId) where.manager_call_report_locations = { some: { locationId } };
+    if (flaggedParam === 'true') where.isFlagged = true;
+    else if (flaggedParam === 'false') where.isFlagged = false;
 
     const rows = await prisma.manager_call_reports.findMany({
       where,
@@ -96,7 +103,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const managerIds = [...new Set(rows.map((r) => r.managerId))];
+    const managerIds = [...new Set([
+      ...rows.map((r) => r.managerId),
+      ...rows.map((r) => r.flaggedById).filter(Boolean) as string[],
+    ])];
     const managers = managerIds.length
       ? await prisma.admin_users.findMany({ where: { id: { in: managerIds } }, select: { id: true, name: true } })
       : [];
@@ -135,6 +145,11 @@ export async function GET(request: NextRequest) {
       nextFollowUpTime: r.nextFollowUpTime,
       nextAction: r.nextAction,
       notes: r.notes,
+      isFlagged: r.isFlagged,
+      flagReason: r.flagReason,
+      flaggedAt: r.flaggedAt,
+      flaggedById: r.flaggedById,
+      flaggedByName: r.flaggedById ? managerById.get(r.flaggedById) || null : null,
       callDate: r.callDate,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
@@ -147,6 +162,11 @@ export async function GET(request: NextRequest) {
     // tally on screen matches what "clearing" that one filter would show.
     const countWhere: any = { ...where };
     delete countWhere.status;
+    // The flagged tally ignores the flagged filter itself, for the same reason
+    // the status tally ignores the status filter — the chip has to keep showing
+    // its own number once you have clicked it.
+    const flaggedCountWhere: any = { ...countWhere };
+    delete flaggedCountWhere.isFlagged;
     const grouped = await prisma.manager_call_reports.groupBy({
       by: ['status'],
       where: countWhere,
@@ -159,13 +179,17 @@ export async function GET(request: NextRequest) {
       total += g._count._all;
     });
 
+    const flagged = await prisma.manager_call_reports.count({
+      where: { ...flaggedCountWhere, isFlagged: true },
+    });
+
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const todayCount = await prisma.manager_call_reports.count({
       where: { callDate: { gte: startOfToday }, ...(mine ? { managerId: manager.id } : {}) },
     });
 
-    return NextResponse.json({ items, counts: { total, byStatus }, todayCount });
+    return NextResponse.json({ items, counts: { total, byStatus, flagged }, todayCount });
   } catch (error) {
     logger.error('Failed to list manager call reports', error);
     return NextResponse.json({ error: 'Failed to load call reports' }, { status: 500 });
@@ -250,6 +274,16 @@ export async function POST(request: NextRequest) {
         manager_call_report_locations: { include: { locations: { select: { id: true, name: true, slug: true, type: true } } } },
         manager_call_report_services: { include: { services: { select: { id: true, name: true, slug: true } } } },
       },
+    });
+
+    // Mirror it into the action log so the admin performance numbers, which
+    // are counted from that log, include this call.
+    await logCallReportAction({
+      managerId: manager.id,
+      reportId: report.id,
+      status,
+      contactType,
+      note: notes,
     });
 
     return NextResponse.json({ success: true, report });

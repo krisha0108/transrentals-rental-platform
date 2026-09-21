@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
+import { logCallReportAction } from '@/lib/manager-call-report-log';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,6 +86,10 @@ export async function GET(
         nextFollowUpTime: r.nextFollowUpTime,
         nextAction: r.nextAction,
         notes: r.notes,
+        isFlagged: r.isFlagged,
+        flagReason: r.flagReason,
+        flaggedAt: r.flaggedAt,
+        flaggedById: r.flaggedById,
         callDate: r.callDate,
         managerId: r.managerId,
         canEdit: r.managerId === manager.id || ['ADMIN', 'SUPER_ADMIN'].includes(manager.role),
@@ -185,6 +190,17 @@ export async function PATCH(
           manager_call_report_services: { include: { services: { select: { id: true, name: true, slug: true } } } },
         },
       });
+    });
+
+    // Reworking a lead is manager work too — log it so the admin numbers move
+    // when a report is followed up, not only when it is first created.
+    await logCallReportAction({
+      managerId: existing.managerId,
+      reportId: id,
+      status: updated.status,
+      contactType: updated.contactType,
+      note: updated.notes,
+      previousStatus: existing.status !== updated.status ? existing.status : null,
     });
 
     return NextResponse.json({ success: true, report: updated });
