@@ -1987,6 +1987,24 @@ function formatTimeSlot(t: string) {
   return `${h}:${mStr} ${period}`;
 }
 
+/** Shortest rental we accept when pickup and drop-off fall on the same day. */
+const MIN_SAME_DAY_HOURS = 4;
+
+/**
+ * Add whole hours to an "HH:MM" slot.
+ *
+ * Returns null when the result runs past midnight: a same-day drop-off is no
+ * longer possible then, so the caller should stop constraining the time and
+ * push the customer to a later date instead.
+ */
+function addHoursToSlot(slot: string, hours: number): string | null {
+  const [h, m] = slot.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  const total = h * 60 + m + hours * 60;
+  if (total >= 24 * 60) return null;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
 const TIME_SLOTS: string[] = (() => {
   const out: string[] = [];
   for (let h = 0; h < 24; h++) {
@@ -1999,13 +2017,17 @@ const TIME_SLOTS: string[] = (() => {
 // for a native <input type="time"> — matches the rest of the widget's card
 // styling instead of each browser/OS's own native time picker UI.
 function MiniTimeInput({
-  label, value, onChange, caption,
+  label, value, onChange, caption, minTime, minNote,
   boxClassName = 'min-w-[112px] sm:min-w-[172px] flex-1',
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   caption?: string;
+  /** Earliest selectable slot, "HH:MM". Anything before it is disabled. */
+  minTime?: string;
+  /** Shown above the list, so a greyed-out slot does not look broken. */
+  minNote?: string;
   boxClassName?: string;
 }) {
   const variant = useContext(HeroVariantContext);
@@ -2049,21 +2071,31 @@ function MiniTimeInput({
       </button>
       {caption && variant !== 'compact' && <span className="mt-0.5 hidden text-[12.5px] text-slate-400 sm:block">{caption}</span>}
       {open && (
-        <div ref={listRef} className="absolute left-0 top-full z-[60] mt-1.5 max-h-64 w-40 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div ref={listRef} className="absolute left-0 top-full z-[60] mt-1.5 max-h-64 w-44 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          {minNote && (
+            <p className="sticky top-0 z-10 mb-1 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold leading-snug text-amber-700">
+              {minNote}
+            </p>
+          )}
           {TIME_SLOTS.map((t) => {
             const isSelected = t === value;
+            // String compare is safe here: every slot is zero-padded "HH:MM".
+            const disabled = !!minTime && t < minTime;
             return (
               <button
                 key={t}
                 type="button"
-                data-active={isSelected ? 'true' : undefined}
-                onClick={() => { onChange(t); setOpen(false); }}
-                className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${
-                  isSelected ? 'font-semibold text-primary-700' : 'text-slate-700'
+                disabled={disabled}
+                data-active={isSelected || (!!minTime && t === minTime) ? 'true' : undefined}
+                onClick={() => { if (disabled) return; onChange(t); setOpen(false); }}
+                className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                  disabled
+                    ? 'cursor-not-allowed text-slate-300 line-through'
+                    : `hover:bg-slate-50 ${isSelected ? 'font-semibold text-primary-700' : 'text-slate-700'}`
                 }`}
               >
                 {formatTimeSlot(t)}
-                {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-primary-600" />}
+                {isSelected && !disabled && <Check className="h-3.5 w-3.5 shrink-0 text-primary-600" />}
               </button>
             );
           })}
@@ -2197,6 +2229,23 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
   const [pickupTime, setPickupTime] = useState('');
   const [dropoffDate, setDropoffDate] = useState('');
   const [dropoffTime, setDropoffTime] = useState('');
+
+  // A same-day booking has to run at least MIN_SAME_DAY_HOURS: pick up at
+  // 10:00 and the earliest drop-off is 14:00. On a later date there is no
+  // constraint, and if pickup is late enough that the minimum spills past
+  // midnight the same-day option is simply not offered.
+  const sameDayReturn = !!date && !!dropoffDate && date === dropoffDate;
+  const minDropoffTime = sameDayReturn && pickupTime
+    ? addHoursToSlot(pickupTime, MIN_SAME_DAY_HOURS)
+    : null;
+
+  // Changing the pickup time can leave an already-chosen drop-off too early.
+  // Clear it rather than silently submitting a window we would reject.
+  useEffect(() => {
+    if (minDropoffTime && dropoffTime && dropoffTime < minDropoffTime) {
+      setDropoffTime('');
+    }
+  }, [minDropoffTime, dropoffTime]);
   const [equipmentType, setEquipmentType] = useState('');
   // Car tab mirrors the real /car-rental/[city] hero's own 3-way Local /
   // Outstation / Airport switch — each mode has its own field set.
@@ -4080,7 +4129,21 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                     label="Drop-off Time"
                     value={dropoffTime}
                     onChange={setDropoffTime}
-                    caption="Return time"
+                    caption={
+                      minDropoffTime
+                        ? `From ${formatTimeSlot(minDropoffTime)}`
+                        : sameDayReturn && pickupTime
+                          ? 'Pick a later date'
+                          : 'Return time'
+                    }
+                    minTime={minDropoffTime ?? undefined}
+                    minNote={
+                      minDropoffTime
+                        ? `Minimum ${MIN_SAME_DAY_HOURS} hours — earliest ${formatTimeSlot(minDropoffTime)}`
+                        : sameDayReturn && pickupTime
+                          ? `A ${MIN_SAME_DAY_HOURS}-hour booking from ${formatTimeSlot(pickupTime)} runs past midnight. Choose a later drop-off date.`
+                          : undefined
+                    }
                     boxClassName="min-w-[112px] sm:min-w-[172px] flex-1"
                   />
                 </>
