@@ -37,7 +37,7 @@ interface PageProps {
   };
 }
 
-// Generate static params for ALL locations - GOD LEVEL SEO
+// Generate static params for ALL locations
 // Generate static params from DATABASE - Only locations where car-rental is available
 export async function generateStaticParams() {
   return getAllCityLocations();
