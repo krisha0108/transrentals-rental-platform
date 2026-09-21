@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
@@ -32,7 +32,7 @@ interface PageProps {
   };
 }
 
-// Generate static params for ALL locations - GOD LEVEL SEO
+// Generate static params for ALL locations
 // Generate static params from DATABASE - Only locations where transporter is available
 export async function generateStaticParams() {
   return getAllCityLocations();

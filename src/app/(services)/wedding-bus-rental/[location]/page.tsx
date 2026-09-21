@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
@@ -30,7 +30,7 @@ interface PageProps {
   };
 }
 
-// Generate static params for ALL locations - GOD LEVEL SEO
+// Generate static params for ALL locations
 // Generate static params from DATABASE - Only locations where bus-rental is available
 export async function generateStaticParams() {
   return getAllCityLocations();
@@ -74,9 +74,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 const PAGE_FAQS = [
-  { question: 'What types of buses are available for wedding rental?', answer: 'We offer AC luxury coaches (26–49 seater), decorated mini buses (17–20 seater), and Tempo Travellers (9–17 seater) for wedding functions.' },
-  { question: 'Is wedding decoration included in the bus rental?', answer: 'Yes, basic floral decoration is included for wedding packages. Premium decoration with lights and custom themes is available at extra cost.' },
-  { question: 'How early should I book a wedding bus rental?', answer: 'We recommend booking at least 2–4 weeks in advance, especially for peak wedding season (Nov–Feb). Last-minute bookings are possible but subject to availability.' },
+  { question: 'What types of buses are available for wedding rental?', answer: 'We offer AC luxury coaches (26–49 seater), decorated mini buses (17–20 seater), and Tempo Travellers (9–17 seater) for wedding functions.' },
+  { question: 'Is wedding decoration included in the bus rental?', answer: 'Yes, basic floral decoration is included for wedding packages. Premium decoration with lights and custom themes is available at extra cost.' },
+  { question: 'How early should I book a wedding bus rental?', answer: 'We recommend booking at least 2–4 weeks in advance, especially for peak wedding season (Nov–Feb). Last-minute bookings are possible but subject to availability.' },
   { question: 'Can the wedding bus be used for baraat procession and multiple wedding events?', answer: 'Yes, our wedding bus packages cover multiple functions — baraat, reception, and return drop. Full-day packages are available for all wedding needs.' },
 ];
 
