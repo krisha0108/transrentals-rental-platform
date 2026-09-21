@@ -6272,6 +6272,7 @@ model web_stories {
   metaDescription  String?               @db.VarChar(300)
   coverImage       String?
   coverImageSquare String?
+  coverImageLandscape String?
   publisherName    String?
   publisherLogo    String?
   category         String?

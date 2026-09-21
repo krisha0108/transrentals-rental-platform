@@ -325,6 +325,11 @@ export async function GET(
 
     const coverImage   = abs(story.coverImage, siteUrl);
     const coverSquare  = abs((story as any).coverImageSquare, siteUrl) || coverImage;
+    // Only emitted when a genuinely landscape (4:3) image has been uploaded.
+    // Falling back to the portrait cover here would be worse than leaving the
+    // attribute off: it declares a landscape poster that is not landscape, and
+    // the preview gets cropped or rejected.
+    const coverLandscape = abs((story as any).coverImageLandscape, siteUrl);
     const publisherLogo = abs(story.publisherLogo, siteUrl) || `${siteUrl}/logo.png`;
     const publisherName = story.publisherName || 'TransRentals';
     const description   = (story as any).metaDescription || story.description
@@ -333,6 +338,9 @@ export async function GET(
     // Pointing to the React viewer page causes "amp-story canonical error" in Search Console.
     const canonicalUrl  = `${siteUrl}/stories/${slug}/amp`;
     const publishedAt   = story.publishedAt?.toISOString() || new Date().toISOString();
+    // Editing a story has to move this, otherwise every revision looks to
+    // search engines like the same unchanged page it saw the first time.
+    const modifiedAt    = story.updatedAt?.toISOString() || publishedAt;
 
     // Schema.org Article
     const schema = JSON.stringify({
@@ -340,9 +348,12 @@ export async function GET(
       '@type':    'Article',
       headline:   story.title,
       description,
-      image:      coverImage ? [coverImage] : [],
+      // Each aspect ratio we actually have, de-duplicated — square and
+       // landscape fall back to the portrait file when unset, and repeating
+       // the same URL three times says nothing.
+      image:      [...new Set([coverImage, coverSquare, coverLandscape].filter(Boolean))],
       datePublished: publishedAt,
-      dateModified:  publishedAt,
+      dateModified:  modifiedAt,
       author:    { '@type': 'Organization', name: publisherName },
       publisher: {
         '@type': 'Organization',
@@ -410,6 +421,7 @@ amp-img{display:block}
   publisher-logo-src="${esc(publisherLogo)}"
   poster-portrait-src="${esc(coverImage || `${siteUrl}/images/og-image.jpg`)}"
   ${coverSquare ? `poster-square-src="${esc(coverSquare)}"` : `poster-square-src="${esc(coverImage || `${siteUrl}/images/og-image.jpg`)}"`}
+  ${coverLandscape ? `poster-landscape-src="${esc(coverLandscape)}"` : ''}
   supports-landscape>
 
 ${slidesHtml}

@@ -32,39 +32,58 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    const where: any = {};
-    if (status === 'published') {
-      where.isPublished = true;
-      where.isArchived = false;
-    } else if (status === 'draft') {
-      where.isPublished = false;
-      where.isArchived = false;
-    } else if (status === 'archived') {
-      where.isArchived = true;
-    }
-
+    // The search narrows everything; the status tab narrows only the list.
+    // Keeping them apart is what lets the stat cards stay honest: they count
+    // across all four states regardless of which tab is open, so opening
+    // "Draft" no longer makes "Total" report the number of drafts.
+    const searchWhere: any = {};
     if (search) {
-      where.OR = [
+      searchWhere.OR = [
         { title: { contains: search } },
         { category: { contains: search } },
         { slug: { contains: search } },
       ];
     }
 
-    const [stories, total] = await Promise.all([
-      prisma.web_stories.findMany({
-        where,
-        orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
-        skip: (page - 1) * limit,
-        take: limit,
-        include: {
-          slides: { select: { id: true, canvasData: true } },
-          reactions: { select: { reactionType: true } },
-          _count: { select: { views: true } },
-        },
-      }),
-      prisma.web_stories.count({ where }),
-    ]);
+    const statusWhere: any = {};
+    if (status === 'published') {
+      statusWhere.isPublished = true;
+      statusWhere.isArchived = false;
+    } else if (status === 'draft') {
+      statusWhere.isPublished = false;
+      statusWhere.isArchived = false;
+    } else if (status === 'archived') {
+      statusWhere.isArchived = true;
+    }
+
+    const where: any = { ...searchWhere, ...statusWhere };
+    const now = new Date();
+
+    const [stories, total, countAll, countPublished, countDraft, countArchived, countExpired] =
+      await Promise.all([
+        prisma.web_stories.findMany({
+          where,
+          orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+          skip: (page - 1) * limit,
+          take: limit,
+          include: {
+            slides: { select: { id: true, canvasData: true } },
+            reactions: { select: { reactionType: true } },
+            _count: { select: { views: true } },
+          },
+        }),
+        prisma.web_stories.count({ where }),
+        prisma.web_stories.count({ where: searchWhere }),
+        prisma.web_stories.count({ where: { ...searchWhere, isPublished: true, isArchived: false } }),
+        prisma.web_stories.count({ where: { ...searchWhere, isPublished: false, isArchived: false } }),
+        prisma.web_stories.count({ where: { ...searchWhere, isArchived: true } }),
+        // Still flagged as published, but the expiry date has already passed —
+        // the public site hides these, so without a count here they would sit
+        // unnoticed until someone widened the window enough to see the column.
+        prisma.web_stories.count({
+          where: { ...searchWhere, isPublished: true, isArchived: false, expiresAt: { lte: now } },
+        }),
+      ]);
 
     const formatted = stories.map((s: any) => ({
       id: s.id,
@@ -74,6 +93,7 @@ export async function GET(request: NextRequest) {
       metaDescription: s.metaDescription,
       coverImage: s.coverImage,
       coverImageSquare: s.coverImageSquare,
+      coverImageLandscape: s.coverImageLandscape,
       publisherName: s.publisherName,
       publisherLogo: s.publisherLogo,
       category: s.category,
@@ -104,6 +124,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       stories: formatted,
+      counts: {
+        all: countAll,
+        published: countPublished,
+        draft: countDraft,
+        archived: countArchived,
+        expired: countExpired,
+      },
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
   } catch (error) {
@@ -146,6 +173,7 @@ export async function POST(request: NextRequest) {
         metaDescription: body.metaDescription?.trim() || null,
         coverImage: body.coverImage || null,
         coverImageSquare: body.coverImageSquare || null,
+        coverImageLandscape: body.coverImageLandscape || null,
         publisherName: body.publisherName?.trim() || null,
         publisherLogo: body.publisherLogo || null,
         category: body.category?.trim() || null,
