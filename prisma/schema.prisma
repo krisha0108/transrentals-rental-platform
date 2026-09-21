@@ -209,6 +209,8 @@ model bike_bookings {
   vendorNotes                                     String?                     @db.Text
   adminNotes                                      String?                     @db.Text
   cancellationReason                              String?                     @db.Text
+  cancelledAt                                     DateTime?
+  cancelledBy                                     String?
   source                                          String?                     @default("web") @db.VarChar(20)
   createdAt                                       DateTime                    @default(now())
   updatedAt                                       DateTime                    @updatedAt
