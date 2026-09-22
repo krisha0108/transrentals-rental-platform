@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Image,
+  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
+import { Alert } from '../../components/ui/AppAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import AppDatePicker from '../../components/ui/AppDatePicker';
 import { launchImageLibrary } from 'react-native-image-picker';
+import ChipSelect, { formatList } from '../../components/ui/ChipSelect';
 import { addVehicle, uploadVehiclePhoto } from '../api/client';
 
 const BRAND = {
@@ -16,6 +18,14 @@ const BRAND = {
 
 const CATEGORIES = ['Sedan', 'SUV', 'Hatchback', 'MUV', 'Luxury', 'Tempo Traveller', 'Mini Bus'];
 const FUEL_TYPES = ['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid'];
+
+// Titles for the shared expiry-date picker, keyed by the field it is editing.
+const DATE_FIELD_LABELS = {
+  insuranceExp: 'Insurance Expiry',
+  rcExp: 'RC Expiry',
+  fitnessExp: 'Fitness Expiry',
+  permitExp: 'Permit Expiry',
+};
 
 const VEHICLE_PHOTO_SLOTS = [
   { key: 'front',     label: 'Front' },
@@ -52,7 +62,9 @@ export default function AddVehicleScreen({ navigation }) {
   const [color, setColor]       = useState('');
   const [category, setCategory] = useState('');
   const [seats, setSeats]       = useState('');
-  const [fuel, setFuel]         = useState('');
+  // A vehicle can legitimately run on more than one fuel (CNG kits keep
+  // the petrol tank, hybrids are petrol + electric), so this is a list.
+  const [fuel, setFuel]         = useState([]);
   const [odometer, setOdometer] = useState('');
 
   // Doc fields
@@ -101,7 +113,7 @@ export default function AddVehicleScreen({ navigation }) {
         make: make.trim(), model: model.trim(),
         year: year || null, registrationNo: regNo.trim() || null,
         color: color || null, category: category || null,
-        seatingCapacity: seats || null, fuelType: fuel || null,
+        seatingCapacity: seats || null, fuelType: formatList(fuel),
         insuranceNumber: insuranceNumber || null,
         insuranceExpiry: insuranceExp?.toISOString() || null,
         rcNumber: rcNumber || null,
@@ -193,15 +205,13 @@ export default function AddVehicleScreen({ navigation }) {
               </View>
             </View>
             <Field label="Fuel Type">
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.chipRow}>
-                  {FUEL_TYPES.map(f => (
-                    <TouchableOpacity key={f} style={[styles.chip, fuel === f && styles.chipActive]} onPress={() => setFuel(f)}>
-                      <Text style={[styles.chipText, fuel === f && styles.chipTextActive]}>{f}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
+              <ChipSelect
+                options={FUEL_TYPES}
+                value={fuel}
+                onChange={setFuel}
+                multiple
+                hint="Tap all that apply — e.g. Petrol + CNG"
+              />
             </Field>
           </View>
 
@@ -327,14 +337,20 @@ export default function AddVehicleScreen({ navigation }) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {showDatePicker && (
-        <DateTimePicker
-          value={dateFields[showDatePicker] || new Date()}
-          mode="date"
-          display="default"
-          onChange={(e, d) => { setShowDatePicker(null); if (d) setDateFields[showDatePicker](d); }}
-        />
-      )}
+      <AppDatePicker
+        visible={!!showDatePicker}
+        value={showDatePicker ? dateFields[showDatePicker] : null}
+        title={DATE_FIELD_LABELS[showDatePicker] || 'Select Date'}
+        allowClear
+        onCancel={() => setShowDatePicker(null)}
+        onConfirm={(d) => {
+          // Captured before the state update: clearing showDatePicker first
+          // would leave nothing to write the date into.
+          const field = showDatePicker;
+          setShowDatePicker(null);
+          if (field) setDateFields[field](d);
+        }}
+      />
     </SafeAreaView>
   );
 }

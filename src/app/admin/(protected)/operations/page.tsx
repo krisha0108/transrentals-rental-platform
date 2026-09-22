@@ -28,7 +28,7 @@ const CHART_COLOR = {
   axis: '#94a3b8',
 };
 
-type DatePreset = 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'all';
+type DatePreset = 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'all' | 'custom';
 
 const PREVIOUS_PERIOD_LABEL: Record<DatePreset, string> = {
   today: 'yesterday',
@@ -37,6 +37,7 @@ const PREVIOUS_PERIOD_LABEL: Record<DatePreset, string> = {
   thisMonth: 'previous month',
   lastMonth: 'month before',
   all: '',
+  custom: 'previous period',
 };
 
 const DATE_PRESETS: { key: DatePreset; label: string }[] = [
@@ -46,6 +47,7 @@ const DATE_PRESETS: { key: DatePreset; label: string }[] = [
   { key: 'thisMonth', label: 'This Month' },
   { key: 'lastMonth', label: 'Last Month' },
   { key: 'all', label: 'All Time' },
+  { key: 'custom', label: 'Custom Date' },
 ];
 
 type TabKey = 'overview' | 'inquiries' | 'bookings' | 'managers' | 'vendors' | 'gaps' | 'idle' | 'systemHealth';
@@ -268,13 +270,13 @@ const rowsForNotifications = (items: NotificationHealth[]) => items.map((n) => (
 
 // Full (non-paginated) fetchers for export — same endpoints the tabs use,
 // just with EXPORT_LIMIT instead of PAGE_LIMIT and no page number.
-async function fetchAllInquiries(filter: DatePreset, q: string) {
-  const res = await fetch(`/api/admin/operations/inquiries?filter=${filter}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+async function fetchAllInquiries(filter: DatePreset, q: string, range = '') {
+  const res = await fetch(`/api/admin/operations/inquiries?filter=${filter}${range}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
   const data = await res.json();
   return (data.items || []) as TrackedItem[];
 }
-async function fetchAllBookings(filter: DatePreset, q: string) {
-  const res = await fetch(`/api/admin/operations/bookings?filter=${filter}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+async function fetchAllBookings(filter: DatePreset, q: string, range = '') {
+  const res = await fetch(`/api/admin/operations/bookings?filter=${filter}${range}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
   const data = await res.json();
   return (data.items || []) as TrackedItem[];
 }
@@ -283,28 +285,28 @@ async function fetchAllVendorsNeedingAction(q: string) {
   const data = await res.json();
   return (data.items || []) as VendorNeedingAction[];
 }
-async function fetchAllGaps(filter: DatePreset, q: string) {
-  const res = await fetch(`/api/admin/operations/coverage-gaps?filter=${filter}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+async function fetchAllGaps(filter: DatePreset, q: string, range = '') {
+  const res = await fetch(`/api/admin/operations/coverage-gaps?filter=${filter}${range}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
   const data = await res.json();
   return (data.items || []) as CoverageGapGroup[];
 }
-async function fetchAllDemandCoverage(filter: DatePreset, maxVendors: number, q: string) {
-  const res = await fetch(`/api/admin/operations/demand-coverage?filter=${filter}&maxVendors=${maxVendors}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+async function fetchAllDemandCoverage(filter: DatePreset, maxVendors: number, q: string, range = '') {
+  const res = await fetch(`/api/admin/operations/demand-coverage?filter=${filter}${range}&maxVendors=${maxVendors}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
   const data = await res.json();
   return (data.items || []) as DemandCoverageItem[];
 }
-async function fetchAllIdleVendors(filter: DatePreset, q: string) {
-  const res = await fetch(`/api/admin/operations/idle-vendors?filter=${filter}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+async function fetchAllIdleVendors(filter: DatePreset, q: string, range = '') {
+  const res = await fetch(`/api/admin/operations/idle-vendors?filter=${filter}${range}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
   const data = await res.json();
   return (data.items || []) as IdleVendorRow[];
 }
-async function fetchAllPaymentFailures(filter: DatePreset, q: string) {
-  const res = await fetch(`/api/admin/operations/payment-failures?filter=${filter}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+async function fetchAllPaymentFailures(filter: DatePreset, q: string, range = '') {
+  const res = await fetch(`/api/admin/operations/payment-failures?filter=${filter}${range}&page=1&limit=${EXPORT_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
   const data = await res.json();
   return (data.items || []) as PaymentFailureItem[];
 }
-async function fetchManagers(filter: DatePreset) {
-  const res = await fetch(`/api/admin/managers/performance?filter=${filter}`);
+async function fetchManagers(filter: DatePreset, range = '') {
+  const res = await fetch(`/api/admin/managers/performance?filter=${filter}${range}`);
   const data = await res.json();
   return (data.managers || []) as ManagerRow[];
 }
@@ -345,6 +347,15 @@ const MANAGER_PAGE_LIMIT = 15;
 
 export default function AdminOperationsTrackerPage() {
   const [filter, setFilter] = useState<DatePreset>('today');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+
+  // Only appended for the custom preset, and only once both ends are set —
+  // a half-filled range would silently widen to "everything after From".
+  const rangeQS =
+    filter === 'custom' && customFrom && customTo
+      ? `&dateFrom=${customFrom}&dateTo=${customTo}`
+      : '';
   const [tab, setTab] = useState<TabKey>('overview');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -408,7 +419,7 @@ export default function AdminOperationsTrackerPage() {
 
   const loadSummary = useCallback(async (preset: DatePreset) => {
     try {
-      const res = await fetch(`/api/admin/operations/summary?filter=${preset}`);
+      const res = await fetch(`/api/admin/operations/summary?filter=${preset}${rangeQS}`);
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load summary');
       setSummary(data);
@@ -416,7 +427,9 @@ export default function AdminOperationsTrackerPage() {
     } catch (e: any) {
       setError(e?.message || 'Failed to load summary');
     }
-  }, []);
+    // rangeQS must be a dependency — with an empty array this closure keeps
+    // the value it had on first render and the custom dates never ship.
+  }, [rangeQS]);
 
   // Fetches only the ACTIVE tab's data — the point of lazy-per-tab loading is
   // that switching to "Idle Vendors" doesn't also re-run the (much heavier)
@@ -437,10 +450,10 @@ export default function AdminOperationsTrackerPage() {
         const gapsFilter = preset === 'today' || preset === 'yesterday' ? 'thisWeek' : preset;
         const idleFilter = preset === 'today' || preset === 'yesterday' || preset === 'thisWeek' ? 'thisMonth' : preset;
         const [gapsRes, idleRes, managersRes, paymentsRes] = await Promise.all([
-          fetch(`/api/admin/operations/coverage-gaps?filter=${gapsFilter}&page=1&limit=8`),
-          fetch(`/api/admin/operations/idle-vendors?filter=${idleFilter}&page=1&limit=8`),
-          fetch(`/api/admin/managers/performance?filter=${preset}`),
-          fetch(`/api/admin/operations/payment-failures?filter=${preset}&page=1&limit=8`),
+          fetch(`/api/admin/operations/coverage-gaps?filter=${gapsFilter}${rangeQS}&page=1&limit=8`),
+          fetch(`/api/admin/operations/idle-vendors?filter=${idleFilter}${rangeQS}&page=1&limit=8`),
+          fetch(`/api/admin/managers/performance?filter=${preset}${rangeQS}`),
+          fetch(`/api/admin/operations/payment-failures?filter=${preset}${rangeQS}&page=1&limit=8`),
         ]);
         const [gapsData, idleData, managersData, paymentsData] = await Promise.all([gapsRes.json(), idleRes.json(), managersRes.json(), paymentsRes.json()]);
         if (!gapsRes.ok || gapsData.error) throw new Error(gapsData?.error || 'Failed to load coverage gaps');
@@ -452,12 +465,12 @@ export default function AdminOperationsTrackerPage() {
         setManagers(managersData.managers || []);
         setPaymentFailures(paymentsData);
       } else if (activeTab === 'inquiries') {
-        const res = await fetch(`/api/admin/operations/inquiries?filter=${preset}&page=${page.inquiries}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+        const res = await fetch(`/api/admin/operations/inquiries?filter=${preset}${rangeQS}&page=${page.inquiries}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
         const data = await res.json();
         if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load inquiries');
         setInquiries(data);
       } else if (activeTab === 'bookings') {
-        const res = await fetch(`/api/admin/operations/bookings?filter=${preset}&page=${page.bookings}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+        const res = await fetch(`/api/admin/operations/bookings?filter=${preset}${rangeQS}&page=${page.bookings}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
         const data = await res.json();
         if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load bookings');
         setBookings(data);
@@ -469,31 +482,31 @@ export default function AdminOperationsTrackerPage() {
       } else if (activeTab === 'gaps') {
         const gapsFilter = preset === 'today' || preset === 'yesterday' ? 'thisWeek' : preset;
         if (vendorThresholdParam === 'zero') {
-          const res = await fetch(`/api/admin/operations/coverage-gaps?filter=${gapsFilter}&page=${page.gaps}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+          const res = await fetch(`/api/admin/operations/coverage-gaps?filter=${gapsFilter}${rangeQS}&page=${page.gaps}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
           const data = await res.json();
           if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load coverage gaps');
           setGaps(data);
         } else {
-          const res = await fetch(`/api/admin/operations/demand-coverage?filter=${gapsFilter}&maxVendors=${vendorThresholdParam}&page=${page.demandCoverage}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+          const res = await fetch(`/api/admin/operations/demand-coverage?filter=${gapsFilter}${rangeQS}&maxVendors=${vendorThresholdParam}&page=${page.demandCoverage}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
           const data = await res.json();
           if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load demand coverage');
           setDemandCoverage(data);
         }
       } else if (activeTab === 'idle') {
         const idleFilter = preset === 'today' || preset === 'yesterday' || preset === 'thisWeek' ? 'thisMonth' : preset;
-        const res = await fetch(`/api/admin/operations/idle-vendors?filter=${idleFilter}&page=${page.idle}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+        const res = await fetch(`/api/admin/operations/idle-vendors?filter=${idleFilter}${rangeQS}&page=${page.idle}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
         const data = await res.json();
         if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load idle vendor coverage');
         setIdle(data);
       } else if (activeTab === 'managers') {
-        const res = await fetch(`/api/admin/managers/performance?filter=${preset}`);
+        const res = await fetch(`/api/admin/managers/performance?filter=${preset}${rangeQS}`);
         const data = await res.json();
         if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load manager performance');
         setManagers(data.managers || []);
       } else if (activeTab === 'systemHealth') {
         const [healthRes, paymentsRes] = await Promise.all([
           fetch('/api/admin/operations/system-health'),
-          fetch(`/api/admin/operations/payment-failures?filter=${preset}&page=${page.paymentFailures}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`),
+          fetch(`/api/admin/operations/payment-failures?filter=${preset}${rangeQS}&page=${page.paymentFailures}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`),
         ]);
         const [healthData, paymentsData] = await Promise.all([healthRes.json(), paymentsRes.json()]);
         if (!healthRes.ok || healthData.error) throw new Error(healthData?.error || 'Failed to load system health');
@@ -507,18 +520,20 @@ export default function AdminOperationsTrackerPage() {
       setTabLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [rangeQS]);
 
   useEffect(() => {
     (async () => { setSummaryLoading(true); await loadSummary(filter); setSummaryLoading(false); })();
-  }, [filter, loadSummary]);
+    // rangeQS is a dependency too: picking a custom From/To changes what
+    // should be on screen without changing `filter`.
+  }, [filter, rangeQS, loadSummary]);
 
   useEffect(() => {
     loadTabData(tab, filter, debouncedSearch, {
       inquiries: inquiriesPage, bookings: bookingsPage, vendors: vendorsPage, gaps: gapsPage, idle: idlePage, managers: managersPage, paymentFailures: paymentFailuresPage, demandCoverage: demandCoveragePage,
     }, vendorThreshold);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, filter, debouncedSearch, inquiriesPage, bookingsPage, vendorsPage, gapsPage, idlePage, paymentFailuresPage, demandCoveragePage, vendorThreshold, loadTabData]);
+  }, [tab, filter, rangeQS, debouncedSearch, inquiriesPage, bookingsPage, vendorsPage, gapsPage, idlePage, paymentFailuresPage, demandCoveragePage, vendorThreshold, loadTabData]);
 
   // Same substitution loadTabData applies before fetching — kept here too so
   // the render side (chart titles, PeriodNote) can show what period the data
@@ -547,17 +562,17 @@ export default function AdminOperationsTrackerPage() {
       const dateStamp = exportFilenameDate();
       switch (tab) {
         case 'inquiries': {
-          const items = await fetchAllInquiries(filter, q);
+          const items = await fetchAllInquiries(filter, q, rangeQS);
           downloadWorkbook([{ name: 'Untouched Inquiries', rows: rowsForTrackedItems(items) }], `untouched_inquiries_${filter}_${dateStamp}.xlsx`);
           break;
         }
         case 'bookings': {
-          const items = await fetchAllBookings(filter, q);
+          const items = await fetchAllBookings(filter, q, rangeQS);
           downloadWorkbook([{ name: 'Untouched Bookings', rows: rowsForTrackedItems(items) }], `untouched_bookings_${filter}_${dateStamp}.xlsx`);
           break;
         }
         case 'managers': {
-          const items = await fetchManagers(filter);
+          const items = await fetchManagers(filter, rangeQS);
           downloadWorkbook([{ name: 'Manager Performance', rows: rowsForManagers(items) }], `manager_performance_${filter}_${dateStamp}.xlsx`);
           break;
         }
@@ -568,21 +583,21 @@ export default function AdminOperationsTrackerPage() {
         }
         case 'gaps': {
           if (vendorThreshold === 'zero') {
-            const items = await fetchAllGaps(gapsFilter, q);
+            const items = await fetchAllGaps(gapsFilter, q, rangeQS);
             downloadWorkbook([{ name: 'Coverage Gaps', rows: rowsForGaps(items) }], `coverage_gaps_${gapsFilter}_${dateStamp}.xlsx`);
           } else {
-            const items = await fetchAllDemandCoverage(gapsFilter, vendorThreshold, q);
+            const items = await fetchAllDemandCoverage(gapsFilter, vendorThreshold, q, rangeQS);
             downloadWorkbook([{ name: `Demand (le ${vendorThreshold} vendors)`, rows: rowsForDemandCoverage(items) }], `underserved_demand_le${vendorThreshold}v_${gapsFilter}_${dateStamp}.xlsx`);
           }
           break;
         }
         case 'idle': {
-          const items = await fetchAllIdleVendors(idleFilter, q);
+          const items = await fetchAllIdleVendors(idleFilter, q, rangeQS);
           downloadWorkbook([{ name: 'Idle Vendors', rows: rowsForIdleVendors(items) }], `idle_vendors_${idleFilter}_${dateStamp}.xlsx`);
           break;
         }
         case 'systemHealth': {
-          const [health, failures] = await Promise.all([fetchSystemHealth(), fetchAllPaymentFailures(filter, q)]);
+          const [health, failures] = await Promise.all([fetchSystemHealth(), fetchAllPaymentFailures(filter, q, rangeQS)]);
           downloadWorkbook([
             { name: 'Cron Jobs', rows: rowsForCronJobs(health.cronJobs) },
             { name: 'Notification Sends', rows: rowsForNotifications(health.notifications) },
@@ -609,14 +624,14 @@ export default function AdminOperationsTrackerPage() {
       const q = debouncedSearch;
       const dateStamp = exportFilenameDate();
       const [inquiriesAll, bookingsAll, vendorsAll, gapsAll, idleAll, managersAll, health, failuresAll] = await Promise.all([
-        fetchAllInquiries(filter, q),
-        fetchAllBookings(filter, q),
+        fetchAllInquiries(filter, q, rangeQS),
+        fetchAllBookings(filter, q, rangeQS),
         fetchAllVendorsNeedingAction(q),
-        fetchAllGaps(gapsFilter, q),
-        fetchAllIdleVendors(idleFilter, q),
-        fetchManagers(filter),
+        fetchAllGaps(gapsFilter, q, rangeQS),
+        fetchAllIdleVendors(idleFilter, q, rangeQS),
+        fetchManagers(filter, rangeQS),
         fetchSystemHealth(),
-        fetchAllPaymentFailures(filter, q),
+        fetchAllPaymentFailures(filter, q, rangeQS),
       ]);
       downloadWorkbook([
         { name: 'Untouched Inquiries', rows: rowsForTrackedItems(inquiriesAll) },
@@ -655,7 +670,7 @@ export default function AdminOperationsTrackerPage() {
     });
     setSummary((prev) => prev ? { ...prev, inquiries: { ...prev.inquiries, untouched: Math.max(0, prev.inquiries.untouched - 1), actioned: prev.inquiries.actioned + 1 } } : prev);
     if (emptied) {
-      fetch(`/api/admin/operations/inquiries?filter=${filter}&page=${inquiriesPage}&limit=${PAGE_LIMIT}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`)
+      fetch(`/api/admin/operations/inquiries?filter=${filter}${rangeQS}&page=${inquiriesPage}&limit=${PAGE_LIMIT}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`)
         .then((r) => r.json()).then((data) => { if (!data.error) setInquiries(data); }).catch(() => {});
     }
   };
@@ -671,7 +686,7 @@ export default function AdminOperationsTrackerPage() {
     });
     setSummary((prev) => prev ? { ...prev, bookings: { ...prev.bookings, untouched: Math.max(0, prev.bookings.untouched - 1), actioned: prev.bookings.actioned + 1 } } : prev);
     if (emptied) {
-      fetch(`/api/admin/operations/bookings?filter=${filter}&page=${bookingsPage}&limit=${PAGE_LIMIT}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`)
+      fetch(`/api/admin/operations/bookings?filter=${filter}${rangeQS}&page=${bookingsPage}&limit=${PAGE_LIMIT}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`)
         .then((r) => r.json()).then((data) => { if (!data.error) setBookings(data); }).catch(() => {});
     }
   };
@@ -819,6 +834,7 @@ export default function AdminOperationsTrackerPage() {
       </div>
 
       {/* Date filter */}
+      <div className="flex flex-wrap items-center gap-2">
       <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm w-fit">
         {DATE_PRESETS.map((p) => (
           <button
@@ -831,6 +847,38 @@ export default function AdminOperationsTrackerPage() {
             {p.label}
           </button>
         ))}
+      </div>
+
+      {filter === 'custom' && (
+        <div className="flex items-center gap-2">
+          <label className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-slate-500">
+            From
+            <input
+              type="date"
+              value={customFrom}
+              max={customTo || new Date().toISOString().split('T')[0]}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:outline-none"
+            />
+          </label>
+          <label className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-slate-500">
+            To
+            <input
+              type="date"
+              value={customTo}
+              min={customFrom || undefined}
+              max={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setCustomTo(e.target.value)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:outline-none"
+            />
+          </label>
+          {(!customFrom || !customTo) && (
+            <span className="shrink-0 whitespace-nowrap text-xs font-medium text-amber-600">
+              Pick both dates
+            </span>
+          )}
+        </div>
+      )}
       </div>
 
       {error && (

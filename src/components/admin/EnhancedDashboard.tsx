@@ -64,25 +64,28 @@ const GRADIENT_COLORS = [
 export default function EnhancedDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [filter, setFilter] = useState<FilterType>('today');
-  const [customDate, setCustomDate] = useState<string>('');
+  const [customFrom, setCustomFrom] = useState<string>('');
+  const [customTo, setCustomTo] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [chartView, setChartView] = useState<'bar' | 'pie'>('bar');
   const [serviceFilter, setServiceFilter] = useState<string>('all');
 
   useEffect(() => {
     if (filter === 'custom') {
-      if (customDate) fetchStats('custom');
+      // Wait for both ends — fetching on the first one would flash a
+      // single-day result the admin did not ask for.
+      if (customFrom && customTo) fetchStats('custom');
     } else {
       fetchStats(filter);
     }
-  }, [filter, customDate]);
+  }, [filter, customFrom, customTo]);
 
   const fetchStats = async (selectedFilter: FilterType) => {
     setLoading(true);
     try {
       let url = `/api/admin/dashboard/stats?filter=${selectedFilter}`;
-      if (selectedFilter === 'custom' && customDate) {
-        url += `&date=${customDate}`;
+      if (selectedFilter === 'custom' && customFrom && customTo) {
+        url += `&from=${customFrom}&to=${customTo}`;
       }
       const response = await fetch(url);
       if (response.ok) {
@@ -104,13 +107,18 @@ export default function EnhancedDashboard() {
     );
   }
 
+  const prettyDate = (ymd: string) =>
+    new Date(ymd + 'T00:00:00').toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+
   const activeLabel =
-    filter === 'custom' && customDate
-      ? new Date(customDate + 'T00:00:00').toLocaleDateString('en-IN', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-        })
+    filter === 'custom' && customFrom && customTo
+      ? customFrom === customTo
+        ? prettyDate(customFrom)
+        : `${prettyDate(customFrom)} — ${prettyDate(customTo)}`
       : filterLabels[filter];
 
   // Prepare chart data with colors
@@ -201,19 +209,36 @@ export default function EnhancedDashboard() {
               </button>
             ))}
             {filter === 'custom' && (
-              <input
-                type="date"
-                value={customDate}
-                max={new Date().toISOString().split('T')[0]}
-                onChange={(e) => setCustomDate(e.target.value)}
-                disabled={loading}
-                className="px-3 py-2 rounded-lg text-sm border border-purple-300 bg-white shadow-sm focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-              />
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+                  From
+                  <input
+                    type="date"
+                    value={customFrom}
+                    max={customTo || new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                    disabled={loading}
+                    className="px-3 py-2 rounded-lg text-sm border border-purple-300 bg-white shadow-sm focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </label>
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+                  To
+                  <input
+                    type="date"
+                    value={customTo}
+                    min={customFrom || undefined}
+                    max={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setCustomTo(e.target.value)}
+                    disabled={loading}
+                    className="px-3 py-2 rounded-lg text-sm border border-purple-300 bg-white shadow-sm focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </label>
+              </div>
             )}
           </div>
           <button
             onClick={() => fetchStats(filter)}
-            disabled={loading || (filter === 'custom' && !customDate)}
+            disabled={loading || (filter === 'custom' && (!customFrom || !customTo))}
             className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />

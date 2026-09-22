@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  Alert, ActivityIndicator, ScrollView, Animated, Linking, Modal,
+  ActivityIndicator, ScrollView, Animated, Linking, Modal,
   KeyboardAvoidingView, Platform, Dimensions,
 } from 'react-native';
+import { Alert } from '../../components/ui/AppAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import LinearGradient from 'react-native-linear-gradient';
