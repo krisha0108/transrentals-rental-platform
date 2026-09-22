@@ -158,6 +158,10 @@ interface ManagerRow {
   inquiries: { total: number; actioned: number; coveragePct: number | null };
   bookings: { total: number; actioned: number; coveragePct: number | null };
   vendors: { created: number; approved: number };
+  // Outbound vendor/travel-agent calls the manager logged. Optional because
+  // a page left open across the deploy that added it still holds rows
+  // without the field.
+  callReports?: { logged: number; converted: number };
 }
 
 function formatDateTime(iso: string) {
@@ -239,6 +243,8 @@ const rowsForManagers = (items: ManagerRow[]) => items.map((m) => ({
   'Bookings Coverage %': m.bookings.coveragePct ?? '—',
   'Vendors Created': m.vendors.created,
   'Vendors Approved': m.vendors.approved,
+  'Call Reports Logged': m.callReports?.logged ?? 0,
+  'Call Reports Converted': m.callReports?.converted ?? 0,
 }));
 
 const rowsForPaymentFailures = (items: PaymentFailureItem[]) => items.map((p) => ({
@@ -1147,6 +1153,7 @@ export default function AdminOperationsTrackerPage() {
                           <th className="px-4 py-3">Bookings</th>
                           <th className="px-4 py-3">Vendors Created</th>
                           <th className="px-4 py-3">Vendors Approved</th>
+                          <th className="px-4 py-3">Call Reports</th>
                           <th className="px-4 py-3 text-right">Details</th>
                         </tr>
                       </thead>
@@ -1169,6 +1176,24 @@ export default function AdminOperationsTrackerPage() {
                             </td>
                             <td className="px-4 py-3 text-slate-600">{m.vendors.created}</td>
                             <td className="px-4 py-3 text-slate-600">{m.vendors.approved}</td>
+                            <td className="px-4 py-3">
+                              {/* Outbound calls are work that never showed up on
+                                  this tracker, so a manager who spent the day
+                                  chasing vendor leads read as idle. Links
+                                  through to the rows themselves, because the
+                                  number alone begs the question "which calls?". */}
+                              <Link
+                                href={`/admin/settings/managers/call-reports?managerId=${m.id}`}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-teal-50 text-teal-700 ring-1 ring-teal-200 hover:bg-teal-100 transition"
+                                title={`${m.callReports?.converted ?? 0} converted — view call reports`}
+                              >
+                                <PhoneCall className="w-3 h-3" />
+                                {m.callReports?.logged ?? 0}
+                                {(m.callReports?.converted ?? 0) > 0 && (
+                                  <span className="font-semibold text-teal-500">· {m.callReports?.converted} conv</span>
+                                )}
+                              </Link>
+                            </td>
                             <td className="px-4 py-3 text-right">
                               <Link href={`/admin/settings/managers/performance/${m.id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700">
                                 View <ChevronRight className="w-3 h-3" />
