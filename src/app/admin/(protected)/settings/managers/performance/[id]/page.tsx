@@ -74,6 +74,9 @@ interface ManagerDetail {
   inquiries: CoverageStat;
   bookings: CoverageStat;
   contactInquiries: { actioned: number };
+  // Outbound vendor / travel-agent calls this manager logged. Optional so a
+  // page left open across the deploy that added it still renders.
+  callReports?: { logged: number; converted: number };
   actionBreakdown: Record<string, number>;
 }
 
@@ -434,6 +437,7 @@ export default function ManagerPerformanceDetailPage() {
       { name: 'Vendors Created', Total: null, Handled: data.vendors.created },
       { name: 'Vendors Approved', Total: null, Handled: data.vendors.approved },
       { name: 'Contact Handled', Total: null, Handled: data.contactInquiries.actioned },
+      { name: 'Call Reports', Total: null, Handled: data.callReports?.logged ?? 0 },
     ];
   }, [data]);
 
@@ -566,12 +570,22 @@ export default function ManagerPerformanceDetailPage() {
         </div>
 
         {/* Top stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <StatCard icon={MapPin} label="Assigned Locations" value={data.locations.length} accent="text-blue-600 bg-blue-600" />
           <StatCard icon={Briefcase} label="Assigned Services" value={data.services.length} accent="text-violet-600 bg-violet-600" />
           <StatCard icon={UserPlus} label="Vendors Created" value={data.vendors.created} accent="text-indigo-600 bg-indigo-600" onClick={() => setVendorModal('created')} />
           <StatCard icon={CheckCircle2} label="Vendors Approved" value={data.vendors.approved} accent="text-emerald-600 bg-emerald-600" onClick={() => setVendorModal('approved')} />
           <StatCard icon={Mail} label="Contact Inquiries Handled" value={data.contactInquiries.actioned} accent="text-orange-600 bg-orange-600" />
+          {/* Sits with the vendor counts because it is the same kind of number:
+              outbound work the manager did, not a queue they were handed.
+              Opens the Call Reports tab below, which lists the calls. */}
+          <StatCard
+            icon={PhoneCall}
+            label="Call Reports Logged"
+            value={data.callReports?.logged ?? 0}
+            accent="text-teal-600 bg-teal-600"
+            onClick={() => setInquiryTab('callReports')}
+          />
         </div>
 
         {/* Activity + Inquiries + Bookings — one compact row */}
