@@ -12,7 +12,9 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const PASSWORD = 'Demo@1234';
+// Overridable, but the default is fine because this script refuses to run
+// anywhere but a local database (see the guard below).
+const PASSWORD = process.env.DEMO_PASSWORD || 'Demo@1234';
 const ACCOUNTS = [
   { id: 'user-demo-admin-local', label: 'Admin' },
   { id: 'user-demo-manager-local', label: 'Manager' },
@@ -22,6 +24,21 @@ const MANAGER_ID = 'user-demo-manager-local';
 const TAG = 'DEMO-CR';
 
 const clean = process.argv.includes('--clean');
+
+// This script resets passwords and writes rows. Pointed at production by an
+// inherited DATABASE_URL it would hand a known password to a SUPER_ADMIN
+// account and drop demo leads into the live call sheet, so it only ever runs
+// against a database on this machine.
+function assertLocalDatabase() {
+  const url = process.env.DATABASE_URL || '';
+  const host = (url.match(/@([^/:]+)/) || [])[1] || '';
+  const local = ['localhost', '127.0.0.1', '::1', '[::1]'];
+  if (!local.includes(host)) {
+    console.error(`\n  Refusing to run: DATABASE_URL points at "${host || 'an unknown host'}".`);
+    console.error('  This seeds demo accounts and resets their passwords, so it is local-only.\n');
+    process.exit(1);
+  }
+}
 
 function daysAgo(n) {
   const d = new Date();
@@ -104,6 +121,7 @@ const REPORTS = [
 ];
 
 async function main() {
+  assertLocalDatabase();
   const manager = await prisma.admin_users.findUnique({ where: { id: MANAGER_ID }, select: { id: true, name: true } });
   if (!manager) {
     console.log('\n  Demo manager row is missing — nothing to attach reports to.');
