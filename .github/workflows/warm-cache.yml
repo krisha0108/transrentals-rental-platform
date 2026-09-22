@@ -15,9 +15,9 @@ on:
         required: false
         default: 'https://transrentals.in'
       concurrency:
-        description: 'Concurrent requests (default: 80)'
+        description: 'Concurrent requests (default: 8 — kept low so the warmer itself does not storm the just-deployed, cold-cache site)'
         required: false
-        default: '80'
+        default: '8'
 
 env:
   NODE_VERSION: '20'
@@ -82,7 +82,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           BASE_URL: ${{ github.event.inputs.base_url || 'https://transrentals.in' }}
         run: |
-          CONCURRENCY=${{ github.event.inputs.concurrency || '80' }}
+          CONCURRENCY=${{ github.event.inputs.concurrency || '8' }}
           echo "🔥 Starting cache warming..."
           npx tsx scripts/warm-cache.ts --concurrency=$CONCURRENCY
 
