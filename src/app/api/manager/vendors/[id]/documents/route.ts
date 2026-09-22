@@ -212,7 +212,7 @@ export async function POST(
     }).catch((err) => logger.error('Manager vendor document upload action log failed', err));
 
     // Update vendor status if all required documents are uploaded
-    const requiredTypes = ['ADDRESS_PROOF'];
+    const requiredTypes = ['ADDRESS_PROOF', 'PAN_CARD'];
     const uploadedDocs = await prisma.vendor_documents.findMany({
       where: {
         vendorId,
