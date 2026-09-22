@@ -383,32 +383,34 @@ export default function LuxuryTemplatesScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={s.container} edges={['top']}>
+    <SafeAreaView style={s.container} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* ─── GRADIENT HEADER ─── */}
       <LinearGradient colors={G.hero} style={s.header}>
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <View style={s.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-            <Icon name="arrow-left" size={22} color="#fff" />
-          </TouchableOpacity>
-          <View style={s.headerTextWrap}>
-            <View style={s.headerTitleRow}>
-              <MaterialCommunityIcons name="car-sports" size={18} color="rgba(255,255,255,0.8)" style={{ marginRight: 8 }} />
-              <Text style={s.headerTitle}>Quote Templates</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.headerTextWrap}>
+              <View style={s.headerTitleRow}>
+                <MaterialCommunityIcons name="car-sports" size={18} color="rgba(255,255,255,0.8)" style={{ marginRight: 8 }} />
+                <Text style={s.headerTitle}>Quote Templates</Text>
+              </View>
+              <Text style={s.headerSub}>
+                {loading ? 'Loading...' : `${templates.length} template${templates.length !== 1 ? 's' : ''} · Luxury Cars`}
+              </Text>
             </View>
-            <Text style={s.headerSub}>
-              {loading ? 'Loading...' : `${templates.length} template${templates.length !== 1 ? 's' : ''} · Luxury Cars`}
-            </Text>
+            <TouchableOpacity
+              style={s.addBtn}
+              onPress={() => navigation.navigate('LuxuryCreateTemplate')}
+            >
+              <Icon name="plus" size={20} color="#fff" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={s.addBtn}
-            onPress={() => navigation.navigate('LuxuryCreateTemplate')}
-          >
-            <Icon name="plus" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       {/* ─── CATEGORY FILTER CHIPS ─── */}

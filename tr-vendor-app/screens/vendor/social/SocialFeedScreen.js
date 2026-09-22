@@ -18,8 +18,9 @@ import {
   StatusBar,
   Platform,
   Animated,
-  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import LG from 'react-native-linear-gradient';
@@ -347,6 +348,15 @@ export default function SocialFeedScreen({ navigation }) {
   const [commentText, setCommentText] = useState('');
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
+  const [commentKbHeight, setCommentKbHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'android' ? 'keyboardDidShow' : 'keyboardWillShow';
+    const hideEvt = Platform.OS === 'android' ? 'keyboardDidHide' : 'keyboardWillHide';
+    const showSub = Keyboard.addListener(showEvt, (e) => setCommentKbHeight(e.endCoordinates?.height || 0));
+    const hideSub = Keyboard.addListener(hideEvt, () => setCommentKbHeight(0));
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
 
   // Story inline comment input
   const [storyCommentText, setStoryCommentText] = useState('');
@@ -955,12 +965,12 @@ export default function SocialFeedScreen({ navigation }) {
 
             {/* Category chips — only for feed tab */}
             {tab === 'feed' && categories.length > 0 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsContent}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsContentOuter} contentContainerStyle={styles.chipsContent}>
                 <TouchableOpacity
                   style={[styles.chip, !activeCategoryId && styles.chipActive]}
                   onPress={() => setActiveCategoryId(null)}
                 >
-                  <Text style={[styles.chipText, !activeCategoryId && styles.chipTextActive]}>All</Text>
+                  <Text numberOfLines={1} style={[styles.chipText, !activeCategoryId && styles.chipTextActive]}>All</Text>
                 </TouchableOpacity>
                 {categories.map((cat) => (
                   <TouchableOpacity
@@ -968,7 +978,7 @@ export default function SocialFeedScreen({ navigation }) {
                     style={[styles.chip, activeCategoryId === cat.id && styles.chipActive]}
                     onPress={() => setActiveCategoryId(activeCategoryId === cat.id ? null : cat.id)}
                   >
-                    <Text style={[styles.chipText, activeCategoryId === cat.id && styles.chipTextActive]}>
+                    <Text numberOfLines={1} style={[styles.chipText, activeCategoryId === cat.id && styles.chipTextActive]}>
                       {cat.name}
                     </Text>
                   </TouchableOpacity>
@@ -1032,7 +1042,7 @@ export default function SocialFeedScreen({ navigation }) {
 
       {/* ── SOS Story Viewer Modal ─────────────────────────────────────── */}
       <Modal visible={storyVisible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setStoryVisible(false)}>
-        <KeyboardAvoidingView style={styles.storyOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={styles.storyOverlay} behavior="padding">
           {sosGroups[storyGroupIdx]?.posts[storyPostIdx] && (() => {
             const currentPost = sosGroups[storyGroupIdx].posts[storyPostIdx];
             const currentGroup = sosGroups[storyGroupIdx];
@@ -1302,8 +1312,7 @@ export default function SocialFeedScreen({ navigation }) {
 
       {/* ── Comment Modal ──────────────────────────────────────────────── */}
       <Modal visible={!!commentPost} transparent animationType="slide" onRequestClose={() => closeComments()}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <View style={styles.commentOverlay}>
+        <View style={[styles.commentOverlay, { paddingBottom: commentKbHeight }]}>
           <TouchableOpacity style={styles.commentBackdrop} onPress={() => closeComments()} />
           <View style={styles.commentSheet}>
             <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
@@ -1372,7 +1381,6 @@ export default function SocialFeedScreen({ navigation }) {
             </View>
           </View>
         </View>
-        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -1460,7 +1468,8 @@ const styles = StyleSheet.create({
   tabTextActive: { color: C.green },
 
   // Category chips
-  chipsContent: { paddingHorizontal: rs(12), paddingVertical: rs(10), gap: rs(8) },
+  chipsContentOuter: { flexGrow: 0, flexShrink: 0, height: 58 },
+  chipsContent: { paddingHorizontal: rs(12), paddingVertical: rs(10), gap: rs(8), alignItems: 'center' },
   chip: {
     paddingHorizontal: rs(14), paddingVertical: rs(7), borderRadius: rs(20),
     backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,

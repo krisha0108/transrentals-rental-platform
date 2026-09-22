@@ -10,8 +10,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, RefreshControl, Modal, TextInput,
-  Platform, StatusBar, KeyboardAvoidingView,
+  Platform, StatusBar,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -407,7 +408,7 @@ export default function VendorDocumentsScreen({ navigation }) {
 
       {/* ── UPLOAD MODAL ── */}
       <Modal visible={showUploadModal} animationType="slide" transparent onRequestClose={() => setShowUploadModal(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={st.modalOverlay}>
           <View style={st.modalContent}>
             <View style={st.sheetHandleWrap}><View style={st.sheetHandle} /></View>

@@ -22,19 +22,22 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorProfile } from '../../api/client';
+import { SC as T, G, rs, cardShadow } from '../_shared/theme';
+import { DISPLAY } from '../_shared/typography';
+import CornerGrid from '../_shared/CornerGrid';
 
 const C = {
-  g950: '#011C16', g900: '#022C22', g800: '#065F46', g700: '#047857',
-  g600: '#059669', g500: '#10B981', g400: '#34D399', g300: '#6EE7B7',
-  g100: '#D1FAE5', g50: '#ECFDF5',
-  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
-  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
-  blue: '#3B82F6', blueL: '#EFF6FF',
-  violet: '#7C3AED', violetL: '#F3E8FF',
-  amber: '#D97706', amberL: '#FFFBEB',
-  pink: '#EC4899', pinkL: '#FCE7F3',
-  orange: '#F97316', orangeL: '#FFF7ED',
-  indigo: '#6366F1', indigoL: '#EEF2FF',
+  g950: T.forestDark, g900: T.forestDark, g800: T.forest, g700: T.emerald700,
+  g600: T.emerald600, g500: T.emerald500, g400: T.emerald, g300: T.emerald,
+  g100: T.tintEmerald, g50: T.tintEmerald,
+  bg: T.bg, card: T.card, border: T.border,
+  text: T.ink, sub: T.text, muted: T.subText,
+  blue: T.ocean, blueL: T.tintOcean,
+  violet: T.plum, violetL: T.tintPlum,
+  amber: T.amber, amberL: T.amberLight,
+  pink: T.rose, pinkL: T.tintRose,
+  orange: T.orange, orangeL: T.orangeL,
+  indigo: T.indigo, indigoL: T.indigoLight,
 };
 
 const QUICK_LINKS = [
@@ -171,7 +174,8 @@ export default function GetStartedScreen({ navigation }) {
       <View style={{ flex: 1, backgroundColor: C.bg }}>
         <StatusBar barStyle="light-content" backgroundColor={C.g950} />
 
-        <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.hero}>
+        <LinearGradient colors={G.hero} style={s.hero}>
+          <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
           <SafeAreaView edges={['top']}>
             <View style={s.heroTopRow}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={s.iconBtn} activeOpacity={0.7}>
@@ -233,7 +237,8 @@ export default function GetStartedScreen({ navigation }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g950} />
 
       {/* ── HERO ── */}
-      <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.hero}>
+      <LinearGradient colors={G.hero} style={s.hero}>
+        <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
         <SafeAreaView edges={['top']}>
           <View style={s.heroTopRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.iconBtn} activeOpacity={0.7}>
@@ -422,9 +427,9 @@ export default function GetStartedScreen({ navigation }) {
               </View>
             </View>
           ))}
-          <View style={[s.tip, { backgroundColor: C.blueL, borderColor: '#BFDBFE' }]}>
+          <View style={[s.tip, { backgroundColor: C.blueL, borderColor: C.blue }]}>
             <Ionicons name="information-circle" size={14} color={C.blue} />
-            <Text style={[s.tipTxt, { color: '#1E40AF' }]}>
+            <Text style={[s.tipTxt, { color: C.blue }]}>
               <Text style={{ fontWeight: '800' }}>Tip:</Text> Request multiple cities at once where you have fleet ready.
             </Text>
           </View>
@@ -466,7 +471,7 @@ export default function GetStartedScreen({ navigation }) {
           ))}
           <View style={[s.tip, { backgroundColor: C.g50, borderColor: C.g100 }]}>
             <Ionicons name="information-circle" size={14} color={C.g600} />
-            <Text style={[s.tipTxt, { color: '#065F46' }]}>
+            <Text style={[s.tipTxt, { color: C.g700 }]}>
               <Text style={{ fontWeight: '800' }}>Tip:</Text> Only request services you can fulfill right away. Quick responders rank higher.
             </Text>
           </View>
@@ -474,7 +479,7 @@ export default function GetStartedScreen({ navigation }) {
 
         {/* ── WHAT UNLOCKS AFTER APPROVAL ── */}
         <View style={s.sectionHead}>
-          <View style={[s.sectionIcon, { backgroundColor: '#F59E0B' }]}>
+          <View style={[s.sectionIcon, { backgroundColor: C.amber }]}>
             <Ionicons name="star" size={11} color="#fff" />
           </View>
           <View style={{ flex: 1 }}>
@@ -504,7 +509,7 @@ export default function GetStartedScreen({ navigation }) {
                 )}
               </View>
               <Text style={s.featureEmoji}>{f.emoji}</Text>
-              <Text style={[s.featureTitle, isApproved && { color: '#065F46' }]}>{f.title}</Text>
+              <Text style={[s.featureTitle, isApproved && { color: C.g700 }]}>{f.title}</Text>
               <Text style={s.featureDesc} numberOfLines={3}>{f.desc}</Text>
             </View>
           ))}
@@ -535,11 +540,12 @@ export default function GetStartedScreen({ navigation }) {
 
 const s = StyleSheet.create({
   /* Hero */
-  hero: { paddingHorizontal: 16, paddingBottom: 14, overflow: 'hidden', borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  hero: { paddingHorizontal: 16, paddingBottom: 14, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) },
+  headerDots: { position: 'absolute', top: 0, right: 0, width: '60%', height: '100%' },
   heroTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 10 },
   iconBtn: {
-    width: 38, height: 38, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center', justifyContent: 'center',
   },
   heroPill: {
@@ -549,12 +555,12 @@ const s = StyleSheet.create({
   },
   heroPillTxt: { color: C.g300, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
   heroBody: { paddingTop: 10 },
-  heroTitle: { color: '#fff', fontSize: 24, fontWeight: '900', letterSpacing: -0.4, lineHeight: 30 },
+  heroTitle: { color: '#fff', fontFamily: DISPLAY, fontSize: 24, fontWeight: '800', letterSpacing: -0.4, lineHeight: 30 },
   heroSub: { color: 'rgba(255,255,255,0.72)', fontSize: 14, lineHeight: 19, marginTop: 6 },
   heroProgressRow: {
-    flexDirection: 'row', alignItems: 'center', marginBottom: 18, padding: 14, borderRadius: 16,
+    flexDirection: 'row', alignItems: 'center', marginBottom: 18, padding: 14, borderRadius: rs(16),
     backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
+    ...cardShadow,
   },
   progressLabel: { color: C.sub, fontSize: 12, fontWeight: '700', marginBottom: 8, letterSpacing: 0.3 },
   stepPills: { gap: 6 },
@@ -581,14 +587,14 @@ const s = StyleSheet.create({
   /* Section headers */
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4, paddingHorizontal: 2 },
   sectionIcon: { width: 24, height: 24, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
-  sectionTitle: { fontSize: 14, fontWeight: '800', color: C.text, letterSpacing: -0.2 },
+  sectionTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text, letterSpacing: -0.2 },
   sectionSub: { fontSize: 12, color: C.muted, fontWeight: '600' },
 
   /* Cards */
   card: {
-    backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border,
+    backgroundColor: C.card, borderRadius: rs(16), borderWidth: 1, borderColor: C.border,
     padding: 14, marginBottom: 18,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
+    ...cardShadow,
   },
 
   /* Verification step rows */
@@ -598,9 +604,9 @@ const s = StyleSheet.create({
     borderRadius: 14, padding: 12,
   },
   stepRowDone:   { backgroundColor: C.g50, borderColor: C.g100 },
-  stepRowActive: { backgroundColor: C.blueL, borderColor: '#BFDBFE' },
+  stepRowActive: { backgroundColor: C.blueL, borderColor: C.blue },
   stepIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  stepTitle: { fontSize: 14, fontWeight: '800', color: C.text },
+  stepTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.text },
   stepSub: { fontSize: 12, color: C.muted, marginTop: 2 },
   nextBadge: { backgroundColor: C.blue, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   nextBadgeTxt: { color: '#fff', fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
@@ -610,10 +616,10 @@ const s = StyleSheet.create({
   connector: { width: 2, height: 8, backgroundColor: C.border, marginLeft: 24, marginVertical: 2 },
   reviewNotice: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 6,
-    backgroundColor: C.amberL, borderWidth: 1, borderColor: '#FCD34D',
+    backgroundColor: C.amberL, borderWidth: 1, borderColor: C.amber,
     padding: 10, borderRadius: 10, marginTop: 10,
   },
-  reviewNoticeTxt: { flex: 1, fontSize: 12, color: '#92400E', lineHeight: 16 },
+  reviewNoticeTxt: { flex: 1, fontSize: 12, color: C.amber, lineHeight: 16 },
 
   /* Quick links */
   linkRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 4, gap: 12 },
@@ -645,17 +651,17 @@ const s = StyleSheet.create({
   },
   featureLockWrap: { position: 'absolute', top: 8, right: 8 },
   featureEmoji: { fontSize: 26, marginBottom: 6 },
-  featureTitle: { fontSize: 12, fontWeight: '800', color: C.text, textAlign: 'center' },
+  featureTitle: { fontFamily: DISPLAY, fontSize: 12, fontWeight: '800', color: C.text, textAlign: 'center' },
   featureDesc: { fontSize: 11, color: C.muted, textAlign: 'center', lineHeight: 14, marginTop: 3 },
 
   /* Help card */
   helpCard: {
-    backgroundColor: C.blueL, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: '#BFDBFE',
+    backgroundColor: C.blueL, borderRadius: rs(18), padding: 18, borderWidth: 1, borderColor: C.blue,
     alignItems: 'center',
   },
   helpIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: C.blue, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  helpTitle: { fontSize: 14, fontWeight: '800', color: '#1E3A8A', marginBottom: 3 },
-  helpSub: { fontSize: 13, color: '#3B82F6', textAlign: 'center', lineHeight: 17, marginBottom: 14 },
-  helpBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.blue, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 12 },
+  helpTitle: { fontFamily: DISPLAY, fontSize: 14, fontWeight: '800', color: C.blue, marginBottom: 3 },
+  helpSub: { fontSize: 13, color: C.blue, textAlign: 'center', lineHeight: 17, marginBottom: 14 },
+  helpBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.blue, paddingHorizontal: 18, paddingVertical: 11, borderRadius: rs(12) },
   helpBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.2 },
 });

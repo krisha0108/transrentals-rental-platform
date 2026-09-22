@@ -19,9 +19,8 @@ import {
   TextInput,
   Alert,
   StatusBar,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
@@ -561,7 +560,7 @@ export default function VendorServicesScreen({ navigation }) {
         transparent
         onRequestClose={() => !submitting && setShowRequestModal(false)}
       >
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={st.modalOverlay}>
           <View style={st.modalContent}>
             <View style={st.sheetHandleWrap}><View style={st.sheetHandle} /></View>

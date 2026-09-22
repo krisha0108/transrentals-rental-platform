@@ -286,6 +286,7 @@ export default function AllInquiriesScreen({ navigation }) {
       {serviceFilters.length > 1 && (
         <View style={s.chipsWrap}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}
+            style={s.chipsRowOuter}
             contentContainerStyle={s.chipsRow}>
             {serviceFilters.map(f => {
               const active = svcFilter === f;
@@ -298,7 +299,7 @@ export default function AllInquiriesScreen({ navigation }) {
                     <MaterialCommunityIcons name={meta.icon} size={13}
                       color={active ? '#fff' : meta.color} />
                   )}
-                  <Text style={[s.chipTxt, active && s.chipTxtActive]}>
+                  <Text numberOfLines={1} style={[s.chipTxt, active && s.chipTxtActive]}>
                     {f === 'all' ? 'All' : meta?.name || f}
                   </Text>
                 </TouchableOpacity>
@@ -442,7 +443,8 @@ const s = StyleSheet.create({
 
   // Chips
   chipsWrap: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
-  chipsRow:  { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
+  chipsRowOuter: { flexGrow: 0, flexShrink: 0, height: 62 },
+  chipsRow:  { paddingHorizontal: 16, paddingVertical: 12, gap: 8, alignItems: 'center' },
   chip:      { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
   chipActive:{ backgroundColor: C.g700, borderColor: C.g700 },
   chipTxt:   { fontSize: 13, fontWeight: '700', color: C.sub },

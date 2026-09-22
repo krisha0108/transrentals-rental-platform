@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, Alert, StyleSheet,
-  SafeAreaView, KeyboardAvoidingView, Platform, StatusBar, Image
+  SafeAreaView, StatusBar, Image
 } from "react-native";
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import axios from "axios";
 import Icon from "react-native-vector-icons/Ionicons";
 import { getBaseURL } from "../../api/client";
@@ -185,7 +186,7 @@ export default function VendorForgotPasswordScreen({ navigation }) {
   return (
     <SafeAreaView style={{flex:1, backgroundColor: BRAND.bg}}>
       <StatusBar barStyle="dark-content" />
-      <KeyboardAvoidingView style={{flex:1,justifyContent:'center'}} behavior={Platform.OS==="ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={{flex:1,justifyContent:'center'}} behavior="padding">
         {/* Hero header similar to login */}
         <View style={styles.heroHead}>
           <View style={styles.brandBadge}>

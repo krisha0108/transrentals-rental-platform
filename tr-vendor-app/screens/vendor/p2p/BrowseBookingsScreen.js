@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, ActivityIndicator, Modal, TextInput, ScrollView, Linking, Share, StatusBar,
-  KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
@@ -552,7 +552,7 @@ export default function BrowseBookingsScreen({ navigation }) {
 
       {/* ── SERVICE FILTERS ── */}
       <View style={s.filterSection}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterScroll}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterScrollOuter} contentContainerStyle={s.filterScroll}>
           {['all', 'truck', 'car'].map(f => (
             <TouchableOpacity
               key={f}
@@ -565,7 +565,7 @@ export default function BrowseBookingsScreen({ navigation }) {
                   color={serviceFilter === f ? '#fff' : C.muted}
                 />
               )}
-              <Text style={[s.filterPillTxt, serviceFilter === f && s.filterPillTxtActive]}>
+              <Text numberOfLines={1} style={[s.filterPillTxt, serviceFilter === f && s.filterPillTxtActive]}>
                 {f === 'all' ? 'All Types' : f.charAt(0).toUpperCase() + f.slice(1)}
               </Text>
             </TouchableOpacity>
@@ -575,7 +575,7 @@ export default function BrowseBookingsScreen({ navigation }) {
 
       {/* ── URGENCY FILTERS ── */}
       <View style={s.filterSection}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterScroll}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterScrollOuter} contentContainerStyle={s.filterScroll}>
           {['all', 'HIGH', 'MEDIUM', 'LOW'].map(u => {
             const uc = URG[u];
             const active = urgencyFilter === u;
@@ -590,7 +590,7 @@ export default function BrowseBookingsScreen({ navigation }) {
                 ]}
                 onPress={() => { setUrgencyFilter(u); setPage(1); }}>
                 {uc && <View style={[s.urgDotFilter, { backgroundColor: uc.dot }]} />}
-                <Text style={[
+                <Text numberOfLines={1} style={[
                   s.filterPillTxt,
                   active && uc ? { color: uc.text, fontWeight: '700' } : active && { color: C.g700, fontWeight: '700' },
                 ]}>
@@ -750,7 +750,7 @@ export default function BrowseBookingsScreen({ navigation }) {
 
       {/* ── ACCEPT MODAL ── */}
       <Modal visible={accModal} transparent animationType="slide">
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={() => setAccModal(false)} />
           <View style={s.modalSheet}>
@@ -992,7 +992,8 @@ const s = StyleSheet.create({
 
   // ── FILTERS ──
   filterSection: { paddingBottom: 2 },
-  filterScroll: { paddingHorizontal: 14, paddingVertical: 5, gap: 8 },
+  filterScrollOuter: { flexGrow: 0, flexShrink: 0, height: 50 },
+  filterScroll: { paddingHorizontal: 14, paddingVertical: 5, gap: 8, alignItems: 'center' },
   filterPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
@@ -1012,7 +1013,7 @@ const s = StyleSheet.create({
   resultTxt: { fontSize: 13, color: C.muted, fontWeight: '600' },
 
   // ── LIST ──
-  listContent: { paddingBottom: 36, gap: 12, paddingTop: 4 },
+  listContent: { paddingBottom: 36, gap: 12 },
 
   // ── CARD ──
   card: {

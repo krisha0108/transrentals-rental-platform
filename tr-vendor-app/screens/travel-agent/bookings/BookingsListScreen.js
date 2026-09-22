@@ -367,7 +367,7 @@ export default function BookingsListScreen({ navigation }) {
           or push the selected pill out of view. Wrapped in a plain View so the
           horizontal ScrollViews get a proper block context (no clipping). */}
       <View style={styles.filtersFixed}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRowOuter} contentContainerStyle={styles.chipsRow}>
         {statusChips.map((c) => {
           const active = statusFilter === c.key;
           return (
@@ -380,7 +380,7 @@ export default function BookingsListScreen({ navigation }) {
               {STATUS_ICON[c.key] && (
                 <Ionicons name={STATUS_ICON[c.key]} size={rs(12)} color={active ? "#fff" : C.sub} />
               )}
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{c.label}</Text>
+              <Text numberOfLines={1} style={[styles.chipText, active && styles.chipTextActive]}>{c.label}</Text>
               {c.count != null && c.count > 0 && (
                 <View style={[styles.chipBadge, active && styles.chipBadgeActive]}>
                   <Text style={[styles.chipBadgeText, active && { color: "#fff" }]}>{c.count}</Text>
@@ -393,7 +393,7 @@ export default function BookingsListScreen({ navigation }) {
 
       <View style={styles.typeFilterRow}>
         <Text style={styles.subFilterLabel}>Type</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={styles.typeRowInner}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[{ flex: 1 }, styles.typeRowOuter]} contentContainerStyle={styles.typeRowInner}>
           {[{ key: "ALL", label: "Any" }, ...BOOKING_TYPE.map((t) => ({ key: t, label: t }))].map((c) => {
             const active = typeFilter === c.key;
             const tc = TYPE_META[c.key];
@@ -408,7 +408,7 @@ export default function BookingsListScreen({ navigation }) {
                 activeOpacity={0.8}
               >
                 {tc && <Ionicons name={tc.icon} size={rs(12)} color={active ? tc.fg : C.muted} />}
-                <Text style={[styles.typeChipText, active && { color: tc ? tc.fg : C.emeraldDeep, fontWeight: "bold" }]}>
+                <Text numberOfLines={1} style={[styles.typeChipText, active && { color: tc ? tc.fg : C.emeraldDeep, fontWeight: "bold" }]}>
                   {c.label}
                 </Text>
                 {tc && <Ionicons name="chevron-down" size={rs(11)} color={active ? tc.fg : C.muted} />}
@@ -891,7 +891,8 @@ const styles = StyleSheet.create({
   // size to their content (prevents the pills getting vertically clipped).
   filtersFixed: { flexShrink: 0 },
   // Status pills (light — fixed row below the search bar)
-  chipsRow: { paddingTop: rs(12), gap: rs(8), flexDirection: "row", paddingLeft: GUT, paddingRight: rs(4) },
+  chipsRowOuter: { flexGrow: 0, flexShrink: 0, height: 52 },
+  chipsRow: { paddingTop: rs(12), gap: rs(8), flexDirection: "row", alignItems: "center", paddingLeft: GUT, paddingRight: rs(4) },
   chip: {
     flexDirection: "row", alignItems: "center", gap: rs(5),
     paddingHorizontal: rs(13), paddingVertical: rs(8), borderRadius: 999,
@@ -912,6 +913,7 @@ const styles = StyleSheet.create({
   typeRow: { paddingTop: rs(6), gap: rs(8), flexDirection: "row", paddingRight: rs(4) },
   // "Type" label + scrollable pills on one row.
   typeFilterRow: { flexDirection: "row", alignItems: "center", gap: rs(8), paddingTop: rs(10), paddingBottom: rs(10), paddingLeft: GUT },
+  typeRowOuter: { flexShrink: 0, height: 40 },
   typeRowInner: { gap: rs(8), flexDirection: "row", alignItems: "center", paddingRight: rs(4) },
 
   // ── Stat tiles ──

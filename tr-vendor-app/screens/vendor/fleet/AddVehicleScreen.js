@@ -12,9 +12,8 @@ import {
   Modal,
   FlatList,
   StatusBar,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -284,6 +283,9 @@ export default function AddVehicleScreen({ route, navigation }) {
         registrationNumber: form.registrationNumber,
         yearOfManufacture: form.yearOfManufacture ? parseInt(form.yearOfManufacture) : null,
         color: form.color || null,
+        fuelType: form.fuelType || null,
+        transmission: form.transmission || null,
+        seatingCapacity: form.seatingCapacity ? parseInt(form.seatingCapacity) : null,
         locationIds: selectedLocations.map(l => l.id),
         images: Object.keys(imageData).length > 0 ? JSON.stringify(imageData) : null,
       };
@@ -333,7 +335,7 @@ export default function AddVehicleScreen({ route, navigation }) {
   // Selection modal component
   const SelectionModal = ({ visible, onClose, title, data, onSelect, selected, searchFields, renderItem }) => (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
@@ -380,22 +382,24 @@ export default function AddVehicleScreen({ route, navigation }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={styles.hero}>
           <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-          <View style={styles.heroRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Icon name="arrow-left" size={22} color="#fff" />
-            </TouchableOpacity>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <View style={styles.heroBadge}>
-                <MaterialCommunityIcons name="car" size={12} color={C.g400} />
-                <Text style={styles.heroBadgeText}>Fleet Management</Text>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={styles.heroRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Icon name="arrow-left" size={22} color="#fff" />
+              </TouchableOpacity>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <View style={styles.heroBadge}>
+                  <MaterialCommunityIcons name="car" size={12} color={C.g400} />
+                  <Text style={styles.heroBadgeText}>Fleet Management</Text>
+                </View>
+                <Text style={styles.heroTitle}>{isEditing ? 'Edit Vehicle' : 'Add Vehicle'}</Text>
               </View>
-              <Text style={styles.heroTitle}>{isEditing ? 'Edit Vehicle' : 'Add Vehicle'}</Text>
             </View>
-          </View>
+          </SafeAreaView>
         </LinearGradient>
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -446,24 +450,27 @@ export default function AddVehicleScreen({ route, navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
 
       {/* Hero Header */}
       <LinearGradient colors={G.hero} style={styles.hero}>
         <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <View style={styles.heroRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={22} color="#fff" />
-          </TouchableOpacity>
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <View style={styles.heroBadge}>
-              <MaterialCommunityIcons name="car" size={12} color={C.g400} />
-              <Text style={styles.heroBadgeText}>Fleet Management</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={styles.heroRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <View style={styles.heroBadge}>
+                <MaterialCommunityIcons name="car" size={12} color={C.g400} />
+                <Text style={styles.heroBadgeText}>Fleet Management</Text>
+              </View>
+              <Text style={styles.heroTitle}>{isEditing ? 'Edit Vehicle' : 'Add Vehicle'}</Text>
             </View>
-            <Text style={styles.heroTitle}>{isEditing ? 'Edit Vehicle' : 'Add Vehicle'}</Text>
           </View>
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView
@@ -868,6 +875,7 @@ export default function AddVehicleScreen({ route, navigation }) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Service Selection Modal */}
       <SelectionModal
@@ -985,7 +993,7 @@ export default function AddVehicleScreen({ route, navigation }) {
 
       {/* Location Selection Modal */}
       <Modal visible={showLocationModal} animationType="slide" transparent onRequestClose={() => setShowLocationModal(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>

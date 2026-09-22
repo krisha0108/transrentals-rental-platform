@@ -255,12 +255,12 @@ export default function FinancialsScreen({ navigation }) {
         ══════════════════════════ */}
         <View style={s.monthStickyWrap}>
           <View style={s.monthWrap}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.monthScroll}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.monthScrollOuter} contentContainerStyle={s.monthScroll}>
               <TouchableOpacity
                 style={[s.monthTab, !selectedMonth && s.monthTabActive]}
                 onPress={() => setSelectedMonth('')}
               >
-                <Text style={[s.monthTabTxt, !selectedMonth && s.monthTabTxtActive]}>All</Text>
+                <Text numberOfLines={1} style={[s.monthTabTxt, !selectedMonth && s.monthTabTxtActive]}>All</Text>
               </TouchableOpacity>
               {months.map(m => (
                 <TouchableOpacity
@@ -268,7 +268,7 @@ export default function FinancialsScreen({ navigation }) {
                   style={[s.monthTab, selectedMonth === m.val && s.monthTabActive]}
                   onPress={() => setSelectedMonth(m.val)}
                 >
-                  <Text style={[s.monthTabTxt, selectedMonth === m.val && s.monthTabTxtActive]}>
+                  <Text numberOfLines={1} style={[s.monthTabTxt, selectedMonth === m.val && s.monthTabTxtActive]}>
                     {m.short}
                   </Text>
                   <Text style={[s.monthTabYear, selectedMonth === m.val && { color: C.g700 }]}>
@@ -672,7 +672,8 @@ const s = StyleSheet.create({
   /* ── Month tabs (sticky) ── */
   monthStickyWrap: { backgroundColor: C.bg, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 14 },
   monthWrap: { backgroundColor: C.surface, borderRadius: rs(18), borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
-  monthScroll: { paddingHorizontal: 10, paddingVertical: 10, gap: 6 },
+  monthScrollOuter: { flexGrow: 0, flexShrink: 0, height: 74 },
+  monthScroll: { paddingHorizontal: 10, paddingVertical: 10, gap: 6, alignItems: 'center' },
   monthTab: { alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, backgroundColor: C.bg },
   monthTabActive: { backgroundColor: C.g700 },
   monthTabTxt: { fontSize: 14, fontWeight: '700', color: C.subtext },

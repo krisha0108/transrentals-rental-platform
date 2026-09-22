@@ -16,6 +16,7 @@ import {
   TextInput, ActivityIndicator, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -131,6 +132,7 @@ export default function BankDetailsScreen({ navigation }) {
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
 
       {/* ── HERO — static sibling so it can never be clipped by the
           ScrollView's own viewport ── */}
@@ -390,6 +392,7 @@ export default function BankDetailsScreen({ navigation }) {
           <View style={{ height: rs(40) }} />
         </ScrollView>
       )}
+      </KeyboardAvoidingView>
     </View>
   );
 }

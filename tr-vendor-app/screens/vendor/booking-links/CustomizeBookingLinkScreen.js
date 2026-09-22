@@ -6,8 +6,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, StatusBar,
+  ScrollView, Platform, ActivityIndicator, StatusBar,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Icon from 'react-native-vector-icons/Feather';
@@ -131,8 +132,8 @@ export default function CustomizeBookingLinkScreen({ navigation, route }) {
         </SafeAreaView>
       </LinearGradient>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
 
           {/* ===== How-it-works intro card ===== */}
           <View style={s.introCard}>
@@ -197,26 +198,26 @@ export default function CustomizeBookingLinkScreen({ navigation, route }) {
 
           <View style={{ height: 100 }} />
         </ScrollView>
-      </KeyboardAvoidingView>
 
-      {/* ===== Sticky bottom save bar ===== */}
-      <View style={s.bottomBar}>
-        <TouchableOpacity
-          style={[s.saveWrap, saving && { opacity: 0.5 }]}
-          onPress={save}
-          disabled={saving}
-          activeOpacity={0.9}
-        >
-          <LinearGradient colors={G.emerald} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.saveBtn}>
-            {saving ? <ActivityIndicator size="small" color="#fff" /> : (
-              <>
-                <Icon name="check" size={18} color="#fff" />
-                <Text style={s.saveBtnText}>Save Changes</Text>
-              </>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
+        {/* ===== Sticky bottom save bar ===== */}
+        <View style={s.bottomBar}>
+          <TouchableOpacity
+            style={[s.saveWrap, saving && { opacity: 0.5 }]}
+            onPress={save}
+            disabled={saving}
+            activeOpacity={0.9}
+          >
+            <LinearGradient colors={G.emerald} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.saveBtn}>
+              {saving ? <ActivityIndicator size="small" color="#fff" /> : (
+                <>
+                  <Icon name="check" size={18} color="#fff" />
+                  <Text style={s.saveBtnText}>Save Changes</Text>
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }

@@ -10,11 +10,10 @@ import {
   Alert,
   Modal,
   StatusBar,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -67,6 +66,7 @@ const DEFAULT_TERMS = [
 ];
 
 export default function SelfDriveSendQuoteScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const { requestId } = route.params || {};
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -295,22 +295,24 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={['left','right']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
-          </TouchableOpacity>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent', flexDirection: 'row', alignItems: 'center', width: '100%' }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
 
-          <View style={styles.headerCenter}>
-            <View style={styles.headerIconRow}>
-              <Ionicons name="send-outline" size={18} color={C.g400} style={{ marginRight: 7 }} />
-              <Text style={styles.headerTitle}>Send Quote</Text>
+            <View style={styles.headerCenter}>
+              <View style={styles.headerIconRow}>
+                <Ionicons name="send-outline" size={18} color={C.g400} style={{ marginRight: 7 }} />
+                <Text style={styles.headerTitle}>Send Quote</Text>
+              </View>
+              <Text style={styles.headerSubtitle}>Self Drive</Text>
             </View>
-            <Text style={styles.headerSubtitle}>Self Drive</Text>
-          </View>
 
-          <View style={{ width: 44 }} />
+            <View style={{ width: 44 }} />
+          </SafeAreaView>
         </LinearGradient>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20, flexGrow: 1 }}>
           {/* Request Summary skeleton */}
@@ -366,7 +368,7 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
   const dailyRate = calculateDailyRate();
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['left','right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* Header */}
@@ -374,22 +376,24 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
         {/* Decorative circles */}
         <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
-        </TouchableOpacity>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent', flexDirection: 'row', alignItems: 'center', width: '100%' }}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
 
-        <View style={styles.headerCenter}>
-          <View style={styles.headerIconRow}>
-            <Ionicons name="send-outline" size={18} color={C.g400} style={{ marginRight: 7 }} />
-            <Text style={styles.headerTitle}>Send Quote</Text>
+          <View style={styles.headerCenter}>
+            <View style={styles.headerIconRow}>
+              <Ionicons name="send-outline" size={18} color={C.g400} style={{ marginRight: 7 }} />
+              <Text style={styles.headerTitle}>Send Quote</Text>
+            </View>
+            <Text style={styles.headerSubtitle}>Self Drive</Text>
           </View>
-          <Text style={styles.headerSubtitle}>Self Drive</Text>
-        </View>
 
-        <View style={{ width: 44 }} />
+          <View style={{ width: 44 }} />
+        </SafeAreaView>
       </LinearGradient>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 20, flexGrow: 1 }}>
 
         {/* Request Summary Card */}
@@ -855,10 +859,9 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-      </KeyboardAvoidingView>
 
       {/* Footer Submit Button */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 10 }]}>
         <TouchableOpacity
           style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
           onPress={handleSubmit}
@@ -877,6 +880,7 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
           )}
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
 
       <DateTimePickerModal
         isVisible={showDatePicker}
@@ -900,7 +904,7 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
         onRequestClose={() => setEditModalVisible(false)}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="padding"
           style={{ flex: 1 }}
         >
         <View style={styles.modalOverlay}>
@@ -1289,7 +1293,9 @@ const styles = StyleSheet.create({
 
   // Footer
   footer: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 0,
     backgroundColor: C.card,
     borderTopWidth: 1,
     borderTopColor: C.border,

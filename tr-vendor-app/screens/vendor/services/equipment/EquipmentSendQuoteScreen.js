@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Modal, StatusBar,
-  KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -63,6 +63,7 @@ const EQUIPMENT_CATEGORIES = [
 ];
 
 export default function EquipmentSendQuoteScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const { requestId } = route.params || {};
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -314,7 +315,7 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
   const advance = calculateAdvance();
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['left','right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       <LinearGradient
@@ -323,17 +324,19 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
         style={s.hero}
       >
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <View style={s.topBar}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={18} color="#fff" />
-          </TouchableOpacity>
-          <Text style={s.heroTitle}>Send Quote</Text>
-          <View style={{ width: 36 }} />
-        </View>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.topBar}>
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <Text style={s.heroTitle}>Send Quote</Text>
+            <View style={{ width: 36 }} />
+          </View>
+        </SafeAreaView>
         <Text style={s.heroSub}>Equipment Rental</Text>
       </LinearGradient>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
         {/* Request Summary */}
         <View style={[s.card, { backgroundColor: C.g50, borderColor: C.g100 }]}>
@@ -594,10 +597,9 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
 
         <View style={{ height: 20 }} />
       </ScrollView>
-      </KeyboardAvoidingView>
 
       {/* Footer */}
-      <View style={s.footer}>
+      <View style={[s.footer, { paddingBottom: insets.bottom + 10 }]}>
         <TouchableOpacity style={[s.submitBtn, submitting && { opacity: 0.6 }]} onPress={handleSubmit} disabled={submitting}>
           {submitting ? <ActivityIndicator size="small" color="#fff" /> : (
             <>
@@ -607,6 +609,7 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
           )}
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
 
       <DateTimePickerModal
         isVisible={showDatePicker}
@@ -625,7 +628,7 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
       {/* Edit Modal */}
       <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="padding"
           style={{ flex: 1 }}
         >
         <View style={s.modalOverlay}>
@@ -680,7 +683,7 @@ const s = StyleSheet.create({
   heroTitle: { fontFamily: DISPLAY, fontSize: 17, fontWeight: '800', color: '#fff' },
   heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
 
-  scroll: { flex: 1 },
+  scroll: { flex: 1, paddingHorizontal: 16 },
   content: { padding: 16, paddingBottom: 20 },
 
   card: { backgroundColor: C.card, borderRadius: rs(16), padding: 16, marginBottom: 16, borderWidth: 1, borderColor: C.border, ...cardShadow },
@@ -707,7 +710,7 @@ const s = StyleSheet.create({
   termNum: { fontSize: 14, fontWeight: '700', color: C.g600, marginRight: 6, width: 18 },
   termText: { flex: 1, fontSize: 14, color: C.sub, lineHeight: 18 },
 
-  footer: { padding: 16, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border, ...cardShadow },
+  footer: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 0, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border, ...cardShadow },
   submitBtn: { backgroundColor: C.g600, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: rs(12) },
   submitBtnTxt: { fontFamily: DISPLAY, fontSize: 16, fontWeight: '800', color: '#fff' },
 

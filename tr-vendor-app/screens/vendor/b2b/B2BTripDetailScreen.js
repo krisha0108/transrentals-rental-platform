@@ -5,6 +5,7 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -161,20 +162,22 @@ export default function B2BTripDetailScreen({ navigation, route }) {
   const Header = ({ tripCode: tc }) => (
     <LinearGradient colors={G.hero} style={s.header}>
       <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-      <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-        <Icon name="arrow-left" size={22} color="#fff" />
-      </TouchableOpacity>
-      <View style={s.headerCenter}>
-        <Text style={s.headerTitle}>Trip Detail</Text>
-        {tc && <Text style={s.headerSub}>{tc}</Text>}
-      </View>
-      <View style={{ width: 40 }} />
+      <SafeAreaView edges={['top']} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'transparent' }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+          <Icon name="arrow-left" size={22} color="#fff" />
+        </TouchableOpacity>
+        <View style={s.headerCenter}>
+          <Text style={s.headerTitle}>Trip Detail</Text>
+          {tc && <Text style={s.headerSub}>{tc}</Text>}
+        </View>
+        <View style={{ width: 40 }} />
+      </SafeAreaView>
     </LinearGradient>
   );
 
   if (loading) {
     return (
-      <SafeAreaView style={s.safe} edges={['top']}>
+      <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
         <Header tripCode={tripCode} />
         <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
           {/* Hero banner skeleton */}
@@ -236,7 +239,7 @@ export default function B2BTripDetailScreen({ navigation, route }) {
 
   if (!trip) {
     return (
-      <SafeAreaView style={s.safe} edges={['top']}>
+      <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
         <Header tripCode={tripCode} />
         <View style={s.loadingWrap}>
           <MCI name="road-variant" size={52} color={C.muted} />
@@ -288,7 +291,8 @@ export default function B2BTripDetailScreen({ navigation, route }) {
     trip.otp && ['PENDING', 'DRIVER_ARRIVED'].includes(trip.status);
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <Header tripCode={trip.tripCode} />
 
       <ScrollView
@@ -592,6 +596,7 @@ export default function B2BTripDetailScreen({ navigation, route }) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <CustomAlert
         visible={alert.visible}

@@ -8,6 +8,7 @@ import {
   TextInput, StatusBar, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -133,18 +134,20 @@ export default function LuxuryEditTemplateScreen({ navigation, route }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={s.container} edges={['top']}>
+      <SafeAreaView style={s.container} edges={['bottom', 'left', 'right']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={s.hero}>
-          <View style={s.heroRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-              <Icon name="arrow-left" size={22} color="#fff" />
-            </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={s.heroTitle}>Edit Template</Text>
-              <Text style={s.heroSub}>Loading template data...</Text>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={s.heroRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+                <Icon name="arrow-left" size={22} color="#fff" />
+              </TouchableOpacity>
+              <View style={{ flex: 1 }}>
+                <Text style={s.heroTitle}>Edit Template</Text>
+                <Text style={s.heroSub}>Loading template data...</Text>
+              </View>
             </View>
-          </View>
+          </SafeAreaView>
         </LinearGradient>
 
         <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
@@ -183,29 +186,32 @@ export default function LuxuryEditTemplateScreen({ navigation, route }) {
   }
 
   return (
-    <SafeAreaView style={s.container} edges={['top']}>
+    <SafeAreaView style={s.container} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
 
       <LinearGradient colors={G.hero} style={s.hero}>
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <View style={s.heroRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-            <Icon name="arrow-left" size={22} color="#fff" />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <View style={s.editBadgeRow}>
-              <View style={s.editBadge}>
-                <Icon name="edit-2" size={11} color={C.g400} />
-                <Text style={s.editBadgeText}>Editing</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.heroRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <View style={s.editBadgeRow}>
+                <View style={s.editBadge}>
+                  <Icon name="edit-2" size={11} color={C.g400} />
+                  <Text style={s.editBadgeText}>Editing</Text>
+                </View>
               </View>
+              <Text style={s.heroTitle} numberOfLines={1}>{templateName}</Text>
+              <Text style={s.heroSub}>Luxury Cars — update template details</Text>
             </View>
-            <Text style={s.heroTitle} numberOfLines={1}>{templateName}</Text>
-            <Text style={s.heroSub}>Luxury Cars — update template details</Text>
+            <View style={s.heroBadge}>
+              <MaterialCommunityIcons name="car-sports" size={20} color={C.g400} />
+            </View>
           </View>
-          <View style={s.heroBadge}>
-            <MaterialCommunityIcons name="car-sports" size={20} color={C.g400} />
-          </View>
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
@@ -356,6 +362,7 @@ export default function LuxuryEditTemplateScreen({ navigation, route }) {
           <Text style={s.submitBtnText}>{isSubmitting ? 'Saving...' : 'Save Changes'}</Text>
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
