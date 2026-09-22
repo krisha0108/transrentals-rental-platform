@@ -88,9 +88,9 @@ export default function VehicleDetailScreen({ route, navigation }) {
           vehicleData.modelName       = vehicleData.vehicle_models?.name || vehicleData.model || null;
           vehicleData.serviceName     = vehicleData.services?.name || null;
           vehicleData.categoryName    = vehicleData.chauffeur_vehicle_categories?.name || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.name || null;
-          vehicleData.seatingCapacity = vehicleData.seatingCapacity || vehicleData.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.vehicle_models?.seatingCapacity || null;
-          vehicleData.fuelType        = vehicleData.fuelType || vehicleData.chauffeur_vehicle_categories?.fuelType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.fuelType || vehicleData.vehicle_models?.fuelType || null;
-          vehicleData.transmission    = vehicleData.transmission || vehicleData.chauffeur_vehicle_categories?.acType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.acType || vehicleData.vehicle_models?.transmission || null;
+          vehicleData.seatingCapacity = vehicleData.seatingCapacity || vehicleData.vehicle_models?.seatingCapacity || vehicleData.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.seatingCapacity || null;
+          vehicleData.fuelType        = vehicleData.fuelType || vehicleData.vehicle_models?.fuelType || vehicleData.chauffeur_vehicle_categories?.fuelType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.fuelType || null;
+          vehicleData.transmission    = vehicleData.transmission || vehicleData.vehicle_models?.transmission || vehicleData.chauffeur_vehicle_categories?.acType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.acType || null;
           vehicleData.year            = vehicleData.yearOfManufacture || vehicleData.year || null;
         }
         setVehicle(vehicleData);
