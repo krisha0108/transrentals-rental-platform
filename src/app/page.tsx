@@ -2859,18 +2859,21 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
         <div className="flex flex-col items-stretch">
           {variant === 'compact' ? (
             <div className="rounded-2xl bg-white px-2 shadow-[0_10px_30px_rgba(15,23,42,0.14)] sm:px-6">
-              <div className="flex items-end gap-10 overflow-x-auto overflow-y-visible px-8 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex items-end gap-5 overflow-x-auto overflow-y-visible px-4 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-10 sm:px-8 [&::-webkit-scrollbar]:hidden">
                 {TRANSPORT_TABS.map((tab) => {
                   const active = activeTab.key === tab.key;
                   const hovered = hoveredTabKey === tab.key;
-                  // Every tab reserves the SAME fixed 192px of layout height (enough for
-                  // the largest image at its biggest active scale) — identical for every
-                  // tab, in both states, all the time. That's what actually keeps the
-                  // button height and label position 100% still: nothing here ever
-                  // depends on `active`. The circle badge is a separate, always-64px
-                  // decorative layer. Only the image's transform (pure paint, no layout
-                  // effect) animates its visual size within that fixed space — hover
-                  // adds a bit of extra height on top of the resting scale, nothing else.
+                  // Every tab reserves the SAME fixed layout height per breakpoint
+                  // (enough for the largest image at its biggest active scale) —
+                  // identical for every tab, in both states, all the time. That's
+                  // what actually keeps the button height and label position 100%
+                  // still: nothing here ever depends on `active`. The circle badge
+                  // is a separate, always-fixed-size decorative layer. Only the
+                  // image's transform (pure paint, no layout effect) animates its
+                  // visual size within that fixed space — hover adds a bit of extra
+                  // height on top of the resting scale, nothing else. The image's
+                  // own base size is smaller on mobile (h-10 vs h-16), so the same
+                  // scale multiplier lands on a noticeably smaller vehicle image.
                   const baseScale = (active ? 1.5 : 1.15) * (tab.imageScale ?? 1);
                   const scale = hovered ? baseScale * 1.15 : baseScale;
                   return (
@@ -2880,17 +2883,17 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                       onClick={() => setActiveTab(tab)}
                       onMouseEnter={() => setHoveredTabKey(tab.key)}
                       onMouseLeave={() => setHoveredTabKey((k) => (k === tab.key ? null : k))}
-                      className={`flex shrink-0 flex-col items-center border-b-2 px-1 py-2 text-[15px] font-semibold transition-colors ${
+                      className={`flex shrink-0 flex-col items-center border-b-2 px-1 py-2 text-[12px] font-semibold transition-colors sm:text-[15px] ${
                         active ? 'border-primary text-primary-700' : 'border-transparent text-slate-700 hover:text-slate-900'
                       }`}
                     >
-                      <div className="relative flex h-32 w-16 shrink-0 items-center justify-center">
-                        <div className="absolute h-16 w-16 rounded-full bg-primary-50" />
+                      <div className="relative flex h-20 w-10 shrink-0 items-center justify-center sm:h-32 sm:w-16">
+                        <div className="absolute h-10 w-10 rounded-full bg-primary-50 sm:h-16 sm:w-16" />
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={tab.image}
                           alt={tab.label}
-                          className="relative h-16 w-auto origin-center transform-gpu object-contain transition-transform duration-300 ease-out"
+                          className="relative h-10 w-auto origin-center transform-gpu object-contain transition-transform duration-300 ease-out sm:h-16"
                           style={{ transform: `scale(${scale})` }}
                         />
                       </div>

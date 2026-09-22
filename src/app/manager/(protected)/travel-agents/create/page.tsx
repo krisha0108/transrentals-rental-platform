@@ -27,7 +27,7 @@ function ManagerCreateTravelAgentPageInner() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState<{ agencyName: string; tid: string | null } | null>(null);
+  const [success, setSuccess] = useState<{ agencyName: string; tid: string | null; linked: boolean } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -101,14 +101,23 @@ function ManagerCreateTravelAgentPageInner() {
       });
       const data = await res.json();
       if (res.ok) {
+        // Awaited, not fired and forgotten. A lost link-back leaves the agent
+        // created but the call report still reading as an open lead, which
+        // then offers to create the same agent all over again.
+        let linked = false;
         if (callReportId) {
-          fetch(`/api/manager/call-reports/${callReportId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ travelAgentId: data.travelAgent.id, status: 'TRAVEL_AGENT_CREATED' }),
-          }).catch(() => {});
+          try {
+            const linkRes = await fetch(`/api/manager/call-reports/${callReportId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ travelAgentId: data.travelAgent.id, status: 'TRAVEL_AGENT_CREATED' }),
+            });
+            linked = linkRes.ok;
+          } catch {
+            linked = false;
+          }
         }
-        setSuccess({ agencyName: data.travelAgent.agencyName, tid: data.travelAgent.tid });
+        setSuccess({ agencyName: data.travelAgent.agencyName, tid: data.travelAgent.tid, linked });
       } else {
         setError(data.error || 'Failed to create travel agent');
       }
@@ -150,7 +159,14 @@ function ManagerCreateTravelAgentPageInner() {
             Share the login email/password with the agent so they can log in and upload documents.
           </p>
           {callReportId && (
-            <p className="text-xs text-indigo-600 font-medium mb-5">Linked back to the call report — its status is now "Travel Agent Created".</p>
+            success.linked ? (
+              <p className="text-xs text-indigo-600 font-medium mb-5">Linked back to the call report — its status is now &quot;Travel Agent Created&quot;.</p>
+            ) : (
+              <p className="text-xs text-amber-700 bg-amber-50 ring-1 ring-amber-200 rounded-lg px-3 py-2 font-medium mb-5">
+                The travel agent was created, but the call report could not be updated. Open that report and set its status to
+                &quot;Travel Agent Created&quot; so nobody creates this agent again.
+              </p>
+            )
           )}
           {!callReportId && <div className="mb-6" />}
           <div className="flex items-center justify-center gap-3 flex-wrap">

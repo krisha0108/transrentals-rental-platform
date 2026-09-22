@@ -16,6 +16,7 @@ import {
 import { LocationStatePicker, type LocationOption } from '@/components/location/LocationStatePicker';
 import { ServiceMultiSelect, type ServiceOption } from './ServiceMultiSelect';
 import { SearchableSelect } from './SearchableSelect';
+import { getConversionState } from '@/lib/call-report-conversion';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
 type CallReportStatus =
@@ -93,6 +94,16 @@ export function CallReportForm({ reportId }: { reportId?: string }) {
   const [locations, setLocations] = useState<LocationOption[]>([]);
   const [linkedVendor, setLinkedVendor] = useState<{ id: string; businessName: string; vid: string | null } | null>(null);
   const [linkedTravelAgent, setLinkedTravelAgent] = useState<{ id: string; agencyName: string; tid: string | null } | null>(null);
+
+  // Whether this contact is already on the books. Reads the linked record
+  // first and falls back to the status, so a report the manager marked
+  // "Vendor Created" stops offering to create the vendor all over again.
+  const conversion = getConversionState({
+    status: form.status,
+    contactType: form.contactType,
+    vendor: linkedVendor,
+    travelAgent: linkedTravelAgent,
+  });
   const [convertingToVendor, setConvertingToVendor] = useState(false);
   const [convertingToTravelAgent, setConvertingToTravelAgent] = useState(false);
 
@@ -195,7 +206,10 @@ export function CallReportForm({ reportId }: { reportId?: string }) {
       setError('Vendor name is required');
       return null;
     }
-    if (!skipDuplicateCheck && !linkedVendor && !linkedTravelAgent) {
+    // Only worth sweeping for duplicates while this is still a lead. A
+    // report already marked converted would match the very vendor it
+    // became and stall the save on a duplicate warning.
+    if (!skipDuplicateCheck && conversion.kind === 'offer') {
       const matches = await runDuplicateCheck();
       if (matches.length > 0) {
         setDuplicateMatches(matches);
@@ -326,21 +340,22 @@ export function CallReportForm({ reportId }: { reportId?: string }) {
     isEdit ? 'Edit Call Report' : 'Add Call Report',
     'Log vendor interaction & onboarding details',
     <div key="actions" className="flex flex-wrap items-center gap-2">
-      {linkedVendor ? (
+      {conversion.kind === 'linked' ? (
         <Link
-          href={`/manager/vendors/${linkedVendor.id}`}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-sky-600 text-sky-700 text-sm font-semibold hover:bg-sky-50 transition"
+          href={conversion.target === 'vendor' ? `/manager/vendors/${conversion.id}` : `/manager/travel-agents/${conversion.id}`}
+          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-sm font-semibold transition ${conversion.target === 'vendor' ? 'border-sky-600 text-sky-700 hover:bg-sky-50' : 'border-indigo-600 text-indigo-700 hover:bg-indigo-50'}`}
         >
-          <Store className="w-4 h-4" /> View Vendor
+          {conversion.target === 'vendor' ? <Store className="w-4 h-4" /> : <Briefcase className="w-4 h-4" />}
+          {conversion.target === 'vendor' ? 'View Vendor' : 'View Travel Agent'}
         </Link>
-      ) : linkedTravelAgent ? (
-        <Link
-          href={`/manager/travel-agents/${linkedTravelAgent.id}`}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-indigo-600 text-indigo-700 text-sm font-semibold hover:bg-indigo-50 transition"
+      ) : conversion.kind === 'already' ? (
+        <span
+          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold ${conversion.target === 'vendor' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200'}`}
+          title="This report's status already says converted. No profile is linked to it yet."
         >
-          <Briefcase className="w-4 h-4" /> View Travel Agent
-        </Link>
-      ) : form.contactType === 'VENDOR' ? (
+          <CheckCircle2 className="w-4 h-4" /> {conversion.label}
+        </span>
+      ) : conversion.target === 'vendor' ? (
         <button
           onClick={() => handleReadyToBecomeVendor()}
           disabled={saving || convertingToVendor || checkingDuplicate}
