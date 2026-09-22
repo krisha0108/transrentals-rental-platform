@@ -35,7 +35,7 @@ function ManagerCreateVendorPageInner() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState<{ businessName: string; vid: string | null } | null>(null);
+  const [success, setSuccess] = useState<{ businessName: string; vid: string | null; linked: boolean } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -109,14 +109,24 @@ function ManagerCreateVendorPageInner() {
       });
       const data = await res.json();
       if (res.ok) {
+        // Awaited, not fired and forgotten. If this link-back is lost the
+        // vendor exists but the call report still reads as an open lead, so
+        // it keeps offering "Ready to Become Vendor" — and the next click
+        // creates the same vendor a second time. Better to say it failed.
+        let linked = false;
         if (callReportId) {
-          fetch(`/api/manager/call-reports/${callReportId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ vendorId: data.vendor.id, status: 'VENDOR_CREATED' }),
-          }).catch(() => {});
+          try {
+            const linkRes = await fetch(`/api/manager/call-reports/${callReportId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ vendorId: data.vendor.id, status: 'VENDOR_CREATED' }),
+            });
+            linked = linkRes.ok;
+          } catch {
+            linked = false;
+          }
         }
-        setSuccess({ businessName: data.vendor.businessName, vid: data.vendor.vid });
+        setSuccess({ businessName: data.vendor.businessName, vid: data.vendor.vid, linked });
       } else {
         setError(data.error || 'Failed to create vendor');
       }
@@ -158,7 +168,14 @@ function ManagerCreateVendorPageInner() {
             Share the login email/password with the vendor so they can log in and upload documents.
           </p>
           {callReportId && (
-            <p className="text-xs text-emerald-600 font-medium mb-5">Linked back to the call report — its status is now "Vendor Created".</p>
+            success.linked ? (
+              <p className="text-xs text-emerald-600 font-medium mb-5">Linked back to the call report — its status is now &quot;Vendor Created&quot;.</p>
+            ) : (
+              <p className="text-xs text-amber-700 bg-amber-50 ring-1 ring-amber-200 rounded-lg px-3 py-2 font-medium mb-5">
+                The vendor was created, but the call report could not be updated. Open that report and set its status to
+                &quot;Vendor Created&quot; so nobody creates this vendor again.
+              </p>
+            )
           )}
           {!callReportId && <div className="mb-6" />}
           <div className="flex items-center justify-center gap-3 flex-wrap">

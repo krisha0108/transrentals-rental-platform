@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { SearchableSelect, type SelectOption } from './_components/SearchableSelect';
+import { getConversionState } from '@/lib/call-report-conversion';
 import { MultiSelect } from './_components/MultiSelect';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
@@ -943,6 +944,7 @@ function FlagReportModal({
 function ViewReportModal({ report: r, onClose }: { report: CallReport; onClose: () => void }) {
   const meta = STATUS_META[r.status];
   const StatusIcon = meta.icon;
+  const conversion = getConversionState(r);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
@@ -975,15 +977,26 @@ function ViewReportModal({ report: r, onClose }: { report: CallReport; onClose: 
                 <Flag className="w-3.5 h-3.5" /> Flagged
               </span>
             )}
-            {r.vendor ? (
-              <Link href={`/manager/vendors/${r.vendor.id}`} className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700">
-                <Store className="w-3.5 h-3.5" /> {r.vendor.vid ? r.vendor.vid.toUpperCase() : 'View vendor profile'}
+            {/* What this contact already is — read from the link when there
+                is one, otherwise from the status. Offering "Ready to Become
+                Vendor" on a report already marked Vendor Created had the page
+                arguing with its own status field. */}
+            {conversion.kind === 'linked' ? (
+              <Link
+                href={conversion.target === 'vendor' ? `/manager/vendors/${conversion.id}` : `/manager/travel-agents/${conversion.id}`}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold ${conversion.target === 'vendor' ? 'text-emerald-600 hover:text-emerald-700' : 'text-indigo-600 hover:text-indigo-700'}`}
+              >
+                {conversion.target === 'vendor' ? <Store className="w-3.5 h-3.5" /> : <Briefcase className="w-3.5 h-3.5" />}
+                {conversion.label}
               </Link>
-            ) : r.travelAgent ? (
-              <Link href={`/manager/travel-agents/${r.travelAgent.id}`} className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700">
-                <Briefcase className="w-3.5 h-3.5" /> {r.travelAgent.tid ? r.travelAgent.tid.toUpperCase() : 'View travel agent profile'}
-              </Link>
-            ) : r.canEdit && r.contactType === 'VENDOR' ? (
+            ) : conversion.kind === 'already' ? (
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${conversion.target === 'vendor' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200'}`}
+                title="Marked converted on the call sheet. No profile is linked to this report yet."
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" /> {conversion.label}
+              </span>
+            ) : r.canEdit && conversion.target === 'vendor' ? (
               <Link
                 href={`/manager/vendors/create?${new URLSearchParams({
                   businessName: r.companyName || r.vendorName || '',
