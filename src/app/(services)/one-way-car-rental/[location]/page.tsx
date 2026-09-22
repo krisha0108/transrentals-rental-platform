@@ -1,10 +1,15 @@
 ﻿import { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { FAQSection } from '@/components/services/FAQSection';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
@@ -23,7 +28,7 @@ interface PageProps {
   };
 }
 
-// Generate static params for ALL cities - GOD LEVEL SEO
+// Generate static params for ALL cities
 // Generate static params from DATABASE - Only locations where car-rental is available
 export async function generateStaticParams() {
   return getAllCityLocations();
@@ -49,8 +54,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('one-way-car-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `One Way Car Rental from ${locationName} | Drop at Different City @₹1299 | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `One-way car rental from ${locationName}. Drop car at different city. No return trip needed. Convenient intercity travel. Book online instantly.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `One Way Car Rental from ${locationName} | Drop at Different City | TransRentals`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `One-way car rental from ${locationName}. Drop car at different city. No return trip needed. Convenient intercity travel. Book online instantly.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `one way car rental ${locationName.toLowerCase()}`,
       `one way car hire ${locationName.toLowerCase()}`,
@@ -60,7 +65,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ...(city.keywords || []).map(k => `one way car ${k}`),
     ],
     openGraph: {
-      title: `One Way Car Rental from ${locationName} - Starting @₹1299`,
+      title: `One Way Car Rental from ${locationName} - Starting`,
       description: `Rent a car in ${locationName} and drop it at a different city. No return trip required.`,
       url: `https://transrentals.in/one-way-car-rental/${params.location.toLowerCase()}`,
     },
@@ -70,15 +75,63 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image' as const,
       title: `One Way Car Rental from ${locationName} | TransRentals`,
-      description: `One-way car rental from ${locationName}. Drop at different city. No return trip needed @₹1299.`,
+      description: `One-way car rental from ${locationName}. Drop at different city.`,
     },
   };
 }
 
+const EXPANDING_FAQS = [
+  { question: 'What is a one-way car rental?', answer: 'You pay for the distance to your destination only — no return fare — and the car is dropped at the destination city.' },
+  { question: 'When will one-way car rental open in my city?', answer: 'We onboard operators city by city and a city goes live as soon as verified operators are ready there. Until then you can book in the nearby cities listed above.' },
+  { question: 'Is a driver included?', answer: 'Yes. Every one-way booking comes with a verified professional driver.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet: no booking form and no
+ * quoted rate, just the nearest cities that are bookable today.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/one-way-car-rental" className="hover:text-primary">One Way Car Rental</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="one-way car rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="one-way-car-rental"
+          serviceName="One Way Car Rental"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="car"
+        selectionDesc="Sedans, SUVs and hatchbacks for drop-only intercity trips."
+      />
+      <FAQSection service="one-way-car-rental" location={cityName} customFaqs={EXPANDING_FAQS} />
+    </>
+  );
+}
+
 export default async function OneWayCarRentalLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('one-way-car-rental', params.location);
+  const pageContext = await resolveServicePage('one-way-car-rental', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'car-rental',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="one-way-car-rental" serviceName="One Way Car Rental" />;
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   const city = pageContext.city;
 
   const scContent = await getServiceCityContent('one-way-car-rental', params.location);
@@ -447,7 +500,7 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

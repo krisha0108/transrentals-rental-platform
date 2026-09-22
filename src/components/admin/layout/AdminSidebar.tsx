@@ -66,6 +66,7 @@ import {
   MapPinOff,
   Share2,
   Radar,
+  PhoneCall,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
@@ -377,6 +378,7 @@ const adminItems: NavItem[] = [
     icon: Store,
     children: [
       { name: 'All Vendors', href: '/admin/vendors', icon: Store },
+      { name: 'Fleet Management', href: '/admin/vendors/fleet', icon: Car },
       { name: 'Pending Approval', href: '/admin/vendors/pending', icon: Clock },
       { name: 'Service Requests', href: '/admin/vendors/service-requests', icon: Layers },
       { name: 'Location Requests', href: '/admin/vendors/location-requests', icon: MapPin },
@@ -495,6 +497,7 @@ const settingsItems: NavItem[] = [
       { name: 'All Managers', href: '/admin/settings/managers', icon: UserCog },
       { name: 'Manager Performance', href: '/admin/settings/managers/performance', icon: TrendingUp },
       { name: 'Manager Activity', href: '/admin/settings/managers/activity', icon: Activity },
+      { name: 'Call Reports', href: '/admin/settings/managers/call-reports', icon: PhoneCall },
     ],
   },
 ];

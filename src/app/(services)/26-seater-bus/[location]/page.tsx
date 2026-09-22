@@ -1,5 +1,6 @@
 ﻿import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import Link from 'next/link';
 import { Armchair, Bus, ArrowRight } from 'lucide-react';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
@@ -15,7 +16,10 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionMatching } from '@/components/seo/ServiceCitySections';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 
 interface PageProps { params: { location: string }; }
 
@@ -38,20 +42,70 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('26-seater-bus', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `26 Seater Bus in ${locationName} | Mini Bus @₹28/km | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book 26 seater bus in ${locationName}. AC/Non-AC with driver for weddings, corporate events.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `26 Seater Bus in ${locationName} | AC & Non-AC Mini Bus | TransRentals`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Book 26 seater bus in ${locationName}. AC/Non-AC with driver for weddings, corporate events.`,
     alternates: { canonical: `https://transrentals.in/26-seater-bus/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `26 Seater Bus in ${locationName} | TransRentals`,
-      description: `Book 26 seater bus in ${locationName} starting @₹25/km with driver.`,
+      description: `Book a 26 seater mini bus in ${locationName} with a professional driver.`,
     },
   };
 }
 
+const PAGE_FAQS = [
+  { question: 'Is a 26-seater classified as a mini bus or full-size bus?', answer: 'A 26-seater is a mini bus — larger than a tempo traveller but compact enough for city roads. Ideal for 24–26 passengers with hand luggage.' },
+  { question: 'How is a 26-seater bus charged?', answer: 'Outstation trips are charged per km with a minimum of 150 km per day, and Non-AC, AC and Luxury variants are quoted separately. Share your route and the operator sends the exact amount.' },
+  { question: 'Is a 26-seater bus available for school picnic or college trip?', answer: 'Yes — 26-seater AC buses are popular for school picnics, college tours, and religious group travel. Advance booking recommended.' },
+  { question: 'Does the 26-seater bus have luggage space?', answer: 'Yes, 26-seater mini buses have overhead racks and optional roof carrier for large luggage on outstation trips.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet. No booking form and no
+ * quoted rate: there is nothing to book and no partner to honour a number, so
+ * the page points at the nearest cities that are bookable today instead.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <section className="bg-gray-100 py-3">
+        <div className="container-custom">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-emerald-700">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/26-seater-bus" className="hover:text-emerald-700">26 Seater Bus</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900">{cityName}</span>
+          </nav>
+        </div>
+      </section>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="26-seater mini bus rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="26-seater-bus"
+          serviceName="26 Seater Bus"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="mini bus"
+        selectionDesc="Non-AC, AC and luxury 26-seater mini buses."
+      />
+      <FAQSection service="26-seater-bus" location={cityName} customFaqs={PAGE_FAQS} />
+    </>
+  );
+}
+
 export default async function TwentySixSeaterLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('26-seater-bus', params.location);
+  const pageContext = await resolveServicePage('26-seater-bus', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'bus-rental',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="26-seater-bus" serviceName="26 Seater Bus" />;
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
@@ -61,12 +115,13 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
     getServiceCityContent('26-seater-bus', params.location),
   ]);
 
-  const pageFaqs = [
-    { question: 'Is a 26-seater classified as a mini bus or full-size bus?', answer: 'A 26-seater is a mini bus — larger than a tempo traveller but compact enough for city roads. Ideal for 24–26 passengers with hand luggage.' },
-    { question: 'What is the rental rate for a 26-seater bus per km?', answer: '26-seater Non-AC starts from ₹28/km, AC from ₹35/km, and Luxury from ₹45/km. Minimum 150 km per day for outstation trips.' },
-    { question: 'Is a 26-seater bus available for school picnic or college trip?', answer: 'Yes — 26-seater AC buses are popular for school picnics, college tours, and religious group travel. Advance booking recommended.' },
-    { question: 'Does the 26-seater bus have luggage space?', answer: 'Yes, 26-seater mini buses have overhead racks and optional roof carrier for large luggage on outstation trips.' },
-  ];
+
+  // The admin block editor renders its own Why Us / Other Services / FAQ
+  // blocks. Where the city has one, the hardcoded section below is skipped
+  // so the page doesn't say the same thing twice.
+  const adminCoversWhyUs = hasSectionMatching(scContent?.sectionsConfig, /why[-\s_]?(choose|rent|us)/i);
+  const adminCoversOtherServices = hasSectionMatching(scContent?.sectionsConfig, /services?[-\s_]?(offered|available)|other[-\s_]?services/i);
+  const adminCoversFaqs = hasSectionMatching(scContent?.sectionsConfig, /faq/i);
 
   return (
     <>
@@ -85,8 +140,8 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
       <TwentySixSeaterBusBookingHero
         city={locationName}
         citySlug={params.location}
-        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
+        pageHeading={stripPricesFromText(scContent?.pageHeading || seoData?.pageHeading) || undefined}
+        pageDescription={stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined}
       />
 
       <section className="bg-white py-10 border-b border-gray-100">
@@ -120,9 +175,9 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
           </h2>
           <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {[
-              { name: '26 Seater Non-AC', price: 28 },
-              { name: '26 Seater AC', price: 35 },
-              { name: '26 Seater Luxury', price: 45 },
+              { name: '26 Seater Non-AC', note: 'Fan-cooled, budget pick' },
+              { name: '26 Seater AC', note: 'Air-conditioned cabin' },
+              { name: '26 Seater Luxury', note: 'Premium coach interior' },
             ].map((v, idx) => (
               <div
                 key={v.name}
@@ -133,7 +188,7 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
                   <Bus className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
                 </span>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">{v.name}</h3>
-                <p className="text-2xl font-black text-emerald-700 mb-4">₹{v.price}<span className="text-sm font-normal text-gray-500">/km</span></p>
+                <p className="mb-4 text-sm font-semibold text-emerald-700">{v.note}</p>
                 <button className="w-full bg-emerald-600 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-emerald-700 transition-colors">Book Now</button>
               </div>
             ))}
@@ -171,7 +226,9 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
         </div>
       </section>
 
-      <FAQSection service="26-seater-bus" location={locationName} customFaqs={pageFaqs} />
+      {!adminCoversFaqs && (
+        <FAQSection service="26-seater-bus" location={locationName} customFaqs={PAGE_FAQS} />
+      )}
 
 
       {/* DEPRECATED — admin block editor now manages this content
@@ -183,16 +240,17 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
             />
       */}
       <BikeServiceSchema
+        hidePrices
         serviceName="26 Seater Bus"
         serviceSlug="26-seater-bus"
-        description={`Book 26 seater bus in ${locationName} starting @₹25/km with driver.`}
+        description={`Book a 26 seater mini bus in ${locationName} with a professional driver.`}
         city={locationName}
         citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

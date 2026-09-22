@@ -1,7 +1,10 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
-import { VehicleGrid } from '@/components/location/VehicleGrid';
-import { WhyRentHere } from '@/components/location/WhyRentHere';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
@@ -16,16 +19,9 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
-import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
-import { Wallet, Zap, Target, Building } from 'lucide-react';
-
-const COMING_SOON_SLUGS = new Set([
-  'margao',
-  'kanyakumari',
-  'mussoorie',
-]);
+import { Wallet, Zap, Target, Building, ShieldCheck, Headphones } from 'lucide-react';
 
 interface PageProps {
   params: {
@@ -33,7 +29,7 @@ interface PageProps {
   };
 }
 
-// Generate static params for ALL locations - GOD LEVEL SEO
+// Generate static params for ALL locations
 // Generate static params from DATABASE - Only locations where bike-on-rent is available
 export async function generateStaticParams() {
   return getAllCityLocations();
@@ -56,8 +52,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('activa-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Activa on Rent in ${locationName} | @₹299/Day`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Activa & scooters in ${locationName}. Honda Activa, TVS Jupiter, Suzuki Access available. Fuel efficient, easy to ride. Book your scooty rental now!`,
+    // No rate is quoted for this page — see the note in the page body.
+    title: stripPricesFromText(scContent?.metaTitle || _seoDb?.metaTitle || `Activa on Rent in ${locationName} | TransRentals`),
+    description: stripPricesFromText(scContent?.metaDescription || _seoDb?.metaDescription || `Rent Activa & scooters in ${locationName}. Honda Activa, TVS Jupiter, Suzuki Access available. Fuel efficient, easy to ride. Book your scooty rental now!`),
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `activa on rent in ${locationName}`,
       `scooty rental ${locationName}`,
@@ -66,8 +63,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `scooter on rent ${locationName}`,
     ],
     openGraph: {
-      title: `Activa on Rent in ${locationName} @₹299/Day | TransRentals`,
-      description: `Rent scooters in ${locationName} starting @₹299/day. Fuel efficient & easy to ride.`,
+      title: `Activa on Rent in ${locationName} | TransRentals`,
+      description: `Rent scooters in ${locationName} from verified partners. Fuel efficient & easy to ride.`,
       type: 'website',
       url: `https://transrentals.in/activa-on-rent/${locationSlug}`,
       images: [
@@ -82,7 +79,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image',
       title: `Activa on Rent in ${locationName} | TransRentals`,
-      description: `Rent scooters in ${locationName} starting @₹299/day.`,
+      description: `Rent scooters in ${locationName} from verified partners. Fuel efficient & easy to ride.`,
       images: ['https://transrentals.in/images/og/activa-rental.jpg'],
     },
     alternates: {
@@ -97,114 +94,78 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 // Schema data
 const schemaFaqs = [
-  { question: 'What documents are needed for Activa rental?', answer: 'You need a valid driving license, Aadhar card, and a refundable security deposit of ₹2000-3000.' },
+  { question: 'What documents are needed for Activa rental?', answer: 'You need a valid driving license, Aadhar card, and a refundable security deposit.' },
   { question: 'Is helmet provided with Activa rental?', answer: 'Yes, helmets are provided free with every scooter rental.' },
   { question: 'What is the mileage of Honda Activa?', answer: 'Honda Activa gives approximately 50-60 km per litre, making it very fuel efficient for city rides.' },
-  { question: 'Can I rent Activa for monthly basis?', answer: 'Yes, we offer monthly rental plans starting from ₹2999/month with zero maintenance.' },
-];
-
-const schemaVehicles = [
-  { name: 'Honda Activa 6G', brand: 'Honda', price: 299, image: 'https://transrentals.in/images/scooters/activa-6g.jpg', description: "Rent Honda Activa 6G scooter — India's most popular scooter with 109cc OBD2-compliant engine, 50 kmpl mileage, LED headlight, silent start, and 21-litre underseat storage. Automatic transmission and reliable performance for daily city commutes. Rental includes helmet and insurance. Book at TransRentals from ₹299/day." },
-  { name: 'TVS Jupiter', brand: 'TVS', price: 299, image: 'https://transrentals.in/images/scooters/jupiter.jpg', description: "Rent TVS Jupiter scooter — family-favourite 110cc scooter with 50+ kmpl mileage, extra-large 22-litre underseat storage, external fuel cap, and wide dual-person seat. Ideal for grocery runs, school trips, and daily commuting. Available at TransRentals from ₹299/day with doorstep delivery." },
-  { name: 'Suzuki Access 125', brand: 'Suzuki', price: 349, image: 'https://transrentals.in/images/scooters/access-125.jpg', description: "Rent Suzuki Access 125 scooter — premium 124cc scooter with 55 kmpl mileage, USB charging port, combined braking system (CBS), and 95 kmph top speed. Smooth and powerful for both city and short highway riding. Comfortable touring scooter rental from ₹349/day with helmet and insurance included." },
-  { name: 'Honda Dio', brand: 'Honda', price: 299, image: 'https://transrentals.in/images/scooters/dio.jpg', description: "Rent Honda Dio scooter — sporty 109cc scooter with stylish design, full-LED lighting, digital instrument console, and USB charger. Lightweight at 102 kg and nimble for weaving through city traffic. Perfect for students and young commuters. Book Honda Dio rental at TransRentals from ₹299/day." },
+  { question: 'Can I rent Activa for monthly basis?', answer: 'Yes, we offer monthly rental plans with zero maintenance cost.' },
 ];
 
 export default async function ActivaLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('activa-on-rent', params.location);
-  if (pageContext.type === 'redirect') {
-    if (COMING_SOON_SLUGS.has(params.location)) {
-      const cityName = getCityBySlug(params.location)?.name ??
-        params.location.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      return (
-        <>
-          <div className="bg-gray-50 border-b border-gray-200">
-            <div className="container-custom py-3">
-              <nav className="text-sm text-gray-600">
-                <a href="/" className="hover:text-primary">Home</a>
-                <span className="mx-2">/</span>
-                <a href="/activa-on-rent" className="hover:text-primary">Activa on Rent</a>
-                <span className="mx-2">/</span>
-                <span className="text-gray-900 font-medium">{cityName}</span>
-              </nav>
-            </div>
+  // Same contract as the bike-on-rent pages: a known city never redirects, it
+  // gets a page.
+  //
+  // Availability follows Bike Rental, not "activa-on-rent" — there is no
+  // services row under that slug (the real one is `bike-rental-activa`, a
+  // sub-service with no city list of its own), and an unknown slug used to
+  // read as "available everywhere", which is why switching a city off never
+  // did anything here. Activa is a bike, so wherever bike rental is live,
+  // Activa is live, and one admin screen now controls both pages.
+  const pageContext = await resolveServicePage('activa-on-rent', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'bike-on-rent',
+  });
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="activa-on-rent" serviceName="Activa on Rent" />;
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the nearest
+  // city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/activa-on-rent" className="hover:text-primary">Activa on Rent</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
           </div>
-          <ComingSoonHero
-            city={cityName}
-            citySlug={params.location}
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="Activa rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
             serviceSlug="activa-on-rent"
             serviceName="Activa on Rent"
-            themeColor="emerald"
           />
-        </>
-      );
-    }
-    permanentRedirect(pageContext.to);
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} vehicleNoun="scooter" selectionDesc="Honda Activa, TVS Jupiter, Suzuki Access, Honda Dio — the scooters riders actually ask for." />
+        <FAQSection service="activa-on-rent" location={cityName} customFaqs={schemaFaqs} />
+      </>
+    );
   }
-  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="activa-on-rent" serviceName="Activa on Rent" />;
+
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-
-  const pageData = {
-    location: {
-      name: locationName,
-      slug: params.location,
-      state: 'State Name',
-    },
-    service: {
-      name: 'Activa on Rent',
-      slug: 'activa-on-rent',
-    },
-    vehicles: [
-      {
-        id: 1,
-        name: 'Honda Activa 6G',
-        brand: 'Honda',
-        image: '/images/scooters/activa-6g.jpg',
-        price: 299,
-        rating: 4.8,
-      },
-      {
-        id: 2,
-        name: 'TVS Jupiter',
-        brand: 'TVS',
-        image: '/images/scooters/jupiter.jpg',
-        price: 299,
-        rating: 4.7,
-      },
-      {
-        id: 3,
-        name: 'Suzuki Access 125',
-        brand: 'Suzuki',
-        image: '/images/scooters/access-125.jpg',
-        price: 349,
-        rating: 4.8,
-      },
-      {
-        id: 4,
-        name: 'Honda Dio',
-        brand: 'Honda',
-        image: '/images/scooters/dio.jpg',
-        price: 299,
-        rating: 4.6,
-      },
-    ],
-    nearbyLocations: [
-      { name: 'Nearby City 1', slug: 'nearby-city-1' },
-      { name: 'Nearby City 2', slug: 'nearby-city-2' },
-    ],
-  };
 
   const [seoData, scContent] = await Promise.all([
     resolvePageMeta(`activa-on-rent:${params.location}`),
     getServiceCityContent('activa-on-rent', params.location),
   ]);
 
+  // No rate is quoted anywhere on this page — the real price depends on the
+  // partner and the dates, so a number in the copy would only mislead.
+  const heroDescription = stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined;
+
   const pageFaqs = [
     { question: 'What scooters are available for rent?', answer: 'We offer Honda Activa 6G, TVS Jupiter, Suzuki Access 125, and Honda Dio — all automatic, fuel-efficient scooters.' },
     { question: 'Do I need a gear bike license for Activa rental?', answer: 'No, a non-transport two-wheeler license (LMV) is sufficient to rent any gearless scooter including Activa.' },
     { question: 'What is the fuel policy for scooter rental?', answer: 'You receive the scooter with a full tank and must return it full. Fuel charges apply if returned empty.' },
-    { question: 'Can I rent Activa for just 4–5 hours?', answer: 'Yes, we offer half-day (4-hour) packages starting from ₹199 for short city errands.' },
+    { question: 'Can I rent Activa for just 4–5 hours?', answer: 'Yes, we offer half-day (4-hour) packages for short city errands.' },
   ];
 
   return (
@@ -213,14 +174,13 @@ export default async function ActivaLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName={`Activa on Rent in ${locationName}`}
         serviceSlug="activa-on-rent"
-        description={`Rent Activa & scooters in ${locationName}. Honda Activa, TVS Jupiter, Suzuki Access available. Starting @₹299/day.`}
+        description={`Rent Activa & scooters in ${locationName}. Honda Activa, TVS Jupiter, Suzuki Access available from verified partners.`}
         city={locationName}
         citySlug={params.location}
         faqs={schemaFaqs}
-        vehicles={schemaVehicles}
-        priceRange={{ min: 299, max: 399 }}
         rating={4.7}
         reviewCount={423}
+        hidePrices
       />
       <div className="flex flex-col">
       {/* Breadcrumbs */}
@@ -240,7 +200,7 @@ export default async function ActivaLocationPage({ params }: PageProps) {
         city={locationName}
         citySlug={params.location}
         pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
+        pageDescription={heroDescription}
       />
 
       {/* Why Choose Activa */}
@@ -258,15 +218,20 @@ export default async function ActivaLocationPage({ params }: PageProps) {
           }}
         />
         <div className="container-custom relative">
-          <h2 className="text-3xl md:text-[2.5rem] font-black tracking-tight text-gray-900 text-center mb-12">
-            Why Rent Activa in <span className="text-emerald-600">{locationName}?</span>
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-12">
+            Why Rent an Activa in <span className="text-emerald-600">{locationName}?</span>
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-6 max-w-5xl mx-auto">
+          {/* The generic "Why Rent Here" block used to sit below this one and
+              asked the same question again — its two points are folded in here
+              so the page makes the case once. */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-6 max-w-5xl mx-auto">
             {[
-              { Icon: Wallet, title: 'Affordable', desc: 'Starting @₹299/day' },
+              { Icon: Wallet, title: 'Best Rates', desc: 'Competitive pricing from verified partners' },
               { Icon: Zap, title: 'Fuel Efficient', desc: '50-60 km/litre mileage' },
-              { Icon: Target, title: 'Easy to Ride', desc: 'No gear, automatic' },
-              { Icon: Building, title: 'City Friendly', desc: 'Perfect for traffic' },
+              { Icon: Target, title: 'Easy to Ride', desc: 'No gear, fully automatic' },
+              { Icon: Building, title: 'City Friendly', desc: 'Perfect for everyday traffic' },
+              { Icon: ShieldCheck, title: 'Verified Partners', desc: 'Every vendor is background-checked' },
+              { Icon: Headphones, title: '24/7 Support', desc: 'Round-the-clock roadside assistance' },
             ].map((item, idx) => (
               <div
                 key={item.title}
@@ -291,12 +256,17 @@ export default async function ActivaLocationPage({ params }: PageProps) {
         ` }} />
       </section>
 
-      <VehicleGrid
-        vehicles={pageData.vehicles}
+      {/* Available scooters — purely whatever the admin has published for
+          this city. Nothing hardcoded, and the section renders nothing at all
+          when the city has no published fleet. */}
+      <LazyServiceFleetDisplay
+        serviceSlug="activa-on-rent"
+        locationSlug={params.location}
         title={`Available Scooters in ${locationName}`}
+        showCategories={true}
+        limit={12}
+        hidePrices
       />
-
-      <WhyRentHere locationName={locationName} />
 
 
       {/* DEPRECATED — admin block editor now manages this content
@@ -314,7 +284,7 @@ export default async function ActivaLocationPage({ params }: PageProps) {
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="activa-on-rent" location={locationName} customFaqs={pageFaqs} />
 

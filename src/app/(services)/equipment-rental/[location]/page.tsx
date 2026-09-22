@@ -1,4 +1,5 @@
 ﻿import React from 'react';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import type { Metadata } from 'next';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
@@ -10,7 +11,8 @@ import { getCityBySlug } from '@/data/indian-cities';
 import { EquipmentBookingHero } from '@/components/equipment-rental/EquipmentBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ComingSoonHero } from '@/components/services/ComingSoonHero';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { prisma } from '@/lib/db/prisma';
 import { CityContentSection } from '@/components/location/CityContentSection';
@@ -18,7 +20,7 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { CITY_SEO } from '@/data/city-seo-content';
 
 const EQUIPMENT_FALLBACK_FAQS = [
-  { question: 'What is the cost of equipment rental per day?', answer: 'JCB backhoe loader starts from ₹2,999/day with certified operator. Mini excavators start from ₹3,500/day. Cranes, road rollers, and generators are quoted based on machine type and project requirements. Get a free quote on TransRentals for your specific site.' },
+  { question: 'How is equipment rental charged?', answer: 'Machines are quoted per day or per shift with a certified operator, and the rate depends on the machine class, the site and the duration. Share your requirement on TransRentals and verified operators send you their quotes.' },
   { question: 'Is a certified operator included with equipment rental?', answer: 'Yes, all heavy equipment rentals on TransRentals include a certified, experienced operator. You need to provide clear site access and necessary permissions. Independent operation without our operator is not permitted for safety reasons.' },
   { question: 'How many hours does rented equipment work per day?', answer: 'Standard rental is 8 working hours per day. Extended 12-hour and 24-hour shifts are available at additional cost. Fuel is typically not included — the client arranges diesel at the site. Confirm the fuel arrangement with your vendor at booking.' },
   { question: 'What types of construction equipment are available for rent?', answer: 'Available equipment includes: JCB backhoe loaders, hydraulic excavators, cranes (hydraulic, tower, pick-and-carry), road rollers, motor graders, tipper trucks, generators (15 kVA–500 kVA), concrete mixers, and compactors. Event equipment (DJ systems, lighting, generators) is also available.' },
@@ -29,7 +31,7 @@ import { getCachedServiceBySlug, getCachedSubServices } from '@/lib/services/cac
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections, hasSectionsContent } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionMatching } from '@/components/seo/ServiceCitySections';
 import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
 import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 
@@ -76,8 +78,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('equipment-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Equipment Rental in ${locationName} | @₹1,499/Day`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent construction and event equipment in ${locationName}. Excavators, cranes, generators, DJ systems. Professional operators available. Book now!`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Equipment Rental in ${locationName}`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Rent construction and event equipment in ${locationName}. Excavators, cranes, generators, DJ systems. Professional operators available. Book now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `equipment rental in ${locationName}`,
       `construction equipment ${locationName}`,
@@ -105,65 +107,59 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+const EXPANDING_FAQS = [
+  { question: 'What equipment can I rent?', answer: 'Backhoe loaders, excavators, mobile and hydra cranes, and DG sets, each supplied with a certified operator.' },
+  { question: 'When will equipment rental open in my city?', answer: 'We onboard operators city by city and a city goes live as soon as verified operators are ready there. Until then you can book in the nearby cities listed above.' },
+  { question: 'Is an operator included?', answer: 'Yes. Every machine on TransRentals comes with a trained, certified operator.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet: no booking form and no
+ * quoted rate, just the nearest cities that are bookable today.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/equipment-rental" className="hover:text-primary">Equipment Rental</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="equipment rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="equipment-rental"
+          serviceName="Equipment Rental"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="machine"
+        selectionDesc="JCBs, excavators, cranes, hydras and DG sets — with certified operators."
+      />
+      <FAQSection service="equipment-rental" location={cityName} customFaqs={EXPANDING_FAQS} />
+    </>
+  );
+}
+
 export default async function EquipmentLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('equipment-rental', params.location, { comingSoonIfUnavailable: true });
   if (pageContext.type === 'redirect') {
     if (COMING_SOON_SLUGS.has(params.location)) {
-      return (
-        <>
-          <div className="bg-gray-50 border-b border-gray-200">
-            <div className="container-custom py-3">
-              <nav className="text-sm text-gray-600">
-                <a href="/" className="hover:text-primary">Home</a>
-                <span className="mx-2">/</span>
-                <a href="/equipment-rental" className="hover:text-primary">Equipment Rental</a>
-                <span className="mx-2">/</span>
-                <span className="text-gray-900 font-medium">Coming Soon</span>
-              </nav>
-            </div>
-          </div>
-          <ComingSoonHero
-            city="Equipment Rental"
-            citySlug={params.location.toLowerCase()}
-            serviceSlug="equipment-rental"
-            serviceName="Equipment Rental"
-            themeColor="blue"
-          />
-        </>
-      );
+      return <ExpandingCityPage cityName={cityName} citySlug={params.location.toLowerCase()} />;
     }
     permanentRedirect(pageContext.to);
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="equipment-rental" serviceName="Equipment Rental" />;
   if (pageContext.type === 'coming-soon') {
-    const cityName = pageContext.city.name;
-    return (
-      <>
-        <div className="bg-gray-50 border-b border-gray-200">
-          <div className="container-custom py-3">
-            <nav className="text-sm text-gray-600">
-              <a href="/" className="hover:text-primary">Home</a>
-              <span className="mx-2">/</span>
-              <a href="/equipment-rental" className="hover:text-primary">Equipment Rental</a>
-              <span className="mx-2">/</span>
-              <span className="text-gray-900 font-medium">{cityName}</span>
-            </nav>
-          </div>
-        </div>
-        <ComingSoonHero
-          city={cityName}
-          citySlug={params.location.toLowerCase()}
-          serviceSlug="equipment-rental"
-          serviceName="Equipment Rental"
-          themeColor="cyan"
-        />
-        <NearbyActiveCities
-          currentCitySlug={params.location.toLowerCase()}
-          serviceSlug="equipment-rental"
-          serviceName="Equipment Rental"
-        />
-      </>
-    );
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
   }
   const city = pageContext.city;
 
@@ -295,8 +291,15 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
     getServiceCityContent('equipment-rental', params.location),
   ]);
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['equipment-rental'] || [];
+  // The admin block editor renders its own FAQ block. Where the city has one,
+  // the hardcoded section below is skipped so the page doesn't say the same
+  // thing twice.
+  const adminCoversFaqs = hasSectionMatching(scContent?.sectionsConfig, /faq/i);
+
   const displayFAQs = cityFAQs.length > 0
-    ? cityFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))
+    ? cityFAQs
+        .map((faq) => ({ question: faq.q, answer: stripPricesFromText(faq.a) }))
+        .filter((faq) => faq.answer)
     : EQUIPMENT_FALLBACK_FAQS;
 
   return (
@@ -342,6 +345,7 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
       />
 
       <ServiceAreasSection
+        hidePrices
         serviceSlug="equipment-rental"
         citySlug={params.location.toLowerCase()}
         cityName={locationName}
@@ -355,9 +359,11 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
-      <FAQSection service="equipment-rental" location={locationName} customFaqs={displayFAQs} />
+      {!adminCoversFaqs && (
+        <FAQSection service="equipment-rental" location={locationName} customFaqs={displayFAQs} />
+      )}
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

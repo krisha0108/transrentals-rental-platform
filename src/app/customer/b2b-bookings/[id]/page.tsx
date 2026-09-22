@@ -7,6 +7,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { quoteDisplay } from '@/lib/quote-font';
+import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
 import {
   Loader2, ArrowLeft, Calendar, MapPin, Clock, CheckCircle,
   Copy, ExternalLink, Share2, Building2, Car, Users, Route,
@@ -2047,6 +2048,12 @@ export default function CustomerB2BBookingDetailPage() {
                       />
                     </Suspense>
                   </div>
+
+                  {vendorNames.length > 0 && (
+                    <div style={{ padding: '0 18px 18px' }}>
+                      <BookingPaymentSafetyNotice />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

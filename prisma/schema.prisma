@@ -7355,6 +7355,13 @@ model manager_call_reports {
   nextFollowUpTime              String?
   nextAction                    String?
   notes                         String?                         @db.Text
+  // Flagging is how a manager marks a row as suspect — a duplicate, a bad
+  // import, junk data — without deleting it themselves. Only an admin clears
+  // flagged rows, so a mistaken flag is always recoverable.
+  isFlagged                     Boolean                         @default(false)
+  flagReason                    String?                         @db.Text
+  flaggedAt                     DateTime?
+  flaggedById                   String?
   callDate                      DateTime                        @default(now())
   createdAt                     DateTime                        @default(now())
   updatedAt                     DateTime                        @updatedAt
@@ -7368,6 +7375,7 @@ model manager_call_reports {
   @@index([vendorId])
   @@index([travelAgentId])
   @@index([status])
+  @@index([isFlagged])
 }
 
 // A call report can cover several locations at once (a manager selecting

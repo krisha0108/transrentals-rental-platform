@@ -1,14 +1,18 @@
 import Link from 'next/link';
 import { CITY_SUBLOCATIONS } from '@/data/city-sublocations';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 
 interface ServiceAreasSectionProps {
   serviceSlug: string;
   citySlug: string;
   cityName: string;
   serviceName: string;
+  /** Opt-in: drop rate-quoting sentences from the area blurbs. Off by
+   *  default so other service pages keep their copy as authored. */
+  hidePrices?: boolean;
 }
 
-export function ServiceAreasSection({ serviceSlug, citySlug, cityName, serviceName }: ServiceAreasSectionProps) {
+export function ServiceAreasSection({ serviceSlug, citySlug, cityName, serviceName, hidePrices = false }: ServiceAreasSectionProps) {
   const areas = CITY_SUBLOCATIONS[serviceSlug]?.[citySlug];
   if (!areas || areas.length === 0) return null;
 
@@ -29,12 +33,14 @@ export function ServiceAreasSection({ serviceSlug, citySlug, cityName, serviceNa
               className="bg-white rounded-xl p-5 border border-gray-100 hover:border-primary hover:shadow-md transition-all group"
             >
               <div className="flex items-start justify-between mb-2">
-                <h3 className="font-semibold text-gray-900 group-hover:text-primary transition-colors">
+                {/* Explicit size: the global stylesheet sizes a bare h3 up to
+                    text-4xl, which is three times what a card title wants. */}
+                <h3 className="text-[15px] leading-snug font-semibold text-gray-900 group-hover:text-primary transition-colors">
                   {serviceName} in {area.name}
                 </h3>
                 <span className="text-xs text-gray-400 capitalize bg-gray-50 px-2 py-0.5 rounded-full">{area.type}</span>
               </div>
-              <p className="text-sm text-gray-600 line-clamp-2">{area.description}</p>
+              <p className="text-sm text-gray-600 line-clamp-2">{hidePrices ? stripPricesFromText(area.description) : area.description}</p>
               {area.pickupAddress && (
                 <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
                   <span>📍</span> {area.pickupAddress}

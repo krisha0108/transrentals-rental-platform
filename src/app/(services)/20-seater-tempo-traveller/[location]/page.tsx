@@ -1,5 +1,6 @@
 ﻿import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import Link from 'next/link';
 import { Armchair, Bus, ArrowRight } from 'lucide-react';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
@@ -15,7 +16,10 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionMatching } from '@/components/seo/ServiceCitySections';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 
 interface PageProps { params: { location: string }; }
 
@@ -38,20 +42,70 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('20-seater-tempo-traveller', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `20 Seater Tempo Traveller in ${locationName} | @₹22/km | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book 20 seater tempo traveller in ${locationName}. AC/Non-AC with driver for large groups.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `20 Seater Tempo Traveller in ${locationName} | AC & Non-AC Hire | TransRentals`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Book 20 seater tempo traveller in ${locationName}. AC/Non-AC with driver for large groups.`,
     alternates: { canonical: `https://transrentals.in/20-seater-tempo-traveller/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `20 Seater Tempo Traveller in ${locationName} | TransRentals`,
-      description: `Book 20 seater tempo traveller in ${locationName} starting @₹22/km with driver.`,
+      description: `Book a 20 seater tempo traveller in ${locationName} with a professional driver.`,
     },
   };
 }
 
+const PAGE_FAQS = [
+  { question: 'Is 20-seater tempo traveller suitable for large family trips?', answer: 'Yes — a 20-seater is perfect for 18–20 family members with overhead luggage racks and individual reclining seats.' },
+  { question: 'What is the AC option for 20-seater tempo traveller?', answer: 'Non-AC, AC and Deluxe AC variants are available — Deluxe has premium seats and better legroom. Each variant is quoted separately by the operator.' },
+  { question: 'Is the 20-seater available for school or college trip rental?', answer: 'Yes, 20-seater tempo travellers are popular for school picnics and college trips. Student group discounts available on advance booking.' },
+  { question: 'What is the minimum booking duration for a 20-seater tempo traveller?', answer: 'For local city use, minimum 4 hours. For outstation, minimum 1 day. Multi-day bookings get 10–15% discount.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet. No booking form and no
+ * quoted rate: there is nothing to book and no partner to honour a number, so
+ * the page points at the nearest cities that are bookable today instead.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <section className="bg-gray-100 py-3">
+        <div className="container-custom">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-emerald-700">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/20-seater-tempo-traveller" className="hover:text-emerald-700">20 Seater Tempo Traveller</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900">{cityName}</span>
+          </nav>
+        </div>
+      </section>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="20-seater Tempo Traveller rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="20-seater-tempo-traveller"
+          serviceName="20 Seater Tempo Traveller"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="Tempo Traveller"
+        selectionDesc="Non-AC, AC and Deluxe AC 20-seaters for large groups."
+      />
+      <FAQSection service="20-seater-tempo-traveller" location={cityName} customFaqs={PAGE_FAQS} />
+    </>
+  );
+}
+
 export default async function TwentySeaterLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('20-seater-tempo-traveller', params.location);
+  const pageContext = await resolveServicePage('20-seater-tempo-traveller', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'bus-rental',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="20-seater-tempo-traveller" serviceName="20 Seater Tempo Traveller" />;
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
@@ -61,12 +115,13 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
     getServiceCityContent('20-seater-tempo-traveller', params.location),
   ]);
 
-  const pageFaqs = [
-    { question: 'Is 20-seater tempo traveller suitable for large family trips?', answer: 'Yes — a 20-seater is perfect for 18–20 family members with overhead luggage racks and individual reclining seats.' },
-    { question: 'What is the AC option for 20-seater tempo traveller?', answer: 'We offer Non-AC (₹22/km), AC (₹28/km), and Deluxe AC (₹34/km) variants — Deluxe has premium seats and better legroom.' },
-    { question: 'Is the 20-seater available for school or college trip rental?', answer: 'Yes, 20-seater tempo travellers are popular for school picnics and college trips. Student group discounts available on advance booking.' },
-    { question: 'What is the minimum booking duration for a 20-seater tempo traveller?', answer: 'For local city use, minimum 4 hours. For outstation, minimum 1 day. Multi-day bookings get 10–15% discount.' },
-  ];
+
+  // The admin block editor renders its own Why Us / Other Services / FAQ
+  // blocks. Where the city has one, the hardcoded section below is skipped
+  // so the page doesn't say the same thing twice.
+  const adminCoversWhyUs = hasSectionMatching(scContent?.sectionsConfig, /why[-\s_]?(choose|rent|us)/i);
+  const adminCoversOtherServices = hasSectionMatching(scContent?.sectionsConfig, /services?[-\s_]?(offered|available)|other[-\s_]?services/i);
+  const adminCoversFaqs = hasSectionMatching(scContent?.sectionsConfig, /faq/i);
 
   return (
     <>
@@ -83,11 +138,11 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
-        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
+        pageHeading={stripPricesFromText(scContent?.pageHeading || seoData?.pageHeading) || undefined}
+        pageDescription={stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined}
         badge={`20 Seater Tempo in ${locationName}`}
         title="20 Seater Tempo Traveller"
-        titleHighlight="Large Groups @₹22/km"
+        titleHighlight="AC & Non-AC for Large Groups"
         description={`Big group? No problem. 20-seater AC Tempo Traveller for ${locationName} outings — school trips, large family gatherings, corporate team outings with comfort for all.`}
         features={[
           { icon: 'zap', text: '20 Comfortable Seats', color: 'text-red-600' },
@@ -101,7 +156,7 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
         backgroundImage="/images/sections/tempo-traveller-hero-bg.webp"
         bookingVariant="tempo"
         heroStats={[
-          { icon: 'tag', value: '₹22/km', label: 'Starting rate' },
+          { icon: 'tag', value: '17-18', label: 'Seats with luggage' },
           { icon: 'shield', value: '500+', label: 'Verified operators' },
           { icon: 'map', value: '150+', label: 'Cities served' },
           { icon: 'headphones', value: '24/7', label: 'Customer support' },
@@ -139,9 +194,9 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
           </h2>
           <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {[
-              { name: '20 Seater Non-AC', price: 22 },
-              { name: '20 Seater AC', price: 28 },
-              { name: '20 Seater Deluxe', price: 34 },
+              { name: '20 Seater Non-AC', note: 'Fan-cooled, budget pick' },
+              { name: '20 Seater AC', note: 'Air-conditioned cabin' },
+              { name: '20 Seater Deluxe', note: 'Premium seats, extra legroom' },
             ].map((v, idx) => (
               <div
                 key={v.name}
@@ -152,7 +207,7 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
                   <Bus className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
                 </span>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">{v.name}</h3>
-                <p className="text-2xl font-black text-emerald-700 mb-4">₹{v.price}<span className="text-sm font-normal text-gray-500">/km</span></p>
+                <p className="mb-4 text-sm font-semibold text-emerald-700">{v.note}</p>
                 <button className="w-full bg-emerald-600 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-emerald-700 transition-colors">Book Now</button>
               </div>
             ))}
@@ -190,7 +245,9 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <FAQSection service="20-seater-tempo-traveller" location={locationName} customFaqs={pageFaqs} />
+      {!adminCoversFaqs && (
+        <FAQSection service="20-seater-tempo-traveller" location={locationName} customFaqs={PAGE_FAQS} />
+      )}
 
 
       {/* DEPRECATED — admin block editor now manages this content
@@ -202,16 +259,17 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
             />
       */}
       <BikeServiceSchema
+        hidePrices
         serviceName="20 Seater Tempo Traveller"
         serviceSlug="20-seater-tempo-traveller"
-        description={`Book 20 seater tempo traveller in ${locationName} starting @₹22/km with driver.`}
+        description={`Book a 20 seater tempo traveller in ${locationName} with a professional driver.`}
         city={locationName}
         citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

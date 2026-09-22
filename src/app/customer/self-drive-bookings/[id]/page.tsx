@@ -38,6 +38,7 @@ import CustomerBookingChat from '@/components/customer/CustomerBookingChat';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { quoteDisplay } from '@/lib/quote-font';
+import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
 
 interface BankAccount {
   id: string;
@@ -1035,6 +1036,8 @@ export default function CustomerSelfDriveBookingPage() {
                 </div>
               </div>
             )}
+
+            {booking.vendor && <BookingPaymentSafetyNotice />}
 
             {/* Customer Notes */}
             {booking.customerNotes && (

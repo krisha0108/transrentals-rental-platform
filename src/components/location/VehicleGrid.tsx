@@ -25,6 +25,10 @@ interface VehicleGridProps {
   serviceSlug?: string;
   showViewDetails?: boolean;
   isClickable?: boolean;
+  /** Opt-in: render nothing at all when admin has no fleet for this city,
+   *  instead of an "Available X in Y" heading over an empty-state message.
+   *  Off by default so existing callers keep their current behaviour. */
+  hideWhenEmpty?: boolean;
 }
 
 export function VehicleGrid({
@@ -34,7 +38,8 @@ export function VehicleGrid({
   title,
   serviceSlug = 'bike-on-rent',
   showViewDetails = false,
-  isClickable = false
+  isClickable = false,
+  hideWhenEmpty = false
 }: VehicleGridProps) {
   const displayTitle = title || `Available Vehicles${location ? ` in ${location}` : ''}`;
 
@@ -49,6 +54,8 @@ export function VehicleGrid({
   const filtered = activeBrand === 'All'
     ? vehicles
     : vehicles.filter(v => v.brand === activeBrand);
+
+  if (hideWhenEmpty && vehicles.length === 0) return null;
 
   return (
     <section className="py-16 bg-gray-50">

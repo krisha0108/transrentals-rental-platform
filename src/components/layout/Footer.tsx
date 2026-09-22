@@ -12,6 +12,11 @@ import {
   MessageCircle,
   Clock,
   ChevronDown,
+  Car,
+  Bike,
+  Bus,
+  Truck,
+  Construction,
 } from 'lucide-react';
 import {
   CONTACT_ADDRESS,
@@ -83,7 +88,7 @@ export function Footer() {
     {
       id: 'car',
       name: 'Car Rental',
-      icon: '🚗',
+      Icon: Car,
       base_url: '/car-rental',
       subServices: [
         { name: 'Round Trip', url: '/round-trip' },
@@ -96,7 +101,7 @@ export function Footer() {
     {
       id: 'bike',
       name: 'Bike Rental',
-      icon: '🏍️',
+      Icon: Bike,
       base_url: '/bike-on-rent',
       subServices: [
         { name: 'Bike on Rent', url: '/bike-on-rent' },
@@ -107,7 +112,7 @@ export function Footer() {
     {
       id: 'bus',
       name: 'Bus Rental',
-      icon: '🚌',
+      Icon: Bus,
       base_url: '/bus-rental',
       subServices: [
         { name: 'Outstation Bus', url: '/bus-rental' },
@@ -117,7 +122,7 @@ export function Footer() {
     {
       id: 'truck',
       name: 'Truck Rental',
-      icon: '🚚',
+      Icon: Truck,
       base_url: '/truck-rental',
       subServices: [
         { name: 'Personal Moving', url: '/truck-rental' },
@@ -127,7 +132,7 @@ export function Footer() {
     {
       id: 'equipment',
       name: 'Equipment Rental',
-      icon: '🏗️',
+      Icon: Construction,
       base_url: '/equipment-rental',
       subServices: [
         { name: 'Construction Equipment', url: '/equipment-rental' },
@@ -153,6 +158,7 @@ export function Footer() {
   ];
 
   const policies = [
+    { name: 'Safety & Security', href: '/safety-security' },
     { name: 'Privacy Policy', href: '/privacy-policy' },
     { name: 'Terms & Conditions', href: '/terms-conditions' },
     { name: 'Cancellation Policy', href: '/cancellation-policy' },
@@ -244,7 +250,7 @@ export function Footer() {
                     className="w-full flex items-center justify-between text-left text-sm hover:text-primary transition-colors group"
                   >
                     <span className="flex items-center gap-2">
-                      <span className="text-lg">{service.icon}</span>
+                      <service.Icon className="w-[18px] h-[18px] text-primary" />
                       <span className="font-medium">{service.name}</span>
                     </span>
                     <ChevronDown

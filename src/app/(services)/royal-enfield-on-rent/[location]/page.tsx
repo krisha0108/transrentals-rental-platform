@@ -1,7 +1,11 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
-import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
@@ -16,7 +20,7 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionMatching } from '@/components/seo/ServiceCitySections';
 import { Mountain, Landmark, Compass, Clock } from 'lucide-react';
 
 interface PageProps {
@@ -47,7 +51,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('royal-enfield-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Royal Enfield on Rent in ${locationName} | @₹899/Day`,
+    // No rate is quoted for this page — see the note in the page body.
+    title: stripPricesFromText(scContent?.metaTitle || _seoDb?.metaTitle || `Royal Enfield on Rent in ${locationName} | TransRentals`),
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Royal Enfield bikes in ${locationName}. Classic 350, Himalayan, Meteor, Hunter available. Perfect for road trips & touring. Book now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `royal enfield on rent in ${locationName}`,
@@ -57,8 +62,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `classic 350 on rent ${locationName}`,
     ],
     openGraph: {
-      title: `Royal Enfield on Rent in ${locationName} @₹899/Day | TransRentals`,
-      description: `Rent Royal Enfield bikes in ${locationName} starting @₹899/day. Perfect for road trips.`,
+      title: `Royal Enfield on Rent in ${locationName} | TransRentals`,
+      description: `Rent Royal Enfield bikes in ${locationName} from verified partners. Perfect for road trips.`,
       type: 'website',
       url: `https://transrentals.in/royal-enfield-on-rent/${locationSlug}`,
       images: [
@@ -73,7 +78,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image',
       title: `Royal Enfield on Rent in ${locationName} | TransRentals`,
-      description: `Rent Royal Enfield bikes in ${locationName} starting @₹899/day.`,
+      description: `Rent Royal Enfield bikes in ${locationName} from verified partners. Perfect for road trips.`,
       images: ['https://transrentals.in/images/og/royal-enfield-rental.jpg'],
     },
     alternates: {
@@ -89,84 +94,74 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 // Schema data
 const schemaFaqs = [
   { question: 'Which Royal Enfield models are available for rent?', answer: 'We have Classic 350, Himalayan, Meteor 350, Hunter 350, Interceptor 650, and Continental GT 650 available for rent.' },
-  { question: 'What is the security deposit for Royal Enfield rental?', answer: 'Security deposit ranges from ₹5,000 to ₹15,000 depending on the model. This is fully refundable upon return.' },
+  { question: 'What is the security deposit for Royal Enfield rental?', answer: 'A refundable security deposit is collected at pickup, and returned in full when you bring the bike back.' },
   { question: 'Can I take Royal Enfield for long trips?', answer: 'Yes, our Royal Enfield bikes are perfect for long trips. We also offer one-way drops for Ladakh, Spiti, and Rajasthan trips.' },
   { question: 'Is roadside assistance available?', answer: 'Yes, we provide 24/7 roadside assistance across India. For remote areas, we have tie-ups with local mechanics.' },
 ];
 
-const schemaVehicles = [
-  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: "Rent Royal Enfield Classic 350 — India's iconic heritage cruiser with 349cc twin-spark J-series engine, 20.2 PS power, and timeless retro styling. Smooth highway cruiser with 35+ kmpl mileage, dual-channel ABS, and relaxed riding ergonomics. Perfect for weekend getaways, road trips, and long highway rides. Rental from ₹899/day with helmet." },
-  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 1099, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: "Rent Royal Enfield Himalayan — purpose-built adventure tourer with 411cc single-cylinder engine, 24.3 PS power, long-travel suspension, Tripper navigation, and dual-purpose tires. Designed for Ladakh, Spiti, Rajasthan, and all off-road terrain. The go-anywhere adventure bike rental from ₹1099/day with full gear." },
-  { name: 'Royal Enfield Meteor 350', brand: 'Royal Enfield', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: "Rent Royal Enfield Meteor 350 — modern cruiser with 349cc J-series engine, built-in Tripper navigation pod, USB charging, Bluetooth connectivity, and relaxed touring ergonomics. Ultra-smooth ride with 30+ kmpl mileage and premium comfort. Ideal for long relaxed highway rides and weekend road trips. From ₹999/day." },
-  { name: 'Royal Enfield Hunter 350', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent Royal Enfield Hunter 350 — lightweight roadster with 349cc J-series engine, 20.4 PS power, and urban-first ergonomics. Nimble and easy-handling city bike with Royal Enfield character. Sporty yet comfortable for both city riding and weekend escapes. Short seat height at 790 mm suits all riders. From ₹899/day.' },
-];
-
 export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('royal-enfield-on-rent', params.location);
+  // Availability follows Bike Rental: there is no services row under
+  // "royal-enfield-on-rent" (an unknown slug used to read as "available
+  // everywhere"), and a Royal Enfield is a bike — wherever bike rental is
+  // live, so is this. One admin screen controls both pages.
+  const pageContext = await resolveServicePage('royal-enfield-on-rent', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'bike-on-rent',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="royal-enfield-on-rent" serviceName="Royal Enfield on Rent" />;
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the
+  // nearest city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/royal-enfield-on-rent" className="hover:text-primary">Royal Enfield on Rent</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="Royal Enfield rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="royal-enfield-on-rent"
+            serviceName="Royal Enfield on Rent"
+          />
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} selectionDesc="Classic 350, Himalayan, Meteor, Hunter — the full Royal Enfield line-up." />
+        <FAQSection service="royal-enfield-on-rent" location={cityName} customFaqs={schemaFaqs} />
+      </>
+    );
+  }
+
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-
-  const pageData = {
-    location: {
-      name: locationName,
-      slug: params.location,
-      state: 'State Name',
-    },
-    service: {
-      name: 'Royal Enfield on Rent',
-      slug: 'royal-enfield-on-rent',
-    },
-    vehicles: [
-      {
-        id: 1,
-        name: 'Royal Enfield Classic 350',
-        brand: 'Cruiser',
-        image: '/images/bikes/classic-350.jpg',
-        price: 899,
-        rating: 4.9,
-      },
-      {
-        id: 2,
-        name: 'Royal Enfield Himalayan',
-        brand: 'Adventure',
-        image: '/images/bikes/himalayan.jpg',
-        price: 1099,
-        rating: 4.8,
-      },
-      {
-        id: 3,
-        name: 'Royal Enfield Meteor 350',
-        brand: 'Cruiser',
-        image: '/images/bikes/meteor-350.jpg',
-        price: 999,
-        rating: 4.8,
-      },
-      {
-        id: 4,
-        name: 'Royal Enfield Hunter 350',
-        brand: 'Roadster',
-        image: '/images/bikes/hunter-350.jpg',
-        price: 899,
-        rating: 4.7,
-      },
-    ],
-    nearbyLocations: [
-      { name: 'Nearby City 1', slug: 'nearby-city-1' },
-      { name: 'Nearby City 2', slug: 'nearby-city-2' },
-    ],
-  };
 
   const [seoData, scContent] = await Promise.all([
     resolvePageMeta(`royal-enfield-on-rent:${params.location}`),
     getServiceCityContent('royal-enfield-on-rent', params.location),
   ]);
 
+  // No rate is quoted anywhere on this page — the real price depends on the
+  // partner and the dates, so a number in the copy would only mislead.
+  const heroDescription = stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined;
+  // Where the admin has written the city's own "why choose us", the generic
+  // block below would be the same pitch twice.
+  const adminCoversWhyUs = hasSectionMatching(scContent?.sectionsConfig, /why[-\s_]?(choose|rent|us)/i);
+
   const pageFaqs = [
     { question: 'Which Royal Enfield models are available on rent?', answer: 'We offer Classic 350, Bullet 350, Meteor 350, and Himalayan — all well-maintained with valid insurance and permits.' },
     { question: 'What documents are required to rent a Royal Enfield?', answer: 'You need a valid two-wheeler driving licence and one government-issued photo ID (Aadhaar, passport, or voter card).' },
-    { question: 'Is a security deposit required for Royal Enfield rental?', answer: 'Yes, a refundable security deposit of ₹2000–₹5000 is collected at the time of delivery, returned on safe return of the bike.' },
+    { question: 'Is a security deposit required for Royal Enfield rental?', answer: 'Yes, a refundable security deposit is collected at the time of delivery, returned on safe return of the bike.' },
     { question: 'Can I take the Royal Enfield on a highway or outstation trip?', answer: 'Yes, highway and outstation trips are permitted. Inform us in advance so we can ensure the bike is fully serviced and cleared for long-distance.' },
   ];
 
@@ -176,26 +171,20 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName={`Royal Enfield on Rent in ${locationName}`}
         serviceSlug="royal-enfield-on-rent"
-        description={`Rent Royal Enfield bikes in ${locationName}. Classic 350, Himalayan, Meteor, Hunter available. Starting @₹899/day.`}
+        description={`Rent Royal Enfield bikes in ${locationName}. Classic 350, Himalayan, Meteor, Hunter available from verified partners.`}
         city={locationName}
         citySlug={params.location}
         faqs={schemaFaqs}
-        vehicles={schemaVehicles}
-        priceRange={{ min: 899, max: 1299 }}
         rating={4.8}
         reviewCount={612}
+        hidePrices
       />
       <div className="flex flex-col">
       <BikeSearchHero
         city={locationName}
         citySlug={params.location}
         pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
-      />
-
-      <VehicleGrid
-        vehicles={pageData.vehicles}
-        title={`Available Royal Enfield Bikes in ${locationName}`}
+        pageDescription={heroDescription}
       />
 
       {/* Popular Routes */}
@@ -237,7 +226,19 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <WhyRentHere locationName={locationName} />
+      {/* Available bikes — purely whatever the admin has published for this
+          city. Nothing hardcoded, and the section renders nothing at all when
+          the city has no published fleet. */}
+      <LazyServiceFleetDisplay
+        serviceSlug="royal-enfield-on-rent"
+        locationSlug={params.location}
+        title={`Available Royal Enfield Bikes in ${locationName}`}
+        showCategories={true}
+        limit={12}
+        hidePrices
+      />
+
+      {!adminCoversWhyUs && <WhyRentHere locationName={locationName} />}
 
       <NearbyLocations
         locationSlug={params.location}
@@ -245,7 +246,7 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="royal-enfield-on-rent" location={locationName} customFaqs={pageFaqs} />
 
@@ -256,7 +257,6 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
         currentSlug="royal-enfield-on-rent"
         siblings={[
           { slug: 'activa-on-rent', name: 'Activa on Rent' },
-          { slug: 'royal-enfield-on-rent', name: 'Royal Enfield' },
           { slug: 'ktm-on-rent', name: 'KTM on Rent' },
           { slug: 'pulsar-on-rent', name: 'Pulsar on Rent' },
           { slug: 'apache-on-rent', name: 'Apache on Rent' },

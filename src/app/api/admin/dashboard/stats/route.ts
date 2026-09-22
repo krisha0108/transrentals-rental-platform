@@ -51,7 +51,7 @@ async function countDistinctQuoteRequests(
 }
 
 // Helper function to get date ranges based on filter
-function getDateRange(filter: string, customDate?: string) {
+function getDateRange(filter: string, customFrom?: string, customTo?: string) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today);
@@ -71,13 +71,22 @@ function getDateRange(filter: string, customDate?: string) {
     case 'lastMonth':
       return { gte: lastMonthStart, lte: lastMonthEnd };
     case 'custom': {
-      if (customDate && /^\d{4}-\d{2}-\d{2}$/.test(customDate)) {
-        const [year, month, day] = customDate.split('-').map(Number);
-        const start = new Date(year, month - 1, day);
-        const end = new Date(year, month - 1, day + 1);
-        return { gte: start, lt: end };
-      }
-      return {};
+      const ymd = /^\d{4}-\d{2}-\d{2}$/;
+      if (!customFrom || !ymd.test(customFrom)) return {};
+
+      // A range with no end is still a single day, which keeps the older
+      // single-date callers working unchanged.
+      const to = customTo && ymd.test(customTo) ? customTo : customFrom;
+
+      // Swap if they arrive the wrong way round rather than returning nothing.
+      const [fromStr, toStr] = customFrom <= to ? [customFrom, to] : [to, customFrom];
+
+      const [fy, fm, fd] = fromStr.split('-').map(Number);
+      const [ty, tm, td] = toStr.split('-').map(Number);
+      const start = new Date(fy, fm - 1, fd);
+      // Exclusive upper bound on the day after, so the whole end day counts.
+      const end = new Date(ty, tm - 1, td + 1);
+      return { gte: start, lt: end };
     }
     case 'all':
     default:
@@ -94,9 +103,11 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get('filter') || 'today';
-    const customDate = searchParams.get('date') || undefined;
+    // `date` is the original single-day param; `from`/`to` are the range.
+    const customFrom = searchParams.get('from') || searchParams.get('date') || undefined;
+    const customTo = searchParams.get('to') || undefined;
 
-    const dateFilter = getDateRange(filter, customDate);
+    const dateFilter = getDateRange(filter, customFrom, customTo);
 
     // Fetch bookings from all services. CUSTOM_BULK rows live in
     // b2b_bookings.serviceType — count them separately so they show up as

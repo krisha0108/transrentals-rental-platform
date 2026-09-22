@@ -11,6 +11,9 @@
  */
 
 import { ChevronDown } from 'lucide-react';
+import {
+  containsPrice, isPricingSection, stripPricesFromHtml, stripPricesFromText,
+} from '@/lib/content/strip-prices';
 
 type RawSection = {
   id: string;
@@ -63,11 +66,19 @@ function hasMeaningfulContent(content: string | undefined): boolean {
 export function ServiceCitySections({
   sectionsConfig,
   cityName,
+  hidePrices = false,
 }: {
   sectionsConfig: string | null | undefined;
   cityName?: string;
+  /** Opt-in: scrub every rate out of the authored copy and drop rate-card
+   *  blocks entirely. Off by default so other service pages are untouched. */
+  hidePrices?: boolean;
 }) {
-  const sections = parseSections(sectionsConfig);
+  const parsed = parseSections(sectionsConfig);
+  // A rate card has nothing left once the rates go, so it's dropped whole.
+  const sections = hidePrices
+    ? parsed.filter((s) => !isPricingSection(s.id, s.label))
+    : parsed;
   if (sections.length === 0) return null;
 
   return (
@@ -76,7 +87,15 @@ export function ServiceCitySections({
         <div className="max-w-4xl mx-auto">
           {sections.map((section) => {
             if (FAQ_IDS.has(section.id)) {
-              const faqs = parseFaqs(section.content);
+              const rawFaqs = parseFaqs(section.content);
+              // A question that only exists to quote a rate goes; otherwise
+              // just the sentence carrying the number is dropped.
+              const faqs = hidePrices
+                ? rawFaqs
+                    .filter((faq) => !containsPrice(faq.q))
+                    .map((faq) => ({ q: faq.q, a: stripPricesFromText(faq.a) }))
+                    .filter((faq) => faq.a.length > 0)
+                : rawFaqs;
               if (faqs.length === 0) return null;
               return (
                 <div key={section.id} className="mb-10">
@@ -105,14 +124,19 @@ export function ServiceCitySections({
 
             if (!hasMeaningfulContent(section.content)) return null;
 
+            const html = hidePrices ? stripPricesFromHtml(section.content!) : section.content!;
+            // Scrubbing can empty a block out completely — don't leave a
+            // heading standing over nothing.
+            if (!hasMeaningfulContent(html)) return null;
+
             return (
               <div key={section.id} className="mb-10">
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
                   {section.label}
                 </h2>
                 <div
-                  className="prose prose-lg max-w-none text-gray-700"
-                  dangerouslySetInnerHTML={{ __html: section.content! }}
+                  className="prose max-w-none text-gray-700"
+                  dangerouslySetInnerHTML={{ __html: html }}
                 />
               </div>
             );
@@ -126,6 +150,25 @@ export function ServiceCitySections({
 export function hasSectionsContent(sectionsConfig: string | null | undefined): boolean {
   const sections = parseSections(sectionsConfig);
   return sections.some((s) => {
+    if (FAQ_IDS.has(s.id)) return parseFaqs(s.content).length > 0;
+    return hasMeaningfulContent(s.content);
+  });
+}
+
+/**
+ * Does the admin already cover this topic for the city?
+ *
+ * Pages pair hand-written blocks with generic fallback components. When the
+ * admin has written, say, a "Why Choose Us" block, the generic "Why Rent
+ * Here" component below it is the same pitch twice — so the page asks this
+ * first and drops its fallback when the answer is yes.
+ */
+export function hasSectionMatching(
+  sectionsConfig: string | null | undefined,
+  matcher: RegExp
+): boolean {
+  return parseSections(sectionsConfig).some((s) => {
+    if (!matcher.test(s.id) && !matcher.test(s.label)) return false;
     if (FAQ_IDS.has(s.id)) return parseFaqs(s.content).length > 0;
     return hasMeaningfulContent(s.content);
   });

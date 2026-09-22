@@ -972,32 +972,44 @@ export default function CustomerLuxuryQuoteDetailPage() {
 
           {/* Payment safety notice. Rendered inline rather than through
               QuotePaymentSafetyNotice so it can carry this page's serif +
-              hairline treatment; the wording is copied from that component
-              verbatim. It stays in use on the other quote pages untouched.
+              hairline treatment; the wording is a condensed version of that
+              component's, in the same tone. It stays in use on the other quote
+              pages untouched.
               Sits under the offers, i.e. right where the customer is about to
               pick one, and outside the branch above so it stays visible while
               quotes are still pending too. */}
-          <div className="rounded border border-red-200 bg-gradient-to-br from-red-50 to-white px-6 py-[22px]">
-            <div className="flex items-start gap-4">
-              <span className="grid h-10 w-10 flex-none place-items-center rounded-full border border-red-200 bg-white text-red-600">
-                <Shield className="h-5 w-5" />
+          <div className="relative overflow-hidden rounded border border-red-200 bg-gradient-to-br from-red-50 to-white px-6 py-[22px]">
+            <div className="pointer-events-none absolute inset-0 animate-pulse rounded border border-red-300 motion-reduce:animate-none" />
+
+            {/* Diagonal light sweep */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden rounded">
+              <div className="tr-safety-sweep absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+            </div>
+
+            <div className="relative flex items-start gap-4">
+              <span className="relative h-10 w-10 flex-none">
+                <span className="absolute inset-0 rounded-full bg-red-300 opacity-75 animate-ping motion-reduce:animate-none" />
+                <span className="tr-safety-icon-breathe relative grid h-10 w-10 place-items-center rounded-full border border-red-200 bg-white text-red-600">
+                  <Shield className="h-5 w-5" />
+                </span>
               </span>
               <div className="min-w-0">
-                <h3 className="lux-serif text-[22px] font-medium text-gray-900">Pay Only Through TransRentals</h3>
+                <h3 className="lux-serif text-[22px] font-medium text-gray-900">Please Pay Only Through TransRentals</h3>
                 <p className="mt-[7px] text-[13px] leading-relaxed text-gray-500">
-                  Before accepting any quote or making a payment, make sure you&rsquo;re on the official TransRentals
-                  platform. Never pay a vendor directly outside TransRentals &mdash; not for booking confirmation, not
-                  for the quotation, and not at any point until your trip is complete.
+                  Before accepting a quote or making a payment, please make sure you are on the official
+                  TransRentals platform. We request that you do not pay a vendor directly outside TransRentals
+                  &mdash; not for booking confirmation, not for the quotation, and not at any point until your
+                  trip is complete.
                 </p>
                 <ul className="mt-3.5 flex flex-col gap-2.5">
                   <li className="flex gap-[11px] text-[12.5px] leading-relaxed text-gray-500">
                     <CheckCircle className="mt-[3px] h-4 w-4 flex-none text-emerald-600" />
-                    Accept quotes and pay only through the TransRentals platform
+                    Please accept quotes and complete all payments only on the TransRentals platform
                   </li>
                   <li className="flex gap-[11px] text-[12.5px] leading-relaxed text-gray-500">
                     <XCircle className="mt-[3px] h-4 w-4 flex-none text-red-500" />
-                    If you pay a vendor directly, TransRentals cannot help with any issues, refunds, or disputes for
-                    that booking
+                    Please note: where a payment is made to a vendor directly, TransRentals will not be able to
+                    help with any issue, refund, or dispute for that booking
                   </li>
                 </ul>
               </div>

@@ -2,11 +2,12 @@ import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Alert, StatusBar, Dimensions,
+  StatusBar, Dimensions,
 } from 'react-native';
+import { Alert } from '../../components/ui/AppAlert';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import AppDatePicker from '../../components/ui/AppDatePicker';
 import { registerDriver, setDriverToken } from '../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -234,6 +235,9 @@ export default function RegisterScreen({ navigation }) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           keyboardDismissMode="interactive"
+          // Android scrolls a focused input into view once the window
+          // resizes; iOS needs to be told to inset for the keyboard.
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         >
 
           {/* ─── Step 1 ───────────────────────────────────────────────────── */}
@@ -276,11 +280,14 @@ export default function RegisterScreen({ navigation }) {
                     </Text>
                     <Ionicons name="chevron-down" size={16} color="#94A3B8" style={{ marginRight: 14 }} />
                   </TouchableOpacity>
-                  {showDob && (
-                    <DateTimePicker value={dob || new Date(1990, 0, 1)} mode="date"
-                      display="default" maximumDate={new Date()}
-                      onChange={(_, d) => { setShowDob(false); if (d) setDob(d); }} />
-                  )}
+                  <AppDatePicker
+                    visible={showDob}
+                    value={dob}
+                    title="Date of Birth"
+                    maximumDate={new Date()}
+                    onCancel={() => setShowDob(false)}
+                    onConfirm={(d) => { setShowDob(false); if (d) setDob(d); }}
+                  />
                 </View>
 
                 <Field label="Address" icon="location-outline" placeholder="Street, locality, area"
@@ -353,11 +360,14 @@ export default function RegisterScreen({ navigation }) {
                     </Text>
                     <Ionicons name="chevron-down" size={16} color="#94A3B8" style={{ marginRight: 14 }} />
                   </TouchableOpacity>
-                  {showExpiry && (
-                    <DateTimePicker value={licenseExpiry || new Date()} mode="date"
-                      display="default" minimumDate={new Date()}
-                      onChange={(_, d) => { setShowExpiry(false); if (d) setLicenseExpiry(d); }} />
-                  )}
+                  <AppDatePicker
+                    visible={showExpiry}
+                    value={licenseExpiry}
+                    title="Licence Expiry"
+                    minimumDate={new Date()}
+                    onCancel={() => setShowExpiry(false)}
+                    onConfirm={(d) => { setShowExpiry(false); if (d) setLicenseExpiry(d); }}
+                  />
                 </View>
               </SectionCard>
 

@@ -159,7 +159,7 @@ export function StateServicePage({ state, activeCities, serviceSlug, serviceName
                   <div className="bg-white rounded-xl border border-gray-200 p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <Lightbulb className="w-5 h-5 text-amber-500" />
-                      <h3 className="font-semibold text-gray-900">Travel Tips for {state.name}</h3>
+                      <h3 className="text-[15px] font-semibold text-gray-900">Travel Tips for {state.name}</h3>
                     </div>
                     <ul className="space-y-2">
                       {STATE_SEO[state.code].tips.map((tip, i) => (

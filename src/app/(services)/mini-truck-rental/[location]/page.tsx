@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { FAQSection } from '@/components/services/FAQSection';
@@ -18,7 +19,10 @@ import { RelatedServices } from '@/components/services/RelatedServices';
 import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
 import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
-import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { ServiceCitySections, hasSectionMatching } from '@/components/seo/ServiceCitySections';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { CITY_SEO } from '@/data/city-seo-content';
 import { Package, Home as HomeIcon, Store, ShoppingCart, Construction, UtensilsCrossed, Armchair, Recycle } from 'lucide-react';
 
@@ -28,7 +32,7 @@ interface PageProps {
   };
 }
 
-// Generate static params for ALL locations - GOD LEVEL SEO
+// Generate static params for ALL locations
 // Generate static params from DATABASE - Only locations where transporter is available
 export async function generateStaticParams() {
   return getAllCityLocations();
@@ -49,8 +53,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('mini-truck-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Mini Truck Rental in ${locationName} | Starting ₹1,499/Day | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent mini trucks in ${locationName}. Tata Ace, Mahindra Pickup available. Perfect for local deliveries, house shifting & goods transport. Book now!`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Mini Truck Rental in ${locationName} | Tata Ace & Pickup Hire | TransRentals`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Rent mini trucks in ${locationName}. Tata Ace, Mahindra Pickup available. Perfect for local deliveries, house shifting & goods transport. Book now!`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `mini truck rental in ${locationName}`,
       `tata ace on rent ${locationName}`,
@@ -78,9 +82,57 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+const EXPANDING_FAQS = [
+  { question: 'What can a mini truck carry?', answer: 'Tata Ace carries up to 750 kg; Mahindra and Bolero pickups handle up to 1000 kg. They suit small household moves, shop deliveries and market runs.' },
+  { question: 'When will mini truck rental open in my city?', answer: 'We onboard operators city by city and a city goes live as soon as verified operators are ready there. Until then you can book in the nearby cities listed above.' },
+  { question: 'Is a driver included?', answer: 'Yes, every mini truck on TransRentals comes with a verified professional driver.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet: no booking form and no
+ * quoted rate, just the nearest cities that are bookable today.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/mini-truck-rental" className="hover:text-primary">Mini Truck Rental</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="mini truck rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="mini-truck-rental"
+          serviceName="Mini Truck Rental"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="mini truck"
+        selectionDesc="Tata Ace, Mahindra and Bolero pickups — 750 kg to 1 tonne."
+      />
+      <FAQSection service="mini-truck-rental" location={cityName} customFaqs={EXPANDING_FAQS} />
+    </>
+  );
+}
+
 export default async function MiniTruckLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('mini-truck-rental', params.location);
+  const pageContext = await resolveServicePage('mini-truck-rental', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'transporter',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="mini-truck-rental" serviceName="Mini Truck Rental" />;
   const city = pageContext.city;
 
@@ -89,12 +141,14 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
   const MINI_TRUCK_FALLBACK_FAQS = [
     { question: 'What is the load capacity of a mini truck (Tata Ace)?', answer: 'Tata Ace has a load capacity of 750 kg. Mahindra Pickup and Bolero Pickup handle up to 1000 kg for slightly larger goods.' },
     { question: 'Is the mini truck available for house shifting?', answer: 'Yes, mini trucks are ideal for small household moves, apartment shifting, and single-room relocations within the city.' },
-    { question: 'What is the mini truck rental rate per day?', answer: 'Tata Ace rental starts from ₹1499/day with driver and fuel included for up to 100 km. Additional km at ₹15/km.' },
-    { question: 'Can I book a mini truck for just 2–3 hours?', answer: 'Yes, half-day (4-hour) packages are available starting from ₹799 including driver and 40 km. Ideal for market runs and shop deliveries.' },
+    { question: 'How is mini truck rental charged?', answer: 'Mini trucks are quoted per day with driver and fuel included up to a set kilometre limit, and anything beyond that is charged per extra km. The operator confirms both in the quote.' },
+    { question: 'Can I book a mini truck for just 2–3 hours?', answer: 'Yes, half-day (4-hour) packages are available including driver and a fixed kilometre allowance. Ideal for market runs and shop deliveries.' },
   ];
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['mini-truck-rental'] || [];
   const displayFAQs = cityFAQs.length > 0
-    ? cityFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))
+    ? cityFAQs
+        .map((faq) => ({ question: faq.q, answer: stripPricesFromText(faq.a) }))
+        .filter((faq) => faq.answer)
     : MINI_TRUCK_FALLBACK_FAQS;
 
   const [seoData, transporterServiceId, locationId, scContent] = await Promise.all([
@@ -140,6 +194,13 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
   });
 
 
+  // The admin block editor renders its own Why Us / Other Services / FAQ
+  // blocks. Where the city has one, the hardcoded section below is skipped
+  // so the page doesn't say the same thing twice.
+  const adminCoversWhyUs = hasSectionMatching(scContent?.sectionsConfig, /why[-\s_]?(choose|rent|us)/i);
+  const adminCoversOtherServices = hasSectionMatching(scContent?.sectionsConfig, /services?[-\s_]?(offered|available)|other[-\s_]?services/i);
+  const adminCoversFaqs = hasSectionMatching(scContent?.sectionsConfig, /faq/i);
+
   return (
     <div className="flex flex-col">
       {/* Breadcrumbs */}
@@ -158,8 +219,8 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
       <MiniTruckBookingHero
         city={locationName}
         citySlug={params.location}
-        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
+        pageHeading={stripPricesFromText(scContent?.pageHeading || seoData?.pageHeading) || undefined}
+        pageDescription={stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined}
       />
 
       {/* Use Cases */}
@@ -210,7 +271,9 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
         />
       )}
 
-      <WhyRentHere locationName={locationName} />
+      {!adminCoversWhyUs && (
+        <WhyRentHere locationName={locationName} />
+      )}
 
       <NearbyLocations
         locationSlug={params.location.toLowerCase()}
@@ -227,17 +290,20 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
       */}
 
       <ServiceAreasSection
+        hidePrices
         serviceSlug="mini-truck-rental"
         citySlug={params.location.toLowerCase()}
         cityName={locationName}
         serviceName="Mini Truck Rental"
       />
 
-      <CrossServiceLinks
-        citySlug={params.location.toLowerCase()}
-        cityName={locationName}
-        currentServiceSlug="mini-truck-rental"
-      />
+      {!adminCoversOtherServices && (
+        <CrossServiceLinks
+          citySlug={params.location.toLowerCase()}
+          cityName={locationName}
+          currentServiceSlug="mini-truck-rental"
+        />
+      )}
 
       {/* LocalBusiness Schema */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -272,9 +338,11 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
       })}} />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
-      <FAQSection service="mini-truck-rental" location={locationName} customFaqs={displayFAQs} />
+      {!adminCoversFaqs && (
+        <FAQSection service="mini-truck-rental" location={locationName} customFaqs={displayFAQs} />
+      )}
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

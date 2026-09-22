@@ -2,24 +2,34 @@ import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import {
-  TrendingUp,
   Shield,
   Clock,
   Smartphone,
   BarChart,
   Bell,
-  MapPin,
   CheckCircle,
   ArrowRight,
   Star,
   Zap,
   Car,
-  Wallet,
   FileText,
-  Navigation,
   IndianRupee,
+  Bus,
+  Truck,
+  Gem,
+  MessageCircle,
+  Mail,
+  Users,
 } from 'lucide-react';
 import { WHATSAPP_LINK } from '@/lib/contact';
+import { FAQSection } from '@/components/services/FAQSection';
+import { DriverEarningsBanner } from '@/components/driver/DriverEarningsBanner';
+import { DriverRequirementsChecklist } from '@/components/driver/DriverRequirementsChecklist';
+import { DriverAppShowcase } from '@/components/driver/DriverAppShowcase';
+import { DriverTestimonials } from '@/components/driver/DriverTestimonials';
+import { DriverCities } from '@/components/driver/DriverCities';
+import { DriverSafety } from '@/components/driver/DriverSafety';
+import { Reveal } from '@/components/driver/Reveal';
 
 export const metadata: Metadata = {
   title: 'Become a Driver with TransRentals - Earn on Your Own Schedule',
@@ -36,524 +46,390 @@ export const metadata: Metadata = {
   ],
 };
 
+/* Each icon moves on its own — plain Tailwind group-hover, no custom keyframes.
+   Same vocabulary the service pages use, so the driver page reads as part of
+   the same product rather than a one-off. */
+const ICON_HOVER: Record<string, string> = {
+  rise: 'group-hover:-translate-y-1.5',
+  spin: 'group-hover:rotate-[360deg]',
+  ring: 'group-hover:rotate-12',
+  pulse: 'group-hover:scale-125',
+  drive: 'group-hover:translate-x-1.5',
+  grow: 'group-hover:-translate-y-1 group-hover:scale-110',
+};
+
+const BENEFITS = [
+  {
+    Icon: IndianRupee,
+    anim: 'grow',
+    title: 'Guaranteed Earnings',
+    description:
+      'Consistent chauffeur bookings plus performance bonuses, settled weekly straight to your bank.',
+  },
+  { Icon: Clock, anim: 'spin', title: 'Flexible Schedule', description: 'You choose when you work. Accept or reject trips based on your availability — total freedom.' },
+  { Icon: Bell, anim: 'ring', title: 'Instant Trip Alerts', description: 'Real-time push notifications for nearby trips. Never miss a booking opportunity.' },
+  { Icon: Smartphone, anim: 'rise', title: 'Dedicated Driver App', description: 'Manage trips, track earnings and handle your vehicle — all from one app.' },
+  { Icon: Shield, anim: 'pulse', title: 'Verified & Safe Trips', description: 'Every booking comes from a verified customer. Your safety and payment stay protected.' },
+  { Icon: BarChart, anim: 'rise', title: 'Earnings Analytics', description: 'Track daily, weekly and monthly earnings. Know what you made and when you get paid.' },
+];
+
+const STEPS = [
+  {
+    step: '1',
+    Icon: FileText,
+    title: 'Register Your Profile',
+    description:
+      'Sign up with your name, phone, driving licence and bank details. Under 5 minutes, completely free.',
+  },
+  {
+    step: '2',
+    Icon: Car,
+    title: 'Add Your Fleet',
+    description:
+      "Register your vehicle on the driver app. Driving for a vendor? They assign one to you — no vehicle needed from your side.",
+  },
+  {
+    step: '3',
+    Icon: Zap,
+    title: 'Accept Trips & Earn',
+    description:
+      'Go online, accept nearby bookings instantly, and get paid weekly directly to your bank account.',
+  },
+];
+
+const VEHICLE_CLASSES = [
+  { Icon: Car, name: 'Sedan & Hatchback', licence: 'LMV', detail: 'City rides, airport runs and daily chauffeur duty.' },
+  { Icon: Car, name: 'SUV & MUV', licence: 'LMV', detail: 'Family trips and outstation runs — the highest demand class.' },
+  { Icon: Truck, name: 'Tempo Traveller', licence: 'HMV', detail: 'Group travel and multi-day tour packages.' },
+  { Icon: Bus, name: 'Luxury Coach', licence: 'PSV', detail: 'Weddings, corporate transport and event charters.' },
+  { Icon: Gem, name: 'Luxury Cars', licence: 'LMV', detail: 'Premium chauffeur work with the best per-trip earnings.' },
+];
+
+const DRIVER_FAQS = [
+  {
+    question: 'Do I need my own vehicle to become a driver?',
+    answer:
+      "It depends on your type. Registering as a vendor's driver means your vendor assigns a vehicle to you — you don't need your own. Registering as an independent driver means you bring your own vehicle, add it to your fleet on the driver app, and then start accepting trips.",
+  },
+  {
+    question: 'How quickly can I start getting trips?',
+    answer:
+      'As soon as you register and add your vehicle to the fleet (or get assigned one by your vendor), you can go online on the driver app and start receiving trip requests in your city right away.',
+  },
+  {
+    question: 'When and how do I get paid?',
+    answer:
+      'Earnings are settled weekly directly to your bank account. You can track every rupee in real time from the driver app earnings dashboard.',
+  },
+  {
+    question: 'What licence types are accepted?',
+    answer:
+      'We accept LMV, MCWG, HMV, HPMV, TRANS and PSV licence types. The vehicles you can drive depend on your licence category.',
+  },
+  {
+    question: 'Can I drive in multiple cities?',
+    answer:
+      "Yes. You can accept trips across multiple cities — just update your availability and location in the app and you'll receive requests from nearby customers.",
+  },
+  {
+    question: 'Is there any registration fee?',
+    answer:
+      'No. Registering as a driver on TransRentals is completely free. We only earn when you earn — no hidden charges.',
+  },
+];
+
 export default function DriverLandingPage() {
   return (
     <>
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black/20" />
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl" />
-        </div>
+      {/* ── Hero ─────────────────────────────────────────────────────────
+          Full-bleed photograph rather than a split: the shot already has the
+          driver on the right and open road on the left, so the copy sits in
+          the space the picture leaves for it.
 
-        <div className="container-custom relative py-20 md:py-32">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium mb-6">
-              <Star className="w-4 h-4" />
-              <span>Trusted by Professional Drivers Across India</span>
-            </div>
+          The wash is kept light — the previous version dimmed the whole thing
+          to near-black and lost the daylight that makes the photo work. Only
+          the left side is darkened, and only as far as the text needs. */}
+      <section className="relative isolate overflow-hidden bg-[#dfeaf2]">
+        {/* desktop art */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 hidden bg-cover bg-center bg-no-repeat sm:block"
+          style={{ backgroundImage: "url('/images/sections/driver-hero.webp')" }}
+        />
+        {/* phone art — a tighter crop, so a narrow screen still shows a person */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-cover bg-no-repeat sm:hidden"
+          style={{
+            backgroundImage: "url('/images/sections/driver-hero-mobile.webp')",
+            backgroundPosition: 'center center',
+          }}
+        />
 
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-              Drive. Earn. Grow — on Your Own Terms
+        {/* readability wash: strong at the left edge, gone by the middle */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            // Explicit stops rather than Tailwind's 0/50/100: the copy runs to
+            // roughly 45% of the width and the photo is bright right up to the
+            // left edge, so the wash has to stay heavy well past halfway and
+            // then clear completely before it reaches the driver.
+            background:
+              // The shot is brightest at the top (sky and sunrise), so the wash
+              // is angled down-right: heavy behind the copy, clearing well
+              // before the steering wheel and the sun.
+              'linear-gradient(105deg, rgba(2,40,31,.93) 0%, rgba(2,40,31,.86) 24%, rgba(2,40,31,.64) 42%, rgba(2,40,31,.22) 60%, rgba(2,40,31,0) 76%)',
+          }}
+        />
+        {/* a touch of brand at the very bottom so the section hands off cleanly */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-emerald-950/85 to-transparent"
+        />
+
+        <div className="container-custom relative py-20 md:py-28 lg:py-36">
+          <div className="max-w-xl text-white">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-400/15 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-200 backdrop-blur-sm">
+              <Star className="h-3.5 w-3.5" />
+              Trusted by drivers across India
+            </span>
+
+            <h1 className="mt-6 text-[2.6rem] leading-[1.06] md:text-6xl lg:text-[4.2rem] lg:leading-[1.02] font-black tracking-tight drop-shadow-[0_4px_28px_rgba(2,35,26,0.55)]">
+              Your car.<br />
+              Your hours.<br />
+              <span className="text-emerald-300">Your earnings.</span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto">
-              Join TransRentals as a professional driver. Accept chauffeur &amp; rental trips,
-              earn flexible income, and manage your schedule from our driver app.
+            <p className="mt-6 max-w-md text-[15px] md:text-lg leading-relaxed text-emerald-50/90 drop-shadow-[0_2px_12px_rgba(2,35,26,0.5)]">
+              Drive with TransRentals — accept the trips you want, follow the route in the
+              app, and get paid into your bank every week. No joining fee, ever.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <div className="mt-9 flex flex-col sm:flex-row gap-3">
               <Link
                 href="/driver/register"
-                className="px-8 py-4 bg-white text-emerald-700 rounded-lg font-bold text-lg hover:bg-gray-100 transition shadow-xl hover:shadow-2xl hover:scale-105 transform duration-300 flex items-center justify-center gap-2"
+                className="group/cta inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-8 py-4 text-[15px] font-bold text-white shadow-xl shadow-emerald-900/40 transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-400"
               >
-                Register as Driver
-                <ArrowRight className="w-5 h-5" />
+                Start driving today
+                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover/cta:translate-x-1" />
               </Link>
-
               <Link
                 href="/driver/login"
-                className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-lg font-bold text-lg hover:bg-white hover:text-emerald-700 transition flex items-center justify-center gap-2"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-8 py-4 text-[15px] font-bold text-white backdrop-blur-md transition hover:bg-white/20"
               >
                 Login to Dashboard
-                <ArrowRight className="w-5 h-5" />
               </Link>
             </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-              {[
-                { number: '5,000+', label: 'Active Drivers' },
-                { number: '50,000+', label: 'Trips/Month' },
-                { number: '500+', label: 'Cities Covered' },
-                { number: '₹40,000+', label: 'Avg. Monthly Earn' },
-              ].map((stat, index) => (
-                <div key={index} className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                  <div className="text-3xl font-bold mb-1">{stat.number}</div>
-                  <div className="text-sm text-white/80">{stat.label}</div>
-                </div>
+            <p className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] font-medium text-emerald-100/85">
+              {['Free to join', 'No registration fee', 'Register in 5 minutes'].map((t) => (
+                <span key={t} className="flex items-center gap-1.5">
+                  <CheckCircle className="h-3.5 w-3.5 text-emerald-300" />
+                  {t}
+                </span>
               ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Key Benefits */}
-      <section className="py-20 bg-white">
-        <div className="container-custom">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Drive with TransRentals?
-            </h2>
-            <p className="text-lg text-gray-600">
-              Everything you need to earn more and work smarter as a professional driver
             </p>
           </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                icon: <IndianRupee className="w-8 h-8" />,
-                title: 'Guaranteed Earnings',
-                description: 'Earn ₹40,000+ per month with consistent chauffeur bookings and performance bonuses.',
-                gradient: 'from-emerald-500 to-teal-500',
-              },
-              {
-                icon: <Clock className="w-8 h-8" />,
-                title: 'Flexible Schedule',
-                description: 'You choose when you work. Accept or reject trips based on your availability — total freedom.',
-                gradient: 'from-cyan-500 to-blue-500',
-              },
-              {
-                icon: <Bell className="w-8 h-8" />,
-                title: 'Instant Trip Alerts',
-                description: 'Get real-time push notifications for nearby trips. Never miss a booking opportunity.',
-                gradient: 'from-orange-500 to-red-500',
-              },
-              {
-                icon: <Smartphone className="w-8 h-8" />,
-                title: 'Dedicated Driver App',
-                description: 'Manage trips, track earnings, and handle your vehicle — all from one powerful mobile app.',
-                gradient: 'from-purple-500 to-pink-500',
-              },
-              {
-                icon: <Shield className="w-8 h-8" />,
-                title: 'Verified & Safe Trips',
-                description: 'Every booking is from a verified customer. Your safety and payment are always protected.',
-                gradient: 'from-indigo-500 to-blue-500',
-              },
-              {
-                icon: <BarChart className="w-8 h-8" />,
-                title: 'Earnings Analytics',
-                description: 'Track daily, weekly, and monthly earnings. Know exactly how much you\'ve made and when you\'ll be paid.',
-                gradient: 'from-amber-500 to-yellow-500',
-              },
-            ].map((benefit, index) => (
-              <div
-                key={index}
-                className="group bg-gradient-to-br from-gray-50 to-white rounded-xl border-2 border-gray-200 p-6 hover:border-emerald-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
-              >
-                <div
-                  className={`w-16 h-16 bg-gradient-to-br ${benefit.gradient} rounded-lg flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform`}
-                >
-                  {benefit.icon}
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{benefit.title}</h3>
-                <p className="text-gray-600">{benefit.description}</p>
-              </div>
-            ))}
-          </div>
         </div>
+
       </section>
 
-      {/* How It Works */}
-      <section className="py-20 bg-gradient-to-br from-emerald-50 via-white to-teal-50">
+      {/* ── How it works ─────────────────────────────────────────────────
+          Dashed connector between the steps, the same device the service
+          pages use, so the three stages read as one path. */}
+      <section className="py-16 md:py-20 bg-white">
         <div className="container-custom">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              How It Works
-            </h2>
-            <p className="text-lg text-gray-600">
-              Start earning in just 3 simple steps
-            </p>
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
+              <CheckCircle className="h-4 w-4" />
+              Simple Process
+            </span>
+            <h2 className="mt-4 text-3xl md:text-4xl font-extrabold text-gray-900">How It Works</h2>
+            <p className="mt-3 text-gray-500">Start earning in just 3 simple steps</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              {
-                step: '1',
-                title: 'Register Your Profile',
-                description: 'Sign up with your name, phone, driving license, and bank details. Takes less than 5 minutes — completely free.',
-                icon: <FileText className="w-12 h-12" />,
-              },
-              {
-                step: '2',
-                title: 'Add Your Fleet',
-                description: 'Register your vehicle on the driver app. If you are a vendor\'s driver, your vendor will assign a vehicle to you — no vehicle needed from your side.',
-                icon: <Car className="w-12 h-12" />,
-              },
-              {
-                step: '3',
-                title: 'Accept Trips & Earn',
-                description: 'Go online on the driver app, accept nearby bookings instantly, and get paid weekly directly to your bank account.',
-                icon: <Zap className="w-12 h-12" />,
-              },
-            ].map((step, index) => (
-              <div key={index} className="text-center">
-                <div className="relative mb-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mx-auto text-white">
-                    {step.icon}
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                    {step.step}
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{step.title}</h3>
-                <p className="text-gray-600">{step.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Vehicle Types You Can Drive */}
-      <section className="py-20 bg-white">
-        <div className="container-custom">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Vehicles You Can Drive
-            </h2>
-            <p className="text-lg text-gray-600">
-              Accept trips across multiple vehicle categories based on your license type
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {[
-              { icon: '🚗', name: 'Sedan & Hatchback', license: 'LMV' },
-              { icon: '🚙', name: 'SUV & MUV', license: 'LMV' },
-              { icon: '🚐', name: 'Tempo Traveller', license: 'HMV' },
-              { icon: '🚌', name: 'Luxury Coach', license: 'PSV' },
-              { icon: '🏎️', name: 'Luxury Cars', license: 'LMV' },
-            ].map((category, index) => (
-              <div
-                key={index}
-                className="group bg-gradient-to-br from-gray-50 to-white rounded-xl border-2 border-gray-200 p-6 hover:border-emerald-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 text-center"
-              >
-                <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">
-                  {category.icon}
-                </div>
-                <h3 className="font-bold text-gray-900 text-sm mb-1">{category.name}</h3>
-                <span className="inline-block bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  {category.license}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Driver App Features */}
-      <section className="py-20 bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 text-white">
-        <div className="container-custom">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                Everything in One Driver App
-              </h2>
-              <p className="text-xl text-white/90 mb-8">
-                Download the TransRentals Driver App and manage your entire driving career from your phone
-              </p>
-
-              <div className="space-y-4 mb-8">
-                {[
-                  'Instant trip notifications with route details',
-                  'Live earnings tracker & trip history',
-                  'Turn-by-turn navigation for every trip',
-                  'Add & manage your vehicle fleet',
-                  'Vehicle fuel & maintenance log',
-                  'Weekly payout to your bank account',
-                  'In-app support & help center',
-                  'Performance ratings & badges',
-                ].map((feature, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <CheckCircle className="w-6 h-6 text-emerald-300 flex-shrink-0" />
-                    <span className="text-lg">{feature}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <a
-                  href={process.env.NEXT_PUBLIC_DRIVER_APP_ANDROID || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 bg-white text-gray-900 px-6 py-3 rounded-lg hover:bg-gray-100 transition font-semibold"
-                >
-                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.5,12.92 20.16,13.19L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z" />
-                  </svg>
-                  <div className="text-left">
-                    <div className="text-xs">GET IT ON</div>
-                    <div className="text-sm font-bold">Google Play</div>
-                  </div>
-                </a>
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center">
-                <Smartphone className="w-32 h-32 mx-auto text-white/80 mb-4" />
-                <h3 className="text-2xl font-bold mb-2">Available on Android</h3>
-                <p className="text-white/80">Accept trips and manage earnings anytime, anywhere</p>
-                <div className="mt-6 grid grid-cols-2 gap-3">
-                  {[
-                    { icon: <Navigation className="w-5 h-5" />, label: 'Live Navigation' },
-                    { icon: <Wallet className="w-5 h-5" />, label: 'Instant Payouts' },
-                    { icon: <Bell className="w-5 h-5" />, label: 'Trip Alerts' },
-                    { icon: <BarChart className="w-5 h-5" />, label: 'Earnings Stats' },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2 text-sm">
-                      {item.icon}
-                      <span>{item.label}</span>
+            {STEPS.map(({ step, Icon, title, description }, idx) => (
+              <div key={step} className="relative">
+                {idx < STEPS.length - 1 && (
+                  <div className="hidden md:block absolute top-7 left-1/2 w-full border-t-2 border-dashed border-emerald-200" />
+                )}
+                <div className="group relative z-10 text-center">
+                  <div className="relative mx-auto mb-5 h-14 w-14">
+                    <span
+                      className="absolute inset-0 animate-ping rounded-full bg-emerald-400 opacity-75"
+                      style={{ animationDelay: `${idx * 0.3}s`, animationDuration: '2.5s' }}
+                    />
+                    <div className="relative grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-100 transition-transform duration-300 group-hover:scale-110">
+                      <Icon className="h-6 w-6 text-white" />
+                      <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full border-2 border-emerald-500 bg-white text-[10px] font-extrabold text-emerald-700">
+                        {step}
+                      </span>
                     </div>
-                  ))}
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-500">{description}</p>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Requirements Section */}
-      <section className="py-20 bg-gradient-to-br from-teal-50 via-white to-emerald-50">
-        <div className="container-custom">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              What You Need to Get Started
-            </h2>
-            <p className="text-lg text-gray-600">
-              Simple requirements — if you have a valid license and a clean record, you're good to go
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {[
-              {
-                category: 'Identity Documents',
-                emoji: '🪪',
-                items: [
-                  'Valid Aadhar Card (12-digit)',
-                  'PAN Card (for payment setup)',
-                  'Passport-size photograph',
-                  'Active mobile number',
-                ],
-              },
-              {
-                category: 'Driving License',
-                emoji: '🚗',
-                items: [
-                  'Valid LMV / HMV / PSV license',
-                  'Minimum 2 years driving experience',
-                  'Clean driving record',
-                  'License should be valid for at least 6 months',
-                ],
-              },
-              {
-                category: 'Bank Account',
-                emoji: '🏦',
-                items: [
-                  'Savings or current bank account',
-                  'IFSC code of your branch',
-                  'Account holder name matching Aadhar',
-                  'Account must be operational',
-                ],
-              },
-              {
-                category: 'Your Vehicle',
-                emoji: '🚙',
-                items: [
-                  'Independent driver: own vehicle required',
-                  'Vendor\'s driver: vendor provides the vehicle',
-                  'Own vehicle needs valid RC & insurance',
-                  'Add your fleet directly from the driver app',
-                ],
-              },
-            ].map((req, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-xl border-2 border-gray-200 p-6 hover:border-emerald-400 hover:shadow-lg transition-all duration-300"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-3xl">{req.emoji}</span>
-                  <h3 className="text-lg font-bold text-gray-900">{req.category}</h3>
-                </div>
-                <ul className="space-y-2">
-                  {req.items.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-gray-600 text-sm">
-                      <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Earnings Calculator Banner */}
-      <section className="py-16 bg-white border-y border-gray-200">
+      <DriverCities />
+
+      <DriverRequirementsChecklist />
+
+      <DriverSafety />
+
+      {/* ── Why drive with us ─────────────────────────────────────────────
+          One accent colour, not six. The first card spans two columns so the
+          grid has a lead rather than six equal tiles. */}
+      <section className="relative overflow-hidden py-16 md:py-24 bg-gradient-to-b from-white via-emerald-50/30 to-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage: 'radial-gradient(#A7F3D0 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            WebkitMaskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+            maskImage:
+              'radial-gradient(420px 320px at 6% 8%, #000 0%, transparent 70%), radial-gradient(420px 320px at 94% 92%, #000 0%, transparent 70%)',
+          }}
+        />
+        <div className="container-custom relative">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <h2 className="text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Why Drive with <span className="text-emerald-600">TransRentals?</span>
+            </h2>
+            <p className="mt-3 text-gray-500">
+              Everything you need to earn more and work smarter as a professional driver.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+            {BENEFITS.map(({ Icon, anim, title, description }) => (
+              <div
+                key={title}
+                className="group relative rounded-2xl border-[1.5px] border-gray-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-100"
+              >
+                <div className="relative mb-4 h-14 w-14">
+                  <span className="absolute inset-0 rotate-[18deg] rounded-full border-2 border-dashed border-emerald-200 transition-transform duration-700 group-hover:rotate-[198deg]" />
+                  <span className="absolute inset-[5px] grid place-items-center rounded-full bg-emerald-50 transition-colors duration-300 group-hover:bg-emerald-600">
+                    <Icon
+                      className={`h-5 w-5 text-emerald-600 transition-transform duration-500 group-hover:text-white ${ICON_HOVER[anim]}`}
+                    />
+                  </span>
+                </div>
+                <h3 className="text-[17px] font-bold leading-snug text-gray-900">{title}</h3>
+                <p className="mt-2 text-[13.5px] leading-relaxed text-gray-500">{description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <DriverTestimonials />
+
+      {/* ── Vehicle classes ──────────────────────────────────────────────
+          The emoji tiles carried no information beyond the name. Each card
+          now says what that class is actually good for. */}
+      <section className="py-16 md:py-20 bg-gradient-to-b from-white via-gray-50/70 to-white">
+        <div className="container-custom">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <h2 className="text-3xl md:text-[2.5rem] leading-[1.12] font-black tracking-tight text-gray-900">
+              Vehicles You Can <span className="text-emerald-600">Drive</span>
+            </h2>
+            <p className="mt-3 text-gray-500">
+              Accept trips across multiple vehicle categories, based on your licence type.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5">
+            {VEHICLE_CLASSES.map(({ Icon, name, licence, detail }) => (
+              <div
+                key={name}
+                className="group rounded-2xl border-[1.5px] border-gray-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-200 hover:shadow-lg"
+              >
+                <span className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 transition-colors duration-300 group-hover:bg-emerald-600">
+                  <Icon className="h-6 w-6 text-emerald-600 transition-colors duration-300 group-hover:text-white" />
+                </span>
+                <h3 className="text-[14px] font-bold leading-snug text-gray-900">{name}</h3>
+                <span className="mt-1.5 inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                  {licence}
+                </span>
+                <p className="mt-2.5 text-[12px] leading-relaxed text-gray-500">{detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <DriverAppShowcase />
+
+      {/* Tick-off readiness check, then the earnings pitch. */}
+      <DriverEarningsBanner />
+
+      {/* The site-wide accordion, so this page's FAQ behaves like every other. */}
+      <FAQSection service="driver" customFaqs={DRIVER_FAQS} />
+
+      {/* ── Closing ──────────────────────────────────────────────────────
+          The old page ended with three near-identical blocks (earnings
+          banner, CTA, support). One closing section: register on the left,
+          get help on the right. */}
+      <section className="py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/40 to-white">
         <div className="container-custom max-w-5xl">
-          <div className="flex flex-col md:flex-row items-center gap-8 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl shadow-lg border border-emerald-100 p-8 md:p-10">
-            <div className="flex-shrink-0">
-              <div className="w-20 h-20 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <span className="text-4xl">💰</span>
-              </div>
-            </div>
-            <div className="flex-1 text-center md:text-left">
-              <div className="inline-flex items-center gap-2 bg-emerald-100 border border-emerald-200 rounded-full px-3 py-1 text-xs font-bold text-emerald-700 uppercase tracking-wider mb-3">
-                Earning Potential
-              </div>
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-                How Much Can You Earn?
+          <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6">
+            <div className="rounded-2xl bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 p-8 md:p-10 text-white shadow-lg">
+              <h2 className="text-2xl md:text-[2rem] leading-tight font-black tracking-tight">
+                Ready to start your<br />
+                <span className="text-emerald-300">driver journey?</span>
               </h2>
-              <p className="text-gray-500 text-sm md:text-base leading-relaxed mb-6 max-w-2xl">
-                Full-time drivers on TransRentals earn ₹35,000–₹60,000/month. Part-time drivers
-                (4–5 hrs/day) earn ₹15,000–₹25,000/month. Your earnings depend on your city,
-                trip count, and vehicle type.
+              <p className="mt-3 max-w-md text-sm leading-relaxed text-emerald-100/80">
+                Join thousands of professional drivers already earning with TransRentals.
+                Register in 5 minutes — free, fast and simple.
               </p>
-              <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+              <div className="mt-7 flex flex-col sm:flex-row gap-3">
                 <Link
                   href="/driver/register"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold text-sm hover:from-emerald-700 hover:to-teal-700 transition shadow-md hover:shadow-lg hover:scale-105 transform duration-200"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-emerald-900 shadow-lg shadow-emerald-950/30 transition-transform hover:-translate-y-0.5"
                 >
-                  Start Earning Today
-                  <ArrowRight className="w-4 h-4" />
+                  Register as Driver
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href="/driver/login"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-emerald-200 text-emerald-700 rounded-xl font-semibold text-sm hover:bg-emerald-50 transition duration-200"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/25 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10"
                 >
-                  Already a Driver? Login
-                  <ArrowRight className="w-4 h-4" />
+                  Login to Dashboard
                 </Link>
               </div>
             </div>
-            <div className="hidden lg:flex flex-col gap-3 flex-shrink-0">
-              {['🕐 Flexible Hours', '📍 500+ Cities', '⚡ Daily Trips', '💳 Weekly Payouts'].map((item) => (
-                <div key={item} className="flex items-center gap-2 bg-white border border-emerald-100 rounded-lg px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm">
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* FAQ Section */}
-      <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
-        <div className="container-custom max-w-3xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Frequently Asked Questions
-            </h2>
-            <p className="text-lg text-gray-600">Everything you need to know before joining</p>
-          </div>
-
-          <div className="space-y-4">
-            {[
-              {
-                q: 'Do I need my own vehicle to become a driver?',
-                a: 'It depends on your type. If you are registering as a vendor\'s driver, your vendor will assign a vehicle to you — you don\'t need your own. If you are registering as an independent driver, you must have your own vehicle, add it to your fleet on the driver app, and then you can start accepting trips.',
-              },
-              {
-                q: 'How quickly can I start getting trips?',
-                a: 'As soon as you register and add your vehicle to the fleet (or get assigned by your vendor), you can go online on the driver app and start receiving trip requests in your city right away.',
-              },
-              {
-                q: 'When and how do I get paid?',
-                a: 'Earnings are settled weekly directly to your bank account. You can track every rupee in real-time from the driver app earnings dashboard.',
-              },
-              {
-                q: 'What license types are accepted?',
-                a: 'We accept LMV, MCWG, HMV, HPMV, TRANS, and PSV license types. The type of vehicle you can drive depends on your license category.',
-              },
-              {
-                q: 'Can I drive in multiple cities?',
-                a: 'Yes! You can accept trips across multiple cities. Just update your availability and location in the app and you\'ll receive requests from nearby customers.',
-              },
-              {
-                q: 'Is there any registration fee?',
-                a: 'Absolutely not. Registering as a driver on TransRentals is completely free. We only earn when you earn — no hidden charges.',
-              },
-            ].map((faq, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-xl border-2 border-gray-200 p-6 hover:border-emerald-300 transition-colors"
-              >
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{faq.q}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{faq.a}</p>
+            <div className="rounded-2xl border-[1.5px] border-gray-100 bg-white p-8 shadow-sm">
+              <h3 className="text-[17px] font-bold text-gray-900">Need help getting started?</h3>
+              <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
+                Our driver support team is available 7 days a week to help you register and
+                get on the road.
+              </p>
+              <div className="mt-6 space-y-2.5">
+                <a
+                  href={WHATSAPP_LINK ?? '#'}
+                  className="flex items-center gap-3 rounded-xl border-[1.5px] border-gray-100 bg-gray-50/60 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                >
+                  <MessageCircle className="h-4 w-4 shrink-0 text-emerald-600" />
+                  WhatsApp Support
+                </a>
+                <a
+                  href={`mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL}`}
+                  className="flex items-center gap-3 rounded-xl border-[1.5px] border-gray-100 bg-gray-50/60 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                >
+                  <Mail className="h-4 w-4 shrink-0 text-emerald-600" />
+                  Email Us
+                </a>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-emerald-50 via-white to-teal-50">
-        <div className="container-custom max-w-4xl">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 text-center border-2 border-gray-200">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Ready to Start Your Driver Journey?
-            </h2>
-            <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-              Join thousands of professional drivers already earning with TransRentals.
-              Register in 5 minutes — free, fast, and simple.
-            </p>
-
-            <Link
-              href="/driver/register"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-bold text-lg hover:from-emerald-700 hover:to-teal-700 transition shadow-xl hover:shadow-2xl hover:scale-105 transform duration-300"
-            >
-              Register as Driver — It&apos;s Free
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-
-            <p className="mt-6 text-sm text-gray-600">
-              Already a driver?{' '}
-              <Link href="/driver/login" className="text-emerald-600 hover:underline font-semibold">
-                Login to Dashboard
-              </Link>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Support Section */}
-      <section className="py-16 bg-white border-t border-gray-200">
-        <div className="container-custom">
-          <div className="text-center max-w-3xl mx-auto">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
-              Need Help Getting Started?
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Our driver support team is available 7 days a week to help you register and get on the road
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
-                href={WHATSAPP_LINK ?? '#'}
-                className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition"
-              >
-                WhatsApp Support
-              </a>
-              <a
-                href={`mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL}`}
-                className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:border-emerald-600 hover:text-emerald-600 transition"
-              >
-                Email Us
-              </a>
             </div>
           </div>
         </div>

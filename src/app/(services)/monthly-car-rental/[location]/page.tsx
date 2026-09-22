@@ -1,10 +1,15 @@
 ﻿import { Metadata } from 'next';
+import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { FAQSection } from '@/components/services/FAQSection';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
@@ -48,8 +53,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('monthly-car-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Monthly Car Rental in ${locationName} | Subscription @₹12k`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent car monthly in ${locationName}. Car subscription service. Long term rental @₹12000/month. Self-drive & chauffeur options.`,
+    title: stripPriceFromTitle(scContent?.metaTitle) || stripPriceFromTitle(_seoDb?.metaTitle) || `Monthly Car Rental in ${locationName} | Subscriptionk`,
+    description: stripPricesFromText(scContent?.metaDescription) || stripPricesFromText(_seoDb?.metaDescription) || `Rent car monthly in ${locationName}. Car subscription service. Self-drive & chauffeur options.`,
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `monthly car rental ${locationName.toLowerCase()}`,
       `car subscription ${locationName.toLowerCase()}`,
@@ -60,7 +65,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ...(city?.keywords || []).map(k => `monthly car ${k}`),
     ],
     openGraph: {
-      title: `Monthly Car Rental in ${locationName} - Car Subscription @₹12k`,
+      title: `Monthly Car Rental in ${locationName} - Car Subscriptionk`,
       description: `Subscribe to cars monthly in ${locationName}. All-inclusive packages available.`,
       url: `https://transrentals.in/monthly-car-rental/${params.location.toLowerCase()}`,
     },
@@ -70,15 +75,63 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image' as const,
       title: `Monthly Car Rental in ${locationName} | TransRentals`,
-      description: `Rent car monthly in ${locationName}. Car subscription service @₹12000/month.`,
+      description: `Rent car monthly in ${locationName}.`,
     },
   };
 }
 
+const EXPANDING_FAQS = [
+  { question: 'How does a monthly car subscription work?', answer: 'You keep the car for a month or longer on a fixed plan that bundles insurance and servicing, with a set kilometre allowance. Self-drive and chauffeur options are both available.' },
+  { question: 'When will monthly car rental open in my city?', answer: 'We onboard operators city by city and a city goes live as soon as verified operators are ready there. Until then you can book in the nearby cities listed above.' },
+  { question: 'Can I extend or switch the car?', answer: 'Yes. Plans can be extended, and most operators allow a vehicle swap between cycles.' },
+];
+
+/**
+ * What a city sees while no operator is live there yet: no booking form and no
+ * quoted rate, just the nearest cities that are bookable today.
+ */
+function ExpandingCityPage({ cityName, citySlug }: { cityName: string; citySlug: string }) {
+  return (
+    <>
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/monthly-car-rental" className="hover:text-primary">Monthly Car Rental</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{cityName}</span>
+          </nav>
+        </div>
+      </div>
+      <ServiceExpandingHero cityName={cityName} serviceLabel="monthly car rentals" />
+      <div id="nearby-cities" className="scroll-mt-4">
+        <NearbyActiveCities
+          currentCitySlug={citySlug}
+          serviceSlug="monthly-car-rental"
+          serviceName="Monthly Car Rental"
+        />
+      </div>
+      <ServiceLaunchBenefits
+        cityName={cityName}
+        vehicleNoun="car"
+        selectionDesc="Hatchbacks, sedans and SUVs on long-term self-drive or chauffeur plans."
+      />
+      <FAQSection service="monthly-car-rental" location={cityName} customFaqs={EXPANDING_FAQS} />
+    </>
+  );
+}
+
 export default async function MonthlyCarRentalLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('monthly-car-rental', params.location);
+  const pageContext = await resolveServicePage('monthly-car-rental', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'car-rental',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="monthly-car-rental" serviceName="Monthly Car Rental" />;
+  if (pageContext.type === 'coming-soon') {
+    return <ExpandingCityPage cityName={pageContext.city.name} citySlug={params.location.toLowerCase()} />;
+  }
   const city = pageContext.city;
   // Fallback: getAllCities().find(c => c.slug === params.location);
 
@@ -88,9 +141,9 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
 
   const pageFaqs = [
     { question: 'What is included in the monthly car rental plan?', answer: 'Monthly car rental includes the car, driver (if applicable), insurance, maintenance, and a fixed km allowance per month. Fuel is extra.' },
-    { question: 'Is a driver included in the monthly car rental?', answer: 'Driver-included monthly plans start from ₹25,000/month. Self-drive monthly plans start from ₹12,000/month depending on vehicle category.' },
+    { question: 'Is a driver included in the monthly car rental?', answer: 'Both are available — self-drive plans, and chauffeur-included plans where a verified driver is assigned for the whole term. The operator quotes each separately by vehicle category.' },
     { question: 'Can I customize the km limit for monthly car rental?', answer: 'Yes, standard plans include 2500 km/month. Higher km packages (3500 km, 5000 km) are available at a marginal extra cost.' },
-    { question: 'What happens if I exceed the monthly km limit?', answer: 'Additional km beyond the plan limit are charged at ₹10–₹15/km depending on the vehicle category.' },
+    { question: 'What happens if I exceed the monthly km limit?', answer: 'Kilometres beyond the plan allowance are billed per extra km at a rate the operator confirms in your quote, and it varies by vehicle category.' },
   ];
 
   // Fetch self-drive vehicle models for monthly plans
@@ -200,7 +253,7 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
               {
                 icon: Receipt,
                 title: 'Extra Charges',
-                items: ['Fuel (you pay)', 'Extra km: ₹6-12/km', 'Chauffeur: ₹15k-20k', 'Security deposit', 'Toll & parking'],
+                items: ['Fuel (you pay)', 'Extra km beyond the allowance', 'Chauffeur (optional add-on)', 'Security deposit', 'Toll & parking'],
               },
             ].map((panel) => (
               <div
@@ -343,7 +396,7 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

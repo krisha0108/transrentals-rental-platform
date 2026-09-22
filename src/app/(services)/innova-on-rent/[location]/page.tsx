@@ -9,6 +9,11 @@ import { getServiceLocations, getAllCityLocations } from '@/lib/services/service
 import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
@@ -44,8 +49,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('innova-on-rent', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Innova on Rent in ${locationName} | Rent Innova @₹2499/Day | TransRentals`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Toyota Innova Crysta without driver in ${locationName}. Self-drive Innova rental for family trips, weddings. 7+1 seater. GX, VX, ZX variants available.`,
+    // No rate is quoted for this page — see the note in the page body.
+    title: stripPricesFromText(scContent?.metaTitle || _seoDb?.metaTitle || `Innova on Rent in ${locationName} | Rent Innova | TransRentals | TransRentals`),
+    description: stripPricesFromText(scContent?.metaDescription || _seoDb?.metaDescription || `Rent Toyota Innova Crysta without driver in ${locationName}. Self-drive Innova rental for family trips, weddings. 7+1 seater. GX, VX, ZX variants available.`),
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `innova on rent ${locationName}`,
       `toyota innova rental ${locationName}`,
@@ -53,7 +59,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `7 seater car rental ${locationName}`,
     ],
     openGraph: {
-      title: `Innova on Rent in ${locationName} @₹2499/Day | TransRentals`,
+      title: `Innova on Rent in ${locationName} | TransRentals`,
       description: `Self-drive Toyota Innova Crysta rental in ${locationName}. Best rates guaranteed.`,
       type: 'website',
       url: `https://transrentals.in/innova-on-rent/${locationSlug}`,
@@ -64,7 +70,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image' as const,
       title: `Innova on Rent in ${locationName} | TransRentals`,
-      description: `Rent Toyota Innova without driver in ${locationName} starting @₹1999/day.`,
+      description: `Rent Toyota Innova without driver in ${locationName} from verified partners.`,
     },
   };
 }
@@ -77,10 +83,55 @@ const innovaVariants = [
   { name: 'Toyota Innova HyCross', price: 3999, fuel: 'Hybrid', seats: 7 },
 ];
 
+const launchFaqs = [
+  { question: 'What documents do I need to rent?', answer: 'A valid driving licence and one government photo ID (Aadhaar, passport or voter card).' },
+  { question: 'Is a security deposit required?', answer: 'Yes, a refundable deposit is collected at pickup and returned when you bring the car back.' },
+  { question: 'Is roadside assistance available?', answer: 'Yes, our partners provide 24/7 roadside assistance for the length of your rental.' },
+];
+
 export default async function InnovaOnRentLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('innova-on-rent', params.location);
+  // Availability follows self-drive-car-rentals: there is no services row under
+  // "innova-on-rent", and an unknown slug used to read as "available
+  // everywhere", so this page could never be switched off for a city.
+  // One admin screen now governs the whole self drive group.
+  const pageContext = await resolveServicePage('innova-on-rent', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'self-drive-car-rentals',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="innova-on-rent" serviceName="Innova on Rent" />;
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the
+  // nearest city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/innova-on-rent" className="hover:text-primary">Innova on Rent</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="Innova rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="innova-on-rent"
+            serviceName="Innova on Rent"
+          />
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} vehicleNoun="car" selectionDesc="Toyota Innova and Innova Crysta, seven and eight seaters." />
+        <FAQSection service="innova-on-rent" location={cityName} customFaqs={launchFaqs} />
+      </>
+    );
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
@@ -91,7 +142,6 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
 
   const pageFaqs = [
     { question: 'Is Toyota Innova available for self-drive rental?', answer: 'Yes, Toyota Innova Crysta (7-seater) and Innova HyCross (hybrid) are available for self-drive — perfect for large family trips.' },
-    { question: 'What is the daily rental cost for Innova Crysta?', answer: 'Innova Crysta self-drive rental starts from ₹1999/day for manual. HyCross starts from ₹2499/day including comprehensive insurance.' },
     { question: 'How many people can the rental Innova accommodate?', answer: 'Toyota Innova seats 7 adults comfortably with good luggage space, ideal for groups going on weekend getaways or hill station trips.' },
     { question: 'Is the Innova available with an automatic gearbox for self-drive?', answer: 'Yes, both Innova Crysta (automatic) and HyCross (eCVT) are available for self-drive based on stock at your location.' },
   ];
@@ -114,7 +164,6 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
         city={locationName}
         citySlug={params.location}
         vehicleName="Toyota Innova"
-        selfDrivePrice="₹2,499"
       />
 
       <section className="bg-white py-10 border-b border-gray-100">
@@ -127,15 +176,6 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
               <p className="text-gray-500 mt-1.5">Self-drive Toyota Innova Crysta. Best MPV for family trips &amp; group travel.</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
-                <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
-                  <Shield className="w-5 h-5 text-white" />
-                </span>
-                <div>
-                  <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Starting</p>
-                  <p className="text-lg font-black text-gray-900">₹2,499/day</p>
-                </div>
-              </div>
               <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
                 <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
                   <Users className="w-5 h-5 text-white" />
@@ -182,7 +222,6 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
                   <span className="flex items-center gap-1.5"><Armchair className="w-3.5 h-3.5 text-emerald-500" /> {variant.seats} Seats</span>
                 </div>
                 <div className="pt-3 border-t border-gray-100">
-                  <p className="text-xl font-bold text-emerald-700">₹{variant.price}<span className="text-xs font-normal text-gray-400">/day</span></p>
                 </div>
               </div>
             ))}
@@ -238,14 +277,27 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName="Innova on Rent"
         serviceSlug="innova-on-rent"
-        description={`Rent Toyota Innova without driver in ${locationName} starting @₹1999/day.`}
+        description={`Rent Toyota Innova without driver in ${locationName}, all from verified partners.`}
         city={locationName}
         citySlug={params.location}
         faqs={[]}
+        hidePrices
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      {/* Available cars — purely whatever the admin has published for
+          this city. Nothing hardcoded, and the section renders nothing
+          at all when the city has no published fleet. */}
+      <LazyServiceFleetDisplay
+        serviceSlug="innova-on-rent"
+        locationSlug={params.location}
+        title={`Innova Cars Available in ${locationName}`}
+        showCategories={true}
+        limit={12}
+        hidePrices
+      />
+
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <FAQSection service="innova-on-rent" location={locationName} customFaqs={pageFaqs} />
 
@@ -261,7 +313,6 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
           { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
           { slug: 'swift-on-rent', name: 'Swift on Rent' },
           { slug: 'creta-on-rent', name: 'Creta on Rent' },
-          { slug: 'innova-on-rent', name: 'Innova on Rent' },
           { slug: 'fortuner-on-rent', name: 'Fortuner on Rent' },
           { slug: 'seltos-on-rent', name: 'Seltos on Rent' },
           { slug: 'xuv700-on-rent', name: 'XUV700 on Rent' },

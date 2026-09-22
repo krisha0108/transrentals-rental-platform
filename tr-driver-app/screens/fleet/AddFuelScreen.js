@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator, Platform, KeyboardAvoidingView,
+  TextInput, ActivityIndicator, Platform, KeyboardAvoidingView,
 } from 'react-native';
+import { Alert } from '../../components/ui/AppAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import AppDatePicker from '../../components/ui/AppDatePicker';
 import { addFuelLog, updateFuelLog } from '../api/client';
 import moment from 'moment';
 
@@ -134,15 +135,14 @@ export default function AddFuelScreen({ route, navigation }) {
               <Text style={styles.inputText}>{moment(date).format('DD MMM YYYY')}</Text>
               <Ionicons name="chevron-down" size={14} color={C.sub} />
             </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                value={date}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                maximumDate={new Date()}
-                onChange={(_, d) => { setShowDatePicker(false); if (d) setDate(d); }}
-              />
-            )}
+            <AppDatePicker
+              visible={showDatePicker}
+              value={date}
+              title="Fuel Date"
+              maximumDate={new Date()}
+              onCancel={() => setShowDatePicker(false)}
+              onConfirm={(d) => { setShowDatePicker(false); if (d) setDate(d); }}
+            />
           </Field>
 
           {/* Liters */}

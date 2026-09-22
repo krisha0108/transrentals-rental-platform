@@ -9,6 +9,11 @@ import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { ServiceExpandingHero } from '@/components/services/ServiceExpandingHero';
+import { ServiceLaunchBenefits } from '@/components/services/ServiceLaunchBenefits';
+import { stripPricesFromText } from '@/lib/content/strip-prices';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
@@ -44,8 +49,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     getServiceCityContent('electric-scooter-rental', params.location),
   ]);
   return {
-    title: scContent?.metaTitle || _seoDb?.metaTitle || `Electric Scooter Rental in ${locationName} | @₹399/Day`,
-    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent electric scooters in ${locationName}. Ola S1, Ather 450X, TVS iQube available. Zero fuel cost, eco-friendly. Daily & monthly EV rental from ₹399/day.`,
+    // No rate is quoted for this page — see the note in the page body.
+    title: stripPricesFromText(scContent?.metaTitle || _seoDb?.metaTitle || `Electric Scooter Rental in ${locationName} | TransRentals`),
+    description: stripPricesFromText(scContent?.metaDescription || _seoDb?.metaDescription || `Rent electric scooters in ${locationName}. Ola S1, Ather 450X, TVS iQube available. Zero fuel cost, eco-friendly. Daily & monthly EV rental from ₹399/day.`),
     keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `electric scooter rental ${locationName}`,
       `ev scooter on rent ${locationName}`,
@@ -55,7 +61,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `tvs iqube on rent ${locationName}`,
     ],
     openGraph: {
-      title: `Electric Scooter Rental in ${locationName} @₹399/Day | TransRentals`,
+      title: `Electric Scooter Rental in ${locationName} | TransRentals`,
       description: `Rent Ola S1, Ather 450X, TVS iQube in ${locationName}. Zero fuel cost!`,
       type: 'website',
       url: `https://transrentals.in/electric-scooter-rental/${locationSlug}`,
@@ -71,7 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image',
       title: `Electric Scooter Rental in ${locationName} | TransRentals`,
-      description: `Rent EVs in ${locationName}. Starting @₹399/day.`,
+      description: `Rent EVs in ${locationName} from verified partners.`,
       images: ['https://transrentals.in/images/og/electric-scooter-rental.jpg'],
     },
     alternates: {
@@ -80,29 +86,72 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+const launchFaqs = [
+  { question: 'What documents do I need to rent?', answer: 'A valid two-wheeler driving licence and one government photo ID (Aadhaar, passport or voter card).' },
+  { question: 'Is a helmet included?', answer: 'Yes, a helmet is included with every rental.' },
+  { question: 'Is roadside assistance available?', answer: 'Yes, our partners provide 24/7 roadside assistance for the length of your rental.' },
+];
+
 export default async function ElectricScooterLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('electric-scooter-rental', params.location);
+  // Availability follows Bike Rental: there is no services row under
+  // "electric-scooter-rental" (an unknown slug used to read as "available everywhere"),
+  // so this page could never be switched off for a city. One admin screen
+  // now controls every bike page, this one included.
+  const pageContext = await resolveServicePage('electric-scooter-rental', params.location, {
+    comingSoonIfUnavailable: true,
+    availabilityServiceSlug: 'bike-on-rent',
+  });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="electric-scooter-rental" serviceName="Electric Scooter Rental" />;
+
+  // No partners onboarded here yet — no booking hero, because there is
+  // nothing to search. The page says where we're at and points at the
+  // nearest city that is bookable today.
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/electric-scooter-rental" className="hover:text-primary">Electric Scooter Rental</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ServiceExpandingHero cityName={cityName} serviceLabel="electric scooter rentals" />
+        <div id="nearby-cities" className="scroll-mt-4">
+          <NearbyActiveCities
+            currentCitySlug={params.location}
+            serviceSlug="electric-scooter-rental"
+            serviceName="Electric Scooter Rental"
+          />
+        </div>
+        <ServiceLaunchBenefits cityName={cityName} selectionDesc="Ola, Ather, TVS iQube, Bajaj Chetak — the EVs riders ask for." />
+        <FAQSection service="electric-scooter-rental" location={cityName} customFaqs={launchFaqs} />
+      </>
+    );
+  }
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   const schemaFaqs = [
     { question: `Where can I rent electric scooter in ${locationName}?`, answer: `TransRentals offers electric scooter rental across ${locationName}. We have Ola S1, Ather 450X, TVS iQube available with doorstep delivery.` },
-    { question: `How much does EV rental cost in ${locationName}?`, answer: `Electric scooter rental in ${locationName} starts from ₹399/day. Monthly rentals start from ₹4,999/month.` },
     { question: `Is charging available in ${locationName}?`, answer: `Yes, you can charge at home or use public charging stations across ${locationName}. We provide charging cable with the scooter.` },
   ];
 
-  const schemaVehicles = [
-    { name: 'Ola S1 Pro', brand: 'Ola Electric', price: 499, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: `Rent Ola S1 Pro electric scooter in ${locationName} — India's bestselling EV with 135 km range per charge, 8.5 kW motor, 0-40 kmph in 3 seconds, and MoveOS smart connectivity. Zero fuel cost, app-based controls, reverse mode, and 4-hour home charging included. Starting from ₹499/day with doorstep delivery in ${locationName}.` },
-    { name: 'Ather 450X', brand: 'Ather Energy', price: 599, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: `Rent Ather 450X electric scooter in ${locationName} — premium EV with 105 km range, built-in Google Maps navigation, Bluetooth dashboard, and 3.5-hour fast charging. Features auto-hold braking, OTA updates, and 95 kmph top speed. Tech-forward EV rental from ₹599/day with helmet and charger included in ${locationName}.` },
-    { name: 'TVS iQube', brand: 'TVS', price: 449, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: `Rent TVS iQube electric scooter in ${locationName} — best-value EV with 100 km range, SmartXonnect Bluetooth technology, USB charging port, and navigation-ready instrument cluster. Eco-friendly city commuter costing just ₹15-20 per charge. Daily rental from ₹449/day with all accessories and doorstep delivery in ${locationName}.` },
-  ];
 
   const [seoData, scContent] = await Promise.all([
     resolvePageMeta(`electric-scooter-rental:${params.location}`),
     getServiceCityContent('electric-scooter-rental', params.location),
   ]);
+
+  // No rate is quoted anywhere on this page — the real price depends on the
+  // partner and the dates, so a number in the copy would only mislead.
+  const heroDescription = stripPricesFromText(scContent?.pageDescription || seoData?.pageDescription) || undefined;
 
   const pageFaqs = [
     { question: 'Which electric scooters are available on rent?', answer: 'We offer Ola S1 Pro, Ather 450X, and TVS iQube — all with full charge, app connectivity, and fast charger included.' },
@@ -116,21 +165,20 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
       <BikeServiceSchema
         serviceName={`Electric Scooter Rental in ${locationName}`}
         serviceSlug="electric-scooter-rental"
-        description={`Rent electric scooters in ${locationName}. Ola S1, Ather 450X, TVS iQube available. Starting @₹399/day.`}
+        description={`Rent electric scooters in ${locationName}. Ola S1, Ather 450X, TVS iQube available, all from verified partners.`}
         city={locationName}
         citySlug={params.location}
         faqs={schemaFaqs}
-        vehicles={schemaVehicles}
-        priceRange={{ min: 399, max: 599 }}
         rating={4.6}
         reviewCount={234}
+        hidePrices
       />
 
       <BikeSearchHero
         city={locationName}
         citySlug={params.location}
         pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
+        pageDescription={heroDescription}
       />
 
       {/* Breadcrumb */}
@@ -163,7 +211,7 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
                 </span>
                 <div>
                   <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Fuel Cost</p>
-                  <p className="text-lg font-black text-gray-900">₹0</p>
+                  <p className="text-lg font-black text-gray-900">Zero</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3">
@@ -195,33 +243,17 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
       </section>
 
       {/* EV Models */}
-      <section id="evs" className="py-16 bg-white">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 text-center mb-10">
-            Electric Scooters Available in <span className="text-emerald-600">{locationName}</span>
-          </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
-            {[
-              { name: 'Ola S1 Pro', price: '499', range: '135 km', highlight: 'Best Range' },
-              { name: 'Ather 450X', price: '599', range: '105 km', highlight: 'Premium' },
-              { name: 'TVS iQube', price: '449', range: '100 km', highlight: 'Best Value' },
-              { name: 'Bajaj Chetak', price: '549', range: '90 km', highlight: 'Classic' },
-            ].map((ev) => (
-              <div key={ev.name} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all">
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="text-lg font-bold text-gray-900">{ev.name}</h3>
-                  <span className="bg-emerald-50 text-emerald-700 text-xs font-semibold px-2 py-1 rounded-full">{ev.highlight}</span>
-                </div>
-                <p className="text-2xl font-bold text-emerald-700 mb-1">₹{ev.price}/day</p>
-                <p className="text-sm text-gray-500 mb-4">Range: {ev.range}</p>
-                <button className="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-semibold hover:bg-emerald-700 transition">
-                  Rent Now
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Available scooters — purely whatever the admin has published for
+          this city. Nothing hardcoded, and the section renders nothing at all
+          when the city has no published fleet. */}
+      <LazyServiceFleetDisplay
+        serviceSlug="electric-scooter-rental"
+        locationSlug={params.location}
+        title={`Electric Scooters Available in ${locationName}`}
+        showCategories={true}
+        limit={12}
+        hidePrices
+      />
 
       {/* Why EV */}
       <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white">
@@ -243,7 +275,7 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
           </h2>
           <div className="grid sm:grid-cols-3 gap-5 md:gap-6 max-w-4xl mx-auto">
             {[
-              { Icon: Zap, title: 'Save ₹3000+/Month', desc: 'Only ₹15-20 per charge vs ₹150+ petrol' },
+              { Icon: Zap, title: 'Cheaper to Run', desc: 'A full charge costs a fraction of a tank of petrol' },
               { Icon: Leaf, title: 'Go Green', desc: 'Zero emissions, contribute to cleaner air' },
               { Icon: VolumeX, title: 'Silent Ride', desc: 'No noise pollution, peaceful commute' },
             ].map((item, idx) => (
@@ -278,9 +310,9 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
           </h2>
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {[
-              { href: `/bike-on-rent/${params.location}`, Icon: BikeIcon, title: 'Bike Rental', desc: 'Petrol bikes from ₹299/day' },
-              { href: `/activa-on-rent/${params.location}`, Icon: Gauge, title: 'Activa Rental', desc: 'Scooters from ₹299/day' },
-              { href: `/monthly-bike-rental/${params.location}`, Icon: CalendarClock, title: 'Monthly Rental', desc: 'Long term from ₹2999/month' },
+              { href: `/bike-on-rent/${params.location}`, Icon: BikeIcon, title: 'Bike Rental', desc: 'Petrol bikes, booked by the day' },
+              { href: `/activa-on-rent/${params.location}`, Icon: Gauge, title: 'Activa Rental', desc: 'Automatic scooters for city runs' },
+              { href: `/monthly-bike-rental/${params.location}`, Icon: CalendarClock, title: 'Monthly Rental', desc: 'Long term from long-term plans' },
             ].map((opt) => (
               <Link
                 key={opt.title}
@@ -311,7 +343,7 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
       */}
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} hidePrices />
 
       <RelatedServices
         locationSlug={params.location}
@@ -327,7 +359,6 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
           { slug: 'splendor-on-rent', name: 'Splendor on Rent' },
           { slug: 'himalayan-on-rent', name: 'Himalayan on Rent' },
           { slug: 'monthly-bike-rental', name: 'Monthly Bike Rental' },
-          { slug: 'electric-scooter-rental', name: 'Electric Scooter' },
         ]}
       />
     </>
