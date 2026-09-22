@@ -439,7 +439,7 @@ export default function SelfDriveQuoteDetailScreen({ route, navigation }) {
 
   /* ── Render ── */
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* ══ Hero Header ══════════════════════════════════════════════════════ */}
@@ -450,30 +450,32 @@ export default function SelfDriveQuoteDetailScreen({ route, navigation }) {
       >
         <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
-        <View style={styles.topBar}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.titleWrap}>
-            <MaterialCommunityIcons name="car-outline" size={18} color={C.amber} />
-            <Text style={styles.heroTitle}>Quote Details</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={styles.topBar}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.titleWrap}>
+              <MaterialCommunityIcons name="car-outline" size={18} color={C.amber} />
+              <Text style={styles.heroTitle}>Quote Details</Text>
+            </View>
+            <View style={{ width: 36 }} />
           </View>
-          <View style={{ width: 36 }} />
-        </View>
 
-        {/* Identity block — who this quote is for */}
-        <View style={styles.identityBlock}>
-          <View style={styles.identityIcon}>
-            <MaterialCommunityIcons name="account" size={24} color="#fff" />
+          {/* Identity block — who this quote is for */}
+          <View style={styles.identityBlock}>
+            <View style={styles.identityIcon}>
+              <MaterialCommunityIcons name="account" size={24} color="#fff" />
+            </View>
+            <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12) }}>
+              <Text style={styles.identityLabel}>QUOTE FOR</Text>
+              <Text style={styles.identityName} numberOfLines={1}>{customerName}</Text>
+              <Text style={styles.identitySub} numberOfLines={1}>
+                {pickupCity}{dropCity ? ` → ${dropCity}` : ''}
+              </Text>
+            </View>
           </View>
-          <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12) }}>
-            <Text style={styles.identityLabel}>QUOTE FOR</Text>
-            <Text style={styles.identityName} numberOfLines={1}>{customerName}</Text>
-            <Text style={styles.identitySub} numberOfLines={1}>
-              {pickupCity}{dropCity ? ` → ${dropCity}` : ''}
-            </Text>
-          </View>
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       {/* ══ Body ═════════════════════════════════════════════════════════════ */}

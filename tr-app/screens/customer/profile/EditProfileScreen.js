@@ -83,9 +83,9 @@ const EditProfileScreen = () => {
         StatusBar.setBackgroundColor(TEAL_DEEP, true);
       }
       return () => {
-        StatusBar.setBarStyle('light-content', true);
+        StatusBar.setBarStyle('dark-content', true);
         if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor(TEAL_DEEP, true);
+          StatusBar.setBackgroundColor('#FFFFFF', true);
         }
       };
     }, [])
@@ -240,7 +240,7 @@ const EditProfileScreen = () => {
       {/* ── Form ── */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           style={styles.scroll}

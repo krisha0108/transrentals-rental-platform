@@ -11,8 +11,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, Modal, TextInput, StatusBar,
-  KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -417,13 +417,13 @@ export default function VendorLocationsScreen({ navigation }) {
 
               {/* State chips */}
               {uniqueStates.length > 1 && (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsRow}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipsRowOuter} contentContainerStyle={s.chipsRow}>
                   <TouchableOpacity style={[s.chip, !locStateFilter && s.chipActive]} onPress={() => { setLocStateFilter(''); setSelectedLocIds(new Set()); }}>
-                    <Text style={[s.chipText, !locStateFilter && s.chipTextActive]}>All States</Text>
+                    <Text numberOfLines={1} style={[s.chipText, !locStateFilter && s.chipTextActive]}>All States</Text>
                   </TouchableOpacity>
                   {uniqueStates.map((stt) => (
                     <TouchableOpacity key={stt} style={[s.chip, locStateFilter === stt && s.chipActive]} onPress={() => { setLocStateFilter(locStateFilter === stt ? '' : stt); setSelectedLocIds(new Set()); }}>
-                      <Text style={[s.chipText, locStateFilter === stt && s.chipTextActive]}>{stt}</Text>
+                      <Text numberOfLines={1} style={[s.chipText, locStateFilter === stt && s.chipTextActive]}>{stt}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -732,7 +732,7 @@ export default function VendorLocationsScreen({ navigation }) {
         onRequestClose={() => setShowModal(false)}
         onShow={() => { setModalLoading(true); setTimeout(() => setModalLoading(false), 80); }}
       >
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={() => setShowModal(false)} />
           <View style={s.modalContent}>
@@ -952,7 +952,8 @@ const s = StyleSheet.create({
   searchInput: { flex: 1, fontSize: rf(14), color: C.text, padding: 0 },
 
   /* ── State chips ── */
-  chipsRow: { paddingHorizontal: rs(14), paddingTop: rs(10), paddingBottom: rs(4), gap: rs(8) },
+  chipsRowOuter: { flexGrow: 0, flexShrink: 0, height: 48 },
+  chipsRow: { paddingHorizontal: rs(14), paddingTop: rs(10), paddingBottom: rs(4), gap: rs(8), alignItems: 'center' },
   chip: { paddingHorizontal: rs(14), paddingVertical: rs(6), borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
   chipActive: { backgroundColor: C.blueL, borderColor: C.blue },
   chipText: { fontSize: rf(12.5), fontWeight: '600', color: C.muted },

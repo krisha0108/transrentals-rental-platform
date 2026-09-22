@@ -88,9 +88,9 @@ export default function VehicleDetailScreen({ route, navigation }) {
           vehicleData.modelName       = vehicleData.vehicle_models?.name || vehicleData.model || null;
           vehicleData.serviceName     = vehicleData.services?.name || null;
           vehicleData.categoryName    = vehicleData.chauffeur_vehicle_categories?.name || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.name || null;
-          vehicleData.seatingCapacity = vehicleData.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.seatingCapacity || vehicleData.vehicle_models?.seatingCapacity || null;
-          vehicleData.fuelType        = vehicleData.chauffeur_vehicle_categories?.fuelType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.fuelType || vehicleData.fuelType || vehicleData.vehicle_models?.fuelType || null;
-          vehicleData.transmission    = vehicleData.chauffeur_vehicle_categories?.acType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.acType || vehicleData.transmission || vehicleData.vehicle_models?.transmission || null;
+          vehicleData.seatingCapacity = vehicleData.seatingCapacity || vehicleData.vehicle_models?.seatingCapacity || vehicleData.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.seatingCapacity || null;
+          vehicleData.fuelType        = vehicleData.fuelType || vehicleData.vehicle_models?.fuelType || vehicleData.chauffeur_vehicle_categories?.fuelType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.fuelType || null;
+          vehicleData.transmission    = vehicleData.transmission || vehicleData.vehicle_models?.transmission || vehicleData.chauffeur_vehicle_categories?.acType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.acType || null;
           vehicleData.year            = vehicleData.yearOfManufacture || vehicleData.year || null;
         }
         setVehicle(vehicleData);
@@ -113,11 +113,11 @@ export default function VehicleDetailScreen({ route, navigation }) {
     }
   }, [vehicleId]);
 
-  useEffect(() => { fetchVehicle(); }, [fetchVehicle]);
   useFocusEffect(useCallback(() => {
     StatusBar.setBarStyle('light-content');
     StatusBar.setBackgroundColor(C.g900);
-  }, []));
+    fetchVehicle();
+  }, [fetchVehicle]));
 
   useEffect(() => {
     const initBaseURL = async () => { const url = await getBaseURL(); setBaseURL(url); };
@@ -160,20 +160,22 @@ export default function VehicleDetailScreen({ route, navigation }) {
 
   /* ── Loading ── */
   if (loading) return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
       <LinearGradient colors={G.hero} style={s.heroSimple}>
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <View style={s.topBar}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={s.titleWrap}>
-            <MaterialCommunityIcons name="car" size={16} color={C.g400} />
-            <Text style={s.heroTitle}>Vehicle Details</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.topBar}>
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.titleWrap}>
+              <MaterialCommunityIcons name="car" size={16} color={C.g400} />
+              <Text style={s.heroTitle}>Vehicle Details</Text>
+            </View>
+            <View style={{ width: 36 }} />
           </View>
-          <View style={{ width: 36 }} />
-        </View>
+        </SafeAreaView>
       </LinearGradient>
       <View style={s.centered}><ActivityIndicator size="large" color={C.g600} /></View>
     </SafeAreaView>
@@ -181,20 +183,22 @@ export default function VehicleDetailScreen({ route, navigation }) {
 
   /* ── Not found ── */
   if (!vehicle) return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
       <LinearGradient colors={G.hero} style={s.heroSimple}>
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <View style={s.topBar}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={s.titleWrap}>
-            <MaterialCommunityIcons name="car" size={16} color={C.g400} />
-            <Text style={s.heroTitle}>Vehicle Details</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.topBar}>
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.titleWrap}>
+              <MaterialCommunityIcons name="car" size={16} color={C.g400} />
+              <Text style={s.heroTitle}>Vehicle Details</Text>
+            </View>
+            <View style={{ width: 36 }} />
           </View>
-          <View style={{ width: 36 }} />
-        </View>
+        </SafeAreaView>
       </LinearGradient>
       <View style={s.centered}>
         <View style={s.emptyIconWrap}>
@@ -253,48 +257,50 @@ export default function VehicleDetailScreen({ route, navigation }) {
   ].filter(s => hasValidValue(s.value));
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* ══ Hero Header ══════════════════════════════════════════════════════ */}
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
-        <View style={s.topBar}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={s.titleWrap}>
-            <MaterialCommunityIcons name="car" size={16} color={C.g400} />
-            <Text style={s.heroTitle}>Vehicle Details</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.topBar}>
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.titleWrap}>
+              <MaterialCommunityIcons name="car" size={16} color={C.g400} />
+              <Text style={s.heroTitle}>Vehicle Details</Text>
+            </View>
+            <TouchableOpacity style={s.deleteBtn} onPress={handleDelete}>
+              <Icon name="trash-2" size={16} color="#fff" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={s.deleteBtn} onPress={handleDelete}>
-            <Icon name="trash-2" size={16} color="#fff" />
-          </TouchableOpacity>
-        </View>
 
-        {/* Identity block — which vehicle this is */}
-        <View style={s.identityBlock}>
-          <View style={s.identityIcon}>
-            <MaterialCommunityIcons name="car-side" size={24} color="#fff" />
-          </View>
-          <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12) }}>
-            <Text style={s.identityLabel}>VEHICLE</Text>
-            <Text style={s.identityName} numberOfLines={1}>
-              {[vehicle.brandName, vehicle.modelName].filter(Boolean).join(' ') || vehicle.categoryName || 'Vehicle'}
-            </Text>
-            <Text style={s.identitySub} numberOfLines={1}>{vehicle.registrationNumber || 'No Registration'}</Text>
-          </View>
-        </View>
-
-        {vehicle.serviceName && (
-          <View style={s.heroBadgeRow}>
-            <View style={s.svcBadge}>
-              <Ionicons name="pricetag" size={11} color="#fff" />
-              <Text style={s.svcBadgeTxt}>{vehicle.serviceName}</Text>
+          {/* Identity block — which vehicle this is */}
+          <View style={s.identityBlock}>
+            <View style={s.identityIcon}>
+              <MaterialCommunityIcons name="car-side" size={24} color="#fff" />
+            </View>
+            <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12) }}>
+              <Text style={s.identityLabel}>VEHICLE</Text>
+              <Text style={s.identityName} numberOfLines={1}>
+                {[vehicle.brandName, vehicle.modelName].filter(Boolean).join(' ') || vehicle.categoryName || 'Vehicle'}
+              </Text>
+              <Text style={s.identitySub} numberOfLines={1}>{vehicle.registrationNumber || 'No Registration'}</Text>
             </View>
           </View>
-        )}
+
+          {vehicle.serviceName && (
+            <View style={s.heroBadgeRow}>
+              <View style={s.svcBadge}>
+                <Ionicons name="pricetag" size={11} color="#fff" />
+                <Text style={s.svcBadgeTxt}>{vehicle.serviceName}</Text>
+              </View>
+            </View>
+          )}
+        </SafeAreaView>
       </LinearGradient>
 
       {/* ══ Body ═════════════════════════════════════════════════════════════ */}

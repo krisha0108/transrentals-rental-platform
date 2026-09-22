@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, Image, ActivityIndicator, Dimensions,
-  Alert, Modal, Platform, Linking,
+  Alert, Modal, Platform, Linking, KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
@@ -568,6 +568,7 @@ export default function WanderListingDetailScreen() {
             <View style={{ width: 40 }} />
           </View>
 
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
 
             {/* Tour name pill */}
@@ -667,6 +668,7 @@ export default function WanderListingDetailScreen() {
 
             <View style={{ height: 40 }} />
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>

@@ -1,93 +1,3 @@
-// import React from 'react';
-// import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-// import Ionicons from 'react-native-vector-icons/Ionicons';
-
-// export default function CustomAlert({
-//   visible,
-//   type = 'success', // 'success' | 'error' | 'warning' | 'info'
-//   title = '',
-//   message = '',
-//   onClose,
-//   okText = 'OK',
-// }) {
-//   const palette = {
-//     success: { bg: '#E9F8EF', fg: '#067647', icon: 'checkmark-circle-outline', ring: '#B7F0C0' },
-//     error: { bg: '#FEECEC', fg: '#B42318', icon: 'close-circle-outline', ring: '#F2B8B5' },
-//     warning: { bg: '#FFF7E6', fg: '#B54708', icon: 'alert-circle-outline', ring: '#FED7AA' },
-//     info: { bg: '#EEF4FF', fg: '#1849A9', icon: 'information-circle-outline', ring: '#C7D7FE' },
-//   };
-//   const tone = palette[type] || palette.info;
-
-//   return (
-//     <Modal transparent visible={!!visible} animationType="fade" onRequestClose={onClose}>
-//       <View style={styles.backdrop}>
-//         <View style={styles.card}>
-//           <View style={[styles.iconWrap, { backgroundColor: tone.bg, borderColor: tone.ring }]}>
-//             <Ionicons name={tone.icon} size={28} color={tone.fg} />
-//           </View>
-//           {!!title && <Text style={[styles.title, { color: '#111827' }]}>{title}</Text>}
-//           {!!message && <Text style={[styles.message, { color: '#475467' }]}>{message}</Text>}
-
-//           <TouchableOpacity onPress={onClose} activeOpacity={0.9} style={[styles.okBtn]}> 
-//             <Text style={styles.okTxt}>{okText}</Text>
-//           </TouchableOpacity>
-//         </View>
-//       </View>
-//     </Modal>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   backdrop: {
-//     flex: 1,
-//     backgroundColor: 'rgba(0,0,0,0.45)',
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//     padding: 20,
-//   },
-//   card: {
-//     width: '100%',
-//     maxWidth: 360,
-//     backgroundColor: '#FFFFFF',
-//     borderRadius: 16,
-//     paddingHorizontal: 18,
-//     paddingTop: 22,
-//     paddingBottom: 12,
-//     elevation: 8,
-//   },
-//   iconWrap: {
-//     alignSelf: 'center',
-//     height: 64,
-//     width: 64,
-//     borderRadius: 32,
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//     borderWidth: 1,
-//     marginBottom: 10,
-//   },
-//   title: {
-//     fontSize: 18,
-//     fontWeight: '800',
-//     textAlign: 'center',
-//     marginTop: 4,
-//   },
-//   message: {
-//     fontSize: 14,
-//     textAlign: 'center',
-//     marginTop: 8,
-//     lineHeight: 20,
-//   },
-//   okBtn: {
-//     marginTop: 16,
-//     marginBottom: 4,
-//     backgroundColor: '#16A34A',
-//     borderRadius: 10,
-//     height: 44,
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//   },
-//   okTxt: { color: '#fff', fontWeight: '800' },
-// });
 // components/CustomAlert.js
 import React, { useEffect, useRef, useMemo } from 'react';
 import {
@@ -102,6 +12,8 @@ import {
   Vibration,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { C, rs, rf, cardShadow } from '../screens/travel-agent/_shared/theme';
+import { DISPLAY } from '../screens/travel-agent/_shared/typography';
 
 export default function CustomAlert({
   visible,
@@ -119,10 +31,10 @@ export default function CustomAlert({
 }) {
   const palette = useMemo(
     () => ({
-      success: { bg: '#F0FFF6', fg: '#067647', icon: 'checkmark-circle-outline', ring: '#B7F0C0', bar: '#22C55E' },
-      error:   { bg: '#FFF1F1', fg: '#B42318', icon: 'close-circle-outline',     ring: '#F2B8B5', bar: '#EF4444' },
-      warning: { bg: '#FFFAEB', fg: '#B54708', icon: 'alert-circle-outline',     ring: '#FED7AA', bar: '#F59E0B' },
-      info:    { bg: '#EEF4FF', fg: '#1849A9', icon: 'information-circle-outline', ring: '#C7D7FE', bar: '#3B82F6' },
+      success: { tint: C.tintEmerald, fg: C.emeraldDeep, icon: 'checkmark-circle', bar: C.emerald },
+      error:   { tint: C.redL,        fg: C.red,          icon: 'close-circle',     bar: C.red },
+      warning: { tint: C.orangeL,     fg: C.orange,        icon: 'alert-circle',     bar: C.orange },
+      info:    { tint: C.tintOcean,   fg: C.ocean,          icon: 'information-circle', bar: C.ocean },
     }),
     []
   );
@@ -130,7 +42,7 @@ export default function CustomAlert({
 
   const backOpacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.92)).current;
-  const translateY = useRef(new Animated.Value(8)).current;
+  const translateY = useRef(new Animated.Value(10)).current;
   const bar = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -138,9 +50,9 @@ export default function CustomAlert({
       if (haptics && Platform.OS === 'android') Vibration.vibrate(12);
 
       Animated.parallel([
-        Animated.timing(backOpacity, { toValue: 1, duration: 180, useNativeDriver: true, easing: Easing.out(Easing.quad) }),
-        Animated.spring(scale, { toValue: 1, useNativeDriver: true, damping: 12, stiffness: 210, mass: 0.6 }),
-        Animated.timing(translateY, { toValue: 0, duration: 220, useNativeDriver: true, easing: Easing.out(Easing.cubic) }),
+        Animated.timing(backOpacity, { toValue: 1, duration: 200, useNativeDriver: true, easing: Easing.out(Easing.quad) }),
+        Animated.spring(scale, { toValue: 1, useNativeDriver: true, damping: 14, stiffness: 220, mass: 0.6 }),
+        Animated.timing(translateY, { toValue: 0, duration: 240, useNativeDriver: true, easing: Easing.out(Easing.cubic) }),
       ]).start();
 
       bar.setValue(0);
@@ -151,7 +63,7 @@ export default function CustomAlert({
     } else {
       backOpacity.setValue(0);
       scale.setValue(0.92);
-      translateY.setValue(8);
+      translateY.setValue(10);
       bar.setValue(0);
     }
   }, [visible]);
@@ -174,15 +86,21 @@ export default function CustomAlert({
       </Animated.View>
 
       <View style={styles.centerWrap} pointerEvents="box-none">
-        <Animated.View style={[styles.card, { transform: [{ scale }, { translateY }], shadowOpacity: 0.18 }]}>
+        <Animated.View style={[styles.card, { transform: [{ scale }, { translateY }] }]}>
           {!!autoCloseMs && (
             <View style={styles.barTrack}>
               <Animated.View style={[styles.barFill, { width: barWidth, backgroundColor: tone.bar }]} />
             </View>
           )}
 
-          <View style={[styles.iconWrap, { backgroundColor: tone.bg, borderColor: tone.ring }]}>
-            <Ionicons name={tone.icon} size={30} color={tone.fg} />
+          {showCloseX && (
+            <TouchableOpacity onPress={onClose} style={styles.closeX} hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}>
+              <Ionicons name="close" size={rs(16)} color={C.sub} />
+            </TouchableOpacity>
+          )}
+
+          <View style={[styles.iconWrap, { backgroundColor: tone.tint }]}>
+            <Ionicons name={tone.icon} size={rs(32)} color={tone.fg} />
           </View>
 
           {!!title && <Text style={styles.title}>{title}</Text>}
@@ -195,12 +113,12 @@ export default function CustomAlert({
               return (
                 <TouchableOpacity
                   key={`${a.label}-${i}`}
-                  activeOpacity={0.9}
+                  activeOpacity={0.88}
                   style={[
                     styles.btn,
-                    isPrimary && [styles.btnPrimary, { backgroundColor: tone.bar }],
+                    isPrimary && [styles.btnPrimary, { backgroundColor: a.destructive ? C.red : tone.bar }],
                     isGhost && styles.btnGhost,
-                    a.destructive && !isPrimary && { borderColor: '#EF4444' },
+                    a.destructive && !isPrimary && { borderColor: C.red },
                   ]}
                   onPress={() => a.onPress?.()}
                 >
@@ -208,7 +126,7 @@ export default function CustomAlert({
                     style={[
                       styles.btnTxt,
                       isPrimary ? styles.btnTxtPrimary : styles.btnTxtGhost,
-                      a.destructive && !isPrimary && { color: '#EF4444' },
+                      a.destructive && !isPrimary && { color: C.red },
                     ]}
                   >
                     {a.label}
@@ -217,12 +135,6 @@ export default function CustomAlert({
               );
             })}
           </View>
-
-          {showCloseX && (
-            <TouchableOpacity onPress={onClose} style={styles.closeX} hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}>
-              <Ionicons name="close" size={18} color="#4B5563" />
-            </TouchableOpacity>
-          )}
         </Animated.View>
       </View>
     </Modal>
@@ -230,25 +142,31 @@ export default function CustomAlert({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: C.scrim },
   backdropPress: { flex: 1 },
-  centerWrap: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  centerWrap: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', padding: rs(20) },
   card: {
-    width: '100%', maxWidth: 380, backgroundColor: '#FFFFFF', borderRadius: 18,
-    paddingHorizontal: 18, paddingTop: 22, paddingBottom: 14,
-    elevation: 10, shadowColor: '#000', shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, position: 'relative',
+    width: '100%', maxWidth: rs(380), backgroundColor: C.card, borderRadius: rs(22),
+    paddingHorizontal: rs(22), paddingTop: rs(26), paddingBottom: rs(18),
+    borderWidth: 1, borderColor: C.border, position: 'relative', ...cardShadow,
   },
-  barTrack: { position: 'absolute', left: 0, right: 0, top: 0, height: 3, borderTopLeftRadius: 18, borderTopRightRadius: 18, overflow: 'hidden', backgroundColor: '#F1F5F9' },
+  barTrack: { position: 'absolute', left: 0, right: 0, top: 0, height: 3, borderTopLeftRadius: rs(22), borderTopRightRadius: rs(22), overflow: 'hidden', backgroundColor: C.tintBorder },
   barFill: { height: '100%' },
-  iconWrap: { alignSelf: 'center', height: 64, width: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, marginBottom: 8 },
-  title: { fontSize: 18, fontWeight: '800', textAlign: 'center', color: '#111827', marginTop: 2 },
-  message: { fontSize: 14, textAlign: 'center', color: '#475467', marginTop: 8, lineHeight: 20 },
-  actionsRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  btn: { flex: 1, height: 44, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' },
+  iconWrap: {
+    alignSelf: 'center', height: rs(68), width: rs(68), borderRadius: rs(34),
+    alignItems: 'center', justifyContent: 'center', marginBottom: rs(14),
+  },
+  title: { fontFamily: DISPLAY, fontSize: rf(20), fontWeight: '700', textAlign: 'center', color: C.ink, letterSpacing: -0.2 },
+  message: { fontSize: rf(14.5), textAlign: 'center', color: C.sub, marginTop: rs(8), lineHeight: rf(21) },
+  actionsRow: { flexDirection: 'row', gap: rs(10), marginTop: rs(20) },
+  btn: { flex: 1, height: rs(46), borderRadius: rs(14), borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
   btnPrimary: { borderColor: 'transparent' },
-  btnGhost: { backgroundColor: '#FFFFFF' },
-  btnTxt: { fontWeight: '800' },
+  btnGhost: { backgroundColor: C.card },
+  btnTxt: { fontWeight: '700', fontSize: rf(14.5) },
   btnTxtPrimary: { color: '#FFFFFF' },
-  btnTxtGhost: { color: '#111827' },
-  closeX: { position: 'absolute', top: 8, right: 8, height: 32, width: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F4F6' },
+  btnTxtGhost: { color: C.ink },
+  closeX: {
+    position: 'absolute', top: rs(12), right: rs(12), height: rs(28), width: rs(28), borderRadius: rs(14),
+    alignItems: 'center', justifyContent: 'center', backgroundColor: C.tintBorder, zIndex: 1,
+  },
 });

@@ -346,7 +346,7 @@ export default function TruckMyQuotesScreen({ navigation }) {
           outside the FlatList so switching tabs never resets scroll. */}
       <View style={styles.tabFloatWrap}>
         <View style={styles.tabCard}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScrollOuter} contentContainerStyle={styles.tabScroll}>
             {TABS.map(tab => {
               const active = activeTab === tab.id;
               return (
@@ -476,6 +476,7 @@ const styles = StyleSheet.create({
     paddingVertical: rs(8),
     ...cardShadow,
   },
+  tabScrollOuter: { flexGrow: 0, flexShrink: 0, height: 44 },
   tabScroll: { paddingHorizontal: rs(8), paddingRight: rs(16), gap: rs(8), flexDirection: 'row', alignItems: 'center' },
   tabPill: {
     flexDirection: 'row', alignItems: 'center', gap: rs(5), flexShrink: 0,

@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -461,7 +462,7 @@ const openReturnDateTimePicker = () => {
           return null;
       }
     };
-    return <SafeAreaView style={styles.container}>{renderStep()}<BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} /></SafeAreaView>;
+    return <SafeAreaView style={styles.container}><KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>{renderStep()}</KeyboardAvoidingView><BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} /></SafeAreaView>;
   };
   const styles = StyleSheet.create({
     container: { flex: 1, padding: 20, backgroundColor: '#fff' },

@@ -1,6 +1,5 @@
 package com.transrentalsvenderapp
 
-
 import android.os.Bundle
 
 import com.facebook.react.ReactActivity
@@ -26,9 +25,7 @@ class MainActivity : ReactActivity() {
   override fun createReactActivityDelegate(): ReactActivityDelegate =
       DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
 
-
-
-       override fun onCreate(savedInstanceState: Bundle?) {
+  override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
     // Android 15+ edge-to-edge with back-compat on older versions

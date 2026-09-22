@@ -383,7 +383,7 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
 
   /* ─── Main render ───────────────────────────────────────────── */
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* ══ Hero ═════════════════════════════════════════════════════════ */}
@@ -394,16 +394,18 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
       >
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
-        <View style={s.topBar}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={s.titleWrap}>
-            <MaterialCommunityIcons name="car-sports" size={18} color={C.g400} />
-            <Text style={s.heroTitle}>Booking Detail</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.topBar}>
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.titleWrap}>
+              <MaterialCommunityIcons name="car-sports" size={18} color={C.g400} />
+              <Text style={s.heroTitle}>Booking Detail</Text>
+            </View>
+            <View style={{ width: 36 }} />
           </View>
-          <View style={{ width: 36 }} />
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView

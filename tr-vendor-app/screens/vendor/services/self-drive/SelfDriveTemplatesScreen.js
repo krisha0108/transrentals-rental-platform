@@ -343,38 +343,40 @@ export default function SelfDriveTemplatesScreen({ navigation }) {
 
   // ── Main ──────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={s.container} edges={['top']}>
+    <SafeAreaView style={s.container} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* Header */}
       <LinearGradient colors={G.hero} style={s.header}>
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <View style={s.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-            <Icon name="arrow-left" size={22} color="#fff" />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={s.headerTitle}>Self-Drive Templates</Text>
-            <Text style={s.headerSub}>
-              {isLoading ? 'Loading...' : `${templates.length} template${templates.length !== 1 ? 's' : ''}`}
-            </Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={s.headerTitle}>Self-Drive Templates</Text>
+              <Text style={s.headerSub}>
+                {isLoading ? 'Loading...' : `${templates.length} template${templates.length !== 1 ? 's' : ''}`}
+              </Text>
+            </View>
+            <TouchableOpacity style={s.addBtn} onPress={() => navigation.navigate('SelfDriveCreateTemplate')}>
+              <Icon name="plus" size={20} color="#fff" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={s.addBtn} onPress={() => navigation.navigate('SelfDriveCreateTemplate')}>
-            <Icon name="plus" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       {/* Category filter */}
       <View style={s.filterWrap}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterRowOuter} contentContainerStyle={s.filterRow}>
           {CATEGORIES.map(cat => (
             <TouchableOpacity
               key={cat.id}
               style={[s.filterChip, categoryFilter === cat.id && s.filterChipOn]}
               onPress={() => setCategoryFilter(cat.id)}
             >
-              <Text style={[s.filterChipText, categoryFilter === cat.id && s.filterChipTextOn]}>
+              <Text numberOfLines={1} style={[s.filterChipText, categoryFilter === cat.id && s.filterChipTextOn]}>
                 {cat.name}
               </Text>
             </TouchableOpacity>
@@ -457,7 +459,8 @@ const s = StyleSheet.create({
 
   // Filter
   filterWrap: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
-  filterRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+  filterRowOuter: { flexGrow: 0, flexShrink: 0, height: 60 },
+  filterRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8, alignItems: 'center' },
   filterChip: {
     paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
     backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border,

@@ -359,7 +359,7 @@ export default function TruckQuoteRequestsScreen({ navigation }) {
       {/* Fixed status filter chips — kept OUTSIDE the FlatList so tapping a
           filter doesn't reset the horizontal scroll position. */}
       <View style={styles.filtersFixed}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScrollOuter} contentContainerStyle={styles.filterScroll}>
           {Object.entries(STATUS_META).map(([key, meta]) => {
             const active = statusFilter === key;
             return (
@@ -370,7 +370,7 @@ export default function TruckQuoteRequestsScreen({ navigation }) {
                 activeOpacity={0.8}
               >
                 <Ionicons name={meta.icon} size={rs(13)} color={active ? '#fff' : meta.color} />
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>{meta.label}</Text>
+                <Text numberOfLines={1} style={[styles.chipText, active && styles.chipTextActive]}>{meta.label}</Text>
                 <View style={[styles.chipCount, !active && { backgroundColor: meta.bg }, active && styles.chipCountActive]}>
                   <Text style={[styles.chipCountText, !active && { color: meta.color }, active && styles.chipCountTextActive]}>
                     {statusCounts[key] || 0}
@@ -468,7 +468,8 @@ const styles = StyleSheet.create({
 
   // Fixed filter chips
   filtersFixed: { flexShrink: 0, marginTop: rs(6) },
-  filterScroll: { paddingHorizontal: GUT, paddingVertical: rs(10), gap: rs(8) },
+  filterScrollOuter: { flexGrow: 0, flexShrink: 0, height: 60 },
+  filterScroll: { paddingHorizontal: GUT, paddingVertical: rs(10), gap: rs(8), alignItems: 'center' },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: rs(6),
     paddingHorizontal: rs(13), paddingVertical: rs(8),

@@ -132,19 +132,21 @@ export default function B2BQuoteDetailScreen({ navigation, route }) {
   const Header = () => (
     <LinearGradient colors={G.hero} style={s.header}>
       <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-      <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-        <Icon name="arrow-left" size={22} color="#fff" />
-      </TouchableOpacity>
-      <View style={s.headerCenter}>
-        <Text style={s.headerTitle}>Quote Detail</Text>
-      </View>
-      <View style={{ width: 40 }} />
+      <SafeAreaView edges={['top']} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'transparent' }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+          <Icon name="arrow-left" size={22} color="#fff" />
+        </TouchableOpacity>
+        <View style={s.headerCenter}>
+          <Text style={s.headerTitle}>Quote Detail</Text>
+        </View>
+        <View style={{ width: 40 }} />
+      </SafeAreaView>
     </LinearGradient>
   );
 
   if (loading) {
     return (
-      <SafeAreaView style={s.safe} edges={['top']}>
+      <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
         <Header />
         <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
           {/* Status Banner skeleton */}
@@ -196,7 +198,7 @@ export default function B2BQuoteDetailScreen({ navigation, route }) {
 
   if (!quote) {
     return (
-      <SafeAreaView style={s.safe} edges={['top']}>
+      <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
         <Header />
         <View style={s.loadingWrap}>
           <MCI name="file-question-outline" size={52} color={C.muted} />
@@ -218,7 +220,7 @@ export default function B2BQuoteDetailScreen({ navigation, route }) {
   const isConfirmed = quote.status === 'CONFIRMED';
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <Header />
 
       <ScrollView

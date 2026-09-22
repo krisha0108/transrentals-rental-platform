@@ -415,7 +415,7 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
 
   /* ── Render ── */
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* ══ Hero Header ══════════════════════════════════════════════════════ */}
@@ -426,30 +426,32 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
       >
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
-        <View style={s.topBar}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={s.titleWrap}>
-            <MaterialCommunityIcons name="bus" size={18} color={C.amber} />
-            <Text style={s.heroTitle}>Quote Details</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.topBar}>
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.titleWrap}>
+              <MaterialCommunityIcons name="bus" size={18} color={C.amber} />
+              <Text style={s.heroTitle}>Quote Details</Text>
+            </View>
+            <View style={{ width: 36 }} />
           </View>
-          <View style={{ width: 36 }} />
-        </View>
 
-        {/* Identity block — who this quote is for */}
-        <View style={s.identityBlock}>
-          <View style={s.identityIcon}>
-            <MaterialCommunityIcons name="account" size={24} color="#fff" />
+          {/* Identity block — who this quote is for */}
+          <View style={s.identityBlock}>
+            <View style={s.identityIcon}>
+              <MaterialCommunityIcons name="account" size={24} color="#fff" />
+            </View>
+            <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12) }}>
+              <Text style={s.identityLabel}>QUOTE FOR</Text>
+              <Text style={s.identityName} numberOfLines={1}>{customerName}</Text>
+              <Text style={s.identitySub} numberOfLines={1}>
+                {pickupCity}{dropCity ? ` → ${dropCity}` : ''}
+              </Text>
+            </View>
           </View>
-          <View style={{ flex: 1, minWidth: 0, marginLeft: rs(12) }}>
-            <Text style={s.identityLabel}>QUOTE FOR</Text>
-            <Text style={s.identityName} numberOfLines={1}>{customerName}</Text>
-            <Text style={s.identitySub} numberOfLines={1}>
-              {pickupCity}{dropCity ? ` → ${dropCity}` : ''}
-            </Text>
-          </View>
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       {/* ══ Body ═════════════════════════════════════════════════════════════ */}

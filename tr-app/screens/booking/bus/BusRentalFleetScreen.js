@@ -13,6 +13,7 @@ import {
   Modal,
   StatusBar,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -544,23 +545,25 @@ export default function BusRentalFleetScreen() {
     </>
   );
 
+  // Slim tinted banner shown at the top of each step — replaces the old
+  // full teal-gradient hero repeated per step, which duplicated the color
+  // of the nav header right above it and looked like a "double header".
+  const renderStepBanner = (icon, title, subtitle, accent = false) => (
+    <View style={styles.stepBanner}>
+      <View style={[styles.stepBannerIcon, accent && styles.stepBannerIconAccent]}>
+        <Ionicons name={icon} size={wp('4.2%')} color={accent ? '#DC2626' : TEAL_MID} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.stepBannerTitle}>{title}</Text>
+        <Text style={styles.stepBannerSubtitle}>{subtitle}</Text>
+      </View>
+    </View>
+  );
+
   // STEP 1: Trip Type Selection
   const renderStep1 = () => (
     <View style={styles.stepContainer}>
-      {/* Premium hero header */}
-      <LinearGradient
-        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.stepHero}
-      >
-        {renderDecoCircles()}
-        <View style={styles.stepHeroIconWrap}>
-          <Ionicons name="bus" size={wp('5.5%')} color="#fff" />
-        </View>
-        <Text style={styles.stepHeroTitle}>What service do you need?</Text>
-        <Text style={styles.stepHeroSubtitle}>Choose your trip type</Text>
-      </LinearGradient>
+      {renderStepBanner('bus', 'What service do you need?', 'Choose your trip type')}
 
       <View style={styles.tripTypeGrid}>
         {TRIP_TYPES.map((type) => (
@@ -603,19 +606,7 @@ export default function BusRentalFleetScreen() {
   // STEP 2: Pickup Location
   const renderStep2 = () => (
     <View style={styles.stepContainer}>
-      <LinearGradient
-        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.stepHero}
-      >
-        {renderDecoCircles()}
-        <View style={styles.stepHeroIconWrap}>
-          <Ionicons name="location" size={wp('8%')} color="#fff" />
-        </View>
-        <Text style={styles.stepHeroTitle}>Where will you start your journey?</Text>
-        <Text style={styles.stepHeroSubtitle}>Enter pickup location or select from suggestions</Text>
-      </LinearGradient>
+      {renderStepBanner('location', 'Where will you start your journey?', 'Enter pickup location or select from suggestions')}
 
       <View style={styles.inputContainer}>
         <View style={styles.searchBox}>
@@ -707,19 +698,7 @@ export default function BusRentalFleetScreen() {
   // STEP 3: Drop Location
   const renderStep3 = () => (
     <View style={styles.stepContainer}>
-      <LinearGradient
-        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.stepHero}
-      >
-        {renderDecoCircles()}
-        <View style={[styles.stepHeroIconWrap, { backgroundColor: 'rgba(239,68,68,0.25)' }]}>
-          <Ionicons name="flag" size={wp('8%')} color="#FCA5A5" />
-        </View>
-        <Text style={styles.stepHeroTitle}>Where will you be traveling to?</Text>
-        <Text style={styles.stepHeroSubtitle}>Enter destination or select from suggestions</Text>
-      </LinearGradient>
+      {renderStepBanner('flag', 'Where will you be traveling to?', 'Enter destination or select from suggestions', true)}
 
       <View style={styles.inputContainer}>
         <View style={styles.searchBox}>
@@ -811,19 +790,7 @@ export default function BusRentalFleetScreen() {
   // STEP 4: Passengers
   const renderStep4 = () => (
     <View style={styles.stepContainer}>
-      <LinearGradient
-        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.stepHero}
-      >
-        {renderDecoCircles()}
-        <View style={styles.stepHeroIconWrap}>
-          <Ionicons name="people" size={wp('8%')} color="#fff" />
-        </View>
-        <Text style={styles.stepHeroTitle}>How many passengers?</Text>
-        <Text style={styles.stepHeroSubtitle}>Enter total number of travelers</Text>
-      </LinearGradient>
+      {renderStepBanner('people', 'How many passengers?', 'Enter total number of travelers')}
 
       <View style={styles.passengerCard}>
         <View style={styles.passengerInputContainer}>
@@ -902,19 +869,7 @@ export default function BusRentalFleetScreen() {
   // STEP 5: Pickup Date/Time
   const renderStep5 = () => (
     <View style={styles.stepContainer}>
-      <LinearGradient
-        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.stepHero}
-      >
-        {renderDecoCircles()}
-        <View style={styles.stepHeroIconWrap}>
-          <Ionicons name="calendar" size={wp('8%')} color="#fff" />
-        </View>
-        <Text style={styles.stepHeroTitle}>When do you need the service?</Text>
-        <Text style={styles.stepHeroSubtitle}>Select your pickup date and time</Text>
-      </LinearGradient>
+      {renderStepBanner('calendar', 'When do you need the service?', 'Select your pickup date and time')}
 
       <View style={styles.dateTimeContainer}>
         <TouchableOpacity style={styles.dateTimeCard} onPress={() => openDatePicker('pickup')} activeOpacity={0.7}>
@@ -962,19 +917,7 @@ export default function BusRentalFleetScreen() {
   // STEP 6: Return Date/Time (for non-local)
   const renderStep6 = () => (
     <View style={styles.stepContainer}>
-      <LinearGradient
-        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.stepHero}
-      >
-        {renderDecoCircles()}
-        <View style={[styles.stepHeroIconWrap, { backgroundColor: 'rgba(239,68,68,0.25)' }]}>
-          <Ionicons name="calendar" size={wp('8%')} color="#FCA5A5" />
-        </View>
-        <Text style={styles.stepHeroTitle}>When will you return?</Text>
-        <Text style={styles.stepHeroSubtitle}>Select your return date and time</Text>
-      </LinearGradient>
+      {renderStepBanner('calendar', 'When will you return?', 'Select your return date and time', true)}
 
       <View style={styles.dateTimeContainer}>
         <TouchableOpacity style={styles.dateTimeCard} onPress={() => openDatePicker('return')} activeOpacity={0.7}>
@@ -1022,19 +965,7 @@ export default function BusRentalFleetScreen() {
   // STEP 7: Special Requirements
   const renderStep7 = () => (
     <View style={styles.stepContainer}>
-      <LinearGradient
-        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.stepHero}
-      >
-        {renderDecoCircles()}
-        <View style={styles.stepHeroIconWrap}>
-          <Ionicons name="list" size={wp('8%')} color="#fff" />
-        </View>
-        <Text style={styles.stepHeroTitle}>Any special requirements?</Text>
-        <Text style={styles.stepHeroSubtitle}>Add any special requests or preferences</Text>
-      </LinearGradient>
+      {renderStepBanner('list', 'Any special requirements?', 'Add any special requests or preferences')}
 
       {/* B2B Booking Type Toggle */}
       {isB2BCustomer && (
@@ -1411,6 +1342,7 @@ export default function BusRentalFleetScreen() {
       {renderStepIndicator()}
 
       {/* Content */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
@@ -1459,6 +1391,7 @@ export default function BusRentalFleetScreen() {
           </TouchableOpacity>
         </View>
       )}
+      </KeyboardAvoidingView>
 
       {/* Phone Collection Modal */}
       <Modal
@@ -1684,36 +1617,38 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // --- Step Hero ---
-  stepHero: {
-    paddingVertical: hp('2%'),
-    paddingHorizontal: wp('5%'),
+  // --- Step Banner (slim tinted banner, replaces the old full-gradient step hero) ---
+  stepBanner: {
+    flexDirection: 'row',
     alignItems: 'center',
-    overflow: 'hidden',
-    borderBottomLeftRadius: wp('6%'),
-    borderBottomRightRadius: wp('6%'),
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('4%'),
+    padding: wp('3%'),
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.2%'),
     marginBottom: hp('1.5%'),
+    gap: wp('3%'),
   },
-  stepHeroIconWrap: {
-    width: wp('12%'),
-    height: wp('12%'),
-    borderRadius: wp('6%'),
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  stepBannerIcon: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: CARD,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: hp('0.8%'),
   },
-  stepHeroTitle: {
-    fontSize: wp('4.5%'),
+  stepBannerIconAccent: {
+    backgroundColor: '#FEE2E2',
+  },
+  stepBannerTitle: {
+    fontSize: wp('3.6%'),
     fontWeight: '700',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: hp('0.3%'),
+    color: TEXT_PRIMARY,
   },
-  stepHeroSubtitle: {
-    fontSize: wp('3.2%'),
-    color: 'rgba(255,255,255,0.75)',
-    textAlign: 'center',
+  stepBannerSubtitle: {
+    fontSize: wp('2.8%'),
+    color: TEXT_SECONDARY,
+    marginTop: hp('0.2%'),
   },
 
   // --- Trip Type Grid ---

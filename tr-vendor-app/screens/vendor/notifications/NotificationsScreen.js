@@ -350,7 +350,7 @@ export default function NotificationsScreen({ navigation }) {
           </View>
 
           {/* Filter pills */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtersRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filtersRowOuter} contentContainerStyle={s.filtersRow}>
             {FILTERS.map(f => {
               const active = filter === f.key;
               return (
@@ -361,7 +361,7 @@ export default function NotificationsScreen({ navigation }) {
                   activeOpacity={0.85}
                 >
                   <Ionicons name={f.icon} size={12} color={active ? C.g700 : 'rgba(255,255,255,0.85)'} />
-                  <Text style={[s.filterText, active && s.filterTextActive]}>{f.label}</Text>
+                  <Text numberOfLines={1} style={[s.filterText, active && s.filterTextActive]}>{f.label}</Text>
                   {f.key === 'unread' && unreadCount > 0 && (
                     <View style={[s.filterBadge, active && { backgroundColor: C.g600 }]}>
                       <Text style={[s.filterBadgeText, active && { color: '#fff' }]}>
@@ -513,7 +513,8 @@ const s = StyleSheet.create({
   headerSub:   { fontFamily: DISPLAY, fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: '700', marginTop: 2 },
 
   // Filter pills
-  filtersRow: { paddingHorizontal: 8, paddingTop: 12, gap: 6, flexDirection: 'row' },
+  filtersRowOuter: { flexGrow: 0, flexShrink: 0, height: 50 },
+  filtersRow: { paddingHorizontal: 8, paddingTop: 12, gap: 6, flexDirection: 'row', alignItems: 'center' },
   filterChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,

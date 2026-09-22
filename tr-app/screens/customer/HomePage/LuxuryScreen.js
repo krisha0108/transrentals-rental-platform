@@ -400,9 +400,11 @@ export default function LuxuryScreen() {
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         onScrollBeginDrag={() => {
           if (!dropdownTouching.current) setShowSuggestions(false);
         }}
+        contentContainerStyle={{ paddingBottom: 20 }}
       >
         {/* FORM CARD */}
         <View style={styles.formCard}>

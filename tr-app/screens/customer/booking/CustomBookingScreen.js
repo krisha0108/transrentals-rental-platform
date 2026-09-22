@@ -7,10 +7,11 @@
 //   2. Day-wise plan (per-day services + vehicles)
 //   3. Customer info + submit
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-  Image, Platform, ActivityIndicator, Alert, Modal, Pressable,
+  Image, Platform, ActivityIndicator, Alert, Modal, Pressable, KeyboardAvoidingView,
+  findNodeHandle, UIManager,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -574,6 +575,26 @@ const makeEmptyDay = (date) => ({ date, services: [makeEmptyService()], copiedFr
 
 export default function CustomBookingScreen() {
   const navigation = useNavigation();
+  const scrollRef = useRef(null);
+  const scrollFocusedInputIntoView = (event) => {
+    const inputHandle = findNodeHandle(event.target);
+    setTimeout(() => {
+      if (!scrollRef.current || !inputHandle) return;
+      const scrollHandle = findNodeHandle(scrollRef.current);
+      if (!scrollHandle) return;
+      scrollRef.current.measure((sx, sy, sWidth, sHeight) => {
+        UIManager.measureLayout(
+          inputHandle,
+          scrollHandle,
+          () => {},
+          (x, y, width, height) => {
+            const target = y + height - sHeight + 130;
+            scrollRef.current.scrollTo({ y: Math.max(target, 0), animated: true });
+          }
+        );
+      });
+    }, 280);
+  };
 
   // ── Step state ────────────────────────────────────────────────────────
   const [step, setStep] = useState(1);
@@ -1095,6 +1116,7 @@ export default function CustomBookingScreen() {
         placeholder="Address where vehicles arrive on Day 1"
         placeholderTextColor="#9CA3AF"
         multiline
+        onFocus={scrollFocusedInputIntoView}
       />
 
       <Text style={styles.label}>Main Destination / Venue</Text>
@@ -1105,6 +1127,7 @@ export default function CustomBookingScreen() {
         placeholder="e.g. Venue address, hotel, etc."
         placeholderTextColor="#9CA3AF"
         multiline
+        onFocus={scrollFocusedInputIntoView}
       />
 
       <Text style={styles.label}>Special Requirements (optional)</Text>
@@ -1115,6 +1138,7 @@ export default function CustomBookingScreen() {
         placeholder="Anything else our team should know?"
         placeholderTextColor="#9CA3AF"
         multiline
+        onFocus={scrollFocusedInputIntoView}
       />
     </View>
   );
@@ -1495,7 +1519,8 @@ export default function CustomBookingScreen() {
 
       {renderStepBar()}
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 110 }} keyboardShouldPersistTaps="handled">
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
@@ -1540,6 +1565,7 @@ export default function CustomBookingScreen() {
           </TouchableOpacity>
         )}
       </View>
+      </KeyboardAvoidingView>
 
       {/* Copy-to-many-days modal — pick one or more destination days to
           paste the source day's services into. */}

@@ -35,7 +35,7 @@ import CornerGrid from '../_shared/CornerGrid';
 // and stops honouring `adjustResize` altogether.
 //
 // KeyboardProvider is already mounted at the root in App.js.
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { KeyboardAvoidingView, useKeyboardState } from 'react-native-keyboard-controller';
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -121,6 +121,7 @@ export default function ChatScreen({ route, navigation }) {
   const svc = SERVICE_MAP[activeServiceType] || { label: activeServiceType || 'Booking', color: C.g700, bg: C.g50, icon: 'car' };
   const customerInitial = (customerName || 'C').charAt(0).toUpperCase();
   const insets = useSafeAreaInsets();
+  const isKeyboardVisible = useKeyboardState((s) => s.isVisible);
 
   const [loading, setLoading]   = useState(true);
   const [sending, setSending]   = useState(false);
@@ -510,7 +511,7 @@ export default function ChatScreen({ route, navigation }) {
         </View>
 
         {/* Input Area */}
-        <View style={[st.inputArea, { paddingBottom: Math.max(insets.bottom, 10) + 6 }]}>
+        <View style={[st.inputArea, { paddingBottom: isKeyboardVisible ? 6 : Math.max(insets.bottom, 10) + 6 }]}>
           <View style={st.inputBox}>
             <TextInput
               style={st.input}

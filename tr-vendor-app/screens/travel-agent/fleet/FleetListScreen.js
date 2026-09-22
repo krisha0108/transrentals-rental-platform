@@ -246,6 +246,7 @@ export default function FleetListScreen({ navigation }) {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={styles.chipsRowOuter}
           contentContainerStyle={styles.chipsRow}
         >
         <Chip
@@ -660,7 +661,8 @@ const styles = StyleSheet.create({
   // Type filter chips — rounded-rect tiles like the Add Vehicle "Vehicle type" picker.
   // Fixed-height bar so the row can't collapse behind cards.
   chipsBar: { height: 76, backgroundColor: C.bg, marginTop: 2, zIndex: 1 },
-  chipsRow: { paddingHorizontal: 16, paddingTop: 6, gap: 8, flexDirection: "row" },
+  chipsRowOuter: { flexGrow: 0, flexShrink: 0, height: 76 },
+  chipsRow: { paddingHorizontal: 16, paddingTop: 6, gap: 8, flexDirection: "row", alignItems: "center" },
   chip: {
     alignItems: "center", gap: 5,
     paddingTop: 9, paddingBottom: 9, paddingHorizontal: 12,
