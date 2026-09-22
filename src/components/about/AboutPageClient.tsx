@@ -4,16 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { motion, useInView } from 'framer-motion';
 import {
-  MapPin, Map, Car, Headphones, ArrowRight, Sparkles,
+  MapPin, Car, ArrowRight, Sparkles,
   Target, Telescope, ShieldCheck, Tag, Globe2, Calendar, Zap, Truck, Bike, Bus,
 } from 'lucide-react';
-
-const HERO_STATS = [
-  { icon: MapPin, value: '500+', label: 'Cities' },
-  { icon: Map, value: '36', label: 'States' },
-  { icon: Car, value: '1000+', label: 'Vehicles' },
-  { icon: Headphones, value: '24/7', label: 'Support' },
-];
 
 const IMPACT_STATS = [
   { icon: Sparkles, target: 50000, suffix: '+', label: 'Happy Customers' },
@@ -96,23 +89,9 @@ export function AboutPageClient() {
           <h1 className="text-4xl md:text-5xl font-black mb-3 leading-tight max-w-xl">
             About Trans<span className="text-emerald-400">Rentals</span>
           </h1>
-          <p className="text-white/70 text-base md:text-lg mb-8 max-w-md">
+          <p className="text-white/70 text-base md:text-lg max-w-md">
             India&apos;s most trusted vehicle rental marketplace
           </p>
-
-          <div className="flex flex-wrap gap-x-8 gap-y-4">
-            {HERO_STATS.map(({ icon: Icon, value, label }) => (
-              <div key={label} className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center shrink-0">
-                  <Icon className="w-4.5 h-4.5 text-emerald-400" strokeWidth={2} />
-                </div>
-                <div className="leading-tight">
-                  <span className="block text-lg font-black text-white">{value}</span>
-                  <span className="block text-[11px] text-white/50">{label}</span>
-                </div>
-              </div>
-            ))}
-          </div>
         </motion.div>
       </section>
 

@@ -14,7 +14,7 @@ import {
   Bed, Utensils, Sofa, Armchair, Refrigerator, Tv2, DoorClosed, WashingMachine, Weight, Warehouse,
   IndianRupee, Headphones, Phone, Loader2,
 } from 'lucide-react';
-import { Testimonials } from '@/components/home/Testimonials';
+import { CustomerReviews } from '@/components/home/CustomerReviews';
 import { StoriesStrip } from '@/components/home/StoriesStrip';
 import { BackrTokenSection } from '@/components/home/BackrTokenSection';
 import { AppDownloadSection } from '@/components/home/AppDownloadSection';
@@ -928,6 +928,9 @@ export default function MarketplacePage() {
         </div>
       </section>
 
+      {/* ═══════════════════════ CUSTOMER REVIEWS ═══════════════════════ */}
+      <CustomerReviews />
+
       {/* ═══════════════════════ CATEGORY MARKETPLACE ═══════════════════════ */}
       <section className="bg-slate-50 py-20 sm:py-24">
         <div className="container mx-auto px-4">
@@ -1108,9 +1111,6 @@ export default function MarketplacePage() {
           </div>
         </div>
       </section>
-
-      {/* ══════════════════════════ TESTIMONIALS ══════════════════════════ */}
-      <Testimonials />
 
       {/* ══════════════════════════ BACKR TOKEN ══════════════════════════ */}
       <BackrTokenSection />

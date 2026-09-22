@@ -8,15 +8,8 @@ import {
   CONTACT_PHONE_LINK,
   WHATSAPP_LINK,
 } from '@/lib/contact';
-import { Phone, Mail, MapPin, MessageCircle, Clock, Zap, ShieldCheck, Globe2, HelpCircle, ArrowRight } from 'lucide-react';
+import { Phone, Mail, MapPin, MessageCircle, Clock, HelpCircle, ArrowRight } from 'lucide-react';
 import { WebPageSchema } from '@/components/seo/schemas';
-
-const QUICK_INFO = [
-  { icon: Zap, label: 'Quick Response' },
-  { icon: Clock, label: '24/7 Support' },
-  { icon: ShieldCheck, label: 'Trusted by 10K+ Customers' },
-  { icon: Globe2, label: '150+ Cities Coverage' },
-];
 
 export const metadata: Metadata = {
   title: 'Contact Us - Get in Touch | TransRentals',
@@ -115,21 +108,9 @@ export default function ContactPage() {
             <p className="text-xl md:text-2xl font-bold text-gray-900 mb-4">
               We&apos;re here to <span className="text-emerald-600">help!</span> Reach out to us anytime
             </p>
-            <p className="text-gray-500 mb-8 max-w-md">
+            <p className="text-gray-500 max-w-md">
               Have questions about our vehicle rental services? Our team is ready to assist you.
             </p>
-
-            {/* Quick info badges */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl">
-              {QUICK_INFO.map(({ icon: Icon, label }) => (
-                <div key={label} className="bg-white/90 backdrop-blur-sm border border-gray-100 shadow-sm rounded-xl px-3 py-4 text-center">
-                  <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-2">
-                    <Icon className="w-4.5 h-4.5 text-emerald-600" />
-                  </div>
-                  <span className="text-xs font-bold text-gray-800 leading-tight">{label}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>

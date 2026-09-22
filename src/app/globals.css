@@ -37,3 +37,17 @@
 @media (prefers-reduced-motion: reduce) {
   .hd-veil, .hd-panel { animation: none; }
 }
+
+/* ── Customer reviews marquee ─────────────────────────────────────────────
+   Three rows of review cards that slide in alternating directions. Each row
+   holds its cards twice and travels exactly half its own width, so the loop
+   has no visible seam. Pointing at a row pauses it, because a moving card is
+   hard to read. */
+@keyframes review-marquee-left  { from { transform: translateX(0); }    to { transform: translateX(-50%); } }
+@keyframes review-marquee-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+
+.review-marquee:hover .review-track { animation-play-state: paused; }
+
+/* No reduced-motion opt-out for the wall: it is the section itself, and
+   hovering a row still stops it for anyone who wants to read a card. */
+
