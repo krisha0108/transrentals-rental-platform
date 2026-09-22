@@ -24,8 +24,12 @@ import { SERVICE_PARENT_MAP } from '../src/lib/constants/service-mapping';
 const prisma = new PrismaClient();
 
 const BASE_URL = process.env.BASE_URL || 'https://transrentals.in';
+// Default kept low deliberately: this script itself fires concurrent
+// requests at a just-deployed, cold-cache production site. A high default
+// (this used to be 80) turns the warmer into the same kind of concurrency
+// storm it exists to prevent — see the Sep 2026 outage postmortem.
 const CONCURRENCY = parseInt(
-  process.argv.find((a) => a.startsWith('--concurrency='))?.split('=')[1] || '80'
+  process.argv.find((a) => a.startsWith('--concurrency='))?.split('=')[1] || '8'
 );
 
 // All (services)/ folder slugs — 56 landing pages
@@ -149,6 +153,29 @@ async function getServiceLocationUrls(): Promise<string[]> {
     console.warn('⚠️  Could not fetch service_locations:', (err as Error).message);
     return [];
   }
+}
+
+/**
+ * Self-drive car rental "cars" listing subpage — the actual heavy,
+ * dynamically-rendered page (vehicle-model aggregation per location) behind
+ * the Sep 2026 outage. The plain /self-drive-car-rentals/{location} landing
+ * page above never executes that code path, so warming only that URL leaves
+ * /cars completely cold for the first real users after a deploy.
+ *
+ * The page redirects back to the landing page unless pickupDate/pickupTime/
+ * dropDate/dropTime are present in the query string — but its cache key only
+ * depends on the location slug, so any valid-looking dummy values are enough
+ * to populate the cache.
+ */
+function getSelfDriveCarsUrls(serviceLocationUrls: string[]): string[] {
+  const prefix = `${BASE_URL}/self-drive-car-rentals/`;
+  const pickupDate = new Date().toISOString().slice(0, 10);
+  const dropDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const qs = `pickupDate=${pickupDate}&pickupTime=10:00&dropDate=${dropDate}&dropTime=10:00`;
+
+  return serviceLocationUrls
+    .filter((url) => url.startsWith(prefix))
+    .map((url) => `${url}/cars?${qs}`);
 }
 
 /** Route pages — one-way-cab, round-trip, airport-transfer */
@@ -308,12 +335,14 @@ async function main() {
 
   const staticUrls = getStaticPageUrls();
   const serviceMainUrls = getServiceMainUrls();
+  const selfDriveCarsUrls = getSelfDriveCarsUrls(serviceLocationUrls);
 
   // Deduplicate all URLs
   const allUrls = Array.from(new Set([
     ...staticUrls,
     ...serviceMainUrls,
     ...serviceLocationUrls,
+    ...selfDriveCarsUrls,
     ...routeUrls,
     ...blogUrls,
     ...storyUrls,
@@ -323,6 +352,7 @@ async function main() {
   console.log(`   Static pages:          ${staticUrls.length}`);
   console.log(`   Service main pages:    ${serviceMainUrls.length}`);
   console.log(`   Service+location pages:${serviceLocationUrls.length}`);
+  console.log(`   Self-drive /cars pages:${selfDriveCarsUrls.length}`);
   console.log(`   Route pages:           ${routeUrls.length}`);
   console.log(`   Blog posts:            ${blogUrls.length}`);
   console.log(`   Web stories:           ${storyUrls.length}`);
@@ -338,6 +368,7 @@ async function main() {
     { name: '📄 Static pages', urls: staticUrls },
     { name: '🏠 Service main pages', urls: serviceMainUrls },
     { name: '📍 Service+location pages', urls: serviceLocationUrls },
+    { name: '🚙 Self-drive /cars pages', urls: selfDriveCarsUrls },
     { name: '🚗 Route pages', urls: routeUrls },
     { name: '📝 Blog posts', urls: blogUrls },
     { name: '🎬 Web stories', urls: storyUrls },

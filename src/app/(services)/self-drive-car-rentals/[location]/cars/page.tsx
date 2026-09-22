@@ -16,6 +16,42 @@ import { getCachedSelfDriveService } from '@/lib/services/cached-service-lookups
 const CARS_PAGE_REVALIDATE_SECONDS = 300;
 const CARS_PAGE_CACHE_TAGS = ['vehicle-models', 'vendor-fleets', 'locations'];
 
+// unstable_cache does not stop two concurrent cold misses from both running
+// compute() — right after a deploy, dozens of location pages can all end up
+// doing this vehicle-model aggregation (60-100+ models each) at the same
+// moment, which blocks the Node event loop long enough to fill the accept
+// queue for new connections and time the whole site out. This collapses
+// concurrent requests for the same location into one in-flight Promise, and
+// caps how many *different* locations can be cold-computing at once so a
+// deploy-time traffic burst degrades into a short queue instead of an outage.
+const MAX_CONCURRENT_CARS_FOR_LOCATION = 6;
+let activeCarsForLocationComputes = 0;
+const carsForLocationWaitQueue: Array<() => void> = [];
+const carsForLocationInFlight = new Map<string, Promise<AggregatedCar[]>>();
+
+async function getCarsForLocationDeduped(locationSlug: string): Promise<AggregatedCar[]> {
+  const existing = carsForLocationInFlight.get(locationSlug);
+  if (existing) return existing;
+
+  const promise = (async () => {
+    if (activeCarsForLocationComputes >= MAX_CONCURRENT_CARS_FOR_LOCATION) {
+      await new Promise<void>((resolve) => carsForLocationWaitQueue.push(resolve));
+    }
+    activeCarsForLocationComputes++;
+    try {
+      return await getCarsForLocation(locationSlug);
+    } finally {
+      activeCarsForLocationComputes--;
+      carsForLocationWaitQueue.shift()?.();
+    }
+  })().finally(() => {
+    carsForLocationInFlight.delete(locationSlug);
+  });
+
+  carsForLocationInFlight.set(locationSlug, promise);
+  return promise;
+}
+
 function parseJsonField<T>(value: unknown, defaultValue: T): T {
   if (value === null || value === undefined) return defaultValue;
   if (typeof value === 'string') {
@@ -422,7 +458,7 @@ export default async function CarsSearchPage({ params, searchParams }: PageProps
 
   // Fetch cars, brands, categories, and location in parallel
   const [cars, brands, categories, locationData] = await Promise.all([
-    getCarsForLocation(params.location),
+    getCarsForLocationDeduped(params.location),
     getCarBrands(),
     getCarCategories(),
     getLocationBySlug(params.location),
